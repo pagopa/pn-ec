@@ -3,28 +3,28 @@ package it.pagopa.pnec.spedizionedocumenticartacei;
 public class HeaderRequest {
 	
 	//Identificativo con cui Piattaforma Notifiche si identifica
-	protected String serviceId;
+	protected String xPagopaExtchServiceId;
 	
 	//Credenziale di accesso
-	protected String apiKey;
+	protected String xApiKey;
 	
 	//Identificativo della richiesta di postalizzazione
 	protected String requestId;
 
-	public String getServiceId() {
-		return serviceId;
+	public String getXPagopaExtchServiceId() {
+		return xPagopaExtchServiceId;
 	}
 
-	public void setServiceId(String serviceId) {
-		this.serviceId = serviceId;
+	public void setXPagopaExtchServiceId(String xPagopaExtchServiceId) {
+		this.xPagopaExtchServiceId = xPagopaExtchServiceId;
 	}
 
-	public String getApiKey() {
-		return apiKey;
+	public String getXApiKey() {
+		return xApiKey;
 	}
 
-	public void setApiKey(String apiKey) {
-		this.apiKey = apiKey;
+	public void setXApiKey(String xApiKey) {
+		this.xApiKey = xApiKey;
 	}
 
 	public String getRequestId() {
@@ -33,6 +33,12 @@ public class HeaderRequest {
 
 	public void setRequestId(String requestId) {
 		this.requestId = requestId;
+	}
+
+	@Override
+	public String toString() {
+		return "HeaderRequest [xPagopaExtchServiceId=" + xPagopaExtchServiceId + ", xApiKey=" + xApiKey + ", requestId="
+				+ requestId + "]";
 	}
 	
 }

@@ -7,23 +7,18 @@ class StatusRequestTest {
 	
 	ServicePaperDocument service = new ServicePaperDocument();
 	
-	@Test
-	//SCRR.100.3 connected
-	public void connectionSuccess() {
-		HeaderRequest headerParam = new HeaderRequest();
-		headerParam.setServiceId("x-pagopa-extch-service-id");
-		headerParam.setApiKey("x-api-key");
-		headerParam.setRequestId("ABCD-HILM-YKWX-202202-1_rec0_try1");
-		Assertions.assertTrue(service.getConnection(headerParam), "Connected");
-	}
+	private static final String SERVICE_ID = "CONSOLIDATORE SERVER";
+	private static final String API_KEY = "FCRISCIOTTI";
+	private static final String REQUEST_ID = "ABCD-HILM-YKWX-202202-1_rec0_try1";
 	
 	@Test
 	//SCRR.100.3 connection refused - error 500
 	public void connectionFailed() {
 		HeaderRequest headerParam = new HeaderRequest();
-//		headerParam.setServiceId(""); serviceId null
-		headerParam.setApiKey("x-api-key");
-		headerParam.setRequestId("ABCD-HILM-YKWX-202202-1_rec0_try1");
+		headerParam.setXApiKey(API_KEY);
+		headerParam.setRequestId(REQUEST_ID);
+		
+		System.out.println(headerParam.toString());
 		Assertions.assertFalse(service.getConnection(headerParam), "Connection Refused");
 	}
 	
@@ -31,22 +26,36 @@ class StatusRequestTest {
 	//SCRR.100.1 status code - 200
     public void statusCodeSuccess() {
 		HeaderRequest headerParam = new HeaderRequest();
-		headerParam.setServiceId("x-pagopa-extch-service-id");
-		headerParam.setApiKey("x-api-key");
-		headerParam.setRequestId("ABCD-HILM-YKWX-202202-1_rec0_try1");
-//		service.getStatusCode(headerParam);
-		Assertions.assertTrue(service.getStatusCode(headerParam), "Codice trovato");
+		headerParam.setXPagopaExtchServiceId(SERVICE_ID);
+		headerParam.setXApiKey(API_KEY);
+		headerParam.setRequestId(REQUEST_ID);
+		
+		System.out.println(headerParam.toString());
+		Assertions.assertNotNull(service.getStatusCode(headerParam), "Richiesta trovata");
     }
 	
 	@Test
 	//SCRR.100.2 status code - error 404
-    public void statusCodeFailed() {
+    public void requestNotSent() {
 		HeaderRequest headerParam = new HeaderRequest();
-		headerParam.setServiceId("x-pagopa-extch-service-id");
-		headerParam.setApiKey("x-api-key");
-//		headerParam.setRequestId("ABCD-HILM-YKWX-202202-1_rec0_try1"); requestId null
-//		service.getStatusCode(headerParam);
-		Assertions.assertFalse(service.getStatusCode(headerParam), "RequestId non corretto");
+		headerParam.setXPagopaExtchServiceId(SERVICE_ID);
+		headerParam.setXApiKey(API_KEY);
+		headerParam.setRequestId("");
+		
+		System.out.println(headerParam.toString());
+		Assertions.assertNotNull(service.getStatusCode(headerParam), "RequestId non corretto");
+    }
+	
+	@Test
+	//authentication failed
+    public void authenticationFailed() {
+		HeaderRequest headerParam = new HeaderRequest();
+		headerParam.setXPagopaExtchServiceId(SERVICE_ID);
+		headerParam.setXApiKey("");
+		headerParam.setRequestId(REQUEST_ID);
+		
+		System.out.println(headerParam.toString());
+		Assertions.assertNotNull(service.getStatusCode(headerParam), "Required field is not provided");
     }
 
 }

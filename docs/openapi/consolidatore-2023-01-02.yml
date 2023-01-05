@@ -1,0 +1,1026 @@
+openapi: 3.0.1
+info:
+  title: API che il fornitore dei servizi di consolidamento dovrà mettere a disposizione
+  description: >- 
+    Il consolidatore espone due path.
+
+    - '/piattaforma-notifiche-ingress/v1/paper-deliveries-engagement' a cui Piattaforma Notifiche
+      sottomette richieste di invio di corrispondenza cartacea.
+    - '/piattaforma-notifiche-ingress/v1/paper-deliveries-progresses/{requestId}' a cui 
+      Piattaforma Notifiche richiede in modalità pull gli esiti delle postalizzazioni.
+    
+    E invoca un __webhook__ messo a disposizione da Piattaforma Notifiche 
+      e invocato dal consolidatore allo scopo di notificare gli eventi di progressione dei processi 
+      di postalizzazione.
+  version: v1.0
+servers:
+  - url: 'https://api.consolidatore.vincitore-gara-monte-valle.it'
+    description: Server url
+paths:  
+  /piattaforma-notifiche-ingress/v1/paper-deliveries-engagement:
+    post:
+      operationId: sendPaperEngageRequest
+      summary: PN richiede l'invio di corrispondenza cartacea
+      description: >- 
+        Questa operazione sottomette al consolidatore una richiesta di invio di 
+        corrispondenza cartacea. <br/>
+        Il consolidatore deve validare la sintatticamente la richiesta e, se tale 
+        validazione ha successo, registrare la richiesta in maniera sincrona.
+        Se vengono inviate molteplici richieste con lo stesso requestId solo una 
+        deve avere successo (status code HTTP 200, le altre devono ricevere lo 
+        status code 409).
+      parameters:
+        - in: header
+          name: x-pagopa-extch-service-id
+          description: Identificativo con cui Piattaforma Notifiche si identifica
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: x-api-key
+          description: Credenziale di accesso
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaperEngageRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              example: { resultCode: '200.00', resultDescription: 'OK', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+        '400':
+          description: errore di validazione della richiesta
+          content:
+            application/json:
+              examples: 
+                syntaxError: 
+                  summary: 'Errore sintattico'
+                  value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+                semanticError: 
+                  summary: 'Errore semantico'
+                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+        '401':
+          description: Mancano le credenziali di identificazione o sono sbagliate
+          content:
+            application/json:
+              example: { resultCode: '401.00', resultDescription: 'Authentication Failed', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+        '409':
+          description: requestId già inviato quindi non riutilizzabile
+          content:
+            application/json:
+              example: { resultCode: '409.00', resultDescription: 'duplicated requestId', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+  
+  /piattaforma-notifiche-ingress/v1/paper-deliveries-progresses/{requestId}:
+    get:
+      operationId: getPaperEngageProgresses
+      summary: PN richiede l'elenco dei progressi di una postalizzazione
+      description: >- 
+        Questa richiesta permette di ottenere l'elenco degli eventi salienti 
+        riguardanti un processo di postalizzazione. <br/>
+        Oltre all'elenco degli eventi si ottengono informazioni sulle cause di tali eventi 
+        e URL per effettuare il download delle scansioni digitali dei documenti prodotti 
+        durante il processo di postalizzazione. <br>
+      parameters:
+        - in: header
+          name: x-pagopa-extch-service-id
+          description: Identificativo con cui Piattaforma Notifiche si identifica
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: x-api-key
+          description: Credenziale di accesso
+          required: true
+          schema:
+            type: string
+        - name: requestId
+          description: Identificativo della richiesta di postalizzazione 
+          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1'
+          in: path
+          required: true
+          schema:
+            type: string  
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperDeliveryProgressesResponse'
+              example:
+                responseId: 'ABCD-HILM-YKWX-202202-1_rec0_try1'
+                events: []
+
+        '401':
+          description: Mancano le credenziali di identificazione o sono sbagliate
+          content:
+            application/json:
+              example: { resultCode: '401.00', resultDescription: 'Authentication Failed', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+        '404':
+          description: requestId non corrispondente a un requestId precedentemente richiesto.
+          content:
+            application/json:
+              example: { resultCode: '404.01', resultDescription: 'requestId never sent', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+        
+  /piattaforma-notifiche-ingress/v1/paper-replicas-engagement:
+    post:
+      operationId: sendPaperReplicasEngagementRequest
+      summary: PN richiede la generazione di un duplicato
+      description: >- 
+        Questa operazione sottomette al consolidatore una richiesta di invio di 
+        documento duplicato. <br/>
+        Il consolidatore deve validare la sintatticamente la richiesta e, se tale 
+        validazione ha successo, registrare la richiesta in maniera sincrona.
+        Se vengono inviate molteplici richieste con lo stesso requestId solo una 
+        deve avere successo (status code HTTP 200, le altre devono ricevere lo 
+        status code 409).
+      parameters:
+        - in: header
+          name: x-pagopa-extch-service-id
+          description: Identificativo con cui Piattaforma Notifiche si identifica
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: x-api-key
+          description: Credenziale di accesso
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaperReplicaRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              example: { resultCode: '200.00', resultDescription: 'OK', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+        '400':
+          description: errore di validazione della richiesta
+          content:
+            application/json:
+              examples: 
+                syntaxError: 
+                  summary: 'Errore sintattico'
+                  value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+                semanticError: 
+                  summary: 'Errore semantico'
+                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+        '401':
+          description: Mancano le credenziali di identificazione o sono sbagliate
+          content:
+            application/json:
+              example: { resultCode: '401.00', resultDescription: 'Authentication Failed', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+        '409':
+          description: requestId già inviato quindi non riutilizzabile
+          content:
+            application/json:
+              example: { resultCode: '409.00', resultDescription: 'duplicated requestId', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+
+  /piattaforma-notifiche-ingress/v1/paper-replicas-progresses/{requestId}:
+    get:
+      operationId: getPaperReplicasProgressesRequest
+      summary: PN richiede l'elenco dei progressi di una richiesta duplicato
+      description: >- 
+        Questa richiesta permette di ottenere l'elenco degli eventi salienti 
+        riguardanti un processo di richieta duplicato. <br/>
+      parameters:
+        - in: header
+          name: x-pagopa-extch-service-id
+          description: Identificativo con cui Piattaforma Notifiche si identifica
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: x-api-key
+          description: Credenziale di accesso
+          required: true
+          schema:
+            type: string
+        - name: requestId
+          description: Identificativo della richiesta di richiesta duplicato 
+          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1'
+          in: path
+          required: true
+          schema:
+            type: string  
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperReplicasProgressesResponse'
+              example:
+                responseId: 'ABCD-HILM-YKWX-202202-1_rec0_try1'
+                events: []
+
+        '401':
+          description: Mancano le credenziali di identificazione o sono sbagliate
+          content:
+            application/json:
+              example: { resultCode: '401.00', resultDescription: 'Authentication Failed', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+        '404':
+          description: requestId non corrispondente a un requestId precedentemente richiesto.
+          content:
+            application/json:
+              example: { resultCode: '404.01', resultDescription: 'requestId never sent', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+
+webhooks: 
+
+  ##########################################################################
+  ###      NOTIFICHE DI AVANZAMENTO DEL PROCESSO DI POSTALIZZAZIONE      ###
+  ##########################################################################
+
+  push-progress-events-to-notification-platform:
+    post:
+      operationId: sendPaperProgressStatusRequest
+      summary: Webhook con cui PN riceve progressi postalizzazioni
+      parameters:
+        - $ref: '#/components/parameters/xPagopaExtchServiceId'
+        - $ref: '#/components/parameters/xPagopaExtchApiKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/PaperProgressStatusEvent'
+        required: true
+      responses:
+        '202':
+          description: >-
+            OK, l'evento è stato registrato
+          content:
+            application/json:
+              example: { resultCode: '202.00', resultDescription: 'Accepted', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+        '400':
+          description: >- 
+            Il ricevente ha eseguito la validazione sintattica o semantica dei campi e 
+            tale validazione è fallita: possiblie mismatch di versione
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+              examples: 
+                syntaxError: 
+                  summary: 'Errore sintattico'
+                  value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+                semanticError: 
+                  summary: 'Errore semantico'
+                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}  
+        '401':
+          description: >- 
+            Il sistema chiamante non è stato identificato, verificare le configurazioni
+          content:
+            application/json:
+              example: { resultCode: '401.00', resultDescription: 'Authentication Failed', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+  
+  push-replicas-progress-events-to-notification-platform:
+    post:
+      operationId: sendPaperReplicasProgressStatusRequest
+      summary: Webhook con cui PN riceve progressi di richiesta duplicato
+      parameters:
+        - $ref: '#/components/parameters/xPagopaExtchServiceId'
+        - $ref: '#/components/parameters/xPagopaExtchApiKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/PaperReplicasStatusEvent'
+        required: true
+      responses:
+        '202':
+          description: >-
+            OK, l'evento è stato registrato
+          content:
+            application/json:
+              example: { resultCode: '202.00', resultDescription: 'Accepted', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+        '400':
+          description: >- 
+            Il ricevente ha eseguito la validazione sintattica o semantica dei campi e 
+            tale validazione è fallita: possiblie mismatch di versione
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+              examples: 
+                syntaxError: 
+                  summary: 'Errore sintattico'
+                  value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+                semanticError: 
+                  summary: 'Errore semantico'
+                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}  
+        '401':
+          description: >- 
+            Il sistema chiamante non è stato identificato, verificare le configurazioni
+          content:
+            application/json:
+              example: { resultCode: '401.00', resultDescription: 'Authentication Failed', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+
+  push-attachments-preload:
+    post:
+      summary: Richiesta di pre-caricamento dei documenti da comunicare a PN
+      description: |-
+        Operazione che richiede a Piattaforma Notifica le informazioni e le autorizzazioni necessarie 
+        a precaricare uno o più file.
+      operationId: presignedUploadRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - preloads
+              properties: 
+                preloads:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/PreLoadRequest"
+                  minItems: 1
+                  maxItems: 15
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - preloads
+                properties: 
+                  preloads:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PreLoadResponse"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+              examples: 
+                syntaxError: 
+                  summary: 'Errore sintattico'
+                  value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+                semanticError: 
+                  summary: 'Errore semantico'
+                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}  
+      
+components:
+
+
+  
+  schemas:
+
+    ##########################################################################
+    ###                    RICHIESTA DI POSTALIZZAZIONE                    ###
+    ##########################################################################
+
+    ### - RICHIESTA
+    ##################
+
+    PaperEngageRequest:
+      required:
+        - requestId
+        - requestSenderId
+        - requestPAId
+        - clientRequestTimeStamp
+        - eventType
+        - productType
+        - attachments
+        - printType
+        - receiverName
+        - receiverAddress
+        - receiverCity
+        - senderName
+        - senderAddress
+        - senderCity
+        - senderPr        
+      type: object
+      properties:
+        iun: 
+          type: string
+          example: 'ABCD-HILM-YKWX-202202-1'
+          description: >-
+            Identificativo Unico della Notifica. Può essere usato per migliorare il servizio 
+            di archiviazione degli originali cartacei. Permettendo alle 
+            Pubbliche Amministrazioni di ricercare anche per Identificativo Univoco Notifica.
+        requestId:
+          type: string
+          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1'
+          description: >-
+            Identificativo della richiesta.
+        requestPaId:
+          type: string
+          example: '00414580183'
+          description: >-
+            Identificativo della PA che ha richiesto il recapito. Utile per autorizzare il
+            recupero, da parte delle pubbliche amministrazioni, degli originali cartacei
+        clientRequestTimeStamp:
+          type: string
+          format: date-time
+          description: >-
+            Timestamp della richiesta in UTC
+        productType:
+          description: >-
+            Tipo prodotto di cui viene chiesto il recapito: <br/>
+            - __AR__: Raccomandata Andata e Ritorno, <br/>
+            - __890__: Recapito a norma della legge 890/1982, <br/>
+            - __RI__: Raccomandata Internazionale, <br/>
+            - __RS__: Raccomandata Semplice (per Avviso di mancato Recapito). <br/>
+            - ... ulteriori prodotti 
+          type: string
+          example: 'AR'
+        attachments:
+          type: array
+          items:
+            type: object
+            required: 
+              - uri
+              - order
+              - documentType
+              - sha256
+            properties:
+              uri: 
+                type: string
+                description: URI indicante 
+                example: safestorage://PN_EXTERNAL_LEGALFACT_....
+              order: 
+                type: number
+                description: Ordine di stampa, intero positivo, continuo, inizia da 0
+                example: 0
+              documentType: 
+                type: string 
+                description: >-
+                  Tipo di documento: <br/>
+                  - __AAR__: Avviso di avvenuta ricezione, tipicamente associato a campo _order_ valorizzato a 0
+                  - __ATTO__: Documento inviato dalla pubblica amministrazione.
+                example: AAR
+              sha256:
+                type: string 
+                description: >-
+                  sha256, codificato in base 64, del contenuto del file riferenziato dal campo uri
+          description: >-
+            Coordinate per l'accesso ai documenti PDF da inviare. <br/>
+        printType:
+          type: string
+          description: >-
+            Indica il tipo di stampa richiesto al Consolidatore <br />
+            - __BN_FRONTE_RETRO__: bianco e nero fronte e retro, file differenti devono essere stampati su fogli distinti <br/>
+            - ... ulteriori modalità previste dal contratto
+          example: 'BN_FRONTE_RETRO'
+        receiverName:
+          type: string
+          description: >-
+            Cognome e nome o ragione sociale del destinatario
+          example: 'Mario Rossi'
+        receiverNameRow2:
+          type: string
+          description: >-
+            Seconda riga sulla busta.
+          example: 'c/o famiglia Bianchi'
+        receiverAddress:
+          type: string
+          description: >-
+            Indirizzo del destinatario.
+          example: 'via senza nome 610106'
+        receiverAddressRow2:
+          type: string
+          description: >-
+            Specifica dell’indirizzo di residenza del destinatario (seconda riga indirizzo sulla busta).
+          example: 'scala Z interno 400'
+        receiverCap:
+          type: string
+          description: >-
+            Cap del destinatario; in caso di invio estero diventa facoltativo.
+          example: '40050'
+        receiverCity:
+          type: string
+          description: >-
+            Comune del destinatario.
+          example: Argelato
+        receiverCity2:
+          type: string
+          description: >-
+            Frazione del destinatario. Potrebbe essere utile se il chiamante non fornisce il cap.
+          example: 'fraz. malacappa'
+        receiverPr:
+          type: string
+          description: >-
+            Provincia del destinatario; in caso di invio estero diventa facoltativo.
+          example: 'BO'
+        receiverCountry:
+          type: string
+          description: >-
+            In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 
+            in standard UPU o altro standard condiviso.
+        receiverFiscalCode:
+          type: string
+          description: >-
+            Potrebbe servire ai recapitisti in caso di offerte migliorative per i destinatari (servizi a valore aggiunto basati su cf).
+        senderName:
+          type: string
+          description: >-
+            Ragione sociale del mittente (PagoPA).
+        senderAddress:
+          type: string
+          description: >-
+            Indirizzo del mittente.
+        senderCity:
+          type: string
+          description: >-
+            Città del mittente
+        senderPr:
+          type: string
+          description: >-
+            Provincia del mittente.
+        senderDigitalAddress:
+          type: string
+          description: >-
+            Indirizzo PEC del mittente.
+        arName:
+          type: string
+          description: >-
+            Nominativo di riferimento per l’Avviso di Ritorno.
+        arAddress:
+          type: string
+          description: >-
+            Indirizzo per AR.
+        arCap:
+          type: string
+          description: >-
+            CAP AR.
+        arCity:
+          type: string
+          description: >-
+            Città per AR.
+        vas:
+          type: object
+          additionalProperties:
+            type: string
+          description: >-
+            Servizi a valore aggiunto      
+
+    ### - RISPOSTA
+    ##################
+
+    OperationResultCodeResponse:
+      required:
+        - resultCode
+        - resultDescription  
+        - clientResponseTimeStamp 
+      type: object
+      properties:
+        resultCode:
+          type: string
+          example: '400.00'
+          description: >-
+            Codice a 5 cifre separate da punto che indica l’esito della richiesta.  LE prime tre sono ripetizione del codice HTTP<br/>
+            Per convenzione, la sequenza 2000 indicherà OK. <br />
+            - '200.00' OK <br />
+            - '400.01' Errore di validazione sintattica del messaggio <br />
+            - '400.02' Errore di validazione regole semantiche <br />
+            - '404.00' requestId mai ricevuto <br />
+            - '409.00' requestId già utilizzato <br />
+            - '500.xy' Errori interni al server <br />
+            - .... Altri errori previsti dalla specifica implementazione <br />
+        resultDescription:
+          type: string
+          example: 'Request validation errors'
+          description: >-
+            Descrizione dell’Esito dell’operazione, sempre valorizzato, anche in caso di esito positivo. <br />
+            In caso di errore dovrà contenere info utili al chiamante per indirizzare le azioni correttive necessarie. <br />
+            In nessun caso conterrà dettagli tecnici e/o stack trace. <br />
+        errorList: 
+          type: array
+          items:
+            type: string
+            example: 'unsupported printType value'
+          description: >-
+            Elenco degli errori di validazione, se presenti.
+        clientResponseTimeStamp: 
+          type: string
+          format: date-time
+          description: >-
+            Timestamp della response in UTC  
+    
+    
+    ##########################################################################
+    ###      NOTIFICHE DI AVANZAMENTO DEL PROCESSO DI POSTALIZZAZIONE      ###
+    ##########################################################################
+
+    ### - EVENTO SINGOLO
+    #####################
+
+    PaperProgressStatusEvent:
+      required:
+        - requestId
+        - statusCode
+        - statusDescription
+        - statusDateTime        
+        - productType
+        - clientRequestTimeStamp
+      type: object
+      properties:
+        requestId:
+          type: string
+          description: >-
+            Identificativo della richiesta.
+          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1'  
+        registeredLetterCode:
+          type: string
+          description: >-
+            Il codice di tracciatura obbligatorio per i prodotti di corrispondenza tracciata.
+          example: '123456789abc'
+        productType:
+          description: >-
+            Tipo prodotto di cui viene chiesto il recapito:  <br/>
+            - __AR__: Raccomandata Andata e Ritorno,  <br/>
+            - __890__: Recapito a norma della legge 890/1982,  <br/>
+            - __RI__: Raccomandata Internazionale,  <br/>
+            - __RS__: Raccomandata Semplice (per Avviso di mancato Recapito). <br/>
+            - ... ulteriori prodotti concordati con il consolidatore <br/>
+          type: string
+        iun: 
+          type: string
+          description: >-
+            Identificativo Unico della Notifica. Proviene dalla richiesta originaria di PN.
+          example: 'ABCD-HILM-YKWX-202202-1'
+        statusCode:
+          type: string
+          description: >-
+            _Codifica sintetica dello stato dell'esito._  <br/>
+            - __001__ Stampato  <br/>
+            - __002__ Disponibile al recapitista  <br/>
+            - __003__ Preso in carico dal recapitista  <br/>
+            - __004__ Consegnata  <br/>
+            - __005__ Mancata consegna  <br/>
+            - __006__ Furto/Smarrimanto/deterioramento  <br/>
+            - __007__ Consegnato Ufficio Postale  <br/>
+            - __008__ Mancata consegna Ufficio Postale  <br/>
+            - __009__ Compiuta giacenza  <br/>
+            - ... Stati aggiuntivi concordati con il consolidatore
+        statusDescription: 
+          type: string
+          example: 'Stampato'
+          description: >-
+            Descrizione dello stato del delivery cartaceo che viene notificato.
+        statusDateTime:
+          type: string
+          format: date-time
+          description: >-
+            Data stato con timezone
+        deliveryFailureCause: 
+          description: >-
+            _Motivazione di mancata consegna_ obbligtorie negli stati di mancata consegna  <br/>
+            - __01__ destinatario irreperibile <br/>
+            - __02__ destinatario deceduto <br/>
+            - __03__ destinatario sconosciuto <br/>
+            - __04__ destinatario trasferito <br/>
+            - __05__ invio rifiutato <br/>
+            - __06__ indirizzo inesatto <br/>
+            - __07__ indirizzo inesistente <br/>
+            - __08__ indirizzo insufficiente <br/>
+            - ... Motivazioni aggiuntive concordate con il consolidatore
+          type: string
+        attachments:
+          description: >-
+            elenco dei documenti prodotti che attestano quanto accaduto durante il processo 
+            di postalizzazione
+          type: array
+          items:
+            type: object
+            required: 
+              - id
+              - documentType
+              - uri
+              - sha256
+              - date
+            properties:
+              id: 
+                type: string
+                description: >-
+                  Identificativo di riga.
+              documentType:
+                type: string
+                description: >-
+                  La descrizione della tipologia di oggetto.
+              uri:
+                type: string
+                description: >-
+                  Le coordinate del documento correlato allo stato. 
+              sha256:
+                type: string 
+                description: >-
+                  sha256, codificato in base 64, del contenuto del file riferenziato dal campo uri
+              date:
+                type: string
+                format: date-time
+                description: >-
+                  Data di produzione del documento.
+        discoveredAddress:
+          description: >-
+            Indirizzo del destinatario desunto dalle indagini del personale postale.
+          required:
+            - name
+            - address
+            - city
+          properties:  
+            name:
+              type: string
+              description: >-
+                Cognome e nome o ragione sociale del destinatario
+            nameRow2:
+              type: string
+              description: >-
+                Seconda riga sulla busta.
+            address:
+              type: string
+              description: >-
+                Indirizzo del destinatario.
+            addressRow2:
+              type: string
+              description: >-
+                Specifica dell’indirizzo di residenza del destinatario (seconda riga indirizzo sulla busta).
+            cap:
+              type: string
+              description: >-
+                Cap del destinatario; in caso di invio estero diventa facoltativo.
+            city:
+              type: string
+              description: >-
+                Comune del destinatario.
+            city2:
+              type: string
+              description: >-
+                Frazione del destinatario. Potrebbe essere utile se il chiamante non fornisce il cap.
+            pr:
+              type: string
+              description: >-
+                Provincia del destinatario; in caso di invio estero diventa facoltativo.
+            country:
+              type: string
+              description: >-
+                In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 
+                in standard UPU o altro standard condiviso.
+        clientRequestTimeStamp:
+          type: string
+          format: date-time
+          description: >-
+            Timestamp della richiesta in UTC
+
+    ### - LISTA DI EVENTI RELATIVI A UNA STESSA RICHIESTA
+    ######################################################
+      
+    PaperDeliveryProgressesResponse:
+      type: object
+      required:
+        - requestId
+        - events
+      properties:
+        requestId:
+          type: string
+          description: >-
+            Identificativo della richiesta di postalizzazione.
+          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaperProgressStatusEvent'
+
+
+    ##########################################################################
+    ###                    RICHIESTA DI DUPLICATO                          ###
+    ##########################################################################
+
+    PaperReplicaRequest:
+      type: object
+      required:
+        - requestId
+        - paperEngageRequestId
+      properties:
+        requestId:
+          type: string
+          description: >-
+            Identificativo della richiesta di richiesta duplicato.
+          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1_replicarequest1'
+        paperEngageRequestId:
+          type: string
+          description: >-
+            Identificativo della richiesta di postalizzazione.
+          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1'
+        documentType:
+          type: string
+          description: >-
+            Tipologia di documento richiesto
+            TODO: da codividere i possibili valori
+          
+    ##########################################################################
+    ###      NOTIFICHE DI AVANZAMENTO DEL PROCESSO DI POSTALIZZAZIONE      ###
+    ##########################################################################
+
+    ### - EVENTO SINGOLO
+    #####################
+    PaperReplicasStatusEvent:
+      type: object
+      required:
+        - requestId
+        - paperEngageRequestId
+        - statusCode
+        - statusDescription
+        - statusDateTime        
+        - productType
+        - clientRequestTimeStamp
+      properties:
+        requestId:
+          type: string
+          description: >-
+            Identificativo della richiesta duplicato.
+          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1_replicarequest1' 
+        paperEngageRequestId:
+          type: string
+          description: >-
+            Identificativo della richiesta di postalizzazione.
+          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1' 
+        statusCode:
+          type: string
+          description: >-
+            _Codifica sintetica dello stato dell'esito._  <br/>
+            TODO: Elencare possibili esiti delle richieste di duplicato
+        statusDescription: 
+          type: string
+          description: >-
+            Descrizione dello stato della richiesta di duplicato
+        statusDateTime:
+          type: string
+          format: date-time
+          description: >-
+            Data stato con timezone
+        attachments:
+          type: array
+          items: 
+            type: object
+            required: 
+              - documentType
+              - uri
+              - sha256
+              - date
+            properties:
+              documentType:
+                type: string
+                description: >-
+                  La descrizione della tipologia di oggetto.
+              uri:
+                type: string
+                description: >-
+                  Le coordinate del documento correlato allo stato. 
+              sha256:
+                  type: string 
+                  description: >-
+                    sha256, codificato in base 64, del contenuto del file riferenziato dal campo uri
+              date:
+                type: string
+                format: date-time
+                description: >-
+                  Data di produzione del documento.
+        clientRequestTimeStamp:
+          type: string
+          format: date-time
+          description: >-
+            Timestamp della richiesta in UTC
+
+    ### - LISTA DI EVENTI RELATIVI A UNA STESSA RICHIESTA
+    ######################################################
+    PaperReplicasProgressesResponse:
+      type: object
+      required:
+        - requestId
+        - paperEngageRequestId
+        - events
+      properties:
+        requestId:
+          type: string
+          description: >-
+            Identificativo della richiesta di richiesta duplicato.
+          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1_replicarequest1'
+        paperEngageRequestId:
+          type: string
+          description: >-
+            Identificativo della richiesta.
+          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1' 
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaperReplicasStatusEvent'
+
+
+    ##########################################################################
+    ###                 PRECARICAMENTO FILE SU SAFESTORAGE                 ###
+    ##########################################################################
+
+    PreLoadRequest:
+      title: Richiesta di precaricamento di un File
+      type: object
+      properties:
+        preloadIdx:
+          title: Id della richiesta di precaricamento di un file
+          description: >-
+            Identificativo univoco all'interno della request HTTP, serve per correlare la risposta. 
+          type: string
+        contentType:
+          title: MIME type del file che verrà caricato
+          description: >-
+            Il MIME type dell'allegato che dovrà essere caricato. 
+          type: string
+          example: application/pdf
+        sha256:
+          title: checksum sha256 del file che verrà caricato
+          description: >-
+            checksum sha256, codificato in base 64, del contenuto binario del file che verrà
+            caricato
+          type: string
+          example: jezIVxlG1M1woCSUngM6KipUN3/p8cG5RMIPnuEanlE=
+
+    PreLoadResponse:
+      title: Informazioni per il caricamento file
+      description: >-
+        Per ogni richiesta che è stata fatta viene fornito un presigned URL e le 
+        informazioni per usarlo.
+      type: object
+      properties:
+        preloadIdx:
+          description: per correlazione con la richiesta
+          type: string
+        secret:
+          description: >-
+            Token aggiuntivo per far si che sia necessario intercettare anche gli 
+            header e non solo l'URL di upload del contenuto del documento.
+          example: AZ23RF12
+          type: string
+        httpMethod:
+          description: >-
+            Indica se per l'upload del contenuto file bisogna utilizzare il metodo PUT o POST
+          type: string
+          example: PUT
+          enum:
+            - POST
+            - PUT
+        url:
+          description: >-
+            URL a cui effettuare l'upload del contenuto del documento.
+          type: string
+          example: 'https://preloadpn.aws.amazon.......'
+        key:
+          description: >-
+            la chiave restituita sarà globalmente unica e andrà utilizzata nella richiesta 
+            di notifica.
+          example: 'PN_NOTIFICATION_ATTACHMENTS-0001-301W-B9CB-9U72-WIKD'
+          type: string
