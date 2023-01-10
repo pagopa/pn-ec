@@ -4,11 +4,12 @@
 	<parent>
 		<groupId>it.pagopa.pn</groupId>
 		<artifactId>pn-parent</artifactId>
-		<version>1.0.1-SNAPSHOT</version>
+		<version>2.0.0-SNAPSHOT</version>
 		<relativePath />
 	</parent>
 	<artifactId>pn-template-ms-be</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
+	<packaging>pom</packaging>
 	<name>pn-template-ms-be</name>
 	<description>A template for a PN Backend Microservice</description>
 	<scm>
@@ -18,7 +19,6 @@
 		<tag>HEAD</tag>
 	</scm>
 	<properties>
-		<java.version>11</java.version>
 		<awspring.version>2.3.2</awspring.version>
 	</properties>
 
@@ -38,7 +38,7 @@
 		<dependency>
 			<groupId>it.pagopa.pn</groupId>
 			<artifactId>pn-commons</artifactId>
-			<version>1.0.1-SNAPSHOT</version>
+			<version>2.0.0-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
@@ -144,6 +144,21 @@
 				<version>5.4.0</version>
 				<executions>
 					<execution>
+						<id>generate-api-external</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/docs/openapi/api-external-v1.yaml</inputSpec>
+							<generatorName>java</generatorName>
+							<configOptions>
+								<sourceFolder>target/generated-sources/</sourceFolder>
+							</configOptions>
+							<skipValidateSpec>true</skipValidateSpec>
+						</configuration>
+					</execution>
+					<execution>
+						<id>generate-consolidatore</id>
 						<goals>
 							<goal>generate</goal>
 						</goals>
