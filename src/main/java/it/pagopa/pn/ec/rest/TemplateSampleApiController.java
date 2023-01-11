@@ -21,8 +21,7 @@ public class TemplateSampleApiController implements TemplateSampleApi {
 
         return Mono.fromSupplier(() ->{
             log.debug("Start getHttpHeadersMap");
-            Map<String, List<String>> headers = new HashMap<>();
-            exchange.getRequest().getHeaders().forEach((k, v) -> headers.put(k, v));
+            Map<String, List<String>> headers = new HashMap<>(exchange.getRequest().getHeaders());
             return ResponseEntity.ok(headers);
         });
 
