@@ -17,13 +17,10 @@ public class TemplateSampleApiController implements TemplateSampleApi {
 
     @Override
     public Mono<ResponseEntity<Map<String, List<String>>>> getHttpHeadersMap(ServerWebExchange exchange) {
-
-
         return Mono.fromSupplier(() ->{
             log.debug("Start getHttpHeadersMap");
             Map<String, List<String>> headers = new HashMap<>(exchange.getRequest().getHeaders());
             return ResponseEntity.ok(headers);
         });
-
     }
 }

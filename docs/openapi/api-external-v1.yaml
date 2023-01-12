@@ -1,6 +1,9 @@
 openapi: 3.0.3
 info:
-  title: ExternalChannel (AKA CarrierPigeon)
+  termsOfService: https://termofservice.it
+  title: ExternalChannels (AKA CarrierPigeon)
+  x-summary: API External Channels
+  x-api-id: api-external-channels
   description: >-
     ## Abstract
       Questo servizio permette di inviare messaggi in modo asyncrono e ricevere aggiornamenti
@@ -13,10 +16,13 @@ info:
           - Raccomandata Semplice, <br/>
           - Raccomandata con ricevuta di ritorno, <br/>
           - Raccomandata a norma di legge 890/1982. <br/>
+  version: '0.0.2'
+  contact:
+    name: "PN PagoPA"
+    email: pn@pagopa.it
   license:
     name: PN software license
     url: 'https://www.pn.pagopa.it/LICENSE'
-  version: v1.0
 servers:
   - url: >-
       https://api.externalchannel.pagopa.local
@@ -38,6 +44,7 @@ paths:
   /external-channels/v1/digital-deliveries/legal-full-message-requests/{requestIdx}:
     parameters:
       - $ref: '#/components/parameters/requestIdx' 
+      - $ref: '#/components/parameters/xPagopaExtchCxId'                            # NO EXTERNAL
     put:
       tags:
         - DigitalLegalMessages
@@ -103,6 +110,7 @@ paths:
   /external-channels/v1/digital-deliveries/courtesy-full-message-requests/{requestIdx}:  
     parameters:
       - $ref: '#/components/parameters/requestIdx'  
+      - $ref: '#/components/parameters/xPagopaExtchCxId'                            # NO EXTERNAL
     put:
       tags:
         - DigitalCourtesyMessages
@@ -167,6 +175,7 @@ paths:
   /external-channels/v1/digital-deliveries/courtesy-simple-message-requests/{requestIdx}:
     parameters:
       - $ref: '#/components/parameters/requestIdx'  
+      - $ref: '#/components/parameters/xPagopaExtchCxId'                            # NO EXTERNAL
     put:
       tags:
         - DigitalCourtesyMessages
@@ -232,6 +241,7 @@ paths:
   /external-channel/v1/paper-deliveries-engagements/{requestIdx}:
     parameters:
       - $ref: '#/components/parameters/requestIdx'  
+      - $ref: '#/components/parameters/xPagopaExtchCxId'                            # NO EXTERNAL
     put:
       operationId: sendPaperEngageRequest
       tags:
