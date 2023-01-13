@@ -38,6 +38,7 @@ paths:
   /external-channels/v1/digital-deliveries/legal-full-message-requests/{requestIdx}:
     parameters:
       - $ref: '#/components/parameters/requestIdx' 
+      - $ref: '#/components/parameters/xPagopaExtchCxId'                            # NO EXTERNAL
     put:
       tags:
         - DigitalLegalMessages
@@ -103,6 +104,7 @@ paths:
   /external-channels/v1/digital-deliveries/courtesy-full-message-requests/{requestIdx}:  
     parameters:
       - $ref: '#/components/parameters/requestIdx'  
+      - $ref: '#/components/parameters/xPagopaExtchCxId'                            # NO EXTERNAL
     put:
       tags:
         - DigitalCourtesyMessages
@@ -167,6 +169,7 @@ paths:
   /external-channels/v1/digital-deliveries/courtesy-simple-message-requests/{requestIdx}:
     parameters:
       - $ref: '#/components/parameters/requestIdx'  
+      - $ref: '#/components/parameters/xPagopaExtchCxId'                            # NO EXTERNAL
     put:
       tags:
         - DigitalCourtesyMessages
@@ -232,6 +235,7 @@ paths:
   /external-channel/v1/paper-deliveries-engagements/{requestIdx}:
     parameters:
       - $ref: '#/components/parameters/requestIdx'  
+      - $ref: '#/components/parameters/xPagopaExtchCxId'                            # NO EXTERNAL
     put:
       operationId: sendPaperEngageRequest
       tags:
