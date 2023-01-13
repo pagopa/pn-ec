@@ -391,7 +391,7 @@ components:
       required: true
       schema:
         type: string
-        pattern: '[0-9A-Za-z_-]'
+        pattern: '[0-9A-Za-z_-]*'
         minLength: 5
         maxLength: 100
   
