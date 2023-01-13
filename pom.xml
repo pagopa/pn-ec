@@ -71,8 +71,25 @@
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
@@ -99,6 +116,11 @@
 			<version>5.0.0-alpha.11</version>
 		</dependency>
 
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<build>
@@ -121,20 +143,6 @@
 				<artifactId>openapi-generator-maven-plugin</artifactId>
 				<version>5.4.0</version>
 				<executions>
-<!--					<execution>-->
-<!--						<id>generate-api-external</id>-->
-<!--						<goals>-->
-<!--							<goal>generate</goal>-->
-<!--						</goals>-->
-<!--						<configuration>-->
-<!--							<inputSpec>${project.basedir}/docs/openapi/api-external-v1.yaml</inputSpec>-->
-<!--							<generatorName>java</generatorName>-->
-<!--							<configOptions>-->
-<!--								<sourceFolder>target/generated-sources/</sourceFolder>-->
-<!--							</configOptions>-->
-<!--							<skipValidateSpec>true</skipValidateSpec>-->
-<!--						</configuration>-->
-<!--					</execution>-->
 					<execution>
 						<id>generate-consolidatore</id>
 						<goals>
