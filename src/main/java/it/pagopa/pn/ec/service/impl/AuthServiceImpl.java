@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 public class AuthServiceImpl implements AuthService {
 
     @Override
-    public void checkIdClient(String idClient) throws IdClientNotFoundException {
+    public void checkIdClient(final String idClient) throws IdClientNotFoundException {
         // TODO -> write checkIdClient implementation
     }
 }

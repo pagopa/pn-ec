@@ -12,5 +12,5 @@ public interface AuthService {
      * @throws IdClientNotFoundException
      * Eccezione se l'id client non è stato trovato
      */
-    void checkIdClient(String idClient) throws IdClientNotFoundException;
+    void checkIdClient(final String idClient) throws IdClientNotFoundException;
 }

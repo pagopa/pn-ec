@@ -26,7 +26,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @ExtendWith(SpringExtension.class)
 @WebFluxTest(DigitalCourtesyMessagesApiController.class)
- class DigitalCourtesyMessagesApiControllerTest {
+class DigitalCourtesyMessagesApiControllerTest {
 
     @Autowired
     private WebTestClient webClient;
@@ -47,14 +47,14 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
     //SMSPIC.107.1 -> Test case positivo
     @Test
-     void sendSmsOkTest() {
+    void sendSmsOkTest() {
         sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                                             .isOk();
     }
 
     //SMSPIC.107.2 -> Request body non corretto
     @Test
-     void sendSmsBadBodyTest() {
+    void sendSmsBadBodyTest() {
         sendSmsTestCall(BodyInserters.empty(), DEFAULT_REQUEST_IDX).expectStatus().isBadRequest().expectBody(Problem.class);
     }
 
@@ -69,40 +69,40 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
     //SMSPIC.107.4 -> idClient non autorizzato
     @Test
-     void sendSmsUnauthorizedIdClientTest() {
+    void sendSmsUnauthorizedIdClientTest() {
         sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                          .isUnauthorized()
-                                                                                                                          .expectBody(
-                                                                                                                                  Problem.class);
+                                                                                                                            .isUnauthorized()
+                                                                                                                            .expectBody(
+                                                                                                                                    Problem.class);
     }
 
     //SMSPIC.107.5 -> Coda "Notification tracker" down
     @Test
-     void sendSmsNotificationTrackerDownTest() {
+    void sendSmsNotificationTrackerDownTest() {
         sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                          .isEqualTo(
-                                                                                                                                  SERVICE_UNAVAILABLE)
-                                                                                                                          .expectBody(
-                                                                                                                                  Problem.class);
+                                                                                                                            .isEqualTo(
+                                                                                                                                    SERVICE_UNAVAILABLE)
+                                                                                                                            .expectBody(
+                                                                                                                                    Problem.class);
     }
 
     //SMSPIC.107.6 -> Coda "SMS" down
     @Test
-     void sendSmsSmsQueueDownTest() {
+    void sendSmsSmsQueueDownTest() {
         sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                          .isEqualTo(
-                                                                                                                                  SERVICE_UNAVAILABLE)
-                                                                                                                          .expectBody(
-                                                                                                                                  Problem.class);
+                                                                                                                            .isEqualTo(
+                                                                                                                                    SERVICE_UNAVAILABLE)
+                                                                                                                            .expectBody(
+                                                                                                                                    Problem.class);
     }
 
     //SMSPIC.107.6 -> Richiesta di invio SMS già effettuata
     @Test
-     void sendSmsRequestAlreadyMadeTest() {
+    void sendSmsRequestAlreadyMadeTest() {
         sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                          .isEqualTo(
-                                                                                                                                  CONFLICT)
-                                                                                                                          .expectBody(
-                                                                                                                                  Problem.class);
+                                                                                                                            .isEqualTo(
+                                                                                                                                    CONFLICT)
+                                                                                                                            .expectBody(
+                                                                                                                                    Problem.class);
     }
 }
