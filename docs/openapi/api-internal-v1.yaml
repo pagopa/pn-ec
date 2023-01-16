@@ -391,9 +391,7 @@ components:
       required: true
       schema:
         type: string
-        pattern: '[0-9A-Za-z_-]*'
-        minLength: 5
-        maxLength: 100
+        pattern: '[0-9A-Za-z_-]{5,100}'
   
   responses:
     
@@ -457,12 +455,12 @@ components:
       
     
 
-  securitySchemes:        # ONLY EXTERNAL
-    ApiKeyAuth:           # ONLY EXTERNAL
-      type: apiKey        # ONLY EXTERNAL
-      in: header          # ONLY EXTERNAL
-      name: x-api-key     # ONLY EXTERNAL
+#  securitySchemes:        # ONLY EXTERNAL
+#    ApiKeyAuth:           # ONLY EXTERNAL
+#      type: apiKey        # ONLY EXTERNAL
+#      in: header          # ONLY EXTERNAL
+#      name: x-api-key     # ONLY EXTERNAL
 
-security:                 # ONLY EXTERNAL
-  - ApiKeyAuth: [] # use the same name as under securitySchemes    # ONLY EXTERNAL
+#security:                 # ONLY EXTERNAL
+#  - ApiKeyAuth: [] # use the same name as under securitySchemes    # ONLY EXTERNAL
               

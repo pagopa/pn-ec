@@ -45,7 +45,7 @@ components:
               description: >-
                 Identificativo Unico della Notifica. 
                 Non è obbligatorio (ad es in una richiesta di verifica indirizzi non abbiamo un identificativo di notifica).
-#          additionalProperties: true
+            additionalProperties: {}
         clientRequestTimeStamp:
           type: string
           format: date-time

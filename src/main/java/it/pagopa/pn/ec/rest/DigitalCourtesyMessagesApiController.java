@@ -26,6 +26,6 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                final ServerWebExchange exchange) {
         authService.checkIdClient(xPagopaExtchCxId);
         // TODO:sendCourtesyShortMessage -> Change HttpStatus.NOT_IMPLEMENTED
-        return Mono.fromSupplier(() -> new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED));
+        return digitalCourtesySmsRequest.map(req -> new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED));
     }
 }
