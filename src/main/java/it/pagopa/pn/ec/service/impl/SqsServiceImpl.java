@@ -18,8 +18,8 @@ public class SqsServiceImpl implements SqsService {
     }
 
     @Override
-    public void send(String queueName, String messagePayload) {
-        Message<String> msg = MessageBuilder.withPayload(messagePayload)
+    public <T> void send(String queueName, T queuePayload) {
+        Message<T> msg = MessageBuilder.withPayload(queuePayload)
                                             .build();
 
         messagingTemplate.convertAndSend(queueName, msg);

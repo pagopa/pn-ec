@@ -9,6 +9,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void checkIdClient(final String idClient) throws IdClientNotFoundException {
-        // TODO -> write checkIdClient implementation
+        // TODO: write checkIdClient implementation
     }
 }
