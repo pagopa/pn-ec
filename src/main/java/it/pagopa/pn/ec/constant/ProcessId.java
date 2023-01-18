@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.constant;
 
 public enum ProcessId {
 
-    SMS,
-    MAIL,
-    PEC
+    INVIO_SMS,
+    INVIO_MAIL,
+    INVIO_PEC
 }
