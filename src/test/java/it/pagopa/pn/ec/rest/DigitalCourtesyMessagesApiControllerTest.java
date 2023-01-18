@@ -1,18 +1,17 @@
 package it.pagopa.pn.ec.rest;
 
+import it.pagopa.pn.ec.localstack.SQSLocalStackTestConfig;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
-import it.pagopa.pn.ec.service.impl.AuthServiceImpl;
+import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.ec.testutils.factory.EcRequestObjectFactory;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.ReactiveHttpOutputMessage;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -24,15 +23,13 @@ import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
-@ExtendWith(SpringExtension.class)
-@WebFluxTest(DigitalCourtesyMessagesApiController.class)
+@SpringBootTestWebEnv
+@AutoConfigureWebTestClient
+@Import(SQSLocalStackTestConfig.class)
 class DigitalCourtesyMessagesApiControllerTest {
 
     @Autowired
     private WebTestClient webClient;
-
-    @MockBean
-    AuthServiceImpl authService;
 
     private WebTestClient.ResponseSpec sendSmsTestCall(BodyInserter<DigitalCourtesySmsRequest, ReactiveHttpOutputMessage> bodyInserter,
                                                        String requestIdx) {
@@ -41,7 +38,7 @@ class DigitalCourtesyMessagesApiControllerTest {
                              .accept(APPLICATION_JSON)
                              .contentType(APPLICATION_JSON)
                              .body(bodyInserter)
-                             .header(ID_CLIENT_HEADER, "CLIENT_ID_123")
+                             .header(ID_CLIENT_HEADER, DEFAULT_ID_CLIENT_HEADER)
                              .exchange();
     }
 

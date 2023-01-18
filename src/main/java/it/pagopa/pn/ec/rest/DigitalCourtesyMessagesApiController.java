@@ -27,8 +27,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                final ServerWebExchange exchange) {
         return digitalCourtesySmsRequest.map(request -> {
             smsService.presaInCarico(xPagopaExtchCxId, request);
-            // TODO:sendCourtesyShortMessage -> Change HttpStatus.NOT_IMPLEMENTED
-            return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+            return new ResponseEntity<>(HttpStatus.OK);
         });
     }
 }

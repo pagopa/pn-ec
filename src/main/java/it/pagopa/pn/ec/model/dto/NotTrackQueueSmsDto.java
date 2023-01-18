@@ -11,11 +11,11 @@ import static it.pagopa.pn.ec.constant.ProcessId.INVIO_SMS;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Getter
 @Setter
-public class NotTrackPresaInCaricoSmsDto extends PresaInCaricoInfoDto {
+public class NotTrackQueueSmsDto extends PresaInCaricoInfoDto {
 
     DigitalCourtesySmsRequest digitalCourtesySmsRequest;
 
-    public NotTrackPresaInCaricoSmsDto(String clientId, String currentStatus, DigitalCourtesySmsRequest digitalCourtesySmsRequest) {
+    public NotTrackQueueSmsDto(String clientId, String currentStatus, DigitalCourtesySmsRequest digitalCourtesySmsRequest) {
         super(clientId, INVIO_SMS, currentStatus);
         this.digitalCourtesySmsRequest = digitalCourtesySmsRequest;
     }

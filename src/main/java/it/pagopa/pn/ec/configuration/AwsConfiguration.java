@@ -45,7 +45,7 @@ public class AwsConfiguration {
                                                              accessKey,
                                                              secretKey)));
 
-        if (!sqsLocalStackEndpoint.isEmpty()) {
+        if (sqsLocalStackEndpoint != null) {
             sqsClientBuilder.endpointOverride(URI.create(sqsLocalStackEndpoint));
         }
 
@@ -59,7 +59,7 @@ public class AwsConfiguration {
                                                                     .credentialsProvider(StaticCredentialsProvider.create(
                                                                             AwsBasicCredentials.create(accessKey, secretKey)));
 
-        if (!dynamoDbLocalStackEndpoint.isEmpty()) {
+        if (dynamoDbLocalStackEndpoint != null) {
             dynamoDbClientBuilder.endpointOverride(URI.create(dynamoDbLocalStackEndpoint));
         }
 

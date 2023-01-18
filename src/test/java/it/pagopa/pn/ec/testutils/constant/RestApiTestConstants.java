@@ -9,4 +9,6 @@ public final class RestApiTestConstants {
     public static final String DEFAULT_REQUEST_IDX = "mock_requestIdx-123";
     public static final String BAD_REQUEST_IDX_SHORT = "123";
     public static final String BAD_REQUEST_IDX_CHAR_NOT_ALLOWED = DEFAULT_REQUEST_IDX + ".";
+
+    public static final String DEFAULT_ID_CLIENT_HEADER = "CLIENT_ID_123";
 }
