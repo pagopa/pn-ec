@@ -20,23 +20,19 @@ public class NotificationtrackerController {
 	
 	public Mono<ResponseEntity<Void>> getStato(String processId, String currStatus,
 																String clientId,
-																String nextStatus,
-                                                               Mono<RequestModel> request,
-                                                               final ServerWebExchange exchange) {
+																String nextStatus) {
 		service.getStato(processId, currStatus, clientId, nextStatus);
         // TODO:sendCourtesyShortMessage -> Change HttpStatus.NOT_IMPLEMENTED
-        return request.map(req -> new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED));
+        return null;
     }
 	
 	
 	public Mono<ResponseEntity<Void>> putNewStato(String processId, String currStatus,
 						String clientId,
-						String nextStatus,
-			           Mono<RequestModel> request,
-			           final ServerWebExchange exchange) {
+						String nextStatus) {
 			service.putNewStato(processId, currStatus, clientId, nextStatus);
 			// TODO:sendCourtesyShortMessage -> Change HttpStatus.NOT_IMPLEMENTED
-			return request.map(req -> new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED));
+			return null;
 }
 	
 	
