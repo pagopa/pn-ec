@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
-import static it.pagopa.pn.ec.constant.ProcessId.SMS;
+import static it.pagopa.pn.ec.constant.ProcessId.INVIO_SMS;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Getter
@@ -16,7 +16,7 @@ public class NotTrackPresaInCaricoSmsDto extends PresaInCaricoInfoDto {
     DigitalCourtesySmsRequest digitalCourtesySmsRequest;
 
     public NotTrackPresaInCaricoSmsDto(String clientId, String currentStatus, DigitalCourtesySmsRequest digitalCourtesySmsRequest) {
-        super(clientId, SMS, currentStatus);
+        super(clientId, INVIO_SMS, currentStatus);
         this.digitalCourtesySmsRequest = digitalCourtesySmsRequest;
     }
 }

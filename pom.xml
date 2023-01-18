@@ -75,11 +75,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>io.awspring.cloud</groupId>
-			<artifactId>spring-cloud-starter-aws-messaging</artifactId>
-		</dependency>
-
-		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
 			<scope>runtime</scope>
@@ -176,6 +171,36 @@
 								<sourceFolder>target/generated-sources/</sourceFolder>
 							</configOptions>
 							<skipValidateSpec>true</skipValidateSpec>
+						</configuration>
+					</execution>
+					<execution>
+						<id>generate-api-external</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<phase>process-resources</phase>
+						<configuration>
+							<inputSpec>${project.basedir}/docs/openapi/api-internal-v1.yaml</inputSpec>
+							<generatorName>spring</generatorName>
+							<library>spring-boot</library>
+							<generateApiDocumentation>false</generateApiDocumentation>
+							<generateApiTests>false</generateApiTests>
+							<generateModelTests>false</generateModelTests>
+							<configOptions>
+								<dateLibrary>java11</dateLibrary>
+								<delegatePattern>true</delegatePattern>
+								<interfaceOnly>true</interfaceOnly>
+								<annotationLibrary>none</annotationLibrary>
+								<documentationProvider>source</documentationProvider>
+								<openApiNullable>false</openApiNullable>
+								<reactive>true</reactive>
+								<skipDefaultInterface>false</skipDefaultInterface>
+								<useTags>true</useTags>
+								<basePackage>${project.groupId}.rest.v1</basePackage>
+								<modelPackage>${project.groupId}.rest.v1.dto</modelPackage>
+								<apiPackage>${project.groupId}.rest.v1.api</apiPackage>
+								<configPackage>${project.groupId}.rest.v1.config</configPackage>
+							</configOptions>
 						</configuration>
 					</execution>
 				</executions>

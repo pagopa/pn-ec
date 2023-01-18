@@ -3,7 +3,6 @@ package it.pagopa.pn.ec.rest;
 import it.pagopa.pn.ec.rest.v1.api.DigitalCourtesyMessagesApi;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.service.impl.SmsService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,10 +13,13 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @RestController
-@RequiredArgsConstructor
 public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMessagesApi {
 
     private final SmsService smsService;
+
+    public DigitalCourtesyMessagesApiController(SmsService smsService) {
+        this.smsService = smsService;
+    }
 
     @Override
     public Mono<ResponseEntity<Void>> sendCourtesyShortMessage(String requestIdx, String xPagopaExtchCxId,
