@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.SqsClientBuilder;
 
@@ -23,8 +25,17 @@ public class AwsConfiguration {
     @Value("${aws.config.default.region}")
     String defaultRegion;
 
+    /**
+     * Set in SQSLocalStackTestConfig
+     */
     @Value("${aws.sqs.test.endpoint:#{null}}")
     String sqsLocalStackEndpoint;
+
+    /**
+     * Set in DynamoDbLocalStackTestConfig
+     */
+    @Value("${aws.dynamodb.test.endpoint:#{null}}")
+    String dynamoDbLocalStackEndpoint;
 
     @Bean
     public SqsClient getSqsClient() {
@@ -39,5 +50,19 @@ public class AwsConfiguration {
         }
 
         return sqsClientBuilder.build();
+    }
+
+    @Bean
+    public DynamoDbClient getDynamoDbClient() {
+        DynamoDbClientBuilder dynamoDbClientBuilder = DynamoDbClient.builder()
+                                                                    .region(Region.of(defaultRegion))
+                                                                    .credentialsProvider(StaticCredentialsProvider.create(
+                                                                            AwsBasicCredentials.create(accessKey, secretKey)));
+
+        if (!dynamoDbLocalStackEndpoint.isEmpty()) {
+            dynamoDbClientBuilder.endpointOverride(URI.create(dynamoDbLocalStackEndpoint));
+        }
+
+        return dynamoDbClientBuilder.build();
     }
 }
