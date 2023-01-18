@@ -1,32 +1,68 @@
 package it.pagopa.pn.ec.configuration;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.sqs.AmazonSQSAsync;
-import com.amazonaws.services.sqs.AmazonSQSAsyncClientBuilder;
-import io.awspring.cloud.messaging.core.QueueMessagingTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.SqsClientBuilder;
+
+import java.net.URI;
 
 @Configuration
 public class AwsConfiguration {
 
-    @Value("${AWS}")
+    @Value("${aws.config.access.key}")
+    String accessKey;
+
+    @Value("${aws.config.secret.key}")
+    String secretKey;
+
+    @Value("${aws.config.default.region}")
+    String defaultRegion;
+
+    /**
+     * Set in SQSLocalStackTestConfig
+     */
+    @Value("${aws.sqs.test.endpoint:#{null}}")
+    String sqsLocalStackEndpoint;
+
+    /**
+     * Set in DynamoDbLocalStackTestConfig
+     */
+    @Value("${aws.dynamodb.test.endpoint:#{null}}")
+    String dynamoDbLocalStackEndpoint;
 
     @Bean
-    @Primary
-    public AmazonSQSAsync amazonSQSAsync() {
-        return AmazonSQSAsyncClientBuilder.standard()
-                                          .withRegion(Regions.EU_WEST_2)
-                                          .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
-                                          .build();
+    public SqsClient getSqsClient() {
+        SqsClientBuilder sqsClientBuilder = SqsClient.builder()
+                                                     .region(Region.of(defaultRegion))
+                                                     .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(
+                                                             accessKey,
+                                                             secretKey)));
+
+        if (!sqsLocalStackEndpoint.isEmpty()) {
+            sqsClientBuilder.endpointOverride(URI.create(sqsLocalStackEndpoint));
+        }
+
+        return sqsClientBuilder.build();
     }
 
     @Bean
-    public QueueMessagingTemplate queueMessagingTemplate(AmazonSQSAsync amazonSQSAsync) {
-        return new QueueMessagingTemplate(amazonSQSAsync);
+    public DynamoDbClient getDynamoDbClient() {
+        DynamoDbClientBuilder dynamoDbClientBuilder = DynamoDbClient.builder()
+                                                                    .region(Region.of(defaultRegion))
+                                                                    .credentialsProvider(StaticCredentialsProvider.create(
+                                                                            AwsBasicCredentials.create(accessKey, secretKey)));
+
+        if (!dynamoDbLocalStackEndpoint.isEmpty()) {
+            dynamoDbClientBuilder.endpointOverride(URI.create(dynamoDbLocalStackEndpoint));
+        }
+
+        return dynamoDbClientBuilder.build();
     }
 }
