@@ -18,7 +18,7 @@
 		<tag>HEAD</tag>
 	</scm>
 	<properties>
-		<java.version>11</java.version>
+		<java.version>17</java.version>
 		<awspring.version>2.3.2</awspring.version>
 	</properties>
 
@@ -118,6 +118,22 @@
             <artifactId>json</artifactId>
             <version>20190722</version>
         </dependency> -->
+        
+        
+        
+        <dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk</artifactId>
+			<version>1.11.788</version>
+		</dependency>
+        
+        
+        <dependency>
+			<groupId>io.awspring.cloud</groupId>
+			<artifactId>spring-cloud-starter-aws-messaging</artifactId>
+		</dependency>
+        
+        
 	</dependencies>
 
 	<build>
