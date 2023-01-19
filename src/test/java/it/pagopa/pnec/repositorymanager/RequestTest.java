@@ -2,15 +2,11 @@ package it.pagopa.pnec.repositorymanager;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 
-import it.pagopa.pnec.repositorymanager.controller.RequestController;
-import it.pagopa.pnec.repositorymanager.service.RepositoryManagerService;
-
+@SpringBootTestWebEnv
 class RequestTest {
-
-	RepositoryManagerService rms = new RepositoryManagerService();
-	RequestController requestController = new RequestController();
 	
 	//ECGRR.100.1
 	@Test
