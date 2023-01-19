@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.rest;
 
-import it.pagopa.pn.ec.localstack.SQSLocalStackTestConfig;
+import it.pagopa.pn.ec.localstack.LocalStackTestConfig;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
@@ -25,7 +25,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
-@Import(SQSLocalStackTestConfig.class)
+@Import(LocalStackTestConfig.class)
 class DigitalCourtesyMessagesApiControllerTest {
 
     @Autowired
