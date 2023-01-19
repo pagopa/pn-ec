@@ -1,89 +1,72 @@
-package it.pagopa.pnec.repositorymanager;
+package it.pagopa.pn.ec.repositorymanager;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.BodyInserters;
+
+import it.pagopa.pn.ec.repositorymanager.controller.ClientConfigurationController;
+import it.pagopa.pn.ec.repositorymanager.dto.ClientConfigurationDto;
+import it.pagopa.pn.ec.repositorymanager.dto.SenderPhysicalAddressDto;
+import it.pagopa.pn.ec.repositorymanager.service.RepositoryManagerService;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import reactor.core.publisher.Mono;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
+@AutoConfigureWebTestClient
 class ClientConfigurationTest {
-//
-//	private static DynamoDbClient ddb;
-//	private static DynamoDbEnhancedClient enhancedClient;
-//
-//
-//	RepositoryManagerService rms = new RepositoryManagerService(dynamoDbEnhancedClient);
-//	ClientConfigurationController clientController = new ClientConfigurationController(repositoryManagerService);
-//	ClientConfigurationDto ccDtoI = new ClientConfigurationDto();
-//	ClientConfigurationDto ccDtoO = new ClientConfigurationDto();
-//	SenderPhysicalAddressDto spaDto = new SenderPhysicalAddressDto();
-//
-//	// Define the data members required for the test
-//    private static String tableName = "AnagraficaClient";
-//    private static String itemVal = "cxId";
-//
-//    @BeforeAll
-//    public static void setUp() {
-//
-//        // Run tests on Real AWS Resources
-//        Region region = Region.EU_CENTRAL_1;
-//        ddb = DynamoDbClient.builder().region(region).build();
-//
-//		// Create a DynamoDbEnhancedClient object
-//		enhancedClient = DynamoDbEnhancedClient.builder()
-//				.dynamoDbClient(ddb).build();
-//    }
-//
-////    @Test
-////    @Order(1)
-////    public void whenInitializingEnhancedClient_thenNotNull() {
-////        assertNotNull(enhancedClient);
-////        System.out.println("Test 1 passed");
-////    }
-////
-////    @Test
-////    @Order(2)
-////    public void CreateTable() {
-////
-////       String result = createTable(ddb, tableName, itemVal);
-////       assertFalse(result.isEmpty());
-////       System.out.println("\n Test 2 passed");
-////    }
-////
-////    @Test
-////    @Order(3)
-////    public void DescribeTable() {
-////       describeDymamoDBTable(ddb,tableName);
-////       System.out.println("\n Test 3 passed");
-////    }
-//
-//	//ECGRAC.100.1
-//    @Test
-//    @Order(4)
-//	void testInsertSuccess() {
-//
-//		spaDto.setName("Mario");
-//		spaDto.setAddress("Via senza nome 1");
-//		spaDto.setCap("00123");
-//		spaDto.setCity("Arezzo");
-//		spaDto.setPr("AR");
-//
-//    	ccDtoI.setCxId("4");
-//    	ccDtoI.setSqsArn("ABC");
-//    	ccDtoI.setSqsName("MARIO ROSSI");
-//    	ccDtoI.setPecReplyTo("mariorossi@pec.it");
-//		ccDtoI.setMailReplyTo("mariorossi@yahoo.it");
-//
-//		ccDtoI.setSenderPhysicalAddress(spaDto);
-//
-//		System.out.println(ccDtoI.toString());
-//
-//		Mono<ResponseEntity<ClientConfigurationDto>> response = clientController.insertClient(ccDtoI);
-////		ccDtoO = rms.insertClient(ccDtoI);
-//		Assertions.assertNotNull(response);
-//		System.out.println("\n Test 4 passed");
-////		Assertions.assertEquals(clientController.insertClient(cc).block().getStatusCodeValue(), 200);
-//	}
+	
+	@Autowired
+    private WebTestClient webClient;
+	
+	@Autowired
+	private DynamoDbEnhancedClient enhancedClient;
+	
+	//ECGRAC.100.1
+    @Test
+	void testInsertSuccess() {
+
+    	ClientConfigurationDto ccDtoI = new ClientConfigurationDto();
+    	SenderPhysicalAddressDto spaDto = new SenderPhysicalAddressDto();
+    	
+    	spaDto.setName("Mario");
+		spaDto.setAddress("Via senza nome 1");
+		spaDto.setCap("00123");
+		spaDto.setCity("Arezzo");
+		spaDto.setPr("AR");
+
+    	ccDtoI.setCxId("11111");
+    	ccDtoI.setSqsArn("ABC");
+    	ccDtoI.setSqsName("MARIO ROSSI");
+    	ccDtoI.setPecReplyTo("mariorossi@pec.it");
+		ccDtoI.setMailReplyTo("mariorossi@yahoo.it");
+
+		ccDtoI.setSenderPhysicalAddress(spaDto);
+    	
+    	webClient.post()
+		    	 .uri("localhost:8080/client")
+		         .accept(APPLICATION_JSON)
+		         .contentType(APPLICATION_JSON)
+		         .body(BodyInserters.fromValue(ccDtoI))
+		         .exchange()
+		         .expectStatus().isOk();
+    	
+	}
+    
+    
+    
 //
 ////	//ECGRAC.100.2
 ////	@Test

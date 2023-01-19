@@ -1,4 +1,4 @@
-package it.pagopa.pnec.repositorymanager;
+package it.pagopa.pn.ec.repositorymanager;
 
 import static org.junit.jupiter.api.Assertions.*;
 
