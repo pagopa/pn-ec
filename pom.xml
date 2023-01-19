@@ -25,10 +25,12 @@
 	<properties>
 		<java.version>17</java.version>
 		<awspring.version>2.3.2</awspring.version>
+		<awssdkv1.version>1.12.386</awssdkv1.version>
 	</properties>
 
 	<dependencyManagement>
 		<dependencies>
+
 			<dependency>
 				<groupId>io.awspring.cloud</groupId>
 				<artifactId>spring-cloud-aws-dependencies</artifactId>
@@ -36,6 +38,16 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+
+			<!-- We import the amazon sdk version 1 bill of material for localstack to work properly -->
+			<dependency>
+				<groupId>com.amazonaws</groupId>
+				<artifactId>aws-java-sdk-bom</artifactId>
+				<version>${awssdkv1.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
 		</dependencies>
 	</dependencyManagement>
 
@@ -118,10 +130,12 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- If we don't import this dependency, when starting the LocalStack container for Integration Tests we get this error-->
+		<!-- Caused by: java.lang.NoClassDefFoundError: com/amazonaws/auth/AWSCredentials -->
+		<!-- https://stackoverflow.com/questions/64017812/junit-awscredentials-noclassdeffounderror-with-localstackcontainer-->
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-sqs</artifactId>
-			<version>1.12.386</version>
 			<scope>test</scope>
 		</dependency>
 
