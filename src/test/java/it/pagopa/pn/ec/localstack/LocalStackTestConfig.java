@@ -26,9 +26,12 @@ import static org.testcontainers.containers.localstack.LocalStackContainer.Servi
 
 @TestConfiguration
 public class LocalStackTestConfig {
-	
-	@Autowired
-	private DynamoDbEnhancedClient enhancedClient;
+
+    @Autowired
+    private DynamoDbEnhancedClient enhancedClient;
+
+    @Autowired
+    private DynamoDbWaiter dynamoDbWaiter;
 
     static LocalStackContainer localStackContainer = new LocalStackContainer(DockerImageName.parse(DEFAULT_LOCAL_STACK_TAG)).withServices(
             SQS,
@@ -59,22 +62,20 @@ public class LocalStackTestConfig {
             throw new RuntimeException(e);
         }
     }
-    
-	@PostConstruct
-	public void createTable() {
-		DynamoDbTable<ClientConfiguration> clientConfigurationTable = enhancedClient.table(ANAGRAFICA_TABLE_NAME,
-				TableSchema.fromBean(ClientConfiguration.class));
 
-		clientConfigurationTable.createTable(
-				builder -> builder.provisionedThroughput(b -> b.readCapacityUnits(5L).writeCapacityUnits(5L).build()));
+    @PostConstruct
+    public void createTable() {
+        DynamoDbTable<ClientConfiguration> clientConfigurationTable = enhancedClient.table(ANAGRAFICA_TABLE_NAME,
+                                                                                           TableSchema.fromBean(ClientConfiguration.class));
 
-		try (DynamoDbWaiter waiter = DynamoDbWaiter.create()) { // DynamoDbWaiter is Autocloseable
-			ResponseOrException<DescribeTableResponse> response = waiter
-					.waitUntilTableExists(builder -> builder.tableName(ANAGRAFICA_TABLE_NAME).build()).matched();
-			DescribeTableResponse tableDescription = response.response()
-					.orElseThrow(() -> new RuntimeException("Customer table was not created."));
-			// The actual error can be inspected in response.exception()
-		}
-	}
-    
+        clientConfigurationTable.createTable(builder -> builder.provisionedThroughput(b -> b.readCapacityUnits(5L)
+                                                                                            .writeCapacityUnits(5L)
+                                                                                            .build()));
+
+        ResponseOrException<DescribeTableResponse> response = dynamoDbWaiter.waitUntilTableExists(builder -> builder.tableName(
+                ANAGRAFICA_TABLE_NAME).build()).matched();
+        DescribeTableResponse tableDescription = response.response()
+                                                         .orElseThrow(() -> new RuntimeException("Customer table was not created."));
+        // The actual error can be inspected in response.exception()
+    }
 }

@@ -4,10 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.http.ResponseEntity;
@@ -22,51 +19,61 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ClientConfigurationTest {
-	
-	@Autowired
+
+    @Autowired
     private WebTestClient webClient;
-	
-	@Autowired
-	private DynamoDbEnhancedClient enhancedClient;
-	
-	//ECGRAC.100.1
+
+    //ECGRAC.100.1
     @Test
-	void testInsertSuccess() {
+    @Order(1)
+    void insertClientTest() {
 
-    	ClientConfigurationDto ccDtoI = new ClientConfigurationDto();
-    	SenderPhysicalAddressDto spaDto = new SenderPhysicalAddressDto();
-    	
-    	spaDto.setName("Mario");
-		spaDto.setAddress("Via senza nome 1");
-		spaDto.setCap("00123");
-		spaDto.setCity("Arezzo");
-		spaDto.setPr("AR");
+        ClientConfigurationDto ccDtoI = new ClientConfigurationDto();
+        SenderPhysicalAddressDto spaDto = new SenderPhysicalAddressDto();
 
-    	ccDtoI.setCxId("11111");
-    	ccDtoI.setSqsArn("ABC");
-    	ccDtoI.setSqsName("MARIO ROSSI");
-    	ccDtoI.setPecReplyTo("mariorossi@pec.it");
-		ccDtoI.setMailReplyTo("mariorossi@yahoo.it");
+        spaDto.setName("Mario");
+        spaDto.setAddress("Via senza nome 1");
+        spaDto.setCap("00123");
+        spaDto.setCity("Arezzo");
+        spaDto.setPr("AR");
 
-		ccDtoI.setSenderPhysicalAddress(spaDto);
-    	
-    	webClient.post()
-		    	 .uri("localhost:8080/client")
-		         .accept(APPLICATION_JSON)
-		         .contentType(APPLICATION_JSON)
-		         .body(BodyInserters.fromValue(ccDtoI))
-		         .exchange()
-		         .expectStatus().isOk();
-    	
-	}
-    
-    
-    
+        ccDtoI.setCxId("11111");
+        ccDtoI.setSqsArn("ABC");
+        ccDtoI.setSqsName("MARIO ROSSI");
+        ccDtoI.setPecReplyTo("mariorossi@pec.it");
+        ccDtoI.setMailReplyTo("mariorossi@yahoo.it");
+
+        ccDtoI.setSenderPhysicalAddress(spaDto);
+
+        webClient.post()
+                 .uri("http://localhost:8080/client")
+                 .accept(APPLICATION_JSON)
+                 .contentType(APPLICATION_JSON)
+                 .body(BodyInserters.fromValue(ccDtoI))
+                 .exchange()
+                 .expectStatus()
+                 .isOk();
+    }
+
+    @Test
+    @Order(2)
+    void getClientTest() {
+        webClient.get()
+                 .uri("http://localhost:8080/client/11111")
+                 .accept(APPLICATION_JSON)
+                 .exchange()
+                 .expectStatus()
+                 .isOk()
+                 .expectBody(ClientConfigurationDto.class);
+    }
+
 //
 ////	//ECGRAC.100.2
 ////	@Test

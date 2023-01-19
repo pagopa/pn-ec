@@ -13,6 +13,13 @@ public class RepositoryManagerException extends RuntimeException {
         }
     }
 
+    public static class IdClientNotFoundException extends RuntimeException{
+
+        public IdClientNotFoundException(String idClient) {
+            super("Id client not found");
+        }
+    }
+
     public static class DynamoDbException extends RuntimeException{
 
         public DynamoDbException() {

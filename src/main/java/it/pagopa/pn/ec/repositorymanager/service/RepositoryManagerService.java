@@ -29,6 +29,7 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.model.GetItemEnhancedRequest;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
 
@@ -69,42 +70,24 @@ public class RepositoryManagerService {
         }
     }
 
-    public ClientConfigurationDto getClient(String partition_id) {
-        ClientConfigurationDto ccDto = new ClientConfigurationDto();
-        SenderPhysicalAddressDto spaDto = new SenderPhysicalAddressDto();
-
+    public ClientConfigurationDto getClient(String idClient) {
         try {
-            DynamoDbEnhancedClient enhancedClient = DependencyFactory.dynamoDbEnhancedClient();
 
-            DynamoDbTable<ClientConfiguration> clientConfigurationTable = enhancedClient.table("AnagraficaClient",
-                                                                                               TableSchema.fromBean(ClientConfiguration.class));
-            QueryConditional queryConditional = QueryConditional.keyEqualTo(Key.builder().partitionValue(partition_id).build());
+            DynamoDbTable<ClientConfiguration> clientConfigurationTable = dynamoDbEnhancedClient.table(ANAGRAFICA_TABLE_NAME,
+                                                                                                       TableSchema.fromBean(
+                                                                                                               ClientConfiguration.class));
 
-            // Get items in the table and write out the ID value.
-            Iterator<ClientConfiguration> result = clientConfigurationTable.query(queryConditional).items().iterator();
-            ClientConfiguration cc = result.next();
-//                System.out.println("The process of the movie is "+cc.getCxId());
-//                System.out.println("The target status information  is "+cc.getSqsName());
+            Key key = Key.builder().partitionValue(idClient).build();
+            ClientConfiguration clientConfiguration = clientConfigurationTable.getItem(builder -> builder.key(key));
 
-            spaDto.setName(cc.getSenderPhysicalAddress().getName());
-            spaDto.setAddress(cc.getSenderPhysicalAddress().getAddress());
-            spaDto.setCap(cc.getSenderPhysicalAddress().getCap());
-            spaDto.setCity(cc.getSenderPhysicalAddress().getCity());
-            spaDto.setPr(cc.getSenderPhysicalAddress().getPr());
+            if (clientConfiguration == null) {
+                throw new RepositoryManagerException.IdClientNotFoundException(idClient);
+            }
 
-            ccDto.setCxId(cc.getCxId());
-            ccDto.setSqsArn(cc.getSqsArn());
-            ccDto.setSqsName(cc.getSqsName());
-            ccDto.setPecReplyTo(cc.getPecReplyTo());
-            ccDto.setMailReplyTo(cc.getMailReplyTo());
-            ccDto.setSenderPhysicalAddress(spaDto);
-
-            return ccDto;
-
+            return objectMapper.convertValue(clientConfiguration, ClientConfigurationDto.class);
         } catch (DynamoDbException e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
-            return null;
+            log.error(e.getMessage(), e);
+            throw new RepositoryManagerException.DynamoDbException();
         }
     }
 
