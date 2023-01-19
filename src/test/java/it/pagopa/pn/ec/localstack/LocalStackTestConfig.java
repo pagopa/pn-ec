@@ -7,19 +7,22 @@ import org.testcontainers.utility.DockerImageName;
 import java.io.IOException;
 
 import static it.pagopa.pn.ec.constant.QueueNameConstant.*;
+import static it.pagopa.pn.ec.localstack.LocalStackUtils.DEFAULT_LOCAL_STACK_TAG;
+import static it.pagopa.pn.ec.localstack.LocalStackUtils.createQueueCliCommand;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.DYNAMODB;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.SQS;
 
 @TestConfiguration
 public class LocalStackTestConfig {
 
-    static LocalStackContainer localStackContainer =
-            new LocalStackContainer(DockerImageName.parse("localstack/localstack:latest")).withServices(
+    static LocalStackContainer localStackContainer = new LocalStackContainer(DockerImageName.parse(DEFAULT_LOCAL_STACK_TAG)).withServices(
             SQS,
             DYNAMODB);
 
     static {
         localStackContainer.start();
+
+//      Override aws config
         System.setProperty("aws.config.access.key", localStackContainer.getAccessKey());
         System.setProperty("aws.config.secret.key", localStackContainer.getSecretKey());
         System.setProperty("aws.config.default.region", localStackContainer.getRegion());
@@ -32,9 +35,9 @@ public class LocalStackTestConfig {
         try {
 
 //          Create SQS queue
-            localStackContainer.execInContainer("awslocal", "sqs", "create-queue", "--queue-name", NOTIFICATION_TRACKER_QUEUE_NAME);
-            localStackContainer.execInContainer("awslocal", "sqs", "create-queue", "--queue-name", SMS_QUEUE_NAME);
-            localStackContainer.execInContainer("awslocal", "sqs", "create-queue", "--queue-name", SMS_ERROR_QUEUE_NAME);
+            localStackContainer.execInContainer(createQueueCliCommand(NOTIFICATION_TRACKER_QUEUE_NAME));
+            localStackContainer.execInContainer(createQueueCliCommand(SMS_QUEUE_NAME));
+            localStackContainer.execInContainer(createQueueCliCommand(SMS_ERROR_QUEUE_NAME));
 
             // TODO: Create DynamoDb schemas
         } catch (IOException | InterruptedException e) {
