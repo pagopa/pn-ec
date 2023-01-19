@@ -24,11 +24,286 @@ Parameters:
     Type: String
     Description: 'Where to send CDC'
 
+  PnEcTableNameAnagrafica:
+    Type: String
+    Description: Description
+  
+  PnEcTableNameRichieste:
+    Type: String
+    Description: Description
+
+  PnEcQueueNameSMS:
+    Type: String
+    Description: Description
+
+  PnEcQueueNameErroriSMS:
+    Type: String
+    Description: Description
+
+  PnEcQueueNameTrackerStatoSMS:
+    Type: String
+    Description: Description
+
+  PnEcQueueNameTrackerErroriSMS:
+    Type: String
+    Description: Description
+
+  PnEcQueueNameNotificheExt1:
+    Type: String
+    Description: Description 
+
+  PnEcECSExecutionRoleName:
+    Type: String
+    Description: Description 
+
+  PnEcTaskNameTracker:
+    Type: String
+    Descritpion: Description
+  
+  PnEcTaskNameSMS:
+    Type: String
+    Descritpion: Description
+
 Resources:
-    NullResource:
-        Type: AWS::CloudFormation::WaitConditionHandle
+
+  NullResource:
+    Type: AWS::CloudFormation::WaitConditionHandle
+
+  PnEcTableAnagrafica:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        -   
+          AttributeName: "cxId"
+          AttributeType: "S"
+      KeySchema: 
+        -   
+          AttributeName: "cxId"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: false
+        SSEType: "KMS"
+      TableClass: "STANDARD"
+      TableName: !Ref PnEcTableNameAnagrafica
+    DeletionPolicy: Retain
+
+  PnEcTableRichieste:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        -   
+          AttributeName: "requestId"
+          AttributeType: "S"
+        -   
+          AttributeName: "correlationId"
+          AttributeType: "S"
+      KeySchema: 
+        -   
+          AttributeName: "requestId"
+          KeyType: "HASH"
+        -
+          AttributeName: "correlationId"
+          KeyType: "RANGE"
+      #KinesisStreamSpecification:
+      #  StreamArn: "String"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: false
+        SSEType: "KMS"
+      TableClass: "STANDARD"
+      TableName: !Ref PnEcTableNameRichieste
+    DeletionPolicy: Retain
+
+  PnEcQueueTrackerStatoSMS:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      QueueName: !Ref PnEcQueueNameTrackerStatoSMS
+      ReceiveMessageWaitTimeSeconds: 20      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueTrackerStatoSMS.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueTrackerStatoSMS:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      QueueName: !Join 
+        - ""
+        - - !Ref PnEcQueueNameTrackerStatoSMS
+          - '-dlq' 
+      ReceiveMessageWaitTimeSeconds: 20
+      VisibilityTimeout: 30
+
+  PnEcQueueTrackerErroriSMS:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      QueueName: !Ref PnEcQueueNameTrackerErroriSMS
+      ReceiveMessageWaitTimeSeconds: 20      
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt PnEcDLQueueTrackerErroriSMS.Arn
+        maxReceiveCount: 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueTrackerErroriSMS:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      QueueName: !Join 
+        - ""
+        - - !Ref PnEcQueueNameTrackerErroriSMS
+          - '-dlq' 
+      ReceiveMessageWaitTimeSeconds: 20
+      VisibilityTimeout: 30
+
+  PnEcQueueSMS:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      QueueName: !Ref PnEcQueueNameSMS
+      ReceiveMessageWaitTimeSeconds: 20      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueSMS.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueSMS:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      QueueName: !Join 
+        - ""
+        - - !Ref PnEcQueueNameSMS
+          - '-dlq' 
+      ReceiveMessageWaitTimeSeconds: 20
+      VisibilityTimeout: 30
+
+  PnEcQueueErroriSMS:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      QueueName: !Ref PnEcQueueNameErroriSMS
+      ReceiveMessageWaitTimeSeconds: 20      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueErroriSMS.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueErroriSMS:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      QueueName: !Join 
+        - ""
+        - - !Ref PnEcQueueNameErroriSMS
+          - '-dlq' 
+      ReceiveMessageWaitTimeSeconds: 20
+      VisibilityTimeout: 30
+
+  PnEcQueueNotificheExt1:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      QueueName: !Ref PnEcQueueNameNotificheExt1
+      ReceiveMessageWaitTimeSeconds: 20      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueNotificheExt1.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueNotificheExt1:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      QueueName: !Join 
+        - ""
+        - - !Ref PnEcQueueNameNotificheExt1
+          - '-dlq' 
+      ReceiveMessageWaitTimeSeconds: 20
+      VisibilityTimeout: 30
+
+  QueuePolicyTracker:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !GetAtt PnEcQueueTrackerStatoSMS.QueueUrl 
+        - !GetAtt PnEcQueueTrackerErroriSMS.QueueUrl 
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - "SQS:SendMessage" 
+              - "SQS:ReceiveMessage"
+            Effect: "Allow"
+            Resource: !GetAtt PnEcQueueSMS.Arn
+            Principal:  
+              AWS: 
+                #- !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref PnEcTaskNameTracker]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref PnEcECSExecutionRole]]
+
+  QueuePolicySMS:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !GetAtt PnEcQueueSMS.QueueUrl
+        - !GetAtt PnEcQueueErroriSMS.QueueUrl
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - "SQS:SendMessage" 
+              - "SQS:ReceiveMessage"
+            Effect: "Allow"
+            Resource: !GetAtt PnEcQueueSMS.Arn
+            Principal:  
+              AWS: 
+                #- !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref PnEcTaskNameSMS]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref PnEcECSExecutionRole]]
+  
+  PnEcECSExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+      Statement: 
+          - 
+            Action: 
+              - "sts:AssumeRole"
+            Effect: "Allow"
+            Principal:  
+              Service: 
+                - "ecs-tasks.amazonaws.com"
+      Description: 'Execution Role for pn-ec ECS Task'
+      RoleName: !Ref PnEcECSExecutionRoleName
+      
+    
 
 Outputs:
     SampleOutput:
       Description: A Sample Output
       Value: 'na'
+
