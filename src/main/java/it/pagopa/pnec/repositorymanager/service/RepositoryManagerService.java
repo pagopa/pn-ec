@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.BeanUtils;
 import org.threeten.bp.OffsetDateTime;
 
 import it.pagopa.pnec.repositorymanager.dto.ClientConfigurationDto;
@@ -35,37 +36,43 @@ public class RepositoryManagerService {
 
 	}
 
-	public ClientConfigurationDto insertClient(ClientConfiguration cc) {
+	public ClientConfigurationDto insertClient(ClientConfigurationDto ccDtoI) {
 		DynamoDbEnhancedClient enhancedClient = DependencyFactory.dynamoDbEnhancedClient();
-		ClientConfigurationDto ccDto = new ClientConfigurationDto();
-		SenderPhysicalAddressDto spaDto = new SenderPhysicalAddressDto();
+		ClientConfigurationDto ccDtoO = new ClientConfigurationDto();
+//		SenderPhysicalAddressDto spaDto = new SenderPhysicalAddressDto();
 		try {
 			DynamoDbTable<ClientConfiguration> clientConfigurationTable = enhancedClient.table("AnagraficaClient", TableSchema.fromBean(ClientConfiguration.class));
 			
+			ClientConfiguration cc = new ClientConfiguration();
+			BeanUtils.copyProperties(ccDtoI, cc);
+
+			
 			if(clientConfigurationTable.getItem(cc) == null) {
 				
-				spaDto.setName(cc.getSenderPhysicalAddress().getName());
-				spaDto.setAddress(cc.getSenderPhysicalAddress().getAddress());
-				spaDto.setCap(cc.getSenderPhysicalAddress().getCap());
-				spaDto.setCity(cc.getSenderPhysicalAddress().getCity());
-				spaDto.setPr(cc.getSenderPhysicalAddress().getPr());
-				
-				ccDto.setCxId(cc.getCxId());
-				ccDto.setSqsArn(cc.getSqsArn());
-				ccDto.setSqsName(cc.getSqsName());
-				ccDto.setPecReplyTo(cc.getPecReplyTo());
-				ccDto.setMailReplyTo(cc.getMailReplyTo());
-				ccDto.setSenderPhysicalAddress(spaDto);
+//				spaDto.setName(cc.getSenderPhysicalAddress().getName());
+//				spaDto.setAddress(cc.getSenderPhysicalAddress().getAddress());
+//				spaDto.setCap(cc.getSenderPhysicalAddress().getCap());
+//				spaDto.setCity(cc.getSenderPhysicalAddress().getCity());
+//				spaDto.setPr(cc.getSenderPhysicalAddress().getPr());
+//				
+//				ccDto.setCxId(cc.getCxId());
+//				ccDto.setSqsArn(cc.getSqsArn());
+//				ccDto.setSqsName(cc.getSqsName());
+//				ccDto.setPecReplyTo(cc.getPecReplyTo());
+//				ccDto.setMailReplyTo(cc.getMailReplyTo());
+//				ccDto.setSenderPhysicalAddress(spaDto);
 				
 				clientConfigurationTable.putItem(cc);
-				System.out.println("new client data added to the table with id ???");
+				System.out.println("new client data added to the table");
+				BeanUtils.copyProperties(cc, ccDtoO);
+				
 			} else {
-				System.out.println("id already exists");
+				System.out.println("client cannot be added to the table, id already exists");
 			}
 		} catch(DynamoDbException  e) {
 			System.err.println(e.getMessage());
 		}
-		return ccDto;
+		return ccDtoO;
 	}
 
 	public ClientConfigurationDto getClient(String partition_id) {
@@ -163,18 +170,20 @@ public class RepositoryManagerService {
 //                System.out.println("The process of the movie is "+cc.getCxId());
 //                System.out.println("The target status information  is "+cc.getSqsName());
             
-            spaDto.setName(cc.getSenderPhysicalAddress().getName());
-			spaDto.setAddress(cc.getSenderPhysicalAddress().getAddress());
-			spaDto.setCap(cc.getSenderPhysicalAddress().getCap());
-			spaDto.setCity(cc.getSenderPhysicalAddress().getCity());
-			spaDto.setPr(cc.getSenderPhysicalAddress().getPr());
+//            BeanUtils.copyProperties(ccDtoI, cc);
+            
+//            spaDto.setName(cc.getSenderPhysicalAddress().getName());
+//			spaDto.setAddress(cc.getSenderPhysicalAddress().getAddress());
+//			spaDto.setCap(cc.getSenderPhysicalAddress().getCap());
+//			spaDto.setCity(cc.getSenderPhysicalAddress().getCity());
+//			spaDto.setPr(cc.getSenderPhysicalAddress().getPr());
             
             ccDto.setCxId(cc.getCxId());
             ccDto.setSqsArn(cc.getSqsArn());
             ccDto.setSqsName(cc.getSqsName());
 			ccDto.setPecReplyTo(cc.getPecReplyTo());
 			ccDto.setMailReplyTo(cc.getMailReplyTo());
-			ccDto.setSenderPhysicalAddress(spaDto);
+//			ccDto.setSenderPhysicalAddress(spaDto);
             
 			clientConfigurationTable.deleteItem(cc);
             

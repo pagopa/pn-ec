@@ -1,5 +1,8 @@
 package it.pagopa.pnec.repositorymanager.controller;
 
+import javax.validation.Valid;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,12 +21,13 @@ import reactor.core.publisher.Mono;
 @RestController
 public class ClientConfigurationController {
 
+	@Autowired
 	RepositoryManagerService rms = new RepositoryManagerService();
 	
 	@PostMapping(path ="/client" ,produces = MediaType.APPLICATION_JSON_VALUE)
-	public Mono<ResponseEntity<ClientConfigurationDto>> insertClient(@RequestBody ClientConfiguration cci) { 
-		ClientConfigurationDto clientConfDto = rms.insertClient(cci);
-		Mono<ResponseEntity<ClientConfigurationDto>> result = Mono.just(ResponseEntity.ok().body(clientConfDto));
+	public Mono<ResponseEntity<ClientConfigurationDto>> insertClient(@Valid @RequestBody ClientConfigurationDto ccDtoI) { 
+		ClientConfigurationDto ccDtoO = rms.insertClient(ccDtoI);
+		Mono<ResponseEntity<ClientConfigurationDto>> result = Mono.just(ResponseEntity.ok().body(ccDtoO));
 		return result;
 	}
 	

@@ -48,9 +48,9 @@ public class ClientConfigurationDto {
 	@Override
 	public String toString() {
 		return "ClientConfigurationDto [cxId=" + cxId + ", sqsArn=" + sqsArn + ", sqsName=" + sqsName + ", pecReplyTo="
-				+ pecReplyTo + ", mailReplyTo=" + mailReplyTo + ", senderPhysicalAddress=" + senderPhysicalAddress
+				+ pecReplyTo + ", mailReplyTo=" + mailReplyTo+ ", senderPhysicalAddress=" + senderPhysicalAddress
 				+ "]";
 	}
-	
+	 
 	
 }
