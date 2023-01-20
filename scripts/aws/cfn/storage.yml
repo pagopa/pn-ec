@@ -318,30 +318,6 @@ Resources:
               Resource: "*"
               Effect: "Allow"
     
-  PnEcEventRuleNotificheExt1:
-    Type: AWS::Events::Rule
-    Properties:
-      Description: "String"
-      EventBusName: "String"
-      EventPattern: !Sub | 
-        {
-          'source' : 'payload from Disponibilita microservice'
-          'source2' : [ 'aws.s3' ],
-          'account' : ${AWS::AccountId},
-          'detail-type': 'Object Created'
-          'detail' : {
-            'bucket': {
-              'name': ${!Ref PnSsEventRuleNameStagingBucket} 
-            }
-          }
-        }
-      Name: !Ref PnEcEventRuleNameNotificheExt1
-      RoleArn: "String"
-      State: 'ENABLED'
-      Targets:
-        - Arn: !Ref PnEcSNSNotificheExt1
-          Id: "TopicTargetForExtNotification"
-
   PnEcSNSNotificheExt1:
     Type: AWS::SNS::Topic
     Properties:
@@ -366,6 +342,19 @@ Resources:
             Resource: '*'
       Topics: 
         - !Ref PnEcSNSNotificheExt1
+
+  PnEcEventRuleNotificheExt1:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Description
+      EventPattern:   
+        source: 
+          - 'payload from Disponibilita microservice'
+      Name: !Ref PnEcEventRuleNameNotificheExt1
+      State: 'ENABLED'
+      Targets:
+        - Arn: !Ref PnEcSNSNotificheExt1
+          Id: "TopicTargetForExtNotification"
 
 Outputs:
   SampleOutput:
