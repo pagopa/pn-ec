@@ -58,11 +58,19 @@ Parameters:
 
   PnEcTaskNameTracker:
     Type: String
-    Descritpion: Description
+    Description: Description
   
   PnEcTaskNameSMS:
     Type: String
-    Descritpion: Description
+    Description: Description
+
+  PnEcEventRuleNameNotificheExt1:
+    Type: String
+    Description: Description
+
+  PnEcSNSNameNotificheExt1:
+    Type: String
+    Description: Description
 
 Resources:
 
@@ -84,7 +92,7 @@ Resources:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
       SSESpecification:
-        SSEEnabled: false
+        SSEEnabled: true
         SSEType: "KMS"
       TableClass: "STANDARD"
       TableName: !Ref PnEcTableNameAnagrafica
@@ -113,7 +121,7 @@ Resources:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
       SSESpecification:
-        SSEEnabled: false
+        SSEEnabled: true
         SSEType: "KMS"
       TableClass: "STANDARD"
       TableName: !Ref PnEcTableNameRichieste
@@ -289,9 +297,8 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-      Statement: 
-          - 
-            Action: 
+        Statement: 
+          - Action: 
               - "sts:AssumeRole"
             Effect: "Allow"
             Principal:  
@@ -299,11 +306,69 @@ Resources:
                 - "ecs-tasks.amazonaws.com"
       Description: 'Execution Role for pn-ec ECS Task'
       RoleName: !Ref PnEcECSExecutionRoleName
-      
+      MaxSessionDuration: 3600
+      Policies:
+        - 
+          PolicyName: 'PutMetricData'
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Action: 
+                - "cloudwatch:PutMetricData"
+              Resource: "*"
+              Effect: "Allow"
     
+  PnEcEventRuleNotificheExt1:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "String"
+      EventBusName: "String"
+      EventPattern: !Sub | 
+        {
+          'source' : 'payload from Disponibilita microservice'
+          'source2' : [ 'aws.s3' ],
+          'account' : ${AWS::AccountId},
+          'detail-type': 'Object Created'
+          'detail' : {
+            'bucket': {
+              'name': ${!Ref PnSsEventRuleNameStagingBucket} 
+            }
+          }
+        }
+      Name: !Ref PnEcEventRuleNameNotificheExt1
+      RoleArn: "String"
+      State: 'ENABLED'
+      Targets:
+        - Arn: !Ref PnEcSNSNotificheExt1
+          Id: "TopicTargetForExtNotification"
+
+  PnEcSNSNotificheExt1:
+    Type: AWS::SNS::Topic
+    Properties:
+      #DataProtectionPolicy: JSON
+      KmsMasterKeyId: alias/aws/sns
+      Subscription:
+        - Endpoint: !GetAtt PnEcQueueNotificheExt1.Arn
+          Protocol: sqs
+      TopicName: !Ref PnEcSNSNameNotificheExt1
+  
+  PnEcSNSPolicyNotificheExt1:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Statement: 
+          - Action: 
+              - "sns:Publish"
+            Effect: "Allow"
+            Principal:  
+              Service: 
+                - "events.amazonaws.com"
+            Resource: '*'
+      Topics: 
+        - !Ref PnEcSNSNotificheExt1
 
 Outputs:
-    SampleOutput:
-      Description: A Sample Output
-      Value: 'na'
+  SampleOutput:
+    Description: A Sample Output
+    Value: 'na'
 
