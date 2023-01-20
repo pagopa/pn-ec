@@ -6,10 +6,10 @@ public class SqsException extends RuntimeException{
         super("Generic SQS exception");
     }
 
-    public static class SqsObjectToJsonException extends RuntimeException{
+    public static class SqsPublishException extends RuntimeException{
 
-        public SqsObjectToJsonException(String queueName) {
-            super(String.format("Jackson error conversion during publishing to %s queue", queueName));
+        public SqsPublishException(String queueName) {
+            super(String.format("Messaging exception during publishing to %s queue", queueName));
         }
     }
 }

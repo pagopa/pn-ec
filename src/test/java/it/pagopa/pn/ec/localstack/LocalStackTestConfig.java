@@ -9,29 +9,32 @@ import java.io.IOException;
 import static it.pagopa.pn.ec.constant.QueueNameConstant.*;
 import static it.pagopa.pn.ec.localstack.LocalStackUtils.DEFAULT_LOCAL_STACK_TAG;
 import static it.pagopa.pn.ec.localstack.LocalStackUtils.createQueueCliCommand;
-import static org.testcontainers.containers.localstack.LocalStackContainer.Service.DYNAMODB;
-import static org.testcontainers.containers.localstack.LocalStackContainer.Service.SQS;
+import static org.testcontainers.containers.localstack.LocalStackContainer.Service.*;
 
 @TestConfiguration
 public class LocalStackTestConfig {
 
     static LocalStackContainer localStackContainer = new LocalStackContainer(DockerImageName.parse(DEFAULT_LOCAL_STACK_TAG)).withServices(
             SQS,
-            DYNAMODB);
+            DYNAMODB,
+            SNS);
 
     static {
         localStackContainer.start();
 
 //      Override aws config
-        System.setProperty("aws.config.access.key", localStackContainer.getAccessKey());
-        System.setProperty("aws.config.secret.key", localStackContainer.getSecretKey());
-        System.setProperty("aws.config.default.region", localStackContainer.getRegion());
+        System.setProperty("AWS_ACCESS_KEY", localStackContainer.getAccessKey());
+        System.setProperty("AWS_SECRET_KEY", localStackContainer.getSecretKey());
+        System.setProperty("AWS_DEFAULT_REGION", localStackContainer.getRegion());
 
 //      SQS Override Endpoint
-        System.setProperty("aws.sqs.test.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
+        System.setProperty("test.aws.sqs.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
 
 //      DynamoDb Override Endpoint
-        System.setProperty("aws.dynamodb.test.endpoint", String.valueOf(localStackContainer.getEndpointOverride(DYNAMODB)));
+        System.setProperty("test.aws.dynamodb.endpoint", String.valueOf(localStackContainer.getEndpointOverride(DYNAMODB)));
+
+//      SNS Override Endpoint
+        System.setProperty("test.aws.sns.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SNS)));
         try {
 
 //          Create SQS queue
