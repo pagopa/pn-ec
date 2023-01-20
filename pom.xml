@@ -127,11 +127,6 @@
 			<version>1.11.788</version>
 		</dependency>
         
-        
-        <dependency>
-			<groupId>io.awspring.cloud</groupId>
-			<artifactId>spring-cloud-starter-aws-messaging</artifactId>
-		</dependency>
 		<dependency>
 			<groupId>org.testng</groupId>
 			<artifactId>testng</artifactId>
@@ -192,7 +187,7 @@
 							<generateApiTests>false</generateApiTests>
 							<generateModelTests>false</generateModelTests>
 							<configOptions>
-								<dateLibrary>java11</dateLibrary>
+								<dateLibrary>java17</dateLibrary>
 								<delegatePattern>true</delegatePattern>
 								<interfaceOnly>true</interfaceOnly>
 								<annotationLibrary>none</annotationLibrary>

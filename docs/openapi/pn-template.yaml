@@ -47,6 +47,8 @@ paths:
         '500':
             description: InternalServerError
 
+
+
 #  securitySchemes:                                      # ONLY EXTERNAL
 #    bearerAuth:                                         # ONLY EXTERNAL
 #      type: http                                        # ONLY EXTERNAL

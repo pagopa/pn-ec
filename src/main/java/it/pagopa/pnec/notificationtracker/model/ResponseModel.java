@@ -1,4 +1,4 @@
-package it.pagopa.pnec.notificationTracker.model;
+package it.pagopa.pnec.notificationtracker.model;
 
 public class ResponseModel {
 	
