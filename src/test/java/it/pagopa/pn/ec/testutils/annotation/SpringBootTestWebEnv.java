@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.testutils.annotation;
 
-import it.pagopa.pn.ec.localstack.LocalStackTestConfig;
+import it.pagopa.pn.ec.testutils.localstack.LocalStackTestConfig;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 

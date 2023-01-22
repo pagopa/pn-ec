@@ -26,6 +26,7 @@
 		<java.version>17</java.version>
 		<awspring.version>2.3.2</awspring.version>
 		<awssdkv1.version>1.12.386</awssdkv1.version>
+		<logbackjackson.version>0.1.5</logbackjackson.version>
 	</properties>
 
 	<dependencyManagement>
@@ -72,6 +73,25 @@
 			<groupId>io.awspring.cloud</groupId>
 			<artifactId>spring-cloud-starter-aws-messaging</artifactId>
 		</dependency>
+
+		<!-- Start EC WebClient dependencies -->
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-reactive-httpclient</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>ch.qos.logback.contrib</groupId>
+			<artifactId>logback-json-classic</artifactId>
+			<version>${logbackjackson.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>ch.qos.logback.contrib</groupId>
+			<artifactId>logback-jackson</artifactId>
+			<version>${logbackjackson.version}</version>
+		</dependency>
+		<!-- Finish EC WebClient dependencies -->
 
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>

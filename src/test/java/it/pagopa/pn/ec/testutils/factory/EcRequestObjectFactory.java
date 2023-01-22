@@ -22,7 +22,7 @@ public class EcRequestObjectFactory {
      * @return Body con i campi valorizzati
      */
     public static DigitalCourtesySmsRequest getDigitalCourtesySmsRequest() {
-        DigitalCourtesySmsRequest request = new DigitalCourtesySmsRequest();
+        var request = new DigitalCourtesySmsRequest();
         request.setRequestId(DEFAULT_STRING_INIT);
         request.eventType(DEFAULT_STRING_INIT);
         request.setQos(INTERACTIVE);
