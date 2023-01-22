@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.handler.annotation.support.PayloadMethodArgumentResolver;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 import software.amazon.awssdk.services.sns.SnsClient;
@@ -21,9 +20,6 @@ import java.util.Collections;
 
 @Configuration
 public class AwsConfiguration {
-
-    @Value("${aws.region}")
-    String defaultRegion;
 
     /**
      * Set in LocalStackTestConfig
@@ -62,7 +58,6 @@ public class AwsConfiguration {
     @Bean
     public DynamoDbClient dynamoDbClient() {
         DynamoDbClientBuilder dynamoDbClientBuilder = DynamoDbClient.builder()
-                                                                    .region(Region.of(defaultRegion))
                                                                     .credentialsProvider(DefaultCredentialsProvider.create());
 
         if (dynamoDbLocalStackEndpoint != null) {
@@ -75,7 +70,6 @@ public class AwsConfiguration {
     @Bean
     public SnsClient snsClient() {
         SnsClientBuilder sqsClientBuilder = SnsClient.builder()
-                                                     .region(Region.of(defaultRegion))
                                                      .credentialsProvider(DefaultCredentialsProvider.create());
 
         if (snsLocalStackEndpoint != null) {

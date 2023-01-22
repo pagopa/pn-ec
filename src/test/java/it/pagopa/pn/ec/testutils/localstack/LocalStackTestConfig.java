@@ -23,8 +23,6 @@ public class LocalStackTestConfig {
     static {
         localStackContainer.start();
 
-        System.setProperty("AWS_REGION", localStackContainer.getRegion());
-
         try {
 
 //          Create SQS queue
