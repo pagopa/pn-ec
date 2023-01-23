@@ -2,8 +2,6 @@ package it.pagopa.pn.ec.testutils.localstack;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -12,8 +10,8 @@ import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbWaiter;
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.*;
-import static it.pagopa.pn.ec.testutils.localstack.LocalStackUtils.*;
+import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.ALL_QUEUE_NAME_LIST;
+import static it.pagopa.pn.ec.testutils.localstack.LocalStackUtils.DEFAULT_LOCAL_STACK_TAG;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.*;
 
 @TestConfiguration
@@ -34,6 +32,13 @@ public class LocalStackTestConfig {
     static {
         localStackContainer.start();
 
+//      <-- spring-cloud-starter-aws-messaging variables -->
+        System.setProperty("cloud.aws.sqs.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
+
+//      <-- Custom aws services endpoint variables for testing -->
+        System.setProperty("test.aws.dynamodb.endpoint", String.valueOf(localStackContainer.getEndpointOverride(DYNAMODB)));
+        System.setProperty("test.aws.sns.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SNS)));
+
         try {
 
 //          Create SQS queue
@@ -46,16 +51,6 @@ public class LocalStackTestConfig {
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @DynamicPropertySource
-    static void overrideConfiguration(DynamicPropertyRegistry registry) {
-//      <-- spring-cloud-starter-aws-messaging variables -->
-        registry.add("cloud.aws.sqs.endpoint", () -> localStackContainer.getEndpointOverride(SQS));
-
-//      <-- Custom aws services endpoint variables for testing -->
-        registry.add("test.aws.dynamodb.endpoint", () -> localStackContainer.getEndpointOverride(DYNAMODB));
-        registry.add("test.aws.sns.endpoint", () -> localStackContainer.getEndpointOverride(SNS));
     }
 
     @PostConstruct
