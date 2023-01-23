@@ -34,12 +34,9 @@ public class SmsService extends InvioService {
         var invioSmsDto = (SmsPresaInCaricoInfo) presaInCaricoInfo;
 
         // Preparation of the DTO and sending to the "Notification Tracker stato SMS" queue
-        sqsService.send(NT_STATO_SMS_QUEUE_NAME, new NtStatoSmsQueueDto(presaInCaricoInfo, status));
-
-        // Send to "SMS" queue
-        sqsService.send(SMS_QUEUE_NAME, invioSmsDto.getDigitalCourtesySmsRequest());
-
-        return Mono.empty();
+        return sqsService.send(NT_STATO_SMS_QUEUE_NAME, new NtStatoSmsQueueDto(presaInCaricoInfo, status))
+                         // Send to "SMS" queue
+                         .then(sqsService.send(SMS_QUEUE_NAME, invioSmsDto.getDigitalCourtesySmsRequest()));
     }
 
     @Override

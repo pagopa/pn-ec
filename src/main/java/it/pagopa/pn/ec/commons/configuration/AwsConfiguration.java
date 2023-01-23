@@ -10,10 +10,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.handler.annotation.support.PayloadMethodArgumentResolver;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
+import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbWaiter;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.SnsClientBuilder;
+import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 
 import java.net.URI;
 import java.util.Collections;
@@ -56,6 +59,11 @@ public class AwsConfiguration {
 //  <-- AWS SDK for Java v2 -->
 
     @Bean
+    public SqsAsyncClient sqsAsyncClient(){
+        return SqsAsyncClient.create();
+    }
+
+    @Bean
     public DynamoDbClient dynamoDbClient() {
         DynamoDbClientBuilder dynamoDbClientBuilder = DynamoDbClient.builder()
                                                                     .credentialsProvider(DefaultCredentialsProvider.create());
@@ -65,6 +73,16 @@ public class AwsConfiguration {
         }
 
         return dynamoDbClientBuilder.build();
+    }
+
+    @Bean
+    public DynamoDbEnhancedClient getDynamoDbEnhancedClient(DynamoDbClient dynamoDbClient) {
+        return DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDbClient).build();
+    }
+
+    @Bean
+    public DynamoDbWaiter getDynamoDbWaiter(DynamoDbClient dynamoDbClient) {
+        return DynamoDbWaiter.builder().client(dynamoDbClient).build();
     }
 
     @Bean

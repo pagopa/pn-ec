@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.sms.rest;
 
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
-import it.pagopa.pn.ec.commons.exception.SqsException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.anagraficaclient.AnagraficaClientCallImpl;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.richieste.RichiesteCallImpl;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
@@ -17,6 +17,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.ReactiveHttpOutputMessage;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
@@ -48,7 +49,7 @@ class DigitalCourtesyMessagesApiControllerTest {
     @MockBean
     private RichiesteCallImpl richiesteCall;
 
-    @MockBean
+    @SpyBean
     private SqsServiceImpl sqsService;
 
     private WebTestClient.ResponseSpec sendSmsTestCall(BodyInserter<DigitalCourtesySmsRequest, ReactiveHttpOutputMessage> bodyInserter,
@@ -165,7 +166,7 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.STATUS_1));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        doThrow(SqsException.SqsPublishException.class).when(sqsService).send(eq(NT_STATO_SMS_QUEUE_NAME), any(NtStatoSmsQueueDto.class));
+        doThrow(SqsPublishException.class).when(sqsService).send(eq(NT_STATO_SMS_QUEUE_NAME), any(NtStatoSmsQueueDto.class));
 
         sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                                             .isEqualTo(
@@ -185,7 +186,7 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.STATUS_1));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        doThrow(SqsException.SqsPublishException.class).when(sqsService).send(eq(SMS_QUEUE_NAME), any(DigitalCourtesySmsRequest.class));
+        doThrow(SqsPublishException.class).when(sqsService).send(eq(SMS_QUEUE_NAME), any(DigitalCourtesySmsRequest.class));
 
         sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                                             .isEqualTo(

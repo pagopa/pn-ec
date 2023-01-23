@@ -1,18 +1,27 @@
 package it.pagopa.pn.ec.testutils.localstack;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbWaiter;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.*;
+import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.ALL_QUEUE_NAME_LIST;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.*;
 
 @TestConfiguration
 public class LocalStackTestConfig {
+
+//  Oggetti dell'SDK che serviranno per la creazione delle tabelle Dynamo
+    @Autowired
+    private DynamoDbEnhancedClient enhancedClient;
+
+    @Autowired
+    private DynamoDbWaiter dynamoDbWaiter;
 
     static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4")
                                                             .asCompatibleSubstituteFor("localstack/localstack");
@@ -20,6 +29,13 @@ public class LocalStackTestConfig {
 
     static {
         localStackContainer.start();
+
+//      <-- spring-cloud-starter-aws-messaging variables -->
+        System.setProperty("cloud.aws.sqs.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
+
+//      <-- Custom aws services endpoint variables for testing -->
+        System.setProperty("test.aws.dynamodb.endpoint", String.valueOf(localStackContainer.getEndpointOverride(DYNAMODB)));
+        System.setProperty("test.aws.sns.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SNS)));
 
         try {
 
@@ -35,13 +51,26 @@ public class LocalStackTestConfig {
         }
     }
 
-    @DynamicPropertySource
-    static void overrideConfiguration(DynamicPropertyRegistry registry) {
-//      <-- spring-cloud-starter-aws-messaging variables -->
-        registry.add("cloud.aws.sqs.endpoint", () -> localStackContainer.getEndpointOverride(SQS));
+    @PostConstruct
+    public void createTable() {
 
-//      <-- Custom aws services endpoint variables for testing -->
-        registry.add("test.aws.dynamodb.endpoint", () -> localStackContainer.getEndpointOverride(DYNAMODB));
-        registry.add("test.aws.sns.endpoint", () -> localStackContainer.getEndpointOverride(SNS));
+        //Esempio di creazione tabelle dynamo all'avvio del container
+
+        /*
+            DynamoDbTable<'Classe che rappresenta lo schema Dynamo'> table = enhancedClient.table('Nome tabella',
+                                                                                               TableSchema.fromBean('Classe che rappresenta lo schema Dynamo'.class));
+
+            table.createTable(builder -> builder.provisionedThroughput(b -> b.readCapacityUnits(5L)
+                                                                                                .writeCapacityUnits(5L)
+                                                                                                .build()));
+
+            // La creazione delle tabelle su Dynamo è asincrona. Bisogna aspettare tramite il DynamoDbWaiter
+
+            ResponseOrException<DescribeTableResponse> response = dynamoDbWaiter.waitUntilTableExists(builder -> builder.tableName(
+                    'Nome tabella').build()).matched();
+            DescribeTableResponse tableDescription = response.response()
+                                                             .orElseThrow(() -> new RuntimeException());
+            // The actual error can be inspected in response.exception()
+         */
     }
 }

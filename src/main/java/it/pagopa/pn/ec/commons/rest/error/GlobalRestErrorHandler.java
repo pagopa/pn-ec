@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.commons.rest.error;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.IdClientNotFoundException;
 import it.pagopa.pn.ec.commons.exception.RequestAlreadyInProgressException;
-import it.pagopa.pn.ec.commons.exception.SqsException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
 import it.pagopa.pn.ec.rest.v1.dto.ProblemError;
 import lombok.extern.slf4j.Slf4j;
@@ -64,7 +64,8 @@ public class GlobalRestErrorHandler {
         }
         return new ResponseEntity<>(problem, BAD_REQUEST);
     }
-   @ExceptionHandler({EcInternalEndpointHttpException.class, SqsException.SqsPublishException.class})
+
+    @ExceptionHandler({EcInternalEndpointHttpException.class, SqsPublishException.class})
     public final ResponseEntity<Problem> handleAnotherServiceError(Exception exception) {
         var problem = new Problem();
         problem.setStatus(SERVICE_UNAVAILABLE.value());
