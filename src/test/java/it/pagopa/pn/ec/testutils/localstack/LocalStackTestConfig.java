@@ -9,16 +9,14 @@ import org.testcontainers.utility.DockerImageName;
 import java.io.IOException;
 
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.*;
-import static it.pagopa.pn.ec.testutils.localstack.LocalStackUtils.*;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.*;
 
 @TestConfiguration
 public class LocalStackTestConfig {
 
-    static LocalStackContainer localStackContainer = new LocalStackContainer(DockerImageName.parse(DEFAULT_LOCAL_STACK_TAG)).withServices(
-            SQS,
-            DYNAMODB,
-            SNS);
+    static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4")
+                                                            .asCompatibleSubstituteFor("localstack/localstack");
+    static LocalStackContainer localStackContainer = new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS);
 
     static {
         localStackContainer.start();
