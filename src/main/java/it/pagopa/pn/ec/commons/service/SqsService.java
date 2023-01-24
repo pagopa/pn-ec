@@ -1,6 +1,8 @@
 package it.pagopa.pn.ec.commons.service;
 
+import reactor.core.publisher.Mono;
+
 public interface SqsService {
 
-    <T> void send(final String queueName,final T queuePayload);
+    <T> Mono<Void> send(final String queueName, final T queuePayload);
 }
