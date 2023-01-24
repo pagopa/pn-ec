@@ -24,14 +24,6 @@ Parameters:
     Type: String
     Description: 'Where to send CDC'
 
-  PnEcTableNameAnagrafica:
-    Type: String
-    Description: Description
-  
-  PnEcTableNameRichieste:
-    Type: String
-    Description: Description
-
   PnEcQueueNameSMS:
     Type: String
     Description: Description
@@ -95,7 +87,7 @@ Resources:
         SSEEnabled: true
         SSEType: "KMS"
       TableClass: "STANDARD"
-      TableName: !Ref PnEcTableNameAnagrafica
+      # TableName: !Ref PnEcTableNameAnagrafica
     DeletionPolicy: Retain
 
   PnEcTableRichieste:
@@ -124,7 +116,7 @@ Resources:
         SSEEnabled: true
         SSEType: "KMS"
       TableClass: "STANDARD"
-      TableName: !Ref PnEcTableNameRichieste
+      # TableName: !Ref PnEcTableNameRichieste
     DeletionPolicy: Retain
 
   PnEcQueueTrackerStatoSMS:
