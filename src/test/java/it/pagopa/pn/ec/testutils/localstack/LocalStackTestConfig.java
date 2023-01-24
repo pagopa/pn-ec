@@ -11,7 +11,6 @@ import javax.annotation.PostConstruct;
 import java.io.IOException;
 
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.ALL_QUEUE_NAME_LIST;
-import static it.pagopa.pn.ec.testutils.localstack.LocalStackUtils.DEFAULT_LOCAL_STACK_TAG;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.*;
 
 @TestConfiguration
@@ -24,18 +23,19 @@ public class LocalStackTestConfig {
     @Autowired
     private DynamoDbWaiter dynamoDbWaiter;
 
-    static LocalStackContainer localStackContainer = new LocalStackContainer(DockerImageName.parse(DEFAULT_LOCAL_STACK_TAG)).withServices(
-            SQS,
-            DYNAMODB,
-            SNS);
+    static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:latest");
+    static LocalStackContainer localStackContainer = new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS);
 
     static {
         localStackContainer.start();
 
-//      <-- spring-cloud-starter-aws-messaging variables -->
+        System.setProperty("test.aws.region", localStackContainer.getRegion());
+
+//      <-- Override spring-cloud-starter-aws-messaging endpoints for testing -->
         System.setProperty("cloud.aws.sqs.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
 
-//      <-- Custom aws services endpoint variables for testing -->
+//      <-- Override AWS services endpoint variables for testing -->
+        System.setProperty("test.aws.sqs.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
         System.setProperty("test.aws.dynamodb.endpoint", String.valueOf(localStackContainer.getEndpointOverride(DYNAMODB)));
         System.setProperty("test.aws.sns.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SNS)));
 
