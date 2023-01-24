@@ -14,15 +14,22 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbWaiter;
-import software.amazon.awssdk.services.sns.SnsClient;
-import software.amazon.awssdk.services.sns.SnsClientBuilder;
+import software.amazon.awssdk.services.sns.SnsAsyncClient;
+import software.amazon.awssdk.services.sns.SnsAsyncClientBuilder;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
+import software.amazon.awssdk.services.sqs.SqsAsyncClientBuilder;
 
 import java.net.URI;
 import java.util.Collections;
 
 @Configuration
 public class AwsConfiguration {
+
+    /**
+     * Set in LocalStackTestConfig
+     */
+    @Value("${test.sqs.dynamodb.endpoint:#{null}}")
+    String sqsLocalStackEndpoint;
 
     /**
      * Set in LocalStackTestConfig
@@ -59,14 +66,20 @@ public class AwsConfiguration {
 //  <-- AWS SDK for Java v2 -->
 
     @Bean
-    public SqsAsyncClient sqsAsyncClient(){
-        return SqsAsyncClient.create();
+    public SqsAsyncClient sqsAsyncClient() {
+        SqsAsyncClientBuilder sqsAsyncClientBuilder = SqsAsyncClient.builder().credentialsProvider(DefaultCredentialsProvider.create());
+
+        if (sqsLocalStackEndpoint != null) {
+            sqsAsyncClientBuilder.endpointOverride(URI.create(dynamoDbLocalStackEndpoint));
+        }
+
+        return sqsAsyncClientBuilder.build();
     }
 
+    // TODO: Change to DynamoDbAsyncClient for reactive
     @Bean
     public DynamoDbClient dynamoDbClient() {
-        DynamoDbClientBuilder dynamoDbClientBuilder = DynamoDbClient.builder()
-                                                                    .credentialsProvider(DefaultCredentialsProvider.create());
+        DynamoDbClientBuilder dynamoDbClientBuilder = DynamoDbClient.builder().credentialsProvider(DefaultCredentialsProvider.create());
 
         if (dynamoDbLocalStackEndpoint != null) {
             dynamoDbClientBuilder.endpointOverride(URI.create(dynamoDbLocalStackEndpoint));
@@ -86,14 +99,13 @@ public class AwsConfiguration {
     }
 
     @Bean
-    public SnsClient snsClient() {
-        SnsClientBuilder sqsClientBuilder = SnsClient.builder()
-                                                     .credentialsProvider(DefaultCredentialsProvider.create());
+    public SnsAsyncClient snsClient() {
+        SnsAsyncClientBuilder snsAsyncClientBuilder = SnsAsyncClient.builder().credentialsProvider(DefaultCredentialsProvider.create());
 
         if (snsLocalStackEndpoint != null) {
-            sqsClientBuilder.endpointOverride(URI.create(snsLocalStackEndpoint));
+            snsAsyncClientBuilder.endpointOverride(URI.create(snsLocalStackEndpoint));
         }
 
-        return sqsClientBuilder.build();
+        return snsAsyncClientBuilder.build();
     }
 }
