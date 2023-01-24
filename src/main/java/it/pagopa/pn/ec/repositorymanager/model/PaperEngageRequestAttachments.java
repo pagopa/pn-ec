@@ -4,16 +4,18 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 
+import java.math.BigDecimal;
+
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @Getter
 @Setter
 @ToString
 @DynamoDbBean
-public class GeneratedMessage {
+public class PaperEngageRequestAttachments {
 
-	private String system;
-	private String id;
-	private String location;
-	
+    private String uri;
+    private BigDecimal order;
+    private String documentType;
+    private String sha256;
 }

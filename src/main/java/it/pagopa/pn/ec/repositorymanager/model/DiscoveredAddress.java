@@ -10,10 +10,15 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 @Setter
 @ToString
 @DynamoDbBean
-public class GeneratedMessage {
+public class DiscoveredAddress {
 
-	private String system;
-	private String id;
-	private String location;
-	
+    private String name;
+    private String nameRow2;
+    private String address;
+    private String addressRow2;
+    private String cap;
+    private String city;
+    private String city2;
+    private String pr;
+    private String country;
 }

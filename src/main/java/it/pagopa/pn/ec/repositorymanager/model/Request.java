@@ -1,13 +1,21 @@
 package it.pagopa.pn.ec.repositorymanager.model;
 
-import java.util.List;
-
+import lombok.*;
+import lombok.experimental.FieldDefaults;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
+import java.util.List;
+
+@FieldDefaults(level = AccessLevel.PRIVATE)
+@NoArgsConstructor
+@Getter
+@Setter
+@ToString
 @DynamoDbBean
 public class Request {
 
+	@Getter(AccessLevel.NONE)
 	private String requestId;
 	private DigitalRequest digitalReq;
 	private PaperRequest paperReq;
@@ -17,32 +25,5 @@ public class Request {
 	public String getRequestId() {
 		return requestId;
 	}
-	public void setRequestId(String requestId) {
-		this.requestId = requestId;
-	}
-	public DigitalRequest getDigitalReq() {
-		return digitalReq;
-	}
-	public void setDigitalReq(DigitalRequest digitalReq) {
-		this.digitalReq = digitalReq;
-	}
-	public PaperRequest getPaperReq() {
-		return paperReq;
-	}
-	public void setPaperReq(PaperRequest paperReq) {
-		this.paperReq = paperReq;
-	}
-	public List<Events> getEvents() {
-		return events;
-	}
-	public void setEvents(List<Events> events) {
-		this.events = events;
-	}
-	
-	@Override
-	public String toString() {
-		return "Request [requestId=" + requestId + ", digitalReq=" + digitalReq + ", paperReq=" + paperReq + ", events="
-				+ events + "]";
-	}
-		
+
 }

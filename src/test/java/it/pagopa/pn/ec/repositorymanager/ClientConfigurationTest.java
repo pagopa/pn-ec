@@ -1,24 +1,16 @@
 package it.pagopa.pn.ec.repositorymanager;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
-
-import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.reactive.function.BodyInserters;
-
-import it.pagopa.pn.ec.repositorymanager.controller.ClientConfigurationController;
 import it.pagopa.pn.ec.repositorymanager.dto.ClientConfigurationDto;
 import it.pagopa.pn.ec.repositorymanager.dto.SenderPhysicalAddressDto;
-import it.pagopa.pn.ec.repositorymanager.service.RepositoryManagerService;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import reactor.core.publisher.Mono;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.BodyInserters;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -30,21 +22,21 @@ class ClientConfigurationTest {
     @Autowired
     private WebTestClient webClient;
 
-    //ECGRAC.100.1
+    //test.100.1
     @Test
     @Order(1)
-    void insertClientTest() {
+    void insertClientTestSuccess() {
 
         ClientConfigurationDto ccDtoI = new ClientConfigurationDto();
         SenderPhysicalAddressDto spaDto = new SenderPhysicalAddressDto();
 
         spaDto.setName("Mario");
-        spaDto.setAddress("Via senza nome 1");
+        spaDto.setAddress("Via s nome 1");
         spaDto.setCap("00123");
-        spaDto.setCity("Arezzo");
-        spaDto.setPr("AR");
+        spaDto.setCity("Pisa");
+        spaDto.setPr("PI");
 
-        ccDtoI.setCxId("11111");
+        ccDtoI.setCxId("AAA");
         ccDtoI.setSqsArn("ABC");
         ccDtoI.setSqsName("MARIO ROSSI");
         ccDtoI.setPecReplyTo("mariorossi@pec.it");
@@ -62,11 +54,44 @@ class ClientConfigurationTest {
                  .isOk();
     }
 
+    //test.100.2
     @Test
     @Order(2)
-    void getClientTest() {
+    void insertClientTestFailed() {
+
+        ClientConfigurationDto ccDtoI = new ClientConfigurationDto();
+        SenderPhysicalAddressDto spaDto = new SenderPhysicalAddressDto();
+
+        spaDto.setName("Mirko");
+        spaDto.setAddress("Via s nome 2");
+        spaDto.setCap("00124");
+        spaDto.setCity("Pisa");
+        spaDto.setPr("PI");
+
+        ccDtoI.setCxId("AAA");
+        ccDtoI.setSqsArn("ABC");
+        ccDtoI.setSqsName("MIRKO ROSSI");
+        ccDtoI.setPecReplyTo("mirkorossi@pec.it");
+        ccDtoI.setMailReplyTo("mirkorossi@yahoo.it");
+
+        ccDtoI.setSenderPhysicalAddress(spaDto);
+
+        webClient.post()
+                .uri("http://localhost:8080/client")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .body(BodyInserters.fromValue(ccDtoI))
+                .exchange()
+                .expectStatus()
+                .isForbidden();
+    }
+
+    //test.101.1
+    @Test
+    @Order(3)
+    void getClientTestSuccess() {
         webClient.get()
-                 .uri("http://localhost:8080/client/11111")
+                 .uri("http://localhost:8080/client/AAA")
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -74,180 +99,102 @@ class ClientConfigurationTest {
                  .expectBody(ClientConfigurationDto.class);
     }
 
-//
-////	//ECGRAC.100.2
-////	@Test
-////	void testInsertFailed() {
-////		ClientConfiguration cc = new ClientConfiguration();
-////		SenderPhysicalAddress spa = new SenderPhysicalAddress();
-////
-////		spa.setName("Mario");
-////		spa.setAddress("Via senza nome 1");
-////		spa.setCap("00123");
-////		spa.setCity("Arezzo");
-////		spa.setPr("AR");
-////
-////		cc.setCxId(null);
-////		cc.setSqsArn("ABC");
-////		cc.setSqsName("MARIO ROSSI");
-////		cc.setPecReplyTo("mariorossi@pec.it");
-////		cc.setMailReplyTo("mariorossi@yahoo.it");
-////
-////		cc.setSenderPhysicalAddress(spa);
-////
-////		System.out.println(cc.toString());
-////
-////		Assertions.assertEquals(clientController.insertClient(cc).block().getStatusCodeValue(), 403);
-////	}
-////
-////	//ECGRAC.101.1
-////	@Test
-////	void testReadSuccess() {
-////		Assertions.assertEquals(clientController.getClient("1").block().getStatusCodeValue(), 200);
-////	}
-////
-////	//ECGRAC.101.2
-////	@Test
-////	void testReadFailed() {
-////		Assertions.assertEquals(clientController.getClient(null).block().getStatusCodeValue(), 404);
-////	}
-////
-////	//ECGRAC.102.1
-////	@Test
-////	void testUpdateSuccess() {
-//////		record da prendere su db
-////		ClientConfiguration cc = new ClientConfiguration();
-////		SenderPhysicalAddress spa = new SenderPhysicalAddress();
-////
-////		spa.setName("Mario");
-////		spa.setAddress("Via senza nome 1");
-////		spa.setCap("00123");
-////		spa.setCity("Arezzo");
-////		spa.setPr("AR");
-////
-////		cc.getCxId();
-////		cc.setSqsArn("ABC");
-////		cc.setSqsName("MARIO ROSSI");
-////		cc.setPecReplyTo("mariorossi@pec.it");
-////		cc.setMailReplyTo("mariorossi@yahoo.it");
-////
-////		cc.setSenderPhysicalAddress(spa);
-////
-////		System.out.println(cc.toString());
-////
-////		Assertions.assertEquals(clientController.updateClient(cc).block().getStatusCodeValue(), 200);
-////	}
-////
-////	//ECGRAC.102.2
-////	@Test
-////	void testUpdateFailed() {
-////		ClientConfiguration cc = new ClientConfiguration();
-////		SenderPhysicalAddress spa = new SenderPhysicalAddress();
-////
-////		spa.setName("Mario");
-////		spa.setAddress("Via senza nome 1");
-////		spa.setCap("00123");
-////		spa.setCity("Arezzo");
-////		spa.setPr("AR");
-////
-////		cc.setCxId(null);
-////		cc.setSqsArn("ABC");
-////		cc.setSqsName("MARIO ROSSI");
-////		cc.setPecReplyTo("mariorossi@pec.it");
-////		cc.setMailReplyTo("mariorossi@yahoo.it");
-////
-////		cc.setSenderPhysicalAddress(spa);
-////
-////		System.out.println(cc.toString());
-////
-////		Assertions.assertEquals(clientController.updateClient(cc).block().getStatusCodeValue(), 403);
-////	}
-////
-////	//ECGRAC.103.1
-////	@Test
-////	void testDeleteSuccess() {
-////		Assertions.assertEquals(clientController.deleteClient("1").block().getStatusCodeValue(), 200);
-////	}
-////
-////	//ECGRAC.103.2
-////	@Test
-////	void testDeleteFailed() {
-////		Assertions.assertEquals(clientController.getClient(null).block().getStatusCodeValue(), 404);
-////	}
-//
-//	// snippet-start:[dynamodb.java2.create_table.main]
-//    public static String createTable(DynamoDbClient ddb, String tableName, String key) {
-//        DynamoDbWaiter dbWaiter = ddb.waiter();
-//        CreateTableRequest request = CreateTableRequest.builder()
-//            .attributeDefinitions(AttributeDefinition.builder()
-//                .attributeName(key)
-//                .attributeType(ScalarAttributeType.S)
-//                .build())
-//            .keySchema(KeySchemaElement.builder()
-//                .attributeName(key)
-//                .keyType(KeyType.HASH)
-//                .build())
-//            .provisionedThroughput(ProvisionedThroughput.builder()
-//                .readCapacityUnits(new Long(5))
-//                .writeCapacityUnits(new Long(5))
-//                .build())
-//            .tableName(tableName)
-//            .build();
-//
-//        String newTable ="";
-//        try {
-//            CreateTableResponse response = ddb.createTable(request);
-//            DescribeTableRequest tableRequest = DescribeTableRequest.builder()
-//                .tableName(tableName)
-//                .build();
-//
-//            // Wait until the Amazon DynamoDB table is created.
-//            WaiterResponse<DescribeTableResponse> waiterResponse = dbWaiter.waitUntilTableExists(tableRequest);
-//            waiterResponse.matched().response().ifPresent(System.out::println);
-//            newTable = response.tableDescription().tableName();
-//            return newTable;
-//
-//        } catch (DynamoDbException e) {
-//            System.err.println(e.getMessage());
-//            System.exit(1);
-//        }
-//       return "";
-//    }
-//
-// // snippet-start:[dynamodb.java2.describe_table.main]
-//    public static void describeDymamoDBTable(DynamoDbClient ddb,String tableName ) {
-//
-//        DescribeTableRequest request = DescribeTableRequest.builder()
-//            .tableName(tableName)
-//            .build();
-//
-//        try {
-//            TableDescription tableInfo = ddb.describeTable(request).table();
-//            if (tableInfo != null) {
-//                System.out.format("Table name  : %s\n", tableInfo.tableName());
-//                System.out.format("Table ARN   : %s\n", tableInfo.tableArn());
-//                System.out.format("Status      : %s\n", tableInfo.tableStatus());
-//                System.out.format("Item count  : %d\n", tableInfo.itemCount().longValue());
-//                System.out.format("Size (bytes): %d\n", tableInfo.tableSizeBytes().longValue());
-//
-//                ProvisionedThroughputDescription throughputInfo = tableInfo.provisionedThroughput();
-//                System.out.println("Throughput");
-//                System.out.format("  Read Capacity : %d\n", throughputInfo.readCapacityUnits().longValue());
-//                System.out.format("  Write Capacity: %d\n", throughputInfo.writeCapacityUnits().longValue());
-//
-//                List<AttributeDefinition> attributes = tableInfo.attributeDefinitions();
-//                System.out.println("Attributes");
-//
-//                for (AttributeDefinition a : attributes) {
-//                    System.out.format("  %s (%s)\n", a.attributeName(), a.attributeType());
-//                }
-//            }
-//
-//        } catch (DynamoDbException e) {
-//            System.err.println(e.getMessage());
-//            System.exit(1);
-//        }
-//        System.out.println("\nDone!");
-//    }
-//
+	//test.101.2
+	@Test
+    @Order(4)
+    void getClientTestFailed() {
+        webClient.get()
+                 .uri("http://localhost:8080/client/abab")
+                 .accept(APPLICATION_JSON)
+                 .exchange()
+                 .expectStatus()
+                 .isBadRequest();
+    }
+
+	//test.102.1
+	@Test
+    @Order(5)
+	void testUpdateSuccess() {
+        ClientConfigurationDto ccDtoI = new ClientConfigurationDto();
+        SenderPhysicalAddressDto spaDto = new SenderPhysicalAddressDto();
+
+        spaDto.setName("Ciro");
+        spaDto.setAddress("Viale senza nome 1");
+        spaDto.setCap("00555");
+        spaDto.setCity("Cuneo");
+        spaDto.setPr("CU");
+
+        ccDtoI.setCxId("AAA");
+        ccDtoI.setSqsArn("DEF");
+        ccDtoI.setSqsName("Ciro ROSSI");
+        ccDtoI.setPecReplyTo("Cirorossi@pec.it");
+        ccDtoI.setMailReplyTo("Cirorossi@yahoo.it");
+
+        ccDtoI.setSenderPhysicalAddress(spaDto);
+
+        webClient.put()
+                .uri("http://localhost:8080/client/AAA")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .body(BodyInserters.fromValue(ccDtoI))
+                .exchange()
+                .expectStatus()
+                .isOk();
+	}
+
+	//test.102.2
+	@Test
+    @Order(6)
+	void testUpdateFailed() {
+		ClientConfigurationDto ccDtoI = new ClientConfigurationDto();
+        SenderPhysicalAddressDto spaDto = new SenderPhysicalAddressDto();
+
+        spaDto.setName("Ciro");
+        spaDto.setAddress("Via s nome 1");
+        spaDto.setCap("00555");
+        spaDto.setCity("Pisa");
+        spaDto.setPr("Pi");
+
+        ccDtoI.setCxId("www");
+        ccDtoI.setSqsArn("DEF");
+        ccDtoI.setSqsName("Ciro ROSSI");
+        ccDtoI.setPecReplyTo("Cirorossi@pec.it");
+        ccDtoI.setMailReplyTo("Cirorossi@yahoo.it");
+
+        ccDtoI.setSenderPhysicalAddress(spaDto);
+
+        webClient.put()
+                .uri("http://localhost:8080/client/www")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .body(BodyInserters.fromValue(ccDtoI))
+                .exchange()
+                .expectStatus()
+                .isBadRequest();
+	}
+
+	//test.103.1
+	@Test
+    @Order(7)
+	void deleteClientTestSuccess() {
+        webClient.delete()
+                .uri("http://localhost:8080/client/AAA")
+                .accept(APPLICATION_JSON)
+                .exchange()
+                .expectStatus()
+                .isOk();
+	}
+
+	//test.103.2
+	@Test
+    @Order(8)
+	void deleteClientTestFailed() {
+        webClient.delete()
+                .uri("http://localhost:8080/client/abab")
+                .accept(APPLICATION_JSON)
+                .exchange()
+                .expectStatus()
+                .isBadRequest();
+	}
+
 }
