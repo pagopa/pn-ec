@@ -103,7 +103,7 @@ class DigitalCourtesyMessagesApiControllerTest {
                                                                                                                                     Problem.class);
     }
 
-    //SMSPIC.107.4 -> idClient non autorizzato
+    //SMSPIC.107.5 -> idClient non autorizzato
     @Test
     void sendSmsUnauthorizedIdClient() {
 
@@ -120,7 +120,7 @@ class DigitalCourtesyMessagesApiControllerTest {
                                                                                                                                     Problem.class);
     }
 
-    //SMSPIC.107.4 -> Chiamata verso Gestore Repository per il recupero dello stato corrente -> KO
+    //SMSPIC.107.6 -> Chiamata verso Gestore Repository per il recupero dello stato corrente -> KO
     @Test
     void callToRetrieveCurrentStatusKo() {
 
@@ -138,7 +138,7 @@ class DigitalCourtesyMessagesApiControllerTest {
     }
 
 
-    //SMSPIC.107.5 -> Richiesta di invio SMS già effettuata
+    //SMSPIC.107.7 -> Richiesta di invio SMS già effettuata
     @Test
     void sendSmsRequestAlreadyMade() {
 
@@ -155,7 +155,7 @@ class DigitalCourtesyMessagesApiControllerTest {
                                                                                                                                     Problem.class);
     }
 
-    //SMSPIC.107.6 -> Pubblicazione sulla coda "Notification tracker stato SMS" -> KO
+    //SMSPIC.107.8 -> Pubblicazione sulla coda "Notification tracker stato SMS" -> KO
     @Test
     void sendSmsNotificationTrackerKo() {
 
@@ -175,7 +175,7 @@ class DigitalCourtesyMessagesApiControllerTest {
                                                                                                                                     Problem.class);
     }
 
-    //SMSPIC.107.7 -> Pubblicazione sulla coda "SMS" -> KO
+    //SMSPIC.107.9 -> Pubblicazione sulla coda "SMS" -> KO
     @Test
     void sendSmsSmsQueueKo() {
 
