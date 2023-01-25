@@ -1,45 +1,17 @@
-//package it.pagopa.pnec.notificationTracker.controller;
+//package it.pagopa.pnec.notificationtracker.controller;
 //
-//import it.pagopa.pn.template.rest.NotificationtrackerController;
-//import it.pagopa.pnec.notificationTracker.model.ResponseModel;
-//import it.pagopa.pnec.notificationTracker.service.NotificationtrackerService;
-//import org.junit.jupiter.api.Assertions;
-//import org.junit.jupiter.api.BeforeEach;
-//import org.junit.jupiter.api.Test;
-//import org.mockito.InjectMocks;
-//import org.mockito.Mock;
-//import org.mockito.MockitoAnnotations;
-//import org.slf4j.Logger;
-//import org.springframework.http.ResponseEntity;
-//import reactor.core.publisher.Mono;
 //
-//import static org.mockito.Mockito.*;
+//import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+//import software.amazon.awssdk.services.sqs.SqsClient;
+//import software.amazon.awssdk.services.sqs.model.Message;
+//import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+//import software.amazon.awssdk.services.sqs.model.SqsException;
 //
+//import java.util.List;
+//
+//@SpringBootTestWebEnv
+//@AutoConfigureWebTestClient
 //class NotificationtrackerControllerTest {
-//    @Mock
-//    NotificationtrackerService service;
-//    @Mock
-//    Logger log;
-//    @InjectMocks
-//    NotificationtrackerController notificationtrackerController;
 //
-//    @BeforeEach
-//    void setUp() {
-//        MockitoAnnotations.openMocks(this);
-//    }
 //
-//    @Test
-//    void testGetStato() {
-//        Mono<ResponseEntity<Void>> result = notificationtrackerController.getStato("processId", "currStatus", "clientId", "nextStatus");
-//        ResponseModel resp = new ResponseModel();
-//        resp.setAllowed(true);
-//        Assertions.assertEquals(resp, result);
-//    }
-//
-//    @Test
-//    void testPutNewStato() {
-//        Mono<ResponseEntity<Void>> result = notificationtrackerController.putNewStato("processId", "currStatus", "clientId", "nextStatus");
-//        ResponseModel resp = new ResponseModel();
-//        Assertions.assertEquals(resp, result);
-//    }
 //}

@@ -1,11 +1,9 @@
-package it.pagopa.pnec.notificationtracker.model;
+package it.pagopa.pn.template.notificationtracker.model;
 
 public class ResponseModel {
 	
 	 private String message;
-	 
 	 private boolean allowed ;
-	 
 	 private String nottifMessage;
 
 	
