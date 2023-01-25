@@ -2,9 +2,12 @@ package it.pagopa.pn.ec.repositorymanager.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.repositorymanager.dto.ClientConfigurationDto;
+import it.pagopa.pn.ec.repositorymanager.dto.EventsDto;
 import it.pagopa.pn.ec.repositorymanager.dto.RequestDto;
+import it.pagopa.pn.ec.repositorymanager.dto.UpdatedEventDto;
 import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.model.ClientConfiguration;
+import it.pagopa.pn.ec.repositorymanager.model.Events;
 import it.pagopa.pn.ec.repositorymanager.model.Request;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -186,12 +189,11 @@ public class RepositoryManagerService {
         }
     }
 
-    public RequestDto updateRequest(String requestId, RequestDto requestDto) {
+    public RequestDto updateRequest(String requestId, UpdatedEventDto updateEventDto) {
 
-
-        if(!requestId.equals(requestDto.getRequestId())) {
+        if(!requestId.equals(updateEventDto.getRequestId())) {
             log.info("RequestId inserted in the url can't be different from the RequestId inserted in the body request");
-            throw new RepositoryManagerException.IdClientNotFoundException(requestDto.getRequestId());
+            throw new RepositoryManagerException.IdClientNotFoundException(updateEventDto.getRequestId());
         }
 
         try {
@@ -199,28 +201,25 @@ public class RepositoryManagerService {
             DynamoDbTable<Request> requestTable = dynamoDbEnhancedClient.table(REQUEST_TABLE_NAME,
                     TableSchema.fromBean(
                             Request.class));
-            Request request = requestTable.getItem(Key.builder().partitionValue(requestDto.getRequestId()).build());
+            Request request = requestTable.getItem(Key.builder().partitionValue(updateEventDto.getRequestId()).build());
+
+            EventsDto eventsDto = new EventsDto();
+
+            eventsDto.setDigProgrStatus(updateEventDto.getDigProgrStatus());
+            eventsDto.setPaperProgrStatus(updateEventDto.getPaperProgrStatus());
+
+            Events event = objectMapper.convertValue(eventsDto, Events.class);
 
             if (request == null) {
                 log.info("Request id doesn't exists");
-                throw new RepositoryManagerException.IdClientNotFoundException(requestDto.getRequestId());
+                throw new RepositoryManagerException.IdClientNotFoundException(updateEventDto.getRequestId());
             }
 
-            log.info("Request deleted from the table -> {}", request);
-            requestTable.deleteItem(request);
+            request.getEvents().add(event);
+            log.info("new Event added into Request -> {}", request);
+            requestTable.updateItem(request);
 
-            Request requestNew = objectMapper.convertValue(requestDto, Request.class);
-
-            if(requestTable.getItem(requestNew) == null) {
-
-                log.info("Request updated -> {}", requestNew);
-                requestTable.putItem(requestNew);
-
-                return objectMapper.convertValue(requestNew, RequestDto.class);
-            } else {
-                log.info("Request id already exists");
-                throw new RepositoryManagerException.IdClientAlreadyPresent(requestDto.getRequestId());
-            }
+            return objectMapper.convertValue(request, RequestDto.class);
 
         } catch (DynamoDbException e) {
             log.error(e.getMessage(), e);

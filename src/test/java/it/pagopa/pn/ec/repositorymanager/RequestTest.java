@@ -73,22 +73,22 @@ class RequestTest {
 		paperProgressStatusEventAttachmentsDtoList.add(paperProgressStatusEventAttachmentsDto);
 
 		paperProgressStatusDto.setRegisteredLetterCode("registered letter code");
-		paperProgressStatusDto.setStatusCode("status code");
-		paperProgressStatusDto.setStatusDescription("status description");
+		paperProgressStatusDto.setStatusCode("sped");
+		paperProgressStatusDto.setStatusDescription("ogg sped");
 		paperProgressStatusDto.setStatusDateTime(odt);
-		paperProgressStatusDto.setDeliveryFailureCause("delivery failure cause");
+		paperProgressStatusDto.setDeliveryFailureCause("");
 		paperProgressStatusDto.setAttachments(paperProgressStatusEventAttachmentsDtoList);
 		paperProgressStatusDto.setDiscoveredAddress(discoveredAddressDto);
 		paperProgressStatusDto.setClientRequestTimeStamp(odt);
 
-		generatedMessageDto.setSystem("system");
-		generatedMessageDto.setId("id");
-		generatedMessageDto.setLocation("location");
+		generatedMessageDto.setSystem("");
+		generatedMessageDto.setId("");
+		generatedMessageDto.setLocation("");
 
-		digitalProgressStatusDto.setTimestamp(odt);
-		digitalProgressStatusDto.setStatus("status");
-		digitalProgressStatusDto.setCode("code");
-		digitalProgressStatusDto.setDetails("details");
+		digitalProgressStatusDto.setTimestamp(null);
+		digitalProgressStatusDto.setStatus("");
+		digitalProgressStatusDto.setCode("");
+		digitalProgressStatusDto.setDetails("");
 		digitalProgressStatusDto.setGenMess(generatedMessageDto);
 
 		eventsDto.setDigProgrStatus(digitalProgressStatusDto);
@@ -132,24 +132,24 @@ class RequestTest {
 		paperRequestDto.setVas(vas);
 
 		List<String> tagsList = new ArrayList<>();
-		String tag = "tag1";
+		String tag = "";
 		tagsList.add(tag);
 
 		List<String> attList = new ArrayList<>();
-		String att = "http://allegato.pdf";
+		String att = "";
 		attList.add(att);
 
-		digitalRequestDto.setCorrelationId("coll id");
-		digitalRequestDto.setEventType("event type");
-		digitalRequestDto.setQos("qos");
+		digitalRequestDto.setCorrelationId("");
+		digitalRequestDto.setEventType("");
+		digitalRequestDto.setQos("");
 		digitalRequestDto.setTags(tagsList);
-		digitalRequestDto.setClientRequestTimeStamp(odt);
-		digitalRequestDto.setReceiverDigitalAddress("receiver digital address");
-		digitalRequestDto.setMessageText("message text");
-		digitalRequestDto.setSenderDigitalAddress("sender digital address");
-		digitalRequestDto.setChannel("channel");
-		digitalRequestDto.setSubjectText("subject text");
-		digitalRequestDto.setMessageContentType("message content type");
+		digitalRequestDto.setClientRequestTimeStamp(null);
+		digitalRequestDto.setReceiverDigitalAddress("");
+		digitalRequestDto.setMessageText("");
+		digitalRequestDto.setSenderDigitalAddress("");
+		digitalRequestDto.setChannel("");
+		digitalRequestDto.setSubjectText("");
+		digitalRequestDto.setMessageContentType("");
 		digitalRequestDto.setAttachmentsUrls(attList);
 
 		requestDto.setRequestId("1");
@@ -334,12 +334,66 @@ class RequestTest {
 	@Test
 	@Order(5)
 	void testUpdateSuccess() {
-		RequestDto requestDto = new RequestDto();
-		webClient.put()
+		UpdatedEventDto updatedEventDto = new UpdatedEventDto();
+
+		// Events
+		DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();
+		// DigitalProgressStatusDto
+		GeneratedMessageDto generatedMessageDto = new GeneratedMessageDto();
+		PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto();
+		// PaperProgressStatusDto
+		List<PaperProgressStatusEventAttachmentsDto> paperProgressStatusEventAttachmentsDtoList = new ArrayList<>();
+		PaperProgressStatusEventAttachmentsDto paperProgressStatusEventAttachmentsDto = new PaperProgressStatusEventAttachmentsDto();
+		DiscoveredAddressDto discoveredAddressDto = new DiscoveredAddressDto();
+
+		OffsetDateTime odt = OffsetDateTime.now();
+
+		discoveredAddressDto.setName("name");
+		discoveredAddressDto.setNameRow2("name row 2");
+		discoveredAddressDto.setAddress("address");
+		discoveredAddressDto.setAddressRow2("address row 2");
+		discoveredAddressDto.setCap("cap");
+		discoveredAddressDto.setCity("city");
+		discoveredAddressDto.setCity2("city 2");
+		discoveredAddressDto.setPr("pr");
+		discoveredAddressDto.setCountry("country");
+
+		paperProgressStatusEventAttachmentsDto.setId("id");
+		paperProgressStatusEventAttachmentsDto.setDocumentType("document type");
+		paperProgressStatusEventAttachmentsDto.setUri("http://uri");
+		paperProgressStatusEventAttachmentsDto.setSha256("sha256");
+		paperProgressStatusEventAttachmentsDto.setDate(odt);
+
+		paperProgressStatusEventAttachmentsDtoList.add(paperProgressStatusEventAttachmentsDto);
+
+		paperProgressStatusDto.setRegisteredLetterCode("registered letter code");
+		paperProgressStatusDto.setStatusCode("stamp");
+		paperProgressStatusDto.setStatusDescription("ogg stamp");
+		paperProgressStatusDto.setStatusDateTime(odt);
+		paperProgressStatusDto.setDeliveryFailureCause("");
+		paperProgressStatusDto.setAttachments(paperProgressStatusEventAttachmentsDtoList);
+		paperProgressStatusDto.setDiscoveredAddress(discoveredAddressDto);
+		paperProgressStatusDto.setClientRequestTimeStamp(odt);
+
+		generatedMessageDto.setSystem("");
+		generatedMessageDto.setId("");
+		generatedMessageDto.setLocation("");
+
+		digitalProgressStatusDto.setTimestamp(null);
+		digitalProgressStatusDto.setStatus("");
+		digitalProgressStatusDto.setCode("");
+		digitalProgressStatusDto.setDetails("");
+		digitalProgressStatusDto.setGenMess(generatedMessageDto);
+
+		updatedEventDto.setRequestId("1");
+		updatedEventDto.setDigProgrStatus(digitalProgressStatusDto);
+		updatedEventDto.setPaperProgrStatus(paperProgressStatusDto);
+
+		webClient.patch()
 				.uri("http://localhost:8080/request/1")
 				.accept(APPLICATION_JSON)
 				.contentType(APPLICATION_JSON)
-				.body(BodyInserters.fromValue(requestDto))
+				.body(BodyInserters.fromValue(updatedEventDto))
 				.exchange()
 				.expectStatus()
 				.isOk();
@@ -349,12 +403,67 @@ class RequestTest {
 	@Test
 	@Order(6)
 	void testUpdateFailed() {
-		RequestDto requestDto = new RequestDto();
-		webClient.put()
+
+		UpdatedEventDto updatedEventDto = new UpdatedEventDto();
+
+		// Events
+		DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();
+		// DigitalProgressStatusDto
+		GeneratedMessageDto generatedMessageDto = new GeneratedMessageDto();
+		PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto();
+		// PaperProgressStatusDto
+		List<PaperProgressStatusEventAttachmentsDto> paperProgressStatusEventAttachmentsDtoList = new ArrayList<>();
+		PaperProgressStatusEventAttachmentsDto paperProgressStatusEventAttachmentsDto = new PaperProgressStatusEventAttachmentsDto();
+		DiscoveredAddressDto discoveredAddressDto = new DiscoveredAddressDto();
+
+		OffsetDateTime odt = OffsetDateTime.now();
+
+		discoveredAddressDto.setName("name");
+		discoveredAddressDto.setNameRow2("name row 2");
+		discoveredAddressDto.setAddress("address");
+		discoveredAddressDto.setAddressRow2("address row 2");
+		discoveredAddressDto.setCap("cap");
+		discoveredAddressDto.setCity("city");
+		discoveredAddressDto.setCity2("city 2");
+		discoveredAddressDto.setPr("pr");
+		discoveredAddressDto.setCountry("country");
+
+		paperProgressStatusEventAttachmentsDto.setId("id");
+		paperProgressStatusEventAttachmentsDto.setDocumentType("document type");
+		paperProgressStatusEventAttachmentsDto.setUri("http://uri");
+		paperProgressStatusEventAttachmentsDto.setSha256("sha256");
+		paperProgressStatusEventAttachmentsDto.setDate(odt);
+
+		paperProgressStatusEventAttachmentsDtoList.add(paperProgressStatusEventAttachmentsDto);
+
+		paperProgressStatusDto.setRegisteredLetterCode("registered letter code");
+		paperProgressStatusDto.setStatusCode("stamp");
+		paperProgressStatusDto.setStatusDescription("ogg stamp");
+		paperProgressStatusDto.setStatusDateTime(odt);
+		paperProgressStatusDto.setDeliveryFailureCause("");
+		paperProgressStatusDto.setAttachments(paperProgressStatusEventAttachmentsDtoList);
+		paperProgressStatusDto.setDiscoveredAddress(discoveredAddressDto);
+		paperProgressStatusDto.setClientRequestTimeStamp(odt);
+
+		generatedMessageDto.setSystem("");
+		generatedMessageDto.setId("");
+		generatedMessageDto.setLocation("");
+
+		digitalProgressStatusDto.setTimestamp(null);
+		digitalProgressStatusDto.setStatus("");
+		digitalProgressStatusDto.setCode("");
+		digitalProgressStatusDto.setDetails("");
+		digitalProgressStatusDto.setGenMess(generatedMessageDto);
+
+		updatedEventDto.setRequestId("50");
+		updatedEventDto.setDigProgrStatus(digitalProgressStatusDto);
+		updatedEventDto.setPaperProgrStatus(paperProgressStatusDto);
+
+		webClient.patch()
 				.uri("http://localhost:8080/request/1")
 				.accept(APPLICATION_JSON)
 				.contentType(APPLICATION_JSON)
-				.body(BodyInserters.fromValue(requestDto))
+				.body(BodyInserters.fromValue(updatedEventDto))
 				.exchange()
 				.expectStatus()
 				.isBadRequest();

@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.repositorymanager.controller;
 
 import it.pagopa.pn.ec.repositorymanager.dto.RequestDto;
+import it.pagopa.pn.ec.repositorymanager.dto.UpdatedEventDto;
 import it.pagopa.pn.ec.repositorymanager.service.RepositoryManagerService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -32,8 +33,8 @@ public class RequestController {
 	}
 	
 	@PatchMapping(path ="/request/{requestId}" ,produces = MediaType.APPLICATION_JSON_VALUE)
-	public Mono<ResponseEntity<RequestDto>> updateRequest(@PathVariable String requestId, @Valid @RequestBody RequestDto rDtoI) {
-		RequestDto reqDtoO = repositoryManagerService.updateRequest(requestId, rDtoI);
+	public Mono<ResponseEntity<RequestDto>> updateRequest(@PathVariable String requestId, @Valid @RequestBody UpdatedEventDto updatedEventDtoI) {
+		RequestDto reqDtoO = repositoryManagerService.updateRequest(requestId, updatedEventDtoI);
 		return Mono.just(ResponseEntity.ok().body(reqDtoO));
 	}
 	
