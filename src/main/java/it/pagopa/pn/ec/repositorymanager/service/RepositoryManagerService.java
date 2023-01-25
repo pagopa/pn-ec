@@ -2,7 +2,6 @@ package it.pagopa.pn.ec.repositorymanager.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.repositorymanager.dto.ClientConfigurationDto;
-import it.pagopa.pn.ec.repositorymanager.dto.EventsDto;
 import it.pagopa.pn.ec.repositorymanager.dto.RequestDto;
 import it.pagopa.pn.ec.repositorymanager.dto.UpdatedEventDto;
 import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
@@ -80,27 +79,23 @@ public class RepositoryManagerService {
 
     public ClientConfigurationDto updateClient(String idClient, ClientConfigurationDto clientConfigurationDto) {
 
-        if(!idClient.equals(clientConfigurationDto.getCxId())) {
-            log.info("ClientId inserted in the url can't be different from the ClientId inserted in the body request");
-            throw new RepositoryManagerException.IdClientNotFoundException(clientConfigurationDto.getCxId());
-        }
-
         try {
 
             DynamoDbTable<ClientConfiguration> clientConfigurationTable = dynamoDbEnhancedClient.table(ANAGRAFICA_TABLE_NAME,
                                                                                                         TableSchema.fromBean(
                                                                                                                 ClientConfiguration.class));
-            ClientConfiguration clientConfiguration = clientConfigurationTable.getItem(Key.builder().partitionValue(clientConfigurationDto.getCxId()).build());
+            ClientConfiguration clientConfiguration = clientConfigurationTable.getItem(Key.builder().partitionValue(idClient).build());
 
             if (clientConfiguration == null) {
                 log.info("Client id doesn't exists");
-                throw new RepositoryManagerException.IdClientNotFoundException(clientConfigurationDto.getCxId());
+                throw new RepositoryManagerException.IdClientNotFoundException(idClient);
             }
 
             log.info("Client deleted from the table -> {}", clientConfiguration);
             clientConfigurationTable.deleteItem(clientConfiguration);
 
             ClientConfiguration clientConfigurationNew = objectMapper.convertValue(clientConfigurationDto, ClientConfiguration.class);
+            clientConfigurationNew.setCxId(idClient);
 
             if(clientConfigurationTable.getItem(clientConfigurationNew) == null) {
 
@@ -110,7 +105,7 @@ public class RepositoryManagerService {
                 return objectMapper.convertValue(clientConfigurationNew, ClientConfigurationDto.class);
             } else {
                 log.info("Client id already exists");
-                throw new RepositoryManagerException.IdClientAlreadyPresent(clientConfigurationDto.getCxId());
+                throw new RepositoryManagerException.IdClientAlreadyPresent(idClient);
             }
 
         } catch (DynamoDbException e) {
@@ -144,6 +139,13 @@ public class RepositoryManagerService {
     }
 
     public RequestDto insertRequest(RequestDto requestDto) {
+
+        if(requestDto.getEvents().get(0).getDigProgrStatus().getCode() == null || requestDto.getEvents().get(0).getDigProgrStatus().getCode().equals("")) {
+            requestDto.setStatusRequest(requestDto.getEvents().get(0).getPaperProgrStatus().getStatusCode());
+        } else {
+            requestDto.setStatusRequest(requestDto.getEvents().get(0).getDigProgrStatus().getCode());
+        }
+
         try {
             DynamoDbTable<Request> requestTable = dynamoDbEnhancedClient.table(REQUEST_TABLE_NAME,
                     TableSchema.fromBean(
@@ -191,28 +193,24 @@ public class RepositoryManagerService {
 
     public RequestDto updateRequest(String requestId, UpdatedEventDto updateEventDto) {
 
-        if(!requestId.equals(updateEventDto.getRequestId())) {
-            log.info("RequestId inserted in the url can't be different from the RequestId inserted in the body request");
-            throw new RepositoryManagerException.IdClientNotFoundException(updateEventDto.getRequestId());
-        }
-
         try {
 
             DynamoDbTable<Request> requestTable = dynamoDbEnhancedClient.table(REQUEST_TABLE_NAME,
                     TableSchema.fromBean(
                             Request.class));
-            Request request = requestTable.getItem(Key.builder().partitionValue(updateEventDto.getRequestId()).build());
+            Request request = requestTable.getItem(Key.builder().partitionValue(requestId).build());
 
-            EventsDto eventsDto = new EventsDto();
-
-            eventsDto.setDigProgrStatus(updateEventDto.getDigProgrStatus());
-            eventsDto.setPaperProgrStatus(updateEventDto.getPaperProgrStatus());
-
-            Events event = objectMapper.convertValue(eventsDto, Events.class);
+            Events event = objectMapper.convertValue(updateEventDto, Events.class);
 
             if (request == null) {
                 log.info("Request id doesn't exists");
-                throw new RepositoryManagerException.IdClientNotFoundException(updateEventDto.getRequestId());
+                throw new RepositoryManagerException.IdClientNotFoundException(requestId);
+            }
+
+            if(updateEventDto.getDigProgrStatus().getStatus() == null || updateEventDto.getDigProgrStatus().getStatus().equals("")) {
+                request.setStatusRequest(updateEventDto.getPaperProgrStatus().getStatusCode());
+            } else {
+                request.setStatusRequest(updateEventDto.getDigProgrStatus().getStatus());
             }
 
             request.getEvents().add(event);

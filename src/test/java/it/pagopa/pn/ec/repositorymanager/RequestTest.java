@@ -385,7 +385,6 @@ class RequestTest {
 		digitalProgressStatusDto.setDetails("");
 		digitalProgressStatusDto.setGenMess(generatedMessageDto);
 
-		updatedEventDto.setRequestId("1");
 		updatedEventDto.setDigProgrStatus(digitalProgressStatusDto);
 		updatedEventDto.setPaperProgrStatus(paperProgressStatusDto);
 
@@ -455,12 +454,11 @@ class RequestTest {
 		digitalProgressStatusDto.setDetails("");
 		digitalProgressStatusDto.setGenMess(generatedMessageDto);
 
-		updatedEventDto.setRequestId("50");
 		updatedEventDto.setDigProgrStatus(digitalProgressStatusDto);
 		updatedEventDto.setPaperProgrStatus(paperProgressStatusDto);
 
 		webClient.patch()
-				.uri("http://localhost:8080/requests/1")
+				.uri("http://localhost:8080/requests/100")
 				.accept(APPLICATION_JSON)
 				.contentType(APPLICATION_JSON)
 				.body(BodyInserters.fromValue(updatedEventDto))

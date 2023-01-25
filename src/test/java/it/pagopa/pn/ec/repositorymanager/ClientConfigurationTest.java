@@ -124,7 +124,6 @@ class ClientConfigurationTest {
         spaDto.setCity("Cuneo");
         spaDto.setPr("CU");
 
-        ccDtoI.setCxId("AAA");
         ccDtoI.setSqsArn("DEF");
         ccDtoI.setSqsName("Ciro ROSSI");
         ccDtoI.setPecReplyTo("Cirorossi@pec.it");
@@ -155,7 +154,6 @@ class ClientConfigurationTest {
         spaDto.setCity("Pisa");
         spaDto.setPr("Pi");
 
-        ccDtoI.setCxId("www");
         ccDtoI.setSqsArn("DEF");
         ccDtoI.setSqsName("Ciro ROSSI");
         ccDtoI.setPecReplyTo("Cirorossi@pec.it");

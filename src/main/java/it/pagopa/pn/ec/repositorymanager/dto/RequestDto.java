@@ -8,6 +8,7 @@ import java.util.List;
 public class RequestDto {
 
 	private String requestId;
+	private String statusRequest;
 	private DigitalRequestDto digitalReq;
 	private PaperRequestDto paperReq;
 	private List<EventsDto> events;

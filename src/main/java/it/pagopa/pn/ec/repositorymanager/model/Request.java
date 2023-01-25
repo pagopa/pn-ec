@@ -17,6 +17,7 @@ public class Request {
 
 	@Getter(AccessLevel.NONE)
 	private String requestId;
+	private String statusRequest;
 	private DigitalRequest digitalReq;
 	private PaperRequest paperReq;
 	private List<Events> events;

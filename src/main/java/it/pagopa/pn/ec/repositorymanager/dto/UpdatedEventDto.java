@@ -5,7 +5,6 @@ import lombok.Data;
 @Data
 public class UpdatedEventDto {
 
-    private String requestId;
     private DigitalProgressStatusDto digProgrStatus;
     private PaperProgressStatusDto paperProgrStatus;
 }
