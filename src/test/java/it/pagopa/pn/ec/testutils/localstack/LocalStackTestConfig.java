@@ -23,7 +23,7 @@ public class LocalStackTestConfig {
     @Autowired
     private DynamoDbWaiter dynamoDbWaiter;
 
-    static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:latest");
+    static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4");
     static LocalStackContainer localStackContainer = new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS);
 
     static {
