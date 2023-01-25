@@ -24,10 +24,10 @@ public class SnsServiceImpl implements SnsService {
                        try {
                            builder.message(message).phoneNumber(phoneNumber);
                        } catch (SnsException snsException) {
-                           throw new SnsSendException();
-                       }
+                           throw new SnsSendException();}
                    }))
-                   .doOnNext(sendMessageResponse -> log.info("Send SMS to '{}' has returned a {} as status",
+                   .doOnNext(sendMessageResponse -> log.info("Send SMS '{} 'to '{}' has returned a {} as status",
+                                                             message,
                                                              phoneNumber,
                                                              sendMessageResponse.sdkHttpResponse().statusCode()))
                    .then();
