@@ -19,8 +19,6 @@ import java.io.IOException;
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.ALL_QUEUE_NAME_LIST;
 import static it.pagopa.pn.ec.repositorymanager.constant.DynamoTableNameConstant.ANAGRAFICA_TABLE_NAME;
 import static it.pagopa.pn.ec.repositorymanager.constant.DynamoTableNameConstant.REQUEST_TABLE_NAME;
-import static it.pagopa.pn.ec.testutils.localstack.LocalStackUtils.DEFAULT_LOCAL_STACK_TAG;
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.ALL_QUEUE_NAME_LIST;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.*;
 
 @TestConfiguration
@@ -56,21 +54,10 @@ public class LocalStackTestConfig {
                 localStackContainer.execInContainer("awslocal", "sqs", "create-queue", "--queue-name", queueName);
             }
 
-            // TODO: Create DynamoDb schemas
             // TODO: Create SNS topic
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @DynamicPropertySource
-    static void overrideConfiguration(DynamicPropertyRegistry registry) {
-//      <-- spring-cloud-starter-aws-messaging variables -->
-        registry.add("cloud.aws.sqs.endpoint", () -> localStackContainer.getEndpointOverride(SQS));
-
-//      <-- Custom aws services endpoint variables for testing -->
-        registry.add("test.aws.dynamodb.endpoint", () -> localStackContainer.getEndpointOverride(DYNAMODB));
-        registry.add("test.aws.sns.endpoint", () -> localStackContainer.getEndpointOverride(SNS));
     }
 
     @PostConstruct
