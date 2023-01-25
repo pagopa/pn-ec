@@ -1,14 +1,14 @@
 package it.pagopa.pn.ec.commons.configuration;
 
-import com.amazonaws.services.sqs.AmazonSQSAsync;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.messaging.config.QueueMessageHandlerFactory;
-import io.awspring.cloud.messaging.core.QueueMessagingTemplate;
+import io.awspring.cloud.messaging.listener.support.AcknowledgmentHandlerMethodArgumentResolver;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.handler.annotation.support.PayloadMethodArgumentResolver;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.regions.Region;
@@ -22,7 +22,7 @@ import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.SqsAsyncClientBuilder;
 
 import java.net.URI;
-import java.util.Collections;
+import java.util.List;
 
 @Configuration
 public class AwsConfiguration {
@@ -57,21 +57,19 @@ public class AwsConfiguration {
 //  <-- spring-cloud-starter-aws-messaging -->
 
     @Bean
-    public QueueMessagingTemplate queueMessagingTemplate(final AmazonSQSAsync amazonSQSAsync) {
-        return new QueueMessagingTemplate(amazonSQSAsync);
-    }
+    public QueueMessageHandlerFactory queueMessageHandlerFactory(ObjectMapper objectMapper, LocalValidatorFactoryBean validator) {
 
-    @Bean
-    public QueueMessageHandlerFactory queueMessageHandlerFactory(final ObjectMapper objectMapper, final AmazonSQSAsync amazonSQSAsync) {
-
-        final var queueHandlerFactory = new QueueMessageHandlerFactory();
+        final var queueMessageHandlerFactory = new QueueMessageHandlerFactory();
         final var converter = new MappingJackson2MessageConverter();
 
-        queueHandlerFactory.setAmazonSqs(amazonSQSAsync);
         converter.setObjectMapper(objectMapper);
-        queueHandlerFactory.setArgumentResolvers(Collections.singletonList(new PayloadMethodArgumentResolver(converter)));
+        converter.setStrictContentTypeMatch(false);
 
-        return queueHandlerFactory;
+        final var acknowledgmentResolver = new AcknowledgmentHandlerMethodArgumentResolver("Acknowledgment");
+
+        queueMessageHandlerFactory.setArgumentResolvers(List.of(acknowledgmentResolver, new PayloadMethodArgumentResolver(converter, validator)));
+
+        return queueMessageHandlerFactory;
     }
 
 //  <-- AWS SDK for Java v2 -->

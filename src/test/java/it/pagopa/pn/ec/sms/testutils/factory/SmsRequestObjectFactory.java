@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.testutils.factory;
+package it.pagopa.pn.ec.sms.testutils.factory;
 
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 
@@ -7,11 +7,7 @@ import java.util.Date;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.ChannelEnum.SMS;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
 
-/**
- * Classe con metodi statici factory che creano gli oggetti request usati nei vari endpoint di EC.
- * Utili per i test sui RestController
- */
-public class EcRequestObjectFactory {
+public class SmsRequestObjectFactory {
 
     private static final String DEFAULT_STRING_INIT = "string";
     private static final Date DEFAULT_DATE_INIT = new Date();

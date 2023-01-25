@@ -1,16 +1,24 @@
 package it.pagopa.pn.ec.sms.service.impl;
 
+import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
+import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.richieste.RichiesteCallImpl;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.InvioService;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.sms.model.dto.NtStatoSmsQueueDto;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.NT_STATO_SMS_QUEUE_NAME;
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.SMS_QUEUE_NAME;
@@ -39,13 +47,17 @@ public class SmsService extends InvioService {
                          .then(sqsService.send(SMS_QUEUE_NAME, invioSmsDto.getDigitalCourtesySmsRequest()));
     }
 
-    @Override
-    public Mono<Void> lavorazioneRichiesta() {
-        return null;
+    @SqsListener(value = SMS_QUEUE_NAME, deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void lavorazioneRichiesta(final DigitalCourtesySmsRequest digitalCourtesySmsRequest, final Acknowledgment acknowledgment) {
+
+        Mono.just(digitalCourtesySmsRequest)
+            .doOnNext(message -> log.info("Incoming message {}", message))
+            .flatMap(unused -> Mono.fromFuture(CompletableFuture.supplyAsync(acknowledgment::acknowledge)))
+            .timeout(Duration.ofSeconds(25))
+            .subscribe();
     }
 
-    @Override
-    public Mono<Void> retry() {
-        return Mono.empty();
+    public void retry() {
+
     }
 }
