@@ -45,7 +45,7 @@ class ClientConfigurationTest {
         ccDtoI.setSenderPhysicalAddress(spaDto);
 
         webClient.post()
-                 .uri("http://localhost:8080/client")
+                 .uri("http://localhost:8080/clients")
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(ccDtoI))
@@ -77,7 +77,7 @@ class ClientConfigurationTest {
         ccDtoI.setSenderPhysicalAddress(spaDto);
 
         webClient.post()
-                .uri("http://localhost:8080/client")
+                .uri("http://localhost:8080/clients")
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .body(BodyInserters.fromValue(ccDtoI))
@@ -91,7 +91,7 @@ class ClientConfigurationTest {
     @Order(3)
     void getClientTestSuccess() {
         webClient.get()
-                 .uri("http://localhost:8080/client/AAA")
+                 .uri("http://localhost:8080/clients/AAA")
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -104,7 +104,7 @@ class ClientConfigurationTest {
     @Order(4)
     void getClientTestFailed() {
         webClient.get()
-                 .uri("http://localhost:8080/client/abab")
+                 .uri("http://localhost:8080/clients/abab")
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -133,7 +133,7 @@ class ClientConfigurationTest {
         ccDtoI.setSenderPhysicalAddress(spaDto);
 
         webClient.put()
-                .uri("http://localhost:8080/client/AAA")
+                .uri("http://localhost:8080/clients/AAA")
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .body(BodyInserters.fromValue(ccDtoI))
@@ -164,7 +164,7 @@ class ClientConfigurationTest {
         ccDtoI.setSenderPhysicalAddress(spaDto);
 
         webClient.put()
-                .uri("http://localhost:8080/client/www")
+                .uri("http://localhost:8080/clients/www")
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .body(BodyInserters.fromValue(ccDtoI))
@@ -178,7 +178,7 @@ class ClientConfigurationTest {
     @Order(7)
 	void deleteClientTestSuccess() {
         webClient.delete()
-                .uri("http://localhost:8080/client/AAA")
+                .uri("http://localhost:8080/clients/AAA")
                 .accept(APPLICATION_JSON)
                 .exchange()
                 .expectStatus()
@@ -190,7 +190,7 @@ class ClientConfigurationTest {
     @Order(8)
 	void deleteClientTestFailed() {
         webClient.delete()
-                .uri("http://localhost:8080/client/abab")
+                .uri("http://localhost:8080/clients/abab")
                 .accept(APPLICATION_JSON)
                 .exchange()
                 .expectStatus()

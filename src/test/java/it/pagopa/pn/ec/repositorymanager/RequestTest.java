@@ -158,7 +158,7 @@ class RequestTest {
 		requestDto.setEvents(eventsDtoList);
 
 		webClient.post()
-				.uri("http://localhost:8080/request")
+				.uri("http://localhost:8080/requests")
 				.accept(APPLICATION_JSON)
 				.contentType(APPLICATION_JSON)
 				.body(BodyInserters.fromValue(requestDto))
@@ -296,7 +296,7 @@ class RequestTest {
 		requestDto.setEvents(eventsDtoList);
 
 		webClient.post()
-				.uri("http://localhost:8080/request")
+				.uri("http://localhost:8080/requests")
 				.accept(APPLICATION_JSON)
 				.contentType(APPLICATION_JSON)
 				.body(BodyInserters.fromValue(requestDto))
@@ -310,7 +310,7 @@ class RequestTest {
 	@Order(3)
 	void readRequestTestSuccess() {
 		webClient.get()
-				.uri("http://localhost:8080/request/1")
+				.uri("http://localhost:8080/requests/1")
 				.accept(APPLICATION_JSON)
 				.exchange()
 				.expectStatus()
@@ -323,7 +323,7 @@ class RequestTest {
 	@Order(4)
 	void readRequestTestFailed() {
 		webClient.get()
-				.uri("http://localhost:8080/request/2")
+				.uri("http://localhost:8080/requests/2")
 				.accept(APPLICATION_JSON)
 				.exchange()
 				.expectStatus()
@@ -390,7 +390,7 @@ class RequestTest {
 		updatedEventDto.setPaperProgrStatus(paperProgressStatusDto);
 
 		webClient.patch()
-				.uri("http://localhost:8080/request/1")
+				.uri("http://localhost:8080/requests/1")
 				.accept(APPLICATION_JSON)
 				.contentType(APPLICATION_JSON)
 				.body(BodyInserters.fromValue(updatedEventDto))
@@ -460,7 +460,7 @@ class RequestTest {
 		updatedEventDto.setPaperProgrStatus(paperProgressStatusDto);
 
 		webClient.patch()
-				.uri("http://localhost:8080/request/1")
+				.uri("http://localhost:8080/requests/1")
 				.accept(APPLICATION_JSON)
 				.contentType(APPLICATION_JSON)
 				.body(BodyInserters.fromValue(updatedEventDto))
@@ -474,7 +474,7 @@ class RequestTest {
 	@Order(7)
 	void deleteRequestTestSuccess() {
 		webClient.delete()
-				.uri("http://localhost:8080/request/1")
+				.uri("http://localhost:8080/requests/1")
 				.accept(APPLICATION_JSON)
 				.exchange()
 				.expectStatus()
@@ -486,7 +486,7 @@ class RequestTest {
 	@Order(8)
 	void deleteRequestTestFailed() {
 		webClient.delete()
-				.uri("http://localhost:8080/request/2")
+				.uri("http://localhost:8080/requests/2")
 				.accept(APPLICATION_JSON)
 				.exchange()
 				.expectStatus()

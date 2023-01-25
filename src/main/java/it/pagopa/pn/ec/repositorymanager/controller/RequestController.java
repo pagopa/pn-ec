@@ -20,25 +20,25 @@ public class RequestController {
 		this.repositoryManagerService = repositoryManagerService;
 	}
 
-	@PostMapping(path ="/request" ,produces = MediaType.APPLICATION_JSON_VALUE)
+	@PostMapping(path ="/requests" ,produces = MediaType.APPLICATION_JSON_VALUE)
 	public Mono<ResponseEntity<RequestDto>> insertRequest(@Valid @RequestBody RequestDto reqDtoI) {
 		RequestDto reqDtoO = repositoryManagerService.insertRequest(reqDtoI);
 		return Mono.just(ResponseEntity.ok().body(reqDtoO));
 	}
 	
-	@GetMapping(path ="/request/{requestId}" ,produces = MediaType.APPLICATION_JSON_VALUE)
+	@GetMapping(path ="/requests/{requestId}" ,produces = MediaType.APPLICATION_JSON_VALUE)
 	public Mono<ResponseEntity<RequestDto>> getRequest(@PathVariable String requestId) {
 		RequestDto reqDto = repositoryManagerService.getRequest(requestId);
 		return Mono.just(ResponseEntity.ok().body(reqDto));
 	}
 	
-	@PatchMapping(path ="/request/{requestId}" ,produces = MediaType.APPLICATION_JSON_VALUE)
+	@PatchMapping(path ="/requests/{requestId}" ,produces = MediaType.APPLICATION_JSON_VALUE)
 	public Mono<ResponseEntity<RequestDto>> updateRequest(@PathVariable String requestId, @Valid @RequestBody UpdatedEventDto updatedEventDtoI) {
 		RequestDto reqDtoO = repositoryManagerService.updateRequest(requestId, updatedEventDtoI);
 		return Mono.just(ResponseEntity.ok().body(reqDtoO));
 	}
 	
-	@DeleteMapping(path ="/request/{requestId}" ,produces = MediaType.APPLICATION_JSON_VALUE)
+	@DeleteMapping(path ="/requests/{requestId}" ,produces = MediaType.APPLICATION_JSON_VALUE)
 	public Mono<ResponseEntity<Void>> deleteRequest(@PathVariable String requestId) {
 		repositoryManagerService.deleteRequest(requestId);
 		return Mono.just(new ResponseEntity<>(HttpStatus.OK));
