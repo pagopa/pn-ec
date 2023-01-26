@@ -9,8 +9,6 @@ public class QueueNameConstant {
         throw new IllegalStateException("QueueNameConstant is a constant class");
     }
 
-//  ###### QUEUE SECTION #####
-
     //  <-- SMS -->
     public static final String NT_STATO_SMS_QUEUE_NAME = "pn-ec-notification-tracker-stato-sms-queue";
     public static final String NT_STATO_SMS_DLQ_QUEUE_NAME = "pn-ec-notification-tracker-stato-sms-queue-dlq";

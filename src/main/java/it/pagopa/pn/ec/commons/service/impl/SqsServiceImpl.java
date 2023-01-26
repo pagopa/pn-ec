@@ -21,7 +21,6 @@ public class SqsServiceImpl implements SqsService {
     private final SqsAsyncClient sqsAsyncClient;
     private final ObjectMapper objectMapper;
 
-
     public SqsServiceImpl(SqsAsyncClient sqsAsyncClient, ObjectMapper objectMapper) {
         this.sqsAsyncClient = sqsAsyncClient;
         this.objectMapper = objectMapper;
