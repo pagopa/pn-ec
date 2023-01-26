@@ -10,7 +10,6 @@ import reactor.core.publisher.Mono;
 
 @Service
 @Slf4j
-@SuppressWarnings("unused")
 public abstract class InvioService {
 
     private final AuthService authService;
@@ -35,8 +34,4 @@ public abstract class InvioService {
     }
 
     protected abstract Mono<Void> specificPresaInCarico(final RequestBaseInfo requestBaseInfo);
-
-    protected abstract void lavorazioneRichiesta(final DigitalCourtesySmsRequest digitalCourtesySmsRequest, final Acknowledgment acknowledgment);
-
-    protected abstract void retry();
 }
