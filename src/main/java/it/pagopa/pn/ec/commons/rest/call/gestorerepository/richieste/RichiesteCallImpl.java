@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.commons.rest.call.gestorerepository.richieste;
 
-import it.pagopa.pn.ec.commons.constant.Status;
+import it.pagopa.pn.ec.commons.constant.status.CommonStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -19,7 +19,8 @@ public class RichiesteCallImpl implements RichiesteCall {
     }
 
     @Override
-    public Mono<Status> getRichiesta(String idRequest) {
-        return ecInternalWebClient.get().uri(String.format(gestoreRepositoryGetRichiestaEndpoint, idRequest)).retrieve().bodyToMono(Status.class);
+    public Mono<CommonStatus> getRichiesta(String idRequest) {
+        return ecInternalWebClient.get().uri(String.format(gestoreRepositoryGetRichiestaEndpoint, idRequest)).retrieve().bodyToMono(
+                CommonStatus.class);
     }
 }
