@@ -1,14 +1,14 @@
 package it.pagopa.pn.ec.sms.rest;
 
-import it.pagopa.pn.ec.commons.constant.Status;
+import it.pagopa.pn.ec.commons.constant.status.CommonStatus;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.anagraficaclient.AnagraficaClientCallImpl;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.richieste.RichiesteCallImpl;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
-import it.pagopa.pn.ec.sms.model.dto.NtStatoSmsQueueDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.ec.sms.testutils.factory.SmsRequestObjectFactory;
 import org.junit.jupiter.api.Test;
@@ -68,7 +68,7 @@ class DigitalCourtesyMessagesApiControllerTest {
     void sendSmsOk() {
 //      Per il momento gli esiti positivi delle chiamate interne sono mocckati dato che non sono ancora stati implementati gli endpoint
         when(anagraficaClientCall.getClient(anyString())).thenReturn(Mono.just(DEFAULT_ID_CLIENT_HEADER_VALUE));
-        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.STATUS_1));
+        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(CommonStatus.BOOKED));
 
         sendSmsTestCall(BodyInserters.fromValue(SmsRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                                              .isOk();
@@ -112,7 +112,7 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(anagraficaClientCall.getClient(anyString())).thenReturn(Mono.empty());
 
 //      Retrieve status -> OK
-        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.STATUS_1));
+        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(CommonStatus.BOOKED));
 
         sendSmsTestCall(BodyInserters.fromValue(SmsRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                                              .isUnauthorized()
@@ -146,7 +146,7 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(anagraficaClientCall.getClient(anyString())).thenReturn(Mono.just(DEFAULT_ID_CLIENT_HEADER_VALUE));
 
 //      Status della richiesta tornato dall'anagrafica client -> IN_LAVORAZIONE
-        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.IN_LAVORAZIONE));
+        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(CommonStatus.SENT));
 
         sendSmsTestCall(BodyInserters.fromValue(SmsRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                                              .isEqualTo(
@@ -163,10 +163,10 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(anagraficaClientCall.getClient(anyString())).thenReturn(Mono.just(DEFAULT_ID_CLIENT_HEADER_VALUE));
 
 //      Retrieve status -> OK
-        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.STATUS_1));
+        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(CommonStatus.BOOKED));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        doThrow(SqsPublishException.class).when(sqsService).send(eq(NT_STATO_SMS_QUEUE_NAME), any(NtStatoSmsQueueDto.class));
+        doThrow(SqsPublishException.class).when(sqsService).send(eq(NT_STATO_SMS_QUEUE_NAME), any(NotificationTrackerQueueDto.class));
 
         sendSmsTestCall(BodyInserters.fromValue(SmsRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                                              .isEqualTo(
@@ -183,7 +183,7 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(anagraficaClientCall.getClient(anyString())).thenReturn(Mono.just(DEFAULT_ID_CLIENT_HEADER_VALUE));
 
 //      Retrieve status -> OK
-        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.STATUS_1));
+        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(CommonStatus.BOOKED));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         doThrow(SqsPublishException.class).when(sqsService).send(eq(SMS_QUEUE_NAME), any(DigitalCourtesySmsRequest.class));

@@ -1,17 +1,12 @@
-package it.pagopa.pn.ec.sms.service;
+package it.pagopa.pn.ec.sms.service.impl;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
-import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
-import it.pagopa.pn.ec.commons.constant.Status;
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
+import it.pagopa.pn.ec.commons.model.pojo.RequestBaseInfo;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.richieste.RichiesteCallImpl;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.InvioService;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
-import it.pagopa.pn.ec.sms.model.dto.NtStatoSmsQueueDto;
-import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
+import it.pagopa.pn.ec.sms.model.pojo.SmsRequestBaseInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -31,14 +26,14 @@ public class SmsService extends InvioService {
     }
 
     @Override
-    protected Mono<Void> specificPresaInCarico(final Status status, final PresaInCaricoInfo presaInCaricoInfo) {
+    protected Mono<Void> specificPresaInCarico(final RequestBaseInfo requestBaseInfo) {
         log.info("<-- Start presa in carico SMS-->");
 
         // Cast base object invioBaseRequest for the specific case
-        var invioSmsDto = (SmsPresaInCaricoInfo) presaInCaricoInfo;
+        var invioSmsDto = (SmsRequestBaseInfo) requestBaseInfo;
 
         // Preparation of the DTO and sending to the "Notification Tracker stato SMS" queue
-        return sqsService.send(NT_STATO_SMS_QUEUE_NAME, new NtStatoSmsQueueDto(presaInCaricoInfo, status))
+        return sqsService.send(NT_STATO_SMS_QUEUE_NAME, new NotificationTrackerQueueDto(invioSmsDto, null, BOOKED))
                          // Send to "SMS" queue
                          .then(sqsService.send(SMS_QUEUE_NAME, invioSmsDto.getDigitalCourtesySmsRequest()));
     }

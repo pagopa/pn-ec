@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.sms.model.pojo;
 
-import it.pagopa.pn.ec.commons.constant.ProcessId;
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.model.pojo.RequestBaseInfo;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import lombok.AccessLevel;
 import lombok.Data;
@@ -13,12 +12,12 @@ import lombok.experimental.FieldDefaults;
 @Data
 @ToString(callSuper = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class SmsPresaInCaricoInfo extends PresaInCaricoInfo {
+public class SmsRequestBaseInfo extends RequestBaseInfo {
 
     DigitalCourtesySmsRequest digitalCourtesySmsRequest;
 
-    public SmsPresaInCaricoInfo(String idRequest, String idClient, ProcessId processId, DigitalCourtesySmsRequest digitalCourtesySmsRequest) {
-        super(idRequest, idClient, processId);
+    public SmsRequestBaseInfo(String idRequest, String idClient, DigitalCourtesySmsRequest digitalCourtesySmsRequest) {
+        super(idRequest, idClient);
         this.digitalCourtesySmsRequest = digitalCourtesySmsRequest;
     }
 }
