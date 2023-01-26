@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.commons.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsCharacterInPayloadNotAllowedException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsConvertToJsonPayloadException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
@@ -13,6 +14,9 @@ import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
 import software.amazon.awssdk.services.sqs.model.InvalidMessageContentsException;
 import software.amazon.awssdk.services.sqs.model.SqsException;
+
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
@@ -53,6 +57,16 @@ public class SqsServiceImpl implements SqsService {
                                                              queueName,
                                                              sendMessageResponse.sdkHttpResponse().statusCode()))
                    .doOnError(throwable -> log.info(throwable.getMessage(), throwable))
+                   .then();
+    }
+
+    @Override
+    public <T> Mono<Void> incomingMessageFlow(T queuePayload, final Acknowledgment acknowledgment) {
+        return Mono.just(queuePayload)
+                   .doOnNext(message -> log.info("Incoming message {}", message))
+                   .flatMap(unused -> Mono.fromFuture(CompletableFuture.supplyAsync(acknowledgment::acknowledge)))
+                   .timeout(Duration.ofSeconds(MAXIMUM_LISTENING_TIME))
+                   .doOnError(throwable -> log.error("Maximum listening time on incoming message queue exceed"))
                    .then();
     }
 }

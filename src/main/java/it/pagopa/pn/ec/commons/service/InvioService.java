@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.commons.service;
 
+import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.RequestAlreadyInProgressException;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
@@ -38,4 +39,8 @@ public abstract class InvioService {
     }
 
     protected abstract Mono<Void> specificPresaInCarico(final Status status, final PresaInCaricoInfo presaInCaricoInfo);
+
+    protected abstract void lavorazioneRichiesta(final DigitalCourtesySmsRequest digitalCourtesySmsRequest, final Acknowledgment acknowledgment);
+
+    protected abstract void retry();
 }
