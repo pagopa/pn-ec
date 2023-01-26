@@ -1,5 +1,5 @@
 
-package it.pagopa.pn.template.notificationtracker.service;
+package it.pagopa.pn.ec.notificationtracker.service;
 
 
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;

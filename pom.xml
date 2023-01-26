@@ -74,6 +74,11 @@
 			<artifactId>spring-cloud-starter-aws-messaging</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>eventbridge</artifactId>
+		</dependency>
+
 		<!-- Start EC WebClient dependencies -->
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>

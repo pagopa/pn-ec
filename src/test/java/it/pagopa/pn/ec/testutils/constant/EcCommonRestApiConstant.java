@@ -17,3 +17,4 @@ public final class EcCommonRestApiConstant {
     public static final String ID_CLIENT_HEADER_NAME = "x-pagopa-extch-cx-id";
     public static final String DEFAULT_ID_CLIENT_HEADER_VALUE = "CLIENT_ID_123";
 }
+

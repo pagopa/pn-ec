@@ -1,5 +1,12 @@
-package it.pagopa.pn.template.notificationtracker.model;
+package it.pagopa.pn.ec.notificationtracker.model;
 
+import lombok.*;
+
+@Data
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ResponseModel {
 	
 	 private String message;
