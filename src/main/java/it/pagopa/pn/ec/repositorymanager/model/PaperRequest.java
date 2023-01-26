@@ -1,0 +1,44 @@
+package it.pagopa.pn.ec.repositorymanager.model;
+
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+
+import java.util.List;
+import java.util.Map;
+
+@FieldDefaults(level = AccessLevel.PRIVATE)
+@NoArgsConstructor
+@Getter
+@Setter
+@ToString
+@DynamoDbBean
+public class PaperRequest {
+
+	private String iun;
+	private String requestPaid;
+	private String productType;
+	private List<PaperEngageRequestAttachments> attachments;
+	private String printType;
+	private String receiverName;
+	private String receiverNameRow2;
+	private String receiverAddress;
+	private String receiverAddressRow2;
+	private String receiverCap;
+	private String receiverCity;
+	private String receiverCity2;
+	private String receiverPr;
+	private String receiverCountry;
+	private String receiverFiscalCode;
+	private String senderName;
+	private String senderAddress;
+	private String senderCity;
+	private String senderPr;
+	private String senderDigitalAddress;
+	private String arName;
+	private String arAddress;
+	private String arCap;
+	private String arCity;
+	private Map<String, String> vas;
+
+}
