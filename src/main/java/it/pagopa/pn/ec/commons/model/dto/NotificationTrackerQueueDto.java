@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.commons.model.dto;
 
 import it.pagopa.pn.ec.commons.constant.ProcessId;
-import it.pagopa.pn.ec.commons.constant.status.CommonStatus;
+import it.pagopa.pn.ec.commons.constant.status.Status;
 import it.pagopa.pn.ec.commons.model.pojo.RequestBaseInfo;
 import lombok.AccessLevel;
 import lombok.Data;
@@ -17,12 +17,12 @@ public class NotificationTrackerQueueDto extends RequestBaseInfo {
      * Identificativo del processo richiesto dal Notification Tracker
      */
     ProcessId processId;
-    CommonStatus currentCommonStatus;
-    CommonStatus nextCommonStatus;
+    Status currentStatus;
+    Status nextStatus;
 
-    public NotificationTrackerQueueDto(RequestBaseInfo requestBaseInfo, CommonStatus currentCommonStatus, CommonStatus nextCommonStatus) {
+    public NotificationTrackerQueueDto(RequestBaseInfo requestBaseInfo, Status currentStatus, Status nextStatus) {
         super(requestBaseInfo.getIdRequest(), requestBaseInfo.getIdClient());
-        this.currentCommonStatus = currentCommonStatus;
-        this.nextCommonStatus = nextCommonStatus;
+        this.currentStatus = currentStatus;
+        this.nextStatus = nextStatus;
     }
 }
