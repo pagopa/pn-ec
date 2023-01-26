@@ -2,18 +2,20 @@ package it.pagopa.pn.ec.testutils.localstack;
 
 import it.pagopa.pn.ec.repositorymanager.model.ClientConfiguration;
 import it.pagopa.pn.ec.repositorymanager.model.Request;
+import it.pagopa.pn.ec.testutils.exception.DynamoDbInitTableCreationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
+import software.amazon.awssdk.core.internal.waiters.ResponseOrException;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
-import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableResponse;
 import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
-import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbAsyncWaiter;
+import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbWaiter;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -32,13 +34,13 @@ public class LocalStackTestConfig {
 
     //  Oggetti dell'SDK che serviranno per la creazione delle tabelle Dynamo
     @Autowired
-    private DynamoDbAsyncClient dynamoDbAsyncClient;
+    private DynamoDbClient dynamoDbClient;
 
     @Autowired
-    private DynamoDbEnhancedAsyncClient dynamoDbEnhancedAsyncClient;
+    private DynamoDbEnhancedClient dynamoDbEnhancedClient;
 
     @Autowired
-    private DynamoDbAsyncWaiter dynamoDbAsyncWaiter;
+    private DynamoDbWaiter dynamoDbWaiter;
 
     static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4");
     static LocalStackContainer localStackContainer = new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS);
@@ -73,36 +75,30 @@ public class LocalStackTestConfig {
                                                                                               ClientConfiguration.class),
                                                                                         entry(REQUEST_TABLE_NAME, Request.class));
 
-    private Mono<Void> createTable(final String tableName, final Class<?> entityClass) {
-        return Mono.fromFuture(dynamoDbEnhancedAsyncClient.table(tableName, TableSchema.fromBean(entityClass))
-                                                          .createTable(builder -> builder.provisionedThroughput(b -> b.readCapacityUnits(5L)
-                                                                                                                      .writeCapacityUnits(5L)
-                                                                                                                      .build())))
-                   .flatMap(createTableResponse -> Mono.fromFuture(dynamoDbAsyncWaiter.waitUntilTableExists(builder -> builder.tableName(
-                           tableName))))
-                   .then();
+    private void createTable(final String tableName, final Class<?> entityClass) {
+        DynamoDbTable<?> dynamoDbTable = dynamoDbEnhancedClient.table(tableName, TableSchema.fromBean(entityClass));
+        dynamoDbTable.createTable(builder -> builder.provisionedThroughput(b -> b.readCapacityUnits(5L).writeCapacityUnits(5L).build()));
+
+        // La creazione delle tabelle su Dynamo è asincrona. Bisogna aspettare tramite il DynamoDbWaiter
+        ResponseOrException<DescribeTableResponse> responseOrException = dynamoDbWaiter.waitUntilTableExists(builder -> builder.tableName(
+                tableName).build()).matched();
+        responseOrException.response().orElseThrow(() -> new DynamoDbInitTableCreationException(tableName));
     }
 
     @PostConstruct
-    public void initDynamo() {
-
-        Flux.fromStream(tableNameWithEntityClass.entrySet().stream())
-            .doOnNext(stringClassEntry -> log.info("Creating '{}' table", stringClassEntry.getKey()))
-            .flatMap(stringClassEntry -> Mono.fromFuture(dynamoDbAsyncClient.describeTable(builder -> builder.tableName(stringClassEntry.getKey())))
-                                             .handle((describeTableResponse, synchronousSink) -> {
-                                                 if (describeTableResponse.table().tableStatus() == ACTIVE) {
-                                                     log.info("Table {} already exist, skip creation",
-                                                              stringClassEntry.getKey());
-                                                     synchronousSink.complete();
-                                                 }
-                                             })
-                                             .flatMap(describeTableResponse -> createTable(stringClassEntry.getKey(),
-                                                                                           stringClassEntry.getValue()))
-                                             .onErrorResume(ResourceNotFoundException.class, throwable -> {
-                                                 log.info("Table {} not found on first dynamo init. Proceed to create",
-                                                          stringClassEntry.getKey());
-                                                 return createTable(stringClassEntry.getKey(), stringClassEntry.getValue());
-                                             }))
-            .subscribe();
+    public void initLocalStack() {
+        tableNameWithEntityClass.forEach((tableName, entityClass) -> {
+            log.info("<-- START initLocalStack -->");
+            try {
+                log.info("<-- START Dynamo db init-->");
+                DescribeTableResponse describeTableResponse = dynamoDbClient.describeTable(builder -> builder.tableName(tableName));
+                if (describeTableResponse.table().tableStatus() == ACTIVE) {
+                    log.info("Table {} already created on local stack's dynamo db", tableName);
+                }
+            } catch (ResourceNotFoundException resourceNotFoundException) {
+                log.info("Table {} not found on first dynamo init. Proceed to create", tableName);
+                createTable(tableName, entityClass);
+            }
+        });
     }
 }
