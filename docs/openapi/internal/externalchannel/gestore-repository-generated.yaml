@@ -1,0 +1,327 @@
+openapi: 3.0.1
+info:
+  title: Gestore repository
+  description: Api esposte dal gestore repository per la configurazione dei client e per la gestione delle richieste
+  version: v1.0.0
+
+servers:
+  - url: http://localhost:8080/gestoreRepository
+    description: Generated server url
+
+tags:
+  - name: ConfigurazioneClient
+    description: Operazioni per la configurazione dei client
+  - name: GestoreRequest
+    description: Operazione per la gestione delle richieste
+
+paths:
+  /clients/{xPagopaExtchCxId}:
+    parameters:
+      - $ref: "../../api-internal-v1.yaml#/components/parameters/xPagopaExtchCxId"
+    get:
+      tags:
+        - ConfigurazioneClient
+      operationId: getClient
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientConfigurationDto'
+    put:
+      tags:
+        - ConfigurazioneClient
+      operationId: updateClient
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientConfigurationDto'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientConfigurationDto'
+    delete:
+      tags:
+        - ConfigurazioneClient
+      operationId: deleteClient
+      responses:
+        "200":
+          description: OK
+  /requests:
+    post:
+      tags:
+        - GestoreRequest
+      operationId: insertRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestDto'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestDto'
+  /clients:
+    post:
+      tags:
+        - ConfigurazioneClient
+      operationId: insertClient
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientConfigurationDto'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientConfigurationDto'
+  /requests/{requestIdx}:
+    parameters:
+      - $ref: "../../api-internal-v1.yaml#/components/parameters/requestIdx"
+    get:
+      tags:
+        - GestoreRequest
+      operationId: getRequest
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestDto'
+    delete:
+      tags:
+        - GestoreRequest
+      operationId: deleteRequest
+      responses:
+        "200":
+          description: OK
+    patch:
+      tags:
+        - GestoreRequest
+      operationId: updateRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatedEventDto'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestDto'
+components:
+  schemas:
+
+    RequestDto:
+      type: object
+      required:
+        - requestId
+        - clientRequestTimeStamp
+      properties:
+        requestId:
+          type: string
+        statusRequest:
+          type: string
+          readOnly: true
+        clientRequestTimeStamp:
+          type: string
+          format: date-time
+        digitalReq:
+          $ref: '#/components/schemas/DigitalRequestDto'
+        paperReq:
+          $ref: '#/components/schemas/PaperRequestDto'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventsDto'
+
+    DigitalRequestDto:
+      allOf:
+        - $ref: '../../schemas-digital-v1.yaml#/components/schemas/DigitalNotificationRequest'
+        - type: object
+          properties:
+            requestId:
+              readOnly: true
+            clientRequestTimeStamp:
+              readOnly: true
+            channel:
+              type: string
+              enum:
+                - SMS
+                - EMAIL
+
+    PaperRequestDto:
+      allOf:
+        - $ref: '../../consolidatore-2023-01-02.yml#/components/schemas/PaperEngageRequest'
+        - type: object
+          properties:
+            requestId:
+              readOnly: true
+            clientRequestTimeStamp:
+              readOnly: true
+
+    ClientConfigurationDto:
+      type: object
+      required:
+        - cxId
+        - sqsArn
+        - sqsName
+      properties:
+        cxId:
+          type: string
+        sqsArn:
+          type: string
+        sqsName:
+          type: string
+        pecReplyTo:
+          type: string
+        mailReplyTo:
+          type: string
+        senderPhysicalAddress:
+          $ref: '#/components/schemas/SenderPhysicalAddressDto'
+
+    SenderPhysicalAddressDto:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        cap:
+          type: string
+        city:
+          type: string
+        pr:
+          type: string
+
+    DigitalProgressStatusDto:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+        code:
+          type: string
+        details:
+          type: string
+        genMess:
+          $ref: '#/components/schemas/GeneratedMessageDto'
+
+    DiscoveredAddressDto:
+      type: object
+      properties:
+        name:
+          type: string
+        nameRow2:
+          type: string
+        address:
+          type: string
+        addressRow2:
+          type: string
+        cap:
+          type: string
+        city:
+          type: string
+        city2:
+          type: string
+        pr:
+          type: string
+        country:
+          type: string
+
+    EventsDto:
+      type: object
+      properties:
+        digProgrStatus:
+          $ref: '#/components/schemas/DigitalProgressStatusDto'
+        paperProgrStatus:
+          $ref: '#/components/schemas/PaperProgressStatusDto'
+
+    GeneratedMessageDto:
+      type: object
+      properties:
+        system:
+          type: string
+        id:
+          type: string
+        location:
+          type: string
+
+    PaperEngageRequestAttachmentsDto:
+      type: object
+      properties:
+        uri:
+          type: string
+        order:
+          type: number
+        documentType:
+          type: string
+        sha256:
+          type: string
+
+    PaperProgressStatusDto:
+      type: object
+      properties:
+        registeredLetterCode:
+          type: string
+        statusCode:
+          type: string
+        statusDescription:
+          type: string
+        statusDateTime:
+          type: string
+          format: date-time
+        deliveryFailureCause:
+          type: string
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaperProgressStatusEventAttachmentsDto'
+        discoveredAddress:
+          $ref: '#/components/schemas/DiscoveredAddressDto'
+        clientRequestTimeStamp:
+          type: string
+          format: date-time
+
+    PaperProgressStatusEventAttachmentsDto:
+      type: object
+      properties:
+        id:
+          type: string
+        documentType:
+          type: string
+        uri:
+          type: string
+        sha256:
+          type: string
+        date:
+          type: string
+          format: date-time
+
+    UpdatedEventDto:
+      type: object
+      properties:
+        digProgrStatus:
+          $ref: '#/components/schemas/DigitalProgressStatusDto'
+        paperProgrStatus:
+          $ref: '#/components/schemas/PaperProgressStatusDto'
