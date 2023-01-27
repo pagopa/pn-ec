@@ -23,12 +23,11 @@ paths:
         - ConfigurazioneClient
       operationId: getClient
       responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClientConfigurationDto'
+        200:
+          $ref: '#/components/responses/clientResponseOk'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+
     put:
       tags:
         - ConfigurazioneClient
@@ -40,37 +39,20 @@ paths:
               $ref: '#/components/schemas/ClientConfigurationDto'
         required: true
       responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClientConfigurationDto'
+        200:
+          $ref: '#/components/responses/clientResponseOk'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
     delete:
       tags:
         - ConfigurazioneClient
       operationId: deleteClient
       responses:
-        "200":
+        200:
           description: OK
-  /requests:
-    post:
-      tags:
-        - GestoreRequest
-      operationId: insertRequest
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RequestDto'
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RequestDto'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+
   /clients:
     post:
       tags:
@@ -83,12 +65,11 @@ paths:
               $ref: '#/components/schemas/ClientConfigurationDto'
         required: true
       responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClientConfigurationDto'
+        200:
+          $ref: '#/components/responses/clientResponseOk'
+        403:
+          $ref: '#/components/responses/requestedItemAlreadyExist'
+
   /requests/{requestIdx}:
     parameters:
       - $ref: "../../api-internal-v1.yaml#/components/parameters/requestIdx"
@@ -97,19 +78,19 @@ paths:
         - GestoreRequest
       operationId: getRequest
       responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RequestDto'
+        200:
+          $ref: '#/components/responses/requestResponseOk'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
     delete:
       tags:
         - GestoreRequest
       operationId: deleteRequest
       responses:
-        "200":
+        200:
           description: OK
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
     patch:
       tags:
         - GestoreRequest
@@ -118,17 +99,107 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdatedEventDto'
+              $ref: '#/components/schemas/EventsDto'
         required: true
       responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RequestDto'
+        200:
+          $ref: '#/components/responses/requestResponseOk'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+
+  /requests:
+    post:
+      tags:
+        - GestoreRequest
+      operationId: insertRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestDto'
+        required: true
+      responses:
+        200:
+          $ref: '#/components/responses/requestResponseOk'
+        403:
+          $ref: '#/components/responses/requestedItemAlreadyExist'
+
 components:
+
+  responses:
+
+    clientResponseOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ClientConfigurationDto'
+
+    requestResponseOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RequestDto'
+
+    requestedItemAlreadyExist:
+      description: Risorsa già presente a sistema
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas-pn-errors-v1.yaml#/components/schemas/Problem'
+
+    missingRequestedItem:
+      description: Risorsa non presente a sistema
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas-pn-errors-v1.yaml#/components/schemas/Problem'
+
+
   schemas:
+
+    #############################################################################################
+    ###                     SCHEMA PER LA CONFIGURAZIONE CLIENT                     ###
+    #############################################################################################
+
+    ClientConfigurationDto:
+      type: object
+      required:
+        - cxId
+        - sqsArn
+        - sqsName
+      properties:
+        cxId:
+          type: string
+        sqsArn:
+          type: string
+        sqsName:
+          type: string
+        pecReplyTo:
+          type: string
+        mailReplyTo:
+          type: string
+        senderPhysicalAddress:
+          $ref: '#/components/schemas/SenderPhysicalAddressDto'
+
+    SenderPhysicalAddressDto:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        cap:
+          type: string
+        city:
+          type: string
+        pr:
+          type: string
+
+    #############################################################################################
+    ###                     SCHEMI PER GESTIONI RICHIESTE                     ###
+    #############################################################################################
 
     RequestDto:
       type: object
@@ -178,77 +249,6 @@ components:
             clientRequestTimeStamp:
               readOnly: true
 
-    ClientConfigurationDto:
-      type: object
-      required:
-        - cxId
-        - sqsArn
-        - sqsName
-      properties:
-        cxId:
-          type: string
-        sqsArn:
-          type: string
-        sqsName:
-          type: string
-        pecReplyTo:
-          type: string
-        mailReplyTo:
-          type: string
-        senderPhysicalAddress:
-          $ref: '#/components/schemas/SenderPhysicalAddressDto'
-
-    SenderPhysicalAddressDto:
-      type: object
-      properties:
-        name:
-          type: string
-        address:
-          type: string
-        cap:
-          type: string
-        city:
-          type: string
-        pr:
-          type: string
-
-    DigitalProgressStatusDto:
-      type: object
-      properties:
-        timestamp:
-          type: string
-          format: date-time
-        status:
-          type: string
-        code:
-          type: string
-        details:
-          type: string
-        genMess:
-          $ref: '#/components/schemas/GeneratedMessageDto'
-
-    DiscoveredAddressDto:
-      type: object
-      properties:
-        name:
-          type: string
-        nameRow2:
-          type: string
-        address:
-          type: string
-        addressRow2:
-          type: string
-        cap:
-          type: string
-        city:
-          type: string
-        city2:
-          type: string
-        pr:
-          type: string
-        country:
-          type: string
-
     EventsDto:
       type: object
       properties:
@@ -257,71 +257,22 @@ components:
         paperProgrStatus:
           $ref: '#/components/schemas/PaperProgressStatusDto'
 
-    GeneratedMessageDto:
-      type: object
-      properties:
-        system:
-          type: string
-        id:
-          type: string
-        location:
-          type: string
-
-    PaperEngageRequestAttachmentsDto:
-      type: object
-      properties:
-        uri:
-          type: string
-        order:
-          type: number
-        documentType:
-          type: string
-        sha256:
-          type: string
+    DigitalProgressStatusDto:
+      allOf:
+        - $ref: '../../schemas-digital-v1.yaml#/components/schemas/BaseMessageProgressEvent'
+        - type: object
+          properties:
+            requestId:
+              readOnly: true
 
     PaperProgressStatusDto:
-      type: object
-      properties:
-        registeredLetterCode:
-          type: string
-        statusCode:
-          type: string
-        statusDescription:
-          type: string
-        statusDateTime:
-          type: string
-          format: date-time
-        deliveryFailureCause:
-          type: string
-        attachments:
-          type: array
-          items:
-            $ref: '#/components/schemas/PaperProgressStatusEventAttachmentsDto'
-        discoveredAddress:
-          $ref: '#/components/schemas/DiscoveredAddressDto'
-        clientRequestTimeStamp:
-          type: string
-          format: date-time
-
-    PaperProgressStatusEventAttachmentsDto:
-      type: object
-      properties:
-        id:
-          type: string
-        documentType:
-          type: string
-        uri:
-          type: string
-        sha256:
-          type: string
-        date:
-          type: string
-          format: date-time
-
-    UpdatedEventDto:
-      type: object
-      properties:
-        digProgrStatus:
-          $ref: '#/components/schemas/DigitalProgressStatusDto'
-        paperProgrStatus:
-          $ref: '#/components/schemas/PaperProgressStatusDto'
+      allOf:
+        - $ref: '../../consolidatore-2023-01-02.yml#/components/schemas/PaperProgressStatusEvent'
+        - type: object
+          properties:
+            requestId:
+              readOnly: true
+            productType:
+              readOnly: true
+            iun:
+              readOnly: true
