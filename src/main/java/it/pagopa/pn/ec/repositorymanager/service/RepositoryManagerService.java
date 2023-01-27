@@ -1,15 +1,16 @@
 package it.pagopa.pn.ec.repositorymanager.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.pagopa.pn.ec.repositorymanager.dto.ClientConfigurationDto;
-import it.pagopa.pn.ec.repositorymanager.dto.RequestDto;
-import it.pagopa.pn.ec.repositorymanager.dto.UpdatedEventDto;
 import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.model.ClientConfiguration;
 import it.pagopa.pn.ec.repositorymanager.model.Events;
 import it.pagopa.pn.ec.repositorymanager.model.Request;
+import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
+import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
+import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
@@ -31,7 +32,7 @@ public class RepositoryManagerService {
         this.objectMapper = objectMapper;
     }
 
-    public ClientConfigurationDto insertClient(ClientConfigurationDto clientConfigurationDto) {
+    public Mono<ClientConfigurationDto> insertClient(ClientConfigurationDto clientConfigurationDto) {
         try {
             DynamoDbTable<ClientConfiguration> clientConfigurationTable = dynamoDbEnhancedClient.table(ANAGRAFICA_TABLE_NAME,
                                                                                                        TableSchema.fromBean(
@@ -44,7 +45,7 @@ public class RepositoryManagerService {
                 log.info("New client added to the table -> {}", clientConfiguration);
                 clientConfigurationTable.putItem(clientConfiguration);
 
-                return objectMapper.convertValue(clientConfiguration, ClientConfigurationDto.class);
+                return Mono.just(objectMapper.convertValue(clientConfiguration, ClientConfigurationDto.class));
             } else {
                 log.info("Client id already exists");
                 throw new RepositoryManagerException.IdClientAlreadyPresent(clientConfigurationDto.getCxId());
@@ -140,10 +141,11 @@ public class RepositoryManagerService {
 
     public RequestDto insertRequest(RequestDto requestDto) {
 
-        if(requestDto.getEvents().get(0).getDigProgrStatus().getCode() == null || requestDto.getEvents().get(0).getDigProgrStatus().getCode().equals("")) {
-            requestDto.setStatusRequest(requestDto.getEvents().get(0).getPaperProgrStatus().getStatusCode());
+        EventsDto firstStatusEvent = requestDto.getEvents().get(0);
+        if(firstStatusEvent.getDigProgrStatus() != null) {
+            requestDto.setStatusRequest(firstStatusEvent.getDigProgrStatus().getStatus().name());
         } else {
-            requestDto.setStatusRequest(requestDto.getEvents().get(0).getDigProgrStatus().getCode());
+            requestDto.setStatusRequest(firstStatusEvent.getPaperProgrStatus().getStatusDescription());
         }
 
         try {
@@ -191,7 +193,7 @@ public class RepositoryManagerService {
         }
     }
 
-    public RequestDto updateRequest(String requestId, UpdatedEventDto updateEventDto) {
+    public RequestDto updateRequest(String requestId, EventsDto eventsDto) {
 
         try {
 
@@ -200,17 +202,17 @@ public class RepositoryManagerService {
                             Request.class));
             Request request = requestTable.getItem(Key.builder().partitionValue(requestId).build());
 
-            Events event = objectMapper.convertValue(updateEventDto, Events.class);
+            Events event = objectMapper.convertValue(eventsDto, Events.class);
 
             if (request == null) {
                 log.info("Request id doesn't exists");
                 throw new RepositoryManagerException.IdClientNotFoundException(requestId);
             }
 
-            if(updateEventDto.getDigProgrStatus().getStatus() == null || updateEventDto.getDigProgrStatus().getStatus().equals("")) {
-                request.setStatusRequest(updateEventDto.getPaperProgrStatus().getStatusCode());
+            if(eventsDto.getDigProgrStatus() != null) {
+                request.setStatusRequest(eventsDto.getDigProgrStatus().getStatus().name());
             } else {
-                request.setStatusRequest(updateEventDto.getDigProgrStatus().getStatus());
+                request.setStatusRequest(eventsDto.getPaperProgrStatus().getStatusDescription());
             }
 
             request.getEvents().add(event);

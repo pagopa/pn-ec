@@ -33,5 +33,4 @@ public class RepositoryManagerErrorHandler {
         problem.setTraceId(UUID.randomUUID().toString());
         return new ResponseEntity<>(problem, BAD_REQUEST);
     }
-
 }

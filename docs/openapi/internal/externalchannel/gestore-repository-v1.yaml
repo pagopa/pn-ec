@@ -238,6 +238,7 @@ components:
               enum:
                 - SMS
                 - EMAIL
+                - PEC
 
     PaperRequestDto:
       allOf:
