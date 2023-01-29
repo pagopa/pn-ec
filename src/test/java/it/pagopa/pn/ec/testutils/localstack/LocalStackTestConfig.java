@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.testutils.localstack;
 
-import it.pagopa.pn.ec.repositorymanager.model.ClientConfiguration;
-import it.pagopa.pn.ec.repositorymanager.model.Request;
+import it.pagopa.pn.ec.repositorymanager.entity.ClientConfiguration;
+import it.pagopa.pn.ec.repositorymanager.entity.Request;
 import it.pagopa.pn.ec.testutils.exception.DynamoDbInitTableCreationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +22,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.ALL_QUEUE_NAME_LIST;
-import static it.pagopa.pn.ec.repositorymanager.constant.DynamoTableNameConstant.ANAGRAFICA_TABLE_NAME;
-import static it.pagopa.pn.ec.repositorymanager.constant.DynamoTableNameConstant.REQUEST_TABLE_NAME;
+import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.*;
 import static java.util.Map.entry;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.*;
 import static software.amazon.awssdk.services.dynamodb.model.TableStatus.ACTIVE;
@@ -71,9 +70,9 @@ public class LocalStackTestConfig {
         }
     }
 
-    private final static Map<String, Class<?>> tableNameWithEntityClass = Map.ofEntries(entry(ANAGRAFICA_TABLE_NAME,
-                                                                                              ClientConfiguration.class),
-                                                                                        entry(REQUEST_TABLE_NAME, Request.class));
+    private final static Map<String, Class<?>> TABLE_NAME_WITH_ENTITY_CLASS = Map.ofEntries(entry(ANAGRAFICA_TABLE_NAME,
+                                                                                                  ClientConfiguration.class),
+                                                                                            entry(REQUEST_TABLE_NAME, Request.class));
 
     private void createTable(final String tableName, final Class<?> entityClass) {
         DynamoDbTable<?> dynamoDbTable = dynamoDbEnhancedClient.table(tableName, TableSchema.fromBean(entityClass));
@@ -87,7 +86,7 @@ public class LocalStackTestConfig {
 
     @PostConstruct
     public void initLocalStack() {
-        tableNameWithEntityClass.forEach((tableName, entityClass) -> {
+        TABLE_NAME_WITH_ENTITY_CLASS.forEach((tableName, entityClass) -> {
             log.info("<-- START initLocalStack -->");
             try {
                 log.info("<-- START Dynamo db init-->");

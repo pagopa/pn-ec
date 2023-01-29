@@ -181,7 +181,7 @@
 							<goal>generate</goal>
 						</goals>
 						<configuration>
-							<inputSpec>${project.basedir}/docs/openapi/consolidatore-2023-01-02.yml</inputSpec>
+							<inputSpec>${project.basedir}/docs/openapi/external/consolidatore-2023-01-02.yml</inputSpec>
 							<generatorName>java</generatorName>
 							<configOptions>
 								<sourceFolder>target/generated-sources/</sourceFolder>
@@ -196,7 +196,7 @@
 						</goals>
 						<phase>process-resources</phase>
 						<configuration>
-							<inputSpec>${project.basedir}/docs/openapi/api-internal-v1.yaml</inputSpec>
+							<inputSpec>${project.basedir}/docs/openapi/external/api-internal-v1.yaml</inputSpec>
 							<generatorName>spring</generatorName>
 							<library>spring-boot</library>
 							<generateApiDocumentation>false</generateApiDocumentation>

@@ -1,11 +1,11 @@
-openapi: 3.0.1
+openapi: 3.0.3
 info:
   title: Gestore repository
   description: Api esposte dal gestore repository per la configurazione dei client e per la gestione delle richieste
   version: v1.0.0
 
 servers:
-  - url: http://localhost:8080/gestoreRepository
+  - url: http://localhost:8080
     description: Generated server url
 
 tags:
@@ -15,9 +15,15 @@ tags:
     description: Operazione per la gestione delle richieste
 
 paths:
-  /clients/{xPagopaExtchCxId}:
+  /gestoreRepository/clients/{xPagopaExtchCxId}:
     parameters:
-      - $ref: "../../api-internal-v1.yaml#/components/parameters/xPagopaExtchCxId"
+      - name: xPagopaExtchCxId
+        in: path
+        required: true
+        allowEmptyValue: false
+        schema:
+          type: string
+#          pattern: '^(?!\s*$).+'
     get:
       tags:
         - ConfigurazioneClient
@@ -53,7 +59,7 @@ paths:
         404:
           $ref: '#/components/responses/missingRequestedItem'
 
-  /clients:
+  /gestoreRepository/clients:
     post:
       tags:
         - ConfigurazioneClient
@@ -70,9 +76,9 @@ paths:
         403:
           $ref: '#/components/responses/requestedItemAlreadyExist'
 
-  /requests/{requestIdx}:
+  /gestoreRepository/requests/{requestIdx}:
     parameters:
-      - $ref: "../../api-internal-v1.yaml#/components/parameters/requestIdx"
+      - $ref: "../../external/api-internal-v1.yaml#/components/parameters/requestIdx"
     get:
       tags:
         - GestoreRequest
@@ -107,7 +113,7 @@ paths:
         404:
           $ref: '#/components/responses/missingRequestedItem'
 
-  /requests:
+  /gestoreRepository/requests:
     post:
       tags:
         - GestoreRequest
@@ -147,14 +153,14 @@ components:
       content:
         application/json:
           schema:
-            $ref: '../../schemas-pn-errors-v1.yaml#/components/schemas/Problem'
+            $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
 
     missingRequestedItem:
       description: Risorsa non presente a sistema
       content:
         application/json:
           schema:
-            $ref: '../../schemas-pn-errors-v1.yaml#/components/schemas/Problem'
+            $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
 
 
   schemas:
@@ -166,12 +172,13 @@ components:
     ClientConfigurationDto:
       type: object
       required:
-        - cxId
+        - xPagopaExtchCxId
         - sqsArn
         - sqsName
       properties:
-        cxId:
+        xPagopaExtchCxId:
           type: string
+          pattern: '^(?!\s*$).+'
         sqsArn:
           type: string
         sqsName:
@@ -204,10 +211,10 @@ components:
     RequestDto:
       type: object
       required:
-        - requestId
+        - requestIdx
         - clientRequestTimeStamp
       properties:
-        requestId:
+        requestIdx:
           type: string
         statusRequest:
           type: string
@@ -216,64 +223,18 @@ components:
           type: string
           format: date-time
         digitalReq:
-          $ref: '#/components/schemas/DigitalRequestDto'
+          $ref: '../schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestDto'
         paperReq:
-          $ref: '#/components/schemas/PaperRequestDto'
+          $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperRequestDto'
         events:
           type: array
           items:
             $ref: '#/components/schemas/EventsDto'
 
-    DigitalRequestDto:
-      allOf:
-        - $ref: '../../schemas-digital-v1.yaml#/components/schemas/DigitalNotificationRequest'
-        - type: object
-          properties:
-            requestId:
-              readOnly: true
-            clientRequestTimeStamp:
-              readOnly: true
-            channel:
-              type: string
-              enum:
-                - SMS
-                - EMAIL
-                - PEC
-
-    PaperRequestDto:
-      allOf:
-        - $ref: '../../consolidatore-2023-01-02.yml#/components/schemas/PaperEngageRequest'
-        - type: object
-          properties:
-            requestId:
-              readOnly: true
-            clientRequestTimeStamp:
-              readOnly: true
-
     EventsDto:
       type: object
       properties:
         digProgrStatus:
-          $ref: '#/components/schemas/DigitalProgressStatusDto'
+          $ref: '../schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalProgressStatusDto'
         paperProgrStatus:
-          $ref: '#/components/schemas/PaperProgressStatusDto'
-
-    DigitalProgressStatusDto:
-      allOf:
-        - $ref: '../../schemas-digital-v1.yaml#/components/schemas/BaseMessageProgressEvent'
-        - type: object
-          properties:
-            requestId:
-              readOnly: true
-
-    PaperProgressStatusDto:
-      allOf:
-        - $ref: '../../consolidatore-2023-01-02.yml#/components/schemas/PaperProgressStatusEvent'
-        - type: object
-          properties:
-            requestId:
-              readOnly: true
-            productType:
-              readOnly: true
-            iun:
-              readOnly: true
+          $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperProgressStatusDto'

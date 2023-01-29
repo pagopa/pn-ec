@@ -19,11 +19,4 @@ public class RepositoryManagerException extends RuntimeException {
             super(String.format("Id client '%s' not found", idClient));
         }
     }
-
-    public static class DynamoDbException extends RuntimeException {
-
-        public DynamoDbException() {
-            super("Error interacting with DynamoDb");
-        }
-    }
 }
