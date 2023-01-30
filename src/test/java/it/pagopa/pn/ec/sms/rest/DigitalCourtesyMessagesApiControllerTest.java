@@ -24,6 +24,8 @@ import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Mono;
 
+import java.time.OffsetDateTime;
+
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.NT_STATO_SMS_QUEUE_NAME;
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.SMS_QUEUE_NAME;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.ChannelEnum.SMS;
@@ -64,6 +66,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 
         digitalCourtesySmsRequest.setRequestId(defaultStringInit);
         digitalCourtesySmsRequest.eventType(defaultStringInit);
+        digitalCourtesySmsRequest.setClientRequestTimeStamp(OffsetDateTime.now());
         digitalCourtesySmsRequest.setQos(INTERACTIVE);
         digitalCourtesySmsRequest.setReceiverDigitalAddress(defaultStringInit);
         digitalCourtesySmsRequest.setMessageText(defaultStringInit);
