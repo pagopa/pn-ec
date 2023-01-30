@@ -31,7 +31,8 @@ class RequestControllerTest {
     private static final String BASE_PATH = "/gestoreRepository/requests";
     private static final String BASE_PATH_WITH_PARAM = String.format("%s/{requestIdx}", BASE_PATH);
 
-    private static final String DEFAULT_ID = "AAA";
+    private static final String DEFAULT_ID_DIGITAL = "DIGITAL";
+    private static final String DEFAULT_ID_PAPER = "PAPER";
     private static final RequestDto digitalRequest = new RequestDto();
     private static final RequestDto paperRequest = new RequestDto();
 
@@ -54,7 +55,7 @@ class RequestControllerTest {
         paperProgressStatusDto.setStatusDateTime(defaultDate);
         paperEvent.setPaperProgrStatus(paperProgressStatusDto);
 
-        digitalRequest.setRequestIdx(DEFAULT_ID);
+        digitalRequest.setRequestIdx(DEFAULT_ID_DIGITAL);
         var digitalRequestDto = new DigitalRequestDto();
         digitalRequestDto.setEventType("");
         digitalRequestDto.setQos(INTERACTIVE);
@@ -66,7 +67,7 @@ class RequestControllerTest {
         digitalRequest.setDigitalReq(digitalRequestDto);
         digitalRequest.setEvents(List.of(digitalEvent));
 
-        paperRequest.setRequestIdx(DEFAULT_ID);
+        paperRequest.setRequestIdx(DEFAULT_ID_PAPER);
         var paperRequestDto = new PaperRequestDto();
         paperRequestDto.setProductType("");
         var paperRequestDtoAttachments = new PaperRequestDtoAttachments();
@@ -75,6 +76,7 @@ class RequestControllerTest {
         paperRequestDtoAttachments.setDocumentType("");
         paperRequestDtoAttachments.setSha256("");
         paperRequestDto.setAttachments(List.of(paperRequestDtoAttachments));
+        paperRequestDto.setReceiverAddress("");
         paperRequestDto.setPrintType("");
         paperRequestDto.setReceiverName("");
         paperRequestDto.setReceiverCity("");

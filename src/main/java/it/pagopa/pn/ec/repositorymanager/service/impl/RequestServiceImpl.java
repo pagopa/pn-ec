@@ -21,7 +21,9 @@ public class RequestServiceImpl implements RequestService {
     private final DynamoDbAsyncTable<Request> requestDynamoDbTable;
 
     private void checkRequestType(Request request){
+        if(request.getDigitalReq() != null && request.getPaperReq() != null){
 
+        }
     }
 
     public RequestServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient) {
