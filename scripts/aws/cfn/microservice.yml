@@ -127,7 +127,7 @@ Resources:
         LoadbalancerRulePriority: !Ref MicroserviceNumber
         # CloudwatchLogKinesisStreamArn: !Ref LogsKinesisSourceStreamArn
         TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
-        HealthCheckPath: 
+        # HealthCheckPath: 
 
   ExternalChannelMicroservice
 
