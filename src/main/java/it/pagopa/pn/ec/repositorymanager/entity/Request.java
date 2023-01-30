@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
@@ -14,6 +15,7 @@ import java.util.List;
 public class Request {
 
 	@Getter(onMethod=@__({@DynamoDbPartitionKey}))
+	@JsonProperty("requestIdx")
 	private String requestId;
 	private String statusRequest;
 	private DigitalRequest digitalReq;
