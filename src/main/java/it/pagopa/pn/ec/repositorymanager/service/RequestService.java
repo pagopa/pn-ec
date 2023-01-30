@@ -1,3 +1,13 @@
 package it.pagopa.pn.ec.repositorymanager.service;
 
-public interface RequestService {}
+import it.pagopa.pn.ec.repositorymanager.entity.Events;
+import it.pagopa.pn.ec.repositorymanager.entity.Request;
+import reactor.core.publisher.Mono;
+
+public interface RequestService {
+
+    Mono<Request> getRequest(String requestId);
+    Mono<Request> insertRequest(Request request);
+    Mono<Events> updateEvents(String requestId, Events events);
+    Mono<Request> deleteRequest(String requestId);
+}
