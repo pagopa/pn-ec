@@ -212,7 +212,6 @@ components:
       type: object
       required:
         - requestIdx
-        - clientRequestTimeStamp
       properties:
         requestIdx:
           type: string
