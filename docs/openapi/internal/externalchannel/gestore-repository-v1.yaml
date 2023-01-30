@@ -216,6 +216,7 @@ components:
       properties:
         requestIdx:
           type: string
+          pattern: '[0-9A-Za-z_-]{5,100}'
         statusRequest:
           type: string
           readOnly: true
