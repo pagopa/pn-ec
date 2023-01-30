@@ -33,4 +33,14 @@ public class RepositoryManagerErrorHandler {
         problem.setTraceId(UUID.randomUUID().toString());
         return new ResponseEntity<>(problem, BAD_REQUEST);
     }
+
+    @ExceptionHandler(RepositoryManagerException.RequestMalformedException.class)
+    public final ResponseEntity<Problem> handleRequestMalformed(RepositoryManagerException.RequestMalformedException exception) {
+        var problem = new Problem();
+        problem.setStatus(BAD_REQUEST.value());
+        problem.setTitle("Provided request malformed");
+        problem.setDetail(exception.getMessage());
+        problem.setTraceId(UUID.randomUUID().toString());
+        return new ResponseEntity<>(problem, BAD_REQUEST);
+    }
 }

@@ -12,9 +12,9 @@ import java.time.OffsetDateTime;
 @DynamoDbBean
 public class DigitalProgressStatus {
 
-	private OffsetDateTime timestamp;
+	private OffsetDateTime eventTimestamp;
 	private String status;
-	private String code;
-	private String details;
-	private GeneratedMessage genMess;
+	private String eventCode;
+	private String eventDetails;
+	private GeneratedMessage generatedMessage;
 }

@@ -11,6 +11,9 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
+import java.time.OffsetDateTime;
+import java.util.List;
+
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.REQUEST_TABLE_NAME;
 
@@ -20,9 +23,28 @@ public class RequestServiceImpl implements RequestService {
 
     private final DynamoDbAsyncTable<Request> requestDynamoDbTable;
 
-    private void checkRequestType(Request request){
-        if(request.getDigitalReq() != null && request.getPaperReq() != null){
+    private void checkRequestToInsert(Request request) {
 
+        if (request.getDigitalReq() != null && request.getPaperReq() != null) {
+            throw new RepositoryManagerException.RequestMalformedException("Valorizzare solamente un tipologia di richiesta");
+        } else if (request.getDigitalReq() == null && request.getPaperReq() == null) {
+            throw new RepositoryManagerException.RequestMalformedException("Valorizzare una tipologia di richiesta");
+        }
+
+        List<Events> eventsList = request.getEvents();
+        if (eventsList.isEmpty()) {
+            throw new RepositoryManagerException.RequestMalformedException("Valorizzare una tipologia di evento");
+        } else if (eventsList.size() > 1) {
+            throw new RepositoryManagerException.RequestMalformedException("Inserire un solo evento");
+        } else {
+            checkEvents(request, eventsList.get(0));
+        }
+    }
+
+    private void checkEvents(Request request, Events events) {
+        boolean isDigital = request.getDigitalReq() != null;
+        if ((isDigital && events.getPaperProgrStatus() != null) || (!isDigital && events.getDigProgrStatus() != null)) {
+            throw new RepositoryManagerException.RequestMalformedException("Tipo richiesta e tipo evento non compatibili");
         }
     }
 
@@ -46,13 +68,18 @@ public class RequestServiceImpl implements RequestService {
                        }
                    })
                    .doOnError(RepositoryManagerException.IdClientAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
+                   .doOnSuccess(o -> checkRequestToInsert(request))
+                   .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
                    .doOnSuccess(unused -> {
                        Events firstStatus = request.getEvents().get(0);
                        if (request.getDigitalReq() != null) {
                            request.setStatusRequest(firstStatus.getDigProgrStatus().getStatus());
+                           firstStatus.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
                        } else {
                            request.setStatusRequest(firstStatus.getPaperProgrStatus().getStatusDescription());
+                           firstStatus.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
                        }
+                       request.setClientRequestTimeStamp(OffsetDateTime.now());
                        requestDynamoDbTable.putItem(builder -> builder.item(request));
                    })
                    .thenReturn(request);
@@ -63,13 +90,18 @@ public class RequestServiceImpl implements RequestService {
         return Mono.fromCompletionStage(requestDynamoDbTable.getItem(getKey(requestIdx)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(requestIdx)))
                    .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
+                   .doOnSuccess(retrievedRequest -> checkEvents(retrievedRequest, events))
+                   .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
                    .map(retrieveRequest -> {
                        if (events.getDigProgrStatus() != null) {
                            retrieveRequest.setStatusRequest(events.getDigProgrStatus().getStatus());
+                           events.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
                        } else {
                            retrieveRequest.setStatusRequest(events.getPaperProgrStatus().getStatusDescription());
+                           events.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
                        }
                        retrieveRequest.getEvents().add(events);
+//                       retrieveRequest.setClientRequestTimeStamp(OffsetDateTime.now()); Capire se aggiornare questo campo
                        requestDynamoDbTable.updateItem(retrieveRequest);
                        return retrieveRequest;
                    });

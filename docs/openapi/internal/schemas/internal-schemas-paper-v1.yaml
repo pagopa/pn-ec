@@ -175,7 +175,6 @@ components:
       required:
         - statusCode
         - statusDescription
-        - statusDateTime
         - productType
       type: object
       properties:
@@ -220,6 +219,7 @@ components:
         statusDateTime:
           type: string
           format: date-time
+          readOnly: true
           description: >-
             Data stato con timezone
         deliveryFailureCause:

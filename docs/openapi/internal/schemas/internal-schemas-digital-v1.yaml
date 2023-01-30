@@ -93,7 +93,6 @@ components:
       title: Avanzamento di stato di una richiesta digitale
       type: object
       required:
-        - eventTimestamp
         - status
         - eventCode
       properties:
@@ -103,6 +102,7 @@ components:
             secondo rfc 3339
           type: string
           format: date-time
+          readOnly: true
         status:
           type: string
           enum:

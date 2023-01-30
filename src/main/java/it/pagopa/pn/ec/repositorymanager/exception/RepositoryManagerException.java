@@ -19,4 +19,11 @@ public class RepositoryManagerException extends RuntimeException {
             super(String.format("Id client '%s' not found", idClient));
         }
     }
+
+    public static class RequestMalformedException extends RuntimeException {
+
+        public RequestMalformedException(String message) {
+            super(message);
+        }
+    }
 }

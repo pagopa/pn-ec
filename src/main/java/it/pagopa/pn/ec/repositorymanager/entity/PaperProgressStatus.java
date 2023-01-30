@@ -20,5 +20,4 @@ public class PaperProgressStatus {
 	private String deliveryFailureCause;
 	private List<PaperProgressStatusEventAttachments> attachments;
 	private DiscoveredAddress discoveredAddress;
-	private OffsetDateTime clientRequestTimeStamp;
 }

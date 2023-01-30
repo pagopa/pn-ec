@@ -212,6 +212,7 @@ components:
       type: object
       required:
         - requestIdx
+        - events
       properties:
         requestIdx:
           type: string

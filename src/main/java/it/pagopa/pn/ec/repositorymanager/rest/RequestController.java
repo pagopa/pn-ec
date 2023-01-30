@@ -44,7 +44,7 @@ public class RequestController implements GestoreRequestApi {
 
     @Override
     public Mono<ResponseEntity<RequestDto>> updateRequest(String requestIdx, Mono<EventsDto> eventsPatchDto, ServerWebExchange exchange) {
-        return eventsPatchDto.map(requestDtoToUpdate -> restUtils.startUpdateRequest(requestDtoToUpdate, Events.class))
+        return eventsPatchDto.map(eventsToUpdate -> restUtils.startUpdateRequest(eventsToUpdate, Events.class))
                              .flatMap(requestToUpdate -> requestService.updateEvents(requestIdx, requestToUpdate))
                              .map(updatedRequest -> restUtils.endCreateOrUpdateRequest(updatedRequest, RequestDto.class));
     }
