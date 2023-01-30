@@ -223,6 +223,7 @@ components:
         clientRequestTimeStamp:
           type: string
           format: date-time
+          readOnly: true
         digitalReq:
           $ref: '../schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestDto'
         paperReq:
