@@ -49,10 +49,7 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.getItem(getKey(cxId)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(clientConfiguration.getCxId())))
                    .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(unused -> {
-                       clientConfiguration.setCxId(cxId);
-                       clientConfigurationDynamoDbTable.updateItem(clientConfiguration);
-                   })
+                   .doOnSuccess(clientConfigurationDynamoDbTable::updateItem)
                    .thenReturn(clientConfiguration);
     }
 

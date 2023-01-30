@@ -18,8 +18,8 @@ class ClientConfigurationControllerTest {
     @Autowired
     private WebTestClient webClient;
 
-    private static final String BASE_PATH_WITH_PARAM = "/gestoreRepository/clients/{xPagopaExtchCxId}";
     private static final String BASE_PATH = "/gestoreRepository/clients";
+    private static final String BASE_PATH_WITH_PARAM = String.format("%s/{xPagopaExtchCxId}", BASE_PATH);
 
     private static final String DEFAULT_ID = "AAA";
     private static ClientConfigurationDto clientConfigurationDto;

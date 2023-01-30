@@ -1,11 +1,14 @@
 package it.pagopa.pn.ec.repositorymanager.entity;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
@@ -17,7 +20,7 @@ public class DigitalRequest {
 	private String correlationId;
 	private String eventType;
 	private String qos;
-	private List<String> tags;
+	private Map<String, String> tags;
 	private OffsetDateTime clientRequestTimeStamp;
 	private String receiverDigitalAddress;
 	private String messageText;

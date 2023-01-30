@@ -32,12 +32,15 @@ components:
         tags:
           type: object
           properties:
-            iun:
-              type: string
-              description: >-
-                Identificativo Unico della Notifica. 
-                Non è obbligatorio (ad es in una richiesta di verifica indirizzi non abbiamo un identificativo di notifica).
-            additionalProperties: { }
+#            iun:
+#              type: string
+#              description: >-
+#                Identificativo Unico della Notifica.
+#                Non è obbligatorio (ad es in una richiesta di verifica indirizzi non abbiamo un identificativo di notifica).
+#          required:
+#            - iun
+          additionalProperties:
+            type: string
         receiverDigitalAddress:
           type: string
           description: >-

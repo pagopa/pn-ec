@@ -20,6 +20,10 @@ public class RequestServiceImpl implements RequestService {
 
     private final DynamoDbAsyncTable<Request> requestDynamoDbTable;
 
+    private void checkRequestType(Request request){
+
+    }
+
     public RequestServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient) {
         this.requestDynamoDbTable = dynamoDbEnhancedClient.table(REQUEST_TABLE_NAME, TableSchema.fromBean(Request.class));
     }
@@ -27,47 +31,55 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Mono<Request> getRequest(String requestIdx) {
         return Mono.fromCompletionStage(requestDynamoDbTable.getItem(getKey(requestIdx)))
-                .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(requestIdx)))
-                .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()));
+                   .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(requestIdx)))
+                   .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()));
     }
 
     @Override
     public Mono<Request> insertRequest(Request request) {
         return Mono.fromCompletionStage(requestDynamoDbTable.getItem(getKey(request.getRequestId())))
-                .handle((foundedRequest, sink) -> {
-                    if (foundedRequest != null) {
-                        sink.error(new RepositoryManagerException.IdClientAlreadyPresent(request.getRequestId()));
-                    }
-                })
-                .doOnError(RepositoryManagerException.IdClientAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
-                .doOnSuccess(unused -> requestDynamoDbTable.putItem(builder -> builder.item(request)))
-                .thenReturn(request);
+                   .handle((foundedRequest, sink) -> {
+                       if (foundedRequest != null) {
+                           sink.error(new RepositoryManagerException.IdClientAlreadyPresent(request.getRequestId()));
+                       }
+                   })
+                   .doOnError(RepositoryManagerException.IdClientAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
+                   .doOnSuccess(unused -> {
+                       Events firstStatus = request.getEvents().get(0);
+                       if (request.getDigitalReq() != null) {
+                           request.setStatusRequest(firstStatus.getDigProgrStatus().getStatus());
+                       } else {
+                           request.setStatusRequest(firstStatus.getPaperProgrStatus().getStatusDescription());
+                       }
+                       requestDynamoDbTable.putItem(builder -> builder.item(request));
+                   })
+                   .thenReturn(request);
     }
 
     @Override
     public Mono<Request> updateEvents(String requestIdx, Events events) {
         return Mono.fromCompletionStage(requestDynamoDbTable.getItem(getKey(requestIdx)))
-                .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(requestIdx)))
-                .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                .map(retrieveRequest -> {
-                    if(events.getDigProgrStatus() != null) {
-                        retrieveRequest.setStatusRequest(events.getDigProgrStatus().getStatus());
-                    } else {
-                        retrieveRequest.setStatusRequest(events.getPaperProgrStatus().getStatusDescription());
-                    }
-                    retrieveRequest.getEvents().add(events);
-                    requestDynamoDbTable.updateItem(retrieveRequest);
-                return retrieveRequest;
-                });
+                   .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(requestIdx)))
+                   .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
+                   .map(retrieveRequest -> {
+                       if (events.getDigProgrStatus() != null) {
+                           retrieveRequest.setStatusRequest(events.getDigProgrStatus().getStatus());
+                       } else {
+                           retrieveRequest.setStatusRequest(events.getPaperProgrStatus().getStatusDescription());
+                       }
+                       retrieveRequest.getEvents().add(events);
+                       requestDynamoDbTable.updateItem(retrieveRequest);
+                       return retrieveRequest;
+                   });
     }
 
     @Override
     public Mono<Request> deleteRequest(String requestIdx) {
         return Mono.fromCompletionStage(requestDynamoDbTable.getItem(getKey(requestIdx)))
-                .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(requestIdx)))
-                .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                .doOnSuccess(requestToDelete -> requestDynamoDbTable.deleteItem(getKey(requestIdx)))
-                .map(request -> request);
+                   .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(requestIdx)))
+                   .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
+                   .doOnSuccess(requestToDelete -> requestDynamoDbTable.deleteItem(getKey(requestIdx)))
+                   .map(request -> request);
     }
 
 }
