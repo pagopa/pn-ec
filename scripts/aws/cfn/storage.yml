@@ -4,7 +4,7 @@ Description: Some storage with input and output
 Parameters:
   ProjectName:
     Type: String
-    Description: Nome dell'ambiente destinazione
+    Description: "Nome dell'ambiente destinazione"
 
   # Unused but required by CD pipeline
   MicroserviceNumber:
@@ -241,13 +241,18 @@ Resources:
         - Arn: !Ref PnEcSNSNotificheExt1
           Id: 'TopicTargetForExtNotification'
 
+  PnEcEventBusTrackerExternalNotification: 
+    Type: AWS::Events::EventBus
+    Properties: 
+        Name: 'Pn-Ec-Tracker-Notifications-bus'
+
 Outputs:
   PnEcTableNameAnagrafica:
-    Description: 'Nome della Tabella DynamoDB relativa all'Anagrafica Client'
+    Description: "Nome della Tabella DynamoDB relativa all'Anagrafica Client"
     Value: !Ref PnEcTableAnagrafica
 
   PnEcTableArnAnagrafica:
-    Description: 'ARN della Tabella DynamoDB relativa all'Anagrafica Client'
+    Description: "ARN della Tabella DynamoDB relativa all'Anagrafica Client"
     Value: !GetAtt PnEcTableAnagrafica.Arn
 
   PnEcTableNameRichieste:
@@ -266,6 +271,10 @@ Outputs:
     Description: '[Notification Tracker: canale SMS] ARN della Coda per aggiornamenti di stato afferenti al canale SMS'
     Value: !GetAtt  PnEcQueueTrackerStatoSMS.Arn
 
+  PnEcQueueUrlTrackerStatoSMS:
+    Description: '[Notification Tracker: canale SMS] URL della Coda per aggiornamenti di stato afferenti al canale SMS'
+    Value: !Ref  PnEcQueueTrackerStatoSMS
+
   PnEcDLQueueNameTrackerStatoSMS:
     Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoSMS'
     Value: !GetAtt  PnEcDLQueueTrackerStatoSMS.QueueName
@@ -282,6 +291,10 @@ Outputs:
     Description: '[Notification Tracker: canale SMS] ARN della Coda Errori afferenti al canale SMS'
     Value: !GetAtt  PnEcQueueTrackerErroriSMS.Arn
 
+  PnEcQueueUrlTrackerErroriSMS:
+    Description: '[Notification Tracker: canale SMS] URL della Coda Errori afferenti al canale SMS'
+    Value: !Ref  PnEcQueueTrackerErroriSMS
+
   PnEcDLQueueNameTrackerErroriSMS:
     Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriSMS'
     Value: !GetAtt  PnEcDLQueueTrackerErroriSMS.QueueName
@@ -297,6 +310,10 @@ Outputs:
   PnEcQueueArnNotificheExt1:
     Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] ARN della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
     Value: !GetAtt  PnEcQueueNotificheExt1.Arn
+
+  PnEcQueueUrlNotificheExt1:
+    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] URL della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
+    Value: !Ref  PnEcQueueNotificheExt1
 
   PnEcDLQueueNameNotificheExt1:
     Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueNotificheExt1'
@@ -322,6 +339,10 @@ Outputs:
     Description: '[Canale SMS] ARN della Coda per la modalità SMS-Batch'
     Value: !GetAtt  PnEcQueueBatchSMS.Arn
 
+  PnEcQueueUrlBatchSMS:
+    Description: '[Canale SMS] URL della Coda per la modalità SMS-Batch'
+    Value: !Ref  PnEcQueueBatchSMS
+
   PnEcDLQueueNameBatchSMS:
     Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchSMS'
     Value: !GetAtt  PnEcDLQueueBatchSMS.QueueName
@@ -338,6 +359,10 @@ Outputs:
     Description: '[Canale SMS] ARN della Coda per la modalità SMS-Interactive'
     Value: !GetAtt  PnEcQueueInteractiveSMS.Arn
 
+  PnEcQueueUrlInteractiveSMS:
+    Description: '[Canale SMS] URL della Coda per la modalità SMS-Interactive'
+    Value: !Ref  PnEcQueueInteractiveSMS
+
   PnEcDLQueueNameInteractiveSMS:
     Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractiveSMS'
     Value: !GetAtt  PnEcDLQueueInteractiveSMS.QueueName
@@ -353,6 +378,10 @@ Outputs:
   PnEcQueueArnErroriSMS:
     Description: '[Canale SMS] ARN della Coda Errori SMS'
     Value: !GetAtt  PnEcQueueErroriSMS.Arn
+
+  PnEcQueueUrlErroriSMS:
+    Description: '[Canale SMS] URL della Coda Errori SMS'
+    Value: !Ref  PnEcQueueErroriSMS
 
   PnEcDLQueueNameErroriSMS:
     Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriSMS'
