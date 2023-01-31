@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.commons.configuration.http;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
 import lombok.extern.slf4j.Slf4j;

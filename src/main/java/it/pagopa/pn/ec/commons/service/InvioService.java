@@ -4,7 +4,6 @@ import it.pagopa.pn.ec.commons.exception.RequestAlreadyInProgressException;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;

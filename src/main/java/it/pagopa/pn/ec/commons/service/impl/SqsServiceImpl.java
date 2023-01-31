@@ -34,6 +34,7 @@ public class SqsServiceImpl implements SqsService {
                        try {
                            jsonPayload = objectMapper.writeValueAsString(queuePayload);
                            builder.queueUrl(getQueueUrl).messageBody(jsonPayload);
+                           log.info("Send to '{}' queue with payload ↓\n{}", queueName, jsonPayload);
                        } catch (JsonProcessingException e) {
                            throw new SqsConvertToJsonPayloadException(queuePayload);
                        } catch (InvalidMessageContentsException e) {
