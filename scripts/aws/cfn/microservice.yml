@@ -199,7 +199,7 @@ Resources:
             Resource: !Sub ${PnEcQueueArnTrackerStatoSMS}
             Principal:  
               AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref ExternalChannelMicroservice.Outputs.TaskRoleName]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyTrackerErroriSMS:
     Type: AWS::SQS::QueuePolicy
@@ -215,7 +215,7 @@ Resources:
             Resource: !Sub ${PnEcQueueArnTrackerErroriSMS}
             Principal:  
               AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref ExternalChannelMicroservice.Outputs.TaskRoleName]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyNotificheExt1:
     Type: AWS::SQS::QueuePolicy
@@ -231,7 +231,7 @@ Resources:
             Resource: !Sub ${PnEcQueueArnNotificheExt1}
             Principal:  
               AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref ExternalChannelMicroservice.Outputs.TaskRoleName]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyBatchSMS:
     Type: AWS::SQS::QueuePolicy
@@ -247,7 +247,7 @@ Resources:
             Resource: !Sub ${PnEcQueueArnBatchSMS}
             Principal:  
               AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref ExternalChannelMicroservice.Outputs.TaskRoleName]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyInteractiveSMS:
     Type: AWS::SQS::QueuePolicy
@@ -263,7 +263,7 @@ Resources:
             Resource: !Sub ${PnEcQueueArnInteractiveSMS}
             Principal:  
               AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref ExternalChannelMicroservice.Outputs.TaskRoleName]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyErroriSMS:
     Type: AWS::SQS::QueuePolicy
@@ -279,4 +279,4 @@ Resources:
             Resource: !Sub ${PnEcQueueArnErroriSMS}
             Principal:  
               AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref ExternalChannelMicroservice.Outputs.TaskRoleName]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
