@@ -230,16 +230,7 @@ Resources:
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
-    Type: AWS::Events::Rule
-    Properties:
-      Description: Description
-      EventPattern:   
-        source: 
-          - 'NOTIFICATION TRACKER'
-      State: 'ENABLED'
-      Targets:
-        - Arn: !Ref PnEcSNSNotificheExt1
-          Id: 'TopicTargetForExtNotification'
+
 
   PnEcEventBusTrackerExternalNotification: 
     Type: AWS::Events::EventBus
