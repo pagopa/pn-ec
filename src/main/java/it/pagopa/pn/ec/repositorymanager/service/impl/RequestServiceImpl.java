@@ -25,10 +25,9 @@ public class RequestServiceImpl implements RequestService {
 
     private void checkRequestToInsert(Request request) {
 
-        if (request.getDigitalReq() != null && request.getPaperReq() != null) {
+        if ((request.getDigitalReq() != null && request.getPaperReq() != null) ||
+            (request.getDigitalReq() == null && request.getPaperReq() == null)) {
             throw new RepositoryManagerException.RequestMalformedException("Valorizzare solamente un tipologia di richiesta");
-        } else if (request.getDigitalReq() == null && request.getPaperReq() == null) {
-            throw new RepositoryManagerException.RequestMalformedException("Valorizzare una tipologia di richiesta");
         }
 
         List<Events> eventsList = request.getEvents();
@@ -68,7 +67,7 @@ public class RequestServiceImpl implements RequestService {
                        }
                    })
                    .doOnError(RepositoryManagerException.IdClientAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(o -> checkRequestToInsert(request))
+                   .doOnSuccess(unused -> checkRequestToInsert(request))
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
                    .doOnSuccess(unused -> {
                        Events firstStatus = request.getEvents().get(0);
@@ -101,7 +100,6 @@ public class RequestServiceImpl implements RequestService {
                            events.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
                        }
                        retrieveRequest.getEvents().add(events);
-//                       retrieveRequest.setClientRequestTimeStamp(OffsetDateTime.now()); Capire se aggiornare questo campo
                        requestDynamoDbTable.updateItem(retrieveRequest);
                        return retrieveRequest;
                    });
