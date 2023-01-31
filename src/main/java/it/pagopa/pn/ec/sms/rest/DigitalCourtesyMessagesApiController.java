@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import static it.pagopa.pn.ec.commons.constant.ProcessId.INVIO_SMS;
 import static org.springframework.http.HttpStatus.OK;
 
 
@@ -29,7 +28,6 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                final ServerWebExchange exchange) {
         return digitalCourtesySmsRequest.flatMap(request -> smsService.presaInCarico(new SmsPresaInCaricoInfo(requestIdx,
                                                                                                               xPagopaExtchCxId,
-                                                                                                              INVIO_SMS,
                                                                                                               request)))
                                         .then(Mono.just(new ResponseEntity<>(OK)));
     }
