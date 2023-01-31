@@ -11,13 +11,13 @@ Parameters:
     Type: String
     Description: ARN of alarm topic
 
-  WebApiDnsName:
-    Type: String
-    Description: 'The DNS name used for WEB rest API.'
+  # WebApiDnsName:
+  #   Type: String
+  #   Description: 'The DNS name used for WEB rest API.'
   
-  CorsAllowedDomains:
-    Type: String
-    Description: 'Comma separated list of domains allowed to make cross origin request'
+  # CorsAllowedDomains:
+  #   Type: String
+  #   Description: 'Comma separated list of domains allowed to make cross origin request'
 
   ContainerImageUri:
     Type: String
@@ -59,9 +59,9 @@ Parameters:
     Type: String
     Description: 'network load balancer link for API-GW'
   
-  LogsKinesisSourceStreamArn:
-    Type: String
-    Description: 'Kinesis stream that receive logs'
+  # LogsKinesisSourceStreamArn:
+  #   Type: String
+  #   Description: 'Kinesis stream that receive logs'
   
   Version:
     Type: String
