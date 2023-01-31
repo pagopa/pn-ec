@@ -28,23 +28,16 @@ public class SqsServiceImpl implements SqsService {
 
     @Override
     public <T> Mono<Void> send(String queueName, T queuePayload) {
-
-        String queuePayloadString;
-        try {
-            queuePayloadString = objectMapper.writeValueAsString(queuePayload);
-        } catch (JsonProcessingException e) {
-            throw new SqsConvertToJsonPayloadException(queuePayload);
-        }
-
-        log.info("Send to {} queue with payload ↓\n{}", queueName, queuePayloadString);
-
-        GetQueueUrlRequest getQueueUrlRequest = GetQueueUrlRequest.builder().queueName(queueName).build();
-
-        return Mono.fromFuture(sqsAsyncClient.sendMessage(builder -> {
+        return Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> {
+                       String jsonPayload = "";
+                       String getQueueUrl = GetQueueUrlRequest.builder().queueName(queueName).build().queueName();
                        try {
-                           builder.queueUrl(getQueueUrlRequest.queueName()).messageBody(queuePayloadString);
+                           jsonPayload = objectMapper.writeValueAsString(queuePayload);
+                           builder.queueUrl(getQueueUrl).messageBody(jsonPayload);
+                       } catch (JsonProcessingException e) {
+                           throw new SqsConvertToJsonPayloadException(queuePayload);
                        } catch (InvalidMessageContentsException e) {
-                           throw new SqsCharacterInPayloadNotAllowedException(queuePayloadString);
+                           throw new SqsCharacterInPayloadNotAllowedException(jsonPayload);
                        } catch (SqsException e) {
                            throw new SqsPublishException(queueName);
                        }

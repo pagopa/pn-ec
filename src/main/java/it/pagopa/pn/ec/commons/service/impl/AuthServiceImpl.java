@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.commons.service.impl;
 
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedFoundException;
+import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import lombok.extern.slf4j.Slf4j;
@@ -19,11 +20,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public Mono<Void> clientAuth(final String xPagopaExtchCxId) throws ClientNotAuthorizedFoundException {
-        log.info("<-- Start client authentication -->");
-        log.info("Id client -> {}", xPagopaExtchCxId);
         return gestoreRepositoryCall.getClientConfiguration(xPagopaExtchCxId)
-                                   .switchIfEmpty(Mono.error(new ClientNotAuthorizedFoundException(xPagopaExtchCxId)))
-                                   .then();
+                                    .onErrorResume(RestCallException.ResourceNotFoundException.class,
+                                                   throwable -> Mono.error(new ClientNotAuthorizedFoundException(xPagopaExtchCxId)))
+                                    .then();
 
     }
 }

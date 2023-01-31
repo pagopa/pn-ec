@@ -10,7 +10,7 @@ import lombok.experimental.FieldDefaults;
 @Data
 public class NtStatoSmsQueueDto {
 
-    String getXPagopaExtchCxId;
+    String xPagopaExtchCxId;
 
     /**
      * Identificativo del processo richiesto dal Notification Tracker

@@ -8,27 +8,27 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.util.UUID;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.*;
 
 @ControllerAdvice
 public class RepositoryManagerErrorHandler {
 
-    @ExceptionHandler(RepositoryManagerException.IdClientAlreadyPresent.class)
-    public final ResponseEntity<Problem> handleForbiddenIdClient(RepositoryManagerException.IdClientAlreadyPresent exception) {
+    @ExceptionHandler({RepositoryManagerException.IdClientAlreadyPresent.class, RepositoryManagerException.IdRequestAlreadyPresent.class})
+    public final ResponseEntity<Problem> handleForbiddenIdClient(Exception exception) {
         var problem = new Problem();
         problem.setStatus(FORBIDDEN.value());
-        problem.setTitle("Client id already exists");
+        problem.setTitle("Resource already exists");
         problem.setDetail(exception.getMessage());
         problem.setTraceId(UUID.randomUUID().toString());
         return new ResponseEntity<>(problem, FORBIDDEN);
     }
 
-    @ExceptionHandler(RepositoryManagerException.IdClientNotFoundException.class)
-    public final ResponseEntity<Problem> handleNotFoundIdClient(RepositoryManagerException.IdClientNotFoundException exception) {
+    @ExceptionHandler({RepositoryManagerException.IdClientNotFoundException.class,
+            RepositoryManagerException.RequestNotFoundException.class})
+    public final ResponseEntity<Problem> handleNotFoundIdClient(Exception exception) {
         var problem = new Problem();
         problem.setStatus(BAD_REQUEST.value());
-        problem.setTitle("Client id doesn't exists");
+        problem.setTitle("Resource not found");
         problem.setDetail(exception.getMessage());
         problem.setTraceId(UUID.randomUUID().toString());
         return new ResponseEntity<>(problem, BAD_REQUEST);

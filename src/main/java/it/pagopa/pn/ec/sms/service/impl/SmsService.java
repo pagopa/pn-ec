@@ -5,6 +5,7 @@ import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.InvioService;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.sms.model.dto.NtStatoSmsQueueDto;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -29,16 +30,11 @@ public class SmsService extends InvioService {
 
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
-        log.info("<-- Start presa in carico SMS-->");
-
-        // Cast base object invioBaseRequest for the specific case
-        var invioSmsDto = (SmsPresaInCaricoInfo) presaInCaricoInfo;
-
-        // Preparation of the DTO and sending to the "Notification Tracker stato SMS" queue
         return sqsService.send(NT_STATO_SMS_QUEUE_NAME,
                                new NtStatoSmsQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(), INVIO_SMS, null, BOOKED))
-                         // Send to "SMS" queue
-                         .then(sqsService.send(SMS_QUEUE_NAME, invioSmsDto.getDigitalCourtesySmsRequest()));
+                         .map(unused -> (SmsPresaInCaricoInfo) presaInCaricoInfo)
+                         .flatMap(smsPresaInCaricoInfo -> sqsService.send(SMS_QUEUE_NAME,
+                                                                          smsPresaInCaricoInfo.getDigitalCourtesySmsRequest()));
     }
 
     @Override
