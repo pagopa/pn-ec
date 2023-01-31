@@ -10,7 +10,7 @@ import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
 import it.pagopa.pn.ec.sms.model.dto.NtStatoSmsQueueDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import it.pagopa.pn.ec.testutils.factory.EcRequestObjectFactory;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -24,9 +24,12 @@ import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Mono;
 
+import java.time.OffsetDateTime;
+
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.NT_STATO_SMS_QUEUE_NAME;
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.SMS_QUEUE_NAME;
-import static it.pagopa.pn.ec.sms.testutils.utils.SmsEndpointUtils.getSendSmsEndpoint;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.ChannelEnum.SMS;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doThrow;
@@ -52,10 +55,28 @@ class DigitalCourtesyMessagesApiControllerTest {
     @SpyBean
     private SqsServiceImpl sqsService;
 
+    private static final String SEND_SMS_ENDPOINT =
+            "/external-channels/v1/digital-deliveries/courtesy-simple-message-requests" + "/{requestIdx}";
+
+    private static final DigitalCourtesySmsRequest digitalCourtesySmsRequest = new DigitalCourtesySmsRequest();
+
+    @BeforeAll
+    public static void createDigitalCourtesySmsRequest() {
+        String defaultStringInit = "string";
+
+        digitalCourtesySmsRequest.setRequestId(defaultStringInit);
+        digitalCourtesySmsRequest.eventType(defaultStringInit);
+        digitalCourtesySmsRequest.setClientRequestTimeStamp(OffsetDateTime.now());
+        digitalCourtesySmsRequest.setQos(INTERACTIVE);
+        digitalCourtesySmsRequest.setReceiverDigitalAddress(defaultStringInit);
+        digitalCourtesySmsRequest.setMessageText(defaultStringInit);
+        digitalCourtesySmsRequest.channel(SMS);
+    }
+
     private WebTestClient.ResponseSpec sendSmsTestCall(BodyInserter<DigitalCourtesySmsRequest, ReactiveHttpOutputMessage> bodyInserter,
                                                        String requestIdx) {
         return this.webTestClient.put()
-                                 .uri(getSendSmsEndpoint(requestIdx))
+                                 .uri(uriBuilder -> uriBuilder.path(SEND_SMS_ENDPOINT).build(requestIdx))
                                  .accept(APPLICATION_JSON)
                                  .contentType(APPLICATION_JSON)
                                  .body(bodyInserter)
@@ -70,8 +91,7 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(anagraficaClientCall.getClient(anyString())).thenReturn(Mono.just(DEFAULT_ID_CLIENT_HEADER_VALUE));
         when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.STATUS_1));
 
-        sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                            .isOk();
+        sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus().isOk();
     }
 
     //SMSPIC.107.2 -> Request body non corretto
@@ -84,9 +104,9 @@ class DigitalCourtesyMessagesApiControllerTest {
     @ParameterizedTest
     @ValueSource(strings = {BAD_REQUEST_IDX_SHORT, BAD_REQUEST_IDX_CHAR_NOT_ALLOWED})
     void sendSmsMalformedIdClient(String badRequestIdx) {
-        sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), badRequestIdx).expectStatus()
-                                                                                                                      .isBadRequest()
-                                                                                                                      .expectBody(Problem.class);
+        sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), badRequestIdx).expectStatus()
+                                                                                          .isBadRequest()
+                                                                                          .expectBody(Problem.class);
     }
 
     //SMSPIC.107.4 -> Chiamata verso Anagrafica Client per l'autenticazione del client -> KO
@@ -96,11 +116,9 @@ class DigitalCourtesyMessagesApiControllerTest {
 //      Client auth call -> KO
         when(anagraficaClientCall.getClient(anyString())).thenThrow(EcInternalEndpointHttpException.class);
 
-        sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                            .isEqualTo(
-                                                                                                                                    SERVICE_UNAVAILABLE)
-                                                                                                                            .expectBody(
-                                                                                                                                    Problem.class);
+        sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                                .expectBody(Problem.class);
     }
 
     //SMSPIC.107.5 -> idClient non autorizzato
@@ -114,10 +132,9 @@ class DigitalCourtesyMessagesApiControllerTest {
 //      Retrieve status -> OK
         when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.STATUS_1));
 
-        sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                            .isUnauthorized()
-                                                                                                                            .expectBody(
-                                                                                                                                    Problem.class);
+        sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                .isUnauthorized()
+                                                                                                .expectBody(Problem.class);
     }
 
     //SMSPIC.107.6 -> Chiamata verso Gestore Repository per il recupero dello stato corrente -> KO
@@ -130,11 +147,9 @@ class DigitalCourtesyMessagesApiControllerTest {
 //      Retrieve status -> KO
         when(richiesteCall.getRichiesta(anyString())).thenThrow(EcInternalEndpointHttpException.class);
 
-        sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                            .isEqualTo(
-                                                                                                                                    SERVICE_UNAVAILABLE)
-                                                                                                                            .expectBody(
-                                                                                                                                    Problem.class);
+        sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                                .expectBody(Problem.class);
     }
 
 
@@ -148,11 +163,9 @@ class DigitalCourtesyMessagesApiControllerTest {
 //      Status della richiesta tornato dall'anagrafica client -> IN_LAVORAZIONE
         when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.IN_LAVORAZIONE));
 
-        sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                            .isEqualTo(
-                                                                                                                                    CONFLICT)
-                                                                                                                            .expectBody(
-                                                                                                                                    Problem.class);
+        sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                .isEqualTo(CONFLICT)
+                                                                                                .expectBody(Problem.class);
     }
 
     //SMSPIC.107.8 -> Pubblicazione sulla coda "Notification tracker stato SMS" -> KO
@@ -168,11 +181,9 @@ class DigitalCourtesyMessagesApiControllerTest {
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         doThrow(SqsPublishException.class).when(sqsService).send(eq(NT_STATO_SMS_QUEUE_NAME), any(NtStatoSmsQueueDto.class));
 
-        sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                            .isEqualTo(
-                                                                                                                                    SERVICE_UNAVAILABLE)
-                                                                                                                            .expectBody(
-                                                                                                                                    Problem.class);
+        sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                                .expectBody(Problem.class);
     }
 
     //SMSPIC.107.9 -> Pubblicazione sulla coda "SMS" -> KO
@@ -188,10 +199,8 @@ class DigitalCourtesyMessagesApiControllerTest {
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         doThrow(SqsPublishException.class).when(sqsService).send(eq(SMS_QUEUE_NAME), any(DigitalCourtesySmsRequest.class));
 
-        sendSmsTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalCourtesySmsRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                            .isEqualTo(
-                                                                                                                                    SERVICE_UNAVAILABLE)
-                                                                                                                            .expectBody(
-                                                                                                                                    Problem.class);
+        sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                                .expectBody(Problem.class);
     }
 }

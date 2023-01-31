@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.commons.service.impl;
 
-import it.pagopa.pn.ec.commons.exception.IdClientNotFoundException;
+import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedFoundException;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.anagraficaclient.AnagraficaClientCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import lombok.extern.slf4j.Slf4j;
@@ -18,11 +18,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public Mono<Void> clientAuth(final String idClient) throws IdClientNotFoundException {
+    public Mono<Void> clientAuth(final String idClient) throws ClientNotAuthorizedFoundException {
         log.info("<-- Start client authentication -->");
         log.info("Id client -> {}", idClient);
         return anagraficaClientCall.getClient(idClient)
-                                   .switchIfEmpty(Mono.error(new IdClientNotFoundException(idClient)))
+                                   .switchIfEmpty(Mono.error(new ClientNotAuthorizedFoundException(idClient)))
                                    .then();
 
     }
