@@ -8,10 +8,10 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
-@EqualsAndHashCode(callSuper = true)
+@FieldDefaults(level = AccessLevel.PRIVATE)
 @Data
 @ToString(callSuper = true)
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@EqualsAndHashCode(callSuper = true)
 public class SmsPresaInCaricoInfo extends PresaInCaricoInfo {
 
     DigitalCourtesySmsRequest digitalCourtesySmsRequest;
