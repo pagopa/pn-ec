@@ -1,0 +1,242 @@
+openapi: 3.0.3
+info:
+  title: Gestore repository
+  description: Api esposte dal gestore repository per la configurazione dei client e per la gestione delle richieste
+  version: v1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Generated server url
+
+tags:
+  - name: ConfigurazioneClient
+    description: Operazioni per la configurazione dei client
+  - name: GestoreRequest
+    description: Operazione per la gestione delle richieste
+
+paths:
+  /gestoreRepository/clients/{xPagopaExtchCxId}:
+    parameters:
+      - name: xPagopaExtchCxId
+        in: path
+        required: true
+        allowEmptyValue: false
+        schema:
+          type: string
+#          pattern: '^(?!\s*$).+'
+    get:
+      tags:
+        - ConfigurazioneClient
+      operationId: getClient
+      responses:
+        200:
+          $ref: '#/components/responses/clientResponseOk'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+
+    put:
+      tags:
+        - ConfigurazioneClient
+      operationId: updateClient
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientConfigurationDto'
+        required: true
+      responses:
+        200:
+          $ref: '#/components/responses/clientResponseOk'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+    delete:
+      tags:
+        - ConfigurazioneClient
+      operationId: deleteClient
+      responses:
+        200:
+          description: OK
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+
+  /gestoreRepository/clients:
+    post:
+      tags:
+        - ConfigurazioneClient
+      operationId: insertClient
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientConfigurationDto'
+        required: true
+      responses:
+        200:
+          $ref: '#/components/responses/clientResponseOk'
+        403:
+          $ref: '#/components/responses/requestedItemAlreadyExist'
+
+  /gestoreRepository/requests/{requestIdx}:
+    parameters:
+      - $ref: "../../external/api-internal-v1.yaml#/components/parameters/requestIdx"
+    get:
+      tags:
+        - GestoreRequest
+      operationId: getRequest
+      responses:
+        200:
+          $ref: '#/components/responses/requestResponseOk'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+    delete:
+      tags:
+        - GestoreRequest
+      operationId: deleteRequest
+      responses:
+        200:
+          description: OK
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+    patch:
+      tags:
+        - GestoreRequest
+      operationId: updateRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventsDto'
+        required: true
+      responses:
+        200:
+          $ref: '#/components/responses/requestResponseOk'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+
+  /gestoreRepository/requests:
+    post:
+      tags:
+        - GestoreRequest
+      operationId: insertRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestDto'
+        required: true
+      responses:
+        200:
+          $ref: '#/components/responses/requestResponseOk'
+        403:
+          $ref: '#/components/responses/requestedItemAlreadyExist'
+
+components:
+
+  responses:
+
+    clientResponseOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ClientConfigurationDto'
+
+    requestResponseOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RequestDto'
+
+    requestedItemAlreadyExist:
+      description: Risorsa già presente a sistema
+      content:
+        application/json:
+          schema:
+            $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
+
+    missingRequestedItem:
+      description: Risorsa non presente a sistema
+      content:
+        application/json:
+          schema:
+            $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
+
+
+  schemas:
+
+    #############################################################################################
+    ###                     SCHEMA PER LA CONFIGURAZIONE CLIENT                     ###
+    #############################################################################################
+
+    ClientConfigurationDto:
+      type: object
+      required:
+        - xPagopaExtchCxId
+        - sqsArn
+        - sqsName
+      properties:
+        xPagopaExtchCxId:
+          type: string
+          pattern: '^(?!\s*$).+'
+        sqsArn:
+          type: string
+        sqsName:
+          type: string
+        pecReplyTo:
+          type: string
+        mailReplyTo:
+          type: string
+        senderPhysicalAddress:
+          $ref: '#/components/schemas/SenderPhysicalAddressDto'
+
+    SenderPhysicalAddressDto:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        cap:
+          type: string
+        city:
+          type: string
+        pr:
+          type: string
+
+    #############################################################################################
+    ###                     SCHEMI PER GESTIONI RICHIESTE                     ###
+    #############################################################################################
+
+    RequestDto:
+      type: object
+      required:
+        - requestIdx
+        - events
+      properties:
+        requestIdx:
+          type: string
+          pattern: '[0-9A-Za-z_-]{5,100}'
+        statusRequest:
+          type: string
+          readOnly: true
+        clientRequestTimeStamp:
+          type: string
+          format: date-time
+          readOnly: true
+        digitalReq:
+          $ref: '../schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestDto'
+        paperReq:
+          $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperRequestDto'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventsDto'
+
+    EventsDto:
+      type: object
+      properties:
+        digProgrStatus:
+          $ref: '../schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalProgressStatusDto'
+        paperProgrStatus:
+          $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperProgressStatusDto'
