@@ -52,6 +52,7 @@ public class SmsService extends PresaInCaricoService {
 
     @SqsListener(value = SMS_INTERACTIVE_QUEUE_NAME, deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void lavorazioneRichiesta(final DigitalCourtesySmsRequest digitalCourtesySmsRequest, final Acknowledgment acknowledgment) {
+        log.info("Pull -> {}", digitalCourtesySmsRequest);
         sqsService.incomingMessageFlow(digitalCourtesySmsRequest, acknowledgment).subscribe();
     }
 }

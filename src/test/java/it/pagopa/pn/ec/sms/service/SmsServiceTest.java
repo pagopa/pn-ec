@@ -2,9 +2,12 @@ package it.pagopa.pn.ec.sms.service;
 
 
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
+import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.SMS_INTERACTIVE_QUEUE_NAME;
 
 
 @SpringBootTestWebEnv
@@ -26,7 +29,7 @@ class SmsServiceTest {
      */
     @Test
     void lavorazioneRichiestaOk() {
-//        sqsService.send(SMS_QUEUE_NAME, getDigitalCourtesySmsRequest()).subscribe();
+        sqsService.send(SMS_INTERACTIVE_QUEUE_NAME, new DigitalCourtesySmsRequest()).subscribe();
 
 //        await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> verify(sqsService).send());
     }
