@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.sms.service;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
-import it.pagopa.pn.ec.commons.service.InvioService;
+import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.sms.model.dto.NtStatoSmsQueueDto;
@@ -20,7 +20,7 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTE
 
 @Service
 @Slf4j
-public class SmsService extends InvioService {
+public class SmsService extends PresaInCaricoService {
 
     private final SqsService sqsService;
 
@@ -45,15 +45,5 @@ public class SmsService extends InvioService {
                              }
                          })
                          .then();
-    }
-
-    @Override
-    public Mono<Void> lavorazioneRichiesta() {
-        return null;
-    }
-
-    @Override
-    public Mono<Void> retry() {
-        return Mono.empty();
     }
 }
