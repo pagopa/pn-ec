@@ -1,10 +1,12 @@
 package it.pagopa.pn.ec.sms.service;
 
 
+import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.SMS_INTERACTIVE_QUEUE_NAME;
@@ -19,6 +21,9 @@ class SmsServiceTest {
     @Autowired
     private SqsServiceImpl sqsService;
 
+    @Mock
+    private Acknowledgment acknowledgment;
+
     /**
      * <h3>SMSLR.107.1</h3>
      * <b>Precondizione:</b> Pull di un payload dalla coda "SMS"
@@ -29,9 +34,7 @@ class SmsServiceTest {
      */
     @Test
     void lavorazioneRichiestaOk() {
-        sqsService.send(SMS_INTERACTIVE_QUEUE_NAME, new DigitalCourtesySmsRequest()).subscribe();
-
-//        await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> verify(sqsService).send());
+        smsService.lavorazioneRichiesta(new DigitalCourtesySmsRequest(), acknowledgment);
     }
 
     /**

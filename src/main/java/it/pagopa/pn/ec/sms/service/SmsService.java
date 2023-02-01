@@ -12,6 +12,7 @@ import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.sms.model.dto.NtStatoSmsQueueDto;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -51,8 +52,8 @@ public class SmsService extends PresaInCaricoService {
     }
 
     @SqsListener(value = SMS_INTERACTIVE_QUEUE_NAME, deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    @ConditionalOnProperty(name = "test.aws.sqs.disable-listener", havingValue = "true", matchIfMissing = true)
     public void lavorazioneRichiesta(final DigitalCourtesySmsRequest digitalCourtesySmsRequest, final Acknowledgment acknowledgment) {
-        log.info("Pull -> {}", digitalCourtesySmsRequest);
         sqsService.incomingMessageFlow(digitalCourtesySmsRequest, acknowledgment).subscribe();
     }
 }
