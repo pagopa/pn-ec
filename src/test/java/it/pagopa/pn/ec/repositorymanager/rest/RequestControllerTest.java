@@ -108,6 +108,20 @@ class RequestControllerTest {
                  .isOk();
     }
 
+	//test.100.2
+	@Test
+	@Order(2)
+	void insertRequestTestFailed() {
+		webClient.post()
+				.uri(BASE_PATH)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.body(BodyInserters.fromValue(digitalRequest))
+				.exchange()
+				.expectStatus()
+				.isForbidden();
+	}
+
 	//test.101.1
 	@ParameterizedTest
     @ValueSource(strings = {DEFAULT_ID_DIGITAL, DEFAULT_ID_PAPER})
@@ -199,19 +213,5 @@ class RequestControllerTest {
 				.exchange()
 				.expectStatus()
 				.isBadRequest();
-	}
-
-	//test.100.2
-	@Test
-	@Order(99)
-	void insertRequestTestFailed() {
-		webClient.post()
-				 .uri(BASE_PATH)
-				 .accept(APPLICATION_JSON)
-				 .contentType(APPLICATION_JSON)
-				 .body(BodyInserters.fromValue(digitalRequest))
-				 .exchange()
-				 .expectStatus()
-				 .isForbidden();
 	}
 }

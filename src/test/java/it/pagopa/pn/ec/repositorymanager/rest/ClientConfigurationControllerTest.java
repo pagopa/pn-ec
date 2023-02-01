@@ -46,6 +46,20 @@ class ClientConfigurationControllerTest {
                  .isOk();
     }
 
+    //test.100.2
+    @Test
+    @Order(2)
+    void insertClientTestFailed() {
+        webClient.post()
+                 .uri(BASE_PATH)
+                 .accept(APPLICATION_JSON)
+                 .contentType(APPLICATION_JSON)
+                 .body(BodyInserters.fromValue(clientConfigurationDto))
+                 .exchange()
+                 .expectStatus()
+                 .isForbidden();
+    }
+
     //test.101.1
     @Test
     @Order(3)
@@ -121,19 +135,5 @@ class ClientConfigurationControllerTest {
                  .exchange()
                  .expectStatus()
                  .isBadRequest();
-    }
-
-    //test.100.2
-    @Test
-    @Order(99)
-    void insertClientTestFailed() {
-        webClient.post()
-                 .uri(BASE_PATH)
-                 .accept(APPLICATION_JSON)
-                 .contentType(APPLICATION_JSON)
-                 .body(BodyInserters.fromValue(clientConfigurationDto))
-                 .exchange()
-                 .expectStatus()
-                 .isForbidden();
     }
 }
