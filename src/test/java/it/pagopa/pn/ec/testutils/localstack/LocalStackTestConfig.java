@@ -57,7 +57,7 @@ public class LocalStackTestConfig {
         System.setProperty("test.aws.dynamodb.endpoint", String.valueOf(localStackContainer.getEndpointOverride(DYNAMODB)));
         System.setProperty("test.aws.sns.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SNS)));
 
-        System.setProperty("test.aws.sqs.disable-listener", "true");
+        System.setProperty("test.aws.sqs.enable-listener", "false");
 
         try {
 

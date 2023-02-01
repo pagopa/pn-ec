@@ -47,12 +47,10 @@ public class SqsServiceImpl implements SqsService {
     }
 
     @Override
-    public <T> Mono<Void> incomingMessageFlow(T queuePayload, final Acknowledgment acknowledgment) {
+    public <T> Mono<T> incomingMessageFlow(T queuePayload) {
         return Mono.just(queuePayload)
                    .doOnNext(message -> log.info("Incoming message {}", message))
-                   .flatMap(unused -> Mono.fromFuture(CompletableFuture.supplyAsync(acknowledgment::acknowledge)))
                    .timeout(Duration.ofSeconds(MAXIMUM_LISTENING_TIME))
-                   .doOnError(throwable -> log.error("Maximum listening time on incoming message queue exceed"))
-                   .then();
+                   .doOnError(throwable -> log.error("Maximum listening time on incoming message queue exceed"));
     }
 }

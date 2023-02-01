@@ -20,6 +20,14 @@ public class NotificationTrackerQueueDto extends PresaInCaricoInfo {
     Status currentStatus;
     Status nextStatus;
 
+    public NotificationTrackerQueueDto(String requestIdx, String xPagopaExtchCxId, ProcessId processId, Status currentStatus,
+                                       Status nextStatus) {
+        super(requestIdx, xPagopaExtchCxId);
+        this.processId = processId;
+        this.currentStatus = currentStatus;
+        this.nextStatus = nextStatus;
+    }
+
     public NotificationTrackerQueueDto(PresaInCaricoInfo requestBaseInfo, Status currentStatus, Status nextStatus) {
         super(requestBaseInfo.getRequestIdx(), requestBaseInfo.getXPagopaExtchCxId());
         this.currentStatus = currentStatus;

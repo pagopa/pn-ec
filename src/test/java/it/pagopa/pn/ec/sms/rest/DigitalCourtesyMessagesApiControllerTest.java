@@ -43,7 +43,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
-@Import({MockMessageListenerConfiguration.class})
 class DigitalCourtesyMessagesApiControllerTest {
 
     @Autowired
