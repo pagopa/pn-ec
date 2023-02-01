@@ -11,12 +11,12 @@ import reactor.core.publisher.Mono;
 @Service
 @Slf4j
 @SuppressWarnings("unused")
-public abstract class InvioService {
+public abstract class PresaInCaricoService {
 
     private final AuthService authService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
 
-    protected InvioService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall) {
+    protected PresaInCaricoService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall) {
         this.authService = authService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
     }
@@ -38,8 +38,4 @@ public abstract class InvioService {
     }
 
     protected abstract Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo);
-
-    public abstract Mono<Void> lavorazioneRichiesta();
-
-    public abstract Mono<Void> retry();
 }
