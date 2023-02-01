@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.commons.rest.error;
 
+import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedFoundException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
-import it.pagopa.pn.ec.commons.exception.IdClientNotFoundException;
 import it.pagopa.pn.ec.commons.exception.RequestAlreadyInProgressException;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
@@ -25,8 +25,8 @@ public class GlobalRestErrorHandler {
 
     private static final String DEFAULT_PROBLEM_ERROR_MESSAGE = "Internal error codes to be defined";
 
-    @ExceptionHandler(IdClientNotFoundException.class)
-    public final ResponseEntity<Problem> handleUnauthorizedIdClient(IdClientNotFoundException exception) {
+    @ExceptionHandler(ClientNotAuthorizedFoundException.class)
+    public final ResponseEntity<Problem> handleUnauthorizedIdClient(ClientNotAuthorizedFoundException exception) {
         var problem = new Problem();
         problem.setStatus(UNAUTHORIZED.value());
         problem.setTitle("Client id unauthorized");

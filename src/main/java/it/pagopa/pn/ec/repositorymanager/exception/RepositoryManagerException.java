@@ -6,24 +6,38 @@ public class RepositoryManagerException extends RuntimeException {
         super("Generic exception in RepositoryManagerService");
     }
 
-    public static class IdClientAlreadyPresent extends RuntimeException{
+    public static class IdClientAlreadyPresent extends RuntimeException {
 
         public IdClientAlreadyPresent(String idClient) {
-            super(String.format("Id client %s already exists", idClient));
+            super(String.format("Id client '%s' already exists", idClient));
         }
     }
 
-    public static class IdClientNotFoundException extends RuntimeException{
+    public static class IdRequestAlreadyPresent extends RuntimeException {
+
+        public IdRequestAlreadyPresent(String idRequest) {
+            super(String.format("Id request '%s' already present", idRequest));
+        }
+    }
+
+    public static class IdClientNotFoundException extends RuntimeException {
 
         public IdClientNotFoundException(String idClient) {
-            super("Id client not found");
+            super(String.format("Id client '%s' not found", idClient));
         }
     }
 
-    public static class DynamoDbException extends RuntimeException{
+    public static class RequestNotFoundException extends RuntimeException {
 
-        public DynamoDbException() {
-            super("Error interacting with DynamoDb");
+        public RequestNotFoundException(String requestIdx) {
+            super(String.format("Request id '%s' not found", requestIdx));
+        }
+    }
+
+    public static class RequestMalformedException extends RuntimeException {
+
+        public RequestMalformedException(String message) {
+            super(message);
         }
     }
 }
