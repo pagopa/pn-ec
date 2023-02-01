@@ -1,37 +1,45 @@
 package it.pagopa.pn.ec.commons.service;
 
 import it.pagopa.pn.ec.commons.exception.RequestAlreadyInProgressException;
-import it.pagopa.pn.ec.commons.model.pojo.RequestBaseInfo;
-import it.pagopa.pn.ec.commons.rest.call.gestorerepository.richieste.RichiesteCall;
+import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.rest.call.RestCallException;
+import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-
 @Service
 @Slf4j
+@SuppressWarnings("unused")
 public abstract class InvioService {
 
     private final AuthService authService;
-    private final RichiesteCall richiesteCall;
+    private final GestoreRepositoryCall gestoreRepositoryCall;
 
-    protected InvioService(AuthService authService, RichiesteCall richiesteCall) {
+    protected InvioService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall) {
         this.authService = authService;
-        this.richiesteCall = richiesteCall;
+        this.gestoreRepositoryCall = gestoreRepositoryCall;
     }
 
-    public Mono<Void> presaInCarico(final RequestBaseInfo requestBaseInfo) throws RequestAlreadyInProgressException {
-        log.info("<-- Start presa in carico -->");
-        return authService.clientAuth(requestBaseInfo.getIdClient())
-                          .then(richiesteCall.getRichiesta(requestBaseInfo.getIdRequest()))
-                          .flatMap(currentStatus -> {
-                              if (currentStatus != null)
-                                  return Mono.error(new RequestAlreadyInProgressException(requestBaseInfo.getIdRequest()));
-                              else return specificPresaInCarico(requestBaseInfo);
+    public Mono<Void> presaInCarico(PresaInCaricoInfo presaInCaricoInfo) throws RequestAlreadyInProgressException {
+        return authService.clientAuth(presaInCaricoInfo.getXPagopaExtchCxId())
+                          .then(gestoreRepositoryCall.getRichiesta(presaInCaricoInfo.getRequestIdx()))
+                          .onErrorResume(RestCallException.ResourceNotFoundException.class,
+                                         throwable -> {
+                                             log.info("The request with id {} doesn't exist", presaInCaricoInfo.getRequestIdx());
+                                             return Mono.empty();
+                                         })
+                          .handle((existingRequest, sink) -> {
+                              if (existingRequest != null) {
+                                  sink.error(new RequestAlreadyInProgressException(presaInCaricoInfo.getRequestIdx()));
+                              }
                           })
-                          .doOnError(throwable -> log.error(throwable.getMessage(), throwable))
-                          .then();
+                          .then(specificPresaInCarico(presaInCaricoInfo));
     }
 
-    protected abstract Mono<Void> specificPresaInCarico(final RequestBaseInfo requestBaseInfo);
+    protected abstract Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo);
+
+    public abstract Mono<Void> lavorazioneRichiesta();
+
+    public abstract Mono<Void> retry();
 }

@@ -67,25 +67,133 @@ Parameters:
     Type: String
     Description: 'keep track of used projects commitIds'
 
+  PnEcManagedPolicyName:
+    Type: String
+    Description: 'Nome della managed policy associata alla state machine'
+    Default: 'PnEcManagedPolicyName'
+
+  PnEcTableArnAnagrafica:    
+    Type: String
+    Description: 'ARN della Tabella DynamoDB relativa all'Anagrafica Client'
+
+  PnEcTableArnRichieste:
+    Type: String
+    Description: 'ARN della Tabella DynamoDB relativa alle richieste'
+
+  PnEcQueueArnTrackerStatoSMS:
+    Type: String
+    Description: '[Notification Tracker: canale SMS] ARN della Coda per aggiornamenti di stato afferenti al canale SMS'
+
+  PnEcQueueArnTrackerErroriSMS:
+    Type: String
+    Description: '[Notification Tracker: canale SMS] ARN della Coda Errori afferenti al canale SMS'
+
+  PnEcQueueArnNotificheExt1:
+    Type: String
+    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] ARN della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
+
+  PnEcQueueArnBatchSMS:
+    Type: String
+    Description: '[Canale SMS] ARN della Coda per la modalità SMS-Batch'
+
+  PnEcQueueArnInteractiveSMS:
+    Type: String
+    Description: '[Canale SMS] ARN della Coda per la modalità SMS-Interactive'
+
+  PnEcQueueArnErroriSMS:
+    Type: String
+    Description: '[Canale SMS] ARN della Coda Errori SMS'
+
 Resources:
 
   # PN-TemplateBeMs microservice
-  TemplateBeMsMicroservice:
+  ExternalChannelMicroservice:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/ecs-service.yaml"
       Parameters:
-        MicroServiceUniqueName: !Sub '${ProjectName}-template-ms-be'
+        MicroServiceUniqueName: !Sub '${ProjectName}-external-channel'
         CpuValue: 512
         MemoryAmount: 2GB
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Sub '${ContainerImageUri}'
         ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
-        MappedPaths: '/template-ms-be/*'
+        MappedPaths: '/externalchannel/*'
         ECSClusterName: !Ref ECSClusterName
         Subnets: !Ref SubnetsIds
         VpcId: !Ref VpcId
         EcsDefaultSecurityGroup: !Ref EcsDefaultSecurityGroup
         LoadBalancerListenerArn: !Ref ApplicationLoadBalancerListenerArn
         LoadbalancerRulePriority: !Ref MicroserviceNumber
-        CloudwatchLogKinesisStreamArn: !Ref LogsKinesisSourceStreamArn
+        # CloudwatchLogKinesisStreamArn: !Ref LogsKinesisSourceStreamArn
+        TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
+        # HealthCheckPath: 
+
+  ExternalChannelMicroservice
+
+  PnEcManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: 'String'
+      ManagedPolicyName: !Ref PnEcManagedPolicyName
+      PolicyDocument: 
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'dynamodb:*GetItem'
+              - 'dynamodb:Query'
+              - 'dynamodb:Describe*'
+              - 'dynamodb:Scan'
+              - 'dynamodb:List*'
+            Resource:
+              - !Sub '${PnEcTableArnAnagrafica}'
+              - !Sub '${PnEcTableArnRichieste}'
+          - Effect: Allow
+            Action:
+              - 'sqs:ReceiveMessage'
+              - 'sqs:DeleteMessage'
+              - 'sqs:PurgeQueue'
+              - 'sqs:SendMessage'
+            Resource:
+              - !Sub '${PnEcQueueArnTrackerStatoSMS}'
+              - !Sub '${PnEcQueueArnTrackerErroriSMS}'
+              - !Sub '${PnEcQueueArnNotificheExt1}'
+              - !Sub '${PnEcQueueArnBatchSMS}'
+              - !Sub '${PnEcQueueArnInteractiveSMS}'
+              - !Sub '${PnEcQueueArnErroriSMS}'
+
+  # QueuePolicyTracker:
+  #   Type: AWS::SQS::QueuePolicy
+  #   Properties: 
+  #     Queues: 
+  #       - !GetAtt PnEcQueueTrackerStatoSMS.QueueUrl 
+  #       - !GetAtt PnEcQueueTrackerErroriSMS.QueueUrl 
+  #     PolicyDocument: 
+  #       Statement: 
+  #         - Action: 
+  #             - "SQS:SendMessage" 
+  #             - "SQS:ReceiveMessage"
+  #           Effect: "Allow"
+  #           Resource: !GetAtt PnEcQueueSMS.Arn
+  #           Principal:  
+  #             AWS: 
+  #               - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref ExternalChannelMicroservice.Outputs.TaskRoleName]]
+
+  # QueuePolicySMS:
+  #   Type: AWS::SQS::QueuePolicy
+  #   Properties: 
+  #     Queues: 
+  #       - !GetAtt PnEcQueueSMS.QueueUrl
+  #       - !GetAtt PnEcQueueErroriSMS.QueueUrl
+  #     PolicyDocument: 
+  #       Statement: 
+  #         - Action: 
+  #             - "SQS:SendMessage" 
+  #             - "SQS:ReceiveMessage"
+  #           Effect: "Allow"
+  #           Resource: !GetAtt PnEcQueueSMS.Arn
+  #           Principal:  
+  #             AWS: 
+  #               #- !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref PnEcTaskNameSMS]]
+  #               - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref ExternalChannelMicroservice.Outputs.TaskRoleName]]

@@ -8,7 +8,7 @@ import lombok.experimental.FieldDefaults;
 @Getter
 public class EcInternalEndpointHttpException extends RuntimeException {
 
-    public EcInternalEndpointHttpException(int statusCode) {
+    public EcInternalEndpointHttpException(String statusCode) {
         super(String.format("Ec internal endpoint call failed with status %s", statusCode));
     }
 }
