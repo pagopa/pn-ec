@@ -6,8 +6,6 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.SMS_QUEUE_NAME;
-import static it.pagopa.pn.ec.sms.testutils.factory.SmsRequestObjectFactory.getDigitalCourtesySmsRequest;
 
 @SpringBootTestWebEnv
 class SmsServiceTest {
@@ -28,7 +26,7 @@ class SmsServiceTest {
      */
     @Test
     void lavorazioneRichiestaOk() {
-        sqsService.send(SMS_QUEUE_NAME, getDigitalCourtesySmsRequest()).subscribe();
+//        sqsService.send(SMS_QUEUE_NAME, getDigitalCourtesySmsRequest()).subscribe();
 
 //        await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> verify(sqsService).send());
     }

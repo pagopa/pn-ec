@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.sms.service.impl;
+package it.pagopa.pn.ec.sms.service;
 
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
