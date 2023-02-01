@@ -13,9 +13,10 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import static it.pagopa.pn.ec.commons.constant.ProcessId.INVIO_SMS;
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.NT_STATO_SMS_QUEUE_NAME;
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.SMS_QUEUE_NAME;
+import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.*;
 import static it.pagopa.pn.ec.commons.constant.status.CommonStatus.BOOKED;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.BATCH;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
 
 @Service
 @Slf4j
@@ -33,8 +34,17 @@ public class SmsService extends InvioService {
         return sqsService.send(NT_STATO_SMS_QUEUE_NAME,
                                new NtStatoSmsQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(), INVIO_SMS, null, BOOKED))
                          .map(unused -> (SmsPresaInCaricoInfo) presaInCaricoInfo)
-                         .flatMap(smsPresaInCaricoInfo -> sqsService.send(SMS_QUEUE_NAME,
-                                                                          smsPresaInCaricoInfo.getDigitalCourtesySmsRequest()));
+                         .flatMap(smsPresaInCaricoInfo -> {
+                             DigitalCourtesySmsRequest.QosEnum qos = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getQos();
+                             if (qos == INTERACTIVE) {
+                                 return sqsService.send(SMS_INTERACTIVE_QUEUE_NAME, smsPresaInCaricoInfo.getDigitalCourtesySmsRequest());
+                             } else if (qos == BATCH) {
+                                 return sqsService.send(SMS_BATCH_QUEUE_NAME, smsPresaInCaricoInfo.getDigitalCourtesySmsRequest());
+                             } else {
+                                 return Mono.empty();
+                             }
+                         })
+                         .then();
     }
 
     @Override

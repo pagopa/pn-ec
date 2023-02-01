@@ -24,7 +24,11 @@ public abstract class InvioService {
     public Mono<Void> presaInCarico(PresaInCaricoInfo presaInCaricoInfo) throws RequestAlreadyInProgressException {
         return authService.clientAuth(presaInCaricoInfo.getXPagopaExtchCxId())
                           .then(gestoreRepositoryCall.getRichiesta(presaInCaricoInfo.getRequestIdx()))
-                          .onErrorResume(RestCallException.ResourceNotFoundException.class, throwable -> Mono.empty())
+                          .onErrorResume(RestCallException.ResourceNotFoundException.class,
+                                         throwable -> {
+                                             log.info("The request with id {} doesn't exist", presaInCaricoInfo.getRequestIdx());
+                                             return Mono.empty();
+                                         })
                           .handle((existingRequest, sink) -> {
                               if (existingRequest != null) {
                                   sink.error(new RequestAlreadyInProgressException(presaInCaricoInfo.getRequestIdx()));

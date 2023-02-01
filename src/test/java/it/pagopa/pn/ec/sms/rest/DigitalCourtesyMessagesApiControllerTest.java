@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.sms.rest;
 
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
@@ -27,12 +28,11 @@ import reactor.core.publisher.Mono;
 import java.time.OffsetDateTime;
 
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.NT_STATO_SMS_QUEUE_NAME;
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.SMS_QUEUE_NAME;
+import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.SMS_INTERACTIVE_QUEUE_NAME;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.ChannelEnum.SMS;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
@@ -126,7 +126,8 @@ class DigitalCourtesyMessagesApiControllerTest {
 
 //      Client auth call -> OK
 //      Client non tornato dall'anagrafica client
-        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.empty());
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException(
+                "Client not " + "found")));
 
 //      Retrieve status -> OK
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.just(requestDto));
@@ -178,7 +179,7 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.empty());
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        doThrow(SqsPublishException.class).when(sqsService).send(eq(NT_STATO_SMS_QUEUE_NAME), any(NtStatoSmsQueueDto.class));
+        when(sqsService.send(eq(NT_STATO_SMS_QUEUE_NAME), any(NtStatoSmsQueueDto.class))).thenReturn(Mono.error(new SqsPublishException(NT_STATO_SMS_QUEUE_NAME)));
 
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)
@@ -196,7 +197,7 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.empty());
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(SMS_QUEUE_NAME), any(DigitalCourtesySmsRequest.class))).thenReturn(Mono.error(new SqsPublishException(SMS_QUEUE_NAME)));
+        when(sqsService.send(eq(SMS_INTERACTIVE_QUEUE_NAME), any(DigitalCourtesySmsRequest.class))).thenReturn(Mono.error(new SqsPublishException(SMS_INTERACTIVE_QUEUE_NAME)));
 
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)
