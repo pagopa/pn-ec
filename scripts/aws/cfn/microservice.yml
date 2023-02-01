@@ -69,7 +69,7 @@ Parameters:
 
   PnEcManagedPolicyName:
     Type: String
-    Description: 'Nome della managed policy associata alla state machine'
+    Description: 'Nome della managed policy associata ad External Channel'
     Default: 'PnEcManagedPolicyName'
 
   PnEcTableArnAnagrafica:    
