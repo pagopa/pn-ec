@@ -54,8 +54,8 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Mono<Request> getRequest(String requestIdx) {
         return Mono.fromCompletionStage(requestDynamoDbTable.getItem(getKey(requestIdx)))
-                   .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(requestIdx)))
-                   .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()));
+                   .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
+                   .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()));
     }
 
     @Override
@@ -63,10 +63,10 @@ public class RequestServiceImpl implements RequestService {
         return Mono.fromCompletionStage(requestDynamoDbTable.getItem(getKey(request.getRequestId())))
                    .handle((foundedRequest, sink) -> {
                        if (foundedRequest != null) {
-                           sink.error(new RepositoryManagerException.IdClientAlreadyPresent(request.getRequestId()));
+                           sink.error(new RepositoryManagerException.IdRequestAlreadyPresent(request.getRequestId()));
                        }
                    })
-                   .doOnError(RepositoryManagerException.IdClientAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
+                   .doOnError(RepositoryManagerException.IdRequestAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
                    .doOnSuccess(unused -> checkRequestToInsert(request))
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
                    .doOnSuccess(unused -> {
@@ -87,8 +87,8 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Mono<Request> updateEvents(String requestIdx, Events events) {
         return Mono.fromCompletionStage(requestDynamoDbTable.getItem(getKey(requestIdx)))
-                   .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(requestIdx)))
-                   .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
+                   .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
+                   .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
                    .doOnSuccess(retrievedRequest -> checkEvents(retrievedRequest, events))
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
                    .map(retrieveRequest -> {
@@ -108,10 +108,9 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Mono<Request> deleteRequest(String requestIdx) {
         return Mono.fromCompletionStage(requestDynamoDbTable.getItem(getKey(requestIdx)))
-                   .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(requestIdx)))
-                   .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
+                   .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
+                   .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
                    .doOnSuccess(requestToDelete -> requestDynamoDbTable.deleteItem(getKey(requestIdx)))
                    .map(request -> request);
     }
-
 }
