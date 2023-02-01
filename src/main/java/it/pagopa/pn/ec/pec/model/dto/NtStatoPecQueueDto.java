@@ -1,23 +1,23 @@
 package it.pagopa.pn.ec.pec.model.dto;
 
-import it.pagopa.pn.ec.commons.constant.Status;
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.constant.ProcessId;
+import it.pagopa.pn.ec.commons.constant.status.Status;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
-@EqualsAndHashCode(callSuper = true)
-@Data
-@ToString(callSuper = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class NtStatoPecQueueDto extends PresaInCaricoInfo {
+@AllArgsConstructor
+@Data
+public class NtStatoPecQueueDto {
 
+    String xPagopaExtchCxId;
+
+    /**
+     * Identificativo del processo richiesto dal Notification Tracker
+     */
+    ProcessId processId;
     Status currentStatus;
-
-    public NtStatoPecQueueDto(PresaInCaricoInfo presaInCaricoInfo, Status currentStatus) {
-        super(presaInCaricoInfo.getIdRequest(), presaInCaricoInfo.getIdClient(), presaInCaricoInfo.getProcessId());
-        this.currentStatus = currentStatus;
-    }
+    Status nextStatus;
 }

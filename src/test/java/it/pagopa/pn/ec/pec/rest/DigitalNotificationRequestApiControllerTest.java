@@ -1,16 +1,17 @@
 package it.pagopa.pn.ec.pec.rest;
 
-import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.rest.call.gestorerepository.anagraficaclient.AnagraficaClientCallImpl;
-import it.pagopa.pn.ec.commons.rest.call.gestorerepository.richieste.RichiesteCallImpl;
+import it.pagopa.pn.ec.commons.rest.call.RestCallException;
+import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.pec.model.dto.NtStatoPecQueueDto;
+import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
+import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import it.pagopa.pn.ec.testutils.factory.EcRequestObjectFactory;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -24,11 +25,15 @@ import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Mono;
 
+import java.time.OffsetDateTime;
+
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.NT_STATO_PEC_QUEUE_NAME;
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.PEC_QUEUE_NAME;
+import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.PEC_INTERACTIVE_QUEUE_NAME;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.PEC;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
@@ -42,28 +47,35 @@ public class DigitalNotificationRequestApiControllerTest {
     private WebTestClient webTestClient;
 
     @MockBean
-    private AnagraficaClientCallImpl anagraficaClientCall;
-
-    @MockBean
-    private RichiesteCallImpl richiesteCall;
+    private GestoreRepositoryCallImpl gestoreRepositoryCall;
 
     @SpyBean
     private SqsServiceImpl sqsService;
 
-//    private SmsEndpointUtils() {
-//        throw new IllegalStateException("EndpointUtils is a utility class");
-//    }
+    public static final String SEND_PEC_ENDPOINT = "/external-channels/v1/digital-deliveries/legal-full-message-requests" + "/{requestIdx}";
+    private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
+    private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
+    private static final RequestDto requestDto = new RequestDto();
 
-    public static final String SEND_PEC_ENDPOINT = "/external-channels/v1/digital-deliveries/legal-full-message-requests/%s";
+    @BeforeAll
+    public static void createDigitalNotificationRequest() {
+        String defaultStringInit = "string";
 
-    public static String getSendPecEndpoint(String requestIdx) {
-        return String.format(SEND_PEC_ENDPOINT, requestIdx);
+        digitalNotificationRequest.setRequestId(defaultStringInit);
+        digitalNotificationRequest.eventType(defaultStringInit);
+        digitalNotificationRequest.setClientRequestTimeStamp(OffsetDateTime.now());
+        digitalNotificationRequest.setQos(INTERACTIVE);
+        digitalNotificationRequest.setReceiverDigitalAddress(defaultStringInit);
+        digitalNotificationRequest.setMessageText(defaultStringInit);
+        digitalNotificationRequest.channel(PEC);
+        digitalNotificationRequest.setSubjectText(defaultStringInit);
+        digitalNotificationRequest.setMessageContentType(PLAIN);
     }
 
     private WebTestClient.ResponseSpec sendPecTestCall(BodyInserter<DigitalNotificationRequest, ReactiveHttpOutputMessage> bodyInserter, String requestIdx) {
 
         return this.webTestClient.put()
-                .uri(getSendPecEndpoint(requestIdx))
+                .uri(uriBuilder -> uriBuilder.path(SEND_PEC_ENDPOINT).build(requestIdx))
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .body(bodyInserter)
@@ -75,11 +87,10 @@ public class DigitalNotificationRequestApiControllerTest {
     @Test
     void sendPecOk() {
 //      Per il momento gli esiti positivi delle chiamate interne sono mocckati dato che non sono ancora stati implementati gli endpoint
-        when(anagraficaClientCall.getClient(anyString())).thenReturn(Mono.just(DEFAULT_ID_CLIENT_HEADER_VALUE));
-        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.STATUS_1));
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.empty());
 
-        sendPecTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalNotificationRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                .isOk();
+        sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus().isOk();
     }
 
     //PECPIC.100.4 -> Request body non corretto
@@ -92,9 +103,9 @@ public class DigitalNotificationRequestApiControllerTest {
     @ParameterizedTest
     @ValueSource(strings = {BAD_REQUEST_IDX_SHORT, BAD_REQUEST_IDX_CHAR_NOT_ALLOWED})
     void sendPecMalformedIdClient(String badRequestIdx) {
-        sendPecTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalNotificationRequest()), badRequestIdx).expectStatus()
-                                                                                                                       .isBadRequest()
-                                                                                                                       .expectBody(Problem.class);
+        sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), badRequestIdx).expectStatus()
+                                                                                           .isBadRequest()
+                                                                                           .expectBody(Problem.class);
     }
 
     //PECPIC.100.3.1 -> Chiamata verso Anagrafica Client per l'autenticazione del client -> KO
@@ -102,13 +113,11 @@ public class DigitalNotificationRequestApiControllerTest {
     void callForClientAuthKo() {
 
 //      Client auth call -> KO
-        when(anagraficaClientCall.getClient(anyString())).thenThrow(EcInternalEndpointHttpException.class);
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenThrow(EcInternalEndpointHttpException.class);
 
-        sendPecTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalNotificationRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                             .isEqualTo(
-                                                                                                                                     SERVICE_UNAVAILABLE)
-                                                                                                                             .expectBody(
-                                                                                                                                     Problem.class);
+        sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                                 .expectBody(Problem.class);
     }
 
     //PECPIC.100.3.2 -> idClient non autorizzato
@@ -117,15 +126,15 @@ public class DigitalNotificationRequestApiControllerTest {
 
 //      Client auth call -> OK
 //      Client non tornato dall'anagrafica client
-        when(anagraficaClientCall.getClient(anyString())).thenReturn(Mono.empty());
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException(
+                "Client not " + "found")));
 
 //      Retrieve status -> OK
-        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.STATUS_1));
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.just(requestDto));
 
-        sendPecTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalNotificationRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                             .isUnauthorized()
-                                                                                                                             .expectBody(
-                                                                                                                                     Problem.class);
+        sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                 .isUnauthorized()
+                                                                                                 .expectBody(Problem.class);
     }
 
     //PECPIC.100.6 -> Chiamata verso Gestore Repository per il recupero dello stato corrente -> KO
@@ -133,33 +142,30 @@ public class DigitalNotificationRequestApiControllerTest {
     void callToRetrieveCurrentStatusKo() {
 
 //      Client auth call -> OK
-        when(anagraficaClientCall.getClient(anyString())).thenReturn(Mono.just(DEFAULT_ID_CLIENT_HEADER_VALUE));
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
 //      Retrieve status -> KO
-        when(richiesteCall.getRichiesta(anyString())).thenThrow(EcInternalEndpointHttpException.class);
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenThrow(EcInternalEndpointHttpException.class);
 
-        sendPecTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalNotificationRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                             .isEqualTo(
-                                                                                                                                     SERVICE_UNAVAILABLE)
-                                                                                                                             .expectBody(
-                                                                                                                                     Problem.class);
+        sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                                 .expectBody(Problem.class);
     }
+
 
     //PECPIC.100.9 -> Richiesta di invio PEC già effettuata
     @Test
     void sendPecRequestAlreadyMade() {
 
 //      Client auth -> OK
-        when(anagraficaClientCall.getClient(anyString())).thenReturn(Mono.just(DEFAULT_ID_CLIENT_HEADER_VALUE));
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
 //      Status della richiesta tornato dall'anagrafica client -> IN_LAVORAZIONE
-        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.IN_LAVORAZIONE));
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.just(requestDto));
 
-        sendPecTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalNotificationRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                             .isEqualTo(
-                                                                                                                                     CONFLICT)
-                                                                                                                             .expectBody(
-                                                                                                                                     Problem.class);
+        sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                 .isEqualTo(CONFLICT)
+                                                                                                 .expectBody(Problem.class);
     }
 
     //PECPIC.100.7 -> Pubblicazione sulla coda "Notification tracker stato PEC" -> KO
@@ -167,19 +173,17 @@ public class DigitalNotificationRequestApiControllerTest {
     void sendPecNotificationTrackerKo() {
 
 //      Client auth -> OK
-        when(anagraficaClientCall.getClient(anyString())).thenReturn(Mono.just(DEFAULT_ID_CLIENT_HEADER_VALUE));
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
 //      Retrieve status -> OK
-        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.STATUS_1));
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.empty());
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        doThrow(SqsPublishException.class).when(sqsService).send(eq(NT_STATO_PEC_QUEUE_NAME), any(NtStatoPecQueueDto.class));
+        when(sqsService.send(eq(NT_STATO_PEC_QUEUE_NAME), any(NtStatoPecQueueDto.class))).thenReturn(Mono.error(new SqsPublishException(NT_STATO_PEC_QUEUE_NAME)));
 
-        sendPecTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalNotificationRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                             .isEqualTo(
-                                                                                                                                     SERVICE_UNAVAILABLE)
-                                                                                                                             .expectBody(
-                                                                                                                                     Problem.class);
+        sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                                 .expectBody(Problem.class);
     }
 
     //PECPIC.100.8 -> Pubblicazione sulla coda "PEC" -> KO
@@ -187,19 +191,17 @@ public class DigitalNotificationRequestApiControllerTest {
     void sendPecQueueKo() {
 
 //      Client auth -> OK
-        when(anagraficaClientCall.getClient(anyString())).thenReturn(Mono.just(DEFAULT_ID_CLIENT_HEADER_VALUE));
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
 //      Retrieve status -> OK
-        when(richiesteCall.getRichiesta(anyString())).thenReturn(Mono.just(Status.STATUS_1));
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.empty());
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        doThrow(SqsPublishException.class).when(sqsService).send(eq(PEC_QUEUE_NAME), any(DigitalNotificationRequest.class));
+        when(sqsService.send(eq(PEC_INTERACTIVE_QUEUE_NAME), any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsPublishException(PEC_INTERACTIVE_QUEUE_NAME)));
 
-        sendPecTestCall(BodyInserters.fromValue(EcRequestObjectFactory.getDigitalNotificationRequest()), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                                             .isEqualTo(
-                                                                                                                                     SERVICE_UNAVAILABLE)
-                                                                                                                             .expectBody(
-                                                                                                                                     Problem.class);
+        sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                                 .expectBody(Problem.class);
     }
 
 //    PECPIC.100.5 -> Attachment non disponibile dentro pn-ss
