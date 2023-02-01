@@ -1,5 +1,8 @@
 package it.pagopa.pn.ec.sms.service;
 
+import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
+import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
@@ -45,5 +48,10 @@ public class SmsService extends PresaInCaricoService {
                              }
                          })
                          .then();
+    }
+
+    @SqsListener(value = SMS_INTERACTIVE_QUEUE_NAME, deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void lavorazioneRichiesta(final DigitalCourtesySmsRequest digitalCourtesySmsRequest, final Acknowledgment acknowledgment) {
+        sqsService.incomingMessageFlow(digitalCourtesySmsRequest, acknowledgment).subscribe();
     }
 }
