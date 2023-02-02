@@ -1,5 +1,8 @@
-package it.pagopa.pn.ec.sms.service.impl;
+package it.pagopa.pn.ec.sms.service;
 
+import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
+import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
@@ -9,6 +12,7 @@ import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.sms.model.dto.NtStatoSmsQueueDto;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -45,5 +49,11 @@ public class SmsService extends PresaInCaricoService {
                              }
                          })
                          .then();
+    }
+
+    @SqsListener(value = SMS_INTERACTIVE_QUEUE_NAME, deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    @ConditionalOnProperty(name = "test.aws.sqs.disable-listener", havingValue = "true", matchIfMissing = true)
+    public void lavorazioneRichiesta(final DigitalCourtesySmsRequest digitalCourtesySmsRequest, final Acknowledgment acknowledgment) {
+        sqsService.incomingMessageFlow(digitalCourtesySmsRequest, acknowledgment).subscribe();
     }
 }

@@ -1,18 +1,24 @@
 package it.pagopa.pn.ec.repositorymanager.rest;
 
+import it.pagopa.pn.ec.repositorymanager.entity.ClientConfiguration;
 import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
+import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.ANAGRAFICA_TABLE_NAME;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ClientConfigurationControllerTest {
 
     @Autowired
@@ -24,6 +30,20 @@ class ClientConfigurationControllerTest {
     private static final String DEFAULT_ID = "AAA";
     private static ClientConfigurationDto clientConfigurationDto;
 
+    private static DynamoDbTable<ClientConfiguration> dynamoDbTable;
+
+    private static void insertClientConfiguration(String cxId) {
+        var clientConfiguration = new ClientConfiguration();
+        clientConfiguration.setCxId(cxId);
+        dynamoDbTable.putItem(builder -> builder.item(clientConfiguration));
+    }
+
+    @BeforeAll
+    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient) {
+        dynamoDbTable = dynamoDbEnhancedClient.table(ANAGRAFICA_TABLE_NAME, TableSchema.fromBean(ClientConfiguration.class));
+        insertClientConfiguration(DEFAULT_ID);
+    }
+
     @BeforeEach
     public void createClientConfigurationDto() {
         clientConfigurationDto = new ClientConfigurationDto();
@@ -34,8 +54,8 @@ class ClientConfigurationControllerTest {
 
     //test.100.1
     @Test
-    @Order(1)
     void insertClientTestSuccess() {
+        clientConfigurationDto.setxPagopaExtchCxId("newId");
         webClient.post()
                  .uri(BASE_PATH)
                  .accept(APPLICATION_JSON)
@@ -48,7 +68,6 @@ class ClientConfigurationControllerTest {
 
     //test.100.2
     @Test
-    @Order(2)
     void insertClientTestFailed() {
         webClient.post()
                  .uri(BASE_PATH)
@@ -62,7 +81,6 @@ class ClientConfigurationControllerTest {
 
     //test.101.1
     @Test
-    @Order(3)
     void getClientTestSuccess() {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build(DEFAULT_ID))
@@ -75,7 +93,6 @@ class ClientConfigurationControllerTest {
 
     //test.101.2
     @Test
-    @Order(4)
     void getClientTestFailed() {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build("idNonPresente"))
@@ -87,7 +104,6 @@ class ClientConfigurationControllerTest {
 
     //test.102.1
     @Test
-    @Order(5)
     void testUpdateSuccess() {
         webClient.put()
                  .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build(DEFAULT_ID))
@@ -101,7 +117,6 @@ class ClientConfigurationControllerTest {
 
     //test.102.2
     @Test
-    @Order(6)
     void testUpdateFailed() {
         webClient.put()
                  .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build("idNonPresente"))
@@ -115,10 +130,11 @@ class ClientConfigurationControllerTest {
 
     //test.103.1
     @Test
-    @Order(7)
     void deleteClientTestSuccess() {
+        String cxId = "idToDelete";
+        insertClientConfiguration(cxId);
         webClient.delete()
-                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build(DEFAULT_ID))
+                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build(cxId))
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -127,7 +143,6 @@ class ClientConfigurationControllerTest {
 
     //test.103.2
     @Test
-    @Order(8)
     void deleteClientTestFailed() {
         webClient.delete()
                  .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build("idNonPresente"))
