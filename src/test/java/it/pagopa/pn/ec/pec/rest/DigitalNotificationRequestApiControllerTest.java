@@ -2,14 +2,13 @@ package it.pagopa.pn.ec.pec.rest;
 
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.exception.ss.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCallImpl;
+import it.pagopa.pn.ec.commons.rest.call.uribuilder.UriBuilderCall;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.pec.model.dto.NtStatoPecQueueDto;
-import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest;
-import it.pagopa.pn.ec.rest.v1.dto.Problem;
-import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
+import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -26,6 +25,8 @@ import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.NT_STATO_PEC_QUEUE_NAME;
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.PEC_INTERACTIVE_QUEUE_NAME;
@@ -35,8 +36,7 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INT
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
-import static org.springframework.http.HttpStatus.CONFLICT;
-import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
+import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
@@ -45,6 +45,9 @@ public class DigitalNotificationRequestApiControllerTest {
 
     @Autowired
     private WebTestClient webTestClient;
+
+    @MockBean
+    private UriBuilderCall uriBuilderCall;
 
     @MockBean
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
@@ -56,10 +59,15 @@ public class DigitalNotificationRequestApiControllerTest {
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final RequestDto requestDto = new RequestDto();
+    private static final FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
 
     @BeforeAll
     public static void createDigitalNotificationRequest() {
         String defaultStringInit = "string";
+
+        String defaultAttachmentUrl = "https://prova.pdf";
+        List<String> defaultListAttachmentUrls = new ArrayList<>();
+        defaultListAttachmentUrls.add(defaultAttachmentUrl);
 
         digitalNotificationRequest.setRequestId(defaultStringInit);
         digitalNotificationRequest.eventType(defaultStringInit);
@@ -70,6 +78,7 @@ public class DigitalNotificationRequestApiControllerTest {
         digitalNotificationRequest.channel(PEC);
         digitalNotificationRequest.setSubjectText(defaultStringInit);
         digitalNotificationRequest.setMessageContentType(PLAIN);
+        digitalNotificationRequest.setAttachmentsUrls(defaultListAttachmentUrls);
     }
 
     private WebTestClient.ResponseSpec sendPecTestCall(BodyInserter<DigitalNotificationRequest, ReactiveHttpOutputMessage> bodyInserter, String requestIdx) {
@@ -204,10 +213,21 @@ public class DigitalNotificationRequestApiControllerTest {
                                                                                                  .expectBody(Problem.class);
     }
 
-//    PECPIC.100.5 -> Attachment non disponibile dentro pn-ss
-//    @Test
-//    void sendPecWithoutValidAttachment() {
-//
-//    }
+    //PECPIC.100.5 -> Attachment non disponibile dentro pn-ss
+    @Test
+    void sendPecWithoutValidAttachment() {
+
+//        Client auth call -> OK
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenThrow(RestCallException.ResourceNotFoundException.class);
+
+        when(uriBuilderCall.getFile("https://prova.pdf", DEFAULT_ID_CLIENT_HEADER_VALUE, false)).thenReturn(Mono.empty());
+
+        sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                 .isEqualTo(NOT_FOUND)
+                                                                                                 .expectBody(Problem.class);
+
+    }
 
 }

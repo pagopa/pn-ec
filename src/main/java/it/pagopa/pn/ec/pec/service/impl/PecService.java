@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.pec.service.impl;
 
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
+import it.pagopa.pn.ec.commons.rest.call.uribuilder.UriBuilderCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.SqsService;
@@ -24,15 +25,20 @@ public class PecService extends PresaInCaricoService {
 
     private final SqsService sqsService;
 
-    protected PecService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService) {
+    private final UriBuilderCall uriBuilderCall;
+
+    protected PecService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService, UriBuilderCall uriBuilderCall) {
         super(authService, gestoreRepositoryCall);
         this.sqsService = sqsService;
+        this.uriBuilderCall = uriBuilderCall;
     }
 
     @Override
     protected Mono<Void> specificPresaInCarico(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(NT_STATO_PEC_QUEUE_NAME,
-                        new NtStatoPecQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(), INVIO_PEC, null, BOOKED))
+        return Mono.just((PecPresaInCaricoInfo) presaInCaricoInfo)
+                .flatMap(pecPresaInCaricoInfo -> uriBuilderCall.getFile(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls().get(0), presaInCaricoInfo.getXPagopaExtchCxId(), false))
+                .flatMap(fileDownloadResponse -> sqsService.send(NT_STATO_PEC_QUEUE_NAME,
+                        new NtStatoPecQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(), INVIO_PEC, null, BOOKED)))
                 .map(unused -> (PecPresaInCaricoInfo) presaInCaricoInfo)
                 .flatMap(pecPresaInCaricoInfo -> {
                     DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
