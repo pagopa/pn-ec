@@ -1,61 +1,72 @@
 package it.pagopa.pn.ec.notificationtracker.rest;
 
-import it.pagopa.pn.ec.commons.constant.Status;
-import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
-import it.pagopa.pn.ec.notificationtracker.model.NtStatoError;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
-import it.pagopa.pn.ec.rest.v1.dto.Problem;
+import it.pagopa.pn.ec.notificationtracker.model.NotificationRequestModel;
+import it.pagopa.pn.ec.notificationtracker.service.NotificationtrackerMessageReceiver;
+import it.pagopa.pn.ec.notificationtracker.service.impl.NotificationtrackerServiceImpl;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.mock.mockito.SpyBean;
-import org.springframework.http.ReactiveHttpOutputMessage;
-import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.reactive.function.BodyInserter;
-import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Mono;
 
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.*;
-import static it.pagopa.pn.ec.notificationtracker.rest.util.StateMachineUtils.getStatiMacchinaEndpoint;
-import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.when;
-import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-
+import static org.mockito.Mockito.*;
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NotificationtrackerControllerTest {
 
+
     @Autowired
-    private WebTestClient webTestClient;
+    NotificationtrackerMessageReceiver notificationtrackerMessageReceiver;
 
-    @SpyBean
-    private SqsServiceImpl sqsService;
-
-
-    @Test
-    void testGetValidateStatoSmS() throws Exception {
-        doThrow(SqsPublishException.class).when(sqsService).send(eq(NT_STATO_SMS_ERRATO_QUEUE_NAME), any(NtStatoError.class));
-
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    void testGetValidateStatoEmail() {
-        doThrow(SqsPublishException.class).when(sqsService).send(eq(NT_STATO_EMAIL_ERRATO_QUEUE_NAME), any(NtStatoError.class));
+    void testGetStatoSmS() {
+        NotificationRequestModel req = new NotificationRequestModel();
+        req.setProcessId("INVIO_SMS");
+        req.setCurrStatus("BOOKED");
+        req.setNextStatus("VALIDATE");
+        req.setXpagopaExtchCxId("C050");
+
+        notificationtrackerMessageReceiver.receiveSMSObjectMessage(req);
     }
 
     @Test
-    void testGetValidateStatoPec() {
-        doThrow(SqsPublishException.class).when(sqsService).send(eq(NT_STATO_PEC_ERRATO_QUEUE_NAME), any(NtStatoError.class));
+    void testGetEmailStatus() {
+        NotificationRequestModel req = new NotificationRequestModel();
+        req.setProcessId("INVIO_EMAIL");
+        req.setCurrStatus("BOOKED");
+        req.setNextStatus("VALIDATE");
+        req.setXpagopaExtchCxId("C050");
+        notificationtrackerMessageReceiver.receiveEmailObjectMessage(req);
     }
 
     @Test
-    void testGetValidateCartaceStatus() {
-        doThrow(SqsPublishException.class).when(sqsService).send(eq(NT_STATO_CARTACEO_ERRATO_QUEUE_NAME), any(NtStatoError.class));
+    void testGetPecStatus() {
+        NotificationRequestModel req = new NotificationRequestModel();
+        req.setProcessId("INVIO_PEC");
+        req.setCurrStatus("BOOKED");
+        req.setNextStatus("VALIDATE");
+        req.setXpagopaExtchCxId("C050");
+        notificationtrackerMessageReceiver.receivePecObjectMessage(req);
+    }
+
+    @Test
+    void testGetCartaceoStatus() {
+        NotificationRequestModel req = new NotificationRequestModel();
+        req.setProcessId("INVIO_CARTACEO");
+        req.setCurrStatus("BOOKED");
+        req.setNextStatus("VALIDATE");
+        req.setXpagopaExtchCxId("C050");
+        notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req);
     }
 }
+

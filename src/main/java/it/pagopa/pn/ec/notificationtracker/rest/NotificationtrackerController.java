@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.notificationtracker.rest;
 
 
 
+import io.awspring.cloud.messaging.listener.Acknowledgment;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import it.pagopa.pn.ec.notificationtracker.service.impl.NotificationtrackerServiceImpl;
@@ -16,43 +17,28 @@ import reactor.core.publisher.Mono;
 public class NotificationtrackerController   {
 
     private final  NotificationtrackerServiceImpl service;
-    public Mono<Void> getStatoSmS(String process, String status, String clientId, String nextStatus) throws Exception {
-
-        return service.getValidateStatoSmS(process,status,clientId,nextStatus);
+    public Mono<Void> getStatoSmS(String process, String status, String xpagopaExtchCxId, String nextStatus)  {
+        log.info("<-- START LAVORAZIONE RICHIESTA SMS -->");
+        return service.getValidateStatoSmS(process,status,xpagopaExtchCxId,nextStatus);
 
  }
 
-    public Mono<Void> getEmailStatus(String process, String status, String clientId, String nextStatus) throws Exception {
-
-        return service.getValidateStatoEmail(process,status,clientId,nextStatus);
+    public Mono<Void> getEmailStatus(String process, String status, String xpagopaExtchCxId, String nextStatus)  {
+        log.info("<-- START LAVORAZIONE RICHIESTA EMAIL -->");
+        return service.getValidateStatoEmail(process,status,xpagopaExtchCxId,nextStatus);
     }
 
-    public Mono<Void> getPecStatus(String process, String status, String clientId, String nextStatus) throws Exception {
-
-        return service.getValidateStatoPec(process,status,clientId,nextStatus);
+    public Mono<Void> getPecStatus(String process, String status, String xpagopaExtchCxId, String nextStatus)  {
+        log.info("<-- START LAVORAZIONE RICHIESTA PEC -->");
+        return service.getValidateStatoPec(process,status,xpagopaExtchCxId,nextStatus);
     }
 
-    public Mono<Void> getCartaceoStatus(String process, String status, String clientId, String nextStatus) throws Exception {
-
-        return service.getValidateCartaceStatus(process,status,clientId,nextStatus);
+    public Mono<Void> getCartaceoStatus(String process, String status, String xpagopaExtchCxId, String nextStatus)  {
+        log.info("<-- START LAVORAZIONE RICHIESTA CARTACEO -->");
+        return service.getValidateCartaceStatus(process,status,xpagopaExtchCxId,nextStatus);
 
     }
 
-    public Mono<Void> putStatoSmS(String process, String nextStatus, String clientId){
-        return service.putStatoSms(process,nextStatus,clientId);
-    }
-
-    public Mono<Void> putStatoEmail(String process, String nextStatus, String clientId){
-        return service.putStatoEmail(process,nextStatus,clientId);
-    }
-
-    public Mono<Void> putStatoPec(String process, String nextStatus, String clientId){
-        return service.putStatoPec(process,nextStatus,clientId);
-    }
-
-    public Mono<Void> putStatoCartaceo(String process, String nextStatus, String clientId){
-        return service.putStatoCartaceo(process,nextStatus,clientId);
-    }
 
 }
 	  

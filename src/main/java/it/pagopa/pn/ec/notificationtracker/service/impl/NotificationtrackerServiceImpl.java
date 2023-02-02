@@ -1,16 +1,20 @@
 package it.pagopa.pn.ec.notificationtracker.service.impl;
 
 
+import it.pagopa.pn.ec.commons.model.configurationproperties.endpoint.GestoreRepositoryEndpoint;
+import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.notificationtracker.model.NotificationResponseModel;
 import it.pagopa.pn.ec.notificationtracker.model.NtStatoError;
-import it.pagopa.pn.ec.notificationtracker.model.ResponseModel;
+import it.pagopa.pn.ec.notificationtracker.model.NotificationRequestModel;
+import it.pagopa.pn.ec.notificationtracker.service.PutEventsImpl;
+import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
+import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
-
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.*;
 
 
@@ -19,115 +23,122 @@ import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.*;
 public class NotificationtrackerServiceImpl  {
 
 	private final WebClient ecInternalWebClient;
+
+	private final PutEventsImpl putEventsImpl;
 	@Value("${statemachine.url}")
 	String statemachineGetClientEndpoint;
 
+	private final GestoreRepositoryCall gestoreRepositoryCall;
+
+
 	private final SqsService sqsService;
-	public NotificationtrackerServiceImpl(WebClient ecInternalWebClient, SqsService sqsService) {
+	public NotificationtrackerServiceImpl(WebClient ecInternalWebClient, PutEventsImpl putEventsImpl, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService) {
 		this.ecInternalWebClient = ecInternalWebClient;
+		this.putEventsImpl = putEventsImpl;
+		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.sqsService = sqsService;
+
 		this.statemachineGetClientEndpoint = statemachineGetClientEndpoint;
 	}
 
-	public Mono<Void> getValidateStatoSmS(String process, String status, String clientId, String nextStatus) throws Exception{
+	public Mono<Void> getValidateStatoSmS(String process, String status, String xpagopaExtchCxId, String nextStatus) {
 
 		return ecInternalWebClient.get()
 				.uri(uriBuilder -> uriBuilder.path(statemachineGetClientEndpoint + "{processId}/{status}" )
-						.queryParam("clientId",  clientId)
+						.queryParam("xpagopaExtchCxId",  xpagopaExtchCxId)
 						.queryParam("nextStatus" ,nextStatus)
 						.build(process,status))
 				.retrieve()
-				.bodyToMono(ResponseModel.class)
-				.publishOn(Schedulers.boundedElastic())
-				.flatMap(responseModel -> {
-					if(responseModel.isAllowed()){
-						System.out.println("tets" + responseModel.toString());
-
-						return putStatoSms(process,nextStatus,clientId);
-					}else {
-
-						return sqsService.send(NT_STATO_SMS_ERRATO_QUEUE_NAME, new NtStatoError(process, status,clientId));
+				.bodyToMono(NotificationResponseModel.class)
+				.flatMap(notificationResponseModel -> {
+					if(notificationResponseModel.isAllowed()){
+						log.info(">>> publish response {} ", notificationResponseModel);
+						EventsDto events  = new EventsDto();
+						events.getDigProgrStatus().setStatus(DigitalProgressStatusDto.StatusEnum.valueOf(nextStatus));
+						return gestoreRepositoryCall.updateRichiesta(xpagopaExtchCxId, events);
+					}if(notificationResponseModel.getMessage() != null){
+						return   putEventsImpl.putEventExternal(new NotificationRequestModel(process,xpagopaExtchCxId,nextStatus));
 					}
-				});
+					else {
+
+						return sqsService.send(NT_STATO_SMS_ERRATO_QUEUE_NAME, new NtStatoError(process, status,xpagopaExtchCxId));
+					}
+				}).then();
 
 	}
 
-	public Mono<Void> getValidateStatoEmail(String process, String status, String clientId, String nextStatus) {
+	public Mono<Void> getValidateStatoEmail(String process, String status, String xpagopaExtchCxId, String nextStatus) {
 		return ecInternalWebClient.get()
 				.uri(uriBuilder -> uriBuilder.path(statemachineGetClientEndpoint + "{processId}/{status}" )
-						.queryParam("clientId",  clientId)
+						.queryParam("xpagopaExtchCxId",  xpagopaExtchCxId)
 						.queryParam("nextStatus" ,nextStatus)
 						.build(process,status))
 				.retrieve()
-				.bodyToMono(ResponseModel.class)
-				.flatMap(responseModel -> {
-					if(responseModel.isAllowed()){
-						System.out.println("tets" + responseModel.toString());
-
-						return putStatoEmail(process,nextStatus,clientId);
-					}else {
-
-						return sqsService.send(NT_STATO_EMAIL_ERRATO_QUEUE_NAME, new NtStatoError(process, status,clientId));
+				.bodyToMono(NotificationResponseModel.class)
+				.flatMap(notificationResponseModel -> {
+					if(notificationResponseModel.isAllowed()){
+						log.info(">>> publish response {} ", notificationResponseModel);
+						EventsDto events  = new EventsDto();
+						events.getDigProgrStatus().setStatus(DigitalProgressStatusDto.StatusEnum.valueOf(nextStatus));
 					}
-				});
+					if(notificationResponseModel.getMessage() != null){
+						return   putEventsImpl.putEventExternal(new NotificationRequestModel(process,xpagopaExtchCxId,nextStatus));
+					}
+					else {
+						return sqsService.send(NT_STATO_EMAIL_ERRATO_QUEUE_NAME, new NtStatoError(process, status,xpagopaExtchCxId));
+					}
+				}).then();
 
 	}
 
 
 
-	public Mono<Void> getValidateStatoPec(String process, String status, String clientId, String nextStatus) {
+	public Mono<Void> getValidateStatoPec(String process, String status, String xpagopaExtchCxId, String nextStatus) {
 		return ecInternalWebClient.get()
 				.uri(uriBuilder -> uriBuilder.path(statemachineGetClientEndpoint + "{processId}/{status}" )
-						.queryParam("clientId",  clientId)
+						.queryParam("xpagopaExtchCxId",  xpagopaExtchCxId)
 						.queryParam("nextStatus" ,nextStatus)
 						.build(process,status))
 				.retrieve()
-				.bodyToMono(ResponseModel.class)
-				.flatMap(responseModel -> {
-					if(responseModel.isAllowed()){
-						System.out.println("tets" + responseModel.toString());
-
-						return putStatoPec(process,nextStatus,clientId);
-					}else {
-
-						return sqsService.send(NT_STATO_PEC_ERRATO_QUEUE_NAME, new NtStatoError(process, status,clientId));
+				.bodyToMono(NotificationResponseModel.class)
+				.flatMap(notificationResponseModel -> {
+					if(notificationResponseModel.isAllowed()){
+						log.info(">>> publish response {} ", notificationResponseModel);
+						EventsDto events  = new EventsDto();
+						events.getDigProgrStatus().setStatus(DigitalProgressStatusDto.StatusEnum.valueOf(nextStatus));
+					}if(notificationResponseModel.getMessage() != null){
+						return   putEventsImpl.putEventExternal(new NotificationRequestModel(process,xpagopaExtchCxId,nextStatus));
 					}
-				});
+					else {
+						return sqsService.send(NT_STATO_PEC_ERRATO_QUEUE_NAME, new NtStatoError(process, status,xpagopaExtchCxId));
+					}
+				}).then();
 
 	}
 
-	public Mono<Void> getValidateCartaceStatus(String process, String status, String clientId, String nextStatus) {
+	public Mono<Void> getValidateCartaceStatus(String process, String status, String xpagopaExtchCxId, String nextStatus) {
 		return ecInternalWebClient.get()
 				.uri(uriBuilder -> uriBuilder.path(statemachineGetClientEndpoint + "{processId}/{status}" )
-						.queryParam("clientId",  clientId)
+						.queryParam("xpagopaExtchCxId",  xpagopaExtchCxId)
 						.queryParam("nextStatus" ,nextStatus)
 						.build(process,status))
 				.retrieve()
-				.bodyToMono(ResponseModel.class)
-				.flatMap(responseModel -> {
-					if(responseModel.isAllowed()){
-						System.out.println("tets" + responseModel.toString());
-
-						return putStatoCartaceo(process,nextStatus,clientId);
-					}else {
-
-						return sqsService.send(NT_STATO_CARTACEO_ERRATO_QUEUE_NAME, new NtStatoError(process, status,clientId));
+				.bodyToMono(NotificationResponseModel.class)
+				.flatMap(notificationResponseModel -> {
+					if(notificationResponseModel.isAllowed()){
+						log.info(">>> publish response {} ", notificationResponseModel);
+						EventsDto events  = new EventsDto();
+						events.getDigProgrStatus().setStatus(DigitalProgressStatusDto.StatusEnum.valueOf(nextStatus));
 					}
-				});
+					if(notificationResponseModel.getMessage() != null){
+						return   putEventsImpl.putEventExternal(new NotificationRequestModel(process,xpagopaExtchCxId,nextStatus));
+					}
+					else {
+						return sqsService.send(NT_STATO_CARTACEO_ERRATO_QUEUE_NAME, new NtStatoError(process, status,xpagopaExtchCxId));
+					}
+				}).then();
 
 	}
 
-	public Mono<Void> putStatoSms(String process, String nextStatus, String clientId) {
-		return null;
-	}
 
-	public Mono<Void> putStatoEmail(String process, String nextStatus, String clientId) {
-		return null;
-	}
-	public Mono<Void> putStatoPec(String process, String nextStatus, String clientId) {
-		return null;
-	}
-	public Mono<Void> putStatoCartaceo(String process, String nextStatus, String clientId) {
-		return null;
-	}
 }

@@ -4,6 +4,7 @@ import it.pagopa.pn.ec.commons.model.configurationproperties.endpoint.GestoreRep
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
+import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -70,8 +71,14 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     }
 
     @Override
-    public Mono<RequestDto> updateRichiesta(String requestIdx, RequestDto requestDto) {
-        return null;
+    public Mono<RequestDto> updateRichiesta(String requestIdx, EventsDto eventsDto) {
+        return ecInternalWebClient.put()
+                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpoint.getPatchRequest()).build(requestIdx)).bodyValue(eventsDto)
+                .retrieve()
+                .onStatus(BAD_REQUEST::equals,
+                        clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException(
+                                "Request requestIdx not  " + "found")))
+                .bodyToMono(RequestDto.class);
     }
 
     @Override
