@@ -1,28 +1,47 @@
 package it.pagopa.pn.ec.sms.service;
 
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
+import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCallImpl;
+import it.pagopa.pn.ec.commons.service.SnsService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
+import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
+import reactor.core.publisher.Mono;
+import software.amazon.awssdk.services.sns.model.PublishResponse;
 
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.SMS_INTERACTIVE_QUEUE_NAME;
+import static it.pagopa.pn.ec.commons.constant.ProcessId.INVIO_SMS;
+import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.NT_STATO_SMS_QUEUE_NAME;
+import static it.pagopa.pn.ec.commons.constant.status.CommonStatus.BOOKED;
+import static it.pagopa.pn.ec.commons.constant.status.CommonStatus.SENT;
+import static it.pagopa.pn.ec.sms.testutils.DigitalCourtesySmsRequestFactory.createSmsRequest;
+import static org.mockito.Mockito.*;
 
 
 @SpringBootTestWebEnv
+@ExtendWith(MockitoExtension.class)
 class SmsServiceTest {
 
     @Autowired
     private SmsService smsService;
 
-    @Autowired
+    @SpyBean
     private SqsServiceImpl sqsService;
 
-    @Mock
-    private Acknowledgment acknowledgment;
+    @SpyBean
+    private SnsService snsService;
+
+    @MockBean
+    private GestoreRepositoryCallImpl gestoreRepositoryCall;
+
+    private static final DigitalCourtesySmsRequest digitalCourtesySmsRequest = createSmsRequest();
 
     /**
      * <h3>SMSLR.107.1</h3>
@@ -33,8 +52,16 @@ class SmsServiceTest {
      * <b>Risultato atteso:</b> Pubblicazione sulla coda Notification Tracker -> OK
      */
     @Test
-    void lavorazioneRichiestaOk() {
-        smsService.lavorazioneRichiesta(new DigitalCourtesySmsRequest(), acknowledgment);
+    void lavorazioneRichiestaOk(){
+
+        when(snsService.send(anyString(), anyString())).thenReturn(Mono.just(PublishResponse.builder().build()));
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.just(new RequestDto()));
+
+        smsService.lavorazioneRichiesta(digitalCourtesySmsRequest);
+
+        verify(snsService, times(1)).send(digitalCourtesySmsRequest.getReceiverDigitalAddress(), digitalCourtesySmsRequest.getMessageText());
+        verify(gestoreRepositoryCall, times(1)).getRichiesta(digitalCourtesySmsRequest.getRequestId());
+        verify(sqsService, times(1)).send(NT_STATO_SMS_QUEUE_NAME, new NotificationTrackerQueueDto(digitalCourtesySmsRequest.getRequestId(), null, INVIO_SMS, BOOKED, SENT));
     }
 
     /**

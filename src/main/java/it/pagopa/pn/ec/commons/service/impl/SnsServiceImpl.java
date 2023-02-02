@@ -21,7 +21,8 @@ public class SnsServiceImpl implements SnsService {
         this.snsAsyncClient = snsAsyncClient;
     }
 
-    private Mono<PublishResponse> sendSmsWithNoRetry(String message, String phoneNumber) {
+    @Override
+    public Mono<PublishResponse> send(String phoneNumber, String message) {
         return Mono.fromFuture(snsAsyncClient.publish(builder -> builder.message(message).phoneNumber(phoneNumber)))
                    .onErrorResume(throwable -> {
                        log.error(throwable.getMessage(), throwable);
@@ -31,15 +32,5 @@ public class SnsServiceImpl implements SnsService {
                                                                 message,
                                                                 phoneNumber,
                                                                 sendMessageResponse.sdkHttpResponse().statusCode()));
-    }
-
-    @Override
-    public Mono<PublishResponse> send(String message, String phoneNumber) {
-        return sendSmsWithNoRetry(message, phoneNumber).retryWhen(DEFAULT_RETRY_STRATEGY);
-    }
-
-    @Override
-    public Mono<PublishResponse> send(String message, String phoneNumber, Retry customRetryStrategy) {
-        return sendSmsWithNoRetry(message, phoneNumber).retryWhen(customRetryStrategy);
     }
 }

@@ -16,7 +16,5 @@ public interface SnsService {
                                             throw new SnsSendException.SnsMaxRetriesExceededException();
                                         });
 
-    Mono<PublishResponse> send(String message, String phoneNumber);
-
-    Mono<PublishResponse> send(String message, String phoneNumber, Retry customRetryStrategy);
+    Mono<PublishResponse> send(String phoneNumber, String message);
 }

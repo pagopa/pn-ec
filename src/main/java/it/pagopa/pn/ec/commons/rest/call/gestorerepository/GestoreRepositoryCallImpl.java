@@ -7,10 +7,12 @@ import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 
 @Service
 @Slf4j
@@ -66,7 +68,14 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
     @Override
     public Mono<RequestDto> insertRichiesta(RequestDto requestDto) {
-        return null;
+        return ecInternalWebClient.post()
+                                  .uri(gestoreRepositoryEndpoint.getPostRequest())
+                                  .body(BodyInserters.fromValue(requestDto))
+                                  .retrieve()
+                                  .onStatus(FORBIDDEN::equals,
+                                            clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException(
+                                                    "Request already exists")))
+                                  .bodyToMono(RequestDto.class);
     }
 
     @Override
