@@ -67,20 +67,20 @@ public class DigitalNotificationRequestApiControllerTest {
         requestDto.setRequestIdx("requestIdx");
 
 
-//        String defaultAttachmentUrl = "https://prova.pdf";
-//        List<String> defaultListAttachmentUrls = new ArrayList<>();
-//        defaultListAttachmentUrls.add(defaultAttachmentUrl);
-//
-//        digitalNotificationRequest.setRequestId(defaultStringInit);
-//        digitalNotificationRequest.eventType(defaultStringInit);
-//        digitalNotificationRequest.setClientRequestTimeStamp(OffsetDateTime.now());
-//        digitalNotificationRequest.setQos(INTERACTIVE);
-//        digitalNotificationRequest.setReceiverDigitalAddress(defaultStringInit);
-//        digitalNotificationRequest.setMessageText(defaultStringInit);
-//        digitalNotificationRequest.channel(PEC);
-//        digitalNotificationRequest.setSubjectText(defaultStringInit);
-//        digitalNotificationRequest.setMessageContentType(PLAIN);
-//        digitalNotificationRequest.setAttachmentsUrls(defaultListAttachmentUrls);
+        String defaultAttachmentUrl = "https://prova.pdf";
+        List<String> defaultListAttachmentUrls = new ArrayList<>();
+        defaultListAttachmentUrls.add(defaultAttachmentUrl);
+
+        digitalNotificationRequest.setRequestId("requestIdx");
+        digitalNotificationRequest.eventType("");
+        digitalNotificationRequest.setClientRequestTimeStamp(OffsetDateTime.now());
+        digitalNotificationRequest.setQos(INTERACTIVE);
+        digitalNotificationRequest.setReceiverDigitalAddress("");
+        digitalNotificationRequest.setMessageText("");
+        digitalNotificationRequest.channel(PEC);
+        digitalNotificationRequest.setSubjectText("");
+        digitalNotificationRequest.setMessageContentType(PLAIN);
+        digitalNotificationRequest.setAttachmentsUrls(defaultListAttachmentUrls);
     }
 
     private WebTestClient.ResponseSpec sendPecTestCall(BodyInserter<DigitalNotificationRequest, ReactiveHttpOutputMessage> bodyInserter, String requestIdx) {
