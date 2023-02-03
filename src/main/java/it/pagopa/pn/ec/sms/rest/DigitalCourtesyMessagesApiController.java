@@ -4,7 +4,7 @@ import it.pagopa.pn.ec.rest.v1.api.DigitalCourtesyMessagesApi;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
-import it.pagopa.pn.ec.sms.service.impl.SmsService;
+import it.pagopa.pn.ec.sms.service.SmsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;

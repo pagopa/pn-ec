@@ -5,12 +5,14 @@ import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
+import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.sms.model.dto.NtStatoSmsQueueDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import it.pagopa.pn.ec.testutils.configuration.MockMessageListenerConfiguration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.ReactiveHttpOutputMessage;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
@@ -31,6 +34,7 @@ import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.NT_STATO_SMS_QU
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.SMS_INTERACTIVE_QUEUE_NAME;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.ChannelEnum.SMS;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
+import static it.pagopa.pn.ec.sms.testutils.DigitalCourtesySmsRequestFactory.createSmsRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
@@ -55,21 +59,15 @@ class DigitalCourtesyMessagesApiControllerTest {
     private static final String SEND_SMS_ENDPOINT =
             "/external-channels/v1/digital-deliveries/courtesy-simple-message-requests" + "/{requestIdx}";
 
-    private static final DigitalCourtesySmsRequest digitalCourtesySmsRequest = new DigitalCourtesySmsRequest();
+    private static final DigitalCourtesySmsRequest digitalCourtesySmsRequest = createSmsRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final RequestDto requestDto = new RequestDto();
 
     @BeforeAll
     public static void createDigitalCourtesySmsRequest() {
-        String defaultStringInit = "string";
 
-        digitalCourtesySmsRequest.setRequestId(defaultStringInit);
-        digitalCourtesySmsRequest.eventType(defaultStringInit);
-        digitalCourtesySmsRequest.setClientRequestTimeStamp(OffsetDateTime.now());
-        digitalCourtesySmsRequest.setQos(INTERACTIVE);
-        digitalCourtesySmsRequest.setReceiverDigitalAddress(defaultStringInit);
-        digitalCourtesySmsRequest.setMessageText(defaultStringInit);
-        digitalCourtesySmsRequest.channel(SMS);
+//      Mock an existing request. Set the requestIdx
+        requestDto.setRequestIdx("requestIdx");
     }
 
     private WebTestClient.ResponseSpec sendSmsTestCall(BodyInserter<DigitalCourtesySmsRequest, ReactiveHttpOutputMessage> bodyInserter,
@@ -83,10 +81,12 @@ class DigitalCourtesyMessagesApiControllerTest {
                                  .exchange();
     }
 
+    // Per il momento le chiamate tra i vari microservizi di EC sono mocckate per evitare problemi di precondizioni nei vari ambienti
+
     //SMSPIC.107.1 -> Test case positivo
     @Test
     void sendSmsOk() {
-//      Per il momento gli esiti positivi delle chiamate interne sono mocckati dato che non sono ancora stati implementati gli endpoint
+
         when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.empty());
 
@@ -126,11 +126,10 @@ class DigitalCourtesyMessagesApiControllerTest {
 
 //      Client auth call -> OK
 //      Client non tornato dall'anagrafica client
-        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException(
-                "Client not " + "found")));
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
-//      Retrieve status -> OK
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.just(requestDto));
+//      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                 .isUnauthorized()
@@ -144,7 +143,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 //      Client auth call -> OK
         when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-//      Retrieve status -> KO
+//      Retrieve request -> KO
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenThrow(EcInternalEndpointHttpException.class);
 
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
@@ -160,7 +159,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 //      Client auth -> OK
         when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-//      Status della richiesta tornato dall'anagrafica client -> IN_LAVORAZIONE
+//      Retrieve request -> Return an existent request, return 409 status
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.just(requestDto));
 
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
@@ -175,11 +174,12 @@ class DigitalCourtesyMessagesApiControllerTest {
 //      Client auth -> OK
         when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-//      Retrieve status -> OK
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.empty());
+//      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(NT_STATO_SMS_QUEUE_NAME), any(NtStatoSmsQueueDto.class))).thenReturn(Mono.error(new SqsPublishException(NT_STATO_SMS_QUEUE_NAME)));
+        when(sqsService.send(eq(NT_STATO_SMS_QUEUE_NAME), any(NtStatoSmsQueueDto.class))).thenReturn(Mono.error(new SqsPublishException(
+                NT_STATO_SMS_QUEUE_NAME)));
 
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)
@@ -193,11 +193,12 @@ class DigitalCourtesyMessagesApiControllerTest {
 //      Client auth -> OK
         when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-//      Retrieve status -> OK
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.empty());
+//      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(SMS_INTERACTIVE_QUEUE_NAME), any(DigitalCourtesySmsRequest.class))).thenReturn(Mono.error(new SqsPublishException(SMS_INTERACTIVE_QUEUE_NAME)));
+        when(sqsService.send(eq(SMS_INTERACTIVE_QUEUE_NAME),
+                             any(DigitalCourtesySmsRequest.class))).thenReturn(Mono.error(new SqsPublishException(SMS_INTERACTIVE_QUEUE_NAME)));
 
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)

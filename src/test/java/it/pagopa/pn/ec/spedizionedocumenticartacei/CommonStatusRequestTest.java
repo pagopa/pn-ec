@@ -1,9 +1,10 @@
 package it.pagopa.pn.ec.spedizionedocumenticartacei;
 
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-class StatusRequestTest {
+@Slf4j
+class CommonStatusRequestTest {
 	
 	ServicePaperDocument service = new ServicePaperDocument();
 	
@@ -13,48 +14,48 @@ class StatusRequestTest {
 	
 	@Test
 	//SCRR.100.3 connection refused - error 500
-	public void connectionFailed() {
+	void connectionFailed() {
 		HeaderRequest headerParam = new HeaderRequest();
 		headerParam.setXApiKey(API_KEY);
 		headerParam.setRequestId(REQUEST_ID);
 		
-		System.out.println(headerParam.toString());
+		log.info(String.valueOf(headerParam));
 		Assertions.assertFalse(service.getConnection(headerParam), "Connection Refused");
 	}
 	
 	@Test
 	//SCRR.100.1 status code - 200
-    public void statusCodeSuccess() {
+    void statusCodeSuccess() {
 		HeaderRequest headerParam = new HeaderRequest();
 		headerParam.setXPagopaExtchServiceId(SERVICE_ID);
 		headerParam.setXApiKey(API_KEY);
 		headerParam.setRequestId(REQUEST_ID);
 		
-		System.out.println(headerParam.toString());
+		log.info(String.valueOf(headerParam));
 		Assertions.assertNotNull(service.getStatusCode(headerParam), "Richiesta trovata");
     }
 	
 	@Test
 	//SCRR.100.2 status code - error 404
-    public void requestNotSent() {
+    void requestNotSent() {
 		HeaderRequest headerParam = new HeaderRequest();
 		headerParam.setXPagopaExtchServiceId(SERVICE_ID);
 		headerParam.setXApiKey(API_KEY);
 		headerParam.setRequestId("");
 		
-		System.out.println(headerParam.toString());
+		log.info(String.valueOf(headerParam));
 		Assertions.assertNotNull(service.getStatusCode(headerParam), "RequestId non corretto");
     }
 	
 	@Test
 	//authentication failed
-    public void authenticationFailed() {
+    void authenticationFailed() {
 		HeaderRequest headerParam = new HeaderRequest();
 		headerParam.setXPagopaExtchServiceId(SERVICE_ID);
 		headerParam.setXApiKey("");
 		headerParam.setRequestId(REQUEST_ID);
 		
-		System.out.println(headerParam.toString());
+		log.info(String.valueOf(headerParam));
 		Assertions.assertNotNull(service.getStatusCode(headerParam), "Required field is not provided");
     }
 
