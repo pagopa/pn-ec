@@ -29,53 +29,53 @@ public class PecService extends PresaInCaricoService {
 
     private final UriBuilderCall uriBuilderCall;
 
-    protected PecService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService, UriBuilderCall uriBuilderCall) {
+    protected PecService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
+                         UriBuilderCall uriBuilderCall) {
         super(authService, gestoreRepositoryCall);
         this.sqsService = sqsService;
         this.uriBuilderCall = uriBuilderCall;
     }
 
     @Override
-    protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo, RequestDto requestDtoPresentOrToInsert) {
+    protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo, RequestDto requestToInsert) {
         //      Cast PresaInCaricoInfo to specific SmsPresaInCaricoInfo
-        return Mono.just((PecPresaInCaricoInfo) presaInCaricoInfo)
-                .flatMap(pecPresaInCaricoInfo -> {
-                    if (requestDtoPresentOrToInsert.getRequestIdx() == null) {
-                        var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
-                        digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-                        return insertRequestFromPec(digitalNotificationRequest);
-                    } else {
-                        return Mono.just(requestDtoPresentOrToInsert);
-                    }
-                })
-                .onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()))
-                .flatMap(requestDto -> sqsService.send(NT_STATO_PEC_QUEUE_NAME,
-                        new NtStatoPecQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(),
-                                INVIO_PEC,
-                                null,
-                                BOOKED)))
+        PecPresaInCaricoInfo pecPresaInCaricoInfo = (PecPresaInCaricoInfo) presaInCaricoInfo;
+        return uriBuilderCall.getFile(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls().get(0),
+                                      presaInCaricoInfo.getXPagopaExtchCxId(),
+                                      false)
+                             .flatMap(fileDownloadResponse -> {
+                                 var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
+                                 digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
+                                 return insertRequestFromPec(digitalNotificationRequest);
+                             })
+                             .onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()))
+                             .flatMap(requestDto -> sqsService.send(NT_STATO_PEC_QUEUE_NAME,
+                                                                    new NtStatoPecQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(),
+                                                                                           INVIO_PEC,
+                                                                                           null,
+                                                                                           BOOKED)))
 
-                .thenReturn((PecPresaInCaricoInfo) presaInCaricoInfo)
-                .flatMap(pecPresaInCaricoInfo -> uriBuilderCall.getFile(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls().get(0), presaInCaricoInfo.getXPagopaExtchCxId(), false))
-                .flatMap(fileDownloadResponse -> sqsService.send(NT_STATO_PEC_QUEUE_NAME,
-                        new NtStatoPecQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(), INVIO_PEC, null, BOOKED)))
-                .map(unused -> (PecPresaInCaricoInfo) presaInCaricoInfo)
-
-                .flatMap(pecPresaInCaricoInfo -> {
-                    DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
-                    if (qos == INTERACTIVE) {
-                        return sqsService.send(PEC_INTERACTIVE_QUEUE_NAME, pecPresaInCaricoInfo.getDigitalNotificationRequest());
-                    } else if (qos == BATCH) {
-                        return sqsService.send(PEC_BATCH_QUEUE_NAME, pecPresaInCaricoInfo.getDigitalNotificationRequest());
-                    } else {
-                        return Mono.empty();
-                    }
-                })
-                .then();
+                             .thenReturn((PecPresaInCaricoInfo) presaInCaricoInfo)
+                             .flatMap(fileDownloadResponse -> sqsService.send(NT_STATO_PEC_QUEUE_NAME,
+                                                                              new NtStatoPecQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(),
+                                                                                                     INVIO_PEC,
+                                                                                                     null,
+                                                                                                     BOOKED)))
+                             .flatMap(sendMessageResponse -> {
+                                 DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
+                                 if (qos == INTERACTIVE) {
+                                     return sqsService.send(PEC_INTERACTIVE_QUEUE_NAME,
+                                                            pecPresaInCaricoInfo.getDigitalNotificationRequest());
+                                 } else if (qos == BATCH) {
+                                     return sqsService.send(PEC_BATCH_QUEUE_NAME, pecPresaInCaricoInfo.getDigitalNotificationRequest());
+                                 } else {
+                                     return Mono.empty();
+                                 }
+                             })
+                             .then();
     }
 
     private Mono<RequestDto> insertRequestFromPec(final DigitalNotificationRequest digitalNotificationRequest) {
         return null;
     }
-
 }

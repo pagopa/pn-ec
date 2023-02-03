@@ -83,15 +83,16 @@ public class DigitalNotificationRequestApiControllerTest {
         digitalNotificationRequest.setAttachmentsUrls(defaultListAttachmentUrls);
     }
 
-    private WebTestClient.ResponseSpec sendPecTestCall(BodyInserter<DigitalNotificationRequest, ReactiveHttpOutputMessage> bodyInserter, String requestIdx) {
+    private WebTestClient.ResponseSpec sendPecTestCall(BodyInserter<DigitalNotificationRequest, ReactiveHttpOutputMessage> bodyInserter,
+                                                       String requestIdx) {
 
         return this.webTestClient.put()
-                .uri(uriBuilder -> uriBuilder.path(SEND_PEC_ENDPOINT).build(requestIdx))
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_JSON)
-                .body(bodyInserter)
-                .header(ID_CLIENT_HEADER_NAME, DEFAULT_ID_CLIENT_HEADER_VALUE)
-                .exchange();
+                                 .uri(uriBuilder -> uriBuilder.path(SEND_PEC_ENDPOINT).build(requestIdx))
+                                 .accept(APPLICATION_JSON)
+                                 .contentType(APPLICATION_JSON)
+                                 .body(bodyInserter)
+                                 .header(ID_CLIENT_HEADER_NAME, DEFAULT_ID_CLIENT_HEADER_VALUE)
+                                 .exchange();
     }
 
     // Per il momento le chiamate tra i vari microservizi di EC sono mocckate per evitare problemi di precondizioni nei vari ambienti
@@ -190,7 +191,8 @@ public class DigitalNotificationRequestApiControllerTest {
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(NT_STATO_PEC_QUEUE_NAME), any(NtStatoPecQueueDto.class))).thenReturn(Mono.error(new SqsPublishException(NT_STATO_PEC_QUEUE_NAME)));
+        when(sqsService.send(eq(NT_STATO_PEC_QUEUE_NAME), any(NtStatoPecQueueDto.class))).thenReturn(Mono.error(new SqsPublishException(
+                NT_STATO_PEC_QUEUE_NAME)));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                  .isEqualTo(SERVICE_UNAVAILABLE)
@@ -208,7 +210,9 @@ public class DigitalNotificationRequestApiControllerTest {
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(PEC_INTERACTIVE_QUEUE_NAME), any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsPublishException(PEC_INTERACTIVE_QUEUE_NAME)));
+        when(sqsService.send(eq(PEC_INTERACTIVE_QUEUE_NAME),
+                             any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsPublishException(
+                PEC_INTERACTIVE_QUEUE_NAME)));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                  .isEqualTo(SERVICE_UNAVAILABLE)
@@ -222,7 +226,7 @@ public class DigitalNotificationRequestApiControllerTest {
 //        Client auth call -> OK
         when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenThrow(RestCallException.ResourceNotFoundException.class);
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
         when(uriBuilderCall.getFile("https://prova.pdf", DEFAULT_ID_CLIENT_HEADER_VALUE, false)).thenReturn(Mono.empty());
 
