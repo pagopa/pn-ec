@@ -4,7 +4,7 @@ Description: Some storage with input and output
 Parameters:
   ProjectName:
     Type: String
-    Description: Nome dell'ambiente destinazione
+    Description: "Nome dell'ambiente destinazione"
 
   # Unused but required by CD pipeline
   MicroserviceNumber:
@@ -20,111 +20,53 @@ Parameters:
     Type: String
     Description: 'keep track of used projects commitIds'
   
-  CdcKinesisSourceStreamArn:
-    Type: String
-    Description: 'Where to send CDC'
+  # CdcKinesisSourceStreamArn:
+  #   Type: String
+  #   Description: 'Where to send CDC'
 
-  PnEcTableNameAnagrafica:
-    Type: String
-    Description: Description
-  
-  PnEcTableNameRichieste:
-    Type: String
-    Description: Description
-
-  PnEcQueueNameSMS:
-    Type: String
-    Description: Description
-
-  PnEcQueueNameErroriSMS:
-    Type: String
-    Description: Description
-
-  PnEcQueueNameTrackerStatoSMS:
-    Type: String
-    Description: Description
-
-  PnEcQueueNameTrackerErroriSMS:
-    Type: String
-    Description: Description
-
-  PnEcQueueNameNotificheExt1:
-    Type: String
-    Description: Description 
-
-  PnEcECSExecutionRoleName:
-    Type: String
-    Description: Description 
-
-  PnEcTaskNameTracker:
-    Type: String
-    Description: Description
-  
-  PnEcTaskNameSMS:
-    Type: String
-    Description: Description
-
-  PnEcEventRuleNameNotificheExt1:
-    Type: String
-    Description: Description
-
-  PnEcSNSNameNotificheExt1:
-    Type: String
-    Description: Description
 
 Resources:
-
-  NullResource:
-    Type: AWS::CloudFormation::WaitConditionHandle
 
   PnEcTableAnagrafica:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-        -   
-          AttributeName: "cxId"
-          AttributeType: "S"
+        - AttributeName: 'cxId'
+          AttributeType: 'S'
       KeySchema: 
-        -   
-          AttributeName: "cxId"
-          KeyType: "HASH"
+        - AttributeName: 'cxId'
+          KeyType: 'HASH'
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
       SSESpecification:
         SSEEnabled: true
-        SSEType: "KMS"
-      TableClass: "STANDARD"
-      TableName: !Ref PnEcTableNameAnagrafica
+        SSEType: 'KMS'
+      TableClass: 'STANDARD'
     DeletionPolicy: Retain
 
   PnEcTableRichieste:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-        -   
-          AttributeName: "requestId"
-          AttributeType: "S"
-        -   
-          AttributeName: "correlationId"
-          AttributeType: "S"
+        - AttributeName: 'requestId'
+          AttributeType: 'S'
+        - AttributeName: 'correlationId'
+          AttributeType: 'S'
       KeySchema: 
-        -   
-          AttributeName: "requestId"
-          KeyType: "HASH"
-        -
-          AttributeName: "correlationId"
-          KeyType: "RANGE"
+        - AttributeName: 'requestId'
+          KeyType: 'HASH'
+        - AttributeName: 'correlationId'
+          KeyType: 'RANGE'
       #KinesisStreamSpecification:
-      #  StreamArn: "String"
+      #  StreamArn: 'String'
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
       SSESpecification:
         SSEEnabled: true
-        SSEType: "KMS"
-      TableClass: "STANDARD"
-      TableName: !Ref PnEcTableNameRichieste
+        SSEType: 'KMS'
+      TableClass: 'STANDARD'
     DeletionPolicy: Retain
 
   PnEcQueueTrackerStatoSMS:
@@ -133,8 +75,7 @@ Resources:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
       MessageRetentionPeriod: 1209600
-      QueueName: !Ref PnEcQueueNameTrackerStatoSMS
-      ReceiveMessageWaitTimeSeconds: 20      
+      ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
         deadLetterTargetArn : !GetAtt PnEcDLQueueTrackerStatoSMS.Arn
         maxReceiveCount : 10
@@ -146,11 +87,7 @@ Resources:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
       MessageRetentionPeriod: 1209600
-      QueueName: !Join 
-        - ""
-        - - !Ref PnEcQueueNameTrackerStatoSMS
-          - '-dlq' 
-      ReceiveMessageWaitTimeSeconds: 20
+      ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
 
   PnEcQueueTrackerErroriSMS:
@@ -159,8 +96,7 @@ Resources:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
       MessageRetentionPeriod: 1209600
-      QueueName: !Ref PnEcQueueNameTrackerErroriSMS
-      ReceiveMessageWaitTimeSeconds: 20      
+      ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt PnEcDLQueueTrackerErroriSMS.Arn
         maxReceiveCount: 10
@@ -172,63 +108,7 @@ Resources:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
       MessageRetentionPeriod: 1209600
-      QueueName: !Join 
-        - ""
-        - - !Ref PnEcQueueNameTrackerErroriSMS
-          - '-dlq' 
-      ReceiveMessageWaitTimeSeconds: 20
-      VisibilityTimeout: 30
-
-  PnEcQueueSMS:
-    Type: AWS::SQS::Queue
-    Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
-      MessageRetentionPeriod: 1209600
-      QueueName: !Ref PnEcQueueNameSMS
-      ReceiveMessageWaitTimeSeconds: 20      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueSMS.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
-
-  PnEcDLQueueSMS:
-    Type: AWS::SQS::Queue
-    Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
-      MessageRetentionPeriod: 1209600
-      QueueName: !Join 
-        - ""
-        - - !Ref PnEcQueueNameSMS
-          - '-dlq' 
-      ReceiveMessageWaitTimeSeconds: 20
-      VisibilityTimeout: 30
-
-  PnEcQueueErroriSMS:
-    Type: AWS::SQS::Queue
-    Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
-      MessageRetentionPeriod: 1209600
-      QueueName: !Ref PnEcQueueNameErroriSMS
-      ReceiveMessageWaitTimeSeconds: 20      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueErroriSMS.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
-
-  PnEcDLQueueErroriSMS:
-    Type: AWS::SQS::Queue
-    Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
-      MessageRetentionPeriod: 1209600
-      QueueName: !Join 
-        - ""
-        - - !Ref PnEcQueueNameErroriSMS
-          - '-dlq' 
-      ReceiveMessageWaitTimeSeconds: 20
+      ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
 
   PnEcQueueNotificheExt1:
@@ -237,8 +117,7 @@ Resources:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
       MessageRetentionPeriod: 1209600
-      QueueName: !Ref PnEcQueueNameNotificheExt1
-      ReceiveMessageWaitTimeSeconds: 20      
+      ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
         deadLetterTargetArn : !GetAtt PnEcDLQueueNotificheExt1.Arn
         maxReceiveCount : 10
@@ -250,74 +129,9 @@ Resources:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
       MessageRetentionPeriod: 1209600
-      QueueName: !Join 
-        - ""
-        - - !Ref PnEcQueueNameNotificheExt1
-          - '-dlq' 
-      ReceiveMessageWaitTimeSeconds: 20
+      ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
-
-  QueuePolicyTracker:
-    Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
-        - !GetAtt PnEcQueueTrackerStatoSMS.QueueUrl 
-        - !GetAtt PnEcQueueTrackerErroriSMS.QueueUrl 
-      PolicyDocument: 
-        Statement: 
-          - Action: 
-              - "SQS:SendMessage" 
-              - "SQS:ReceiveMessage"
-            Effect: "Allow"
-            Resource: !GetAtt PnEcQueueSMS.Arn
-            Principal:  
-              AWS: 
-                #- !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref PnEcTaskNameTracker]]
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref PnEcECSExecutionRole]]
-
-  QueuePolicySMS:
-    Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
-        - !GetAtt PnEcQueueSMS.QueueUrl
-        - !GetAtt PnEcQueueErroriSMS.QueueUrl
-      PolicyDocument: 
-        Statement: 
-          - Action: 
-              - "SQS:SendMessage" 
-              - "SQS:ReceiveMessage"
-            Effect: "Allow"
-            Resource: !GetAtt PnEcQueueSMS.Arn
-            Principal:  
-              AWS: 
-                #- !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref PnEcTaskNameSMS]]
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref PnEcECSExecutionRole]]
-  
-  PnEcECSExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement: 
-          - Action: 
-              - "sts:AssumeRole"
-            Effect: "Allow"
-            Principal:  
-              Service: 
-                - "ecs-tasks.amazonaws.com"
-      Description: 'Execution Role for pn-ec ECS Task'
-      RoleName: !Ref PnEcECSExecutionRoleName
-      MaxSessionDuration: 3600
-      Policies:
-        - 
-          PolicyName: 'PutMetricData'
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-            - Action: 
-                - "cloudwatch:PutMetricData"
-              Resource: "*"
-              Effect: "Allow"
-    
+   
   PnEcSNSNotificheExt1:
     Type: AWS::SNS::Topic
     Properties:
@@ -326,7 +140,6 @@ Resources:
       Subscription:
         - Endpoint: !GetAtt PnEcQueueNotificheExt1.Arn
           Protocol: sqs
-      TopicName: !Ref PnEcSNSNameNotificheExt1
   
   PnEcSNSPolicyNotificheExt1:
     Type: AWS::SNS::TopicPolicy
@@ -334,11 +147,11 @@ Resources:
       PolicyDocument:
         Statement: 
           - Action: 
-              - "sns:Publish"
-            Effect: "Allow"
+              - 'sns:Publish'
+            Effect: 'Allow'
             Principal:  
               Service: 
-                - "events.amazonaws.com"
+                - 'events.amazonaws.com'
             Resource: '*'
       Topics: 
         - !Ref PnEcSNSNotificheExt1
@@ -349,15 +162,222 @@ Resources:
       Description: Description
       EventPattern:   
         source: 
-          - 'payload from Disponibilita microservice'
-      Name: !Ref PnEcEventRuleNameNotificheExt1
+          - 'NOTIFICATION TRACKER'
       State: 'ENABLED'
       Targets:
         - Arn: !Ref PnEcSNSNotificheExt1
-          Id: "TopicTargetForExtNotification"
+          Id: 'TopicTargetForExtNotification'
+
+  PnEcQueueBatchSMS:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueBatchSMS.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueBatchSMS:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+  
+  PnEcQueueInteractiveSMS:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueInteractiveSMS.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueInteractiveSMS:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
+  PnEcQueueErroriSMS:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueErroriSMS.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueErroriSMS:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
+
+  PnEcEventBusTrackerExternalNotification: 
+    Type: AWS::Events::EventBus
+    Properties: 
+        Name: 'Pn-Ec-Tracker-Notifications-bus'
 
 Outputs:
-  SampleOutput:
-    Description: A Sample Output
-    Value: 'na'
+  PnEcTableNameAnagrafica:
+    Description: "Nome della Tabella DynamoDB relativa all'Anagrafica Client"
+    Value: !Ref PnEcTableAnagrafica
 
+  PnEcTableArnAnagrafica:
+    Description: "ARN della Tabella DynamoDB relativa all'Anagrafica Client"
+    Value: !GetAtt PnEcTableAnagrafica.Arn
+
+  PnEcTableNameRichieste:
+    Description: 'Nome della Tabella DynamoDB relativa alle richieste'
+    Value: !Ref PnEcTableAnagrafica
+
+  PnEcTableArnRichieste:
+    Description: 'ARN della Tabella DynamoDB relativa alle richieste'
+    Value: !GetAtt PnEcTableAnagrafica.Arn
+
+  PnEcQueueNameTrackerStatoSMS:
+    Description: '[Notification Tracker: canale SMS] Nome della Coda per aggiornamenti di stato afferenti al canale SMS'
+    Value: !GetAtt  PnEcQueueTrackerStatoSMS.QueueName
+
+  PnEcQueueArnTrackerStatoSMS:
+    Description: '[Notification Tracker: canale SMS] ARN della Coda per aggiornamenti di stato afferenti al canale SMS'
+    Value: !GetAtt  PnEcQueueTrackerStatoSMS.Arn
+
+  PnEcQueueUrlTrackerStatoSMS:
+    Description: '[Notification Tracker: canale SMS] URL della Coda per aggiornamenti di stato afferenti al canale SMS'
+    Value: !Ref  PnEcQueueTrackerStatoSMS
+
+  PnEcDLQueueNameTrackerStatoSMS:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoSMS'
+    Value: !GetAtt  PnEcDLQueueTrackerStatoSMS.QueueName
+
+  PnEcDLQueueArnTrackerStatoSMS:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoSMS'
+    Value: !GetAtt  PnEcDLQueueTrackerStatoSMS.Arn
+
+  PnEcQueueNameTrackerErroriSMS:
+    Description: '[Notification Tracker: canale SMS] Nome della Coda Errori afferenti al canale SMS'
+    Value: !GetAtt  PnEcQueueTrackerErroriSMS.QueueName
+
+  PnEcQueueArnTrackerErroriSMS:
+    Description: '[Notification Tracker: canale SMS] ARN della Coda Errori afferenti al canale SMS'
+    Value: !GetAtt  PnEcQueueTrackerErroriSMS.Arn
+
+  PnEcQueueUrlTrackerErroriSMS:
+    Description: '[Notification Tracker: canale SMS] URL della Coda Errori afferenti al canale SMS'
+    Value: !Ref  PnEcQueueTrackerErroriSMS
+
+  PnEcDLQueueNameTrackerErroriSMS:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriSMS'
+    Value: !GetAtt  PnEcDLQueueTrackerErroriSMS.QueueName
+
+  PnEcDLQueueArnTrackerErroriSMS:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriSMS'
+    Value: !GetAtt  PnEcDLQueueTrackerErroriSMS.Arn
+
+  PnEcQueueNameNotificheExt1:
+    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] Nome della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
+    Value: !GetAtt  PnEcQueueNotificheExt1.QueueName
+
+  PnEcQueueArnNotificheExt1:
+    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] ARN della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
+    Value: !GetAtt  PnEcQueueNotificheExt1.Arn
+
+  PnEcQueueUrlNotificheExt1:
+    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] URL della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
+    Value: !Ref  PnEcQueueNotificheExt1
+
+  PnEcDLQueueNameNotificheExt1:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueNotificheExt1'
+    Value: !GetAtt  PnEcDLQueueNotificheExt1.QueueName
+
+  PnEcDLQueueArnNotificheExt1:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueNotificheExt1'
+    Value: !GetAtt  PnEcDLQueueNotificheExt1.Arn
+
+  PnEcSNSNameNotificheExt1:
+    Description: '[Notification Tracker: Piattaforme esterne] Nome dello SNS Topic per smistare le notifiche alle Piattaforme esterne'
+    Value: !GetAtt PnEcSNSNotificheExt1.TopicName
+
+  PnEcSNSArnNotificheExt1:
+    Description: '[Notification Tracker: Piattaforme esterne] ARN dello SNS Topic per smistare le notifiche alle Piattaforme esterne'
+    Value: !Ref PnEcSNSNotificheExt1
+
+  PnEcQueueNameBatchSMS:
+    Description: '[Canale SMS] Nome della Coda per la modalità SMS-Batch'
+    Value: !GetAtt  PnEcQueueBatchSMS.QueueName
+
+  PnEcQueueArnBatchSMS:
+    Description: '[Canale SMS] ARN della Coda per la modalità SMS-Batch'
+    Value: !GetAtt  PnEcQueueBatchSMS.Arn
+
+  PnEcQueueUrlBatchSMS:
+    Description: '[Canale SMS] URL della Coda per la modalità SMS-Batch'
+    Value: !Ref  PnEcQueueBatchSMS
+
+  PnEcDLQueueNameBatchSMS:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchSMS'
+    Value: !GetAtt  PnEcDLQueueBatchSMS.QueueName
+
+  PnEcDLQueueArnBatchSMS:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchSMS'
+    Value: !GetAtt  PnEcDLQueueBatchSMS.Arn
+
+  PnEcQueueNameInteractiveSMS:
+    Description: '[Canale SMS] Nome della Coda per la modalità SMS-Interactive'
+    Value: !GetAtt  PnEcQueueInteractiveSMS.QueueName
+
+  PnEcQueueArnInteractiveSMS:
+    Description: '[Canale SMS] ARN della Coda per la modalità SMS-Interactive'
+    Value: !GetAtt  PnEcQueueInteractiveSMS.Arn
+
+  PnEcQueueUrlInteractiveSMS:
+    Description: '[Canale SMS] URL della Coda per la modalità SMS-Interactive'
+    Value: !Ref  PnEcQueueInteractiveSMS
+
+  PnEcDLQueueNameInteractiveSMS:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractiveSMS'
+    Value: !GetAtt  PnEcDLQueueInteractiveSMS.QueueName
+
+  PnEcDLQueueArnInteractiveSMS:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueInteractiveSMS'
+    Value: !GetAtt  PnEcDLQueueInteractiveSMS.Arn
+
+  PnEcQueueNameErroriSMS:
+    Description: '[Canale SMS] Nome della Coda Errori SMS'
+    Value: !GetAtt  PnEcQueueErroriSMS.QueueName
+
+  PnEcQueueArnErroriSMS:
+    Description: '[Canale SMS] ARN della Coda Errori SMS'
+    Value: !GetAtt  PnEcQueueErroriSMS.Arn
+
+  PnEcQueueUrlErroriSMS:
+    Description: '[Canale SMS] URL della Coda Errori SMS'
+    Value: !Ref  PnEcQueueErroriSMS
+
+  PnEcDLQueueNameErroriSMS:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriSMS'
+    Value: !GetAtt  PnEcDLQueueErroriSMS.QueueName
+
+  PnEcDLQueueArnErroriSMS:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriSMS'
+    Value: !GetAtt  PnEcDLQueueErroriSMS.Arn
