@@ -59,15 +59,13 @@ public class DigitalNotificationRequestApiControllerTest {
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final RequestDto requestDto = new RequestDto();
-    private static final FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
+    private static final String defaultAttachmentUrl = "https://prova.pdf";
 
     @BeforeAll
     public static void createDigitalNotificationRequest() {
 //        Mock an existing request. Set the requestIdx
         requestDto.setRequestIdx("requestIdx");
 
-
-        String defaultAttachmentUrl = "https://prova.pdf";
         List<String> defaultListAttachmentUrls = new ArrayList<>();
         defaultListAttachmentUrls.add(defaultAttachmentUrl);
 
@@ -101,7 +99,8 @@ public class DigitalNotificationRequestApiControllerTest {
     @Test
     void sendPecOk() {
         when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.empty());
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus().isOk();
     }
@@ -228,12 +227,12 @@ public class DigitalNotificationRequestApiControllerTest {
 
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
-        when(uriBuilderCall.getFile("https://prova.pdf", DEFAULT_ID_CLIENT_HEADER_VALUE, false)).thenReturn(Mono.empty());
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(
+                defaultAttachmentUrl)));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                  .isEqualTo(NOT_FOUND)
                                                                                                  .expectBody(Problem.class);
 
     }
-
 }

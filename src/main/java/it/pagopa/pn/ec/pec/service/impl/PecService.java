@@ -38,7 +38,7 @@ public class PecService extends PresaInCaricoService {
 
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo, RequestDto requestToInsert) {
-        //      Cast PresaInCaricoInfo to specific SmsPresaInCaricoInfo
+//      Cast PresaInCaricoInfo to specific SmsPresaInCaricoInfo
         PecPresaInCaricoInfo pecPresaInCaricoInfo = (PecPresaInCaricoInfo) presaInCaricoInfo;
         return uriBuilderCall.getFile(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls().get(0),
                                       presaInCaricoInfo.getXPagopaExtchCxId(),
@@ -46,16 +46,13 @@ public class PecService extends PresaInCaricoService {
                              .flatMap(fileDownloadResponse -> {
                                  var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
                                  digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-                                 return insertRequestFromPec(digitalNotificationRequest);
+                                 return insertRequestFromPec(digitalNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
                              })
-                             .onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()))
                              .flatMap(requestDto -> sqsService.send(NT_STATO_PEC_QUEUE_NAME,
                                                                     new NtStatoPecQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(),
                                                                                            INVIO_PEC,
                                                                                            null,
                                                                                            BOOKED)))
-
-                             .thenReturn((PecPresaInCaricoInfo) presaInCaricoInfo)
                              .flatMap(fileDownloadResponse -> sqsService.send(NT_STATO_PEC_QUEUE_NAME,
                                                                               new NtStatoPecQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(),
                                                                                                      INVIO_PEC,
@@ -76,6 +73,6 @@ public class PecService extends PresaInCaricoService {
     }
 
     private Mono<RequestDto> insertRequestFromPec(final DigitalNotificationRequest digitalNotificationRequest) {
-        return null;
+        return Mono.just(new RequestDto());
     }
 }
