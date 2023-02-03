@@ -17,7 +17,7 @@ public class DigitalCourtesySmsRequestFactory {
         digitalCourtesySmsRequestFactory.eventType(defaultStringInit);
         digitalCourtesySmsRequestFactory.setClientRequestTimeStamp(OffsetDateTime.now());
         digitalCourtesySmsRequestFactory.setQos(INTERACTIVE);
-        digitalCourtesySmsRequestFactory.setReceiverDigitalAddress(defaultStringInit);
+        digitalCourtesySmsRequestFactory.setReceiverDigitalAddress("+393890091180");
         digitalCourtesySmsRequestFactory.setMessageText(defaultStringInit);
         digitalCourtesySmsRequestFactory.channel(SMS);
         return digitalCourtesySmsRequestFactory;

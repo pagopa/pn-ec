@@ -66,6 +66,8 @@ public class LocalStackTestConfig {
                 localStackContainer.execInContainer("awslocal", "sqs", "create-queue", "--queue-name", queueName);
             }
 
+//            localStackContainer.execInContainer("awslocal", "sns", "create-sms-sandbox-phone-number", "--phone-number", "+393890091180");
+
             // TODO: Create SNS topic
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
