@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.pec.service.impl;
 
+import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.uribuilder.UriBuilderCall;
@@ -9,6 +10,7 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.pec.model.dto.NtStatoPecQueueDto;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest;
+import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -34,12 +36,31 @@ public class PecService extends PresaInCaricoService {
     }
 
     @Override
-    protected Mono<Void> specificPresaInCarico(PresaInCaricoInfo presaInCaricoInfo) {
+    protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo, RequestDto requestDtoPresentOrToInsert) {
+        //      Cast PresaInCaricoInfo to specific SmsPresaInCaricoInfo
         return Mono.just((PecPresaInCaricoInfo) presaInCaricoInfo)
+                .flatMap(pecPresaInCaricoInfo -> {
+                    if (requestDtoPresentOrToInsert.getRequestIdx() == null) {
+                        var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
+                        digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
+                        return insertRequestFromPec(digitalNotificationRequest);
+                    } else {
+                        return Mono.just(requestDtoPresentOrToInsert);
+                    }
+                })
+                .onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()))
+                .flatMap(requestDto -> sqsService.send(NT_STATO_PEC_QUEUE_NAME,
+                        new NtStatoPecQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(),
+                                INVIO_PEC,
+                                null,
+                                BOOKED)))
+
+                .thenReturn((PecPresaInCaricoInfo) presaInCaricoInfo)
                 .flatMap(pecPresaInCaricoInfo -> uriBuilderCall.getFile(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls().get(0), presaInCaricoInfo.getXPagopaExtchCxId(), false))
                 .flatMap(fileDownloadResponse -> sqsService.send(NT_STATO_PEC_QUEUE_NAME,
                         new NtStatoPecQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(), INVIO_PEC, null, BOOKED)))
                 .map(unused -> (PecPresaInCaricoInfo) presaInCaricoInfo)
+
                 .flatMap(pecPresaInCaricoInfo -> {
                     DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
                     if (qos == INTERACTIVE) {
@@ -52,4 +73,9 @@ public class PecService extends PresaInCaricoService {
                 })
                 .then();
     }
+
+    private Mono<RequestDto> insertRequestFromPec(final DigitalNotificationRequest digitalNotificationRequest) {
+        return null;
+    }
+
 }
