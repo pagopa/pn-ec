@@ -13,7 +13,10 @@ import it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 import static it.pagopa.pn.ec.commons.constant.ProcessId.INVIO_PEC;
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.*;
@@ -36,40 +39,47 @@ public class PecService extends PresaInCaricoService {
         this.uriBuilderCall = uriBuilderCall;
     }
 
+    private Mono<Void> checkAllegatiPresence(List<String> attachmentUrls, String xPagopaExtchCxId, boolean metadataOnly) {
+        return Flux.fromIterable(attachmentUrls)
+                   .flatMap(attachmentUrl -> uriBuilderCall.getFile(attachmentUrl, xPagopaExtchCxId, metadataOnly))
+                   .then();
+    }
+
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo, RequestDto requestToInsert) {
 //      Cast PresaInCaricoInfo to specific SmsPresaInCaricoInfo
         PecPresaInCaricoInfo pecPresaInCaricoInfo = (PecPresaInCaricoInfo) presaInCaricoInfo;
-        return uriBuilderCall.getFile(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls().get(0),
-                                      presaInCaricoInfo.getXPagopaExtchCxId(),
-                                      false)
-                             .flatMap(fileDownloadResponse -> {
-                                 var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
-                                 digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-                                 return insertRequestFromPec(digitalNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
-                             })
-                             .flatMap(requestDto -> sqsService.send(NT_STATO_PEC_QUEUE_NAME,
-                                                                    new NtStatoPecQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(),
-                                                                                           INVIO_PEC,
-                                                                                           null,
-                                                                                           BOOKED)))
-                             .flatMap(fileDownloadResponse -> sqsService.send(NT_STATO_PEC_QUEUE_NAME,
-                                                                              new NtStatoPecQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(),
-                                                                                                     INVIO_PEC,
-                                                                                                     null,
-                                                                                                     BOOKED)))
-                             .flatMap(sendMessageResponse -> {
-                                 DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
-                                 if (qos == INTERACTIVE) {
-                                     return sqsService.send(PEC_INTERACTIVE_QUEUE_NAME,
-                                                            pecPresaInCaricoInfo.getDigitalNotificationRequest());
-                                 } else if (qos == BATCH) {
-                                     return sqsService.send(PEC_BATCH_QUEUE_NAME, pecPresaInCaricoInfo.getDigitalNotificationRequest());
-                                 } else {
-                                     return Mono.empty();
-                                 }
-                             })
-                             .then();
+        return checkAllegatiPresence(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls(),
+                                     presaInCaricoInfo.getXPagopaExtchCxId(),
+                                     false).flatMap(fileDownloadResponse -> {
+                                               var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
+                                               digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
+                                               return insertRequestFromPec(digitalNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
+                                           })
+                                           .flatMap(requestDto -> sqsService.send(NT_STATO_PEC_QUEUE_NAME,
+                                                                                  new NtStatoPecQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(),
+                                                                                                         INVIO_PEC,
+                                                                                                         null,
+                                                                                                         BOOKED)))
+                                           .flatMap(fileDownloadResponse -> sqsService.send(NT_STATO_PEC_QUEUE_NAME,
+                                                                                            new NtStatoPecQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(),
+                                                                                                                   INVIO_PEC,
+                                                                                                                   null,
+                                                                                                                   BOOKED)))
+                                           .flatMap(sendMessageResponse -> {
+                                               DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest()
+                                                                                                            .getQos();
+                                               if (qos == INTERACTIVE) {
+                                                   return sqsService.send(PEC_INTERACTIVE_QUEUE_NAME,
+                                                                          pecPresaInCaricoInfo.getDigitalNotificationRequest());
+                                               } else if (qos == BATCH) {
+                                                   return sqsService.send(PEC_BATCH_QUEUE_NAME,
+                                                                          pecPresaInCaricoInfo.getDigitalNotificationRequest());
+                                               } else {
+                                                   return Mono.empty();
+                                               }
+                                           })
+                                           .then();
     }
 
     private Mono<RequestDto> insertRequestFromPec(final DigitalNotificationRequest digitalNotificationRequest) {
