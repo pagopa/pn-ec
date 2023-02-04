@@ -7,6 +7,7 @@ import it.pagopa.pn.ec.commons.rest.call.uribuilder.UriBuilderCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.commons.service.attachments.CheckAttachments;
 import it.pagopa.pn.ec.pec.model.dto.NtStatoPecQueueDto;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest;
@@ -32,24 +33,27 @@ public class PecService extends PresaInCaricoService {
 
     private final UriBuilderCall uriBuilderCall;
 
+    private final CheckAttachments checkAttachments;
+
     protected PecService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
-                         UriBuilderCall uriBuilderCall) {
+                         UriBuilderCall uriBuilderCall, CheckAttachments checkAttachments) {
         super(authService, gestoreRepositoryCall);
         this.sqsService = sqsService;
         this.uriBuilderCall = uriBuilderCall;
+        this.checkAttachments = checkAttachments;
     }
 
-    private Mono<Void> checkAllegatiPresence(List<String> attachmentUrls, String xPagopaExtchCxId, boolean metadataOnly) {
-        return Flux.fromIterable(attachmentUrls)
-                   .flatMap(attachmentUrl -> uriBuilderCall.getFile(attachmentUrl, xPagopaExtchCxId, metadataOnly))
-                   .then();
-    }
+//    private Mono<Void> checkAllegatiPresence(List<String> attachmentUrls, String xPagopaExtchCxId, boolean metadataOnly) {
+//        return Flux.fromIterable(attachmentUrls)
+//                   .flatMap(attachmentUrl -> uriBuilderCall.getFile(attachmentUrl, xPagopaExtchCxId, metadataOnly))
+//                   .then();
+//    }
 
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo, RequestDto requestToInsert) {
 //      Cast PresaInCaricoInfo to specific SmsPresaInCaricoInfo
         PecPresaInCaricoInfo pecPresaInCaricoInfo = (PecPresaInCaricoInfo) presaInCaricoInfo;
-        return checkAllegatiPresence(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls(),
+        return checkAttachments.checkAllegatiPresence(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls(),
                                      presaInCaricoInfo.getXPagopaExtchCxId(),
                                      false).flatMap(fileDownloadResponse -> {
                                                var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
