@@ -34,17 +34,6 @@ public class QueueNameConstant {
 
 
 
-    //  <-- EMAIL -->
-    public static final String NT_STATO_EMAIL_QUEUE_NAME = "pn-ec-notification-tracker-stato-email-queue";
-    public static final String NT_STATO_EMAIL_DLQ_QUEUE_NAME = "pn-ec-notification-tracker-stato-email-queue-dlq";
-    public static final String NT_STATO_EMAIL_ERRATO_QUEUE_NAME = "pn-ec-notification-tracker-stato-email-errato-queue";
-    public static final String NT_STATO_EMAIL_ERRATO_DLQ_QUEUE_NAME = "pn-ec-notification-tracker-stato-email-errato-queue-dlq";
-
-    //  <-- PEC -->
-
-    public static final String NT_STATO_PEC_DLQ_QUEUE_NAME = "pn-ec-notification-tracker-stato-pec-queue-dlq";
-
-    public static final String NT_STATO_PEC_ERRATO_DLQ_QUEUE_NAME = "pn-ec-notification-tracker-stato-pec-errato-queue-dlq";
 
     //  <-- CARTACEO -->
     public static final String NT_STATO_CARTACEO_QUEUE_NAME = "pn-ec-notification-tracker-stato-cartaceo-queue";
@@ -70,9 +59,7 @@ public class QueueNameConstant {
                                                                    PEC_INTERACTIVE_QUEUE_NAME,
                                                                    PEC_ERROR_QUEUE_NAME,
                                                                    NT_STATO_EMAIL_QUEUE_NAME,
-                                                                   NT_STATO_EMAIL_DLQ_QUEUE_NAME,
                                                                    NT_STATO_EMAIL_ERRATO_QUEUE_NAME,
-                                                                   NT_STATO_EMAIL_ERRATO_DLQ_QUEUE_NAME,
                                                                    NT_STATO_CARTACEO_QUEUE_NAME,
                                                                    NT_STATO_CARTACEO_DLQ_QUEUE_NAME,
                                                                    NT_STATO_CARTACEO_ERRATO_QUEUE_NAME,

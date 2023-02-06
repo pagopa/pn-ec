@@ -19,6 +19,13 @@ import static org.springframework.http.HttpStatus.OK;
 public class DigitalCourtesyMessagesEmailApiController implements DigitalCourtesyMessagesApi {
 
 
+    /*
+        Gli endpoint di SMS e EMAIL sono state accorpati nello stesso tag OpenApi.
+        Ciò ha generato un'interfaccia Java comune e dato che all'interno dello stesso contesto Spring
+         non possono coesistere due @RequestController che espongono lo stesso endpoint abbiamo dovuto implementare le API nello stesso controller.
+
+     */
+
     private final EmailService service;
 
     public DigitalCourtesyMessagesEmailApiController(EmailService service) {

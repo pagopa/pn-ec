@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.email.model.dto;
 
 import it.pagopa.pn.ec.commons.constant.ProcessId;
-import it.pagopa.pn.ec.commons.constant.status.Status;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -16,6 +15,6 @@ public class NtStatoEmailQueueDto  {
      * Identificativo del processo richiesto dal Notification Tracker
      */
     ProcessId processId;
-    Status currentStatus;
-    Status nextStatus;
+    String currentStatus;
+    String nextStatus;
 }

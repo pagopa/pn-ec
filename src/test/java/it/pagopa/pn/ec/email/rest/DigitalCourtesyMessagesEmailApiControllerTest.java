@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.email.rest;
 
 
+import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedFoundException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.exception.ss.AttachmentNotAvailableException;
@@ -103,15 +104,15 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
                 .exchange();
     }
 
-    // Per il momento le chiamate tra i vari microservizi di EC sono mocckate per evitare problemi di precondizioni nei vari ambienti
 
     //EMIALPIC.100.1 -> Test case positivo
     @Test
     void sendEmailOk() {
+
         when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
-        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus().isOk();
     }
@@ -149,8 +150,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
 
 //      Client auth call -> OK
 //      Client non tornato dall'anagrafica client
-        when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
-        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.error(new ClientNotAuthorizedFoundException(DEFAULT_ID_CLIENT_HEADER_VALUE)));
 
 //      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
@@ -179,9 +179,8 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     //EMIALPIC.100.9 -> Richiesta di invio PEC già effettuata
     @Test
     void sendEmailRequestAlreadyMade() {
-        when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
-//      Client auth -> OK
-        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        //      Client auth -> OK
+        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
 
 //      Retrieve request -> Return an existent request, return 409 status
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.just(requestDto));
@@ -234,14 +233,14 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     //EMIALPIC.100.5 -> Attachment non disponibile dentro pn-ss
     @Test
     void sendEmailWithoutValidAttachment() {
-        when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
-//        Client auth call -> OK
-        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
 
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(
                 defaultAttachmentUrl)));
+
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
                 .isEqualTo(NOT_FOUND)
