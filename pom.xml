@@ -27,6 +27,7 @@
 		<awspring.version>2.3.2</awspring.version>
 		<awssdkv1.version>1.12.386</awssdkv1.version>
 		<logbackjackson.version>0.1.5</logbackjackson.version>
+		<awaitility.version>4.1.1</awaitility.version>
 	</properties>
 
 	<dependencyManagement>
@@ -78,6 +79,11 @@
 		<dependency>
 			<groupId>io.awspring.cloud</groupId>
 			<artifactId>spring-cloud-starter-aws-messaging</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>eventbridge</artifactId>
 		</dependency>
 
 		<!-- Start EC WebClient dependencies -->
@@ -150,6 +156,19 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>localstack</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.awaitility</groupId>
+			<artifactId>awaitility</artifactId>
+			<version>${awaitility.version}</version>
 			<scope>test</scope>
 		</dependency>
 

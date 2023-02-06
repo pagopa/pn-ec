@@ -20,6 +20,9 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbAsyncWaiter;
 import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbWaiter;
+import software.amazon.awssdk.services.eventbridge.EventBridgeAsyncClient;
+import software.amazon.awssdk.services.eventbridge.EventBridgeAsyncClientBuilder;
+import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.SnsAsyncClientBuilder;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
@@ -55,6 +58,9 @@ public class AwsConfiguration {
     @Value("${test.aws.sns.endpoint:#{null}}")
     String snsLocalStackEndpoint;
 
+    @Value("${test.aws.event:#{null}}")
+    String eventLocalStackEndpoint;
+
     private static final DefaultAwsRegionProviderChain DEFAULT_AWS_REGION_PROVIDER_CHAIN = new DefaultAwsRegionProviderChain();
     private static final DefaultCredentialsProvider DEFAULT_CREDENTIALS_PROVIDER = DefaultCredentialsProvider.create();
 
@@ -77,6 +83,23 @@ public class AwsConfiguration {
     }
 
 //  <-- AWS SDK for Java v2 -->
+
+
+    @Bean
+    public EventBridgeAsyncClient evetAsyncClient() {
+        EventBridgeAsyncClientBuilder eventBrClient = EventBridgeAsyncClient.builder().credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER);
+
+        if (eventLocalStackEndpoint != null) {
+            eventBrClient.region(Region.of(localStackRegion)).endpointOverride(URI.create(eventLocalStackEndpoint));
+        } else {
+            eventBrClient.region(DEFAULT_AWS_REGION_PROVIDER_CHAIN.getRegion());
+        }
+
+        return eventBrClient.build();
+    }
+
+
+
 
     @Bean
     public SqsAsyncClient sqsAsyncClient() {
