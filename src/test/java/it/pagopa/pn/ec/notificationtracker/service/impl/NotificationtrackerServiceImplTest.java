@@ -235,7 +235,7 @@ class NotificationtrackerServiceImplTest {
 
         when(callMachinaStati.getStato(processId,req.getCurrentStatus(),req.getXPagopaExtchCxId(),req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
 
-        notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req);
+        notificationtrackerMessageReceiver.receiveEmailObjectMessage(req);
 
         when(sqsService.send(eq(NT_STATO_SMS_ERRATO_QUEUE_NAME), any(NtStatoError.class))).thenReturn(Mono.error(new SqsPublishException(NT_STATO_SMS_ERRATO_QUEUE_NAME)));
 
@@ -361,7 +361,7 @@ class NotificationtrackerServiceImplTest {
 
         when(callMachinaStati.getStato(processId,req.getCurrentStatus(),req.getXPagopaExtchCxId(),req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
 
-        notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req);
+        notificationtrackerMessageReceiver.receivePecObjectMessage(req);
         when(sqsService.send(eq(NT_STATO_SMS_ERRATO_QUEUE_NAME), any(NtStatoError.class))).thenReturn(Mono.error(new SqsPublishException(NT_STATO_SMS_ERRATO_QUEUE_NAME)));
 
     }

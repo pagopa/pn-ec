@@ -9,11 +9,12 @@ import it.pagopa.pn.ec.notificationtracker.service.PutEventsImpl;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.*;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto.*;
+
 
 
 @Service
@@ -39,84 +40,30 @@ public class NotificationtrackerServiceImpl  {
 
 	public Mono<Void> getValidateStatoSmS( final NotificationTrackerQueueDto nott) {
 
-		return callMachinaStatiImpl.getStato(nott.getProcessId().toString(), nott.getCurrentStatus(),nott.getXPagopaExtchCxId(),nott.getNextStatus())
-				.flatMap(notificationResponseModel -> {
-					if(notificationResponseModel.isAllowed()){
-						log.info(">>> publish response {} ", notificationResponseModel);
-						/*
-							DA concordare mappa per i stati
-						 */
-						EventsDto events  = new EventsDto();
-						DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();
-						digitalProgressStatusDto.setStatus(DigitalRequestStatus.valueOf(nott.getNextStatus()));
-						events.setDigProgrStatus(digitalProgressStatusDto);
-						return gestoreRepositoryCall.updateRichiesta(nott.getRequestIdx(), events);
-					}if(notificationResponseModel.getNottifMessage() != null){
-						return   putEventsImpl.putEventExternal(new NotificationTrackerQueueDto(nott.getRequestIdx(),nott.getXPagopaExtchCxId(),nott.getProcessId(),nott.getCurrentStatus(),nott.getNextStatus()));
-
-					}
-					else {
-						return sqsService.send(NT_STATO_SMS_ERRATO_QUEUE_NAME, new NotificationTrackerQueueDto(nott.getRequestIdx(),nott.getXPagopaExtchCxId(),nott.getProcessId(),nott.getCurrentStatus(),nott.getNextStatus()));
-
-					}
-				}).then();
+		return getVoidMono(nott, NT_STATO_SMS_ERRATO_QUEUE_NAME);
 
 	}
 
 
 	public Mono<Void> getValidateStatoEmail(final NotificationTrackerQueueDto nott) {
-		return callMachinaStatiImpl.getStato(nott.getProcessId().toString(), nott.getCurrentStatus(),nott.getXPagopaExtchCxId(),nott.getNextStatus())
-				.flatMap(notificationResponseModel -> {
-					if(notificationResponseModel.isAllowed()){
-						log.info(">>> publish response {} ", notificationResponseModel);
-						/*
-							DA concordare mappa per i stati
-						 */
-						EventsDto events  = new EventsDto();
-						DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();
-						digitalProgressStatusDto.setStatus(DigitalRequestStatus.valueOf(nott.getNextStatus()));
-						events.setDigProgrStatus(digitalProgressStatusDto);
-						return gestoreRepositoryCall.updateRichiesta(nott.getRequestIdx(), events);
-					}if(notificationResponseModel.getNottifMessage() != null){
-						return   putEventsImpl.putEventExternal(new NotificationTrackerQueueDto(nott.getRequestIdx(),nott.getXPagopaExtchCxId(),nott.getProcessId(),nott.getCurrentStatus(),nott.getNextStatus()));
-
-					}
-					else {
-						return sqsService.send(NT_STATO_SMS_ERRATO_QUEUE_NAME, new NotificationTrackerQueueDto(nott.getRequestIdx(),nott.getXPagopaExtchCxId(),nott.getProcessId(),nott.getCurrentStatus(),nott.getNextStatus()));
-
-					}
-				}).then();
+		return getVoidMono(nott, NT_STATO_EMAIL_ERRATO_QUEUE_NAME);
 
 	}
 
 
 
 	public Mono<Void> getValidateStatoPec(final NotificationTrackerQueueDto nott) {
-		return callMachinaStatiImpl.getStato(nott.getProcessId().toString(), nott.getCurrentStatus(),nott.getXPagopaExtchCxId(),nott.getNextStatus())
-				.flatMap(notificationResponseModel -> {
-					if(notificationResponseModel.isAllowed()){
-						log.info(">>> publish response {} ", notificationResponseModel);
-						/*
-							DA concordare mappa per i stati
-						 */
-						EventsDto events  = new EventsDto();
-						DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();
-						digitalProgressStatusDto.setStatus(DigitalRequestStatus.valueOf(nott.getNextStatus()));
-						events.setDigProgrStatus(digitalProgressStatusDto);
-						return gestoreRepositoryCall.updateRichiesta(nott.getRequestIdx(), events);
-					}if(notificationResponseModel.getNottifMessage() != null){
-						return   putEventsImpl.putEventExternal(new NotificationTrackerQueueDto(nott.getRequestIdx(),nott.getXPagopaExtchCxId(),nott.getProcessId(),nott.getCurrentStatus(),nott.getNextStatus()));
-
-					}
-					else {
-						return sqsService.send(NT_STATO_SMS_ERRATO_QUEUE_NAME, new NotificationTrackerQueueDto(nott.getRequestIdx(),nott.getXPagopaExtchCxId(),nott.getProcessId(),nott.getCurrentStatus(),nott.getNextStatus()));
-
-					}
-				}).then();
+		return getVoidMono(nott, NT_STATO_PEC_ERRATO_QUEUE_NAME);
 
 	}
 
 	public Mono<Void> getValidateCartaceStatus(final NotificationTrackerQueueDto nott) {
+		return getVoidMono(nott, NT_STATO_CARTACEO_ERRATO_QUEUE_NAME);
+
+	}
+
+	@NotNull
+	private Mono<Void> getVoidMono(NotificationTrackerQueueDto nott, String ntStatoCartaceoErratoQueueName) {
 		return callMachinaStatiImpl.getStato(nott.getProcessId().toString(), nott.getCurrentStatus(),nott.getXPagopaExtchCxId(),nott.getNextStatus())
 				.flatMap(notificationResponseModel -> {
 					if(notificationResponseModel.isAllowed()){
@@ -129,16 +76,15 @@ public class NotificationtrackerServiceImpl  {
 						digitalProgressStatusDto.setStatus(DigitalRequestStatus.valueOf(nott.getNextStatus()));
 						events.setDigProgrStatus(digitalProgressStatusDto);
 						return gestoreRepositoryCall.updateRichiesta(nott.getRequestIdx(), events);
-					}if(notificationResponseModel.getNottifMessage() != null){
+					}
+					if(notificationResponseModel.getNottifMessage() != null){
 						return   putEventsImpl.putEventExternal(new NotificationTrackerQueueDto(nott.getRequestIdx(),nott.getXPagopaExtchCxId(),nott.getProcessId(),nott.getCurrentStatus(),nott.getNextStatus()));
-
 					}
 					else {
-						return sqsService.send(NT_STATO_SMS_ERRATO_QUEUE_NAME, new NotificationTrackerQueueDto(nott.getRequestIdx(),nott.getXPagopaExtchCxId(),nott.getProcessId(),nott.getCurrentStatus(),nott.getNextStatus()));
+						return sqsService.send(ntStatoCartaceoErratoQueueName, new NotificationTrackerQueueDto(nott.getRequestIdx(),nott.getXPagopaExtchCxId(),nott.getProcessId(),nott.getCurrentStatus(),nott.getNextStatus()));
 
 					}
 				}).then();
-
 	}
 
 

@@ -119,8 +119,6 @@ class NotificationtrackerControllerTest {
         notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req);
         when(gestoreRepositoryCall.updateRichiesta(anyString(),eq(new EventsDto()))).thenReturn(Mono.empty());
         when(putEventsImpl.putEventExternal(req)).thenReturn(Mono.empty());
-
-        putEventsImpl.putEventExternal(req).then();
     }
 }
 
