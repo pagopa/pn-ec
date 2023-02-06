@@ -63,6 +63,7 @@ public class LocalStackTestConfig {
 
         System.setProperty("test.aws.event", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
         System.setProperty("event.Bus.Nome","test-test");
+        System.setProperty("statemachine.url","/statemachinemanager/validate");
 
         try {
 

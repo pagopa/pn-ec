@@ -7,12 +7,13 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.notificationtracker.service.callmachinestati.CallMachinaStati;
 import it.pagopa.pn.ec.notificationtracker.service.PutEventsImpl;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
+import it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
 import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.*;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto.StatusEnum.PROGRESS;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto.*;
 
 
 @Service
@@ -47,7 +48,7 @@ public class NotificationtrackerServiceImpl  {
 						 */
 						EventsDto events  = new EventsDto();
 						DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();
-						digitalProgressStatusDto.setStatus(DigitalProgressStatusDto.StatusEnum.valueOf(PROGRES));
+						digitalProgressStatusDto.setStatus(DigitalRequestStatus.valueOf(nott.getNextStatus()));
 						events.setDigProgrStatus(digitalProgressStatusDto);
 						return gestoreRepositoryCall.updateRichiesta(nott.getRequestIdx(), events);
 					}if(notificationResponseModel.getNottifMessage() != null){
@@ -73,7 +74,7 @@ public class NotificationtrackerServiceImpl  {
 						 */
 						EventsDto events  = new EventsDto();
 						DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();
-						digitalProgressStatusDto.setStatus(DigitalProgressStatusDto.StatusEnum.valueOf(PROGRES));
+						digitalProgressStatusDto.setStatus(DigitalRequestStatus.valueOf(nott.getNextStatus()));
 						events.setDigProgrStatus(digitalProgressStatusDto);
 						return gestoreRepositoryCall.updateRichiesta(nott.getRequestIdx(), events);
 					}if(notificationResponseModel.getNottifMessage() != null){
@@ -100,7 +101,7 @@ public class NotificationtrackerServiceImpl  {
 						 */
 						EventsDto events  = new EventsDto();
 						DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();
-						digitalProgressStatusDto.setStatus(DigitalProgressStatusDto.StatusEnum.valueOf(PROGRES));
+						digitalProgressStatusDto.setStatus(DigitalRequestStatus.valueOf(nott.getNextStatus()));
 						events.setDigProgrStatus(digitalProgressStatusDto);
 						return gestoreRepositoryCall.updateRichiesta(nott.getRequestIdx(), events);
 					}if(notificationResponseModel.getNottifMessage() != null){
@@ -125,7 +126,7 @@ public class NotificationtrackerServiceImpl  {
 						 */
 						EventsDto events  = new EventsDto();
 						DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();
-						digitalProgressStatusDto.setStatus(DigitalProgressStatusDto.StatusEnum.valueOf(PROGRES));
+						digitalProgressStatusDto.setStatus(DigitalRequestStatus.valueOf(nott.getNextStatus()));
 						events.setDigProgrStatus(digitalProgressStatusDto);
 						return gestoreRepositoryCall.updateRichiesta(nott.getRequestIdx(), events);
 					}if(notificationResponseModel.getNottifMessage() != null){
