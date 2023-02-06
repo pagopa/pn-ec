@@ -8,6 +8,10 @@ public class RestCallException extends RuntimeException{
 
     public static class ResourceNotFoundException extends RestCallException{
 
+        public ResourceNotFoundException() {
+            super("Request not found");
+        }
+
         public ResourceNotFoundException(String message) {
             super(message);
         }

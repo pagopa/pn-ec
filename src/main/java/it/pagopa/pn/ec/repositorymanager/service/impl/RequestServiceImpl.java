@@ -31,11 +31,11 @@ public class RequestServiceImpl implements RequestService {
         }
 
         List<Events> eventsList = request.getEvents();
-        if (eventsList.isEmpty()) {
-            throw new RepositoryManagerException.RequestMalformedException("Valorizzare una tipologia di evento");
-        } else if (eventsList.size() > 1) {
-            throw new RepositoryManagerException.RequestMalformedException("Inserire un solo evento");
-        } else {
+        if (!eventsList.isEmpty()) {
+            if (eventsList.size() > 1) {
+                throw new RepositoryManagerException.RequestMalformedException("Inserire un solo evento");
+
+            }
             checkEvents(request, eventsList.get(0));
         }
     }
@@ -70,15 +70,16 @@ public class RequestServiceImpl implements RequestService {
                    .doOnSuccess(unused -> checkRequestToInsert(request))
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
                    .doOnSuccess(unused -> {
-                       Events firstStatus = request.getEvents().get(0);
-                       if (request.getDigitalReq() != null) {
-                           request.setStatusRequest(firstStatus.getDigProgrStatus().getStatus());
-                           firstStatus.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
-                       } else {
-                           request.setStatusRequest(firstStatus.getPaperProgrStatus().getStatusDescription());
-                           firstStatus.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
+                       if (request.getEvents() != null && !request.getEvents().isEmpty()) {
+                           Events firstStatus = request.getEvents().get(0);
+                           if (request.getDigitalReq() != null) {
+                               request.setStatusRequest(firstStatus.getDigProgrStatus().getStatus().getValue());
+                               firstStatus.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
+                           } else {
+                               request.setStatusRequest(firstStatus.getPaperProgrStatus().getStatusDescription());
+                               firstStatus.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
+                           }
                        }
-                       request.setClientRequestTimeStamp(OffsetDateTime.now());
                        requestDynamoDbTable.putItem(builder -> builder.item(request));
                    })
                    .thenReturn(request);
@@ -93,7 +94,7 @@ public class RequestServiceImpl implements RequestService {
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
                    .map(retrieveRequest -> {
                        if (events.getDigProgrStatus() != null) {
-                           retrieveRequest.setStatusRequest(events.getDigProgrStatus().getStatus());
+                           retrieveRequest.setStatusRequest(events.getDigProgrStatus().getStatus().getValue());
                            events.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
                        } else {
                            retrieveRequest.setStatusRequest(events.getPaperProgrStatus().getStatusDescription());
