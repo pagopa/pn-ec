@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.testcontainers.containers.localstack.LocalStackContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.core.internal.waiters.ResponseOrException;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -20,10 +19,12 @@ import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbWaiter;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Map;
 
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.ALL_QUEUE_NAME_LIST;
-import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.*;
+import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.ANAGRAFICA_TABLE_NAME;
+import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.REQUEST_TABLE_NAME;
 import static java.util.Map.entry;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.*;
 import static software.amazon.awssdk.services.dynamodb.model.TableStatus.ACTIVE;
@@ -44,9 +45,7 @@ public class LocalStackTestConfig {
 
     static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4");
     static LocalStackContainer localStackContainer = new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS)
-                                                                                             .waitingFor(Wait.forLogMessage(
-                                                                                                     ".*Initialization terminated.*",
-                                                                                                     1));
+                                                                                             .withStartupTimeout(Duration.ofMinutes(2));
 
     static {
         localStackContainer.start();
