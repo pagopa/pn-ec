@@ -2,7 +2,6 @@ package it.pagopa.pn.ec.commons.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsConvertToJsonPayloadException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.service.SqsService;
@@ -13,8 +12,6 @@ import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
-import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Service
@@ -30,7 +27,7 @@ public class SqsServiceImpl implements SqsService {
     }
 
     @Override
-    public <T> Mono<SendMessageResponse> send(String queueName, T queuePayload) {
+    public <T> Mono<SendMessageResponse> send(String queueName, T queuePayload) throws SqsPublishException {
         AtomicReference<String> jsonPayload = new AtomicReference<>("");
         return Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> {
             String getQueueUrl = GetQueueUrlRequest.builder().queueName(queueName).build().queueName();
@@ -44,15 +41,5 @@ public class SqsServiceImpl implements SqsService {
             log.error(throwable.getMessage(), throwable);
             return Mono.error(new SqsPublishException(queueName));
         }).doOnSuccess(sendMessageResponse -> log.info("Publishing on {} with payload {}", queueName, jsonPayload.get()));
-    }
-
-    @Override
-    public <T> Mono<Void> incomingMessageFlow(T queuePayload, final Acknowledgment acknowledgment) {
-        return Mono.just(queuePayload)
-                   .doOnNext(message -> log.info("Incoming message {}", message))
-                   .flatMap(unused -> Mono.fromFuture(CompletableFuture.supplyAsync(acknowledgment::acknowledge)))
-                   .timeout(Duration.ofSeconds(MAXIMUM_LISTENING_TIME))
-                   .doOnError(throwable -> log.error("Maximum listening time on incoming message queue exceed"))
-                   .then();
     }
 }

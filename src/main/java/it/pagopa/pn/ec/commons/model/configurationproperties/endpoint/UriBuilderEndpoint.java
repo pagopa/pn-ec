@@ -11,20 +11,11 @@ import org.springframework.stereotype.Component;
 @Component
 @Data
 @PropertySource("classpath:internal-endpoint.properties")
-@ConfigurationProperties(prefix = "gestore-repository")
-public class GestoreRepositoryEndpoint {
+@ConfigurationProperties(prefix = "safe-storage")
+public class UriBuilderEndpoint {
 
-    String basePath;
+//    <-- ATTACHMENTS -->
 
-//  <-- CLIENT CONFIGURATION -->
-    String getClientConfiguration;
-    String postClientConfiguration;
-    String putClientConfiguration;
-    String deleteClientConfiguration;
+    String getFile;
 
-//  <-- REQUEST -->
-    String getRequest;
-    String postRequest;
-    String patchRequest;
-    String deleteRequest;
 }
