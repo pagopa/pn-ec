@@ -6,6 +6,7 @@ import java.time.OffsetDateTime;
 
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.ChannelEnum.SMS;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
+import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
 
 public class DigitalCourtesySmsRequestFactory {
 
@@ -13,11 +14,11 @@ public class DigitalCourtesySmsRequestFactory {
         String defaultStringInit = "string";
 
         var digitalCourtesySmsRequestFactory= new DigitalCourtesySmsRequest();
-        digitalCourtesySmsRequestFactory.setRequestId(defaultStringInit);
+        digitalCourtesySmsRequestFactory.setRequestId(DEFAULT_REQUEST_IDX);
         digitalCourtesySmsRequestFactory.eventType(defaultStringInit);
         digitalCourtesySmsRequestFactory.setClientRequestTimeStamp(OffsetDateTime.now());
         digitalCourtesySmsRequestFactory.setQos(INTERACTIVE);
-        digitalCourtesySmsRequestFactory.setReceiverDigitalAddress(defaultStringInit);
+        digitalCourtesySmsRequestFactory.setReceiverDigitalAddress("+393890091180");
         digitalCourtesySmsRequestFactory.setMessageText(defaultStringInit);
         digitalCourtesySmsRequestFactory.channel(SMS);
         return digitalCourtesySmsRequestFactory;

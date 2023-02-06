@@ -32,13 +32,13 @@ components:
         tags:
           type: object
           properties:
-#            iun:
-#              type: string
-#              description: >-
-#                Identificativo Unico della Notifica.
-#                Non è obbligatorio (ad es in una richiesta di verifica indirizzi non abbiamo un identificativo di notifica).
-#          required:
-#            - iun
+          #            iun:
+          #              type: string
+          #              description: >-
+          #                Identificativo Unico della Notifica.
+          #                Non è obbligatorio (ad es in una richiesta di verifica indirizzi non abbiamo un identificativo di notifica).
+          #          required:
+          #            - iun
           additionalProperties:
             type: string
         receiverDigitalAddress:
@@ -104,11 +104,7 @@ components:
           format: date-time
           readOnly: true
         status:
-          type: string
-          enum:
-            - PROGRESS
-            - OK
-            - ERROR
+          $ref: '#/components/schemas/DigitalRequestStatus'
         eventCode:
           type: string
           enum:
@@ -150,3 +146,22 @@ components:
               type: string
             location:
               type: string
+
+#   <-- STATUS SECTION -->
+
+    DigitalRequestStatus:
+      title: Stati di una richiesta digitale
+      type: string
+      enum:
+        - BOOKED
+        - COMPOSITION_ERROR
+        - RETRY
+        - SENT
+        - ERROR
+        - INFECTED
+        - NOT_ACCEPTED
+        - ACCEPTED
+        - NOT_DELIVERED
+        - DELIVERY_WARNING
+        - DELIVERED
+        - INTERNAL_ERROR

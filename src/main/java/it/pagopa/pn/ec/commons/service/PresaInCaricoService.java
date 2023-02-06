@@ -4,7 +4,6 @@ import it.pagopa.pn.ec.commons.exception.RequestAlreadyInProgressException;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -23,23 +22,19 @@ public abstract class PresaInCaricoService {
     }
 
     public Mono<Void> presaInCarico(PresaInCaricoInfo presaInCaricoInfo) throws RequestAlreadyInProgressException {
+//      Client auth
         return authService.clientAuth(presaInCaricoInfo.getXPagopaExtchCxId())
+//                        Retrieve request
                           .then(gestoreRepositoryCall.getRichiesta(presaInCaricoInfo.getRequestIdx()))
+//                        The request exists
+//                        TODO: Definire la logica di una richiesta già presente. Al momento se una richiesta esiste viene tornato direttamente un 409 come risposta
+                          .handle((existingRequest, sink) -> sink.error(new RequestAlreadyInProgressException(existingRequest.getRequestIdx())))
+//                        The request doesn't exist
                           .onErrorResume(RestCallException.ResourceNotFoundException.class, throwable -> {
                               log.info("The request with id {} doesn't exist", presaInCaricoInfo.getRequestIdx());
-                              return Mono.just(new RequestDto());
-                          })
-                          // TODO: Definire la logica di una richiesta già presente
-                          .handle((existingRequest, sink) -> {
-                              if (existingRequest.getRequestIdx() != null) {
-                                  sink.error(new RequestAlreadyInProgressException(presaInCaricoInfo.getRequestIdx()));
-                              }else {
-                                  sink.next(existingRequest);
-                              }
-                          })
-                          .flatMap(requestDto -> specificPresaInCarico(presaInCaricoInfo, (RequestDto) requestDto))
-                          .then();
+                              return specificPresaInCarico(presaInCaricoInfo);
+                          }).then();
     }
 
-    protected abstract Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo, RequestDto requestDtoPresentOrToInsert);
+    protected abstract Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo);
 }

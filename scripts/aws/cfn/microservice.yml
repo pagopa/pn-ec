@@ -11,13 +11,13 @@ Parameters:
     Type: String
     Description: ARN of alarm topic
 
-  WebApiDnsName:
-    Type: String
-    Description: 'The DNS name used for WEB rest API.'
+  # WebApiDnsName:
+  #   Type: String
+  #   Description: 'The DNS name used for WEB rest API.'
   
-  CorsAllowedDomains:
-    Type: String
-    Description: 'Comma separated list of domains allowed to make cross origin request'
+  # CorsAllowedDomains:
+  #   Type: String
+  #   Description: 'Comma separated list of domains allowed to make cross origin request'
 
   ContainerImageUri:
     Type: String
@@ -59,9 +59,9 @@ Parameters:
     Type: String
     Description: 'network load balancer link for API-GW'
   
-  LogsKinesisSourceStreamArn:
-    Type: String
-    Description: 'Kinesis stream that receive logs'
+  # LogsKinesisSourceStreamArn:
+  #   Type: String
+  #   Description: 'Kinesis stream that receive logs'
   
   Version:
     Type: String
@@ -74,7 +74,7 @@ Parameters:
 
   PnEcTableArnAnagrafica:    
     Type: String
-    Description: 'ARN della Tabella DynamoDB relativa all'Anagrafica Client'
+    Description: "ARN della Tabella DynamoDB relativa all'Anagrafica Client"
 
   PnEcTableArnRichieste:
     Type: String
@@ -84,25 +84,49 @@ Parameters:
     Type: String
     Description: '[Notification Tracker: canale SMS] ARN della Coda per aggiornamenti di stato afferenti al canale SMS'
 
+  PnEcQueueUrlTrackerStatoSMS:
+    Type: String
+    Description: '[Notification Tracker: canale SMS] URL della Coda per aggiornamenti di stato afferenti al canale SMS'
+ 
   PnEcQueueArnTrackerErroriSMS:
     Type: String
     Description: '[Notification Tracker: canale SMS] ARN della Coda Errori afferenti al canale SMS'
+
+  PnEcQueueUrlTrackerErroriSMS:
+    Type: String
+    Description: '[Notification Tracker: canale SMS] URL della Coda Errori afferenti al canale SMS'
 
   PnEcQueueArnNotificheExt1:
     Type: String
     Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] ARN della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
 
+  PnEcQueueUrlNotificheExt1:
+    Type: String
+    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] URL della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
+
   PnEcQueueArnBatchSMS:
     Type: String
     Description: '[Canale SMS] ARN della Coda per la modalità SMS-Batch'
 
+  PnEcQueueUrlBatchSMS:
+    Type: String
+    Description: '[Canale SMS] URL della Coda per la modalità SMS-Batch'
+    
   PnEcQueueArnInteractiveSMS:
     Type: String
     Description: '[Canale SMS] ARN della Coda per la modalità SMS-Interactive'
 
+  PnEcQueueUrlInteractiveSMS:
+    Type: String
+    Description: '[Canale SMS] URL della Coda per la modalità SMS-Interactive'
+
   PnEcQueueArnErroriSMS:
     Type: String
     Description: '[Canale SMS] ARN della Coda Errori SMS'
+  
+  PnEcQueueUrlErroriSMS:
+    Type: String
+    Description: '[Canale SMS] URL della Coda Errori SMS'
 
 Resources:
 
@@ -128,8 +152,6 @@ Resources:
         # CloudwatchLogKinesisStreamArn: !Ref LogsKinesisSourceStreamArn
         TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
         # HealthCheckPath: 
-
-  ExternalChannelMicroservice
 
   PnEcManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -163,37 +185,98 @@ Resources:
               - !Sub '${PnEcQueueArnInteractiveSMS}'
               - !Sub '${PnEcQueueArnErroriSMS}'
 
-  # QueuePolicyTracker:
-  #   Type: AWS::SQS::QueuePolicy
-  #   Properties: 
-  #     Queues: 
-  #       - !GetAtt PnEcQueueTrackerStatoSMS.QueueUrl 
-  #       - !GetAtt PnEcQueueTrackerErroriSMS.QueueUrl 
-  #     PolicyDocument: 
-  #       Statement: 
-  #         - Action: 
-  #             - "SQS:SendMessage" 
-  #             - "SQS:ReceiveMessage"
-  #           Effect: "Allow"
-  #           Resource: !GetAtt PnEcQueueSMS.Arn
-  #           Principal:  
-  #             AWS: 
-  #               - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref ExternalChannelMicroservice.Outputs.TaskRoleName]]
+  PnEcQueuePolicyTrackerStatoSMS:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlTrackerStatoSMS}' 
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - "SQS:SendMessage" 
+              - "SQS:ReceiveMessage"
+            Effect: "Allow"
+            Resource: !Sub ${PnEcQueueArnTrackerStatoSMS}
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
-  # QueuePolicySMS:
-  #   Type: AWS::SQS::QueuePolicy
-  #   Properties: 
-  #     Queues: 
-  #       - !GetAtt PnEcQueueSMS.QueueUrl
-  #       - !GetAtt PnEcQueueErroriSMS.QueueUrl
-  #     PolicyDocument: 
-  #       Statement: 
-  #         - Action: 
-  #             - "SQS:SendMessage" 
-  #             - "SQS:ReceiveMessage"
-  #           Effect: "Allow"
-  #           Resource: !GetAtt PnEcQueueSMS.Arn
-  #           Principal:  
-  #             AWS: 
-  #               #- !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref PnEcTaskNameSMS]]
-  #               - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !Ref ExternalChannelMicroservice.Outputs.TaskRoleName]]
+  PnEcQueuePolicyTrackerErroriSMS:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlTrackerErroriSMS}'
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - "SQS:SendMessage" 
+              - "SQS:ReceiveMessage"
+            Effect: "Allow"
+            Resource: !Sub ${PnEcQueueArnTrackerErroriSMS}
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+
+  PnEcQueuePolicyNotificheExt1:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlNotificheExt1}' 
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - "SQS:SendMessage" 
+              - "SQS:ReceiveMessage"
+            Effect: "Allow"
+            Resource: !Sub ${PnEcQueueArnNotificheExt1}
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+
+  PnEcQueuePolicyBatchSMS:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlBatchSMS}' 
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - "SQS:SendMessage" 
+              - "SQS:ReceiveMessage"
+            Effect: "Allow"
+            Resource: !Sub ${PnEcQueueArnBatchSMS}
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+
+  PnEcQueuePolicyInteractiveSMS:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlInteractiveSMS}' 
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - "SQS:SendMessage" 
+              - "SQS:ReceiveMessage"
+            Effect: "Allow"
+            Resource: !Sub ${PnEcQueueArnInteractiveSMS}
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+
+  PnEcQueuePolicyErroriSMS:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlErroriSMS}' 
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - "SQS:SendMessage" 
+              - "SQS:ReceiveMessage"
+            Effect: "Allow"
+            Resource: !Sub ${PnEcQueueArnErroriSMS}
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]

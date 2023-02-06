@@ -18,15 +18,4 @@ public class RisultatoCodiceRisposta {
 	public String toString() {
 		return "RisultatoCodiceRisposta [opResCodeResp=" + opResCodeResp + "]";
 	}
-	
-//	public String toJson() {
-//		JSONObject json = new JSONObject(this);
-//		return json.toString();
-//	}
-//	
-//	public String toJson(int indent) {
-//		JSONObject json = new JSONObject(this);
-//		return json.toString(indent);
-//	}
-
 }

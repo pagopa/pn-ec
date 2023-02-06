@@ -24,6 +24,5 @@ public class AuthServiceImpl implements AuthService {
                                     .onErrorResume(RestCallException.ResourceNotFoundException.class,
                                                    throwable -> Mono.error(new ClientNotAuthorizedFoundException(xPagopaExtchCxId)))
                                     .then();
-
     }
 }

@@ -20,16 +20,17 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.REQUEST_TABLE_NAME;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto.EventCodeEnum.C000;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto.StatusEnum.OK;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto.StatusEnum.PROGRESS;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestDto.ChannelEnum.SMS;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestDto.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestDto.QosEnum.INTERACTIVE;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus.BOOKED;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus.RETRY;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
@@ -53,9 +54,13 @@ class RequestControllerTest {
     private static DynamoDbTable<Request> dynamoDbTable;
 
     private static void initializeRequestDto() {
+
+        digitalRequest.setClientRequestTimeStamp(OffsetDateTime.now());
+        paperRequest.setClientRequestTimeStamp(OffsetDateTime.now());
+
         var digitalEvent = new EventsDto();
         var digitalProgressStatusDto = new DigitalProgressStatusDto();
-        digitalProgressStatusDto.setStatus(PROGRESS);
+        digitalProgressStatusDto.setStatus(BOOKED);
         digitalProgressStatusDto.setEventCode(C000);
         digitalEvent.setDigProgrStatus(digitalProgressStatusDto);
 
@@ -180,7 +185,7 @@ class RequestControllerTest {
 
         var newEvent = new EventsDto();
         var newDigitalProgressStatusDto = new DigitalProgressStatusDto();
-        newDigitalProgressStatusDto.setStatus(OK);
+        newDigitalProgressStatusDto.setStatus(RETRY);
         newDigitalProgressStatusDto.setEventCode(C000);
         newEvent.setDigProgrStatus(newDigitalProgressStatusDto);
 
@@ -200,7 +205,7 @@ class RequestControllerTest {
 
         var newEvent = new EventsDto();
         var newDigitalProgressStatusDto = new DigitalProgressStatusDto();
-        newDigitalProgressStatusDto.setStatus(OK);
+        newDigitalProgressStatusDto.setStatus(RETRY);
         newDigitalProgressStatusDto.setEventCode(C000);
         newEvent.setDigProgrStatus(newDigitalProgressStatusDto);
 
