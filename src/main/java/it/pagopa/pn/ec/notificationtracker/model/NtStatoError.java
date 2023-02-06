@@ -13,6 +13,6 @@ public class NtStatoError {
     private String processId;
     private String clientId;
     private String currStatus;
-
+    private String requestIdx;
 
 }

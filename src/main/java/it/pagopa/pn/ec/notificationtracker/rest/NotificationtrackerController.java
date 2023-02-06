@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.notificationtracker.rest;
 
 
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import it.pagopa.pn.ec.notificationtracker.service.impl.NotificationtrackerServiceImpl;
@@ -17,25 +17,25 @@ import reactor.core.publisher.Mono;
 public class NotificationtrackerController   {
 
     private final  NotificationtrackerServiceImpl service;
-    public Mono<Void> getStatoSmS(String process, String status, String xpagopaExtchCxId, String nextStatus)  {
+    public Mono<Void> getStatoSmS( final NotificationTrackerQueueDto message)  {
         log.info("<-- START LAVORAZIONE RICHIESTA SMS -->");
-        return service.getValidateStatoSmS(process,status,xpagopaExtchCxId,nextStatus);
+        return service.getValidateStatoSmS(message);
 
  }
 
-    public Mono<Void> getEmailStatus(String process, String status, String xpagopaExtchCxId, String nextStatus)  {
+    public Mono<Void> getEmailStatus(final NotificationTrackerQueueDto message)  {
         log.info("<-- START LAVORAZIONE RICHIESTA EMAIL -->");
-        return service.getValidateStatoEmail(process,status,xpagopaExtchCxId,nextStatus);
+        return service.getValidateStatoEmail(message);
     }
 
-    public Mono<Void> getPecStatus(String process, String status, String xpagopaExtchCxId, String nextStatus)  {
+    public Mono<Void> getPecStatus(final NotificationTrackerQueueDto message)  {
         log.info("<-- START LAVORAZIONE RICHIESTA PEC -->");
-        return service.getValidateStatoPec(process,status,xpagopaExtchCxId,nextStatus);
+        return service.getValidateStatoPec(message);
     }
 
-    public Mono<Void> getCartaceoStatus(String process, String status, String xpagopaExtchCxId, String nextStatus)  {
+    public Mono<Void> getCartaceoStatus(final NotificationTrackerQueueDto message)  {
         log.info("<-- START LAVORAZIONE RICHIESTA CARTACEO -->");
-        return service.getValidateCartaceStatus(process,status,xpagopaExtchCxId,nextStatus);
+        return service.getValidateCartaceStatus(message);
 
     }
 
