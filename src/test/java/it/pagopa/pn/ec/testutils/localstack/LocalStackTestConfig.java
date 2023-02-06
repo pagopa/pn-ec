@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.testcontainers.containers.localstack.LocalStackContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.core.internal.waiters.ResponseOrException;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -42,7 +43,10 @@ public class LocalStackTestConfig {
     private DynamoDbWaiter dynamoDbWaiter;
 
     static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4");
-    static LocalStackContainer localStackContainer = new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS);
+    static LocalStackContainer localStackContainer = new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS)
+                                                                                             .waitingFor(Wait.forLogMessage(
+                                                                                                     ".*Initialization terminated.*",
+                                                                                                     1));
 
     static {
         localStackContainer.start();
@@ -70,17 +74,16 @@ public class LocalStackTestConfig {
         }
     }
 
-    private final static Map<String, Class<?>> TABLE_NAME_WITH_ENTITY_CLASS = Map.ofEntries(entry(ANAGRAFICA_TABLE_NAME,
-                                                                                                  ClientConfiguration.class),
-                                                                                            entry(REQUEST_TABLE_NAME, Request.class));
+    private final static Map<String, Class<?>> TABLE_NAME_WITH_ENTITY_CLASS =
+            Map.ofEntries(entry(ANAGRAFICA_TABLE_NAME, ClientConfiguration.class), entry(REQUEST_TABLE_NAME, Request.class));
 
     private void createTable(final String tableName, final Class<?> entityClass) {
         DynamoDbTable<?> dynamoDbTable = dynamoDbEnhancedClient.table(tableName, TableSchema.fromBean(entityClass));
         dynamoDbTable.createTable(builder -> builder.provisionedThroughput(b -> b.readCapacityUnits(5L).writeCapacityUnits(5L).build()));
 
         // La creazione delle tabelle su Dynamo è asincrona. Bisogna aspettare tramite il DynamoDbWaiter
-        ResponseOrException<DescribeTableResponse> responseOrException = dynamoDbWaiter.waitUntilTableExists(builder -> builder.tableName(
-                tableName).build()).matched();
+        ResponseOrException<DescribeTableResponse> responseOrException =
+                dynamoDbWaiter.waitUntilTableExists(builder -> builder.tableName(tableName).build()).matched();
         responseOrException.response().orElseThrow(() -> new DynamoDbInitTableCreationException(tableName));
     }
 
