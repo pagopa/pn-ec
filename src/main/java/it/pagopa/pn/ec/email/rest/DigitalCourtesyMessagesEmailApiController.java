@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono;
 import static it.pagopa.pn.ec.commons.constant.ProcessId.INVIO_MAIL;
 import static org.springframework.http.HttpStatus.OK;
 
-
+@Slf4j
 //@RestController
 public class DigitalCourtesyMessagesEmailApiController implements DigitalCourtesyMessagesApi {
 
@@ -30,9 +30,9 @@ public class DigitalCourtesyMessagesEmailApiController implements DigitalCourtes
                                                                   Mono<DigitalCourtesyMailRequest>  digitalCourtesyMailRequest,
                                                                   final ServerWebExchange exchange){
 
-        return digitalCourtesyMailRequest.flatMap(request -> service.presaInCarico(new EmailPresaInCaricoInfo(requestIdx,
+        return digitalCourtesyMailRequest.doOnNext(request -> log.info("<-- Start presa in email -->"))
+        .flatMap(request -> service.presaInCarico(new EmailPresaInCaricoInfo(requestIdx,
                         xPagopaExtchCxId,
-                        INVIO_MAIL,
                         request)))
                 .then(Mono.just(new ResponseEntity<>(OK)));
     }

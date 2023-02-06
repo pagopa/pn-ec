@@ -18,8 +18,8 @@ public class EmailPresaInCaricoInfo extends PresaInCaricoInfo {
 
     DigitalCourtesyMailRequest digitalCourtesyMailRequest;
 
-    public EmailPresaInCaricoInfo(String idRequest, String idClient, ProcessId processId, DigitalCourtesyMailRequest digitalCourtesyMailRequest) {
-        super(idRequest, idClient, processId);
+    public EmailPresaInCaricoInfo(String requestIdx, String xPagopaExtchCxId, DigitalCourtesyMailRequest digitalCourtesyMailRequest) {
+        super(requestIdx, xPagopaExtchCxId );
         this.digitalCourtesyMailRequest = digitalCourtesyMailRequest;
     }
 }
