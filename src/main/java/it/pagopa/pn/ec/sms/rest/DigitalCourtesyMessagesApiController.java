@@ -1,5 +1,7 @@
 package it.pagopa.pn.ec.sms.rest;
 
+import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
+import it.pagopa.pn.ec.email.service.EmailService;
 import it.pagopa.pn.ec.rest.v1.api.DigitalCourtesyMessagesApi;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
@@ -20,8 +22,11 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
 
     private final SmsService smsService;
 
-    public DigitalCourtesyMessagesApiController(SmsService smsService) {
+    private final EmailService emailService;
+
+    public DigitalCourtesyMessagesApiController(SmsService smsService, EmailService emailService) {
         this.smsService = smsService;
+        this.emailService = emailService;
     }
 
     @Override
@@ -33,5 +38,26 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                                                               xPagopaExtchCxId,
                                                                                                               request)))
                                         .thenReturn(new ResponseEntity<>(OK));
+    }
+
+
+
+    /*
+        Gli endpoint di SMS e EMAIL sono state accorpati nello stesso tag OpenApi.
+        Ciò ha generato un'interfaccia Java comune e dato che all'interno dello stesso contesto Spring
+         non possono coesistere due @RequestController che espongono lo stesso endpoint abbiamo dovuto implementare le API nello stesso controller.
+
+     */
+
+    @Override
+    public Mono<ResponseEntity<Void>> sendDigitalCourtesyMessage(String requestIdx, String xPagopaExtchCxId,
+                                                                 Mono<DigitalCourtesyMailRequest>  digitalCourtesyMailRequest,
+                                                                 final ServerWebExchange exchange){
+
+        return digitalCourtesyMailRequest.doOnNext(request -> log.info("<-- Start presa in email -->"))
+                .flatMap(request -> emailService.presaInCarico(new EmailPresaInCaricoInfo(requestIdx,
+                        xPagopaExtchCxId,
+                        request)))
+                .then(Mono.just(new ResponseEntity<>(OK)));
     }
 }
