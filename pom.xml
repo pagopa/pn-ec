@@ -27,7 +27,7 @@
 		<awspring.version>2.3.2</awspring.version>
 		<awssdkv1.version>1.12.386</awssdkv1.version>
 		<logbackjackson.version>0.1.5</logbackjackson.version>
-		<awaitility.version>4.1.1</awaitility.version>
+		<awaitility.version>4.2.0</awaitility.version>
 	</properties>
 
 	<dependencyManagement>
