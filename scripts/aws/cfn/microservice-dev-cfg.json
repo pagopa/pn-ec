@@ -1,25 +1,5 @@
 {
   "Parameters": {
-    "PnEc": "",
-
-    "PnEcTableNameAnagrafica": "pn-ec-anagrafica-client",
-    "PnEcTableNameRichieste": "pn-ec-richieste",
-
-    "PnEcQueueName": "pn-ec-SAMPLE-queue",
-    "PnEcQueueNameSMS": "pn-ec-sms-queue",
-    "PnEcQueueNameErroriSMS": "pn-ec-sms-errori-queue",
-    "PnEcQueueNameTrackerStatoSMS": "pn-ec-notification-tracker-stato-sms-queue",
-    "PnEcQueueNameTrackerErroriSMS": "pn-ec-notification-tracker-stato-sms-errato-queue",
-    "PnEcQueueNameNotificheExt1": "pn-ec-notifiche-external-platform-name-queue",
-
-    "PnEcEventRuleName": "pn-ec-SAMPLE-event-rule",
-    "PnEcEventRuleNameNotificheExt1": "pn-ec-notifiche-external-platform-event-rule",
-
-    "PnEcSNSNameNotificheExt1": "pn-ec-notifiche-external-platform-topic",
-
-    "PnEcECSExecutionRoleName": "pn-ec-ecs-execution-role",
-    "PnEcTaskNameTracker": "pn-ec-ecs-execution-role",
-    "PnEcTaskNameSMS": "pn-ec-ecs-execution-role"
     
   }
 }
