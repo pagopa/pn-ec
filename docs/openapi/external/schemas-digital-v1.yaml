@@ -39,13 +39,16 @@ components:
             Interactive/Batch (quality of service, "entro quanto tempo" devo rispondere, con che livello di servizio)
         tags:
           type: object
-          properties:    
-            iun:
-              type: string
-              description: >-
-                Identificativo Unico della Notifica. 
-                Non è obbligatorio (ad es in una richiesta di verifica indirizzi non abbiamo un identificativo di notifica).
-            additionalProperties: {}
+          properties:
+          #            iun:
+          #              type: string
+          #              description: >-
+          #                Identificativo Unico della Notifica.
+          #                Non è obbligatorio (ad es in una richiesta di verifica indirizzi non abbiamo un identificativo di notifica).
+          #          required:
+          #            - iun
+          additionalProperties:
+            type: string
         clientRequestTimeStamp:
           type: string
           format: date-time

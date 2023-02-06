@@ -2,10 +2,6 @@ package it.pagopa.pn.ec.testutils.constant;
 
 public final class EcCommonRestApiConstant {
 
-    private EcCommonRestApiConstant() {
-        throw new IllegalStateException("EcCommonRestApiConstant is a constant class");
-    }
-
     /*
     <-- Path param requestIdx section -->
     Regex on which it will be validated -> [0-9A-Za-z_-]{5,100}
