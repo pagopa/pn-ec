@@ -57,16 +57,12 @@ public class LocalStackTestConfig {
         System.setProperty("test.aws.dynamodb.endpoint", String.valueOf(localStackContainer.getEndpointOverride(DYNAMODB)));
         System.setProperty("test.aws.sns.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SNS)));
 
-        System.setProperty("test.aws.sqs.enable-listener", "false");
-
         try {
 
 //          Create SQS queue
             for (String queueName : ALL_QUEUE_NAME_LIST) {
                 localStackContainer.execInContainer("awslocal", "sqs", "create-queue", "--queue-name", queueName);
             }
-
-//            localStackContainer.execInContainer("awslocal", "sns", "create-sms-sandbox-phone-number", "--phone-number", "+393890091180");
 
             // TODO: Create SNS topic
         } catch (IOException | InterruptedException e) {
