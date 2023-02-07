@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.commons.configuration.http;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.ExternalChannelEndpointProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.JettyClientHttpConnector;
@@ -18,6 +19,9 @@ public class WebClientConf {
     private final JettyHttpClientConf jettyHttpClientConf;
     private final ExternalChannelEndpointProperties externalChannelEndpointProperties;
     private final SafeStorageEndpointProperties safeStorageEndpointProperties;
+
+    @Value("${statemachine.url}")
+    String statemachineGetClientEndpoint;
 
     public WebClientConf(JettyHttpClientConf jettyHttpClientConf, ExternalChannelEndpointProperties externalChannelEndpointProperties,
                          SafeStorageEndpointProperties safeStorageEndpointProperties) {
@@ -38,7 +42,12 @@ public class WebClientConf {
     }
 
     @Bean
-    public WebClient ssExternalWebClient() {
+    public WebClient ssWebClient() {
+        return defaultWebClientBuilder().baseUrl(safeStorageEndpointProperties.containerBasePath()).build();
+    }
+
+    @Bean
+    public WebClient stateMachineWebClient() {
         return defaultWebClientBuilder().baseUrl(safeStorageEndpointProperties.containerBasePath()).build();
     }
 }

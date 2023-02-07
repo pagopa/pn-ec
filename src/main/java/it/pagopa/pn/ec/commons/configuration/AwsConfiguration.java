@@ -22,7 +22,6 @@ import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbAsyncWaiter;
 import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbWaiter;
 import software.amazon.awssdk.services.eventbridge.EventBridgeAsyncClient;
 import software.amazon.awssdk.services.eventbridge.EventBridgeAsyncClientBuilder;
-import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.SnsAsyncClientBuilder;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
@@ -57,7 +56,6 @@ public class AwsConfiguration {
     @Value("${test.aws.event:#{null}}")
     String eventLocalStackEndpoint;
 
-    private static final DefaultAwsRegionProviderChain DEFAULT_AWS_REGION_PROVIDER_CHAIN = new DefaultAwsRegionProviderChain();
     private static final DefaultCredentialsProvider DEFAULT_CREDENTIALS_PROVIDER = DefaultCredentialsProvider.create();
 
     public AwsConfiguration(AwsConfigurationProperties awsConfigurationProperties) {
@@ -87,19 +85,17 @@ public class AwsConfiguration {
 
 
     @Bean
-    public EventBridgeAsyncClient evetAsyncClient() {
-        EventBridgeAsyncClientBuilder eventBrClient = EventBridgeAsyncClient.builder().credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER);
+    public EventBridgeAsyncClient eventBridgeAsyncClient() {
+        EventBridgeAsyncClientBuilder eventBrClient = EventBridgeAsyncClient.builder()
+                                                                            .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER)
+                                                                            .region(Region.of(awsConfigurationProperties.regionCode()));
 
         if (eventLocalStackEndpoint != null) {
-            eventBrClient.region(Region.of(localStackRegion)).endpointOverride(URI.create(eventLocalStackEndpoint));
-        } else {
-            eventBrClient.region(DEFAULT_AWS_REGION_PROVIDER_CHAIN.getRegion());
+            eventBrClient.endpointOverride(URI.create(eventLocalStackEndpoint));
         }
 
         return eventBrClient.build();
     }
-
-
 
 
     @Bean

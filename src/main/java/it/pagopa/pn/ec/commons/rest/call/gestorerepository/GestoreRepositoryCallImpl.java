@@ -30,13 +30,12 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     @Override
     public Mono<ClientConfigurationDto> getClientConfiguration(String xPagopaExtchCxId) {
         return ecWebClient.get()
-                                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getClientConfiguration())
-                                                               .build(xPagopaExtchCxId))
-                                  .retrieve()
-                                  .onStatus(BAD_REQUEST::equals,
-                                            clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException(
-                                                    "Client not " + "found")))
-                                  .bodyToMono(ClientConfigurationDto.class);
+                          .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getClientConfiguration())
+                                                       .build(xPagopaExtchCxId))
+                          .retrieve()
+                          .onStatus(BAD_REQUEST::equals,
+                                    clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException("Client not " + "found")))
+                          .bodyToMono(ClientConfigurationDto.class);
     }
 
     //  <-- REQUEST -->
@@ -58,35 +57,34 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     @Override
     public Mono<RequestDto> getRichiesta(String requestIdx) throws RestCallException.ResourceNotFoundException {
         return ecWebClient.get()
-                                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(requestIdx))
-                                  .retrieve()
-                                  .onStatus(BAD_REQUEST::equals,
-                                            clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException("Request not " + "found"
-                                            )))
-                                  .bodyToMono(RequestDto.class);
+                          .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(requestIdx))
+                          .retrieve()
+                          .onStatus(BAD_REQUEST::equals,
+                                    clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException("Request not " + "found")))
+                          .bodyToMono(RequestDto.class);
     }
 
     @Override
     public Mono<RequestDto> insertRichiesta(RequestDto requestDto) {
         return ecWebClient.post()
-                                  .uri(gestoreRepositoryEndpointProperties.postRequest())
-                                  .body(BodyInserters.fromValue(requestDto))
-                                  .retrieve()
-                                  .onStatus(FORBIDDEN::equals,
-                                            clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException(
-                                                    "Request already exists")))
-                                  .bodyToMono(RequestDto.class);
+                          .uri(gestoreRepositoryEndpointProperties.postRequest())
+                          .body(BodyInserters.fromValue(requestDto))
+                          .retrieve()
+                          .onStatus(FORBIDDEN::equals,
+                                    clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException("Request already exists")))
+                          .bodyToMono(RequestDto.class);
     }
 
     @Override
     public Mono<RequestDto> updateRichiesta(String requestIdx, EventsDto eventsDto) {
-        return ecInternalWebClient.put()
-                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpoint.getPatchRequest()).build(requestIdx)).bodyValue(eventsDto)
-                .retrieve()
-                .onStatus(BAD_REQUEST::equals,
-                        clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException(
-                                "Request requestIdx not  " + "found")))
-                .bodyToMono(RequestDto.class);
+        return ecWebClient.put()
+                          .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(requestIdx))
+                          .bodyValue(eventsDto)
+                          .retrieve()
+                          .onStatus(BAD_REQUEST::equals,
+                                    clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException(
+                                            "Request requestIdx not  " + "found")))
+                          .bodyToMono(RequestDto.class);
     }
 
     @Override

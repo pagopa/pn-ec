@@ -15,8 +15,8 @@ public class UriBuilderCallImpl implements UriBuilderCall{
     private final WebClient ssExternalEndpointBasePath;
     private final FilesEndpointProperties filesEndpointProperties;
 
-    public UriBuilderCallImpl(WebClient ssExternalWebClient, FilesEndpointProperties filesEndpointProperties) {
-        this.ssExternalEndpointBasePath = ssExternalWebClient;
+    public UriBuilderCallImpl(WebClient ssWebClient, FilesEndpointProperties filesEndpointProperties) {
+        this.ssExternalEndpointBasePath = ssWebClient;
         this.filesEndpointProperties = filesEndpointProperties;
     }
 
