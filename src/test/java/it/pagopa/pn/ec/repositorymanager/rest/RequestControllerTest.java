@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.repositorymanager.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.entity.Request;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
@@ -24,7 +25,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.REQUEST_TABLE_NAME;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto.EventCodeEnum.C000;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestDto.ChannelEnum.SMS;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestDto.MessageContentTypeEnum.PLAIN;
@@ -109,8 +109,10 @@ class RequestControllerTest {
     }
 
     @BeforeAll
-    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient, @Autowired ObjectMapper objectMapper) {
-        dynamoDbTable = dynamoDbEnhancedClient.table(REQUEST_TABLE_NAME, TableSchema.fromBean(Request.class));
+    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient,
+                                                        @Autowired RepositoryManagerDynamoTableName repositoryManagerDynamoTableName,
+                                                        @Autowired ObjectMapper objectMapper) {
+        dynamoDbTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteName(), TableSchema.fromBean(Request.class));
         initializeRequestDto();
         insertRequest(objectMapper.convertValue(digitalRequest, Request.class));
         insertRequest(objectMapper.convertValue(paperRequest, Request.class));

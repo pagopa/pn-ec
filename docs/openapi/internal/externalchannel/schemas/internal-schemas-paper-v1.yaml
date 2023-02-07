@@ -17,7 +17,6 @@ components:
         - senderPr
       type: object
       properties:
-      properties:
         iun:
           type: string
           example: 'ABCD-HILM-YKWX-202202-1'

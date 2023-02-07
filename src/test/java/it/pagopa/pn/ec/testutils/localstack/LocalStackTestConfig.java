@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.testutils.localstack;
 
+import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.entity.ClientConfiguration;
 import it.pagopa.pn.ec.repositorymanager.entity.Request;
 import it.pagopa.pn.ec.testutils.exception.DynamoDbInitTableCreationException;
@@ -23,8 +24,6 @@ import java.time.Duration;
 import java.util.Map;
 
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.ALL_QUEUE_NAME_LIST;
-import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.ANAGRAFICA_TABLE_NAME;
-import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.REQUEST_TABLE_NAME;
 import static java.util.Map.entry;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.*;
 import static software.amazon.awssdk.services.dynamodb.model.TableStatus.ACTIVE;
@@ -43,14 +42,15 @@ public class LocalStackTestConfig {
     @Autowired
     private DynamoDbWaiter dynamoDbWaiter;
 
+    @Autowired
+    private RepositoryManagerDynamoTableName repositoryManagerDynamoTableName;
+
     static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4");
-    static LocalStackContainer localStackContainer = new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS)
-                                                                                             .withStartupTimeout(Duration.ofMinutes(2));
+    static LocalStackContainer localStackContainer =
+            new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS).withStartupTimeout(Duration.ofMinutes(2));
 
     static {
         localStackContainer.start();
-
-        System.setProperty("test.aws.region", localStackContainer.getRegion());
 
 //      <-- Override spring-cloud-starter-aws-messaging endpoints for testing -->
         System.setProperty("cloud.aws.sqs.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
@@ -59,11 +59,10 @@ public class LocalStackTestConfig {
         System.setProperty("test.aws.sqs.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
         System.setProperty("test.aws.dynamodb.endpoint", String.valueOf(localStackContainer.getEndpointOverride(DYNAMODB)));
         System.setProperty("test.aws.sns.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SNS)));
-        System.setProperty("test.aws.sqs.disable-listener", "true");
 
         System.setProperty("test.aws.event", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
         System.setProperty("event.Bus.Nome","test-test");
-        System.setProperty("statemachine.url","/statemachinemanager/validate");
+        System.setProperty("statemachine.url","statemachine-container-base-path-for-tests");
 
         try {
 
@@ -72,14 +71,10 @@ public class LocalStackTestConfig {
                 localStackContainer.execInContainer("awslocal", "sqs", "create-queue", "--queue-name", queueName);
             }
 
-            // TODO: Create SNS topic
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
-
-    private final static Map<String, Class<?>> TABLE_NAME_WITH_ENTITY_CLASS =
-            Map.ofEntries(entry(ANAGRAFICA_TABLE_NAME, ClientConfiguration.class), entry(REQUEST_TABLE_NAME, Request.class));
 
     private void createTable(final String tableName, final Class<?> entityClass) {
         DynamoDbTable<?> dynamoDbTable = dynamoDbEnhancedClient.table(tableName, TableSchema.fromBean(entityClass));
@@ -93,7 +88,12 @@ public class LocalStackTestConfig {
 
     @PostConstruct
     public void initLocalStack() {
-        TABLE_NAME_WITH_ENTITY_CLASS.forEach((tableName, entityClass) -> {
+
+        Map<String, Class<?>> tableNameWithEntityClass =
+                Map.ofEntries(entry(repositoryManagerDynamoTableName.anagraficaClientName(), ClientConfiguration.class),
+                              entry(repositoryManagerDynamoTableName.richiesteName(), Request.class));
+
+        tableNameWithEntityClass.forEach((tableName, entityClass) -> {
             log.info("<-- START initLocalStack -->");
             try {
                 log.info("<-- START Dynamo db init-->");

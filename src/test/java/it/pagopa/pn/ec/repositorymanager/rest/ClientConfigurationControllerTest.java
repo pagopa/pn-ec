@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.rest;
 
+import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.entity.ClientConfiguration;
 import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
@@ -14,7 +15,6 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
-import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.ANAGRAFICA_TABLE_NAME;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
@@ -39,8 +39,10 @@ class ClientConfigurationControllerTest {
     }
 
     @BeforeAll
-    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient) {
-        dynamoDbTable = dynamoDbEnhancedClient.table(ANAGRAFICA_TABLE_NAME, TableSchema.fromBean(ClientConfiguration.class));
+    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient,
+                                                        @Autowired RepositoryManagerDynamoTableName gestoreRepositoryDynamoDbTableName) {
+        dynamoDbTable = dynamoDbEnhancedClient.table(gestoreRepositoryDynamoDbTableName.anagraficaClientName(),
+                                                     TableSchema.fromBean(ClientConfiguration.class));
         insertClientConfiguration(DEFAULT_ID);
     }
 

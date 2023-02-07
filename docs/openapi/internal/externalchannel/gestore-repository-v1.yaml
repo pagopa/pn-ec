@@ -225,9 +225,9 @@ components:
           type: string
           format: date-time
         digitalReq:
-          $ref: '../schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestDto'
+          $ref: './schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestDto'
         paperReq:
-          $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperRequestDto'
+          $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperRequestDto'
         events:
           type: array
           items:
@@ -237,6 +237,6 @@ components:
       type: object
       properties:
         digProgrStatus:
-          $ref: '../schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalProgressStatusDto'
+          $ref: './schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalProgressStatusDto'
         paperProgrStatus:
-          $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperProgressStatusDto'
+          $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperProgressStatusDto'
