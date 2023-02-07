@@ -2,7 +2,6 @@ package it.pagopa.pn.ec.notificationtracker.service.callmachinestati;
 
 import it.pagopa.pn.ec.notificationtracker.model.NotificationResponseModel;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -12,25 +11,21 @@ import reactor.core.publisher.Mono;
 public class CallMachinaStatiImpl implements CallMachinaStati {
 
 
-    private final WebClient ecWebClient;
+    private final WebClient stateMachineWebClient;
 
-    public CallMachinaStatiImpl(WebClient ecWebClient) {
-        this.ecWebClient = ecWebClient;
+    public CallMachinaStatiImpl(WebClient stateMachineWebClient) {
+        this.stateMachineWebClient = stateMachineWebClient;
     }
-
-
-    @Value("${statemachine.url}")
-    String statemachineGetClientEndpoint;
 
     @Override
     public Mono<NotificationResponseModel> getStato(String processId, String currStatus, String xPagopaExtchCxId, String nextStatus) {
-        return ecWebClient.get()
-                          .uri(uriBuilder -> uriBuilder.path(statemachineGetClientEndpoint + "{processId}/{currStatus}")
-                                                       .queryParam("clientId", xPagopaExtchCxId)
-                                                       .queryParam("nextStatus", nextStatus)
-                                                       .build(processId, currStatus))
-                          .retrieve()
+        return stateMachineWebClient.get()
+                                    // TODO: DEFINE ENDPOINT IN PROPERTIES
+                                    .uri(uriBuilder -> uriBuilder.path("/statemachinemanager/validate/{processId}/{currStatus}")
+                                                                 .queryParam("clientId", xPagopaExtchCxId)
+                                                                 .queryParam("nextStatus", nextStatus)
+                                                                 .build(processId, currStatus)).retrieve()
 
-                          .bodyToMono(NotificationResponseModel.class);
+                                    .bodyToMono(NotificationResponseModel.class);
     }
 }

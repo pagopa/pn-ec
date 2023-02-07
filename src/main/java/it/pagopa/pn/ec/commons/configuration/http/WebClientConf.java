@@ -21,7 +21,7 @@ public class WebClientConf {
     private final SafeStorageEndpointProperties safeStorageEndpointProperties;
 
     @Value("${statemachine.url}")
-    String statemachineGetClientEndpoint;
+    String stateMachineBasePath;
 
     public WebClientConf(JettyHttpClientConf jettyHttpClientConf, ExternalChannelEndpointProperties externalChannelEndpointProperties,
                          SafeStorageEndpointProperties safeStorageEndpointProperties) {
@@ -48,6 +48,6 @@ public class WebClientConf {
 
     @Bean
     public WebClient stateMachineWebClient() {
-        return defaultWebClientBuilder().baseUrl(safeStorageEndpointProperties.containerBasePath()).build();
+        return defaultWebClientBuilder().baseUrl(stateMachineBasePath).build();
     }
 }
