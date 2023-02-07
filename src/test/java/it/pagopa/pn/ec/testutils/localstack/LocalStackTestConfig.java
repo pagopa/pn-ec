@@ -62,7 +62,7 @@ public class LocalStackTestConfig {
 
         System.setProperty("test.aws.event", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
         System.setProperty("event.Bus.Nome","test-test");
-        System.setProperty("statemachine.url","/statemachinemanager/validate");
+        System.setProperty("statemachine.url","statemachine-container-base-path-for-tests");
 
         try {
 
@@ -71,7 +71,6 @@ public class LocalStackTestConfig {
                 localStackContainer.execInContainer("awslocal", "sqs", "create-queue", "--queue-name", queueName);
             }
 
-            // TODO: Create SNS topic
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
