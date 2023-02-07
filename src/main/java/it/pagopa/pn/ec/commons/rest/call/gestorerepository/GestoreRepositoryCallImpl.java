@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.commons.rest.call.gestorerepository;
 
-import it.pagopa.pn.ec.commons.model.configurationproperties.endpoint.GestoreRepositoryEndpoint;
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.GestoreRepositoryEndpointProperties;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
@@ -17,19 +17,19 @@ import static org.springframework.http.HttpStatus.FORBIDDEN;
 @Slf4j
 public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
-    private final WebClient ecInternalWebClient;
-    private final GestoreRepositoryEndpoint gestoreRepositoryEndpoint;
+    private final WebClient ecWebClient;
+    private final GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties;
 
-    public GestoreRepositoryCallImpl(WebClient ecInternalWebClient, GestoreRepositoryEndpoint gestoreRepositoryEndpoint) {
-        this.ecInternalWebClient = ecInternalWebClient;
-        this.gestoreRepositoryEndpoint = gestoreRepositoryEndpoint;
+    public GestoreRepositoryCallImpl(WebClient ecWebClient, GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties) {
+        this.ecWebClient = ecWebClient;
+        this.gestoreRepositoryEndpointProperties = gestoreRepositoryEndpointProperties;
     }
 
     //  <-- CLIENT CONFIGURATION -->
     @Override
     public Mono<ClientConfigurationDto> getClientConfiguration(String xPagopaExtchCxId) {
-        return ecInternalWebClient.get()
-                                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpoint.getGetClientConfiguration())
+        return ecWebClient.get()
+                                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getClientConfiguration())
                                                                .build(xPagopaExtchCxId))
                                   .retrieve()
                                   .onStatus(BAD_REQUEST::equals,
@@ -56,8 +56,8 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
     @Override
     public Mono<RequestDto> getRichiesta(String requestIdx) throws RestCallException.ResourceNotFoundException {
-        return ecInternalWebClient.get()
-                                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpoint.getGetRequest()).build(requestIdx))
+        return ecWebClient.get()
+                                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(requestIdx))
                                   .retrieve()
                                   .onStatus(BAD_REQUEST::equals,
                                             clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException("Request not " + "found"
@@ -67,8 +67,8 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
     @Override
     public Mono<RequestDto> insertRichiesta(RequestDto requestDto) {
-        return ecInternalWebClient.post()
-                                  .uri(gestoreRepositoryEndpoint.getPostRequest())
+        return ecWebClient.post()
+                                  .uri(gestoreRepositoryEndpointProperties.postRequest())
                                   .body(BodyInserters.fromValue(requestDto))
                                   .retrieve()
                                   .onStatus(FORBIDDEN::equals,

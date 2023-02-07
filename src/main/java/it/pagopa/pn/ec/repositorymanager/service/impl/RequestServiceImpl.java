@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
+import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.entity.Events;
 import it.pagopa.pn.ec.repositorymanager.entity.Request;
 import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
@@ -15,13 +16,18 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
-import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.REQUEST_TABLE_NAME;
 
 @Service
 @Slf4j
 public class RequestServiceImpl implements RequestService {
 
-    private final DynamoDbAsyncTable<Request> requestDynamoDbTable;
+    private final DynamoDbAsyncTable<Request> requestDynamoDbAsyncTable;
+
+    public RequestServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedAsyncClient,
+                              RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
+        this.requestDynamoDbAsyncTable =
+                dynamoDbEnhancedAsyncClient.table(repositoryManagerDynamoTableName.richiesteName(), TableSchema.fromBean(Request.class));
+    }
 
     private void checkRequestToInsert(Request request) {
 
@@ -47,20 +53,16 @@ public class RequestServiceImpl implements RequestService {
         }
     }
 
-    public RequestServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient) {
-        this.requestDynamoDbTable = dynamoDbEnhancedClient.table(REQUEST_TABLE_NAME, TableSchema.fromBean(Request.class));
-    }
-
     @Override
     public Mono<Request> getRequest(String requestIdx) {
-        return Mono.fromCompletionStage(requestDynamoDbTable.getItem(getKey(requestIdx)))
+        return Mono.fromCompletionStage(requestDynamoDbAsyncTable.getItem(getKey(requestIdx)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()));
     }
 
     @Override
     public Mono<Request> insertRequest(Request request) {
-        return Mono.fromCompletionStage(requestDynamoDbTable.getItem(getKey(request.getRequestId())))
+        return Mono.fromCompletionStage(requestDynamoDbAsyncTable.getItem(getKey(request.getRequestId())))
                    .handle((foundedRequest, sink) -> {
                        if (foundedRequest != null) {
                            sink.error(new RepositoryManagerException.IdRequestAlreadyPresent(request.getRequestId()));
@@ -80,14 +82,14 @@ public class RequestServiceImpl implements RequestService {
                                firstStatus.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
                            }
                        }
-                       requestDynamoDbTable.putItem(builder -> builder.item(request));
+                       requestDynamoDbAsyncTable.putItem(builder -> builder.item(request));
                    })
                    .thenReturn(request);
     }
 
     @Override
     public Mono<Request> updateEvents(String requestIdx, Events events) {
-        return Mono.fromCompletionStage(requestDynamoDbTable.getItem(getKey(requestIdx)))
+        return Mono.fromCompletionStage(requestDynamoDbAsyncTable.getItem(getKey(requestIdx)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
                    .doOnSuccess(retrievedRequest -> checkEvents(retrievedRequest, events))
@@ -101,17 +103,17 @@ public class RequestServiceImpl implements RequestService {
                            events.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
                        }
                        retrieveRequest.getEvents().add(events);
-                       requestDynamoDbTable.updateItem(retrieveRequest);
+                       requestDynamoDbAsyncTable.updateItem(retrieveRequest);
                        return retrieveRequest;
                    });
     }
 
     @Override
     public Mono<Request> deleteRequest(String requestIdx) {
-        return Mono.fromCompletionStage(requestDynamoDbTable.getItem(getKey(requestIdx)))
+        return Mono.fromCompletionStage(requestDynamoDbAsyncTable.getItem(getKey(requestIdx)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(requestToDelete -> requestDynamoDbTable.deleteItem(getKey(requestIdx)))
+                   .doOnSuccess(requestToDelete -> requestDynamoDbAsyncTable.deleteItem(getKey(requestIdx)))
                    .map(request -> request);
     }
 }
