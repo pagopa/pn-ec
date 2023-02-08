@@ -84,13 +84,25 @@ Parameters:
     Type: String  
     Description: "Nome della Tabella DynamoDB relativa ad Anagrafica Client"
 
+  PnEcTableArnAnagrafica:
+    Type: String
+    Description: 'ARN della Tabella DynamoDB relativa ad Anagrafica Client'
+
   PnEcTableNameRichieste:
     Type: String
     Description: 'Nome della Tabella DynamoDB relativa alle richieste'
 
+  PnEcTableArnRichieste:
+    Type: String
+    Description: 'ARN della Tabella DynamoDB relativa alle richieste'
+
   PnEcTableNameRichiesteMetadati:
     Type: String
     Description: 'Nome della Tabella DynamoDB relativa alle richieste'
+
+  PnEcTableArnRichiesteMetadati:
+    Type: String
+    Description: 'ARN della Tabella DynamoDB relativa alle richieste'
 
   PnEcQueueNameTrackerStatoSMS:
     Type: String
