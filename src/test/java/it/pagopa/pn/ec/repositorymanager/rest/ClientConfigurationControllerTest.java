@@ -4,11 +4,13 @@ import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManag
 import it.pagopa.pn.ec.repositorymanager.entity.ClientConfiguration;
 import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import it.pagopa.pn.ec.testutils.configuration.DynamoTestConfiguration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -19,6 +21,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
+@Import(DynamoTestConfiguration.class)
 class ClientConfigurationControllerTest {
 
     @Autowired
@@ -39,9 +42,9 @@ class ClientConfigurationControllerTest {
     }
 
     @BeforeAll
-    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient,
+    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbTestEnhancedClient,
                                                         @Autowired RepositoryManagerDynamoTableName gestoreRepositoryDynamoDbTableName) {
-        dynamoDbTable = dynamoDbEnhancedClient.table(gestoreRepositoryDynamoDbTableName.anagraficaClientName(),
+        dynamoDbTable = dynamoDbTestEnhancedClient.table(gestoreRepositoryDynamoDbTableName.anagraficaClientName(),
                                                      TableSchema.fromBean(ClientConfiguration.class));
         insertClientConfiguration(DEFAULT_ID);
     }

@@ -5,6 +5,7 @@ import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManag
 import it.pagopa.pn.ec.repositorymanager.entity.Request;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import it.pagopa.pn.ec.testutils.configuration.DynamoTestConfiguration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -35,6 +37,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
+@Import(DynamoTestConfiguration.class)
 class RequestControllerTest {
 
     @Autowired
@@ -109,10 +112,10 @@ class RequestControllerTest {
     }
 
     @BeforeAll
-    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient,
+    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbTestEnhancedClient,
                                                         @Autowired RepositoryManagerDynamoTableName repositoryManagerDynamoTableName,
                                                         @Autowired ObjectMapper objectMapper) {
-        dynamoDbTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteName(), TableSchema.fromBean(Request.class));
+        dynamoDbTable = dynamoDbTestEnhancedClient.table(repositoryManagerDynamoTableName.richiesteName(), TableSchema.fromBean(Request.class));
         initializeRequestDto();
         insertRequest(objectMapper.convertValue(digitalRequest, Request.class));
         insertRequest(objectMapper.convertValue(paperRequest, Request.class));

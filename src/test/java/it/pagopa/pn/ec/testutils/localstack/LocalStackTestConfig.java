@@ -61,8 +61,8 @@ public class LocalStackTestConfig {
         System.setProperty("test.aws.sns.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SNS)));
 
         System.setProperty("test.aws.event", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
-        System.setProperty("event.Bus.Nome","test-test");
-        System.setProperty("statemachine.url","statemachine-container-base-path-for-tests");
+        System.setProperty("event.Bus.Nome", "test-test");
+        System.setProperty("statemachine.url", "statemachine-container-base-path-for-tests");
 
         try {
 
@@ -88,7 +88,10 @@ public class LocalStackTestConfig {
 
     @PostConstruct
     public void initLocalStack() {
+        initDynamo();
+    }
 
+    private void initDynamo() {
         Map<String, Class<?>> tableNameWithEntityClass =
                 Map.ofEntries(entry(repositoryManagerDynamoTableName.anagraficaClientName(), ClientConfiguration.class),
                               entry(repositoryManagerDynamoTableName.richiesteName(), Request.class));
