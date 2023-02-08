@@ -52,7 +52,6 @@ components:
       title: Metadata di una richiesta digitale
       required:
         - eventType
-        - receiverDigitalAddress
         - channel
         - messageContentType
       properties:
@@ -78,13 +77,6 @@ components:
           #            - iun
           additionalProperties:
             type: string
-        receiverDigitalAddress:
-          type: string
-          description: >-
-            Indirizzo PEC del destinatario (o in genere recapito digitale certificato a valore legale). 
-            L’indirizzo si assume valido ed attivo: i servizi erogatori non eseguono ulteriori validazioni sullo stesso.
-            Non sono previste mail con più destinatari. 
-            In caso di comunicazioni a più destinatari saranno richieste più comunicazioni (in questo modo avremo un requestId univoco per ogni comunicazione/evento/pec).
         channel:
           type: string
           enum:
@@ -102,10 +94,11 @@ components:
           description: >-
             Formato: HTML o PLAIN
 
-    DigitalProgressStatusDto:
+    DigitalProgressStatusMetadataDto:
       title: Avanzamento di stato di una richiesta digitale
       type: object
       required:
+        - eventTimestamp
         - status
         - eventCode
       properties:

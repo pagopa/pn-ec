@@ -12,5 +12,5 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 @DynamoDbBean
 public class EventsPersonal {
 
-	private PaperProgressStatusPersonal paperProgrStatus;
+	private PaperProgressStatusPersonal paperProgrStatusPersonal;
 }

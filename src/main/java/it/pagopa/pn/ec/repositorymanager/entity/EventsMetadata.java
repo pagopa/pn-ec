@@ -12,6 +12,6 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 @DynamoDbBean
 public class EventsMetadata {
 
-	private DigitalProgressStatusMetadata digProgrStatus;
-	private PaperProgressStatusMetadata paperProgrStatus;
+	private DigitalProgressStatusMetadata digProgrStatusMetadata;
+	private PaperProgressStatusMetadata paperProgrStatusMetadata;
 }

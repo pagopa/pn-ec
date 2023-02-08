@@ -1,13 +1,10 @@
 components:
   schemas:
 
-    PaperRequestDto:
-      title: Richiesta cartacea
+    PaperRequestPersonalDto:
+      title: Richiesta dati personali cartacea
       required:
-        - requestPAId
-        - productType
         - attachments
-        - printType
         - receiverName
         - receiverAddress
         - receiverCity
@@ -17,30 +14,6 @@ components:
         - senderPr
       type: object
       properties:
-      properties:
-        iun:
-          type: string
-          example: 'ABCD-HILM-YKWX-202202-1'
-          description: >-
-            Identificativo Unico della Notifica. Può essere usato per migliorare il servizio 
-            di archiviazione degli originali cartacei. Permettendo alle 
-            Pubbliche Amministrazioni di ricercare anche per Identificativo Univoco Notifica.
-        requestPaId:
-          type: string
-          example: '00414580183'
-          description: >-
-            Identificativo della PA che ha richiesto il recapito. Utile per autorizzare il
-            recupero, da parte delle pubbliche amministrazioni, degli originali cartacei
-        productType:
-          description: >-
-            Tipo prodotto di cui viene chiesto il recapito: <br/>
-            - __AR__: Raccomandata Andata e Ritorno, <br/>
-            - __890__: Recapito a norma della legge 890/1982, <br/>
-            - __RI__: Raccomandata Internazionale, <br/>
-            - __RS__: Raccomandata Semplice (per Avviso di mancato Recapito). <br/>
-            - ... ulteriori prodotti
-          type: string
-          example: 'AR'
         attachments:
           type: array
           items:
@@ -72,13 +45,6 @@ components:
                   sha256, codificato in base 64, del contenuto del file riferenziato dal campo uri
           description: >-
             Coordinate per l'accesso ai documenti PDF da inviare. <br/>
-        printType:
-          type: string
-          description: >-
-            Indica il tipo di stampa richiesto al Consolidatore <br />
-            - __BN_FRONTE_RETRO__: bianco e nero fronte e retro, file differenti devono essere stampati su fogli distinti <br/>
-            - ... ulteriori modalità previste dal contratto
-          example: 'BN_FRONTE_RETRO'
         receiverName:
           type: string
           description: >-
@@ -164,6 +130,44 @@ components:
           type: string
           description: >-
             Città per AR.
+
+    PaperRequestMetadataDto:
+      title: Richiesta metadata cartacea
+      required:
+        - productType
+        - printType
+      type: object
+      properties:
+        iun:
+          type: string
+          example: 'ABCD-HILM-YKWX-202202-1'
+          description: >-
+            Identificativo Unico della Notifica. Può essere usato per migliorare il servizio 
+            di archiviazione degli originali cartacei. Permettendo alle 
+            Pubbliche Amministrazioni di ricercare anche per Identificativo Univoco Notifica.
+        requestPaId:
+          type: string
+          example: '00414580183'
+          description: >-
+            Identificativo della PA che ha richiesto il recapito. Utile per autorizzare il
+            recupero, da parte delle pubbliche amministrazioni, degli originali cartacei
+        productType:
+          description: >-
+            Tipo prodotto di cui viene chiesto il recapito: <br/>
+            - __AR__: Raccomandata Andata e Ritorno, <br/>
+            - __890__: Recapito a norma della legge 890/1982, <br/>
+            - __RI__: Raccomandata Internazionale, <br/>
+            - __RS__: Raccomandata Semplice (per Avviso di mancato Recapito). <br/>
+            - ... ulteriori prodotti
+          type: string
+          example: 'AR'
+        printType:
+          type: string
+          description: >-
+            Indica il tipo di stampa richiesto al Consolidatore <br />
+            - __BN_FRONTE_RETRO__: bianco e nero fronte e retro, file differenti devono essere stampati su fogli distinti <br/>
+            - ... ulteriori modalità previste dal contratto
+          example: 'BN_FRONTE_RETRO'
         vas:
           type: object
           additionalProperties:
@@ -171,71 +175,11 @@ components:
           description: >-
             Servizi a valore aggiunto
 
-    PaperProgressStatusDto:
-      title: Avanzamento di stato di una richiesta cartacea
+    PaperProgressStatusPersonalDto:
+      title: Avanzamento di stato dati personali di una richiesta cartacea
       required:
-        - statusCode
-        - statusDescription
-        - productType
       type: object
       properties:
-        registeredLetterCode:
-          type: string
-          description: >-
-            Il codice di tracciatura obbligatorio per i prodotti di corrispondenza tracciata.
-          example: '123456789abc'
-        productType:
-          description: >-
-            Tipo prodotto di cui viene chiesto il recapito:  <br/>
-            - __AR__: Raccomandata Andata e Ritorno,  <br/>
-            - __890__: Recapito a norma della legge 890/1982,  <br/>
-            - __RI__: Raccomandata Internazionale,  <br/>
-            - __RS__: Raccomandata Semplice (per Avviso di mancato Recapito). <br/>
-            - ... ulteriori prodotti concordati con il consolidatore <br/>
-          type: string
-        iun:
-          type: string
-          description: >-
-            Identificativo Unico della Notifica. Proviene dalla richiesta originaria di PN.
-          example: 'ABCD-HILM-YKWX-202202-1'
-        statusCode:
-          type: string
-          description: >-
-            _Codifica sintetica dello stato dell'esito._  <br/>
-            - __001__ Stampato  <br/>
-            - __002__ Disponibile al recapitista  <br/>
-            - __003__ Preso in carico dal recapitista  <br/>
-            - __004__ Consegnata  <br/>
-            - __005__ Mancata consegna  <br/>
-            - __006__ Furto/Smarrimanto/deterioramento  <br/>
-            - __007__ Consegnato Ufficio Postale  <br/>
-            - __008__ Mancata consegna Ufficio Postale  <br/>
-            - __009__ Compiuta giacenza  <br/>
-            - ... Stati aggiuntivi concordati con il consolidatore
-        statusDescription:
-          type: string
-          example: 'Stampato'
-          description: >-
-            Descrizione dello stato del delivery cartaceo che viene notificato.
-        statusDateTime:
-          type: string
-          format: date-time
-          readOnly: true
-          description: >-
-            Data stato con timezone
-        deliveryFailureCause:
-          description: >-
-            _Motivazione di mancata consegna_ obbligtorie negli stati di mancata consegna  <br/>
-            - __01__ destinatario irreperibile <br/>
-            - __02__ destinatario deceduto <br/>
-            - __03__ destinatario sconosciuto <br/>
-            - __04__ destinatario trasferito <br/>
-            - __05__ invio rifiutato <br/>
-            - __06__ indirizzo inesatto <br/>
-            - __07__ indirizzo inesistente <br/>
-            - __08__ indirizzo insufficiente <br/>
-            - ... Motivazioni aggiuntive concordate con il consolidatore
-          type: string
         attachments:
           description: >-
             elenco dei documenti prodotti che attestano quanto accaduto durante il processo 
@@ -316,3 +260,55 @@ components:
               description: >-
                 In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 
                 in standard UPU o altro standard condiviso.
+
+    PaperProgressStatusMetadataDto:
+      title: Avanzamento di stato metadata di una richiesta cartacea
+      required:
+        - statusCode
+        - statusDescription
+        - statusDateTime
+      type: object
+      properties:
+        registeredLetterCode:
+          type: string
+          description: >-
+            Il codice di tracciatura obbligatorio per i prodotti di corrispondenza tracciata.
+          example: '123456789abc'
+        statusCode:
+          type: string
+          description: >-
+            _Codifica sintetica dello stato dell'esito._  <br/>
+            - __001__ Stampato  <br/>
+            - __002__ Disponibile al recapitista  <br/>
+            - __003__ Preso in carico dal recapitista  <br/>
+            - __004__ Consegnata  <br/>
+            - __005__ Mancata consegna  <br/>
+            - __006__ Furto/Smarrimanto/deterioramento  <br/>
+            - __007__ Consegnato Ufficio Postale  <br/>
+            - __008__ Mancata consegna Ufficio Postale  <br/>
+            - __009__ Compiuta giacenza  <br/>
+            - ... Stati aggiuntivi concordati con il consolidatore
+        statusDescription:
+          type: string
+          example: 'Stampato'
+          description: >-
+            Descrizione dello stato del delivery cartaceo che viene notificato.
+        statusDateTime:
+          type: string
+          format: date-time
+          readOnly: true
+          description: >-
+            Data stato con timezone
+        deliveryFailureCause:
+          description: >-
+            _Motivazione di mancata consegna_ obbligtorie negli stati di mancata consegna  <br/>
+            - __01__ destinatario irreperibile <br/>
+            - __02__ destinatario deceduto <br/>
+            - __03__ destinatario sconosciuto <br/>
+            - __04__ destinatario trasferito <br/>
+            - __05__ invio rifiutato <br/>
+            - __06__ indirizzo inesatto <br/>
+            - __07__ indirizzo inesistente <br/>
+            - __08__ indirizzo insufficiente <br/>
+            - ... Motivazioni aggiuntive concordate con il consolidatore
+          type: string
