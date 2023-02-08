@@ -6,8 +6,8 @@ import reactor.core.publisher.Mono;
 
 public interface RequestService {
 
-    Mono<Request> getRequest(String requestId);
+    Mono<Request> getRequest(String requestIdx);
     Mono<Request> insertRequest(Request request);
-    Mono<Request> updateEvents(String requestId, Events events);
-    Mono<Request> deleteRequest(String requestId);
+    Mono<Request> updateEvents(String requestIdx, Events events);
+    Mono<Request> deleteRequest(String requestIdx);
 }
