@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.repositorymanager.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.GestoreRepositoryEndpointProperties;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.entity.Request;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -41,10 +42,10 @@ class RequestControllerTest {
     private WebTestClient webClient;
 
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
-    private static final String BASE_PATH = "/gestoreRepository/requests";
-    private static final String BASE_PATH_WITH_PARAM = String.format("%s/{requestIdx}", BASE_PATH);
+    @Autowired
+    private GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties;
 
     private static final String DEFAULT_ID_DIGITAL = "DIGITAL";
     private static final String DEFAULT_ID_PAPER = "PAPER";
@@ -109,10 +110,11 @@ class RequestControllerTest {
     }
 
     @BeforeAll
-    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient,
+    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbTestEnhancedClient,
                                                         @Autowired RepositoryManagerDynamoTableName repositoryManagerDynamoTableName,
                                                         @Autowired ObjectMapper objectMapper) {
-        dynamoDbTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteName(), TableSchema.fromBean(Request.class));
+        dynamoDbTable =
+                dynamoDbTestEnhancedClient.table(repositoryManagerDynamoTableName.richiesteName(), TableSchema.fromBean(Request.class));
         initializeRequestDto();
         insertRequest(objectMapper.convertValue(digitalRequest, Request.class));
         insertRequest(objectMapper.convertValue(paperRequest, Request.class));
@@ -135,7 +137,7 @@ class RequestControllerTest {
         requestDto.setRequestIdx(newId);
 
         webClient.post()
-                 .uri(BASE_PATH)
+                 .uri(gestoreRepositoryEndpointProperties.postRequest())
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(requestDto))
@@ -148,7 +150,7 @@ class RequestControllerTest {
     @Test
     void insertRequestTestFailed() {
         webClient.post()
-                 .uri(BASE_PATH)
+                 .uri(gestoreRepositoryEndpointProperties.postRequest())
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(digitalRequest))
@@ -162,7 +164,7 @@ class RequestControllerTest {
     @ValueSource(strings = {DEFAULT_ID_DIGITAL, DEFAULT_ID_PAPER})
     void readRequestTestSuccess(String id) {
         webClient.get()
-                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build(id))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(id))
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -174,7 +176,7 @@ class RequestControllerTest {
     @Test
     void readRequestTestFailed() {
         webClient.get()
-                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build("idNotExist"))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build("idNotExist"))
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -192,7 +194,7 @@ class RequestControllerTest {
         newEvent.setDigProgrStatus(newDigitalProgressStatusDto);
 
         webClient.patch()
-                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build(DEFAULT_ID_DIGITAL))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(DEFAULT_ID_DIGITAL))
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(newEvent))
@@ -212,7 +214,7 @@ class RequestControllerTest {
         newEvent.setDigProgrStatus(newDigitalProgressStatusDto);
 
         webClient.patch()
-                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build("idCheNonEsiste"))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build("idCheNonEsiste"))
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(newEvent))
@@ -230,7 +232,7 @@ class RequestControllerTest {
         insertRequest(objectMapper.convertValue(requestDto, Request.class));
 
         webClient.delete()
-                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build(idToDelete))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest()).build(idToDelete))
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -241,7 +243,7 @@ class RequestControllerTest {
     @Test
     void deleteRequestTestFailed() {
         webClient.delete()
-                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build("idCheNonEsiste"))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest()).build("idCheNonEsiste"))
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()

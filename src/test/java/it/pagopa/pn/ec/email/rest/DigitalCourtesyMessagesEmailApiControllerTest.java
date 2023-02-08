@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.email.rest;
 
 
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedFoundException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
@@ -11,6 +12,7 @@ import it.pagopa.pn.ec.commons.rest.call.uribuilder.UriBuilderCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 
+import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.dto.NtStatoEmailQueueDto;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 
@@ -34,8 +36,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.EMAIL_INTERACTIVE_QUEUE_NAME;
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.NT_STATO_EMAIL_QUEUE_NAME;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.ChannelEnum.EMAIL;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
@@ -54,6 +54,12 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     @Autowired
     private WebTestClient webTestClient;
 
+    @Autowired
+    private NotificationTrackerSqsName notificationTrackerSqsName;
+
+    @Autowired
+    private EmailSqsQueueName emailSqsQueueName;
+
     @MockBean
     private UriBuilderCall uriBuilderCall;
 
@@ -66,7 +72,8 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     @MockBean
     private AuthService authService;
 
-    public static final String SEND_EMAIL_ENDPOINT = "/external-channels/v1/digital-deliveries/courtesy-full-message-requests" + "/{requestIdx}";
+    public static final String SEND_EMAIL_ENDPOINT =
+            "/external-channels/v1/digital-deliveries/courtesy-full-message-requests" + "/{requestIdx}";
     private static final DigitalCourtesyMailRequest digitalCourtesyMailRequest = new DigitalCourtesyMailRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final RequestDto requestDto = new RequestDto();
@@ -92,16 +99,16 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         digitalCourtesyMailRequest.setAttachmentsUrls(defaultListAttachmentUrls);
     }
 
-    private WebTestClient.ResponseSpec sendEmailTestCall(BodyInserter<DigitalCourtesyMailRequest, ReactiveHttpOutputMessage> bodyInserter,
-                                                       String requestIdx) {
+    private WebTestClient.ResponseSpec sendEmailTestCall(BodyInserter<DigitalCourtesyMailRequest, ReactiveHttpOutputMessage> bodyInserter
+            , String requestIdx) {
 
         return this.webTestClient.put()
-                .uri(uriBuilder -> uriBuilder.path(SEND_EMAIL_ENDPOINT).build(requestIdx))
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_JSON)
-                .body(bodyInserter)
-                .header(ID_CLIENT_HEADER_NAME, DEFAULT_ID_CLIENT_HEADER_VALUE)
-                .exchange();
+                                 .uri(uriBuilder -> uriBuilder.path(SEND_EMAIL_ENDPOINT).build(requestIdx))
+                                 .accept(APPLICATION_JSON)
+                                 .contentType(APPLICATION_JSON)
+                                 .body(bodyInserter)
+                                 .header(ID_CLIENT_HEADER_NAME, DEFAULT_ID_CLIENT_HEADER_VALUE)
+                                 .exchange();
     }
 
 
@@ -128,8 +135,8 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     @ValueSource(strings = {BAD_REQUEST_IDX_SHORT, BAD_REQUEST_IDX_CHAR_NOT_ALLOWED})
     void sendEmailMalformedIdClient(String badRequestIdx) {
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), badRequestIdx).expectStatus()
-                .isBadRequest()
-                .expectBody(Problem.class);
+                                                                                             .isBadRequest()
+                                                                                             .expectBody(Problem.class);
     }
 
     //EMIALPIC.100.3.1 -> Chiamata verso Anagrafica Client per l'autenticazione del client -> KO
@@ -140,8 +147,8 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(SERVICE_UNAVAILABLE)
-                .expectBody(Problem.class);
+                                                                                                   .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                                   .expectBody(Problem.class);
     }
 
     //EMIALPIC.100.3.2 -> idClient non autorizzato
@@ -156,8 +163,8 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isUnauthorized()
-                .expectBody(Problem.class);
+                                                                                                   .isUnauthorized()
+                                                                                                   .expectBody(Problem.class);
     }
 
     //EMIALPIC.100.6 -> Chiamata verso Gestore Repository per il recupero dello stato corrente -> KO
@@ -171,8 +178,8 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenThrow(EcInternalEndpointHttpException.class);
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(SERVICE_UNAVAILABLE)
-                .expectBody(Problem.class);
+                                                                                                   .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                                   .expectBody(Problem.class);
     }
 
 
@@ -186,8 +193,8 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.just(requestDto));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(CONFLICT)
-                .expectBody(Problem.class);
+                                                                                                   .isEqualTo(CONFLICT)
+                                                                                                   .expectBody(Problem.class);
     }
 
     //EMIALPIC.100.7 -> Pubblicazione sulla coda "Notification tracker stato PEC" -> KO
@@ -201,12 +208,12 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(NT_STATO_EMAIL_QUEUE_NAME), any(NtStatoEmailQueueDto.class))).thenReturn(Mono.error(new SqsPublishException(
-                NT_STATO_EMAIL_QUEUE_NAME)));
+        when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()),
+                             any(NtStatoEmailQueueDto.class))).thenReturn(Mono.error(new SqsPublishException(notificationTrackerSqsName.statoSmsName())));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(SERVICE_UNAVAILABLE)
-                .expectBody(Problem.class);
+                                                                                                   .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                                   .expectBody(Problem.class);
     }
 
     //EMIALPIC.100.8 -> Pubblicazione sulla coda "PEC" -> KO
@@ -221,13 +228,12 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(EMAIL_INTERACTIVE_QUEUE_NAME),
-                any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsPublishException(
-                EMAIL_INTERACTIVE_QUEUE_NAME)));
+        when(sqsService.send(eq(emailSqsQueueName.interactiveName()),
+                             any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsPublishException(emailSqsQueueName.interactiveName())));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(SERVICE_UNAVAILABLE)
-                .expectBody(Problem.class);
+                                                                                                   .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                                   .expectBody(Problem.class);
     }
 
     //EMIALPIC.100.5 -> Attachment non disponibile dentro pn-ss
@@ -243,8 +249,8 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(NOT_FOUND)
-                .expectBody(Problem.class);
+                                                                                                   .isEqualTo(NOT_FOUND)
+                                                                                                   .expectBody(Problem.class);
 
     }
 }

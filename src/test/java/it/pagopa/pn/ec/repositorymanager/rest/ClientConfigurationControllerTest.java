@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.rest;
 
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.GestoreRepositoryEndpointProperties;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.entity.ClientConfiguration;
 import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
@@ -24,8 +25,8 @@ class ClientConfigurationControllerTest {
     @Autowired
     private WebTestClient webClient;
 
-    private static final String BASE_PATH = "/gestoreRepository/clients";
-    private static final String BASE_PATH_WITH_PARAM = String.format("%s/{xPagopaExtchCxId}", BASE_PATH);
+    @Autowired
+    private GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties;
 
     private static final String DEFAULT_ID = "AAA";
     private static ClientConfigurationDto clientConfigurationDto;
@@ -39,10 +40,10 @@ class ClientConfigurationControllerTest {
     }
 
     @BeforeAll
-    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient,
+    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbTestEnhancedClient,
                                                         @Autowired RepositoryManagerDynamoTableName gestoreRepositoryDynamoDbTableName) {
-        dynamoDbTable = dynamoDbEnhancedClient.table(gestoreRepositoryDynamoDbTableName.anagraficaClientName(),
-                                                     TableSchema.fromBean(ClientConfiguration.class));
+        dynamoDbTable = dynamoDbTestEnhancedClient.table(gestoreRepositoryDynamoDbTableName.anagraficaClientName(),
+                                                         TableSchema.fromBean(ClientConfiguration.class));
         insertClientConfiguration(DEFAULT_ID);
     }
 
@@ -59,7 +60,7 @@ class ClientConfigurationControllerTest {
     void insertClientTestSuccess() {
         clientConfigurationDto.setxPagopaExtchCxId("newId");
         webClient.post()
-                 .uri(BASE_PATH)
+                 .uri(gestoreRepositoryEndpointProperties.postClientConfiguration())
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(clientConfigurationDto))
@@ -72,7 +73,7 @@ class ClientConfigurationControllerTest {
     @Test
     void insertClientTestFailed() {
         webClient.post()
-                 .uri(BASE_PATH)
+                 .uri(gestoreRepositoryEndpointProperties.postClientConfiguration())
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(clientConfigurationDto))
@@ -85,7 +86,7 @@ class ClientConfigurationControllerTest {
     @Test
     void getClientTestSuccess() {
         webClient.get()
-                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build(DEFAULT_ID))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getClientConfiguration()).build(DEFAULT_ID))
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -97,7 +98,7 @@ class ClientConfigurationControllerTest {
     @Test
     void getClientTestFailed() {
         webClient.get()
-                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build("idNonPresente"))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getClientConfiguration()).build("idNonPresente"))
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -108,7 +109,7 @@ class ClientConfigurationControllerTest {
     @Test
     void testUpdateSuccess() {
         webClient.put()
-                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build(DEFAULT_ID))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.putClientConfiguration()).build(DEFAULT_ID))
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(clientConfigurationDto))
@@ -121,7 +122,7 @@ class ClientConfigurationControllerTest {
     @Test
     void testUpdateFailed() {
         webClient.put()
-                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build("idNonPresente"))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.putClientConfiguration()).build("idNonPresente"))
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(clientConfigurationDto))
@@ -136,7 +137,7 @@ class ClientConfigurationControllerTest {
         String cxId = "idToDelete";
         insertClientConfiguration(cxId);
         webClient.delete()
-                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build(cxId))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteClientConfiguration()).build(cxId))
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -147,7 +148,7 @@ class ClientConfigurationControllerTest {
     @Test
     void deleteClientTestFailed() {
         webClient.delete()
-                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build("idNonPresente"))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteClientConfiguration()).build("idNonPresente"))
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
