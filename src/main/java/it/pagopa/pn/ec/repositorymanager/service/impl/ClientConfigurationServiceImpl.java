@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
+import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.entity.ClientConfiguration;
 import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.service.ClientConfigurationService;
@@ -11,7 +12,6 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
-import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.ANAGRAFICA_TABLE_NAME;
 
 @Service
 @Slf4j
@@ -19,8 +19,9 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
 
     private final DynamoDbAsyncTable<ClientConfiguration> clientConfigurationDynamoDbTable;
 
-    public ClientConfigurationServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient) {
-        this.clientConfigurationDynamoDbTable = dynamoDbEnhancedClient.table(ANAGRAFICA_TABLE_NAME,
+    public ClientConfigurationServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
+                                          RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
+        this.clientConfigurationDynamoDbTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.anagraficaClientName(),
                                                                              TableSchema.fromBean(ClientConfiguration.class));
     }
 

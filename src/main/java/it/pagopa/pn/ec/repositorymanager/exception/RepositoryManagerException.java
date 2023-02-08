@@ -13,10 +13,24 @@ public class RepositoryManagerException extends RuntimeException {
         }
     }
 
+    public static class IdRequestAlreadyPresent extends RuntimeException {
+
+        public IdRequestAlreadyPresent(String idRequest) {
+            super(String.format("Id request '%s' already present", idRequest));
+        }
+    }
+
     public static class IdClientNotFoundException extends RuntimeException {
 
         public IdClientNotFoundException(String idClient) {
             super(String.format("Id client '%s' not found", idClient));
+        }
+    }
+
+    public static class RequestNotFoundException extends RuntimeException {
+
+        public RequestNotFoundException(String requestIdx) {
+            super(String.format("Request id '%s' not found", requestIdx));
         }
     }
 

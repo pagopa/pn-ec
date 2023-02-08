@@ -5,9 +5,8 @@ import it.pagopa.pn.ec.commons.service.SnsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
-import software.amazon.awssdk.services.sns.model.SnsException;
+import software.amazon.awssdk.services.sns.model.PublishResponse;
 
 @Service
 @Slf4j
@@ -19,27 +18,16 @@ public class SnsServiceImpl implements SnsService {
         this.snsAsyncClient = snsAsyncClient;
     }
 
-    private Mono<Void> sendSmsWithNoRetry(String message, String phoneNumber) {
-        return Mono.fromFuture(snsAsyncClient.publish(builder -> {
-                       try {
-                           builder.message(message).phoneNumber(phoneNumber);
-                       } catch (SnsException snsException) {
-                           throw new SnsSendException();}
-                   }))
-                   .doOnNext(sendMessageResponse -> log.info("Send SMS '{} 'to '{}' has returned a {} as status",
-                                                             message,
-                                                             phoneNumber,
-                                                             sendMessageResponse.sdkHttpResponse().statusCode()))
-                   .then();
-    }
-
     @Override
-    public Mono<Void> send(String message, String phoneNumber) {
-        return sendSmsWithNoRetry(message, phoneNumber).retryWhen(DEFAULT_RETRY_STRATEGY);
-    }
-
-    @Override
-    public Mono<Void> send(String message, String phoneNumber, Retry customRetryStrategy) {
-        return sendSmsWithNoRetry(message, phoneNumber).retryWhen(customRetryStrategy);
+    public Mono<PublishResponse> send(String phoneNumber, String message) {
+        return Mono.fromFuture(snsAsyncClient.publish(builder -> builder.message(message).phoneNumber(phoneNumber)))
+                   .onErrorResume(throwable -> {
+                       log.error(throwable.getMessage());
+                       return Mono.error(new SnsSendException());
+                   })
+                   .doOnSuccess(sendMessageResponse -> log.info("Send SMS '{} 'to '{}' has returned a {} as status",
+                                                                message,
+                                                                phoneNumber,
+                                                                sendMessageResponse.sdkHttpResponse().statusCode()));
     }
 }

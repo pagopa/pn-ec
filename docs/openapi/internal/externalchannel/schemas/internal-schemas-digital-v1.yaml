@@ -1,0 +1,167 @@
+components:
+  schemas:
+
+    DigitalRequestDto:
+      title: Richiesta digitale
+      required:
+        - eventType
+        - qos
+        - receiverDigitalAddress
+        - messageText
+        - channel
+        - subjectText
+        - messageContentType
+      properties:
+        correlationId:
+          type: string
+          description: >-
+            Id di correlazione, permette al sender di correlare eventualmente la response. Se assente viene inizializzato con il requestId
+        eventType:
+          type: string
+          description: >-
+            Tipologia di richiesta. Permette di identificare il tipo di informazione che viene richiesto. 
+            Permette di clusterizzare le tipologie di comunicazione in ingresso 
+            (se sender diversi usano EventType diversi, a fini ad es di fatturazione diventa semplice individuare gli oggetti).
+        qos:
+          type: string
+          enum:
+            - INTERACTIVE
+            - BATCH
+          description: >-
+            Interactive/Batch (quality of service, "entro quanto tempo" devo rispondere, con che livello di servizio)
+        tags:
+          type: object
+          properties:
+          #            iun:
+          #              type: string
+          #              description: >-
+          #                Identificativo Unico della Notifica.
+          #                Non è obbligatorio (ad es in una richiesta di verifica indirizzi non abbiamo un identificativo di notifica).
+          #          required:
+          #            - iun
+          additionalProperties:
+            type: string
+        receiverDigitalAddress:
+          type: string
+          description: >-
+            Indirizzo PEC del destinatario (o in genere recapito digitale certificato a valore legale). 
+            L’indirizzo si assume valido ed attivo: i servizi erogatori non eseguono ulteriori validazioni sullo stesso.
+            Non sono previste mail con più destinatari. 
+            In caso di comunicazioni a più destinatari saranno richieste più comunicazioni (in questo modo avremo un requestId univoco per ogni comunicazione/evento/pec).
+        messageText:
+          type: string
+          description: >-
+            Testo del corpo della comunicazione digitale.  
+            Può essere a discrezione del chiamante in plain text od html (un campo ad hoc che discrimini il formato è opportuno?).
+        senderDigitalAddress:
+          type: string
+          description: >-
+            Indirizzo PEC (o analoga comunicazione digitale a valore legale) del mittente della comunicazione.
+            Se non passato va recuperato da configurazione sulla base del sistema chiamante (i.e. X-PagoPA-EXTCH-CX), 
+            va censito in configurazione (obbligatorio).
+        channel:
+          type: string
+          enum:
+            - SMS
+            - EMAIL
+            - PEC
+          description: >-
+            Canale di recapito con cui il Sender chiede l’erogazione del servizio. In un primo momento sarà PEC, 
+            ma il dominio dovrà prevedere a breve SERQ, PEC_REM, ed in futuro ogni forma di recapito digitale a valore legale.
+        subjectText:
+          type: string
+          description: >-
+            Oggetto del corpo della comunicazione digitale.
+        messageContentType:
+          type: string
+          enum:
+            - 'text/plain'
+            - 'text/html'
+          description: >-
+            Formato: HTML o PLAIN
+        attachmentsUrls:
+          type: array
+          items:
+            type: string
+            description: >-
+              Path in cui si trova il documento da allegare alla comunicazione digitale
+              (i.e. url del file dentro Safe Storage che si occuperà di crypt/decrypt dei documenti).
+              Il Safe Storge si occuperà di calcolare la presigned url per il recupero dell'allegato che sarà decifrato.
+              documentUrl può rispondere (alla GET) con un 403 per redirect vs servizio (i.e. lambda, safe storage, presigned url vs bucket s3 non cifrato).               
+
+    DigitalProgressStatusDto:
+      title: Avanzamento di stato di una richiesta digitale
+      type: object
+      required:
+        - status
+        - eventCode
+      properties:
+        eventTimestamp:
+          description: >
+            timestamp della creazione dell'evento, in UTC con definizione della timezone 
+            secondo rfc 3339
+          type: string
+          format: date-time
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/DigitalRequestStatus'
+        eventCode:
+          type: string
+          enum:
+            - C000
+            - C001
+            - C002
+            - C003
+            - C004
+            - C005
+            - C006
+            - C007
+            - C008
+            - C009
+            - C010
+          description: >-
+            * STATUS     EVENTCODE
+            * PROGRESS   C000 = PREACCETTAZIONE (Conferma avvenuta comunicazione con Wrapper Pec)
+            * PROGRESS   C001 = StatusPec.ACCETTAZIONE
+            * PROGRESS   C005 = StatusPec.PRESA_IN_CARICO
+            * PROGRESS   C007 = StatusPec.PREAVVISO_ERRORE_CONSEGNA
+            * ERROR      C002 = StatusPec.NON_ACCETTAZIONE
+            * ERROR      C004 = StatusPec.ERRORE_CONSEGNA
+            * ERROR      C006 = StatusPec.RILEVAZIONE_VIRUS
+            * ERROR      C008 = ERRORE_COMUNICAZIONE_SERVER_PEC
+            * ERROR      C009 = ERRORE_DOMINIO_PEC_NON_VALIDO
+            * ERROR      C010 = ERROR_INVIO_PEC
+            * OK         C003 = StatusPec.AVVENUTA_CONSEGNA
+        eventDetails:
+          type: string
+        generatedMessage:
+          type: object
+          required:
+            - system
+            - id
+          properties:
+            system:
+              type: string
+            id:
+              type: string
+            location:
+              type: string
+
+#   <-- STATUS SECTION -->
+
+    DigitalRequestStatus:
+      title: Stati di una richiesta digitale
+      type: string
+      enum:
+        - BOOKED
+        - COMPOSITION_ERROR
+        - RETRY
+        - SENT
+        - ERROR
+        - INFECTED
+        - NOT_ACCEPTED
+        - ACCEPTED
+        - NOT_DELIVERED
+        - DELIVERY_WARNING
+        - DELIVERED
+        - INTERNAL_ERROR
