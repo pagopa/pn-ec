@@ -24,12 +24,12 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
 
     private void checkRequestPersonalToInsert(RequestPersonal requestPersonal) {
 
-        if ((requestPersonal.getDigitalReq() != null && requestPersonal.getPaperReq() != null) ||
-                (requestPersonal.getDigitalReq() == null && requestPersonal.getPaperReq() == null)) {
+        if ((requestPersonal.getDigitalRequestPersonal() != null && requestPersonal.getPaperRequestPersonal() != null) ||
+            (requestPersonal.getDigitalRequestPersonal() == null && requestPersonal.getPaperRequestPersonal() == null)) {
             throw new RepositoryManagerException.RequestMalformedException("Valorizzare solamente un tipologia di richiesta personal");
         }
 
-        List<EventsPersonal> eventsPersonalList = requestPersonal.getEvents();
+        List<EventsPersonal> eventsPersonalList = requestPersonal.getEventsPersonalList();
         if (!eventsPersonalList.isEmpty()) {
             if (eventsPersonalList.size() > 1) {
                 throw new RepositoryManagerException.RequestMalformedException("Inserire un solo evento personal");
@@ -40,7 +40,7 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
     }
 
     private void checkEventsPersonal(RequestPersonal requestPersonal, EventsPersonal eventsPersonal) {
-        boolean isDigital = requestPersonal.getDigitalReq() != null;
+        boolean isDigital = requestPersonal.getDigitalRequestPersonal() != null;
         if ((isDigital && eventsPersonal.getPaperProgrStatus() != null)) {
             throw new RepositoryManagerException.RequestMalformedException("Tipo richiesta personal e tipo evento personal non compatibili");
         }
@@ -80,7 +80,7 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
                 .doOnSuccess(retrievedRequest -> checkEventsPersonal(retrievedRequest, eventsPersonal))
                 .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
                 .map(retrieveRequest -> {
-                    retrieveRequest.getEvents().add(eventsPersonal);
+                    retrieveRequest.getEventsPersonalList().add(eventsPersonal);
                     requestPersonalDynamoDbTable.updateItem(retrieveRequest);
                     return retrieveRequest;
                 });

@@ -23,7 +23,7 @@ public class RequestMetadata {
 	String requestId;
 	String statusRequest;
 	OffsetDateTime clientRequestTimeStamp;
-	DigitalRequestMetadata digitalReq;
-	PaperRequestMetadata paperReq;
-	List<EventsMetadata> events;
+	DigitalRequestMetadata digitalRequestMetadata;
+	PaperRequestMetadata paperRequestMetadata;
+	List<EventsMetadata> eventsMetadataList;
 }

@@ -25,12 +25,12 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     private void checkRequestMetadataToInsert(RequestMetadata requestMetadata) {
 
-        if ((requestMetadata.getDigitalReq() != null && requestMetadata.getPaperReq() != null) ||
-                (requestMetadata.getDigitalReq() == null && requestMetadata.getPaperReq() == null)) {
+        if ((requestMetadata.getDigitalRequestMetadata() != null && requestMetadata.getPaperRequestMetadata() != null) ||
+            (requestMetadata.getDigitalRequestMetadata() == null && requestMetadata.getPaperRequestMetadata() == null)) {
             throw new RepositoryManagerException.RequestMalformedException("Valorizzare solamente un tipologia di richiesta metadata");
         }
 
-        List<EventsMetadata> eventsMetadataList = requestMetadata.getEvents();
+        List<EventsMetadata> eventsMetadataList = requestMetadata.getEventsMetadataList();
         if (!eventsMetadataList.isEmpty()) {
             if (eventsMetadataList.size() > 1) {
                 throw new RepositoryManagerException.RequestMalformedException("Inserire un solo evento metadata");
@@ -41,7 +41,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     }
 
     private void checkEventsMetadata(RequestMetadata requestMetadata, EventsMetadata eventsMetadata) {
-        boolean isDigital = requestMetadata.getDigitalReq() != null;
+        boolean isDigital = requestMetadata.getDigitalRequestMetadata() != null;
         if ((isDigital && eventsMetadata.getPaperProgrStatus() != null) || (!isDigital && eventsMetadata.getDigProgrStatus() != null)) {
             throw new RepositoryManagerException.RequestMalformedException("Tipo richiesta metadata e tipo evento metadata non compatibili");
         }
@@ -70,9 +70,9 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                 .doOnSuccess(unused -> checkRequestMetadataToInsert(requestMetadata))
                 .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
                 .doOnSuccess(unused -> {
-                    if (requestMetadata.getEvents() != null && !requestMetadata.getEvents().isEmpty()) {
-                        EventsMetadata firstStatus = requestMetadata.getEvents().get(0);
-                        if (requestMetadata.getDigitalReq() != null) {
+                    if (requestMetadata.getEventsMetadataList() != null && !requestMetadata.getEventsMetadataList().isEmpty()) {
+                        EventsMetadata firstStatus = requestMetadata.getEventsMetadataList().get(0);
+                        if (requestMetadata.getDigitalRequestMetadata() != null) {
                             requestMetadata.setStatusRequest(firstStatus.getDigProgrStatus().getStatus().getValue());
                             firstStatus.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
                         } else {
@@ -100,7 +100,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                         retrieveRequest.setStatusRequest(eventsMetadata.getPaperProgrStatus().getStatusDescription());
                         eventsMetadata.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
                     }
-                    retrieveRequest.getEvents().add(eventsMetadata);
+                    retrieveRequest.getEventsMetadataList().add(eventsMetadata);
                     requestMetadataDynamoDbTable.updateItem(retrieveRequest);
                     return retrieveRequest;
                 });

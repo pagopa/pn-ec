@@ -22,7 +22,7 @@ public class RequestPersonal {
 	@JsonProperty("requestIdx")
 	String requestId;
 	OffsetDateTime clientRequestTimeStamp;
-	DigitalRequestPersonal digitalReq;
-	PaperRequestPersonal paperReq;
-	List<EventsPersonal> events;
+	DigitalRequestPersonal digitalRequestPersonal;
+	PaperRequestPersonal paperRequestPersonal;
+	List<EventsPersonal> eventsPersonalList;
 }

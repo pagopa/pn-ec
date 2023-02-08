@@ -224,14 +224,29 @@ components:
         clientRequestTimeStamp:
           type: string
           format: date-time
-        digitalReq:
-          $ref: '../schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestDto'
-        paperReq:
-          $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperRequestDto'
-        events:
-          type: array
-          items:
-            $ref: '#/components/schemas/EventsDto'
+        requestTimeStamp:
+          type: string
+          format: date-time
+          readOnly: true
+        requestPersonal:
+          $ref: '#/components/schemas/RequestPersonalDto'
+        requestMetadata:
+          $ref: '#/components/schemas/RequestMetadataDto'
+#        digitalReq:
+#          $ref: '../schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestDto'
+#        paperReq:
+#          $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperRequestDto'
+#        events:
+#          type: array
+#          items:
+#            $ref: '#/components/schemas/EventsDto'
+
+    RequestPersonalDto:
+      type: object
+
+    RequestMetadataDto:
+      type: object
+
 
     EventsDto:
       type: object
