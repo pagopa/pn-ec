@@ -235,8 +235,6 @@ components:
 
     RequestPersonalDto:
       type: object
-      required:
-        - eventsPersonalList
       properties:
         digitalRequestPersonal:
           $ref: '../schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestPersonalDto'
