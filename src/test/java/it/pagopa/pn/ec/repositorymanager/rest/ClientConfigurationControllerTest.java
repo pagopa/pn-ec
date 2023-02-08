@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.rest;
 
-import it.pagopa.pn.ec.repositorymanager.entity.ClientConfiguration;
+import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
 import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeAll;

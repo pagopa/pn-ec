@@ -1,9 +1,9 @@
 package it.pagopa.pn.ec.testutils.localstack;
 
-import it.pagopa.pn.ec.repositorymanager.entity.ClientConfiguration;
-import it.pagopa.pn.ec.repositorymanager.entity.Request;
-import it.pagopa.pn.ec.repositorymanager.entity.RequestMetadata;
-import it.pagopa.pn.ec.repositorymanager.entity.RequestPersonal;
+import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
+import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
+import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
+import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.testutils.exception.DynamoDbInitTableCreationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

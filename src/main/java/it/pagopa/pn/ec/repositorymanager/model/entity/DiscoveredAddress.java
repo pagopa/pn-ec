@@ -1,8 +1,6 @@
-package it.pagopa.pn.ec.repositorymanager.entity;
+package it.pagopa.pn.ec.repositorymanager.model.entity;
 
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 
@@ -10,7 +8,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 @NoArgsConstructor
 @Data
 @DynamoDbBean
-public class DiscoveredAddressPersonal {
+public class DiscoveredAddress {
 
     private String name;
     private String nameRow2;

@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.repositorymanager.service;
 
-import it.pagopa.pn.ec.repositorymanager.entity.EventsPersonal;
-import it.pagopa.pn.ec.repositorymanager.entity.RequestPersonal;
+import it.pagopa.pn.ec.repositorymanager.model.entity.EventsPersonal;
+import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import reactor.core.publisher.Mono;
 
 public interface RequestPersonalService {

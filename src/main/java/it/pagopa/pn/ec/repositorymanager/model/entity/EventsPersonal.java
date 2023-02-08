@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.repositorymanager.entity;
+package it.pagopa.pn.ec.repositorymanager.model.entity;
 
 import lombok.AccessLevel;
 import lombok.Data;
@@ -10,9 +10,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 @NoArgsConstructor
 @Data
 @DynamoDbBean
-public class GeneratedMessageMetadata {
+public class EventsPersonal {
 
-	private String system;
-	private String id;
-	private String location;
+	PaperProgressStatusPersonal paperProgrStatusPersonal;
 }

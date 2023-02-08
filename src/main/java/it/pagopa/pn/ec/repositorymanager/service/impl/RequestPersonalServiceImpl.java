@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
-import it.pagopa.pn.ec.repositorymanager.entity.EventsPersonal;
-import it.pagopa.pn.ec.repositorymanager.entity.RequestPersonal;
 import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
+import it.pagopa.pn.ec.repositorymanager.model.entity.EventsPersonal;
+import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.repositorymanager.service.RequestPersonalService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -10,8 +10,6 @@ import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
-
-import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.REQUEST_PERSONAL_TABLE_NAME;
@@ -22,32 +20,16 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
 
     private final DynamoDbAsyncTable<RequestPersonal> requestPersonalDynamoDbTable;
 
+    public RequestPersonalServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient) {
+        this.requestPersonalDynamoDbTable = dynamoDbEnhancedClient.table(REQUEST_PERSONAL_TABLE_NAME, TableSchema.fromBean(RequestPersonal.class));
+    }
+
     private void checkRequestPersonalToInsert(RequestPersonal requestPersonal) {
 
         if ((requestPersonal.getDigitalRequestPersonal() != null && requestPersonal.getPaperRequestPersonal() != null) ||
             (requestPersonal.getDigitalRequestPersonal() == null && requestPersonal.getPaperRequestPersonal() == null)) {
             throw new RepositoryManagerException.RequestMalformedException("Valorizzare solamente un tipologia di richiesta personal");
         }
-
-        List<EventsPersonal> eventsPersonalList = requestPersonal.getEventsPersonalList();
-        if (!eventsPersonalList.isEmpty()) {
-            if (eventsPersonalList.size() > 1) {
-                throw new RepositoryManagerException.RequestMalformedException("Inserire un solo evento personal");
-
-            }
-            checkEventsPersonal(requestPersonal, eventsPersonalList.get(0));
-        }
-    }
-
-    private void checkEventsPersonal(RequestPersonal requestPersonal, EventsPersonal eventsPersonal) {
-        boolean isDigital = requestPersonal.getDigitalRequestPersonal() != null;
-        if ((isDigital && eventsPersonal.getPaperProgrStatus() != null)) {
-            throw new RepositoryManagerException.RequestMalformedException("Tipo richiesta personal e tipo evento personal non compatibili");
-        }
-    }
-
-    public RequestPersonalServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient) {
-        this.requestPersonalDynamoDbTable = dynamoDbEnhancedClient.table(REQUEST_PERSONAL_TABLE_NAME, TableSchema.fromBean(RequestPersonal.class));
     }
 
     @Override
@@ -77,7 +59,6 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
         return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(requestIdx)))
                 .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
                 .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                .doOnSuccess(retrievedRequest -> checkEventsPersonal(retrievedRequest, eventsPersonal))
                 .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
                 .map(retrieveRequest -> {
                     retrieveRequest.getEventsPersonalList().add(eventsPersonal);

@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.repositorymanager.service;
 
-import it.pagopa.pn.ec.repositorymanager.entity.Events;
-import it.pagopa.pn.ec.repositorymanager.entity.Request;
+import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
+import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import reactor.core.publisher.Mono;
 
 public interface RequestService {

@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.repositorymanager.entity;
+package it.pagopa.pn.ec.repositorymanager.model.entity;
 
 import lombok.AccessLevel;
 import lombok.Data;
@@ -12,13 +12,8 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 @DynamoDbBean
-public class DigitalRequestPersonal {
+public class PaperProgressStatusPersonal {
 
-//	pec, email, sms
-	private String qos;
-	private String receiverDigitalAddress;
-	private String messageText;
-	private String senderDigitalAddress;
-	private String subjectText;
-	private List<String> attachmentsUrls;
+	private List<PaperProgressStatusEventAttachmentsPersonal> attachments;
+	private DiscoveredAddressPersonal discoveredAddress;
 }

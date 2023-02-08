@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.repositorymanager.entity;
+package it.pagopa.pn.ec.repositorymanager.model.entity;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -8,8 +8,11 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 @NoArgsConstructor
 @Data
 @DynamoDbBean
-public class Events {
+public class SenderPhysicalAddress {
 
-	private DigitalProgressStatus digProgrStatus;
-	private PaperProgressStatus paperProgrStatus;
+	String name;
+	String address;
+	String cap;
+	String city;
+	String pr;
 }

@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.repositorymanager.service;
 
-import it.pagopa.pn.ec.repositorymanager.entity.EventsMetadata;
-import it.pagopa.pn.ec.repositorymanager.entity.RequestMetadata;
+import it.pagopa.pn.ec.repositorymanager.model.entity.EventsMetadata;
+import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import reactor.core.publisher.Mono;
 
 public interface RequestMetadataService {

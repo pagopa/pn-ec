@@ -1,11 +1,8 @@
 package it.pagopa.pn.ec.repositorymanager.rest;
 
 import it.pagopa.pn.ec.commons.utils.RestUtils;
-import it.pagopa.pn.ec.repositorymanager.entity.Events;
-import it.pagopa.pn.ec.repositorymanager.entity.RequestMetadata;
-import it.pagopa.pn.ec.repositorymanager.entity.RequestPersonal;
-import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
-import it.pagopa.pn.ec.repositorymanager.service.RequestPersonalService;
+import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
+import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.service.RequestService;
 import it.pagopa.pn.ec.rest.v1.api.GestoreRequestApi;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
@@ -16,8 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 import static org.springframework.http.HttpStatus.OK;
 
 @RestController
@@ -25,15 +20,10 @@ import static org.springframework.http.HttpStatus.OK;
 public class RequestController implements GestoreRequestApi {
 
     private final RequestService requestService;
-    private final RequestMetadataService requestMetadataService;
-    private final RequestPersonalService requestPersonalService;
     private final RestUtils restUtils;
 
-    public RequestController(RequestService requestService, RequestMetadataService requestMetadataService, RestUtils restUtils,
-                             RequestPersonalService requestPersonalService) {
+    public RequestController(RequestService requestService, RestUtils restUtils) {
         this.requestService = requestService;
-        this.requestMetadataService = requestMetadataService;
-        this.requestPersonalService = requestPersonalService;
         this.restUtils = restUtils;
     }
 
@@ -45,18 +35,9 @@ public class RequestController implements GestoreRequestApi {
 
     @Override
     public Mono<ResponseEntity<RequestDto>> insertRequest(Mono<RequestDto> requestDto, ServerWebExchange exchange) {
-
-        AtomicReference<RequestDto> requestDtoAtomicReference = new AtomicReference<>();
-
-        return requestDto.doOnNext(requestDto1 -> {
-            requestDtoAtomicReference.set(requestDto1);
-        }).map(requestDtoToInsert -> {
-            requestDtoAtomicReference.set(requestDtoToInsert);
-            return restUtils.startCreateRequest(requestDtoToInsert, RequestMetadata.class);
-        }).flatMap(requestMetadataService::insertRequestMetadata).flatMap(requestMetadata -> {
-            RequestPersonal requestPersonal = restUtils.startCreateRequest(requestDtoAtomicReference.get(), RequestPersonal.class);
-            return requestPersonalService.insertRequestPersonal(requestPersonal);
-        }).map(insertedRequest -> restUtils.endCreateOrUpdateRequest(insertedRequest, RequestDto.class));
+        return requestDto.map(requestDtoToInsert -> restUtils.startCreateRequest(requestDtoToInsert, Request.class))
+                         .flatMap(requestService::insertRequest)
+                         .map(insertedRequest -> restUtils.endCreateOrUpdateRequest(insertedRequest, RequestDto.class));
     }
 
     @Override

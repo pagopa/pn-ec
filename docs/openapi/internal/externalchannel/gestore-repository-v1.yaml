@@ -213,7 +213,8 @@ components:
       required:
         - requestIdx
         - clientRequestTimeStamp
-        - events
+        - requestPersonal
+        - requestMetadata
       properties:
         requestIdx:
           type: string
@@ -247,8 +248,6 @@ components:
 
     RequestMetadataDto:
       type: object
-      required:
-        - eventsMetadataList
       properties:
         digitalRequestMetadata:
           $ref: '../schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestMetadataDto'

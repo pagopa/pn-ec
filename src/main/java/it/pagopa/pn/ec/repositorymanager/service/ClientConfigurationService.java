@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.service;
 
-import it.pagopa.pn.ec.repositorymanager.entity.ClientConfiguration;
+import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
 import reactor.core.publisher.Mono;
 
 public interface ClientConfigurationService {

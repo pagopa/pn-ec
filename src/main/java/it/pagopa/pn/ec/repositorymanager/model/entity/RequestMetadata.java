@@ -1,6 +1,5 @@
-package it.pagopa.pn.ec.repositorymanager.entity;
+package it.pagopa.pn.ec.repositorymanager.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
@@ -16,13 +15,14 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 @DynamoDbBean
-public class RequestPersonal {
+public class RequestMetadata {
 
 	@Getter(onMethod=@__({@DynamoDbPartitionKey}))
-	@JsonProperty("requestIdx")
 	String requestId;
+	String statusRequest;
 	OffsetDateTime clientRequestTimeStamp;
-	DigitalRequestPersonal digitalRequestPersonal;
-	PaperRequestPersonal paperRequestPersonal;
-	List<EventsPersonal> eventsPersonalList;
+	OffsetDateTime requestTimestamp;
+	DigitalRequestMetadata digitalRequestMetadata;
+	PaperRequestMetadata paperRequestMetadata;
+	List<EventsMetadata> eventsMetadataList;
 }
