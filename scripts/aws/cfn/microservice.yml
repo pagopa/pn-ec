@@ -230,7 +230,6 @@ Resources:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Sid: "Lettura dalle tabelle dynamo"
             Action:
               - 'dynamodb:*GetItem'
               - 'dynamodb:Query'
@@ -242,7 +241,6 @@ Resources:
               - !Sub '${PnEcTableArnRichieste}'
               - !Sub '${PnEcTableArnRichiesteMetadati}'
           - Effect: Allow
-            Sid: "Lettura e Scrittura per le code dei canali"
             Action:
               - 'sqs:ReceiveMessage'
               - 'sqs:DeleteMessage'
@@ -256,7 +254,6 @@ Resources:
               - !Sub '${PnEcQueueArnInteractiveSMS}'
               - !Sub '${PnEcQueueArnErroriSMS}'
           - Effect: Allow
-            Sid: "Pubblicazione su bus default"
             Action:
               - 'events:DescribeEventBus'
               - 'events:List*'
@@ -385,9 +382,9 @@ Resources:
         Action: 
           - "events:*"
         Effect: 'Deny'
-        # Principal: 
-        #   Service:
-        #     - 'ecs.amazonaws.com'
+        Principal: 
+          Service:
+            - 'ecs.amazonaws.com'
         Resource: !Ref PnEcEventBusArnTrackerExternalNotification
         Condition:
           StringNotEquals:
