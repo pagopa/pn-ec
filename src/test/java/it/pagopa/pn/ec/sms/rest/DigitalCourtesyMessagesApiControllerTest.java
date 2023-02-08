@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.sms.rest;
 
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedFoundException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
@@ -11,6 +12,7 @@ import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
+import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeAll;
@@ -27,8 +29,6 @@ import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Mono;
 
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.NT_STATO_SMS_QUEUE_NAME;
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.SMS_INTERACTIVE_QUEUE_NAME;
 import static it.pagopa.pn.ec.sms.testutils.DigitalCourtesySmsRequestFactory.createSmsRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -44,6 +44,12 @@ class DigitalCourtesyMessagesApiControllerTest {
 
     @Autowired
     private WebTestClient webTestClient;
+
+    @Autowired
+    private SmsSqsQueueName smsSqsQueueName;
+
+    @Autowired
+    private NotificationTrackerSqsName notificationTrackerSqsName;
 
     @MockBean
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
@@ -178,8 +184,8 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(NT_STATO_SMS_QUEUE_NAME), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(new SqsPublishException(
-                NT_STATO_SMS_QUEUE_NAME)));
+        when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
+                new SqsPublishException(notificationTrackerSqsName.statoSmsName())));
 
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)
@@ -199,8 +205,8 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(SMS_INTERACTIVE_QUEUE_NAME),
-                             any(SmsPresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsPublishException(SMS_INTERACTIVE_QUEUE_NAME)));
+        when(sqsService.send(eq(smsSqsQueueName.interactiveName()),
+                             any(SmsPresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsPublishException(smsSqsQueueName.interactiveName())));
 
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)

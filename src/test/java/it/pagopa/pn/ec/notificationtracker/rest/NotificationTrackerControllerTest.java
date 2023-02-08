@@ -2,20 +2,21 @@ package it.pagopa.pn.ec.notificationtracker.rest;
 
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCallImpl;
-import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.notificationtracker.model.NotificationResponseModel;
-import it.pagopa.pn.ec.notificationtracker.service.NotificationtrackerMessageReceiver;
+import it.pagopa.pn.ec.notificationtracker.service.NotificationTrackerMessageReceiver;
 import it.pagopa.pn.ec.notificationtracker.service.PutEventsImpl;
 import it.pagopa.pn.ec.notificationtracker.service.callmachinestati.CallMachinaStatiImpl;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
 import static it.pagopa.pn.ec.commons.constant.ProcessId.*;
@@ -26,25 +27,19 @@ import static org.mockito.Mockito.when;
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class NotificationtrackerControllerTest {
+class NotificationTrackerControllerTest {
 
     @Mock
     PutEventsImpl putEventsImpl;
-    @Mock
-    SqsService sqsService;
 
     @Autowired
-    NotificationtrackerMessageReceiver notificationtrackerMessageReceiver;
+    NotificationTrackerMessageReceiver notificationtrackerMessageReceiver;
 
     @MockBean
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
 
     @MockBean
     private CallMachinaStatiImpl callMachinaStati;
-
-    @Autowired
-    private WebTestClient webClient;
-
 
     public static final NotificationResponseModel notificationResponseModel = new NotificationResponseModel();
     public static final NotificationTrackerQueueDto  notificationTrackerQueueDto = new NotificationTrackerQueueDto();
