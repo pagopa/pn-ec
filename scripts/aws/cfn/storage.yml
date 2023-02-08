@@ -260,12 +260,12 @@ Resources:
     Properties: 
         Name: 'Pn-Ec-Tracker-Notifications-Bus'
 
-  PnEcEventBusArchiveTrackerExternalNotification:
-    Type: AWS::Events::Archive
-    Properties: 
-      Description: 'Archive for storage of events to be delivered from Notification Tracker towards external platform'
-      RetentionDays: 15
-      SourceArn: !Ref PnEcEventBusTrackerExternalNotification
+  # PnEcEventBusArchiveTrackerExternalNotification:
+  #   Type: AWS::Events::Archive
+  #   Properties: 
+  #     Description: 'Archive for storage of events to be delivered from Notification Tracker towards external platform'
+  #     RetentionDays: 15
+  #     SourceArn: !Ref PnEcEventBusTrackerExternalNotification
 
 Outputs:
 
