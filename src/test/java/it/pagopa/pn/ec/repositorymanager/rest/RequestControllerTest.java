@@ -1,9 +1,10 @@
 package it.pagopa.pn.ec.repositorymanager.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.GestoreRepositoryEndpointProperties;
+import it.pagopa.pn.ec.repositorymanager.model.dto.DiscoveredAddressDto;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
-import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeAll;
@@ -19,19 +20,18 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
-import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.stream.Stream;
 
-import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.*;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusMetadataDto.EventCodeEnum.C000;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto.EventCodeEnum.C000;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestPersonalDto.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus.BOOKED;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus.RETRY;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
@@ -52,11 +52,11 @@ class RequestControllerTest {
     private static final RequestDto digitalRequest = new RequestDto();
     private static final RequestDto paperRequest = new RequestDto();
 
-//    private static DynamoDbTable<Request> dynamoDbTable;
     private static DynamoDbTable<RequestMetadata> dynamoDbTableMetadata;
     private static DynamoDbTable<RequestPersonal> dynamoDbTablePersonal;
 
     private static void initializeRequestDto() {
+//        inizialize digitalRequestDto
         digitalRequest.setRequestIdx(DEFAULT_ID_DIGITAL);
         digitalRequest.setClientRequestTimeStamp(OffsetDateTime.now());
         digitalRequest.setRequestTimeStamp(OffsetDateTime.now());
@@ -67,24 +67,29 @@ class RequestControllerTest {
         digitalRequestMetadataDto.setTags(null);
         digitalRequestMetadataDto.setChannel(PEC);
         digitalRequestMetadataDto.setMessageContentType(PLAIN);
-//        var digitalProgressStatusMetadataDto = new DigitalProgressStatusMetadataDto();
-//        digitalProgressStatusMetadataDto.setEventTimestamp(OffsetDateTime.now());
-//        digitalProgressStatusMetadataDto.setStatus(BOOKED);
-//        digitalProgressStatusMetadataDto.setEventCode(C000);
-//        digitalProgressStatusMetadataDto.setEventDetails("");
-//        var generateMessageDto = new DigitalProgressStatusMetadataDtoGeneratedMessage();
+
+        var requestMetadataDto1 = new RequestMetadataDto();
+        requestMetadataDto1.setDigitalRequestMetadata(digitalRequestMetadataDto);
+
+//        dto per l'update'
+
+//        var digitalProgressStatusDto = new DigitalProgressStatusDto();
+//        digitalProgressStatusDto.setEventTimestamp(OffsetDateTime.now());
+//        digitalProgressStatusDto.setStatus(BOOKED);
+//        digitalProgressStatusDto.setEventCode(C000);
+//        digitalProgressStatusDto.setEventDetails("");
+//        var generateMessageDto = new DigitalProgressStatusDtoGeneratedMessage();
 //        generateMessageDto.setId("id");
 //        generateMessageDto.setSystem("System");
 //        generateMessageDto.setLocation("location");
-//        digitalProgressStatusMetadataDto.setGeneratedMessage(generateMessageDto);
-//        var eventsMetadataDto = new EventsMetadataDto();
-//        eventsMetadataDto.setDigProgrStatusMetadata(digitalProgressStatusMetadataDto);
-        var requestMetadataDto = new RequestMetadataDto();
-        requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
-//        var eventsMetadataList = new ArrayList<EventsMetadataDto>();
-//        eventsMetadataList.add(eventsMetadataDto);
-//        requestMetadataDto.setEventsMetadataList(eventsMetadataList);
-        digitalRequest.setRequestMetadata(requestMetadataDto);
+//        digitalProgressStatusDto.setGeneratedMessage(generateMessageDto);
+//        var eventsDto1 = new EventsDto();
+//        eventsDto1.setDigProgrStatus(digitalProgressStatusDto);
+//        var eventsList1 = new ArrayList<EventsDto>();
+//        eventsList1.add(eventsDto1);
+//        requestMetadataDto1.setEventsList(eventsList1);
+
+        digitalRequest.setRequestMetadata(requestMetadataDto1);
 
 
         var digitalRequestPersonalDto = new DigitalRequestPersonalDto();
@@ -97,56 +102,89 @@ class RequestControllerTest {
         String attachmentUrl = "/http://ss/prova.pdf";
         attachmentsList.add(attachmentUrl);
         digitalRequestPersonalDto.setAttachmentsUrls(attachmentsList);
-        var requestPersonalDto = new RequestPersonalDto();
-        requestPersonalDto.setDigitalRequestPersonal(digitalRequestPersonalDto);
-        digitalRequest.setRequestPersonal(requestPersonalDto);
+        var requestPersonalDto1 = new RequestPersonalDto();
+        requestPersonalDto1.setDigitalRequestPersonal(digitalRequestPersonalDto);
+        digitalRequest.setRequestPersonal(requestPersonalDto1);
 
-//        paperRequest.setClientRequestTimeStamp(OffsetDateTime.now());
-//
-//        var digitalEvent = new EventsDto();
-//        var digitalProgressStatusDto = new DigitalProgressStatusDto();
-//        digitalProgressStatusDto.setStatus(BOOKED);
-//        digitalProgressStatusDto.setEventCode(C000);
-//        digitalEvent.setDigProgrStatus(digitalProgressStatusDto);
-//
-//        var paperEvent = new EventsDto();
+//        inizialize paperRequestDto
+        paperRequest.setRequestIdx(DEFAULT_ID_PAPER);
+        paperRequest.setClientRequestTimeStamp(OffsetDateTime.now());
+        paperRequest.setRequestTimeStamp(OffsetDateTime.now());
+
+        var paperRequestMetadataDto = new PaperRequestMetadataDto();
+        paperRequestMetadataDto.setIun("iun");
+        paperRequestMetadataDto.setRequestPaId("PagoPa");
+        paperRequestMetadataDto.setProductType("product type");
+        paperRequestMetadataDto.setPrintType("B/N");
+        var vas = new HashMap<String,String>();
+        paperRequestMetadataDto.setVas(vas);
+
+        var requestMetadataDto2 = new RequestMetadataDto();
+        requestMetadataDto2.setPaperRequestMetadata(paperRequestMetadataDto);
+
+//      dto per l'update'
+
 //        var paperProgressStatusDto = new PaperProgressStatusDto();
-//        paperProgressStatusDto.setProductType("");
-//        paperProgressStatusDto.statusCode("");
-//        paperProgressStatusDto.statusDescription("");
-//        paperEvent.setPaperProgrStatus(paperProgressStatusDto);
-//
-//
-//        var digitalRequestDto = new DigitalRequestDto();
-//        digitalRequestDto.setEventType("");
-//        digitalRequestDto.setQos(INTERACTIVE);
-//        digitalRequestDto.setReceiverDigitalAddress("");
-//        digitalRequestDto.setMessageText("");
-//        digitalRequestDto.setChannel(SMS);
-//        digitalRequestDto.setSubjectText("");
-//        digitalRequestDto.setMessageContentType(PLAIN);
-//        digitalRequest.setDigitalReq(digitalRequestDto);
-//        digitalRequest.setEvents(List.of(digitalEvent));
-//
-//        paperRequest.setRequestIdx(DEFAULT_ID_PAPER);
-//        var paperRequestDto = new PaperRequestDto();
-//        paperRequestDto.setProductType("");
-//        var paperRequestDtoAttachments = new PaperRequestDtoAttachments();
-//        paperRequestDtoAttachments.setUri("");
-//        paperRequestDtoAttachments.setOrder(new BigDecimal(1));
-//        paperRequestDtoAttachments.setDocumentType("");
-//        paperRequestDtoAttachments.setSha256("");
-//        paperRequestDto.setAttachments(List.of(paperRequestDtoAttachments));
-//        paperRequestDto.setReceiverAddress("");
-//        paperRequestDto.setPrintType("");
-//        paperRequestDto.setReceiverName("");
-//        paperRequestDto.setReceiverCity("");
-//        paperRequestDto.setSenderName("");
-//        paperRequestDto.setSenderAddress("");
-//        paperRequestDto.senderCity("");
-//        paperRequestDto.setSenderPr("");
-//        paperRequest.setPaperReq(paperRequestDto);
-//        paperRequest.setEvents(List.of(paperEvent));
+//        paperProgressStatusDto.setRegisteredLetterCode("");
+//        paperProgressStatusDto.setStatusCode("");
+//        paperProgressStatusDto.setStatusDescription("");
+//        paperProgressStatusDto.setStatusDateTime(OffsetDateTime.now());
+//        paperProgressStatusDto.setDeliveryFailureCause("");
+//        var discoveredAddressDto = new DiscoveredAddressDto();
+//        discoveredAddressDto.setName("");
+//        discoveredAddressDto.setNameRow2("");
+//        discoveredAddressDto.setAddress("");
+//        discoveredAddressDto.setAddressRow2("");
+//        discoveredAddressDto.setCap("");
+//        discoveredAddressDto.setCity("");
+//        discoveredAddressDto.setCity2("");
+//        discoveredAddressDto.setPr("");
+//        discoveredAddressDto.setCountry("");
+//        var paperProgressStatusDtoAttachmentsList = new ArrayList<PaperProgressStatusDtoAttachments>();
+//        var paperProgressStatusDtoAttachments = new PaperProgressStatusDtoAttachments();
+//        paperProgressStatusDtoAttachmentsList.add(paperProgressStatusDtoAttachments);
+//        paperProgressStatusDto.setAttachments(paperProgressStatusDtoAttachmentsList);
+//        paperProgressStatusDto.setDiscoveredAddress(discoveredAddressDto);
+//        var eventList2 = new ArrayList<EventsDto>();
+//        var eventsDto2 = new EventsDto();
+//        eventsDto2.setPaperProgrStatus(paperProgressStatusDto);
+//        eventList2.add(eventsDto2);
+//        requestMetadataDto2.setEventsList(eventList2);
+
+        paperRequest.setRequestMetadata(requestMetadataDto2);
+
+        var paperRequestPersonalDto = new PaperRequestPersonalDto();
+        var attachments = new ArrayList<PaperRequestPersonalDtoAttachments>();
+        var attachment = new PaperRequestPersonalDtoAttachments();
+        attachment.setUri("");
+        attachment.setOrder(new BigDecimal(1));
+        attachment.setDocumentType("document type");
+        attachment.setSha256("sha256");
+        attachments.add(attachment);
+        paperRequestPersonalDto.setAttachments(attachments);
+        paperRequestPersonalDto.setReceiverName("");
+        paperRequestPersonalDto.setReceiverNameRow2("");
+        paperRequestPersonalDto.setReceiverAddress("");
+        paperRequestPersonalDto.setReceiverAddressRow2("");
+        paperRequestPersonalDto.setReceiverCap("");
+        paperRequestPersonalDto.setReceiverCity("");
+        paperRequestPersonalDto.setReceiverCity2("");
+        paperRequestPersonalDto.setReceiverPr("");
+        paperRequestPersonalDto.setReceiverCountry("");
+        paperRequestPersonalDto.setReceiverFiscalCode("");
+        paperRequestPersonalDto.setSenderName("");
+        paperRequestPersonalDto.setSenderAddress("");
+        paperRequestPersonalDto.setSenderCity("");
+        paperRequestPersonalDto.setSenderPr("");
+        paperRequestPersonalDto.setSenderDigitalAddress("");
+        paperRequestPersonalDto.setArName("");
+        paperRequestPersonalDto.setArAddress("");
+        paperRequestPersonalDto.setArCap("");
+        paperRequestPersonalDto.setArCity("");
+        var requestPersonalDto2 = new RequestPersonalDto();
+        requestPersonalDto2.setPaperRequestPersonal(paperRequestPersonalDto);
+        paperRequest.setRequestPersonal(requestPersonalDto2);
+
     }
 
     private static void insertRequestPersonal(RequestPersonal requestPersonal) {
@@ -163,8 +201,8 @@ class RequestControllerTest {
 
     @BeforeAll
     public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient, @Autowired ObjectMapper objectMapper) {
-        dynamoDbTablePersonal = dynamoDbEnhancedClient.table(REQUEST_PERSONAL_TABLE_NAME, TableSchema.fromBean(RequestPersonal.class));
-        dynamoDbTableMetadata = dynamoDbEnhancedClient.table(REQUEST_METADATA_TABLE_NAME, TableSchema.fromBean(RequestMetadata.class));
+//        dynamoDbTablePersonal = dynamoDbEnhancedClient.table(REQUEST_PERSONAL_TABLE_NAME, TableSchema.fromBean(RequestPersonal.class));
+//        dynamoDbTableMetadata = dynamoDbEnhancedClient.table(REQUEST_METADATA_TABLE_NAME, TableSchema.fromBean(RequestMetadata.class));
 
         initializeRequestDto();
         insertRequestPersonal(objectMapper.convertValue(digitalRequest.getRequestPersonal(), RequestPersonal.class));
