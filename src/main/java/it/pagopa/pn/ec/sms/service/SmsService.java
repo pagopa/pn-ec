@@ -15,6 +15,7 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
+import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ import static it.pagopa.pn.ec.commons.constant.ProcessId.INVIO_SMS;
 import static it.pagopa.pn.ec.commons.service.SnsService.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.SMS;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus.*;
 
 @Service
@@ -86,20 +88,25 @@ public class SmsService extends PresaInCaricoService {
             var requestDto = new RequestDto();
             requestDto.setRequestIdx(digitalCourtesySmsRequest.getRequestId());
             requestDto.setClientRequestTimeStamp(digitalCourtesySmsRequest.getClientRequestTimeStamp());
-            var digitalRequestDto = new DigitalRequestDto();
-            digitalRequestDto.setCorrelationId(digitalCourtesySmsRequest.getCorrelationId());
-            // TODO: set event type ?
-            digitalRequestDto.setEventType("");
-            digitalRequestDto.setQos(DigitalRequestDto.QosEnum.valueOf(digitalCourtesySmsRequest.getQos().name()));
-            digitalRequestDto.setTags(digitalCourtesySmsRequest.getTags());
-            digitalRequestDto.setReceiverDigitalAddress(digitalCourtesySmsRequest.getReceiverDigitalAddress());
-            digitalRequestDto.setMessageText(digitalCourtesySmsRequest.getMessageText());
-            digitalRequestDto.setSenderDigitalAddress(digitalCourtesySmsRequest.getSenderDigitalAddress());
-            digitalRequestDto.setChannel(SMS);
-            // TODO: set subject text ?
-            digitalRequestDto.setSubjectText("");
-            digitalRequestDto.setMessageContentType(PLAIN);
-            requestDto.setDigitalReq(digitalRequestDto);
+
+            var requestPersonalDto = new RequestPersonalDto();
+            var digitalRequestPersonalDto = new DigitalRequestPersonalDto();
+            digitalRequestPersonalDto.setQos(DigitalRequestPersonalDto.QosEnum.valueOf(digitalCourtesySmsRequest.getQos().name()));
+            digitalRequestPersonalDto.setReceiverDigitalAddress(digitalCourtesySmsRequest.getReceiverDigitalAddress());
+            digitalRequestPersonalDto.setMessageText(digitalCourtesySmsRequest.getMessageText());
+            digitalRequestPersonalDto.setSenderDigitalAddress(digitalCourtesySmsRequest.getSenderDigitalAddress());
+            requestPersonalDto.setDigitalRequestPersonal(digitalRequestPersonalDto);
+
+            var requestMetadataDto = new RequestMetadataDto();
+            var digitalRequestMetadataDto = new DigitalRequestMetadataDto();
+            digitalRequestMetadataDto.setCorrelationId(digitalCourtesySmsRequest.getCorrelationId());
+            digitalRequestMetadataDto.setEventType(digitalCourtesySmsRequest.getEventType());
+            digitalRequestMetadataDto.setTags(digitalCourtesySmsRequest.getTags());
+            digitalRequestMetadataDto.setChannel(SMS);
+            requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
+
+            requestDto.setRequestPersonal(requestPersonalDto);
+            requestDto.setRequestMetadata(requestMetadataDto);
             return requestDto;
         }).flatMap(gestoreRepositoryCall::insertRichiesta);
     }
