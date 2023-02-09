@@ -84,7 +84,7 @@ public class PecService extends PresaInCaricoService {
             digitalRequestPersonalDto.setReceiverDigitalAddress(digitalNotificationRequest.getReceiverDigitalAddress());
             digitalRequestPersonalDto.setMessageText(digitalNotificationRequest.getMessageText());
             digitalRequestPersonalDto.setSenderDigitalAddress(digitalNotificationRequest.getSenderDigitalAddress());
-            digitalRequestPersonalDto.setSubjectText(digitalRequestPersonalDto.getSubjectText());
+            digitalRequestPersonalDto.setSubjectText(digitalNotificationRequest.getSubjectText());
             digitalRequestPersonalDto.setAttachmentsUrls(digitalNotificationRequest.getAttachmentsUrls());
             requestPersonalDto.setDigitalRequestPersonal(digitalRequestPersonalDto);
 
