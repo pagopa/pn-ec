@@ -69,11 +69,35 @@ Resources:
       TableClass: 'STANDARD'
     DeletionPolicy: Retain
 
+  PnEcTableRichiesteMetadati:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: 'requestId'
+          AttributeType: 'S'
+        - AttributeName: 'correlationId'
+          AttributeType: 'S'
+      KeySchema: 
+        - AttributeName: 'requestId'
+          KeyType: 'HASH'
+        - AttributeName: 'correlationId'
+          KeyType: 'RANGE'
+      #KinesisStreamSpecification:
+      #  StreamArn: 'String'
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: 'KMS'
+      TableClass: 'STANDARD'
+    DeletionPolicy: Retain
+
   PnEcQueueTrackerStatoSMS:
     Type: AWS::SQS::Queue
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: 'alias/aws/sqs'
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -85,7 +109,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: 'alias/aws/sqs'
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -94,7 +118,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: 'alias/aws/sqs'
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -106,7 +130,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: 'alias/aws/sqs'
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -115,7 +139,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: 'alias/aws/sqs'
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -127,7 +151,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: 'alias/aws/sqs'
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -172,7 +196,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: 'alias/aws/sqs'
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -184,7 +208,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: 'alias/aws/sqs'
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -193,7 +217,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: 'alias/aws/sqs'
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -205,7 +229,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: 'alias/aws/sqs'
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -214,7 +238,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: 'alias/aws/sqs'
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -226,33 +250,56 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: 'alias/aws/sqs'
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
 
-
   PnEcEventBusTrackerExternalNotification: 
     Type: AWS::Events::EventBus
     Properties: 
-        Name: 'Pn-Ec-Tracker-Notifications-bus'
+        Name: 'Pn-Ec-Tracker-Notifications-Bus'
+
+  # PnEcEventBusArchiveTrackerExternalNotification:
+  #   Type: AWS::Events::Archive
+  #   Properties: 
+  #     Description: 'Archive for storage of events to be delivered from Notification Tracker towards external platform'
+  #     RetentionDays: 15
+  #     SourceArn: !Ref PnEcEventBusTrackerExternalNotification
 
 Outputs:
+
+  PnEcEventBusNameTrackerExternalNotification:
+    Description: 'Nome del Event Bus per le notifiche verso le piattaforme esterne'
+    Value: !Ref PnEcEventBusTrackerExternalNotification
+
+  PnEcEventBusArnTrackerExternalNotification:
+    Description: 'ARN del Event Bus per le notifiche verso le piattaforme esterne'
+    Value: !GetAtt PnEcEventBusTrackerExternalNotification.Arn
+
   PnEcTableNameAnagrafica:
-    Description: "Nome della Tabella DynamoDB relativa all'Anagrafica Client"
+    Description: 'Nome della Tabella DynamoDB relativa ad Anagrafica Client'
     Value: !Ref PnEcTableAnagrafica
 
   PnEcTableArnAnagrafica:
-    Description: "ARN della Tabella DynamoDB relativa all'Anagrafica Client"
+    Description: 'ARN della Tabella DynamoDB relativa ad Anagrafica Client'
     Value: !GetAtt PnEcTableAnagrafica.Arn
 
   PnEcTableNameRichieste:
     Description: 'Nome della Tabella DynamoDB relativa alle richieste'
-    Value: !Ref PnEcTableAnagrafica
+    Value: !Ref PnEcTableRichieste
 
   PnEcTableArnRichieste:
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
-    Value: !GetAtt PnEcTableAnagrafica.Arn
+    Value: !GetAtt PnEcTableRichieste.Arn
+
+  PnEcTableNameRichiesteMetadati:
+    Description: 'Nome della Tabella DynamoDB relativa alle richieste'
+    Value: !Ref PnEcTableRichiesteMetadati
+
+  PnEcTableArnRichiesteMetadati:
+    Description: 'ARN della Tabella DynamoDB relativa alle richieste'
+    Value: !GetAtt PnEcTableRichiesteMetadati.Arn
 
   PnEcQueueNameTrackerStatoSMS:
     Description: '[Notification Tracker: canale SMS] Nome della Coda per aggiornamenti di stato afferenti al canale SMS'

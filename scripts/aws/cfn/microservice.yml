@@ -69,16 +69,44 @@ Parameters:
 
   PnEcManagedPolicyName:
     Type: String
-    Description: 'Nome della managed policy associata alla state machine'
+    Description: 'Nome della managed policy associata ad External Channel'
     Default: 'PnEcManagedPolicyName'
 
-  PnEcTableArnAnagrafica:    
+  PnEcEventBusNameTrackerExternalNotification:
     Type: String
-    Description: "ARN della Tabella DynamoDB relativa all'Anagrafica Client"
+    Description: "Nome del Event Bus per le notifiche verso le piattaforme esterne"
+
+  PnEcEventBusArnTrackerExternalNotification:
+    Type: String
+    Description: 'ARN del Event Bus per le notifiche verso le piattaforme esterne'
+
+  PnEcTableNameAnagrafica:
+    Type: String  
+    Description: "Nome della Tabella DynamoDB relativa ad Anagrafica Client"
+
+  PnEcTableArnAnagrafica:
+    Type: String
+    Description: 'ARN della Tabella DynamoDB relativa ad Anagrafica Client'
+
+  PnEcTableNameRichieste:
+    Type: String
+    Description: 'Nome della Tabella DynamoDB relativa alle richieste'
 
   PnEcTableArnRichieste:
     Type: String
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
+
+  PnEcTableNameRichiesteMetadati:
+    Type: String
+    Description: 'Nome della Tabella DynamoDB relativa alle richieste'
+
+  PnEcTableArnRichiesteMetadati:
+    Type: String
+    Description: 'ARN della Tabella DynamoDB relativa alle richieste'
+
+  PnEcQueueNameTrackerStatoSMS:
+    Type: String
+    Description: '[Notification Tracker: canale SMS] Nome della Coda per aggiornamenti di stato afferenti al canale SMS'
 
   PnEcQueueArnTrackerStatoSMS:
     Type: String
@@ -87,7 +115,11 @@ Parameters:
   PnEcQueueUrlTrackerStatoSMS:
     Type: String
     Description: '[Notification Tracker: canale SMS] URL della Coda per aggiornamenti di stato afferenti al canale SMS'
- 
+
+  PnEcQueueNameTrackerErroriSMS:
+    Type: String
+    Description: '[Notification Tracker: canale SMS] Nome della Coda Errori afferenti al canale SMS'
+
   PnEcQueueArnTrackerErroriSMS:
     Type: String
     Description: '[Notification Tracker: canale SMS] ARN della Coda Errori afferenti al canale SMS'
@@ -95,6 +127,10 @@ Parameters:
   PnEcQueueUrlTrackerErroriSMS:
     Type: String
     Description: '[Notification Tracker: canale SMS] URL della Coda Errori afferenti al canale SMS'
+
+  PnEcQueueNameNotificheExt1:
+    Type: String
+    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] Nome della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
 
   PnEcQueueArnNotificheExt1:
     Type: String
@@ -104,6 +140,18 @@ Parameters:
     Type: String
     Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] URL della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
 
+  PnEcSNSNameNotificheExt1:
+    Type: String
+    Description: '[Notification Tracker: Piattaforme esterne] Nome dello SNS Topic per smistare le notifiche alle Piattaforme esterne'
+
+  PnEcSNSArnNotificheExt1:
+    Type: String
+    Description: '[Notification Tracker: Piattaforme esterne] ARN dello SNS Topic per smistare le notifiche alle Piattaforme esterne'
+
+  PnEcQueueNameBatchSMS:
+    Type: String
+    Description: '[Canale SMS] Nome della Coda per la modalità SMS-Batch'
+
   PnEcQueueArnBatchSMS:
     Type: String
     Description: '[Canale SMS] ARN della Coda per la modalità SMS-Batch'
@@ -111,7 +159,11 @@ Parameters:
   PnEcQueueUrlBatchSMS:
     Type: String
     Description: '[Canale SMS] URL della Coda per la modalità SMS-Batch'
-    
+
+  PnEcQueueNameInteractiveSMS:
+    Type: String
+    Description: '[Canale SMS] Nome della Coda per la modalità SMS-Interactive'
+
   PnEcQueueArnInteractiveSMS:
     Type: String
     Description: '[Canale SMS] ARN della Coda per la modalità SMS-Interactive'
@@ -120,10 +172,14 @@ Parameters:
     Type: String
     Description: '[Canale SMS] URL della Coda per la modalità SMS-Interactive'
 
+  PnEcQueueNameErroriSMS:
+    Type: String
+    Description: '[Canale SMS] Nome della Coda Errori SMS'
+
   PnEcQueueArnErroriSMS:
     Type: String
     Description: '[Canale SMS] ARN della Coda Errori SMS'
-  
+
   PnEcQueueUrlErroriSMS:
     Type: String
     Description: '[Canale SMS] URL della Coda Errori SMS'
@@ -142,7 +198,19 @@ Resources:
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Sub '${ContainerImageUri}'
         ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
-        MappedPaths: '/externalchannel/*'
+        ContainerEnvEntry2: !Sub 'PnEcTableNameAnagrafica=${PnEcTableNameAnagrafica}'
+        ContainerEnvEntry3: !Sub 'PnEcTableNameRichieste=${PnEcTableNameRichieste}'
+        ContainerEnvEntry4: !Sub 'PnEcTableNameRichiesteMetadati=${PnEcTableNameRichiesteMetadati}'
+        ContainerEnvEntry5: !Sub 'PnEcSNSNameNotificheExt1=${PnEcSNSNameNotificheExt1}'
+        ContainerEnvEntry6: !Sub 'PnEcSNSArnNotificheExt1=${PnEcSNSArnNotificheExt1}'
+        ContainerEnvEntry7: !Sub 'PnEcQueueNameNotificheExt1=${PnEcQueueNameNotificheExt1}'
+        ContainerEnvEntry8: !Sub 'PnEcEventBusNameTrackerExternalNotification=${PnEcEventBusNameTrackerExternalNotification}'
+        ContainerEnvEntry9: !Sub 'PnEcQueueNameTrackerStatoSMS=${PnEcQueueNameTrackerStatoSMS}'
+        ContainerEnvEntry10: !Sub 'PnEcQueueNameTrackerErroriSMS=${PnEcQueueNameTrackerErroriSMS}'
+        ContainerEnvEntry11: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
+        ContainerEnvEntry12: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
+        ContainerEnvEntry13: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
+        MappedPaths: '/external-channels/*,/external-channel/*'
         ECSClusterName: !Ref ECSClusterName
         Subnets: !Ref SubnetsIds
         VpcId: !Ref VpcId
@@ -171,6 +239,7 @@ Resources:
             Resource:
               - !Sub '${PnEcTableArnAnagrafica}'
               - !Sub '${PnEcTableArnRichieste}'
+              - !Sub '${PnEcTableArnRichiesteMetadati}'
           - Effect: Allow
             Action:
               - 'sqs:ReceiveMessage'
@@ -184,6 +253,13 @@ Resources:
               - !Sub '${PnEcQueueArnBatchSMS}'
               - !Sub '${PnEcQueueArnInteractiveSMS}'
               - !Sub '${PnEcQueueArnErroriSMS}'
+          - Effect: Allow
+            Action:
+              - 'events:DescribeEventBus'
+              - 'events:List*'
+              - 'events:PutEvents'
+            Resource:
+              - !Sub '${PnEcEventBusArnTrackerExternalNotification}'
 
   PnEcQueuePolicyTrackerStatoSMS:
     Type: AWS::SQS::QueuePolicy
@@ -280,3 +356,62 @@ Resources:
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+
+  PnEcEventBusPolicyECSTrackerExternalNotification:
+    Type: AWS::Events::EventBusPolicy
+    Properties:
+      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      StatementId: 'PnEcCustomEventBusPolicyAllowECS'
+      Statement:
+        Action: 
+          - "events:PutEvents"
+          - 'events:DescribeEventBus'
+          - 'events:List*'
+        Effect: "Allow"
+        Principal: 
+          Service:
+          - 'ecs.amazonaws.com'
+        Resource: !Ref PnEcEventBusArnTrackerExternalNotification
+
+  PnEcEventBusPolicyDenyTrackerExternalNotification:
+    Type: AWS::Events::EventBusPolicy
+    Properties:
+      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      StatementId: 'PnEcCustomEventBusPolicyDenyCrossAccount'
+      Statement:
+        Action: 
+          - "events:*"
+        Effect: 'Deny'
+        Principal: 
+          Service:
+            - 'ecs.amazonaws.com'
+        Resource: !Ref PnEcEventBusArnTrackerExternalNotification
+        Condition:
+          StringNotEquals:
+            aws:SourceAccount: !Sub '${AWS::AccountId}'
+
+  PnEcEventBusPolicyManageTrackerExternalNotification:
+    Type: AWS::Events::EventBusPolicy
+    Properties:
+      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      StatementId: 'PnEcCustomEventBusPolicyManage'
+      Statement:
+        Action: 
+          - 'events:PutRule'
+          - 'events:PutTargets'
+          - 'events:DeleteRule'
+          - 'events:RemoveTargets'
+          - 'events:DisableRule'
+          - 'events:EnableRule'
+          - 'events:TagResource'
+          - 'events:UntagResource'
+          - 'events:DescribeRule'
+          - 'events:ListTargetsByRule'
+          - 'events:ListTagsForResource'
+        Effect: 'Allow'
+        Principal: 
+          AWS: !Sub '${AWS::AccountId}'
+        Resource: !Ref PnEcEventBusArnTrackerExternalNotification
+        Condition:
+          StringEqualsIfExists:
+            events:creatorAccount: !Sub '${AWS::AccountId}'

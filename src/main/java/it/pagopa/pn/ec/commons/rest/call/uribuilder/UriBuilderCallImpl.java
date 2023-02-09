@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.commons.rest.call.uribuilder;
 
 import it.pagopa.pn.ec.commons.exception.ss.AttachmentNotAvailableException;
-import it.pagopa.pn.ec.commons.model.configurationproperties.endpoint.UriBuilderEndpoint;
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.FilesEndpointProperties;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,17 +13,17 @@ import reactor.core.publisher.Mono;
 public class UriBuilderCallImpl implements UriBuilderCall{
 
     private final WebClient ssExternalEndpointBasePath;
-    private final UriBuilderEndpoint uriBuilderEndpoint;
+    private final FilesEndpointProperties filesEndpointProperties;
 
-    public UriBuilderCallImpl(WebClient ssExternalWebClient, UriBuilderEndpoint uriBuilderEndpoint) {
-        this.ssExternalEndpointBasePath = ssExternalWebClient;
-        this.uriBuilderEndpoint = uriBuilderEndpoint;
+    public UriBuilderCallImpl(WebClient ssWebClient, FilesEndpointProperties filesEndpointProperties) {
+        this.ssExternalEndpointBasePath = ssWebClient;
+        this.filesEndpointProperties = filesEndpointProperties;
     }
 
     @Override
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchCxId, boolean metadataOnly) {
         return ssExternalEndpointBasePath.get()
-                .uri(uriBuilder -> uriBuilder.path(uriBuilderEndpoint.getGetFile())
+                .uri(uriBuilder -> uriBuilder.path(filesEndpointProperties.getFile())
                 .build(fileKey))
                 .retrieve()
                 .bodyToMono(FileDownloadResponse.class)

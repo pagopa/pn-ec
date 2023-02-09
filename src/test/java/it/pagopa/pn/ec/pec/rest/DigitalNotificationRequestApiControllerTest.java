@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.pec.rest;
 
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedFoundException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
@@ -10,6 +11,7 @@ import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall
 import it.pagopa.pn.ec.commons.rest.call.uribuilder.UriBuilderCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
+import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeAll;
@@ -30,8 +32,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.NT_STATO_PEC_QUEUE_NAME;
-import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.PEC_INTERACTIVE_QUEUE_NAME;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
@@ -48,6 +48,12 @@ public class DigitalNotificationRequestApiControllerTest {
     @Autowired
     private WebTestClient webTestClient;
 
+    @Autowired
+    private NotificationTrackerSqsName notificationTrackerSqsName;
+
+    @Autowired
+    private PecSqsQueueName pecSqsQueueName;
+
     @MockBean
     private UriBuilderCall uriBuilderCall;
 
@@ -62,7 +68,6 @@ public class DigitalNotificationRequestApiControllerTest {
 
     public static final String SEND_PEC_ENDPOINT = "/external-channels/v1/digital-deliveries/legal-full-message-requests" + "/{requestIdx}";
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
-    private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final RequestDto requestDto = new RequestDto();
     private static final String defaultAttachmentUrl = "https://prova.pdf";
 
@@ -200,8 +205,8 @@ public class DigitalNotificationRequestApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(NT_STATO_PEC_QUEUE_NAME), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(new SqsPublishException(
-                NT_STATO_PEC_QUEUE_NAME)));
+        when(sqsService.send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(new SqsPublishException(
+                notificationTrackerSqsName.statoPecName())));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                  .isEqualTo(SERVICE_UNAVAILABLE)
@@ -223,9 +228,9 @@ public class DigitalNotificationRequestApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(PEC_INTERACTIVE_QUEUE_NAME),
+        when(sqsService.send(eq(pecSqsQueueName.interactiveName()),
                              any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsPublishException(
-                PEC_INTERACTIVE_QUEUE_NAME)));
+                pecSqsQueueName.interactiveName())));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                  .isEqualTo(SERVICE_UNAVAILABLE)
