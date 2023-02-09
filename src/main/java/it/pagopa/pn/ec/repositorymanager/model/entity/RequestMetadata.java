@@ -24,5 +24,5 @@ public class RequestMetadata {
 	OffsetDateTime requestTimestamp;
 	DigitalRequestMetadata digitalRequestMetadata;
 	PaperRequestMetadata paperRequestMetadata;
-	List<EventsMetadata> eventsMetadataList;
+	List<Events> eventsList;
 }

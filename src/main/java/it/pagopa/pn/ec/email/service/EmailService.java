@@ -12,9 +12,7 @@ import it.pagopa.pn.ec.commons.service.attachments.CheckAttachments;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.dto.NtStatoEmailQueueDto;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalRequestDto;
-import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
+import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -22,8 +20,7 @@ import reactor.core.publisher.Mono;
 import static it.pagopa.pn.ec.commons.constant.ProcessId.INVIO_MAIL;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestDto.ChannelEnum.EMAIL;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestDto.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.EMAIL;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus.BOOKED;
 
 
@@ -81,26 +78,35 @@ public class EmailService extends PresaInCaricoService {
                                .then();
     }
 
+    @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromEmail(final DigitalCourtesyMailRequest digitalCourtesyMailRequest) {
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
             requestDto.setRequestIdx(digitalCourtesyMailRequest.getRequestId());
             requestDto.setClientRequestTimeStamp(digitalCourtesyMailRequest.getClientRequestTimeStamp());
-            var digitalRequestDto = new DigitalRequestDto();
-            digitalRequestDto.setCorrelationId(digitalCourtesyMailRequest.getCorrelationId());
-            digitalRequestDto.setEventType("");
-            digitalRequestDto.setQos(DigitalRequestDto.QosEnum.valueOf(digitalCourtesyMailRequest.getQos().name()));
-            digitalRequestDto.setTags(digitalCourtesyMailRequest.getTags());
-            digitalRequestDto.setReceiverDigitalAddress(digitalCourtesyMailRequest.getReceiverDigitalAddress());
-            digitalRequestDto.setMessageText(digitalCourtesyMailRequest.getMessageText());
-            digitalRequestDto.setSenderDigitalAddress(digitalCourtesyMailRequest.getSenderDigitalAddress());
-            digitalRequestDto.setChannel(EMAIL);
-            digitalRequestDto.setSubjectText("");
-            digitalRequestDto.setMessageContentType(PLAIN);
-            requestDto.setDigitalReq(digitalRequestDto);
+
+            var requestPersonalDto = new RequestPersonalDto();
+            var digitalRequestPersonalDto = new DigitalRequestPersonalDto();
+            digitalRequestPersonalDto.setQos(DigitalRequestPersonalDto.QosEnum.valueOf(digitalCourtesyMailRequest.getQos().name()));
+            digitalRequestPersonalDto.setReceiverDigitalAddress(digitalCourtesyMailRequest.getReceiverDigitalAddress());
+            digitalRequestPersonalDto.setMessageText(digitalCourtesyMailRequest.getMessageText());
+            digitalRequestPersonalDto.setSenderDigitalAddress(digitalCourtesyMailRequest.getSenderDigitalAddress());
+            digitalRequestPersonalDto.setSubjectText(digitalCourtesyMailRequest.getSubjectText());
+            digitalRequestPersonalDto.setAttachmentsUrls(digitalCourtesyMailRequest.getAttachmentsUrls());
+            requestPersonalDto.setDigitalRequestPersonal(digitalRequestPersonalDto);
+
+            var requestMetadataDto = new RequestMetadataDto();
+            var digitalRequestMetadataDto = new DigitalRequestMetadataDto();
+            digitalRequestMetadataDto.setCorrelationId(digitalCourtesyMailRequest.getCorrelationId());
+            digitalRequestMetadataDto.setEventType(digitalCourtesyMailRequest.getEventType());
+            digitalRequestMetadataDto.setTags(digitalCourtesyMailRequest.getTags());
+            digitalRequestMetadataDto.setChannel(EMAIL);
+            digitalRequestMetadataDto.setMessageContentType(DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN);
+            requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
+
+            requestDto.setRequestPersonal(requestPersonalDto);
+            requestDto.setRequestMetadata(requestMetadataDto);
             return requestDto;
         }).flatMap(gestoreRepositoryCall::insertRichiesta);
     }
-
-
 }

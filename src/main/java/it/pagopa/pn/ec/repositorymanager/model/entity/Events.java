@@ -1,13 +1,17 @@
 package it.pagopa.pn.ec.repositorymanager.model.entity;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @Data
+@DynamoDbBean
 public class Events {
 
-	private EventsPersonal eventsPersonal;
-	private EventsMetadata eventsMetadata;
+	DigitalProgressStatus digProgrStatus;
+	PaperProgressStatus paperProgrStatus;
 }

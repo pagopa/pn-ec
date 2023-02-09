@@ -94,7 +94,7 @@ components:
           description: >-
             Formato: HTML o PLAIN
 
-    DigitalProgressStatusMetadataDto:
+    DigitalProgressStatusDto:
       title: Avanzamento di stato di una richiesta digitale
       type: object
       required:
@@ -108,7 +108,6 @@ components:
             secondo rfc 3339
           type: string
           format: date-time
-          readOnly: true
         status:
           $ref: '#/components/schemas/DigitalRequestStatus'
         eventCode:

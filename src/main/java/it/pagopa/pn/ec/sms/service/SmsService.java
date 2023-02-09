@@ -83,6 +83,7 @@ public class SmsService extends PresaInCaricoService {
                                                               }).then();
     }
 
+    @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromSms(final DigitalCourtesySmsRequest digitalCourtesySmsRequest) {
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();

@@ -9,7 +9,7 @@ import java.time.OffsetDateTime;
 public class RequestMapper {
 
     private RequestMapper() {
-        throw new IllegalStateException("Request Mapper is a utility class");
+        throw new IllegalStateException("RequestMapper is a utility class");
     }
 
     public static Request createRequestFromPersonalAndMetadata(String requestId, RequestPersonal requestPersonal,

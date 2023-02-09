@@ -63,11 +63,11 @@ public class RequestServiceImpl implements RequestService {
 
     @Override
     public Mono<Request> updateEvents(String requestIdx, Events events) {
-        return Mono.zip(requestPersonalService.updateEventsPersonal(requestIdx, events.getEventsPersonal()),
-                        requestMetadataService.updateEventsMetadata(requestIdx, events.getEventsMetadata())).map(objects -> {
-            RequestPersonal updatedRequestPersonal = objects.getT1();
+        return Mono.zip(requestPersonalService.getRequestPersonal(requestIdx),
+                        requestMetadataService.updateEventsMetadata(requestIdx, events)).map(objects -> {
+            RequestPersonal retrievedRequestPersonal = objects.getT1();
             RequestMetadata updatedRequestMetadata = objects.getT2();
-            return createRequestFromPersonalAndMetadata(requestIdx, updatedRequestPersonal, updatedRequestMetadata);
+            return createRequestFromPersonalAndMetadata(requestIdx, retrievedRequestPersonal, updatedRequestMetadata);
         });
     }
 

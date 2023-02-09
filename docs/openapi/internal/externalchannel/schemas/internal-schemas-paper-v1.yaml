@@ -261,7 +261,7 @@ components:
                 In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 
                 in standard UPU o altro standard condiviso.
 
-    PaperProgressStatusMetadataDto:
+    PaperProgressStatusDto:
       title: Avanzamento di stato metadata di una richiesta cartacea
       required:
         - statusCode

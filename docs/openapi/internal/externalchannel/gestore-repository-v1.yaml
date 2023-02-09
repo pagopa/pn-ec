@@ -238,44 +238,26 @@ components:
       type: object
       properties:
         digitalRequestPersonal:
-          $ref: '../schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestPersonalDto'
+          $ref: './schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestPersonalDto'
         paperRequestPersonal:
-          $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperRequestPersonalDto'
-        eventsPersonalList:
-          type: array
-          items:
-            $ref: '#/components/schemas/EventsPersonalDto'
+          $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperRequestPersonalDto'
 
     RequestMetadataDto:
       type: object
       properties:
         digitalRequestMetadata:
-          $ref: '../schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestMetadataDto'
+          $ref: './schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestMetadataDto'
         paperRequestMetadata:
-          $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperRequestMetadataDto'
-        eventsMetadataList:
+          $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperRequestMetadataDto'
+        eventsList:
           type: array
           items:
-            $ref: '#/components/schemas/EventsMetadataDto'
+            $ref: '#/components/schemas/EventsDto'
 
     EventsDto:
       type: object
       properties:
-        eventsMetadataDto:
-          $ref: '#/components/schemas/EventsMetadataDto'
-        eventsPersonalDto:
-          $ref: '#/components/schemas/EventsPersonalDto'
-
-    EventsPersonalDto:
-      type: object
-      properties:
-        paperProgrStatusPersonal:
-          $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperProgressStatusPersonalDto'
-
-    EventsMetadataDto:
-      type: object
-      properties:
-        digProgrStatusMetadata:
-          $ref: '../schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalProgressStatusMetadataDto'
-        paperProgrStatusMetadata:
-          $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperProgressStatusMetadataDto'
+        digProgrStatus:
+          $ref: './schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalProgressStatusDto'
+        paperProgrStatus:
+          $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperProgressStatusDto'
