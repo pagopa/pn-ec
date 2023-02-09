@@ -210,6 +210,8 @@ Resources:
         ContainerEnvEntry11: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
         ContainerEnvEntry12: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
         ContainerEnvEntry13: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
+        ContainerEnvEntry14: !Sub 'StateMachineBaseUrl=${ApplicationLoadBalancerDomain}'
+        ContainerEnvEntry15: !Sub 'SafeStorageBaseUrl=${ApplicationLoadBalancerDomain}'
         MappedPaths: '/external-channels/*,/external-channel/*'
         ECSClusterName: !Ref ECSClusterName
         Subnets: !Ref SubnetsIds

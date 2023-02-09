@@ -51,13 +51,9 @@ Resources:
       AttributeDefinitions:
         - AttributeName: 'requestId'
           AttributeType: 'S'
-        - AttributeName: 'correlationId'
-          AttributeType: 'S'
       KeySchema: 
         - AttributeName: 'requestId'
           KeyType: 'HASH'
-        - AttributeName: 'correlationId'
-          KeyType: 'RANGE'
       #KinesisStreamSpecification:
       #  StreamArn: 'String'
       ProvisionedThroughput:
@@ -67,7 +63,7 @@ Resources:
         SSEEnabled: true
         SSEType: 'KMS'
       TableClass: 'STANDARD'
-    DeletionPolicy: Retain
+    DeletionPolicy: Delete
 
   PnEcTableRichiesteMetadati:
     Type: AWS::DynamoDB::Table
@@ -75,13 +71,9 @@ Resources:
       AttributeDefinitions:
         - AttributeName: 'requestId'
           AttributeType: 'S'
-        - AttributeName: 'correlationId'
-          AttributeType: 'S'
       KeySchema: 
         - AttributeName: 'requestId'
           KeyType: 'HASH'
-        - AttributeName: 'correlationId'
-          KeyType: 'RANGE'
       #KinesisStreamSpecification:
       #  StreamArn: 'String'
       ProvisionedThroughput:
@@ -91,7 +83,7 @@ Resources:
         SSEEnabled: true
         SSEType: 'KMS'
       TableClass: 'STANDARD'
-    DeletionPolicy: Retain
+    DeletionPolicy: Delete
 
   PnEcQueueTrackerStatoSMS:
     Type: AWS::SQS::Queue
