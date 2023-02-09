@@ -14,7 +14,7 @@ import java.util.List;
 @DynamoDbBean
 public class PaperRequestPersonal {
 
-	private List<PaperEngageRequestAttachmentsPersonal> attachments;
+	private List<PaperEngageRequestAttachments> attachments;
 	private String receiverName;
 	private String receiverNameRow2;
 	private String receiverAddress;

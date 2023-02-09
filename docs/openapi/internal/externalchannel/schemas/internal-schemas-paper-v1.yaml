@@ -173,13 +173,59 @@ components:
           additionalProperties:
             type: string
           description: >-
-            Servizi a valore aggiunto
+            Servizi a valore aggiunto       
 
-    PaperProgressStatusPersonalDto:
-      title: Avanzamento di stato dati personali di una richiesta cartacea
+    PaperProgressStatusDto:
+      title: Avanzamento di stato di una richiesta cartacea
       required:
+        - statusCode
+        - statusDescription
+        - statusDateTime
       type: object
       properties:
+        registeredLetterCode:
+          type: string
+          description: >-
+            Il codice di tracciatura obbligatorio per i prodotti di corrispondenza tracciata.
+          example: '123456789abc'
+        statusCode:
+          type: string
+          description: >-
+            _Codifica sintetica dello stato dell'esito._  <br/>
+            - __001__ Stampato  <br/>
+            - __002__ Disponibile al recapitista  <br/>
+            - __003__ Preso in carico dal recapitista  <br/>
+            - __004__ Consegnata  <br/>
+            - __005__ Mancata consegna  <br/>
+            - __006__ Furto/Smarrimanto/deterioramento  <br/>
+            - __007__ Consegnato Ufficio Postale  <br/>
+            - __008__ Mancata consegna Ufficio Postale  <br/>
+            - __009__ Compiuta giacenza  <br/>
+            - ... Stati aggiuntivi concordati con il consolidatore
+        statusDescription:
+          type: string
+          example: 'Stampato'
+          description: >-
+            Descrizione dello stato del delivery cartaceo che viene notificato.
+        statusDateTime:
+          type: string
+          format: date-time
+          readOnly: true
+          description: >-
+            Data stato con timezone
+        deliveryFailureCause:
+          description: >-
+            _Motivazione di mancata consegna_ obbligtorie negli stati di mancata consegna  <br/>
+            - __01__ destinatario irreperibile <br/>
+            - __02__ destinatario deceduto <br/>
+            - __03__ destinatario sconosciuto <br/>
+            - __04__ destinatario trasferito <br/>
+            - __05__ invio rifiutato <br/>
+            - __06__ indirizzo inesatto <br/>
+            - __07__ indirizzo inesistente <br/>
+            - __08__ indirizzo insufficiente <br/>
+            - ... Motivazioni aggiuntive concordate con il consolidatore
+          type: string
         attachments:
           description: >-
             elenco dei documenti prodotti che attestano quanto accaduto durante il processo 
@@ -260,55 +306,3 @@ components:
               description: >-
                 In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 
                 in standard UPU o altro standard condiviso.
-
-    PaperProgressStatusDto:
-      title: Avanzamento di stato metadata di una richiesta cartacea
-      required:
-        - statusCode
-        - statusDescription
-        - statusDateTime
-      type: object
-      properties:
-        registeredLetterCode:
-          type: string
-          description: >-
-            Il codice di tracciatura obbligatorio per i prodotti di corrispondenza tracciata.
-          example: '123456789abc'
-        statusCode:
-          type: string
-          description: >-
-            _Codifica sintetica dello stato dell'esito._  <br/>
-            - __001__ Stampato  <br/>
-            - __002__ Disponibile al recapitista  <br/>
-            - __003__ Preso in carico dal recapitista  <br/>
-            - __004__ Consegnata  <br/>
-            - __005__ Mancata consegna  <br/>
-            - __006__ Furto/Smarrimanto/deterioramento  <br/>
-            - __007__ Consegnato Ufficio Postale  <br/>
-            - __008__ Mancata consegna Ufficio Postale  <br/>
-            - __009__ Compiuta giacenza  <br/>
-            - ... Stati aggiuntivi concordati con il consolidatore
-        statusDescription:
-          type: string
-          example: 'Stampato'
-          description: >-
-            Descrizione dello stato del delivery cartaceo che viene notificato.
-        statusDateTime:
-          type: string
-          format: date-time
-          readOnly: true
-          description: >-
-            Data stato con timezone
-        deliveryFailureCause:
-          description: >-
-            _Motivazione di mancata consegna_ obbligtorie negli stati di mancata consegna  <br/>
-            - __01__ destinatario irreperibile <br/>
-            - __02__ destinatario deceduto <br/>
-            - __03__ destinatario sconosciuto <br/>
-            - __04__ destinatario trasferito <br/>
-            - __05__ invio rifiutato <br/>
-            - __06__ indirizzo inesatto <br/>
-            - __07__ indirizzo inesistente <br/>
-            - __08__ indirizzo insufficiente <br/>
-            - ... Motivazioni aggiuntive concordate con il consolidatore
-          type: string

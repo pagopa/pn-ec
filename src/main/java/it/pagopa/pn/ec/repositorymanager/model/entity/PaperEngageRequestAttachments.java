@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @Data
 @DynamoDbBean
-public class PaperEngageRequestAttachmentsPersonal {
+public class PaperEngageRequestAttachments {
 
     private String uri;
     private BigDecimal order;
