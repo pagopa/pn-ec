@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.testutils.localstack;
 
 import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
-import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.testutils.exception.DynamoDbInitTableCreationException;
@@ -25,10 +24,7 @@ import java.time.Duration;
 import java.util.Map;
 
 import static it.pagopa.pn.ec.commons.constant.QueueNameConstant.ALL_QUEUE_NAME_LIST;
-import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.ANAGRAFICA_TABLE_NAME;
-import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.REQUEST_TABLE_NAME;
-import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.REQUEST_METADATA_TABLE_NAME;
-import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.REQUEST_PERSONAL_TABLE_NAME;
+import static it.pagopa.pn.ec.repositorymanager.constant.GestoreRepositoryDynamoDbTableName.*;
 import static java.util.Map.entry;
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.*;
 import static software.amazon.awssdk.services.dynamodb.model.TableStatus.ACTIVE;
@@ -78,7 +74,7 @@ public class LocalStackTestConfig {
     }
 
     private final static Map<String, Class<?>> TABLE_NAME_WITH_ENTITY_CLASS =
-            Map.ofEntries(entry(ANAGRAFICA_TABLE_NAME, ClientConfiguration.class), entry(REQUEST_TABLE_NAME, Request.class), entry(REQUEST_METADATA_TABLE_NAME, RequestMetadata.class), entry(REQUEST_PERSONAL_TABLE_NAME, RequestPersonal.class));
+            Map.ofEntries(entry(ANAGRAFICA_TABLE_NAME, ClientConfiguration.class), entry(REQUEST_METADATA_TABLE_NAME, RequestMetadata.class), entry(REQUEST_PERSONAL_TABLE_NAME, RequestPersonal.class));
 
     private void createTable(final String tableName, final Class<?> entityClass) {
         DynamoDbTable<?> dynamoDbTable = dynamoDbEnhancedClient.table(tableName, TableSchema.fromBean(entityClass));
