@@ -32,6 +32,11 @@ import org.springframework.context.annotation.PropertySource;
 //  <-- PEC -->
 // SQS QUEUE
 @PropertySource("classpath:pec/pec-sqs-queue.properties")
+
+//  <-- NOTIFICATION TRACKER -->
+// EVENTBRIDGE EVENT
+@PropertySource("classpath:notificationtracker/notificationtracker-eventbridge-event.properties")
+
 @Slf4j
 public class EcApplication {
 

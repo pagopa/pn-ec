@@ -2,8 +2,8 @@ package it.pagopa.pn.ec.commons.configuration.http;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.ExternalChannelEndpointProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.statemachine.NotificationTrackerEndpointProperties;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.JettyClientHttpConnector;
@@ -19,15 +19,15 @@ public class WebClientConf {
     private final JettyHttpClientConf jettyHttpClientConf;
     private final ExternalChannelEndpointProperties externalChannelEndpointProperties;
     private final SafeStorageEndpointProperties safeStorageEndpointProperties;
-
-    @Value("${statemachine.url}")
-    String stateMachineBasePath;
+    private final NotificationTrackerEndpointProperties notificationTrackerEndpointProperties;
 
     public WebClientConf(JettyHttpClientConf jettyHttpClientConf, ExternalChannelEndpointProperties externalChannelEndpointProperties,
-                         SafeStorageEndpointProperties safeStorageEndpointProperties) {
+                         SafeStorageEndpointProperties safeStorageEndpointProperties,
+                         NotificationTrackerEndpointProperties notificationTrackerEndpointProperties) {
         this.jettyHttpClientConf = jettyHttpClientConf;
         this.externalChannelEndpointProperties = externalChannelEndpointProperties;
         this.safeStorageEndpointProperties = safeStorageEndpointProperties;
+        this.notificationTrackerEndpointProperties = notificationTrackerEndpointProperties;
     }
 
     private WebClient.Builder defaultWebClientBuilder() {
@@ -48,6 +48,6 @@ public class WebClientConf {
 
     @Bean
     public WebClient stateMachineWebClient() {
-        return defaultWebClientBuilder().baseUrl(stateMachineBasePath).build();
+        return defaultWebClientBuilder().baseUrl(notificationTrackerEndpointProperties.containerBasePath()).build();
     }
 }
