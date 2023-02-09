@@ -13,6 +13,8 @@ import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
 
+import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.createRequestFromPersonalAndMetadata;
+
 @Service
 @Slf4j
 public class RequestServiceImpl implements RequestService {
@@ -24,21 +26,6 @@ public class RequestServiceImpl implements RequestService {
     public RequestServiceImpl(RequestPersonalService requestPersonalService, RequestMetadataService requestMetadataService) {
         this.requestPersonalService = requestPersonalService;
         this.requestMetadataService = requestMetadataService;
-    }
-
-    private Request createRequestFromPersonalAndMetadata(String requestId, RequestPersonal requestPersonal,
-                                                         RequestMetadata requestMetadata) {
-        String currentStatus = requestMetadata.getStatusRequest();
-        OffsetDateTime clientRequestTimeStamp = requestMetadata.getClientRequestTimeStamp();
-        OffsetDateTime requestTimeStamp = requestMetadata.getRequestTimestamp();
-        return Request.builder()
-                      .requestId(requestId)
-                      .statusRequest(currentStatus)
-                      .clientRequestTimeStamp(clientRequestTimeStamp)
-                      .requestTimeStamp(requestTimeStamp)
-                      .requestPersonal(requestPersonal)
-                      .requestMetadata(requestMetadata)
-                      .build();
     }
 
     @Override
