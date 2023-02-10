@@ -15,7 +15,7 @@ tags:
     description: Operazione per la gestione delle richieste
 
 paths:
-  /gestoreRepository/clients/{xPagopaExtchCxId}:
+  /external-channel/gestoreRepository/clients/{xPagopaExtchCxId}:
     parameters:
       - name: xPagopaExtchCxId
         in: path
@@ -59,7 +59,7 @@ paths:
         404:
           $ref: '#/components/responses/missingRequestedItem'
 
-  /gestoreRepository/clients:
+  /external-channel/gestoreRepository/clients:
     post:
       tags:
         - ConfigurazioneClient
@@ -76,7 +76,7 @@ paths:
         403:
           $ref: '#/components/responses/requestedItemAlreadyExist'
 
-  /gestoreRepository/requests/{requestIdx}:
+  /external-channel/gestoreRepository/requests/{requestIdx}:
     parameters:
       - $ref: "../../external/api-internal-v1.yaml#/components/parameters/requestIdx"
     get:
@@ -113,7 +113,7 @@ paths:
         404:
           $ref: '#/components/responses/missingRequestedItem'
 
-  /gestoreRepository/requests:
+  /external-channel/gestoreRepository/requests:
     post:
       tags:
         - GestoreRequest
