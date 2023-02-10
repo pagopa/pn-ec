@@ -42,7 +42,7 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
                    })
                    .switchIfEmpty(Mono.fromCompletionStage(clientConfigurationDynamoDbTable.putItem(builder -> builder.item(
                            clientConfiguration))))
-                   .doOnError(throwable -> log.info(throwable.getMessage()))
+                   .doOnError(throwable -> log.info(throwable.getMessage(), throwable))
                    .thenReturn(clientConfiguration);
     }
 
