@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
+import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
@@ -52,6 +53,11 @@ public class RequestServiceImpl implements RequestService {
         requestMetadata.setRequestId(requestId);
         requestMetadata.setClientRequestTimeStamp(request.getClientRequestTimeStamp());
         requestMetadata.setRequestTimestamp(OffsetDateTime.now());
+
+        if ((requestPersonal.getDigitalRequestPersonal() != null && requestMetadata.getPaperRequestMetadata() != null) ||
+            (requestPersonal.getPaperRequestPersonal() != null && requestMetadata.getDigitalRequestMetadata() != null)) {
+            throw new RepositoryManagerException.RequestMalformedException("Incompatibilità dati sensibili con metadata");
+        }
 
         return Mono.zip(requestPersonalService.insertRequestPersonal(requestPersonal),
                         requestMetadataService.insertRequestMetadata(requestMetadata)).map(objects -> {

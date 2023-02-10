@@ -58,7 +58,7 @@ class RequestControllerTest {
 
     private static void initializeRequestDto() {
 
-//        inizialize digitalRequestDto
+//      Initialize digitalRequestDto
         digitalRequest.setRequestIdx(DEFAULT_ID_DIGITAL);
         digitalRequest.setClientRequestTimeStamp(OffsetDateTime.now());
         digitalRequest.setRequestTimeStamp(OffsetDateTime.now());
@@ -87,7 +87,7 @@ class RequestControllerTest {
         requestPersonalDto1.setDigitalRequestPersonal(digitalRequestPersonalDto);
         digitalRequest.setRequestPersonal(requestPersonalDto1);
 
-//        inizialize paperRequestDto
+//      Initialize paperRequestDto
         paperRequest.setRequestIdx(DEFAULT_ID_PAPER);
         paperRequest.setClientRequestTimeStamp(OffsetDateTime.now());
         paperRequest.setRequestTimeStamp(OffsetDateTime.now());
@@ -134,7 +134,6 @@ class RequestControllerTest {
         var requestPersonalDto2 = new RequestPersonalDto();
         requestPersonalDto2.setPaperRequestPersonal(paperRequestPersonalDto);
         paperRequest.setRequestPersonal(requestPersonalDto2);
-
     }
 
     private static void insertRequestPersonal(String idRequest, RequestPersonal requestPersonal) {
