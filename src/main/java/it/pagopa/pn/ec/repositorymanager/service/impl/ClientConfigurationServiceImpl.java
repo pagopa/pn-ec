@@ -40,8 +40,9 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
                            sink.error(new RepositoryManagerException.IdClientAlreadyPresent(clientConfiguration.getCxId()));
                        }
                    })
-                   .doOnError(RepositoryManagerException.IdClientAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(unused -> clientConfigurationDynamoDbTable.putItem(builder -> builder.item(clientConfiguration)))
+                   .switchIfEmpty(Mono.fromCompletionStage(clientConfigurationDynamoDbTable.putItem(builder -> builder.item(
+                           clientConfiguration))))
+                   .doOnError(throwable -> log.info(throwable.getMessage()))
                    .thenReturn(clientConfiguration);
     }
 
