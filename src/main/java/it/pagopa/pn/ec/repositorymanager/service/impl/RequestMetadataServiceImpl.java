@@ -8,6 +8,7 @@ import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -40,8 +41,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     private void checkEventsMetadata(RequestMetadata requestMetadata, Events events) {
         boolean isDigital = requestMetadata.getDigitalRequestMetadata() != null;
-        if ((isDigital && events.getPaperProgrStatus() != null) ||
-            (!isDigital && events.getDigProgrStatus() != null)) {
+        if ((isDigital && events.getPaperProgrStatus() != null) || (!isDigital && events.getDigProgrStatus() != null)) {
             throw new RepositoryManagerException.RequestMalformedException(
                     "Tipo richiesta metadata e tipo evento metadata non " + "compatibili");
         }
@@ -76,8 +76,8 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                                firstStatus.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
                            }
                        }
-                       requestMetadataDynamoDbTable.putItem(builder -> builder.item(requestMetadata));
                    })
+                   .switchIfEmpty(Mono.fromCompletionStage(requestMetadataDynamoDbTable.putItem(builder -> builder.item(requestMetadata))))
                    .thenReturn(requestMetadata);
     }
 
@@ -88,23 +88,25 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
                    .doOnSuccess(retrievedRequest -> checkEventsMetadata(retrievedRequest, events))
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
-                   .map(retrieveRequest -> {
+                   .map(retrieveRequestMetadata -> {
                        if (events.getDigProgrStatus() != null) {
-                           retrieveRequest.setStatusRequest(events.getDigProgrStatus().getStatus().getValue());
+                           retrieveRequestMetadata.setStatusRequest(events.getDigProgrStatus().getStatus().getValue());
                            events.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
                        } else {
-                           retrieveRequest.setStatusRequest(events.getPaperProgrStatus().getStatusDescription());
+                           retrieveRequestMetadata.setStatusRequest(events.getPaperProgrStatus().getStatusDescription());
                            events.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
                        }
-                       List<Events> eventsList = retrieveRequest.getEventsList();
-                       if(eventsList == null) {
+                       List<Events> eventsList = retrieveRequestMetadata.getEventsList();
+                       if (eventsList == null) {
                            eventsList = new ArrayList<>();
                        }
                        eventsList.add(events);
-                       retrieveRequest.setEventsList(eventsList);
-                       requestMetadataDynamoDbTable.updateItem(retrieveRequest);
-                       return retrieveRequest;
-                   });
+                       retrieveRequestMetadata.setEventsList(eventsList);
+                       return retrieveRequestMetadata;
+                   })
+                   .zipWhen(requestMetadataWithEventsUpdated -> Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(
+                           requestMetadataWithEventsUpdated)))
+                   .map(Tuple2::getT2);
     }
 
     @Override
@@ -112,7 +114,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestIdx)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(requestToDelete -> requestMetadataDynamoDbTable.deleteItem(getKey(requestIdx)))
-                   .map(requestMetadata -> requestMetadata);
+                   .zipWhen(requestToDelete -> Mono.fromCompletionStage(requestMetadataDynamoDbTable.deleteItem(getKey(requestIdx))))
+                   .map(Tuple2::getT1);
     }
 }
