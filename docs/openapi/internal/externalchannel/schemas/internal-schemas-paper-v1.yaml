@@ -17,34 +17,7 @@ components:
         attachments:
           type: array
           items:
-            type: object
-            required:
-              - uri
-              - order
-              - documentType
-              - sha256
-            properties:
-              uri:
-                type: string
-                description: URI indicante
-                example: safestorage://PN_EXTERNAL_LEGALFACT_....
-              order:
-                type: number
-                description: Ordine di stampa, intero positivo, continuo, inizia da 0
-                example: 0
-              documentType:
-                type: string
-                description: >-
-                  Tipo di documento: <br/>
-                  - __AAR__: Avviso di avvenuta ricezione, tipicamente associato a campo _order_ valorizzato a 0
-                  - __ATTO__: Documento inviato dalla pubblica amministrazione.
-                example: AAR
-              sha256:
-                type: string
-                description: >-
-                  sha256, codificato in base 64, del contenuto del file riferenziato dal campo uri
-          description: >-
-            Coordinate per l'accesso ai documenti PDF da inviare. <br/>
+            $ref: '#/components/schemas/AttachmentsEngageRequestDto'
         receiverName:
           type: string
           description: >-
@@ -130,6 +103,36 @@ components:
           type: string
           description: >-
             Città per AR.
+
+    AttachmentsEngageRequestDto:
+      type: object
+      description: >-
+        Coordinate per l'accesso ai documenti PDF da inviare. <br/>
+      required:
+        - uri
+        - order
+        - documentType
+        - sha256
+      properties:
+        uri:
+          type: string
+          description: URI indicante
+          example: safestorage://PN_EXTERNAL_LEGALFACT_....
+        order:
+          type: number
+          description: Ordine di stampa, intero positivo, continuo, inizia da 0
+          example: 0
+        documentType:
+          type: string
+          description: >-
+            Tipo di documento: <br/>
+            - __AAR__: Avviso di avvenuta ricezione, tipicamente associato a campo _order_ valorizzato a 0
+            - __ATTO__: Documento inviato dalla pubblica amministrazione.
+          example: AAR
+        sha256:
+          type: string
+          description: >-
+            sha256, codificato in base 64, del contenuto del file riferenziato dal campo uri
 
     PaperRequestMetadataDto:
       title: Richiesta metadata cartacea
@@ -227,82 +230,92 @@ components:
             - ... Motivazioni aggiuntive concordate con il consolidatore
           type: string
         attachments:
-          description: >-
-            elenco dei documenti prodotti che attestano quanto accaduto durante il processo 
-            di postalizzazione
           type: array
           items:
-            type: object
-            required:
-              - id
-              - documentType
-              - uri
-              - sha256
-              - date
-            properties:
-              id:
-                type: string
-                description: >-
-                  Identificativo di riga.
-              documentType:
-                type: string
-                description: >-
-                  La descrizione della tipologia di oggetto.
-              uri:
-                type: string
-                description: >-
-                  Le coordinate del documento correlato allo stato.
-              sha256:
-                type: string
-                description: >-
-                  sha256, codificato in base 64, del contenuto del file riferenziato dal campo uri
-              date:
-                type: string
-                format: date-time
-                description: >-
-                  Data di produzione del documento.
+            $ref: '#/components/schemas/AttachmentsProgressEventDto'
         discoveredAddress:
+          $ref: '#/components/schemas/DiscoveredAddressDto'
+
+    AttachmentsProgressEventDto:
+      description: >-
+        elenco dei documenti prodotti che attestano quanto accaduto durante il processo 
+        di postalizzazione
+      type: object
+      required:
+        - id
+        - documentType
+        - uri
+        - sha256
+        - date
+      properties:
+        id:
+          type: string
           description: >-
-            Indirizzo del destinatario desunto dalle indagini del personale postale.
-          required:
-            - name
-            - address
-            - city
-          properties:
-            name:
-              type: string
-              description: >-
-                Cognome e nome o ragione sociale del destinatario
-            nameRow2:
-              type: string
-              description: >-
-                Seconda riga sulla busta.
-            address:
-              type: string
-              description: >-
-                Indirizzo del destinatario.
-            addressRow2:
-              type: string
-              description: >-
-                Specifica dell’indirizzo di residenza del destinatario (seconda riga indirizzo sulla busta).
-            cap:
-              type: string
-              description: >-
-                Cap del destinatario; in caso di invio estero diventa facoltativo.
-            city:
-              type: string
-              description: >-
-                Comune del destinatario.
-            city2:
-              type: string
-              description: >-
-                Frazione del destinatario. Potrebbe essere utile se il chiamante non fornisce il cap.
-            pr:
-              type: string
-              description: >-
-                Provincia del destinatario; in caso di invio estero diventa facoltativo.
-            country:
-              type: string
-              description: >-
-                In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 
-                in standard UPU o altro standard condiviso.
+            Identificativo di riga.
+        documentType:
+          type: string
+          description: >-
+            La descrizione della tipologia di oggetto.
+        uri:
+          type: string
+          description: >-
+            Le coordinate del documento correlato allo stato.
+        sha256:
+          type: string
+          description: >-
+            sha256, codificato in base 64, del contenuto del file riferenziato dal campo uri
+        date:
+          type: string
+          format: date-time
+          description: >-
+            Data di produzione del documento.
+
+    DiscoveredAddressDto:
+      description: >-
+        Indirizzo del destinatario desunto dalle indagini del personale postale.
+      type: object
+      required:
+        - name
+        - address
+        - city
+      properties:
+        name:
+          type: string
+          description: >-
+            Cognome e nome o ragione sociale del destinatario
+        nameRow2:
+          type: string
+          description: >-
+            Seconda riga sulla busta.
+        address:
+          type: string
+          description: >-
+            Indirizzo del destinatario.
+        addressRow2:
+          type: string
+          description: >-
+            Specifica dell’indirizzo di residenza del destinatario (seconda riga indirizzo sulla busta).
+        cap:
+          type: string
+          description: >-
+            Cap del destinatario; in caso di invio estero diventa facoltativo.
+        city:
+          type: string
+          description: >-
+            Comune del destinatario.
+        city2:
+          type: string
+          description: >-
+            Frazione del destinatario. Potrebbe essere utile se il chiamante non fornisce il cap.
+        pr:
+          type: string
+          description: >-
+            Provincia del destinatario; in caso di invio estero diventa facoltativo.
+        country:
+          type: string
+          description: >-
+            In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 
+            in standard UPU o altro standard condiviso.
+        anonymous:
+          type: boolean
+          description: default false, diventa true durante la lettura dell'aggiornamento dello stato

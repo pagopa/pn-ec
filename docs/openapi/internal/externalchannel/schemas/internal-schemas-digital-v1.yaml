@@ -140,17 +140,21 @@ components:
         eventDetails:
           type: string
         generatedMessage:
-          type: object
-          required:
-            - system
-            - id
-          properties:
-            system:
-              type: string
-            id:
-              type: string
-            location:
-              type: string
+          $ref: '#/components/schemas/GeneratedMessageDto'
+
+
+    GeneratedMessageDto:
+      type: object
+      required:
+        - system
+        - id
+      properties:
+        system:
+          type: string
+        id:
+          type: string
+        location:
+          type: string
 
 #   <-- STATUS SECTION -->
 

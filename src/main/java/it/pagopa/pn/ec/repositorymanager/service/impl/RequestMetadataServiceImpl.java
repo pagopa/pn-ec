@@ -5,6 +5,7 @@ import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
+import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -13,6 +14,8 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 
@@ -94,7 +97,11 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                            retrieveRequest.setStatusRequest(events.getPaperProgrStatus().getStatusDescription());
                            events.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
                        }
-                       retrieveRequest.getEventsList().add(events);
+                       List<Events> eventsList = retrieveRequest.getEventsList();
+                       if(eventsList == null) {
+                           eventsList = new ArrayList<>();
+                       }
+                       eventsList.add(events);
                        requestMetadataDynamoDbTable.updateItem(retrieveRequest);
                        return retrieveRequest;
                    });

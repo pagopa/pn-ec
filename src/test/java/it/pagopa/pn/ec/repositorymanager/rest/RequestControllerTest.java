@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.repositorymanager.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.GestoreRepositoryEndpointProperties;
-import it.pagopa.pn.ec.repositorymanager.model.dto.DiscoveredAddressDto;
+import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -20,6 +20,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -56,6 +57,7 @@ class RequestControllerTest {
     private static DynamoDbTable<RequestPersonal> dynamoDbTablePersonal;
 
     private static void initializeRequestDto() {
+
 //        inizialize digitalRequestDto
         digitalRequest.setRequestIdx(DEFAULT_ID_DIGITAL);
         digitalRequest.setClientRequestTimeStamp(OffsetDateTime.now());
@@ -67,30 +69,9 @@ class RequestControllerTest {
         digitalRequestMetadataDto.setTags(null);
         digitalRequestMetadataDto.setChannel(PEC);
         digitalRequestMetadataDto.setMessageContentType(PLAIN);
-
         var requestMetadataDto1 = new RequestMetadataDto();
         requestMetadataDto1.setDigitalRequestMetadata(digitalRequestMetadataDto);
-
-//        dto per l'update'
-
-//        var digitalProgressStatusDto = new DigitalProgressStatusDto();
-//        digitalProgressStatusDto.setEventTimestamp(OffsetDateTime.now());
-//        digitalProgressStatusDto.setStatus(BOOKED);
-//        digitalProgressStatusDto.setEventCode(C000);
-//        digitalProgressStatusDto.setEventDetails("");
-//        var generateMessageDto = new DigitalProgressStatusDtoGeneratedMessage();
-//        generateMessageDto.setId("id");
-//        generateMessageDto.setSystem("System");
-//        generateMessageDto.setLocation("location");
-//        digitalProgressStatusDto.setGeneratedMessage(generateMessageDto);
-//        var eventsDto1 = new EventsDto();
-//        eventsDto1.setDigProgrStatus(digitalProgressStatusDto);
-//        var eventsList1 = new ArrayList<EventsDto>();
-//        eventsList1.add(eventsDto1);
-//        requestMetadataDto1.setEventsList(eventsList1);
-
         digitalRequest.setRequestMetadata(requestMetadataDto1);
-
 
         var digitalRequestPersonalDto = new DigitalRequestPersonalDto();
         digitalRequestPersonalDto.setQos(INTERACTIVE);
@@ -118,44 +99,13 @@ class RequestControllerTest {
         paperRequestMetadataDto.setPrintType("B/N");
         var vas = new HashMap<String,String>();
         paperRequestMetadataDto.setVas(vas);
-
         var requestMetadataDto2 = new RequestMetadataDto();
         requestMetadataDto2.setPaperRequestMetadata(paperRequestMetadataDto);
-
-//      dto per l'update'
-
-//        var paperProgressStatusDto = new PaperProgressStatusDto();
-//        paperProgressStatusDto.setRegisteredLetterCode("");
-//        paperProgressStatusDto.setStatusCode("");
-//        paperProgressStatusDto.setStatusDescription("");
-//        paperProgressStatusDto.setStatusDateTime(OffsetDateTime.now());
-//        paperProgressStatusDto.setDeliveryFailureCause("");
-//        var discoveredAddressDto = new DiscoveredAddressDto();
-//        discoveredAddressDto.setName("");
-//        discoveredAddressDto.setNameRow2("");
-//        discoveredAddressDto.setAddress("");
-//        discoveredAddressDto.setAddressRow2("");
-//        discoveredAddressDto.setCap("");
-//        discoveredAddressDto.setCity("");
-//        discoveredAddressDto.setCity2("");
-//        discoveredAddressDto.setPr("");
-//        discoveredAddressDto.setCountry("");
-//        var paperProgressStatusDtoAttachmentsList = new ArrayList<PaperProgressStatusDtoAttachments>();
-//        var paperProgressStatusDtoAttachments = new PaperProgressStatusDtoAttachments();
-//        paperProgressStatusDtoAttachmentsList.add(paperProgressStatusDtoAttachments);
-//        paperProgressStatusDto.setAttachments(paperProgressStatusDtoAttachmentsList);
-//        paperProgressStatusDto.setDiscoveredAddress(discoveredAddressDto);
-//        var eventList2 = new ArrayList<EventsDto>();
-//        var eventsDto2 = new EventsDto();
-//        eventsDto2.setPaperProgrStatus(paperProgressStatusDto);
-//        eventList2.add(eventsDto2);
-//        requestMetadataDto2.setEventsList(eventList2);
-
         paperRequest.setRequestMetadata(requestMetadataDto2);
 
         var paperRequestPersonalDto = new PaperRequestPersonalDto();
-        var attachments = new ArrayList<PaperRequestPersonalDtoAttachments>();
-        var attachment = new PaperRequestPersonalDtoAttachments();
+        var attachments = new ArrayList<AttachmentsEngageRequestDto>();
+        var attachment = new AttachmentsEngageRequestDto();
         attachment.setUri("");
         attachment.setOrder(new BigDecimal(1));
         attachment.setDocumentType("document type");
@@ -187,26 +137,26 @@ class RequestControllerTest {
 
     }
 
-    private static void insertRequestPersonal(RequestPersonal requestPersonal) {
-        requestPersonal.setRequestId(digitalRequest.getRequestIdx());
-        requestPersonal.setClientRequestTimeStamp(digitalRequest.getClientRequestTimeStamp());
+    private static void insertRequestPersonal(String idRequest, RequestPersonal requestPersonal) {
+        requestPersonal.setRequestId(idRequest);
         dynamoDbTablePersonal.putItem(builder -> builder.item(requestPersonal));
     }
 
-    private static void insertRequestMetadata(RequestMetadata requestMetadata) {
-        requestMetadata.setRequestId(digitalRequest.getRequestIdx());
-        requestMetadata.setClientRequestTimeStamp(digitalRequest.getClientRequestTimeStamp());
+    private static void insertRequestMetadata(String idRequest, RequestMetadata requestMetadata) {
+        requestMetadata.setRequestId(idRequest);
         dynamoDbTableMetadata.putItem(builder -> builder.item(requestMetadata));
     }
 
     @BeforeAll
-    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient, @Autowired ObjectMapper objectMapper) {
-//        dynamoDbTablePersonal = dynamoDbEnhancedClient.table(REQUEST_PERSONAL_TABLE_NAME, TableSchema.fromBean(RequestPersonal.class));
-//        dynamoDbTableMetadata = dynamoDbEnhancedClient.table(REQUEST_METADATA_TABLE_NAME, TableSchema.fromBean(RequestMetadata.class));
+    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient, @Autowired ObjectMapper objectMapper, @Autowired RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
+        dynamoDbTablePersonal = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiestePersonalName(), TableSchema.fromBean(RequestPersonal.class));
+        dynamoDbTableMetadata = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteMetadataName(), TableSchema.fromBean(RequestMetadata.class));
 
         initializeRequestDto();
-        insertRequestPersonal(objectMapper.convertValue(digitalRequest.getRequestPersonal(), RequestPersonal.class));
-        insertRequestMetadata(objectMapper.convertValue(digitalRequest.getRequestMetadata(), RequestMetadata.class));
+        insertRequestPersonal(digitalRequest.getRequestIdx(), objectMapper.convertValue(digitalRequest.getRequestPersonal(), RequestPersonal.class));
+        insertRequestMetadata(digitalRequest.getRequestIdx(), objectMapper.convertValue(digitalRequest.getRequestMetadata(), RequestMetadata.class));
+        insertRequestPersonal(paperRequest.getRequestIdx(), objectMapper.convertValue(paperRequest.getRequestPersonal(), RequestPersonal.class));
+        insertRequestMetadata(paperRequest.getRequestIdx(), objectMapper.convertValue(paperRequest.getRequestMetadata(), RequestMetadata.class));
     }
 
     @BeforeEach
@@ -214,13 +164,13 @@ class RequestControllerTest {
         initializeRequestDto();
     }
 
-    private static Stream<Arguments> provideDigitalAndPaperRequest() {
-        return Stream.of(Arguments.of(digitalRequest, "newIdDigital"));
+    private static Stream<Arguments> provideDigitalAndPaperRequestToInsert() {
+        return Stream.of(Arguments.of(digitalRequest, "idDigitalToInsert"), Arguments.of(paperRequest, "idPaperToInsert"));
     }
 
     // test.100.1
     @ParameterizedTest
-    @MethodSource("provideDigitalAndPaperRequest")
+    @MethodSource("provideDigitalAndPaperRequestToInsert")
     void insertRequestTestSuccess(RequestDto requestDto, String newId) {
 
         requestDto.setRequestIdx(newId);
@@ -250,7 +200,7 @@ class RequestControllerTest {
 
     //test.101.1
     @ParameterizedTest
-    @ValueSource(strings = {DEFAULT_ID_DIGITAL})
+    @ValueSource(strings = {DEFAULT_ID_DIGITAL, DEFAULT_ID_PAPER})
     void readRequestTestSuccess(String id) {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(id))
@@ -272,54 +222,96 @@ class RequestControllerTest {
                  .isBadRequest();
     }
 
-//    //test.102.1
-//    @Test
-//    void testUpdateSuccess() {
-//
-//        var newEvent = new EventsDto();
-//        var newDigitalProgressStatusDto = new DigitalProgressStatusDto();
-//        newDigitalProgressStatusDto.setStatus(RETRY);
-//        newDigitalProgressStatusDto.setEventCode(C000);
-//        newEvent.setDigProgrStatus(newDigitalProgressStatusDto);
-//
-//        webClient.patch()
-//                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build(DEFAULT_ID_DIGITAL))
-//                 .accept(APPLICATION_JSON)
-//                 .contentType(APPLICATION_JSON)
-//                 .body(BodyInserters.fromValue(newEvent))
-//                 .exchange()
-//                 .expectStatus()
-//                 .isOk();
-//    }
-//
-//    //test.102.2
-//    @Test
-//    void testUpdateFailed() {
-//
-//        var newEvent = new EventsDto();
-//        var newDigitalProgressStatusDto = new DigitalProgressStatusDto();
-//        newDigitalProgressStatusDto.setStatus(RETRY);
-//        newDigitalProgressStatusDto.setEventCode(C000);
-//        newEvent.setDigProgrStatus(newDigitalProgressStatusDto);
-//
-//        webClient.patch()
-//                 .uri(uriBuilder -> uriBuilder.path(BASE_PATH_WITH_PARAM).build("idCheNonEsiste"))
-//                 .accept(APPLICATION_JSON)
-//                 .contentType(APPLICATION_JSON)
-//                 .body(BodyInserters.fromValue(newEvent))
-//                 .exchange()
-//                 .expectStatus()
-//                 .isBadRequest();
-//    }
+    private static Stream<Arguments> provideDigitalAndPaperEventToUpdate() {
+
+        var digitalEventDto = new EventsDto();
+        var paperEventDto = new EventsDto();
+
+
+        var digitalProgressStatusDto = new DigitalProgressStatusDto();
+        digitalProgressStatusDto.setEventTimestamp(OffsetDateTime.now());
+        digitalProgressStatusDto.setStatus(BOOKED);
+        digitalProgressStatusDto.setEventCode(C000);
+        digitalProgressStatusDto.setEventDetails("");
+        var generateMessageDto = new GeneratedMessageDto();
+        generateMessageDto.setId("id");
+        generateMessageDto.setSystem("System");
+        generateMessageDto.setLocation("location");
+        digitalProgressStatusDto.setGeneratedMessage(generateMessageDto);
+        digitalEventDto.setDigProgrStatus(digitalProgressStatusDto);
+
+        var paperProgressStatusDto = new PaperProgressStatusDto();
+        paperProgressStatusDto.setRegisteredLetterCode("");
+        paperProgressStatusDto.setStatusCode("");
+        paperProgressStatusDto.setStatusDescription("");
+        paperProgressStatusDto.setStatusDateTime(OffsetDateTime.now());
+        paperProgressStatusDto.setDeliveryFailureCause("");
+        var discoveredAddressDto = new DiscoveredAddressDto();
+        discoveredAddressDto.setName("");
+        discoveredAddressDto.setNameRow2("");
+        discoveredAddressDto.setAddress("");
+        discoveredAddressDto.setAddressRow2("");
+        discoveredAddressDto.setCap("");
+        discoveredAddressDto.setCity("");
+        discoveredAddressDto.setCity2("");
+        discoveredAddressDto.setPr("");
+        discoveredAddressDto.setCountry("");
+        var paperProgressStatusDtoAttachmentsList = new ArrayList<AttachmentsProgressEventDto>();
+        var paperProgressStatusDtoAttachments = new AttachmentsProgressEventDto();
+        paperProgressStatusDtoAttachments.setId("");
+        paperProgressStatusDtoAttachments.setDocumentType("");
+        paperProgressStatusDtoAttachments.setUri("");
+        paperProgressStatusDtoAttachments.setSha256("");
+        paperProgressStatusDtoAttachments.setDate(OffsetDateTime.now());
+        paperProgressStatusDtoAttachmentsList.add(paperProgressStatusDtoAttachments);
+        paperProgressStatusDto.setAttachments(paperProgressStatusDtoAttachmentsList);
+        paperProgressStatusDto.setDiscoveredAddress(discoveredAddressDto);
+        paperEventDto.setPaperProgrStatus(paperProgressStatusDto);
+
+        return Stream.of(Arguments.of(digitalEventDto, DEFAULT_ID_DIGITAL), Arguments.of(paperEventDto, DEFAULT_ID_PAPER));
+    }
+
+    //test.102.1
+    @ParameterizedTest
+    @MethodSource("provideDigitalAndPaperEventToUpdate")
+    void testUpdateSuccess(EventsDto eventsDto, String idRequest) {
+
+        webClient.patch()
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(idRequest))
+                 .accept(APPLICATION_JSON)
+                 .contentType(APPLICATION_JSON)
+                 .body(BodyInserters.fromValue(eventsDto))
+                 .exchange()
+                 .expectStatus()
+                 .isOk();
+    }
+
+    //test.102.2
+    @ParameterizedTest
+    @MethodSource("provideDigitalAndPaperEventToUpdate")
+    void testUpdateFailed(EventsDto eventsDto) {
+
+        webClient.patch()
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build("idCheNonEsiste"))
+                 .accept(APPLICATION_JSON)
+                 .contentType(APPLICATION_JSON)
+                 .body(BodyInserters.fromValue(eventsDto))
+                 .exchange()
+                 .expectStatus()
+                 .isBadRequest();
+    }
+
+    private static Stream<Arguments> provideDigitalAndPaperRequestForDelete() {
+        return Stream.of(Arguments.of(digitalRequest, "idDigitalToDelete"), Arguments.of(paperRequest, "idPaperToDelete"));
+    }
 
     //test.103.1
     @ParameterizedTest
-    @MethodSource("provideDigitalAndPaperRequest")
+    @MethodSource("provideDigitalAndPaperRequestForDelete")
     void deleteRequestTestSuccess(RequestDto requestDto, String idToDelete) {
 
-        requestDto.setRequestIdx(idToDelete);
-        insertRequestPersonal(objectMapper.convertValue(requestDto.getRequestPersonal(), RequestPersonal.class));
-        insertRequestMetadata(objectMapper.convertValue(requestDto.getRequestMetadata(), RequestMetadata.class));
+        insertRequestPersonal(idToDelete, objectMapper.convertValue(requestDto.getRequestPersonal(), RequestPersonal.class));
+        insertRequestMetadata(idToDelete, objectMapper.convertValue(requestDto.getRequestMetadata(), RequestMetadata.class));
 
         webClient.delete()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest()).build(idToDelete))

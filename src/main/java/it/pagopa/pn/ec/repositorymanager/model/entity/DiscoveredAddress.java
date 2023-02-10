@@ -12,13 +12,14 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 @DynamoDbBean
 public class DiscoveredAddress {
 
-    private String name;
-    private String nameRow2;
-    private String address;
-    private String addressRow2;
-    private String cap;
-    private String city;
-    private String city2;
-    private String pr;
-    private String country;
+    String name;
+    String nameRow2;
+    String address;
+    String addressRow2;
+    String cap;
+    String city;
+    String city2;
+    String pr;
+    String country;
+    boolean anonymous;
 }
