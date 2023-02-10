@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.repositorymanager.entity;
+package it.pagopa.pn.ec.repositorymanager.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;

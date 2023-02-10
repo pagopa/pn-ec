@@ -213,7 +213,8 @@ components:
       required:
         - requestIdx
         - clientRequestTimeStamp
-        - events
+        - requestPersonal
+        - requestMetadata
       properties:
         requestIdx:
           type: string
@@ -224,11 +225,31 @@ components:
         clientRequestTimeStamp:
           type: string
           format: date-time
-        digitalReq:
-          $ref: './schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestDto'
-        paperReq:
-          $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperRequestDto'
-        events:
+        requestTimeStamp:
+          type: string
+          format: date-time
+          readOnly: true
+        requestPersonal:
+          $ref: '#/components/schemas/RequestPersonalDto'
+        requestMetadata:
+          $ref: '#/components/schemas/RequestMetadataDto'
+
+    RequestPersonalDto:
+      type: object
+      properties:
+        digitalRequestPersonal:
+          $ref: './schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestPersonalDto'
+        paperRequestPersonal:
+          $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperRequestPersonalDto'
+
+    RequestMetadataDto:
+      type: object
+      properties:
+        digitalRequestMetadata:
+          $ref: './schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestMetadataDto'
+        paperRequestMetadata:
+          $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/PaperRequestMetadataDto'
+        eventsList:
           type: array
           items:
             $ref: '#/components/schemas/EventsDto'

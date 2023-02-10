@@ -4,8 +4,9 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
-import it.pagopa.pn.ec.repositorymanager.entity.ClientConfiguration;
-import it.pagopa.pn.ec.repositorymanager.entity.Request;
+import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
+import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
+import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.testutils.configuration.DynamoTestConfiguration;
 import it.pagopa.pn.ec.testutils.configuration.SqsTestConfiguration;
@@ -107,7 +108,8 @@ public class LocalStackTestConfig {
 
         List<String> smsQueueNames = List.of(smsSqsQueueName.interactiveName(), smsSqsQueueName.batchName(), smsSqsQueueName.errorName());
 
-        List<String> emailQueueNames = List.of(emailSqsQueueName.interactiveName(), emailSqsQueueName.batchName(), emailSqsQueueName.errorName());
+        List<String> emailQueueNames =
+                List.of(emailSqsQueueName.interactiveName(), emailSqsQueueName.batchName(), emailSqsQueueName.errorName());
 
         List<String> pecQueueNames = List.of(pecSqsQueueName.interactiveName(), pecSqsQueueName.batchName(), pecSqsQueueName.errorName());
 
@@ -146,7 +148,8 @@ public class LocalStackTestConfig {
 
         Map<String, Class<?>> tableNameWithEntityClass =
                 Map.ofEntries(entry(repositoryManagerDynamoTableName.anagraficaClientName(), ClientConfiguration.class),
-                              entry(repositoryManagerDynamoTableName.richiesteName(), Request.class));
+                              entry(repositoryManagerDynamoTableName.richiestePersonalName(), RequestPersonal.class),
+                              entry(repositoryManagerDynamoTableName.richiesteMetadataName(), RequestMetadata.class));
 
         tableNameWithEntityClass.forEach((tableName, entityClass) -> {
             try {

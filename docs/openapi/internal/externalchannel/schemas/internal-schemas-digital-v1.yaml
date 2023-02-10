@@ -1,27 +1,14 @@
 components:
   schemas:
 
-    DigitalRequestDto:
-      title: Richiesta digitale
+    DigitalRequestPersonalDto:
+      title: Dati personali di una richiesta digitale
       required:
-        - eventType
         - qos
         - receiverDigitalAddress
         - messageText
-        - channel
         - subjectText
-        - messageContentType
       properties:
-        correlationId:
-          type: string
-          description: >-
-            Id di correlazione, permette al sender di correlare eventualmente la response. Se assente viene inizializzato con il requestId
-        eventType:
-          type: string
-          description: >-
-            Tipologia di richiesta. Permette di identificare il tipo di informazione che viene richiesto. 
-            Permette di clusterizzare le tipologie di comunicazione in ingresso 
-            (se sender diversi usano EventType diversi, a fini ad es di fatturazione diventa semplice individuare gli oggetti).
         qos:
           type: string
           enum:
@@ -29,18 +16,6 @@ components:
             - BATCH
           description: >-
             Interactive/Batch (quality of service, "entro quanto tempo" devo rispondere, con che livello di servizio)
-        tags:
-          type: object
-          properties:
-          #            iun:
-          #              type: string
-          #              description: >-
-          #                Identificativo Unico della Notifica.
-          #                Non è obbligatorio (ad es in una richiesta di verifica indirizzi non abbiamo un identificativo di notifica).
-          #          required:
-          #            - iun
-          additionalProperties:
-            type: string
         receiverDigitalAddress:
           type: string
           description: >-
@@ -59,6 +34,49 @@ components:
             Indirizzo PEC (o analoga comunicazione digitale a valore legale) del mittente della comunicazione.
             Se non passato va recuperato da configurazione sulla base del sistema chiamante (i.e. X-PagoPA-EXTCH-CX), 
             va censito in configurazione (obbligatorio).
+        subjectText:
+          type: string
+          description: >-
+            Oggetto del corpo della comunicazione digitale.
+        attachmentsUrls:
+          type: array
+          items:
+            type: string
+            description: >-
+              Path in cui si trova il documento da allegare alla comunicazione digitale
+              (i.e. url del file dentro Safe Storage che si occuperà di crypt/decrypt dei documenti).
+              Il Safe Storge si occuperà di calcolare la presigned url per il recupero dell'allegato che sarà decifrato.
+              documentUrl può rispondere (alla GET) con un 403 per redirect vs servizio (i.e. lambda, safe storage, presigned url vs bucket s3 non cifrato).
+
+    DigitalRequestMetadataDto:
+      title: Metadata di una richiesta digitale
+      required:
+        - eventType
+        - channel
+        - messageContentType
+      properties:
+        correlationId:
+          type: string
+          description: >-
+            Id di correlazione, permette al sender di correlare eventualmente la response. Se assente viene inizializzato con il requestId
+        eventType:
+          type: string
+          description: >-
+            Tipologia di richiesta. Permette di identificare il tipo di informazione che viene richiesto. 
+            Permette di clusterizzare le tipologie di comunicazione in ingresso 
+            (se sender diversi usano EventType diversi, a fini ad es di fatturazione diventa semplice individuare gli oggetti).
+        tags:
+          type: object
+          properties:
+          #            iun:
+          #              type: string
+          #              description: >-
+          #                Identificativo Unico della Notifica.
+          #                Non è obbligatorio (ad es in una richiesta di verifica indirizzi non abbiamo un identificativo di notifica).
+          #          required:
+          #            - iun
+          additionalProperties:
+            type: string
         channel:
           type: string
           enum:
@@ -68,10 +86,6 @@ components:
           description: >-
             Canale di recapito con cui il Sender chiede l’erogazione del servizio. In un primo momento sarà PEC, 
             ma il dominio dovrà prevedere a breve SERQ, PEC_REM, ed in futuro ogni forma di recapito digitale a valore legale.
-        subjectText:
-          type: string
-          description: >-
-            Oggetto del corpo della comunicazione digitale.
         messageContentType:
           type: string
           enum:
@@ -79,20 +93,12 @@ components:
             - 'text/html'
           description: >-
             Formato: HTML o PLAIN
-        attachmentsUrls:
-          type: array
-          items:
-            type: string
-            description: >-
-              Path in cui si trova il documento da allegare alla comunicazione digitale
-              (i.e. url del file dentro Safe Storage che si occuperà di crypt/decrypt dei documenti).
-              Il Safe Storge si occuperà di calcolare la presigned url per il recupero dell'allegato che sarà decifrato.
-              documentUrl può rispondere (alla GET) con un 403 per redirect vs servizio (i.e. lambda, safe storage, presigned url vs bucket s3 non cifrato).               
 
     DigitalProgressStatusDto:
       title: Avanzamento di stato di una richiesta digitale
       type: object
       required:
+        - eventTimestamp
         - status
         - eventCode
       properties:
@@ -102,7 +108,6 @@ components:
             secondo rfc 3339
           type: string
           format: date-time
-          readOnly: true
         status:
           $ref: '#/components/schemas/DigitalRequestStatus'
         eventCode:
@@ -135,17 +140,21 @@ components:
         eventDetails:
           type: string
         generatedMessage:
-          type: object
-          required:
-            - system
-            - id
-          properties:
-            system:
-              type: string
-            id:
-              type: string
-            location:
-              type: string
+          $ref: '#/components/schemas/GeneratedMessageDto'
+
+
+    GeneratedMessageDto:
+      type: object
+      required:
+        - system
+        - id
+      properties:
+        system:
+          type: string
+        id:
+          type: string
+        location:
+          type: string
 
 #   <-- STATUS SECTION -->
 

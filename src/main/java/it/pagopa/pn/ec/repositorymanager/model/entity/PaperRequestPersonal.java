@@ -1,23 +1,20 @@
-package it.pagopa.pn.ec.repositorymanager.entity;
+package it.pagopa.pn.ec.repositorymanager.model.entity;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 
 import java.util.List;
-import java.util.Map;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @Data
 @DynamoDbBean
-public class PaperRequest {
+public class PaperRequestPersonal {
 
-	private String iun;
-	private String requestPaid;
-	private String productType;
 	private List<PaperEngageRequestAttachments> attachments;
-	private String printType;
 	private String receiverName;
 	private String receiverNameRow2;
 	private String receiverAddress;
@@ -37,5 +34,4 @@ public class PaperRequest {
 	private String arAddress;
 	private String arCap;
 	private String arCity;
-	private Map<String, String> vas;
 }
