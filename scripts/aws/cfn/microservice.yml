@@ -238,6 +238,10 @@ Resources:
               - 'dynamodb:Describe*'
               - 'dynamodb:Scan'
               - 'dynamodb:List*'
+              - 'dynamodb:Batch*'
+              - 'dynamodb:PartiQL*'
+              - 'dynamodb:Update*'
+              - 'dynamodb:Put*'
             Resource:
               - !Sub '${PnEcTableArnAnagrafica}'
               - !Sub '${PnEcTableArnRichieste}'
