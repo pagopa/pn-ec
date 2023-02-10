@@ -5,7 +5,6 @@ import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
-import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -102,6 +101,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                            eventsList = new ArrayList<>();
                        }
                        eventsList.add(events);
+                       retrieveRequest.setEventsList(eventsList);
                        requestMetadataDynamoDbTable.updateItem(retrieveRequest);
                        return retrieveRequest;
                    });
