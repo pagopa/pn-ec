@@ -9,6 +9,4 @@ import java.util.concurrent.ExecutionException;
 public interface PutEvents {
 
     Mono<Void> putEventExternal(NotificationTrackerQueueDto eventInfo) throws ExecutionException, InterruptedException;
-
-
 }

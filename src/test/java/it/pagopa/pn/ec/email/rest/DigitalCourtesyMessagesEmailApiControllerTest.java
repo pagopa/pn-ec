@@ -6,6 +6,7 @@ import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedFoundException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.exception.ss.AttachmentNotAvailableException;
+import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.rest.call.uribuilder.UriBuilderCall;
@@ -13,7 +14,6 @@ import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
-import it.pagopa.pn.ec.email.model.dto.NtStatoEmailQueueDto;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
@@ -209,7 +209,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()),
-                             any(NtStatoEmailQueueDto.class))).thenReturn(Mono.error(new SqsPublishException(notificationTrackerSqsName.statoSmsName())));
+                             any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(new SqsPublishException(notificationTrackerSqsName.statoSmsName())));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                    .isEqualTo(SERVICE_UNAVAILABLE)

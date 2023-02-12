@@ -9,6 +9,7 @@ import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall
 import it.pagopa.pn.ec.commons.service.SnsService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
+import it.pagopa.pn.ec.rest.v1.dto.GeneratedMessageDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
@@ -26,11 +27,12 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus.*;
 import static it.pagopa.pn.ec.sms.testutils.DigitalCourtesySmsRequestFactory.createSmsRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
+import static java.time.OffsetDateTime.now;
 import static org.mockito.Mockito.*;
 
 
 @SpringBootTestWebEnv
-class SmsServiceTest {
+class SmsServiceTest{
 
     @Autowired
     private SmsService smsService;
@@ -54,35 +56,39 @@ class SmsServiceTest {
             new SmsPresaInCaricoInfo(DEFAULT_REQUEST_IDX, DEFAULT_ID_CLIENT_HEADER_VALUE, createSmsRequest());
 
     private static final RequestDto REQUEST_IN_BOOKED_STATUS = new RequestDto();
-    private static final RequestDto REQUEST_IN_RETRY_STATUS = new RequestDto();
 
     private static final DigitalCourtesySmsRequest DIGITAL_COURTESY_SMS_REQUEST = SMS_PRESA_IN_CARICO_INFO.getDigitalCourtesySmsRequest();
 
     private static final NotificationTrackerQueueDto NT_DTO_BOOKED_SENT =
             new NotificationTrackerQueueDto(SMS_PRESA_IN_CARICO_INFO.getRequestIdx(),
                                             SMS_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId(),
+                                            now(),
                                             INVIO_SMS,
                                             BOOKED.getValue(),
-                                            SENT.getValue());
+                                            SENT.getValue(),
+                                            new GeneratedMessageDto());
 
     private static final NotificationTrackerQueueDto NT_DTO_BOOKED_RETRY =
             new NotificationTrackerQueueDto(SMS_PRESA_IN_CARICO_INFO.getRequestIdx(),
                                             SMS_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId(),
+                                            now(),
                                             INVIO_SMS,
                                             BOOKED.getValue(),
-                                            RETRY.getValue());
+                                            RETRY.getValue(),
+                                            new GeneratedMessageDto());
 
     private static final NotificationTrackerQueueDto NT_DTO_RETRY_SENT =
             new NotificationTrackerQueueDto(SMS_PRESA_IN_CARICO_INFO.getRequestIdx(),
                                             SMS_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId(),
+                                            now(),
                                             INVIO_SMS,
                                             RETRY.getValue(),
-                                            SENT.getValue());
+                                            SENT.getValue(),
+                                            new GeneratedMessageDto());
 
     @BeforeAll
     public static void setRequestStatus() {
         REQUEST_IN_BOOKED_STATUS.setStatusRequest(BOOKED.getValue());
-        REQUEST_IN_RETRY_STATUS.setStatusRequest(RETRY.getValue());
     }
 
 

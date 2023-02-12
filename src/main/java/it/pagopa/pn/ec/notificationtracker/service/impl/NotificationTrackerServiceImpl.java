@@ -2,23 +2,23 @@ package it.pagopa.pn.ec.notificationtracker.service.impl;
 
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.constant.ProcessId;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
+import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMachinaStati;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.notificationtracker.service.PutEventsImpl;
-import it.pagopa.pn.ec.notificationtracker.service.callmachinestati.CallMachinaStati;
+import it.pagopa.pn.ec.notificationtracker.service.NotificationTrackerService;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
-import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import static it.pagopa.pn.ec.commons.constant.ProcessId.*;
+
 
 @Service
-@Slf4j
-public class NotificationTrackerServiceImpl {
+public class NotificationTrackerServiceImpl implements NotificationTrackerService {
 
     private final PutEventsImpl putEventsImpl;
     private final GestoreRepositoryCall gestoreRepositoryCall;
@@ -36,59 +36,58 @@ public class NotificationTrackerServiceImpl {
         this.notificationTrackerSqsName = notificationTrackerSqsName;
     }
 
-    public Mono<Void> getValidateStatoSmS(final NotificationTrackerQueueDto nott) {
-
-        return getVoidMono(nott, notificationTrackerSqsName.statoSmsErratoName());
-
-    }
-
-    public Mono<Void> getValidateStatoEmail(final NotificationTrackerQueueDto nott) {
-        return getVoidMono(nott, notificationTrackerSqsName.statoEmailErratoName());
+    @Override
+    public Mono<Void> validateSmsStatus(final NotificationTrackerQueueDto notificationTrackerQueueDto) {
+        return checkStatusChange(notificationTrackerQueueDto, notificationTrackerSqsName.statoSmsErratoName());
 
     }
 
-
-    public Mono<Void> getValidateStatoPec(final NotificationTrackerQueueDto nott) {
-        return getVoidMono(nott, notificationTrackerSqsName.statoPecErratoName());
-
+    @Override
+    public Mono<Void> validateEmailStatus(final NotificationTrackerQueueDto notificationTrackerQueueDto) {
+        return checkStatusChange(notificationTrackerQueueDto, notificationTrackerSqsName.statoEmailErratoName());
     }
 
-    public Mono<Void> getValidateCartaceStatus(final NotificationTrackerQueueDto nott) {
-        return getVoidMono(nott, notificationTrackerSqsName.statoCartaceoErratoName());
-
+    @Override
+    public Mono<Void> validatePecStatus(final NotificationTrackerQueueDto notificationTrackerQueueDto) {
+        return checkStatusChange(notificationTrackerQueueDto, notificationTrackerSqsName.statoPecErratoName());
     }
 
-    @NotNull
-    private Mono<Void> getVoidMono(NotificationTrackerQueueDto nott, String ntStatoCartaceoErratoQueueName) {
-        return callMachinaStatiImpl.getStato(nott.getProcessId().toString(),
-                                             nott.getCurrentStatus(),
-                                             nott.getXPagopaExtchCxId(),
-                                             nott.getNextStatus()).flatMap(notificationResponseModel -> {
-            if (notificationResponseModel.isAllowed()) {
-                log.info(">>> publish response {} ", notificationResponseModel);
-						/*
-							DA concordare mappa per i stati
-						 */
-                EventsDto events = new EventsDto();
-                DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();
-                digitalProgressStatusDto.setStatus(DigitalRequestStatus.valueOf(nott.getNextStatus()));
-                events.setDigProgrStatus(digitalProgressStatusDto);
-                return gestoreRepositoryCall.updateRichiesta(nott.getRequestIdx(), events);
+    @Override
+    public Mono<Void> validateCartaceoStatus(final NotificationTrackerQueueDto notificationTrackerQueueDto) {
+        return checkStatusChange(notificationTrackerQueueDto, notificationTrackerSqsName.statoCartaceoErratoName());
+    }
+
+    private Mono<Void> checkStatusChange(NotificationTrackerQueueDto notificationTrackerQueueDto, String ntStatoErratoQueueName) {
+        ProcessId processId = notificationTrackerQueueDto.getProcessId();
+        String nextStatus = notificationTrackerQueueDto.getNextStatus();
+
+        return callMachinaStatiImpl.statusValidation(processId.name(),
+                                                     notificationTrackerQueueDto.getCurrentStatus(),
+                                                     notificationTrackerQueueDto.getXPagopaExtchCxId(),
+                                                     nextStatus).flatMap(macchinaStatiValidateStatoResponseDto -> {
+            if (macchinaStatiValidateStatoResponseDto.isAllowed()) {
+                var events = new EventsDto();
+
+                if (processId == INVIO_SMS || processId == INVIO_MAIL || processId == INVIO_PEC) {
+                    var digitalProgressStatusDto =
+                            new DigitalProgressStatusDto().eventTimestamp(notificationTrackerQueueDto.getEventTimestamp())
+                                                          .status(DigitalRequestStatus.valueOf(nextStatus))
+                                                          // TODO: DEFINE statusCode RETRIEVAL FROM TECHNICAL STATUS
+//                                                          .statusCode()
+                                                          // TODO: DEFINE eventDetails IN STATUS UPDATE
+                                                          .eventDetails("To be defined")
+                                                          .generatedMessage(notificationTrackerQueueDto.getGeneratedMessageDto());
+                    events.setDigProgrStatus(digitalProgressStatusDto);
+                }
+
+                // TODO: HANDLE CARTACEO CONDITION
+
+                return gestoreRepositoryCall.updateRichiesta(notificationTrackerQueueDto.getRequestIdx(), events);
             }
-            if (notificationResponseModel.getNottifMessage() != null) {
-                return putEventsImpl.putEventExternal(new NotificationTrackerQueueDto(nott.getRequestIdx(),
-                                                                                      nott.getXPagopaExtchCxId(),
-                                                                                      nott.getProcessId(),
-                                                                                      nott.getCurrentStatus(),
-                                                                                      nott.getNextStatus()));
+            if (macchinaStatiValidateStatoResponseDto.getNotificationMessage() != null) {
+                return putEventsImpl.putEventExternal(notificationTrackerQueueDto);
             } else {
-                return sqsService.send(ntStatoCartaceoErratoQueueName,
-                                       new NotificationTrackerQueueDto(nott.getRequestIdx(),
-                                                                       nott.getXPagopaExtchCxId(),
-                                                                       nott.getProcessId(),
-                                                                       nott.getCurrentStatus(),
-                                                                       nott.getNextStatus()));
-
+                return sqsService.send(ntStatoErratoQueueName, notificationTrackerQueueDto);
             }
         }).then();
     }

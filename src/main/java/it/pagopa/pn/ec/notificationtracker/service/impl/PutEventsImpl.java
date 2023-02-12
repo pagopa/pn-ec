@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.notificationtracker.service;
+package it.pagopa.pn.ec.notificationtracker.service.impl;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -7,6 +7,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.notificationtracker.configurationproperties.NotificationTrackerEventBridgeEventName;
+import it.pagopa.pn.ec.notificationtracker.service.PutEvents;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;

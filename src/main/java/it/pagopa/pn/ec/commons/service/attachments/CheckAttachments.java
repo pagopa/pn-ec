@@ -2,14 +2,12 @@ package it.pagopa.pn.ec.commons.service.attachments;
 
 import it.pagopa.pn.ec.commons.rest.call.uribuilder.UriBuilderCall;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
 
 @Service
-@Slf4j
 public class CheckAttachments {
 
     private final UriBuilderCall uriBuilderCall;

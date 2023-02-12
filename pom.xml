@@ -120,6 +120,7 @@
             <artifactId>eventbridge</artifactId>
         </dependency>
 
+        <!-- Usato nella generazione del client consolidatore-2023-01-02.yml -->
         <dependency>
             <groupId>org.threeten</groupId>
             <artifactId>threetenbp</artifactId>

@@ -22,6 +22,7 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INT
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus.BOOKED;
+import static java.time.OffsetDateTime.now;
 
 @Service
 @Slf4j
@@ -59,9 +60,13 @@ public class PecService extends PresaInCaricoService {
                                .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                                                       new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
                                                                                                       presaInCaricoInfo.getXPagopaExtchCxId(),
+                                                                                                      now(),
                                                                                                       INVIO_PEC,
                                                                                                       null,
-                                                                                                      BOOKED.getValue())))
+                                                                                                      BOOKED.getValue(),
+                                                                                                      // TODO: Populate GeneratedMessageDto
+                                                                                                      // Use this syntax new GeneratedMessageDto().id("foo").location("bar").system("bla")
+                                                                                                      new GeneratedMessageDto())))
                                .flatMap(sendMessageResponse -> {
                                    DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
                                    if (qos == INTERACTIVE) {

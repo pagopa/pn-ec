@@ -40,6 +40,7 @@ components:
         tags:
           type: object
           properties:
+          # Durante la generazione delle classi Java, non riesce a gestire la presenza di valori di default all'interno di una mappa
           #            iun:
           #              type: string
           #              description: >-

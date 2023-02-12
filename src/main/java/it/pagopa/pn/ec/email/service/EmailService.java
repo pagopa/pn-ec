@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.email.service;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
+import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
@@ -10,7 +11,6 @@ import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.attachments.CheckAttachments;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
-import it.pagopa.pn.ec.email.model.dto.NtStatoEmailQueueDto;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +22,7 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.BAT
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.EMAIL;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus.BOOKED;
+import static java.time.OffsetDateTime.now;
 
 
 @Service
@@ -59,10 +60,15 @@ public class EmailService extends PresaInCaricoService {
                                    return insertRequestFromEmail(digitalNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
                                })
                                .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                                      new NtStatoEmailQueueDto(presaInCaricoInfo.getXPagopaExtchCxId(),
-                                                                                               INVIO_MAIL,
-                                                                                               null,
-                                                                                               BOOKED.getValue())))
+                                                                      new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
+                                                                                                      presaInCaricoInfo.getXPagopaExtchCxId(),
+                                                                                                      now(),
+                                                                                                      INVIO_MAIL,
+                                                                                                      null,
+                                                                                                      BOOKED.getValue(),
+                                                                                                      // TODO: Populate GeneratedMessageDto
+                                                                                                      // Use this syntax new GeneratedMessageDto().id("foo").location("bar").system("bla")
+                                                                                                      new GeneratedMessageDto())))
                                .flatMap(sendMessageResponse -> {
                                    DigitalCourtesyMailRequest.QosEnum qos = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getQos();
                                    if (qos == INTERACTIVE) {

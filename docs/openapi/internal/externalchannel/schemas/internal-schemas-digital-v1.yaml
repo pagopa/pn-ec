@@ -14,35 +14,35 @@ components:
           enum:
             - INTERACTIVE
             - BATCH
-          description: >-
+          description: |
             Interactive/Batch (quality of service, "entro quanto tempo" devo rispondere, con che livello di servizio)
         receiverDigitalAddress:
           type: string
-          description: >-
+          description: |
             Indirizzo PEC del destinatario (o in genere recapito digitale certificato a valore legale). 
             L’indirizzo si assume valido ed attivo: i servizi erogatori non eseguono ulteriori validazioni sullo stesso.
             Non sono previste mail con più destinatari. 
             In caso di comunicazioni a più destinatari saranno richieste più comunicazioni (in questo modo avremo un requestId univoco per ogni comunicazione/evento/pec).
         messageText:
           type: string
-          description: >-
+          description: |
             Testo del corpo della comunicazione digitale.  
             Può essere a discrezione del chiamante in plain text od html (un campo ad hoc che discrimini il formato è opportuno?).
         senderDigitalAddress:
           type: string
-          description: >-
+          description: |
             Indirizzo PEC (o analoga comunicazione digitale a valore legale) del mittente della comunicazione.
             Se non passato va recuperato da configurazione sulla base del sistema chiamante (i.e. X-PagoPA-EXTCH-CX), 
             va censito in configurazione (obbligatorio).
         subjectText:
           type: string
-          description: >-
+          description: |
             Oggetto del corpo della comunicazione digitale.
         attachmentsUrls:
           type: array
           items:
             type: string
-            description: >-
+            description: |
               Path in cui si trova il documento da allegare alla comunicazione digitale
               (i.e. url del file dentro Safe Storage che si occuperà di crypt/decrypt dei documenti).
               Il Safe Storge si occuperà di calcolare la presigned url per il recupero dell'allegato che sarà decifrato.
@@ -57,20 +57,21 @@ components:
       properties:
         correlationId:
           type: string
-          description: >-
+          description: |
             Id di correlazione, permette al sender di correlare eventualmente la response. Se assente viene inizializzato con il requestId
         eventType:
           type: string
-          description: >-
+          description: |
             Tipologia di richiesta. Permette di identificare il tipo di informazione che viene richiesto. 
             Permette di clusterizzare le tipologie di comunicazione in ingresso 
             (se sender diversi usano EventType diversi, a fini ad es di fatturazione diventa semplice individuare gli oggetti).
         tags:
           type: object
           properties:
+          # Durante la generazione delle classi Java, non riesce a gestire la presenza di valori di default all'interno di una mappa
           #            iun:
           #              type: string
-          #              description: >-
+          #              description: |
           #                Identificativo Unico della Notifica.
           #                Non è obbligatorio (ad es in una richiesta di verifica indirizzi non abbiamo un identificativo di notifica).
           #          required:
@@ -83,7 +84,7 @@ components:
             - SMS
             - EMAIL
             - PEC
-          description: >-
+          description: |
             Canale di recapito con cui il Sender chiede l’erogazione del servizio. In un primo momento sarà PEC, 
             ma il dominio dovrà prevedere a breve SERQ, PEC_REM, ed in futuro ogni forma di recapito digitale a valore legale.
         messageContentType:
@@ -91,7 +92,7 @@ components:
           enum:
             - 'text/plain'
             - 'text/html'
-          description: >-
+          description: |
             Formato: HTML o PLAIN
 
     DigitalProgressStatusDto:
@@ -103,48 +104,36 @@ components:
         - eventCode
       properties:
         eventTimestamp:
-          description: >
+          description: |
             timestamp della creazione dell'evento, in UTC con definizione della timezone 
             secondo rfc 3339
           type: string
           format: date-time
         status:
           $ref: '#/components/schemas/DigitalRequestStatus'
-        eventCode:
-          type: string
-          enum:
-            - C000
-            - C001
-            - C002
-            - C003
-            - C004
-            - C005
-            - C006
-            - C007
-            - C008
-            - C009
-            - C010
-          description: >-
-            * STATUS     EVENTCODE
-            * PROGRESS   C000 = PREACCETTAZIONE (Conferma avvenuta comunicazione con Wrapper Pec)
-            * PROGRESS   C001 = StatusPec.ACCETTAZIONE
-            * PROGRESS   C005 = StatusPec.PRESA_IN_CARICO
-            * PROGRESS   C007 = StatusPec.PREAVVISO_ERRORE_CONSEGNA
-            * ERROR      C002 = StatusPec.NON_ACCETTAZIONE
-            * ERROR      C004 = StatusPec.ERRORE_CONSEGNA
-            * ERROR      C006 = StatusPec.RILEVAZIONE_VIRUS
-            * ERROR      C008 = ERRORE_COMUNICAZIONE_SERVER_PEC
-            * ERROR      C009 = ERRORE_DOMINIO_PEC_NON_VALIDO
-            * ERROR      C010 = ERROR_INVIO_PEC
-            * OK         C003 = StatusPec.AVVENUTA_CONSEGNA
+        statusCode:
+          $ref: '#/components/schemas/DigitalRequestStatusCode'
         eventDetails:
           type: string
         generatedMessage:
           $ref: '#/components/schemas/GeneratedMessageDto'
 
-
     GeneratedMessageDto:
       type: object
+      description: |
+        ### PEC o email
+
+        Fare riferimento alla tabella *STATI SERVIZIO PEC* della documentazione
+
+        - **system →** il dominio di posta del mittente
+        - **id →** header Message-ID del sistema di messaggistica
+        - **location →** dove posso trovare il contenuto del messaggio (tipicamente sarà un link a safestorage)
+        
+        ### SMS
+        
+        - **system →** ARN del topic utilizzato per l'invio
+        - **id →** da verificare la presenza di un identificativo univoco
+        - **location →** null
       required:
         - system
         - id
@@ -156,10 +145,27 @@ components:
         location:
           type: string
 
-#   <-- STATUS SECTION -->
+    #   <-- STATUS SECTION -->
 
     DigitalRequestStatus:
-      title: Stati di una richiesta digitale
+      title: Stati tecnici di una richiesta digitale
+      description: |
+        ### Common status
+        
+        * BOOKED
+        * COMPOSITION_ERROR *(solo Email e PEC)*
+        * RETRY
+        * SENT
+        * ERROR
+        
+        ### Pec status
+        - ACCEPTED
+        - INFECTED
+        - NOT_ACCEPTED
+        - NOT_DELIVERED
+        - DELIVERY_WARNING
+        - DELIVERED
+        - INTERNAL_ERROR
       type: string
       enum:
         - BOOKED
@@ -167,10 +173,53 @@ components:
         - RETRY
         - SENT
         - ERROR
+        - ACCEPTED
         - INFECTED
         - NOT_ACCEPTED
-        - ACCEPTED
         - NOT_DELIVERED
         - DELIVERY_WARNING
         - DELIVERED
         - INTERNAL_ERROR
+
+    DigitalRequestStatusCode:
+      title: Stati logici di una richiesta digitale
+      description: |
+        ### SMS status code
+        * S003 -> Sent
+        * S008 -> Error
+        ### Email status code
+        * M003 -> Sent
+        * M002 -> Composition error
+        * M008 -> Error
+        * M009 -> Destination address not allowed
+        ### Pec status code
+        * C000 -> Sent
+        * C001 -> Accepted
+        * C002 -> Not accepted
+        * C003 -> Delivered
+        * C004 -> Not delivered
+        * C005 -> TBD
+        * C006 -> Infected
+        * C007 -> Delivery warning
+        * C008 -> Error
+        * C009 -> da associare alla verifica della validità del dominio PEC di destinazione (in corso di verifica)
+        * C010 -> Internal error
+      type: string
+      enum:
+        - S003
+        - S008
+        - M003
+        - M002
+        - M008
+        - M009
+        - C000
+        - C001
+        - C002
+        - C003
+        - C004
+        - C005
+        - C006
+        - C007
+        - C008
+        - C009
+        - C010
