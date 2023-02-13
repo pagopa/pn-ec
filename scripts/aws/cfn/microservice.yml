@@ -290,7 +290,7 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - "SQS:+"
+              - "SQS:*"
             Effect: "Allow"
             Resource: !Sub ${PnEcQueueArnTrackerErroriSMS}
             Principal:  
