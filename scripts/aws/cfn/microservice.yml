@@ -275,8 +275,7 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - "SQS:SendMessage" 
-              - "SQS:ReceiveMessage"
+              - "SQS:*"
             Effect: "Allow"
             Resource: !Sub ${PnEcQueueArnTrackerStatoSMS}
             Principal:  
@@ -291,8 +290,7 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - "SQS:SendMessage" 
-              - "SQS:ReceiveMessage"
+              - "SQS:+"
             Effect: "Allow"
             Resource: !Sub ${PnEcQueueArnTrackerErroriSMS}
             Principal:  
@@ -307,8 +305,7 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - "SQS:SendMessage" 
-              - "SQS:ReceiveMessage"
+              - "SQS:*"
             Effect: "Allow"
             Resource: !Sub ${PnEcQueueArnNotificheExt1}
             Principal:  
@@ -323,8 +320,7 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - "SQS:SendMessage" 
-              - "SQS:ReceiveMessage"
+              - "SQS:*"
             Effect: "Allow"
             Resource: !Sub ${PnEcQueueArnBatchSMS}
             Principal:  
@@ -339,8 +335,7 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - "SQS:SendMessage" 
-              - "SQS:ReceiveMessage"
+              - "SQS:*"
             Effect: "Allow"
             Resource: !Sub ${PnEcQueueArnInteractiveSMS}
             Principal:  
@@ -355,8 +350,7 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - "SQS:SendMessage" 
-              - "SQS:ReceiveMessage"
+              - "SQS:*"
             Effect: "Allow"
             Resource: !Sub ${PnEcQueueArnErroriSMS}
             Principal:  
@@ -379,22 +373,22 @@ Resources:
           - 'ecs.amazonaws.com'
         Resource: !Ref PnEcEventBusArnTrackerExternalNotification
 
-  PnEcEventBusPolicyDenyTrackerExternalNotification:
-    Type: AWS::Events::EventBusPolicy
-    Properties:
-      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
-      StatementId: 'PnEcCustomEventBusPolicyDenyCrossAccount'
-      Statement:
-        Action: 
-          - "events:*"
-        Effect: 'Deny'
-        Principal: 
-          Service:
-            - 'ecs.amazonaws.com'
-        Resource: !Ref PnEcEventBusArnTrackerExternalNotification
-        Condition:
-          StringNotEquals:
-            aws:SourceAccount: !Sub '${AWS::AccountId}'
+  # PnEcEventBusPolicyDenyTrackerExternalNotification:
+  #   Type: AWS::Events::EventBusPolicy
+  #   Properties:
+  #     EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+  #     StatementId: 'PnEcCustomEventBusPolicyDenyCrossAccount'
+  #     Statement:
+  #       Action: 
+  #         - "events:*"
+  #       Effect: 'Deny'
+  #       Principal: 
+  #         Service:
+  #           - 'ecs.amazonaws.com'
+  #       Resource: !Ref PnEcEventBusArnTrackerExternalNotification
+  #       Condition:
+  #         StringNotEquals:
+  #           aws:SourceAccount: !Sub '${AWS::AccountId}'
 
   PnEcEventBusPolicyManageTrackerExternalNotification:
     Type: AWS::Events::EventBusPolicy
