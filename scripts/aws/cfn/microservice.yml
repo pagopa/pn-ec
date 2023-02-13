@@ -221,7 +221,7 @@ Resources:
         LoadbalancerRulePriority: !Ref MicroserviceNumber
         # CloudwatchLogKinesisStreamArn: !Ref LogsKinesisSourceStreamArn
         TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
-        # HealthCheckPath: 
+        # HealthCheckPath:  
 
   PnEcManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
