@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.repositorymanager.rest;
 
 import it.pagopa.pn.ec.commons.utils.RestUtils;
-import it.pagopa.pn.ec.repositorymanager.entity.Events;
-import it.pagopa.pn.ec.repositorymanager.entity.Request;
+import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
+import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.service.RequestService;
 import it.pagopa.pn.ec.rest.v1.api.GestoreRequestApi;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
@@ -20,7 +20,6 @@ import static org.springframework.http.HttpStatus.OK;
 public class RequestController implements GestoreRequestApi {
 
     private final RequestService requestService;
-
     private final RestUtils restUtils;
 
     public RequestController(RequestService requestService, RestUtils restUtils) {
@@ -31,8 +30,7 @@ public class RequestController implements GestoreRequestApi {
     @Override
     public Mono<ResponseEntity<RequestDto>> getRequest(String requestIdx, ServerWebExchange exchange) {
         log.info("Try to retrieve request with id -> {}", requestIdx);
-        return requestService.getRequest(requestIdx)
-                .map(retrievedClient -> restUtils.endReadRequest(retrievedClient, RequestDto.class));
+        return requestService.getRequest(requestIdx).map(retrievedClient -> restUtils.endReadRequest(retrievedClient, RequestDto.class));
     }
 
     @Override
@@ -53,8 +51,7 @@ public class RequestController implements GestoreRequestApi {
     public Mono<ResponseEntity<Void>> deleteRequest(String requestIdx, ServerWebExchange exchange) {
         log.info("Try to delete request with id -> {}", requestIdx);
         return requestService.deleteRequest(requestIdx)
-                .map(retrievedRequest -> restUtils.endDeleteRequest(retrievedRequest, RequestDto.class))
-                .thenReturn(new ResponseEntity<>(OK));
+                             .map(retrievedRequest -> restUtils.endDeleteRequest(retrievedRequest, RequestDto.class))
+                             .thenReturn(new ResponseEntity<>(OK));
     }
-
 }

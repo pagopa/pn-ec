@@ -1,119 +1,89 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
-import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
-import it.pagopa.pn.ec.repositorymanager.entity.Events;
-import it.pagopa.pn.ec.repositorymanager.entity.Request;
 import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
+import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
+import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
+import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
+import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
+import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
+import it.pagopa.pn.ec.repositorymanager.service.RequestPersonalService;
 import it.pagopa.pn.ec.repositorymanager.service.RequestService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
-import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 
-import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
+import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.createRequestFromPersonalAndMetadata;
 
 @Service
 @Slf4j
 public class RequestServiceImpl implements RequestService {
 
-    private final DynamoDbAsyncTable<Request> requestDynamoDbAsyncTable;
 
-    public RequestServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedAsyncClient,
-                              RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
-        this.requestDynamoDbAsyncTable =
-                dynamoDbEnhancedAsyncClient.table(repositoryManagerDynamoTableName.richiesteName(), TableSchema.fromBean(Request.class));
-    }
+    private final RequestPersonalService requestPersonalService;
+    private final RequestMetadataService requestMetadataService;
 
-    private void checkRequestToInsert(Request request) {
-
-        if ((request.getDigitalReq() != null && request.getPaperReq() != null) ||
-            (request.getDigitalReq() == null && request.getPaperReq() == null)) {
-            throw new RepositoryManagerException.RequestMalformedException("Valorizzare solamente un tipologia di richiesta");
-        }
-
-        List<Events> eventsList = request.getEvents();
-        if (!eventsList.isEmpty()) {
-            if (eventsList.size() > 1) {
-                throw new RepositoryManagerException.RequestMalformedException("Inserire un solo evento");
-
-            }
-            checkEvents(request, eventsList.get(0));
-        }
-    }
-
-    private void checkEvents(Request request, Events events) {
-        boolean isDigital = request.getDigitalReq() != null;
-        if ((isDigital && events.getPaperProgrStatus() != null) || (!isDigital && events.getDigProgrStatus() != null)) {
-            throw new RepositoryManagerException.RequestMalformedException("Tipo richiesta e tipo evento non compatibili");
-        }
+    public RequestServiceImpl(RequestPersonalService requestPersonalService, RequestMetadataService requestMetadataService) {
+        this.requestPersonalService = requestPersonalService;
+        this.requestMetadataService = requestMetadataService;
     }
 
     @Override
     public Mono<Request> getRequest(String requestIdx) {
-        return Mono.fromCompletionStage(requestDynamoDbAsyncTable.getItem(getKey(requestIdx)))
-                   .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
-                   .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()));
-    }
-
-    @Override
-    public Mono<Request> insertRequest(Request request) {
-        return Mono.fromCompletionStage(requestDynamoDbAsyncTable.getItem(getKey(request.getRequestId())))
-                   .handle((foundedRequest, sink) -> {
-                       if (foundedRequest != null) {
-                           sink.error(new RepositoryManagerException.IdRequestAlreadyPresent(request.getRequestId()));
-                       }
-                   })
-                   .doOnError(RepositoryManagerException.IdRequestAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(unused -> checkRequestToInsert(request))
-                   .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(unused -> {
-                       if (request.getEvents() != null && !request.getEvents().isEmpty()) {
-                           Events firstStatus = request.getEvents().get(0);
-                           if (request.getDigitalReq() != null) {
-                               request.setStatusRequest(firstStatus.getDigProgrStatus().getStatus().getValue());
-                               firstStatus.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
-                           } else {
-                               request.setStatusRequest(firstStatus.getPaperProgrStatus().getStatusDescription());
-                               firstStatus.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
-                           }
-                       }
-                       requestDynamoDbAsyncTable.putItem(builder -> builder.item(request));
-                   })
-                   .thenReturn(request);
-    }
-
-    @Override
-    public Mono<Request> updateEvents(String requestIdx, Events events) {
-        return Mono.fromCompletionStage(requestDynamoDbAsyncTable.getItem(getKey(requestIdx)))
-                   .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
-                   .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(retrievedRequest -> checkEvents(retrievedRequest, events))
-                   .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
-                   .map(retrieveRequest -> {
-                       if (events.getDigProgrStatus() != null) {
-                           retrieveRequest.setStatusRequest(events.getDigProgrStatus().getStatus().getValue());
-                           events.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
-                       } else {
-                           retrieveRequest.setStatusRequest(events.getPaperProgrStatus().getStatusDescription());
-                           events.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
-                       }
-                       retrieveRequest.getEvents().add(events);
-                       requestDynamoDbAsyncTable.updateItem(retrieveRequest);
-                       return retrieveRequest;
+        return Mono.zip(requestPersonalService.getRequestPersonal(requestIdx), requestMetadataService.getRequestMetadata(requestIdx))
+                   .map(objects -> {
+                       RequestPersonal retrievedRequestPersonal = objects.getT1();
+                       RequestMetadata retrievedRequestMetadata = objects.getT2();
+                       return createRequestFromPersonalAndMetadata(requestIdx, retrievedRequestPersonal, retrievedRequestMetadata);
                    });
     }
 
     @Override
+    public Mono<Request> insertRequest(Request request) {
+
+        String requestId = request.getRequestId();
+
+        RequestPersonal requestPersonal = request.getRequestPersonal();
+        requestPersonal.setRequestId(requestId);
+        requestPersonal.setClientRequestTimeStamp(request.getClientRequestTimeStamp());
+        requestPersonal.setRequestTimestamp(OffsetDateTime.now());
+
+        RequestMetadata requestMetadata = request.getRequestMetadata();
+        requestMetadata.setRequestId(requestId);
+        requestMetadata.setClientRequestTimeStamp(request.getClientRequestTimeStamp());
+        requestMetadata.setRequestTimestamp(OffsetDateTime.now());
+
+        if ((requestPersonal.getDigitalRequestPersonal() != null && requestMetadata.getPaperRequestMetadata() != null) ||
+            (requestPersonal.getPaperRequestPersonal() != null && requestMetadata.getDigitalRequestMetadata() != null)) {
+            throw new RepositoryManagerException.RequestMalformedException("Incompatibilità dati sensibili con metadata");
+        }
+
+        return Mono.zip(requestPersonalService.insertRequestPersonal(requestPersonal),
+                        requestMetadataService.insertRequestMetadata(requestMetadata)).map(objects -> {
+            RequestPersonal insertedRequestPersonal = objects.getT1();
+            RequestMetadata insertedRequestMetadata = objects.getT2();
+            return createRequestFromPersonalAndMetadata(requestId, insertedRequestPersonal, insertedRequestMetadata);
+        });
+    }
+
+    @Override
+    public Mono<Request> updateEvents(String requestIdx, Events events) {
+        return Mono.zip(requestPersonalService.getRequestPersonal(requestIdx),
+                        requestMetadataService.updateEventsMetadata(requestIdx, events)).map(objects -> {
+            RequestPersonal retrievedRequestPersonal = objects.getT1();
+            RequestMetadata updatedRequestMetadata = objects.getT2();
+            return createRequestFromPersonalAndMetadata(requestIdx, retrievedRequestPersonal, updatedRequestMetadata);
+        });
+    }
+
+    @Override
     public Mono<Request> deleteRequest(String requestIdx) {
-        return Mono.fromCompletionStage(requestDynamoDbAsyncTable.getItem(getKey(requestIdx)))
-                   .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
-                   .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(requestToDelete -> requestDynamoDbAsyncTable.deleteItem(getKey(requestIdx)))
-                   .map(request -> request);
+        return Mono.zip(requestPersonalService.deleteRequestPersonal(requestIdx), requestMetadataService.deleteRequestMetadata(requestIdx))
+                   .map(objects -> {
+                       RequestPersonal deletedRequestPersonal = objects.getT1();
+                       RequestMetadata deletedRequestMetadata = objects.getT2();
+                       return createRequestFromPersonalAndMetadata(requestIdx, deletedRequestPersonal, deletedRequestMetadata);
+                   });
     }
 }

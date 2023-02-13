@@ -1,12 +1,13 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
-import it.pagopa.pn.ec.repositorymanager.entity.ClientConfiguration;
 import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
+import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
 import it.pagopa.pn.ec.repositorymanager.service.ClientConfigurationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -41,7 +42,8 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
                        }
                    })
                    .doOnError(RepositoryManagerException.IdClientAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(unused -> clientConfigurationDynamoDbTable.putItem(builder -> builder.item(clientConfiguration)))
+                   .switchIfEmpty(Mono.fromCompletionStage(clientConfigurationDynamoDbTable.putItem(builder -> builder.item(
+                           clientConfiguration))))
                    .thenReturn(clientConfiguration);
     }
 
@@ -50,7 +52,8 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.getItem(getKey(cxId)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(clientConfiguration.getCxId())))
                    .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(clientConfigurationDynamoDbTable::updateItem)
+                   .zipWhen(retrievedClientConfiguration -> Mono.fromCompletionStage(clientConfigurationDynamoDbTable.updateItem(
+                           retrievedClientConfiguration)))
                    .thenReturn(clientConfiguration);
     }
 
@@ -59,7 +62,7 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.getItem(getKey(cxId)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(cxId)))
                    .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(clientToDelete -> clientConfigurationDynamoDbTable.deleteItem(getKey(cxId)))
-                   .map(clientConfiguration -> clientConfiguration);
+                   .zipWhen(clientToDelete -> Mono.fromCompletionStage(clientConfigurationDynamoDbTable.deleteItem(getKey(cxId))))
+                   .map(Tuple2::getT1);
     }
 }
