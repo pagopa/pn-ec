@@ -8,7 +8,6 @@ import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -104,9 +103,8 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                        retrieveRequestMetadata.setEventsList(eventsList);
                        return retrieveRequestMetadata;
                    })
-                   .zipWhen(requestMetadataWithEventsUpdated -> Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(
-                           requestMetadataWithEventsUpdated)))
-                   .map(Tuple2::getT2);
+                   .flatMap(requestMetadataWithEventsUpdated -> Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(
+                           requestMetadataWithEventsUpdated)));
     }
 
     @Override
@@ -114,7 +112,6 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestIdx)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                   .zipWhen(requestToDelete -> Mono.fromCompletionStage(requestMetadataDynamoDbTable.deleteItem(getKey(requestIdx))))
-                   .map(Tuple2::getT1);
+                   .flatMap(requestToDelete -> Mono.fromCompletionStage(requestMetadataDynamoDbTable.deleteItem(getKey(requestIdx))));
     }
 }

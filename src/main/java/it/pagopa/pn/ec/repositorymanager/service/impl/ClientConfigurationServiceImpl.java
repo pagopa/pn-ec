@@ -7,7 +7,6 @@ import it.pagopa.pn.ec.repositorymanager.service.ClientConfigurationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -52,9 +51,8 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.getItem(getKey(cxId)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(clientConfiguration.getCxId())))
                    .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                   .zipWhen(retrievedClientConfiguration -> Mono.fromCompletionStage(clientConfigurationDynamoDbTable.updateItem(
-                           retrievedClientConfiguration)))
-                   .thenReturn(clientConfiguration);
+                   .flatMap(retrievedClientConfiguration -> Mono.fromCompletionStage(clientConfigurationDynamoDbTable.updateItem(
+                           clientConfiguration)));
     }
 
     @Override
@@ -62,7 +60,6 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.getItem(getKey(cxId)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(cxId)))
                    .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                   .zipWhen(clientToDelete -> Mono.fromCompletionStage(clientConfigurationDynamoDbTable.deleteItem(getKey(cxId))))
-                   .map(Tuple2::getT1);
+                   .flatMap(clientToDelete -> Mono.fromCompletionStage(clientConfigurationDynamoDbTable.deleteItem(getKey(cxId))));
     }
 }
