@@ -35,7 +35,7 @@ import org.springframework.context.annotation.PropertySource;
 
 //  <-- NOTIFICATION TRACKER -->
 // EVENTBRIDGE EVENT
-@PropertySource("classpath:notificationtracker/notificationtracker-eventbridge-event.properties")
+@PropertySource("classpath:notificationtracker/notificationtracker-eventbridge-eventbuses.properties")
 
 @Slf4j
 public class EcApplication {
