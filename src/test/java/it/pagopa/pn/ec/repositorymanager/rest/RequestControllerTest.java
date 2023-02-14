@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.stream.Stream;
 
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto.EventCodeEnum.C000;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestPersonalDto.QosEnum.INTERACTIVE;
@@ -230,7 +229,7 @@ class RequestControllerTest {
         var digitalProgressStatusDto = new DigitalProgressStatusDto();
         digitalProgressStatusDto.setEventTimestamp(OffsetDateTime.now());
         digitalProgressStatusDto.setStatus(BOOKED);
-        digitalProgressStatusDto.setEventCode(C000);
+        digitalProgressStatusDto.setStatusCode(null);
         digitalProgressStatusDto.setEventDetails("");
         var generateMessageDto = new GeneratedMessageDto();
         generateMessageDto.setId("id");

@@ -7,11 +7,9 @@ import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.notificationtracker.model.NotificationResponseModel;
+import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
 import it.pagopa.pn.ec.notificationtracker.model.NtStatoError;
-import it.pagopa.pn.ec.notificationtracker.service.NotificationTrackerMessageReceiver;
-import it.pagopa.pn.ec.notificationtracker.service.PutEventsImpl;
-import it.pagopa.pn.ec.notificationtracker.service.callmachinestati.CallMachinaStatiImpl;
+import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMachinaStatiImpl;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.*;
@@ -57,7 +55,7 @@ class NotificationTrackerServiceImplTest {
         MockitoAnnotations.openMocks(this);
     }
 
-    public static final NotificationResponseModel notificationResponseModel = new NotificationResponseModel();
+    public static final MacchinaStatiValidateStatoResponseDto STATE_MACHINE_DTO = new MacchinaStatiValidateStatoResponseDto();
     public static final NotificationTrackerQueueDto notificationTrackerQueueDto = new NotificationTrackerQueueDto();
 
     @Test
@@ -74,10 +72,10 @@ class NotificationTrackerServiceImplTest {
 
         when(gestoreRepositoryCall.updateRichiesta(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
         when(putEventsImpl.putEventExternal(notificationTrackerQueueDto)).thenReturn(Mono.empty());
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
         notificationtrackerMessageReceiver.receiveSMSObjectMessage(req);
 
     }
@@ -94,10 +92,10 @@ class NotificationTrackerServiceImplTest {
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
 
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
         when(gestoreRepositoryCall.updateRichiesta(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
         notificationtrackerMessageReceiver.receiveSMSObjectMessage(req);
 
@@ -111,10 +109,10 @@ class NotificationTrackerServiceImplTest {
         String processId = "INVIO_CARTACEO";
         req.setProcessId(ProcessId.valueOf(processId));
 
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req);
         when(sqsService.send(eq(notificationTrackerSqsName.statoSmsErratoName()),
@@ -132,10 +130,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
         notificationtrackerMessageReceiver.receiveSMSObjectMessage(req);
         when(gestoreRepositoryCall.updateRichiesta(anyString(), eq(new EventsDto()))).thenThrow(EcInternalEndpointHttpException.class);
 
@@ -153,10 +151,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
 
         notificationtrackerMessageReceiver.receiveSMSObjectMessage(req);
@@ -175,10 +173,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
 
         when(gestoreRepositoryCall.updateRichiesta(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
@@ -219,10 +217,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         when(gestoreRepositoryCall.updateRichiesta(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
         when(putEventsImpl.putEventExternal(req)).thenReturn(Mono.empty());
@@ -241,10 +239,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         when(gestoreRepositoryCall.updateRichiesta(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
         notificationtrackerMessageReceiver.receiveEmailObjectMessage(req);
@@ -259,10 +257,10 @@ class NotificationTrackerServiceImplTest {
         String processId = "INVIO_CARTACEO";
         req.setProcessId(ProcessId.valueOf(processId));
 
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         notificationtrackerMessageReceiver.receiveEmailObjectMessage(req);
 
@@ -283,10 +281,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
 
         notificationtrackerMessageReceiver.receiveEmailObjectMessage(req);
@@ -303,10 +301,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         notificationtrackerMessageReceiver.receiveEmailObjectMessage(req);
         when(gestoreRepositoryCall.updateRichiesta(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
@@ -322,10 +320,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         notificationtrackerMessageReceiver.receiveEmailObjectMessage(req);
         when(gestoreRepositoryCall.updateRichiesta(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
@@ -365,10 +363,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
 
         notificationtrackerMessageReceiver.receivePecObjectMessage(req);
@@ -387,10 +385,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
 
         notificationtrackerMessageReceiver.receivePecObjectMessage(req);
@@ -406,10 +404,10 @@ class NotificationTrackerServiceImplTest {
         String processId = "INVIO_CARTACEO";
         req.setProcessId(ProcessId.valueOf(processId));
 
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         notificationtrackerMessageReceiver.receivePecObjectMessage(req);
         when(sqsService.send(eq(notificationTrackerSqsName.statoSmsErratoName()),
@@ -427,10 +425,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         notificationtrackerMessageReceiver.receivePecObjectMessage(req);
         when(gestoreRepositoryCall.updateRichiesta(anyString(), eq(new EventsDto()))).thenThrow(EcInternalEndpointHttpException.class);
@@ -447,10 +445,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         notificationtrackerMessageReceiver.receivePecObjectMessage(req);
         when(gestoreRepositoryCall.updateRichiesta(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
@@ -467,10 +465,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
 
         when(putEventsImpl.putEventExternal(req)).thenThrow(EcInternalEndpointHttpException.class);
@@ -511,10 +509,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
 
         notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req);
@@ -534,10 +532,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
 
         notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req);
@@ -554,10 +552,10 @@ class NotificationTrackerServiceImplTest {
         String processId = "INVIO_CARTACEO";
         req.setProcessId(ProcessId.valueOf(processId));
 
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req);
 
@@ -575,10 +573,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
 
         notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req);
@@ -596,10 +594,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
 
         notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req);
@@ -617,10 +615,10 @@ class NotificationTrackerServiceImplTest {
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
         String processId = req.getProcessId().toString();
-        when(callMachinaStati.getStato(processId,
-                                       req.getCurrentStatus(),
-                                       req.getXPagopaExtchCxId(),
-                                       req.getNextStatus())).thenReturn(Mono.just(notificationResponseModel));
+        when(callMachinaStati.statusValidation(processId,
+                                               req.getCurrentStatus(),
+                                               req.getXPagopaExtchCxId(),
+                                               req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
 
         notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req);

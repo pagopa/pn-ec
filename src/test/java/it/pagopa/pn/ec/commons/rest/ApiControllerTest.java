@@ -24,6 +24,4 @@ class ApiControllerTest {
                 .expectStatus()
                 .isOk();
     }
-
 }
-

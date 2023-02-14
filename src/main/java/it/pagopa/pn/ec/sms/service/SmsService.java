@@ -12,10 +12,8 @@ import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.SnsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
-import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
-import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,10 +24,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static it.pagopa.pn.ec.commons.constant.ProcessId.INVIO_SMS;
 import static it.pagopa.pn.ec.commons.service.SnsService.DEFAULT_RETRY_STRATEGY;
+import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.SMS;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus.*;
+import static java.time.OffsetDateTime.now;
 
 @Service
 @Slf4j
@@ -64,9 +64,16 @@ public class SmsService extends PresaInCaricoService {
         return insertRequestFromSms(digitalCourtesySmsRequest).then(sqsService.send(notificationTrackerSqsName.statoSmsName(),
                                                                                     new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
                                                                                                                     presaInCaricoInfo.getXPagopaExtchCxId(),
+                                                                                                                    now(),
                                                                                                                     INVIO_SMS,
                                                                                                                     null,
-                                                                                                                    BOOKED.getValue())))
+                                                                                                                    BOOKED.getValue(),
+                                                                                                                    // TODO: Populate
+                                                                                                                    //  GeneratedMessageDto
+                                                                                                                    // Use this syntax
+                                                                                                                    // new
+                                                                                                                    // GeneratedMessageDto().id("foo").location("bar").system("bla")
+                                                                                                                    new GeneratedMessageDto())))
 //                                                            Publish to SMS INTERACTIVE or SMS BATCH
                                                               .flatMap(sendMessageResponse -> {
                                                                   DigitalCourtesySmsRequest.QosEnum qos =
@@ -116,7 +123,7 @@ public class SmsService extends PresaInCaricoService {
     public void lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
 
         log.info("<-- START LAVORAZIONE RICHIESTA SMS -->");
-        log.info("Incoming message from '{}' queue with payload ↓\n{}", smsSqsQueueName.interactiveName(), smsPresaInCaricoInfo);
+        logIncomingMessage(smsSqsQueueName.interactiveName(), smsPresaInCaricoInfo);
 
         String requestId = smsPresaInCaricoInfo.getRequestIdx();
         String clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
@@ -134,9 +141,17 @@ public class SmsService extends PresaInCaricoService {
                              .flatMap(publishResponse -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
                                                                          new NotificationTrackerQueueDto(requestId,
                                                                                                          clientId,
+                                                                                                         now(),
                                                                                                          INVIO_SMS,
                                                                                                          currentRequestStatus.get(),
-                                                                                                         SENT.getValue())))
+                                                                                                         SENT.getValue(),
+                                                                                                         // TODO: Populate
+                                                                                                         //  GeneratedMessageDto
+                                                                                                         // Use this syntax new
+                                                                                                         // GeneratedMessageDto().id
+                                                                                                         // ("foo").location("bar")
+                                                                                                         // .system("bla")
+                                                                                                         new GeneratedMessageDto())))
 //                           An error occurred during SMS send, start retries
                              .onErrorResume(SnsSendException.class,
                                             snsSendException -> retrySmsSend(smsPresaInCaricoInfo, currentRequestStatus.get()))
@@ -156,7 +171,11 @@ public class SmsService extends PresaInCaricoService {
 
 //      Publish to Notification Tracker with next status -> RETRY
         return sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                               new NotificationTrackerQueueDto(requestId, clientId, INVIO_SMS, currentStatus, RETRY.getValue()))
+                               new NotificationTrackerQueueDto(requestId, clientId, now(), INVIO_SMS, currentStatus, RETRY.getValue(),
+                                                               // TODO: Populate GeneratedMessageDto
+                                                               // Use this syntax new GeneratedMessageDto().id("foo").location("bar")
+                                                               // .system("bla")
+                                                               new GeneratedMessageDto()))
 //                       Try to send SMS, retry when fail
                          .then(snsService.send(digitalCourtesySmsRequest.getReceiverDigitalAddress(),
                                                digitalCourtesySmsRequest.getMessageText()).retryWhen(DEFAULT_RETRY_STRATEGY))
@@ -164,9 +183,14 @@ public class SmsService extends PresaInCaricoService {
                          .then(sqsService.send(notificationTrackerSqsName.statoSmsName(),
                                                new NotificationTrackerQueueDto(requestId,
                                                                                clientId,
+                                                                               now(),
                                                                                INVIO_SMS,
                                                                                RETRY.getValue(),
-                                                                               SENT.getValue())))
+                                                                               SENT.getValue(),
+                                                                               // TODO: Populate GeneratedMessageDto
+                                                                               // Use this syntax new GeneratedMessageDto().id("foo")
+                                                                               // .location("bar").system("bla")
+                                                                               new GeneratedMessageDto())))
 //                       The maximum number of retries has ended
                          .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
                                         snsMaxRetriesExceeded -> smsRetriesExceeded(smsPresaInCaricoInfo));
@@ -183,9 +207,17 @@ public class SmsService extends PresaInCaricoService {
                                     .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
                                                                            new NotificationTrackerQueueDto(requestId,
                                                                                                            clientId,
+                                                                                                           now(),
                                                                                                            INVIO_SMS,
                                                                                                            requestDto.getStatusRequest(),
-                                                                                                           ERROR.getValue())))
+                                                                                                           ERROR.getValue(),
+                                                                                                           // TODO: Populate
+                                                                                                           //  GeneratedMessageDto
+                                                                                                           // Use this syntax new
+                                                                                                           // GeneratedMessageDto().id
+                                                                                                           // ("foo").location("bar")
+                                                                                                           // .system("bla")
+                                                                                                           new GeneratedMessageDto())))
 //                                  Publish to ERRORI SMS queue
                                     .then(sqsService.send(smsSqsQueueName.errorName(), smsPresaInCaricoInfo));
     }

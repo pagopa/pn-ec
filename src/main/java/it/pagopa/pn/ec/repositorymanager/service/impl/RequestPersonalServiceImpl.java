@@ -7,7 +7,6 @@ import it.pagopa.pn.ec.repositorymanager.service.RequestPersonalService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -61,7 +60,6 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
         return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(requestIdx)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                   .zipWhen(requestToDelete -> Mono.fromCompletionStage(requestPersonalDynamoDbTable.deleteItem(getKey(requestIdx))))
-                   .map(Tuple2::getT1);
+                   .flatMap(requestToDelete -> Mono.fromCompletionStage(requestPersonalDynamoDbTable.deleteItem(getKey(requestIdx))));
     }
 }
