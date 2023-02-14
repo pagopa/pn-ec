@@ -32,7 +32,7 @@ import static org.mockito.Mockito.*;
 
 
 @SpringBootTestWebEnv
-class SmsServiceTest{
+class SmsServiceTest {
 
     @Autowired
     private SmsService smsService;
@@ -91,7 +91,6 @@ class SmsServiceTest{
         REQUEST_IN_BOOKED_STATUS.setStatusRequest(BOOKED.getValue());
     }
 
-
     /**
      * <h3>SMSLR.107.1</h3>
      * <b>Precondizione:</b> Pull di un payload dalla coda "SMS"
@@ -105,6 +104,7 @@ class SmsServiceTest{
 
         // TODO: Eliminare il mock una volta sistemato l'ambiente Localstack
         when(snsService.send(anyString(), anyString())).thenReturn(Mono.just(PublishResponse.builder().build()));
+
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.just(REQUEST_IN_BOOKED_STATUS));
 
         smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO);
@@ -129,8 +129,10 @@ class SmsServiceTest{
     @Test
     void lavorazioneRichiestaOkWithRetry() {
 
+        // TODO: Eliminare il mock una volta sistemato l'ambiente Localstack
         when(snsService.send(anyString(), anyString())).thenReturn(Mono.error(new SnsSendException()))
                                                        .thenReturn(Mono.just(PublishResponse.builder().build()));
+
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.just(REQUEST_IN_BOOKED_STATUS));
 
         smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO);
@@ -163,6 +165,7 @@ class SmsServiceTest{
 
         // TODO: Eliminare il mock una volta sistemato l'ambiente Localstack
         when(snsService.send(anyString(), anyString())).thenReturn(Mono.just(PublishResponse.builder().build()));
+
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.just(REQUEST_IN_BOOKED_STATUS));
         when(sqsService.send(notificationTrackerSqsName.statoSmsName(), NT_DTO_BOOKED_SENT)).thenReturn(Mono.error(new SqsPublishException(
                 notificationTrackerSqsName.statoSmsName())));
@@ -170,7 +173,7 @@ class SmsServiceTest{
         smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO);
 
         verify(gestoreRepositoryCall, times(1)).getRichiesta(SMS_PRESA_IN_CARICO_INFO.getRequestIdx());
-        verify(sqsService, times(1)).send(notificationTrackerSqsName.statoSmsName(), NT_DTO_BOOKED_SENT);
-        verify(sqsService, times(1)).send(smsSqsQueueName.errorName(), SMS_PRESA_IN_CARICO_INFO);
+        verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class));
+        verify(sqsService, times(1)).send(eq(smsSqsQueueName.errorName()), any(NotificationTrackerQueueDto.class));
     }
 }

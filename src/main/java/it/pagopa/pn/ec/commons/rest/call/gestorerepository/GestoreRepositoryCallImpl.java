@@ -65,7 +65,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     }
 
     @Override
-    public Mono<RequestDto> insertRichiesta(RequestDto requestDto) {
+    public Mono<RequestDto> insertRichiesta(RequestDto requestDto) throws RestCallException.ResourceNotFoundException{
         return ecWebClient.post()
                           .uri(gestoreRepositoryEndpointProperties.postRequest())
                           .body(BodyInserters.fromValue(requestDto))
@@ -76,7 +76,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     }
 
     @Override
-    public Mono<RequestDto> updateRichiesta(String requestIdx, EventsDto eventsDto) {
+    public Mono<RequestDto> updateRichiesta(String requestIdx, EventsDto eventsDto) throws RestCallException.ResourceNotFoundException {
         return ecWebClient.put()
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(requestIdx))
                           .bodyValue(eventsDto)
