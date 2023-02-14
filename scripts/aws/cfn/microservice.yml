@@ -242,6 +242,7 @@ Resources:
               - 'dynamodb:PartiQL*'
               - 'dynamodb:Update*'
               - 'dynamodb:Put*'
+              - 'dynamodb:DeleteItem'
             Resource:
               - !Sub '${PnEcTableArnAnagrafica}'
               - !Sub '${PnEcTableArnRichieste}'
