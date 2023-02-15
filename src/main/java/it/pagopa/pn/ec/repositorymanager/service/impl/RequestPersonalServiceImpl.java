@@ -25,14 +25,6 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
                                                                          TableSchema.fromBean(RequestPersonal.class));
     }
 
-    private void checkRequestPersonalToInsert(RequestPersonal requestPersonal) {
-
-        if ((requestPersonal.getDigitalRequestPersonal() != null && requestPersonal.getPaperRequestPersonal() != null) ||
-            (requestPersonal.getDigitalRequestPersonal() == null && requestPersonal.getPaperRequestPersonal() == null)) {
-            throw new RepositoryManagerException.RequestMalformedException("Valorizzare solamente un tipologia di richiesta personal");
-        }
-    }
-
     @Override
     public Mono<RequestPersonal> getRequestPersonal(String requestIdx) {
         return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(requestIdx)))
@@ -43,15 +35,18 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
     @Override
     public Mono<RequestPersonal> insertRequestPersonal(RequestPersonal requestPersonal) {
         return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(requestPersonal.getRequestId())))
-                   .handle((foundedRequest, sink) -> {
-                       if (foundedRequest != null) {
-                           sink.error(new RepositoryManagerException.IdRequestAlreadyPresent(requestPersonal.getRequestId()));
-                       }
-                   })
+                   .flatMap(foundedRequest -> Mono.error(new RepositoryManagerException.IdRequestAlreadyPresent(requestPersonal.getRequestId())))
                    .doOnError(RepositoryManagerException.IdRequestAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(unused -> checkRequestPersonalToInsert(requestPersonal))
-                   .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
-                   .switchIfEmpty(Mono.fromCompletionStage(requestPersonalDynamoDbTable.putItem(builder -> builder.item(requestPersonal))))
+                   .switchIfEmpty(Mono.just(requestPersonal))
+                   .flatMap(unused -> {
+                       if ((requestPersonal.getDigitalRequestPersonal() != null && requestPersonal.getPaperRequestPersonal() != null) ||
+                           (requestPersonal.getDigitalRequestPersonal() == null && requestPersonal.getPaperRequestPersonal() == null)) {
+                           return Mono.error(new RepositoryManagerException.RequestMalformedException(
+                                   "Valorizzare solamente un tipologia di richiesta personal"));
+                       }
+                       return Mono.fromCompletionStage(requestPersonalDynamoDbTable.putItem(builder -> builder.item(requestPersonal)));
+                   })
+                   .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.error(throwable.getMessage()))
                    .thenReturn(requestPersonal);
     }
 

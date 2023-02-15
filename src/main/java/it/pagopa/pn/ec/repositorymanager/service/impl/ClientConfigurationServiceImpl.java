@@ -35,13 +35,11 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
     @Override
     public Mono<ClientConfiguration> insertClient(ClientConfiguration clientConfiguration) {
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.getItem(getKey(clientConfiguration.getCxId())))
-                   .handle((foundedClient, sink) -> {
-                       if (foundedClient != null) {
-                           sink.error(new RepositoryManagerException.IdClientAlreadyPresent(clientConfiguration.getCxId()));
-                       }
-                   })
+                   .flatMap(foundedClientConfiguration -> Mono.error(new RepositoryManagerException.IdClientAlreadyPresent(
+                           clientConfiguration.getCxId())))
                    .doOnError(RepositoryManagerException.IdClientAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
-                   .switchIfEmpty(Mono.fromCompletionStage(clientConfigurationDynamoDbTable.putItem(builder -> builder.item(
+                   .switchIfEmpty(Mono.just(clientConfiguration))
+                   .flatMap(unused -> Mono.fromCompletionStage(clientConfigurationDynamoDbTable.putItem(builder -> builder.item(
                            clientConfiguration))))
                    .thenReturn(clientConfiguration);
     }

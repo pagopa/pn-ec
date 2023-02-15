@@ -41,7 +41,7 @@ public class PutEventsImpl implements PutEvents {
                                                               .source("NOTIFICATION TRACKER")
                                                               .detailType(eventInfo.getProcessId().toString())
                                                               .detail(toJson(eventInfo))
-                                                              .eventBusName(notificationTrackerEventBridgeEventName.eventName())
+                                                              .eventBusName(notificationTrackerEventBridgeEventName.notificationsBusName())
                                                               .build();
         log.info(">>> publish event to EventBridge {} ", reqEntry);
 
