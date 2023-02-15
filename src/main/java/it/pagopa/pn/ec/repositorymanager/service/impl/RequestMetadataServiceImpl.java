@@ -30,14 +30,6 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                                                                          TableSchema.fromBean(RequestMetadata.class));
     }
 
-    private void checkRequestMetadataToInsert(RequestMetadata requestMetadata) {
-
-        if ((requestMetadata.getDigitalRequestMetadata() != null && requestMetadata.getPaperRequestMetadata() != null) ||
-            (requestMetadata.getDigitalRequestMetadata() == null && requestMetadata.getPaperRequestMetadata() == null)) {
-            throw new RepositoryManagerException.RequestMalformedException("Valorizzare solamente un tipologia di richiesta metadata");
-        }
-    }
-
     private void checkEventsMetadata(RequestMetadata requestMetadata, Events events) {
         boolean isDigital = requestMetadata.getDigitalRequestMetadata() != null;
         if ((isDigital && events.getPaperProgrStatus() != null) || (!isDigital && events.getDigProgrStatus() != null)) {
@@ -56,27 +48,18 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     @Override
     public Mono<RequestMetadata> insertRequestMetadata(RequestMetadata requestMetadata) {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestMetadata.getRequestId())))
-                   .handle((foundedRequest, sink) -> {
-                       if (foundedRequest != null) {
-                           sink.error(new RepositoryManagerException.IdRequestAlreadyPresent(requestMetadata.getRequestId()));
-                       }
-                   })
+                   .flatMap(foundedRequest -> Mono.error(new RepositoryManagerException.IdRequestAlreadyPresent(requestMetadata.getRequestId())))
                    .doOnError(RepositoryManagerException.IdRequestAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(unused -> checkRequestMetadataToInsert(requestMetadata))
-                   .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
-                   .doOnSuccess(unused -> {
-                       if (requestMetadata.getEventsList() != null && !requestMetadata.getEventsList().isEmpty()) {
-                           Events firstStatus = requestMetadata.getEventsList().get(0);
-                           if (requestMetadata.getDigitalRequestMetadata() != null) {
-                               requestMetadata.setStatusRequest(firstStatus.getDigProgrStatus().getStatus().getValue());
-                               firstStatus.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
-                           } else {
-                               requestMetadata.setStatusRequest(firstStatus.getPaperProgrStatus().getStatusDescription());
-                               firstStatus.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
-                           }
+                   .switchIfEmpty(Mono.just(requestMetadata))
+                   .flatMap(unused -> {
+                       if ((requestMetadata.getDigitalRequestMetadata() != null && requestMetadata.getPaperRequestMetadata() != null) ||
+                           (requestMetadata.getDigitalRequestMetadata() == null && requestMetadata.getPaperRequestMetadata() == null)) {
+                           return Mono.error(new RepositoryManagerException.RequestMalformedException(
+                                   "Valorizzare solamente un tipologia di richiesta metadata"));
                        }
+                       return Mono.fromCompletionStage(requestMetadataDynamoDbTable.putItem(builder -> builder.item(requestMetadata)));
                    })
-                   .switchIfEmpty(Mono.fromCompletionStage(requestMetadataDynamoDbTable.putItem(builder -> builder.item(requestMetadata))))
+                   .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.error(throwable.getMessage()))
                    .thenReturn(requestMetadata);
     }
 
