@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.rest.error;
 
-import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
+import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;

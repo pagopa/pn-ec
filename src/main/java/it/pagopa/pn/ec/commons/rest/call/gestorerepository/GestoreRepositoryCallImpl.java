@@ -34,7 +34,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
                                                        .build(xPagopaExtchCxId))
                           .retrieve()
                           .onStatus(BAD_REQUEST::equals,
-                                    clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException("Client not " + "found")))
+                                    clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException("Client not found")))
                           .bodyToMono(ClientConfigurationDto.class);
     }
 
@@ -60,18 +60,19 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(requestIdx))
                           .retrieve()
                           .onStatus(BAD_REQUEST::equals,
-                                    clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException("Request not " + "found")))
+                                    clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException("Request not found")))
                           .bodyToMono(RequestDto.class);
     }
 
     @Override
-    public Mono<RequestDto> insertRichiesta(RequestDto requestDto) throws RestCallException.ResourceNotFoundException{
+    public Mono<RequestDto> insertRichiesta(RequestDto requestDto) throws RestCallException.ResourceNotFoundException {
         return ecWebClient.post()
                           .uri(gestoreRepositoryEndpointProperties.postRequest())
                           .body(BodyInserters.fromValue(requestDto))
                           .retrieve()
                           .onStatus(FORBIDDEN::equals,
-                                    clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException("Request already exists")))
+                                    clientResponse -> Mono.error(new RestCallException.ResourceAlreadyExistsException(
+                                            "Request already exists")))
                           .bodyToMono(RequestDto.class);
     }
 
@@ -82,8 +83,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
                           .bodyValue(eventsDto)
                           .retrieve()
                           .onStatus(BAD_REQUEST::equals,
-                                    clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException(
-                                            "Request requestIdx not  " + "found")))
+                                    clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException("Request not found")))
                           .bodyToMono(RequestDto.class);
     }
 

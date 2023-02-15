@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.repositorymanager.exception;
+package it.pagopa.pn.ec.commons.exception;
 
 public class RepositoryManagerException extends RuntimeException {
 
