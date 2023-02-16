@@ -16,6 +16,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -193,7 +194,7 @@ class RequestControllerTest {
                  .body(BodyInserters.fromValue(digitalRequest))
                  .exchange()
                  .expectStatus()
-                 .isForbidden();
+                 .isEqualTo(HttpStatus.CONFLICT);
     }
 
     //test.101.1

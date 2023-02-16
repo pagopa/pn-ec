@@ -11,8 +11,7 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.*;
 
 @Service
 @Slf4j
@@ -70,7 +69,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
                           .uri(gestoreRepositoryEndpointProperties.postRequest())
                           .body(BodyInserters.fromValue(requestDto))
                           .retrieve()
-                          .onStatus(FORBIDDEN::equals,
+                          .onStatus(CONFLICT::equals,
                                     clientResponse -> Mono.error(new RestCallException.ResourceAlreadyExistsException(
                                             "Request already exists")))
                           .bodyToMono(RequestDto.class);

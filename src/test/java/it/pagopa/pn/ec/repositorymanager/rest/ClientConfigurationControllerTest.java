@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -79,7 +80,7 @@ class ClientConfigurationControllerTest {
                  .body(BodyInserters.fromValue(clientConfigurationDto))
                  .exchange()
                  .expectStatus()
-                 .isForbidden();
+                 .isEqualTo(HttpStatus.CONFLICT);
     }
 
     //test.101.1
