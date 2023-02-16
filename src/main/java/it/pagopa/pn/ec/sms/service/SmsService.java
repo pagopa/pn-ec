@@ -28,6 +28,7 @@ import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.SMS;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus.*;
 import static java.time.OffsetDateTime.now;
 
@@ -103,6 +104,7 @@ public class SmsService extends PresaInCaricoService {
             digitalRequestPersonalDto.setReceiverDigitalAddress(digitalCourtesySmsRequest.getReceiverDigitalAddress());
             digitalRequestPersonalDto.setMessageText(digitalCourtesySmsRequest.getMessageText());
             digitalRequestPersonalDto.setSenderDigitalAddress(digitalCourtesySmsRequest.getSenderDigitalAddress());
+            digitalRequestPersonalDto.setSubjectText("");
             requestPersonalDto.setDigitalRequestPersonal(digitalRequestPersonalDto);
 
             var requestMetadataDto = new RequestMetadataDto();
@@ -110,6 +112,7 @@ public class SmsService extends PresaInCaricoService {
             digitalRequestMetadataDto.setCorrelationId(digitalCourtesySmsRequest.getCorrelationId());
             digitalRequestMetadataDto.setEventType(digitalCourtesySmsRequest.getEventType());
             digitalRequestMetadataDto.setTags(digitalCourtesySmsRequest.getTags());
+            digitalRequestMetadataDto.setMessageContentType(PLAIN);
             digitalRequestMetadataDto.setChannel(SMS);
             requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
 
