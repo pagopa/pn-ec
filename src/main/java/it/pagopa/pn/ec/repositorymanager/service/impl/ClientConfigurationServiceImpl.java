@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
-import it.pagopa.pn.ec.repositorymanager.exception.RepositoryManagerException;
+import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
 import it.pagopa.pn.ec.repositorymanager.service.ClientConfigurationService;
 import lombok.extern.slf4j.Slf4j;

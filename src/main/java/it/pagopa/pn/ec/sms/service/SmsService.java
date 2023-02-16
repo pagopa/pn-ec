@@ -3,10 +3,12 @@ package it.pagopa.pn.ec.sms.service;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
@@ -17,9 +19,12 @@ import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static it.pagopa.pn.ec.commons.constant.ProcessId.INVIO_SMS;
@@ -37,10 +42,10 @@ public class SmsService extends PresaInCaricoService {
 
     private final SqsService sqsService;
     private final SnsService snsService;
+    private final AuthService authService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final SmsSqsQueueName smsSqsQueueName;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
-
 
     protected SmsService(AuthService authService, SqsService sqsService, SnsService snsService,
                          GestoreRepositoryCall gestoreRepositoryCall, NotificationTrackerSqsName notificationTrackerSqsName,
@@ -48,6 +53,7 @@ public class SmsService extends PresaInCaricoService {
         super(authService, gestoreRepositoryCall);
         this.sqsService = sqsService;
         this.snsService = snsService;
+        this.authService = authService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.smsSqsQueueName = smsSqsQueueName;
@@ -69,7 +75,7 @@ public class SmsService extends PresaInCaricoService {
                                                                                                                     null,
                                                                                                                     BOOKED.getValue(),
                                                                                                                     // TODO: Populate
-                                                                                                                    //  GeneratedMessageDto
+                                                                                                                    // GeneratedMessageDto
                                                                                                                     // Use this syntax
                                                                                                                     // new
                                                                                                                     // GeneratedMessageDto().id("foo").location("bar").system("bla")
@@ -146,7 +152,7 @@ public class SmsService extends PresaInCaricoService {
                                                                                                          currentRequestStatus.get(),
                                                                                                          SENT.getValue(),
                                                                                                          // TODO: Populate
-                                                                                                         //  GeneratedMessageDto
+                                                                                                         // GeneratedMessageDto
                                                                                                          // Use this syntax new
                                                                                                          // GeneratedMessageDto().id
                                                                                                          // ("foo").location("bar")
@@ -212,7 +218,7 @@ public class SmsService extends PresaInCaricoService {
                                                                                                            requestDto.getStatusRequest(),
                                                                                                            ERROR.getValue(),
                                                                                                            // TODO: Populate
-                                                                                                           //  GeneratedMessageDto
+                                                                                                           // GeneratedMessageDto
                                                                                                            // Use this syntax new
                                                                                                            // GeneratedMessageDto().id
                                                                                                            // ("foo").location("bar")
@@ -220,5 +226,45 @@ public class SmsService extends PresaInCaricoService {
                                                                                                            new GeneratedMessageDto())))
 //                                  Publish to ERRORI SMS queue
                                     .then(sqsService.send(smsSqsQueueName.errorName(), smsPresaInCaricoInfo));
+    }
+
+    public Flux<CourtesyMessageProgressEvent> getCourtesyShortMessageStatus(String requestIdx, String xPagopaExtchCxId) {
+
+        return authService.clientAuth(xPagopaExtchCxId)
+                          .then(gestoreRepositoryCall.getRichiesta(requestIdx))
+                          .onErrorResume(RestCallException.ResourceNotFoundException.class,
+                                             e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
+                          .map(requestDTO -> {
+                              var eventsListDTO = requestDTO.getRequestMetadata().getEventsList();
+                              List<CourtesyMessageProgressEvent> eventsList = new ArrayList<>();
+
+                              if (eventsListDTO != null && !eventsListDTO.isEmpty()) {
+                                  for (EventsDto eventDTO : eventsListDTO) {
+
+                                      var event = new CourtesyMessageProgressEvent();
+                                      var digProgrStatus = eventDTO.getDigProgrStatus();
+
+                                      event.setRequestId(requestIdx);
+                                      event.setEventDetails(digProgrStatus.getEventDetails());
+                                      event.setEventTimestamp(digProgrStatus.getEventTimestamp());
+
+                                      // TODO: MAP INTERNAL STATUS CODE TO EXTERNAL STATUS
+                                      event.setStatus(null);
+                                      event.setEventCode(null);
+
+                                      var generatedMessageDTO = digProgrStatus.getGeneratedMessage();
+                                      var digitalMessageReference = new DigitalMessageReference();
+                                      digitalMessageReference.setId(generatedMessageDTO.getId());
+                                      digitalMessageReference.setLocation(generatedMessageDTO.getLocation());
+                                      digitalMessageReference.setSystem(generatedMessageDTO.getSystem());
+
+                                      event.setGeneratedMessage(digitalMessageReference);
+
+                                      eventsList.add(event);
+                                  }
+                              }
+                              return eventsList;
+                          })
+                          .flatMapIterable(courtesyMessageProgressEvents -> courtesyMessageProgressEvents);
     }
 }
