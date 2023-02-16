@@ -47,10 +47,12 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
     @Override
     public Mono<ClientConfiguration> updateClient(String cxId, ClientConfiguration clientConfiguration) {
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.getItem(getKey(cxId)))
-                   .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(clientConfiguration.getCxId())))
+                   .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(cxId)))
                    .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                   .flatMap(retrievedClientConfiguration -> Mono.fromCompletionStage(clientConfigurationDynamoDbTable.updateItem(
-                           clientConfiguration)));
+                   .flatMap(retrievedClientConfiguration -> {
+                       retrievedClientConfiguration.setCxId(cxId);
+                       return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.updateItem(clientConfiguration));
+                   });
     }
 
     @Override

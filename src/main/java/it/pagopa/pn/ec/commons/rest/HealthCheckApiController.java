@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.common.rest;
+package it.pagopa.pn.ec.commons.rest;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;

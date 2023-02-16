@@ -1,8 +1,6 @@
 package it.pagopa.pn.ec.commons.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.pagopa.pn.ec.commons.exception.sqs.SqsConvertToJsonPayloadException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import lombok.extern.slf4j.Slf4j;
@@ -10,8 +8,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
-
-import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @Slf4j
@@ -27,17 +23,15 @@ public class SqsServiceImpl implements SqsService {
 
     @Override
     public <T> Mono<SendMessageResponse> send(String queueName, T queuePayload) throws SqsPublishException {
-        AtomicReference<String> jsonPayload = new AtomicReference<>("");
-        return Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> {
-            try {
-                jsonPayload.set(objectMapper.writeValueAsString(queuePayload));
-                builder.queueUrl(queueName).messageBody(jsonPayload.get());
-            } catch (JsonProcessingException e) {
-                throw new SqsConvertToJsonPayloadException(queuePayload);
-            }
-        })).onErrorResume(throwable -> {
-            log.error(throwable.getMessage(), throwable);
-            return Mono.error(new SqsPublishException(queueName));
-        }).doOnSuccess(sendMessageResponse -> log.info("Publish on {} with payload {}", queueName, jsonPayload.get()));
+        return Mono.fromCallable(() -> objectMapper.writeValueAsString(queuePayload))
+                   .doOnNext(sendMessageResponse -> log.info("Try to publish on {} with payload {}", queueName, sendMessageResponse))
+                   .flatMap(jsonPayload -> Mono.fromCompletionStage(sqsAsyncClient.getQueueUrl(builder -> builder.queueName(queueName))
+                                                                                  .thenCompose(queueUrlResult -> sqsAsyncClient.sendMessage(
+                                                                                          builder -> builder.queueUrl(queueUrlResult.queueUrl())
+                                                                                                            .messageBody(jsonPayload)))))
+                   .onErrorResume(throwable -> {
+                       log.error(throwable.getMessage(), throwable);
+                       return Mono.error(new SqsPublishException(queueName));
+                   });
     }
 }
