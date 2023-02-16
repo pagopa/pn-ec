@@ -33,7 +33,8 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
 	@Override
 	public Mono<ResponseEntity<Flux<CourtesyMessageProgressEvent>>> getCourtesyShortMessageStatus(String requestIdx,
 			String xPagopaExtchCxId, ServerWebExchange exchange) {
-		return DigitalCourtesyMessagesApi.super.getCourtesyShortMessageStatus(requestIdx, xPagopaExtchCxId, exchange);
+		return Mono.just(ResponseEntity.ok(smsService.getCourtesyShortMessageStatus(requestIdx, xPagopaExtchCxId)));
+
 	}
 
 	@Override
@@ -42,6 +43,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
 		return digitalCourtesySmsRequest.doOnNext(request -> log.info("<-- Start presa in carico -->")).flatMap(
 				request -> smsService.presaInCarico(new SmsPresaInCaricoInfo(requestIdx, xPagopaExtchCxId, request)))
 				.thenReturn(new ResponseEntity<>(OK));
+
 	}
 
 	/*
@@ -59,7 +61,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
 		return digitalCourtesyMailRequest.doOnNext(request -> log.info("<-- Start presa in email -->"))
 				.flatMap(request -> emailService
 						.presaInCarico(new EmailPresaInCaricoInfo(requestIdx, xPagopaExtchCxId, request)))
-				.then(Mono.just(new ResponseEntity<>(OK)));
+				.thenReturn(new ResponseEntity<>(OK));
 	}
 
 	@Override
@@ -68,5 +70,4 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
 
 		return Mono.just(ResponseEntity.ok(emailService.getDigitalCourtesyMessageStatus(requestIdx, xPagopaExtchCxId)));
 	}
-
 }
