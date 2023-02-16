@@ -73,7 +73,7 @@ paths:
       responses:
         200:
           $ref: '#/components/responses/clientResponseOk'
-        403:
+        409:
           $ref: '#/components/responses/requestedItemAlreadyExist'
 
   /external-channel/gestoreRepository/requests/{requestIdx}:
@@ -127,7 +127,7 @@ paths:
       responses:
         200:
           $ref: '#/components/responses/requestResponseOk'
-        403:
+        409:
           $ref: '#/components/responses/requestedItemAlreadyExist'
 
 components:

@@ -14,13 +14,13 @@ import static org.springframework.http.HttpStatus.*;
 public class RepositoryManagerErrorHandler {
 
     @ExceptionHandler({RepositoryManagerException.IdClientAlreadyPresent.class, RepositoryManagerException.IdRequestAlreadyPresent.class})
-    public final ResponseEntity<Problem> handleForbiddenIdClient(Exception exception) {
+    public final ResponseEntity<Problem> handleConflictIdClient(Exception exception) {
         var problem = new Problem();
-        problem.setStatus(FORBIDDEN.value());
+        problem.setStatus(CONFLICT.value());
         problem.setTitle("Resource already exists");
         problem.setDetail(exception.getMessage());
         problem.setTraceId(UUID.randomUUID().toString());
-        return new ResponseEntity<>(problem, FORBIDDEN);
+        return new ResponseEntity<>(problem, CONFLICT);
     }
 
     @ExceptionHandler({RepositoryManagerException.IdClientNotFoundException.class,
