@@ -40,4 +40,8 @@ public class RestUtils {
         log.info("Deleted {} ↓\n{}", entity.getClass().getSimpleName(), entity);
         return ResponseEntity.ok(objectMapper.convertValue(entity, dto));
     }
+
+    public <E, D> D dtoToEntity(E entity, Class<D> dto) {
+        return objectMapper.convertValue(entity, dto);
+    }
 }

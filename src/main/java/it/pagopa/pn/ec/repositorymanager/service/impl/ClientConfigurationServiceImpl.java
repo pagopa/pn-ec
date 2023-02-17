@@ -6,6 +6,7 @@ import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
 import it.pagopa.pn.ec.repositorymanager.service.ClientConfigurationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
@@ -23,6 +24,11 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
                                           RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
         this.clientConfigurationDynamoDbTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.anagraficaClientName(),
                                                                              TableSchema.fromBean(ClientConfiguration.class));
+    }
+
+    @Override
+    public Flux<ClientConfiguration> getAllClient() {
+        return Flux.from(clientConfigurationDynamoDbTable.scan().items());
     }
 
     @Override
