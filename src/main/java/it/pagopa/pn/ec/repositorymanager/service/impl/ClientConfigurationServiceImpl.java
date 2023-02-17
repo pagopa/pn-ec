@@ -57,7 +57,12 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
                    .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
                    .flatMap(retrievedClientConfiguration -> {
                        retrievedClientConfiguration.setCxId(cxId);
-                       return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.updateItem(clientConfiguration));
+                       retrievedClientConfiguration.setSqsArn(clientConfiguration.getSqsArn());
+                       retrievedClientConfiguration.setSqsName(clientConfiguration.getSqsArn());
+                       retrievedClientConfiguration.setMailReplyTo(clientConfiguration.getMailReplyTo());
+                       retrievedClientConfiguration.setPecReplyTo(clientConfiguration.getPecReplyTo());
+                       retrievedClientConfiguration.setSenderPhysicalAddress(clientConfiguration.getSenderPhysicalAddress());
+                       return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.updateItem(retrievedClientConfiguration));
                    });
     }
 
