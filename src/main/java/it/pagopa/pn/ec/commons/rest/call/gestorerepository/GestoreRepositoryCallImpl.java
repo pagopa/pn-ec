@@ -32,7 +32,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getClientConfiguration())
                                                        .build(xPagopaExtchCxId))
                           .retrieve()
-                          .onStatus(BAD_REQUEST::equals,
+                          .onStatus(NOT_FOUND::equals,
                                     clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException("Client not found")))
                           .bodyToMono(ClientConfigurationDto.class);
     }
@@ -58,7 +58,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
         return ecWebClient.get()
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(requestIdx))
                           .retrieve()
-                          .onStatus(BAD_REQUEST::equals,
+                          .onStatus(NOT_FOUND::equals,
                                     clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException("Request not found")))
                           .bodyToMono(RequestDto.class);
     }
@@ -81,7 +81,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(requestIdx))
                           .bodyValue(eventsDto)
                           .retrieve()
-                          .onStatus(BAD_REQUEST::equals,
+                          .onStatus(NOT_FOUND::equals,
                                     clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException("Request not found")))
                           .bodyToMono(RequestDto.class);
     }
