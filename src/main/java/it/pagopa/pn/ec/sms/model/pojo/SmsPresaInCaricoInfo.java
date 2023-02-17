@@ -13,6 +13,7 @@ import lombok.experimental.FieldDefaults;
 public class SmsPresaInCaricoInfo extends PresaInCaricoInfo {
 
     DigitalCourtesySmsRequest digitalCourtesySmsRequest;
+    String statusAfterStart;
 
     public SmsPresaInCaricoInfo(String requestIdx, String xPagopaExtchCxId, DigitalCourtesySmsRequest digitalCourtesySmsRequest) {
         super(requestIdx, xPagopaExtchCxId);

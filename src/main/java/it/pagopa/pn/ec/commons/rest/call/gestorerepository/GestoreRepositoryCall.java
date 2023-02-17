@@ -18,6 +18,6 @@ public interface GestoreRepositoryCall {
 //  <-- REQUEST -->
     Mono<RequestDto> getRichiesta(String requestIdx) throws RestCallException.ResourceNotFoundException;
     Mono<RequestDto> insertRichiesta(RequestDto requestDto) throws RestCallException.ResourceNotFoundException;
-    Mono<RequestDto> updateRichiesta(String requestIdx, EventsDto eventsDto) throws RestCallException.ResourceNotFoundException;
+    Mono<RequestDto> patchRichiestaEvent(String requestIdx, EventsDto eventsDto) throws RestCallException.ResourceNotFoundException;
     Mono<Void> deleteRichiesta(String requestIdx);
 }

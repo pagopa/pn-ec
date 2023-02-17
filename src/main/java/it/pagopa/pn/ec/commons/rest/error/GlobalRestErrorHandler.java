@@ -5,7 +5,7 @@ import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.RequestAlreadyInProgressException;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.exception.ss.AttachmentNotAvailableException;
+import it.pagopa.pn.ec.commons.exception.ss.GetFileError;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
 import it.pagopa.pn.ec.rest.v1.dto.ProblemError;
 import lombok.extern.slf4j.Slf4j;
@@ -87,13 +87,13 @@ public class GlobalRestErrorHandler {
         return new ResponseEntity<>(problem, CONFLICT);
     }
 
-    @ExceptionHandler(AttachmentNotAvailableException.class)
-    public final ResponseEntity<Problem> handleAttachmentNotAvailable(AttachmentNotAvailableException exception) {
+    @ExceptionHandler(GetFileError.class)
+    public final ResponseEntity<Problem> handleGetFileFromSsError(GetFileError exception) {
         var problem = new Problem();
-        problem.setStatus(NOT_FOUND.value());
-        problem.setTitle("Attachment not found");
+        problem.setStatus(BAD_REQUEST.value());
+        problem.setTitle("Retrieve attachment error");
         problem.setDetail(exception.getMessage());
         problem.setTraceId(UUID.randomUUID().toString());
-        return new ResponseEntity<>(problem, NOT_FOUND);
+        return new ResponseEntity<>(problem, BAD_REQUEST);
     }
 }

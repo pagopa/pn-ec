@@ -16,6 +16,8 @@ import org.springframework.context.annotation.PropertySource;
 @PropertySource("classpath:commons/internal-endpoint.properties")
 // NOTIFICATION TRACKER QUEUE
 @PropertySource("classpath:commons/notification-tracker-sqs-queue.properties")
+// TRANSACTION PROCESS
+@PropertySource("classpath:commons/transaction-process.properties")
 
 //  <-- REPOSITORY MANAGER -->
 // DYNAMO TABLES

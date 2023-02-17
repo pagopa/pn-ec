@@ -1,7 +1,5 @@
 package it.pagopa.pn.ec.commons.model.pojo;
 
-import it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatusCode;
 import it.pagopa.pn.ec.rest.v1.dto.ProgressEventCategory;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -13,7 +11,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 public class DigitalStatusWrapper {
 
-    DigitalRequestStatus digitalRequestStatus;
-    DigitalRequestStatusCode digitalRequestStatusCode;
+    String digitalRequestStatus;
+    String digitalRequestStatusCode;
     ProgressEventCategory progressEventCategory;
 }

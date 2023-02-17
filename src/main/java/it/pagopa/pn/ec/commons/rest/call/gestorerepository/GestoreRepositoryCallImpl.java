@@ -76,8 +76,8 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     }
 
     @Override
-    public Mono<RequestDto> updateRichiesta(String requestIdx, EventsDto eventsDto) throws RestCallException.ResourceNotFoundException {
-        return ecWebClient.put()
+    public Mono<RequestDto> patchRichiestaEvent(String requestIdx, EventsDto eventsDto) throws RestCallException.ResourceNotFoundException {
+        return ecWebClient.patch()
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(requestIdx))
                           .bodyValue(eventsDto)
                           .retrieve()

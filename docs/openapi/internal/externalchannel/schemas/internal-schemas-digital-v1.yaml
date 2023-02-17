@@ -110,9 +110,9 @@ components:
           type: string
           format: date-time
         status:
-          $ref: '#/components/schemas/DigitalRequestStatus'
+          type: string
         statusCode:
-          $ref: '#/components/schemas/DigitalRequestStatusCode'
+          type: string
         eventDetails:
           type: string
         generatedMessage:
@@ -144,82 +144,3 @@ components:
           type: string
         location:
           type: string
-
-    #   <-- STATUS SECTION -->
-
-    DigitalRequestStatus:
-      title: Stati tecnici di una richiesta digitale
-      description: |
-        ### Common status
-        
-        * BOOKED
-        * COMPOSITION_ERROR *(solo Email e PEC)*
-        * RETRY
-        * SENT
-        * ERROR
-        
-        ### Pec status
-        - ACCEPTED
-        - INFECTED
-        - NOT_ACCEPTED
-        - NOT_DELIVERED
-        - DELIVERY_WARNING
-        - DELIVERED
-        - INTERNAL_ERROR
-      type: string
-      enum:
-        - BOOKED
-        - COMPOSITION_ERROR
-        - RETRY
-        - SENT
-        - ERROR
-        - ACCEPTED
-        - INFECTED
-        - NOT_ACCEPTED
-        - NOT_DELIVERED
-        - DELIVERY_WARNING
-        - DELIVERED
-        - INTERNAL_ERROR
-
-    DigitalRequestStatusCode:
-      title: Stati logici di una richiesta digitale
-      description: |
-        ### SMS status code
-        * S003 -> Sent
-        * S008 -> Error
-        ### Email status code
-        * M003 -> Sent
-        * M002 -> Composition error
-        * M008 -> Error
-        * M009 -> Destination address not allowed
-        ### Pec status code
-        * C000 -> Sent
-        * C001 -> Accepted
-        * C002 -> Not accepted
-        * C003 -> Delivered
-        * C004 -> Not delivered
-        * C005 -> TBD
-        * C006 -> Infected
-        * C007 -> Delivery warning
-        * C008 -> Error
-        * C009 -> da associare alla verifica della validità del dominio PEC di destinazione (in corso di verifica)
-        * C010 -> Internal error
-      type: string
-      enum:
-        - S003
-        - S008
-        - M003
-        - M002
-        - M008
-        - M009
-        - C000
-        - C001
-        - C002
-        - C003
-        - C004
-        - C005
-        - C006
-        - C007
-        - C008
-        - C009
-        - C010

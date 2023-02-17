@@ -1,17 +1,18 @@
 package it.pagopa.pn.ec.email.rest;
 
 
+import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.email.service.EmailService;
 import it.pagopa.pn.ec.rest.v1.api.DigitalCourtesyMessagesApi;
+import it.pagopa.pn.ec.rest.v1.dto.CourtesyMessageProgressEvent;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import static it.pagopa.pn.ec.commons.constant.ProcessId.INVIO_MAIL;
+
 import static org.springframework.http.HttpStatus.OK;
 
 @Slf4j
@@ -20,30 +21,37 @@ public class DigitalCourtesyMessagesEmailApiController implements DigitalCourtes
 
 
     /*
-        Gli endpoint di SMS e EMAIL sono state accorpati nello stesso tag OpenApi.
-        Ciò ha generato un'interfaccia Java comune e dato che all'interno dello stesso contesto Spring
-         non possono coesistere due @RequestController che espongono lo stesso endpoint abbiamo dovuto implementare le API nello stesso controller.
-
+     * Gli endpoint di SMS ed EMAIL sono state accorpati nello stesso tag OpenApi.
+     * Ciò ha generato un'interfaccia Java comune e dato che all'interno dello
+     * stesso contesto Spring non possono coesistere due @RequestController che
+     * espongono lo stesso endpoint abbiamo dovuto implementare le API nello stesso
+     * controller.
      */
 
     private final EmailService service;
+    private final StatusPullService statusPullService;
 
-    public DigitalCourtesyMessagesEmailApiController(EmailService service) {
+    public DigitalCourtesyMessagesEmailApiController(EmailService service, StatusPullService statusPullService) {
         this.service = service;
+        this.statusPullService = statusPullService;
     }
 
     @Override
     public Mono<ResponseEntity<Void>> sendDigitalCourtesyMessage(String requestIdx, String xPagopaExtchCxId,
-                                                                  Mono<DigitalCourtesyMailRequest>  digitalCourtesyMailRequest,
-                                                                  final ServerWebExchange exchange){
+                                                                 Mono<DigitalCourtesyMailRequest> digitalCourtesyMailRequest,
+                                                                 final ServerWebExchange exchange) {
 
         return digitalCourtesyMailRequest.doOnNext(request -> log.info("<-- Start presa in email -->"))
-        .flatMap(request -> service.presaInCarico(new EmailPresaInCaricoInfo(requestIdx,
-                        xPagopaExtchCxId,
-                        request)))
-                .then(Mono.just(new ResponseEntity<>(OK)));
+                                         .flatMap(request -> service.presaInCarico(new EmailPresaInCaricoInfo(requestIdx,
+                                                                                                              xPagopaExtchCxId,
+                                                                                                              request)))
+                                         .then(Mono.just(new ResponseEntity<>(OK)));
     }
 
-
-
+    @Override
+    public Mono<ResponseEntity<Flux<CourtesyMessageProgressEvent>>> getDigitalCourtesyMessageStatus(String requestIdx,
+                                                                                                    String xPagopaExtchCxId,
+                                                                                                    ServerWebExchange exchange) {
+        return Mono.just(ResponseEntity.ok(statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId)));
+    }
 }
