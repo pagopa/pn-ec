@@ -24,6 +24,8 @@ import org.springframework.context.annotation.PropertySource;
 //  <-- SMS -->
 // SQS QUEUE
 @PropertySource("classpath:sms/sms-sqs-queue.properties")
+// SNS TOPIC
+@PropertySource("classpath:sms/sms-sns-topic.properties")
 
 //  <-- EMAIL -->
 // SQS QUEUE
@@ -35,7 +37,7 @@ import org.springframework.context.annotation.PropertySource;
 
 //  <-- NOTIFICATION TRACKER -->
 // EVENTBRIDGE EVENT
-@PropertySource("classpath:notificationtracker/notificationtracker-eventbridge-eventbuses.properties")
+@PropertySource("classpath:notificationtracker/notificationtracker-eventbridge-eventbus.properties")
 
 @Slf4j
 public class EcApplication {
