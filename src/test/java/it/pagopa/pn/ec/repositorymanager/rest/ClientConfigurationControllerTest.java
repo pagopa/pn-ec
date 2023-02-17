@@ -103,7 +103,7 @@ class ClientConfigurationControllerTest {
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
-                 .isBadRequest();
+                 .isNotFound();
     }
 
     //test.102.1
@@ -129,7 +129,7 @@ class ClientConfigurationControllerTest {
                  .body(BodyInserters.fromValue(clientConfigurationDto))
                  .exchange()
                  .expectStatus()
-                 .isBadRequest();
+                 .isNotFound();
     }
 
     //test.103.1
@@ -153,6 +153,6 @@ class ClientConfigurationControllerTest {
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
-                 .isBadRequest();
+                 .isNotFound();
     }
 }

@@ -218,7 +218,7 @@ class RequestControllerTest {
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
-                 .isBadRequest();
+                 .isNotFound();
     }
 
     private static Stream<Arguments> provideDigitalAndPaperEventToUpdate() {
@@ -297,7 +297,7 @@ class RequestControllerTest {
                  .body(BodyInserters.fromValue(eventsDto))
                  .exchange()
                  .expectStatus()
-                 .isBadRequest();
+                 .isNotFound();
     }
 
     private static Stream<Arguments> provideDigitalAndPaperRequestForDelete() {
@@ -328,6 +328,6 @@ class RequestControllerTest {
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
-                 .isBadRequest();
+                 .isNotFound();
     }
 }
