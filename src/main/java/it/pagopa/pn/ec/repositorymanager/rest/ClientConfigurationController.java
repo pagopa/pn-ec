@@ -3,19 +3,21 @@ package it.pagopa.pn.ec.repositorymanager.rest;
 import it.pagopa.pn.ec.commons.utils.RestUtils;
 import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
 import it.pagopa.pn.ec.repositorymanager.service.ClientConfigurationService;
+import it.pagopa.pn.ec.rest.v1.api.ConfigurationsApi;
 import it.pagopa.pn.ec.rest.v1.api.ConfigurazioneClientApi;
 import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static org.springframework.http.HttpStatus.OK;
 
 @RestController
 @Slf4j
-public class ClientConfigurationController implements ConfigurazioneClientApi {
+public class ClientConfigurationController implements ConfigurationsApi, ConfigurazioneClientApi {
 
     private final ClientConfigurationService clientConfigurationService;
 
@@ -24,6 +26,16 @@ public class ClientConfigurationController implements ConfigurazioneClientApi {
     public ClientConfigurationController(ClientConfigurationService clientConfigurationService, RestUtils restUtils) {
         this.clientConfigurationService = clientConfigurationService;
         this.restUtils = restUtils;
+    }
+
+    @Override
+    public Mono<ResponseEntity<Flux<ClientConfigurationDto>>> getConfigurations(ServerWebExchange exchange) {
+        log.info("Try to retrieve all clients");
+        return clientConfigurationService.getAllClient()
+                                         .map(retrievedClient -> restUtils.dtoToEntity(retrievedClient, ClientConfigurationDto.class))
+                                         .collectList()
+                                         .doOnNext(configurationDtoList -> log.info("Retrieved all clients ↓\n{}", configurationDtoList))
+                                         .map(configurationDtoList -> ResponseEntity.ok().body(Flux.fromIterable(configurationDtoList)));
     }
 
     @Override

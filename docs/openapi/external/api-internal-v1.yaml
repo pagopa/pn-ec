@@ -347,26 +347,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
-                  additionalProperties: true
-              example:
-                - cxId: pn-delivery-push
-                  sqsArn: 'un ARN della coda'
-                  sqsName: 'pn-delivery-push-extch-progress'
-                  pecReplyTo: null
-                  mailReplyTo: null
-                  senderPhysicalAddress:
-                    name: PagoPA SpA
-                    address: Via non lo so 23
-                    cap: '0100'
-                    city: Roma
-                    pr: ROMA
-                - cxId: pn-user-attributes
-                  sqsArn: 'un ARN della coda'
-                  sqsName: 'pn-user-attributes-extch-progress'
-                  pecReplyTo: null
-                  mailReplyTo: null
-                  senderPhysicalAddress: null
+                  $ref: '#/components/schemas/ClientConfigurationDto'
         '400':
           description: Bad Request
                   
@@ -421,6 +402,45 @@ components:
             $ref: 'schemas-pn-errors-v1.yaml#/components/schemas/Problem'
   
   schemas:
+
+    ###################################################################################
+    ###                     SCHEMA PER LA CONFIGURAZIONE CLIENT                     ###
+    ###################################################################################
+
+    ClientConfigurationDto:
+      type: object
+      required:
+        - xPagopaExtchCxId
+        - sqsArn
+        - sqsName
+      properties:
+        xPagopaExtchCxId:
+          type: string
+          pattern: '^(?!\s*$).+'
+        sqsArn:
+          type: string
+        sqsName:
+          type: string
+        pecReplyTo:
+          type: string
+        mailReplyTo:
+          type: string
+        senderPhysicalAddress:
+          $ref: '#/components/schemas/SenderPhysicalAddressDto'
+
+    SenderPhysicalAddressDto:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        cap:
+          type: string
+        city:
+          type: string
+        pr:
+          type: string
     
     ### - DTO PER RICEZIONE ASINCRONA AVANZAMENTI MESSAGGI
     ######################################################

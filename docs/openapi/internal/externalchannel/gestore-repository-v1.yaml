@@ -23,7 +23,6 @@ paths:
         allowEmptyValue: false
         schema:
           type: string
-#          pattern: '^(?!\s*$).+'
     get:
       tags:
         - ConfigurazioneClient
@@ -42,7 +41,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClientConfigurationDto'
+              $ref: '../../external/api-internal-v1.yaml#/components/schemas/ClientConfigurationDto'
         required: true
       responses:
         200:
@@ -68,7 +67,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClientConfigurationDto'
+              $ref: '../../external/api-internal-v1.yaml#/components/schemas/ClientConfigurationDto'
         required: true
       responses:
         200:
@@ -139,7 +138,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ClientConfigurationDto'
+            $ref: '../../external/api-internal-v1.yaml#/components/schemas/ClientConfigurationDto'
 
     requestResponseOk:
       description: OK
@@ -164,45 +163,6 @@ components:
 
 
   schemas:
-
-    #############################################################################################
-    ###                     SCHEMA PER LA CONFIGURAZIONE CLIENT                     ###
-    #############################################################################################
-
-    ClientConfigurationDto:
-      type: object
-      required:
-        - xPagopaExtchCxId
-        - sqsArn
-        - sqsName
-      properties:
-        xPagopaExtchCxId:
-          type: string
-          pattern: '^(?!\s*$).+'
-        sqsArn:
-          type: string
-        sqsName:
-          type: string
-        pecReplyTo:
-          type: string
-        mailReplyTo:
-          type: string
-        senderPhysicalAddress:
-          $ref: '#/components/schemas/SenderPhysicalAddressDto'
-
-    SenderPhysicalAddressDto:
-      type: object
-      properties:
-        name:
-          type: string
-        address:
-          type: string
-        cap:
-          type: string
-        city:
-          type: string
-        pr:
-          type: string
 
     #############################################################################################
     ###                     SCHEMI PER GESTIONI RICHIESTE                     ###
