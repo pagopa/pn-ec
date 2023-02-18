@@ -249,8 +249,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                   .isEqualTo(NOT_FOUND)
+                                                                                                   .isEqualTo(BAD_REQUEST)
                                                                                                    .expectBody(Problem.class);
-
     }
 }
