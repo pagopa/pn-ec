@@ -1,7 +1,9 @@
 package it.pagopa.pn.ec.commons.rest.error;
 
+import it.pagopa.pn.ec.commons.exception.ClientForbiddenException;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedFoundException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
+import it.pagopa.pn.ec.commons.exception.RepositoryManagerException.IdClientNotFoundException;
 import it.pagopa.pn.ec.commons.exception.RequestAlreadyInProgressException;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
@@ -34,6 +36,16 @@ public class GlobalRestErrorHandler {
         problem.setDetail(exception.getMessage());
         problem.setTraceId(UUID.randomUUID().toString());
         return new ResponseEntity<>(problem, UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(ClientForbiddenException.class)
+    public final ResponseEntity<Problem> handleForbiddenClient(ClientForbiddenException exception) {
+        var problem = new Problem();
+        problem.setStatus(FORBIDDEN.value());
+        problem.setTitle("Client id not found");
+        problem.setDetail(exception.getMessage());
+        problem.setTraceId(UUID.randomUUID().toString());
+        return new ResponseEntity<>(problem, FORBIDDEN);
     }
 
     @ExceptionHandler({WebExchangeBindException.class, ConstraintViolationException.class})

@@ -107,7 +107,7 @@ class RequestControllerTest {
         var attachment = new AttachmentsEngageRequestDto();
         attachment.setUri("");
         attachment.setOrder(new BigDecimal(1));
-        attachment.setDocumentType("document type");
+        attachment.setDocumentType("documentType");
         attachment.setSha256("sha256");
         attachments.add(attachment);
         paperRequestPersonalDto.setAttachments(attachments);
@@ -217,7 +217,7 @@ class RequestControllerTest {
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
-                 .isBadRequest();
+                 .isNotFound();
     }
 
     private static Stream<Arguments> provideDigitalAndPaperEventToUpdate() {
@@ -296,7 +296,7 @@ class RequestControllerTest {
                  .body(BodyInserters.fromValue(eventsDto))
                  .exchange()
                  .expectStatus()
-                 .isBadRequest();
+                 .isNotFound();
     }
 
     private static Stream<Arguments> provideDigitalAndPaperRequestForDelete() {
@@ -327,6 +327,6 @@ class RequestControllerTest {
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
-                 .isBadRequest();
+                 .isNotFound();
     }
 }

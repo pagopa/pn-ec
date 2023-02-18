@@ -27,11 +27,11 @@ public class RepositoryManagerErrorHandler {
             RepositoryManagerException.RequestNotFoundException.class})
     public final ResponseEntity<Problem> handleNotFoundIdClient(Exception exception) {
         var problem = new Problem();
-        problem.setStatus(BAD_REQUEST.value());
+        problem.setStatus(NOT_FOUND.value());
         problem.setTitle("Resource not found");
         problem.setDetail(exception.getMessage());
         problem.setTraceId(UUID.randomUUID().toString());
-        return new ResponseEntity<>(problem, BAD_REQUEST);
+        return new ResponseEntity<>(problem, NOT_FOUND);
     }
 
     @ExceptionHandler(RepositoryManagerException.RequestMalformedException.class)
