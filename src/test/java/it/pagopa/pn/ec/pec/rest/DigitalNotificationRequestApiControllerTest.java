@@ -69,7 +69,7 @@ public class DigitalNotificationRequestApiControllerTest {
     public static final String SEND_PEC_ENDPOINT = "/external-channels/v1/digital-deliveries/legal-full-message-requests" + "/{requestIdx}";
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
     private static final RequestDto requestDto = new RequestDto();
-    private static final String defaultAttachmentUrl = "https://prova.pdf";
+    private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
 
     @BeforeAll
     public static void createDigitalNotificationRequest() {
