@@ -4,7 +4,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedFoundException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.exception.ss.AttachmentNotAvailableException;
+import it.pagopa.pn.ec.commons.exception.ss.GetFileError;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCallImpl;
@@ -205,8 +205,8 @@ public class DigitalNotificationRequestApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(new SqsPublishException(
-                notificationTrackerSqsName.statoPecName())));
+        when(sqsService.send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
+                new SqsPublishException(notificationTrackerSqsName.statoPecName())));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                  .isEqualTo(SERVICE_UNAVAILABLE)
@@ -229,8 +229,7 @@ public class DigitalNotificationRequestApiControllerTest {
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         when(sqsService.send(eq(pecSqsQueueName.interactiveName()),
-                             any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsPublishException(
-                pecSqsQueueName.interactiveName())));
+                             any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsPublishException(pecSqsQueueName.interactiveName())));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                  .isEqualTo(SERVICE_UNAVAILABLE)
@@ -246,14 +245,13 @@ public class DigitalNotificationRequestApiControllerTest {
 
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
-        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(
-                defaultAttachmentUrl)));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new GetFileError(defaultAttachmentUrl,
+                                                                                                                    DEFAULT_ID_CLIENT_HEADER_VALUE)));
 
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                 .isEqualTo(NOT_FOUND)
+                                                                                                 .isEqualTo(BAD_REQUEST)
                                                                                                  .expectBody(Problem.class);
-
     }
 }

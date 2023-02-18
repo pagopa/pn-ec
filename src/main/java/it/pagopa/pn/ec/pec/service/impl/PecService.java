@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.pec.service.impl;
 
+import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -16,12 +17,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import static it.pagopa.pn.ec.commons.constant.ProcessId.INVIO_PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus.BOOKED;
 import static java.time.OffsetDateTime.now;
 
 @Service
@@ -33,16 +32,20 @@ public class PecService extends PresaInCaricoService {
     private final CheckAttachments checkAttachments;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final PecSqsQueueName pecSqsQueueName;
+    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+
 
     protected PecService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
                          CheckAttachments checkAttachments, NotificationTrackerSqsName notificationTrackerSqsName,
-                         PecSqsQueueName pecSqsQueueName) {
+                         PecSqsQueueName pecSqsQueueName,
+                         TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
         super(authService, gestoreRepositoryCall);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.checkAttachments = checkAttachments;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.pecSqsQueueName = pecSqsQueueName;
+        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
     @Override
@@ -61,12 +64,10 @@ public class PecService extends PresaInCaricoService {
                                                                       new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
                                                                                                       presaInCaricoInfo.getXPagopaExtchCxId(),
                                                                                                       now(),
-                                                                                                      INVIO_PEC,
-                                                                                                      null,
-                                                                                                      BOOKED.getValue(),
-                                                                                                      // TODO: Populate GeneratedMessageDto
-                                                                                                      // Use this syntax new GeneratedMessageDto().id("foo").location("bar").system("bla")
-                                                                                                      new GeneratedMessageDto())))
+                                                                                                      transactionProcessConfigurationProperties.pec(),
+                                                                                                      transactionProcessConfigurationProperties.pecStartStatus(),
+                                                                                                      "booked",
+                                                                                                      null)))
                                .flatMap(sendMessageResponse -> {
                                    DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
                                    if (qos == INTERACTIVE) {

@@ -32,7 +32,6 @@ import java.util.stream.Stream;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestPersonalDto.QosEnum.INTERACTIVE;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestStatus.BOOKED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
@@ -229,7 +228,7 @@ class RequestControllerTest {
 
         var digitalProgressStatusDto = new DigitalProgressStatusDto();
         digitalProgressStatusDto.setEventTimestamp(OffsetDateTime.now());
-        digitalProgressStatusDto.setStatus(BOOKED);
+        digitalProgressStatusDto.setStatus("booked");
         digitalProgressStatusDto.setStatusCode(null);
         digitalProgressStatusDto.setEventDetails("");
         var generateMessageDto = new GeneratedMessageDto();

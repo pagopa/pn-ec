@@ -72,7 +72,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
                    .map(retrieveRequestMetadata -> {
                        if (events.getDigProgrStatus() != null) {
-                           retrieveRequestMetadata.setStatusRequest(events.getDigProgrStatus().getStatus().getValue());
+                           retrieveRequestMetadata.setStatusRequest(events.getDigProgrStatus().getStatus());
                            events.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
                        } else {
                            retrieveRequestMetadata.setStatusRequest(events.getPaperProgrStatus().getStatusDescription());
