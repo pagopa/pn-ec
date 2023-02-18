@@ -77,7 +77,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     private static final DigitalCourtesyMailRequest digitalCourtesyMailRequest = new DigitalCourtesyMailRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final RequestDto requestDto = new RequestDto();
-    private static final String defaultAttachmentUrl = "https://prova.pdf";
+    private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
 
     @BeforeAll
     public static void createDigitalCourtesyMailRequest() {
