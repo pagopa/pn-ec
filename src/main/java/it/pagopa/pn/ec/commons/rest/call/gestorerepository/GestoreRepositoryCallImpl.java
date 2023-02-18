@@ -64,7 +64,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     }
 
     @Override
-    public Mono<RequestDto> insertRichiesta(RequestDto requestDto) throws RestCallException.ResourceNotFoundException {
+    public Mono<RequestDto> insertRichiesta(RequestDto requestDto) throws RestCallException.ResourceAlreadyExistsException {
         return ecWebClient.post()
                           .uri(gestoreRepositoryEndpointProperties.postRequest())
                           .body(BodyInserters.fromValue(requestDto))

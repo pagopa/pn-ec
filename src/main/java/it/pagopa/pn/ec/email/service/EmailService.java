@@ -9,7 +9,7 @@ import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.commons.service.attachments.CheckAttachments;
+import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -28,19 +28,19 @@ public class EmailService extends PresaInCaricoService {
 
     private final SqsService sqsService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
-    private final CheckAttachments checkAttachments;
+    private final AttachmentServiceImpl attachmentService;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final EmailSqsQueueName emailSqsQueueName;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
     protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
-                           GestoreRepositoryCall gestoreRepositoryCall1, CheckAttachments checkAttachments,
+                           GestoreRepositoryCall gestoreRepositoryCall1, AttachmentServiceImpl attachmentService,
                            NotificationTrackerSqsName notificationTrackerSqsName, EmailSqsQueueName emailSqsQueueName,
                            TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
         super(authService, gestoreRepositoryCall);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall1;
-        this.checkAttachments = checkAttachments;
+        this.attachmentService = attachmentService;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.emailSqsQueueName = emailSqsQueueName;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
@@ -50,15 +50,15 @@ public class EmailService extends PresaInCaricoService {
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
         EmailPresaInCaricoInfo emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
 
-        return checkAttachments.checkAllegatiPresence(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getAttachmentsUrls(),
-                                                      presaInCaricoInfo.getXPagopaExtchCxId(),
-                                                      false)
-                               .flatMap(fileDownloadResponse -> {
+        return attachmentService.checkAllegatiPresence(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getAttachmentsUrls(),
+                                                       presaInCaricoInfo.getXPagopaExtchCxId(),
+                                                       true)
+                                .flatMap(fileDownloadResponse -> {
                                    var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
                                    digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
                                    return insertRequestFromEmail(digitalNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
                                })
-                               .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
+                                .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
                                                                       new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
                                                                                                       presaInCaricoInfo.getXPagopaExtchCxId(),
                                                                                                       now(),
@@ -66,7 +66,7 @@ public class EmailService extends PresaInCaricoService {
                                                                                                       transactionProcessConfigurationProperties.emailStartStatus(),
                                                                                                       "booked",
                                                                                                       null)))
-                               .flatMap(sendMessageResponse -> {
+                                .flatMap(sendMessageResponse -> {
                                    DigitalCourtesyMailRequest.QosEnum qos = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getQos();
                                    if (qos == INTERACTIVE) {
                                        return sqsService.send(emailSqsQueueName.interactiveName(),
@@ -78,7 +78,7 @@ public class EmailService extends PresaInCaricoService {
                                        return Mono.empty();
                                    }
                                })
-                               .then();
+                                .then();
     }
 
     @SuppressWarnings("Duplicates")

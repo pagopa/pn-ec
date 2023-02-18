@@ -6,10 +6,10 @@ import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.RequestAlreadyInProgressException;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.exception.ss.GetFileError;
+import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
+import it.pagopa.pn.ec.commons.exception.ss.attachment.InvalidAttachmentSchemaException;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
 import it.pagopa.pn.ec.rest.v1.dto.ProblemError;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,7 +22,6 @@ import java.util.UUID;
 import static org.springframework.http.HttpStatus.*;
 
 @ControllerAdvice
-@Slf4j
 public class GlobalRestErrorHandler {
 
     private static final String DEFAULT_PROBLEM_ERROR_MESSAGE = "Internal error codes to be defined";
@@ -98,11 +97,21 @@ public class GlobalRestErrorHandler {
         return new ResponseEntity<>(problem, CONFLICT);
     }
 
-    @ExceptionHandler(GetFileError.class)
-    public final ResponseEntity<Problem> handleGetFileFromSsError(GetFileError exception) {
+    @ExceptionHandler(AttachmentNotAvailableException.class)
+    public final ResponseEntity<Problem> handleAttachmentNotAvailable(AttachmentNotAvailableException exception) {
         var problem = new Problem();
         problem.setStatus(BAD_REQUEST.value());
-        problem.setTitle("Retrieve attachment error");
+        problem.setTitle("Attachment not found");
+        problem.setDetail(exception.getMessage());
+        problem.setTraceId(UUID.randomUUID().toString());
+        return new ResponseEntity<>(problem, BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidAttachmentSchemaException.class)
+    public final ResponseEntity<Problem> handleInvalidAttachmentSchema(InvalidAttachmentSchemaException exception) {
+        var problem = new Problem();
+        problem.setStatus(BAD_REQUEST.value());
+        problem.setTitle("Malformed attachment url");
         problem.setDetail(exception.getMessage());
         problem.setTraceId(UUID.randomUUID().toString());
         return new ResponseEntity<>(problem, BAD_REQUEST);

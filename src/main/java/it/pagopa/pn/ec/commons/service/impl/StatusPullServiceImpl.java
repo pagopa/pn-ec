@@ -51,12 +51,15 @@ public class StatusPullServiceImpl implements StatusPullService {
                                       event.setEventCode(null);
 
                                       var generatedMessageDTO = digProgrStatus.getGeneratedMessage();
-                                      var digitalMessageReference = new DigitalMessageReference();
-                                      digitalMessageReference.setId(generatedMessageDTO.getId());
-                                      digitalMessageReference.setLocation(generatedMessageDTO.getLocation());
-                                      digitalMessageReference.setSystem(generatedMessageDTO.getSystem());
+                                      if (generatedMessageDTO != null) {
+                                          var digitalMessageReference = new DigitalMessageReference();
 
-                                      event.setGeneratedMessage(digitalMessageReference);
+                                          digitalMessageReference.setId(generatedMessageDTO.getId());
+                                          digitalMessageReference.setLocation(generatedMessageDTO.getLocation());
+                                          digitalMessageReference.setSystem(generatedMessageDTO.getSystem());
+
+                                          event.setGeneratedMessage(digitalMessageReference);
+                                      }
 
                                       eventsList.add(event);
                                   }

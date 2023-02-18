@@ -5,7 +5,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedFoundException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.exception.ss.GetFileError;
+import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCallImpl;
@@ -77,7 +77,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     private static final DigitalCourtesyMailRequest digitalCourtesyMailRequest = new DigitalCourtesyMailRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final RequestDto requestDto = new RequestDto();
-    private static final String defaultAttachmentUrl = "https://prova.pdf";
+    private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
 
     @BeforeAll
     public static void createDigitalCourtesyMailRequest() {
@@ -243,8 +243,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
 
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
-        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new GetFileError(defaultAttachmentUrl,
-                                                                                                                    DEFAULT_ID_CLIENT_HEADER_VALUE)));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(defaultAttachmentUrl)));
 
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 

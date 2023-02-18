@@ -4,7 +4,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedFoundException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.exception.ss.GetFileError;
+import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCallImpl;
@@ -69,7 +69,7 @@ public class DigitalNotificationRequestApiControllerTest {
     public static final String SEND_PEC_ENDPOINT = "/external-channels/v1/digital-deliveries/legal-full-message-requests" + "/{requestIdx}";
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
     private static final RequestDto requestDto = new RequestDto();
-    private static final String defaultAttachmentUrl = "https://prova.pdf";
+    private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
 
     @BeforeAll
     public static void createDigitalNotificationRequest() {
@@ -245,8 +245,7 @@ public class DigitalNotificationRequestApiControllerTest {
 
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
-        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new GetFileError(defaultAttachmentUrl,
-                                                                                                                    DEFAULT_ID_CLIENT_HEADER_VALUE)));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(defaultAttachmentUrl)));
 
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
