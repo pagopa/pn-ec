@@ -85,6 +85,8 @@ Resources:
       TableClass: 'STANDARD'
     DeletionPolicy: Delete
 
+######### NOTIFICATION TRACKER QUEUES  ############
+######### TRACKER : SMS  ############
   PnEcQueueTrackerStatoSMS:
     Type: AWS::SQS::Queue
     Properties:
@@ -126,6 +128,96 @@ Resources:
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
+
+######### TRACKER : PEC  ##########
+
+  PnEcQueueTrackerStatoPEC:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueTrackerStatoPEC.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueTrackerStatoPEC:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
+  PnEcQueueTrackerErroriPEC:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt PnEcDLQueueTrackerErroriPEC.Arn
+        maxReceiveCount: 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueTrackerErroriPEC:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
+######### TRACKER : EMAIL  #########
+
+  PnEcQueueTrackerStatoEMAIL:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueTrackerStatoEMAIL.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueTrackerStatoEMAIL:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
+  PnEcQueueTrackerErroriEMAIL:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt PnEcDLQueueTrackerErroriEMAIL.Arn
+        maxReceiveCount: 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueTrackerErroriEMAIL:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
+###### EXTERNAL PLATFORM NOTIFICATIONS #######
 
   PnEcQueueNotificheExt1:
     Type: AWS::SQS::Queue
@@ -183,6 +275,8 @@ Resources:
       Targets:
         - Arn: !Ref PnEcSNSNotificheExt1
           Id: 'TopicTargetForExtNotification'
+
+###### CHANNEL SMS #######
 
   PnEcQueueBatchSMS:
     Type: AWS::SQS::Queue
@@ -460,6 +554,86 @@ Outputs:
   PnEcDLQueueArnTrackerErroriSMS:
     Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriSMS'
     Value: !GetAtt  PnEcDLQueueTrackerErroriSMS.Arn
+
+  PnEcQueueNameTrackerStatoPEC:
+    Description: '[Notification Tracker: canale PEC] Nome della Coda per aggiornamenti di stato afferenti al canale PEC'
+    Value: !GetAtt  PnEcQueueTrackerStatoPEC.QueueName
+
+  PnEcQueueArnTrackerStatoPEC:
+    Description: '[Notification Tracker: canale PEC] ARN della Coda per aggiornamenti di stato afferenti al canale PEC'
+    Value: !GetAtt  PnEcQueueTrackerStatoPEC.Arn
+
+  PnEcQueueUrlTrackerStatoPEC:
+    Description: '[Notification Tracker: canale PEC] URL della Coda per aggiornamenti di stato afferenti al canale PEC'
+    Value: !Ref  PnEcQueueTrackerStatoPEC
+
+  PnEcDLQueueNameTrackerStatoPEC:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoPEC'
+    Value: !GetAtt  PnEcDLQueueTrackerStatoPEC.QueueName
+
+  PnEcDLQueueArnTrackerStatoPEC:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoPEC'
+    Value: !GetAtt  PnEcDLQueueTrackerStatoPEC.Arn
+
+  PnEcQueueNameTrackerErroriPEC:
+    Description: '[Notification Tracker: canale PEC] Nome della Coda Errori afferenti al canale PEC'
+    Value: !GetAtt  PnEcQueueTrackerErroriPEC.QueueName
+
+  PnEcQueueArnTrackerErroriPEC:
+    Description: '[Notification Tracker: canale PEC] ARN della Coda Errori afferenti al canale PEC'
+    Value: !GetAtt  PnEcQueueTrackerErroriPEC.Arn
+
+  PnEcQueueUrlTrackerErroriPEC:
+    Description: '[Notification Tracker: canale PEC] URL della Coda Errori afferenti al canale PEC'
+    Value: !Ref  PnEcQueueTrackerErroriPEC
+
+  PnEcDLQueueNameTrackerErroriPEC:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriPEC'
+    Value: !GetAtt  PnEcDLQueueTrackerErroriPEC.QueueName
+
+  PnEcDLQueueArnTrackerErroriPEC:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriPEC'
+    Value: !GetAtt  PnEcDLQueueTrackerErroriPEC.Arn
+
+  PnEcQueueNameTrackerStatoEMAIL:
+    Description: '[Notification Tracker: canale EMAIL] Nome della Coda per aggiornamenti di stato afferenti al canale EMAIL'
+    Value: !GetAtt  PnEcQueueTrackerStatoEMAIL.QueueName
+
+  PnEcQueueArnTrackerStatoEMAIL:
+    Description: '[Notification Tracker: canale EMAIL] ARN della Coda per aggiornamenti di stato afferenti al canale EMAIL'
+    Value: !GetAtt  PnEcQueueTrackerStatoEMAIL.Arn
+
+  PnEcQueueUrlTrackerStatoEMAIL:
+    Description: '[Notification Tracker: canale EMAIL] URL della Coda per aggiornamenti di stato afferenti al canale EMAIL'
+    Value: !Ref  PnEcQueueTrackerStatoEMAIL
+
+  PnEcDLQueueNameTrackerStatoEMAIL:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoEMAIL'
+    Value: !GetAtt  PnEcDLQueueTrackerStatoEMAIL.QueueName
+
+  PnEcDLQueueArnTrackerStatoEMAIL:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoEMAIL'
+    Value: !GetAtt  PnEcDLQueueTrackerStatoEMAIL.Arn
+
+  PnEcQueueNameTrackerErroriEMAIL:
+    Description: '[Notification Tracker: canale EMAIL] Nome della Coda Errori afferenti al canale EMAIL'
+    Value: !GetAtt  PnEcQueueTrackerErroriEMAIL.QueueName
+
+  PnEcQueueArnTrackerErroriEMAIL:
+    Description: '[Notification Tracker: canale EMAIL] ARN della Coda Errori afferenti al canale EMAIL'
+    Value: !GetAtt  PnEcQueueTrackerErroriEMAIL.Arn
+
+  PnEcQueueUrlTrackerErroriEMAIL:
+    Description: '[Notification Tracker: canale EMAIL] URL della Coda Errori afferenti al canale EMAIL'
+    Value: !Ref  PnEcQueueTrackerErroriEMAIL
+
+  PnEcDLQueueNameTrackerErroriEMAIL:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriEMAIL'
+    Value: !GetAtt  PnEcDLQueueTrackerErroriEMAIL.QueueName
+
+  PnEcDLQueueArnTrackerErroriEMAIL:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriEMAIL'
+    Value: !GetAtt  PnEcDLQueueTrackerErroriEMAIL.Arn
 
   PnEcQueueNameNotificheExt1:
     Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] Nome della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
