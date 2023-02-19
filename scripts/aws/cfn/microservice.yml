@@ -291,7 +291,7 @@ Resources:
             Action:
               - 'sns:*'
             Resource:
-              - '*''
+              - '*'
 
               
 
