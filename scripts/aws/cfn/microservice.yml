@@ -462,7 +462,7 @@ Resources:
             Resource: !Sub '${PnEcQueueArnBatchPEC}'
             Principal:  
               AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt SafeStorageMicroservice.Outputs.TaskRoleName]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
           - Action: 
               - 'sqs:ReceiveMessage'
               - 'sqs:DeleteMessage'
@@ -471,7 +471,7 @@ Resources:
             Resource: !Sub '${PnEcQueueArnBatchPEC}'
             Principal:  
               AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt SafeStorageMicroservice.Outputs.TaskRoleName]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyInteractivePEC:
     Type: AWS::SQS::QueuePolicy
@@ -487,7 +487,7 @@ Resources:
             Resource: !Sub '${PnEcQueueArnInteractivePEC}'
             Principal:  
               AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt SafeStorageMicroservice.Outputs.TaskRoleName]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
           - Action: 
               - 'sqs:ReceiveMessage'
               - 'sqs:DeleteMessage'
@@ -496,7 +496,7 @@ Resources:
             Resource: !Sub '${PnEcQueueArnInteractivePEC}'
             Principal:  
               AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt SafeStorageMicroservice.Outputs.TaskRoleName]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
   
   PnEcQueuePolicyErroriPEC:
     Type: AWS::SQS::QueuePolicy
@@ -512,7 +512,7 @@ Resources:
             Resource: !Sub '${PnEcQueueArnErroriPEC}'
             Principal:  
               AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt SafeStorageMicroservice.Outputs.TaskRoleName]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
           - Action: 
               - 'sqs:ReceiveMessage'
               - 'sqs:DeleteMessage'
@@ -521,7 +521,7 @@ Resources:
             Resource: !Sub '${PnEcQueueArnErroriPEC}'
             Principal:  
               AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt SafeStorageMicroservice.Outputs.TaskRoleName]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
 
   PnEcEventBusPolicyECSTrackerExternalNotification:
