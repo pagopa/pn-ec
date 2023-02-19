@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.commons.rest.call.gestorerepository;
+package it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository;
 
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;

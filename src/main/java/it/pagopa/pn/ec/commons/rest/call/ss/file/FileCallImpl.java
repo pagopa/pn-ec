@@ -1,7 +1,6 @@
-package it.pagopa.pn.ec.commons.rest.call.uribuilder;
+package it.pagopa.pn.ec.commons.rest.call.ss.file;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.FilesEndpointProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
@@ -13,18 +12,15 @@ import reactor.core.publisher.Mono;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
-public class UriBuilderCallImpl implements UriBuilderCall {
+public class FileCallImpl implements FileCall {
 
     private final WebClient ssExternalEndpointBasePath;
-    private final SafeStorageEndpointProperties safeStorageEndpointProperties;
     private final FilesEndpointProperties filesEndpointProperties;
 
     private static final String GET_FILE_ERROR_TITLE = "Chiamata a SafeStorage non valida";
 
-    public UriBuilderCallImpl(WebClient ssWebClient, SafeStorageEndpointProperties safeStorageEndpointProperties,
-                              FilesEndpointProperties filesEndpointProperties) {
+    public FileCallImpl(WebClient ssWebClient, FilesEndpointProperties filesEndpointProperties) {
         this.ssExternalEndpointBasePath = ssWebClient;
-        this.safeStorageEndpointProperties = safeStorageEndpointProperties;
         this.filesEndpointProperties = filesEndpointProperties;
     }
 
@@ -38,7 +34,6 @@ public class UriBuilderCallImpl implements UriBuilderCall {
                                          .uri(uriBuilder -> uriBuilder.path(filesEndpointProperties.getFile())
                                                                       .queryParam("metadataOnly", metadataOnly)
                                                                       .build(fileKey))
-                                         .header(safeStorageEndpointProperties.clientHeaderName(), xPagopaExtchCxId)
                                          .retrieve()
                                          .onStatus(status -> status.equals(HttpStatus.BAD_REQUEST) || status.equals(HttpStatus.FORBIDDEN),
                                                    clientResponse -> Mono.error(new Generic400ErrorException(GET_FILE_ERROR_TITLE,
