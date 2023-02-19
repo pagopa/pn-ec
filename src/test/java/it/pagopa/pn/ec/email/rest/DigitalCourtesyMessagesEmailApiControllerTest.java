@@ -8,8 +8,8 @@ import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
-import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCallImpl;
-import it.pagopa.pn.ec.commons.rest.call.uribuilder.UriBuilderCall;
+import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
+import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 
@@ -61,7 +61,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     private EmailSqsQueueName emailSqsQueueName;
 
     @MockBean
-    private UriBuilderCall uriBuilderCall;
+    private FileCall uriBuilderCall;
 
     @MockBean
     private GestoreRepositoryCallImpl gestoreRepositoryCall;

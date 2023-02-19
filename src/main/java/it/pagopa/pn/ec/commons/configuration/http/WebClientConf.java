@@ -41,7 +41,10 @@ public class WebClientConf {
 
     @Bean
     public WebClient ssWebClient() {
-        return defaultWebClientBuilder().baseUrl(safeStorageEndpointProperties.containerBaseUrl()).build();
+        return defaultWebClientBuilder().baseUrl(safeStorageEndpointProperties.containerBaseUrl()).defaultHeaders(httpHeaders -> {
+            httpHeaders.set(safeStorageEndpointProperties.clientHeaderName(), safeStorageEndpointProperties.clientHeaderValue());
+            httpHeaders.set(safeStorageEndpointProperties.apiKeyHeaderName(), safeStorageEndpointProperties.apiKeyHeaderValue());
+        }).build();
     }
 
     @Bean

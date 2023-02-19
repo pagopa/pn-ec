@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.commons.service.impl;
 import it.pagopa.pn.ec.commons.exception.ClientForbiddenException;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException.IdClientNotFoundException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
-import it.pagopa.pn.ec.commons.rest.call.gestorerepository.GestoreRepositoryCall;
+import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
