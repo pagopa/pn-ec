@@ -184,6 +184,66 @@ Parameters:
     Type: String
     Description: '[Canale SMS] URL della Coda Errori SMS'
 
+    PnEcQueueNameBatchPEC:
+    Description: '[Canale PEC] Nome della Coda per la modalità PEC-Batch'
+    Type: String
+    
+  PnEcQueueArnBatchPEC:
+    Description: '[Canale PEC] ARN della Coda per la modalità PEC-Batch'
+    Type: String
+    
+  PnEcQueueUrlBatchPEC:
+    Description: '[Canale PEC] URL della Coda per la modalità PEC-Batch'
+    Type: String
+    
+  PnEcDLQueueNameBatchPEC:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchPEC'
+    Type: String
+    
+  PnEcDLQueueArnBatchPEC:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchPEC'
+    Type: String
+    
+  PnEcQueueNameInteractivePEC:
+    Description: '[Canale PEC] Nome della Coda per la modalità PEC-Interactive'
+    Type: String
+    
+  PnEcQueueArnInteractivePEC:
+    Description: '[Canale PEC] ARN della Coda per la modalità PEC-Interactive'
+    Type: String
+    
+  PnEcQueueUrlInteractivePEC:
+    Description: '[Canale PEC] URL della Coda per la modalità PEC-Interactive'
+    Type: String
+    
+  PnEcDLQueueNameInteractivePEC:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractivePEC'
+    Type: String
+    
+  PnEcDLQueueArnInteractivePEC:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueInteractivePEC'
+    Type: String
+    
+  PnEcQueueNameErroriPEC:
+    Description: '[Canale PEC] Nome della Coda Errori PEC'
+    Type: String
+    
+  PnEcQueueArnErroriPEC:
+    Description: '[Canale PEC] ARN della Coda Errori PEC'
+    Type: String
+    
+  PnEcQueueUrlErroriPEC:
+    Description: '[Canale PEC] URL della Coda Errori PEC'
+    Type: String
+    
+  PnEcDLQueueNameErroriPEC:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriPEC'
+    Type: String
+    
+  PnEcDLQueueArnErroriPEC:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriPEC'
+    Type: String
+
 Resources:
 
   # PN-TemplateBeMs microservice
@@ -260,6 +320,9 @@ Resources:
               - !Sub '${PnEcQueueArnBatchSMS}'
               - !Sub '${PnEcQueueArnInteractiveSMS}'
               - !Sub '${PnEcQueueArnErroriSMS}'
+              - !Sub '${PnEcQueueArnBatchPEC}'
+              - !Sub '${PnEcQueueArnInteractivePEC}'
+              - !Sub '${PnEcQueueArnErroriPEC}'
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
@@ -384,6 +447,82 @@ Resources:
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+
+  PnEcQueuePolicyBatchPEC:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlBatchPEC}'
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - 'sqs:SendMessage'
+              - 'sqs:ChangeMessageVisibility'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnBatchPEC}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt SafeStorageMicroservice.Outputs.TaskRoleName]]
+          - Action: 
+              - 'sqs:ReceiveMessage'
+              - 'sqs:DeleteMessage'
+              - 'sqs:ChangeMessageVisibility'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnBatchPEC}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt SafeStorageMicroservice.Outputs.TaskRoleName]]
+
+  PnEcQueuePolicyInteractivePEC:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlInteractivePEC}'
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - 'sqs:SendMessage'
+              - 'sqs:ChangeMessageVisibility'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnInteractivePEC}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt SafeStorageMicroservice.Outputs.TaskRoleName]]
+          - Action: 
+              - 'sqs:ReceiveMessage'
+              - 'sqs:DeleteMessage'
+              - 'sqs:ChangeMessageVisibility'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnInteractivePEC}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt SafeStorageMicroservice.Outputs.TaskRoleName]]
+  
+  PnEcQueuePolicyErroriPEC:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlErroriPEC}'
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - 'sqs:SendMessage'
+              - 'sqs:ChangeMessageVisibility'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnErroriPEC}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt SafeStorageMicroservice.Outputs.TaskRoleName]]
+          - Action: 
+              - 'sqs:ReceiveMessage'
+              - 'sqs:DeleteMessage'
+              - 'sqs:ChangeMessageVisibility'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnErroriPEC}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt SafeStorageMicroservice.Outputs.TaskRoleName]]
+
 
   PnEcEventBusPolicyECSTrackerExternalNotification:
     Type: AWS::Events::EventBusPolicy
