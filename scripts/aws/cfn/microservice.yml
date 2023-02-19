@@ -277,7 +277,7 @@ Resources:
             Resource:
               - !Sub '${PnEcSNSArnNotificheExt1}'
           - Effect: Allow
-            Sid: 'PublishOnExternalTopic'
+            Sid: 'SMS'
             Action:
               - 'sns:Get*'
               - 'sns:List*'
