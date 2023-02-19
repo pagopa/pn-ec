@@ -259,6 +259,7 @@ Resources:
   #     RetentionDays: 15
   #     SourceArn: !Ref PnEcEventBusTrackerExternalNotification
 
+###### CHANNEL PEC #######
   PnEcQueueBatchPEC:
     Type: AWS::SQS::Queue
     Properties:
@@ -314,6 +315,70 @@ Resources:
       VisibilityTimeout: 30
 
   PnEcDLQueueErroriPEC:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
+###### CHANNEL EMAIL #######
+  PnEcQueueBatchEMAIL:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueBatchEMAIL.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueBatchEMAIL:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
+  PnEcQueueInteractiveEMAIL:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueInteractiveEMAIL.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueInteractiveEMAIL:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
+  PnEcQueueErroriEMAIL:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueErroriEMAIL.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueErroriEMAIL:
     Type: AWS::SQS::Queue
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
@@ -543,3 +608,63 @@ Outputs:
   PnEcDLQueueArnErroriPEC:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriPEC'
     Value: !GetAtt  PnEcDLQueueErroriPEC.Arn
+
+  PnEcQueueNameBatchEMAIL:
+    Description: '[Canale EMAIL] Nome della Coda per la modalità EMAIL-Batch'
+    Value: !GetAtt  PnEcQueueBatchEMAIL.QueueName
+
+  PnEcQueueArnBatchEMAIL:
+    Description: '[Canale EMAIL] ARN della Coda per la modalità EMAIL-Batch'
+    Value: !GetAtt  PnEcQueueBatchEMAIL.Arn
+
+  PnEcQueueUrlBatchEMAIL:
+    Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Batch'
+    Value: !Ref  PnEcQueueBatchEMAIL
+
+  PnEcDLQueueNameBatchEMAIL:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchEMAIL'
+    Value: !GetAtt  PnEcDLQueueBatchEMAIL.QueueName
+
+  PnEcDLQueueArnBatchEMAIL:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchEMAIL'
+    Value: !GetAtt  PnEcDLQueueBatchEMAIL.Arn
+
+  PnEcQueueNameInteractiveEMAIL:
+    Description: '[Canale EMAIL] Nome della Coda per la modalità EMAIL-Interactive'
+    Value: !GetAtt  PnEcQueueInteractiveEMAIL.QueueName
+
+  PnEcQueueArnInteractiveEMAIL:
+    Description: '[Canale EMAIL] ARN della Coda per la modalità EMAIL-Interactive'
+    Value: !GetAtt  PnEcQueueInteractiveEMAIL.Arn
+
+  PnEcQueueUrlInteractiveEMAIL:
+    Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Interactive'
+    Value: !Ref  PnEcQueueInteractiveEMAIL
+
+  PnEcDLQueueNameInteractiveEMAIL:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractiveEMAIL'
+    Value: !GetAtt  PnEcDLQueueInteractiveEMAIL.QueueName
+
+  PnEcDLQueueArnInteractiveEMAIL:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueInteractiveEMAIL'
+    Value: !GetAtt  PnEcDLQueueInteractiveEMAIL.Arn
+
+  PnEcQueueNameErroriEMAIL:
+    Description: '[Canale EMAIL] Nome della Coda Errori EMAIL'
+    Value: !GetAtt  PnEcQueueErroriEMAIL.QueueName
+
+  PnEcQueueArnErroriEMAIL:
+    Description: '[Canale EMAIL] ARN della Coda Errori EMAIL'
+    Value: !GetAtt  PnEcQueueErroriEMAIL.Arn
+
+  PnEcQueueUrlErroriEMAIL:
+    Description: '[Canale EMAIL] URL della Coda Errori EMAIL'
+    Value: !Ref  PnEcQueueErroriEMAIL
+
+  PnEcDLQueueNameErroriEMAIL:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriEMAIL'
+    Value: !GetAtt  PnEcDLQueueErroriEMAIL.QueueName
+
+  PnEcDLQueueArnErroriEMAIL:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriEMAIL'
+    Value: !GetAtt  PnEcDLQueueErroriEMAIL.Arn
