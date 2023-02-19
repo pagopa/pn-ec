@@ -259,6 +259,69 @@ Resources:
   #     RetentionDays: 15
   #     SourceArn: !Ref PnEcEventBusTrackerExternalNotification
 
+  PnEcQueueBatchPEC:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueBatchPEC.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueBatchPEC:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
+  PnEcQueueInteractivePEC:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueInteractivePEC.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueInteractivePEC:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
+  PnEcQueueErroriPEC:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueErroriPEC.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueErroriPEC:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
 Outputs:
 
   PnEcEventBusNameTrackerExternalNotification:
@@ -420,3 +483,63 @@ Outputs:
   PnEcDLQueueArnErroriSMS:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriSMS'
     Value: !GetAtt  PnEcDLQueueErroriSMS.Arn
+
+  PnEcQueueNameBatchPEC:
+    Description: '[Canale PEC] Nome della Coda per la modalità PEC-Batch'
+    Value: !GetAtt  PnEcQueueBatchPEC.QueueName
+
+  PnEcQueueArnBatchPEC:
+    Description: '[Canale PEC] ARN della Coda per la modalità PEC-Batch'
+    Value: !GetAtt  PnEcQueueBatchPEC.Arn
+
+  PnEcQueueUrlBatchPEC:
+    Description: '[Canale PEC] URL della Coda per la modalità PEC-Batch'
+    Value: !Ref  PnEcQueueBatchPEC
+
+  PnEcDLQueueNameBatchPEC:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchPEC'
+    Value: !GetAtt  PnEcDLQueueBatchPEC.QueueName
+
+  PnEcDLQueueArnBatchPEC:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchPEC'
+    Value: !GetAtt  PnEcDLQueueBatchPEC.Arn
+
+  PnEcQueueNameInteractivePEC:
+    Description: '[Canale PEC] Nome della Coda per la modalità PEC-Interactive'
+    Value: !GetAtt  PnEcQueueInteractivePEC.QueueName
+
+  PnEcQueueArnInteractivePEC:
+    Description: '[Canale PEC] ARN della Coda per la modalità PEC-Interactive'
+    Value: !GetAtt  PnEcQueueInteractivePEC.Arn
+
+  PnEcQueueUrlInteractivePEC:
+    Description: '[Canale PEC] URL della Coda per la modalità PEC-Interactive'
+    Value: !Ref  PnEcQueueInteractivePEC
+
+  PnEcDLQueueNameInteractivePEC:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractivePEC'
+    Value: !GetAtt  PnEcDLQueueInteractivePEC.QueueName
+
+  PnEcDLQueueArnInteractivePEC:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueInteractivePEC'
+    Value: !GetAtt  PnEcDLQueueInteractivePEC.Arn
+
+  PnEcQueueNameErroriPEC:
+    Description: '[Canale PEC] Nome della Coda Errori PEC'
+    Value: !GetAtt  PnEcQueueErroriPEC.QueueName
+
+  PnEcQueueArnErroriPEC:
+    Description: '[Canale PEC] ARN della Coda Errori PEC'
+    Value: !GetAtt  PnEcQueueErroriPEC.Arn
+
+  PnEcQueueUrlErroriPEC:
+    Description: '[Canale PEC] URL della Coda Errori PEC'
+    Value: !Ref  PnEcQueueErroriPEC
+
+  PnEcDLQueueNameErroriPEC:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriPEC'
+    Value: !GetAtt  PnEcDLQueueErroriPEC.QueueName
+
+  PnEcDLQueueArnErroriPEC:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriPEC'
+    Value: !GetAtt  PnEcDLQueueErroriPEC.Arn
