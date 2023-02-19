@@ -184,7 +184,7 @@ Parameters:
     Type: String
     Description: '[Canale SMS] URL della Coda Errori SMS'
 
-    PnEcQueueNameBatchPEC:
+  PnEcQueueNameBatchPEC:
     Description: '[Canale PEC] Nome della Coda per la modalità PEC-Batch'
     Type: String
     
