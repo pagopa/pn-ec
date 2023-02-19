@@ -267,6 +267,33 @@ Resources:
               - 'events:PutEvents'
             Resource:
               - !Sub '${PnEcEventBusArnTrackerExternalNotification}'
+          - Effect: Allow
+            Sid: 'PublishOnExternalTopic'
+            Action:
+              - 'sns:Get*'
+              - 'sns:List*'
+              - 'sns:Publish'
+              - 'sns:Set*'
+            Resource:
+              - !Sub '${PnEcSNSArnNotificheExt1}'
+          - Effect: Allow
+            Sid: 'PublishOnExternalTopic'
+            Action:
+              - 'sns:Get*'
+              - 'sns:List*'
+              - 'sns:Create*'
+              - 'sns:Set*'
+              - 'sns:*SMS*'
+            Resource:
+              - '*'
+          - Effect: Allow
+            Sid: 'AvoidIssues'
+            Action:
+              - 'sns:*'
+            Resource:
+              - '*''
+
+              
 
   PnEcQueuePolicyTrackerStatoSMS:
     Type: AWS::SQS::QueuePolicy
