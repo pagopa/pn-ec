@@ -128,6 +128,86 @@ Parameters:
     Type: String
     Description: '[Notification Tracker: canale SMS] URL della Coda Errori afferenti al canale SMS'
 
+  PnEcQueueNameTrackerStatoPEC:
+    Description: '[Notification Tracker: canale PEC] Nome della Coda per aggiornamenti di stato afferenti al canale PEC'
+    Type: String
+
+  PnEcQueueArnTrackerStatoPEC:
+    Description: '[Notification Tracker: canale PEC] ARN della Coda per aggiornamenti di stato afferenti al canale PEC'
+    Type: String
+
+  PnEcQueueUrlTrackerStatoPEC:
+    Description: '[Notification Tracker: canale PEC] URL della Coda per aggiornamenti di stato afferenti al canale PEC'
+    Type: String
+
+  PnEcDLQueueNameTrackerStatoPEC:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoPEC'
+    Type: String
+
+  PnEcDLQueueArnTrackerStatoPEC:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoPEC'
+    Type: String
+
+  PnEcQueueNameTrackerErroriPEC:
+    Description: '[Notification Tracker: canale PEC] Nome della Coda Errori afferenti al canale PEC'
+    Type: String
+    
+  PnEcQueueArnTrackerErroriPEC:
+    Description: '[Notification Tracker: canale PEC] ARN della Coda Errori afferenti al canale PEC'
+    Type: String
+    
+  PnEcQueueUrlTrackerErroriPEC:
+    Description: '[Notification Tracker: canale PEC] URL della Coda Errori afferenti al canale PEC'
+    Type: String
+
+  PnEcDLQueueNameTrackerErroriPEC:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriPEC'
+    Type: String
+    
+  PnEcDLQueueArnTrackerErroriPEC:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriPEC'
+    Type: String
+    
+  PnEcQueueNameTrackerStatoEMAIL:
+    Description: '[Notification Tracker: canale EMAIL] Nome della Coda per aggiornamenti di stato afferenti al canale EMAIL'
+    Type: String
+
+  PnEcQueueArnTrackerStatoEMAIL:
+    Description: '[Notification Tracker: canale EMAIL] ARN della Coda per aggiornamenti di stato afferenti al canale EMAIL'
+    Type: String
+
+  PnEcQueueUrlTrackerStatoEMAIL:
+    Description: '[Notification Tracker: canale EMAIL] URL della Coda per aggiornamenti di stato afferenti al canale EMAIL'
+    Type: String
+
+  PnEcDLQueueNameTrackerStatoEMAIL:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoEMAIL'
+    Type: String
+
+  PnEcDLQueueArnTrackerStatoEMAIL:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoEMAIL'
+    Type: String
+
+  PnEcQueueNameTrackerErroriEMAIL:
+    Description: '[Notification Tracker: canale EMAIL] Nome della Coda Errori afferenti al canale EMAIL'
+    Type: String
+    
+  PnEcQueueArnTrackerErroriEMAIL:
+    Description: '[Notification Tracker: canale EMAIL] ARN della Coda Errori afferenti al canale EMAIL'
+    Type: String
+    
+  PnEcQueueUrlTrackerErroriEMAIL:
+    Description: '[Notification Tracker: canale EMAIL] URL della Coda Errori afferenti al canale EMAIL'
+    Type: String
+
+  PnEcDLQueueNameTrackerErroriEMAIL:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriEMAIL'
+    Type: String
+    
+  PnEcDLQueueArnTrackerErroriEMAIL:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriEMAIL'
+    Type: String
+
   PnEcQueueNameNotificheExt1:
     Type: String
     Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] Nome della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
@@ -327,19 +407,23 @@ Resources:
         ContainerEnvEntry8: !Sub 'PnEcEventBusNameTrackerExternalNotification=${PnEcEventBusNameTrackerExternalNotification}'
         ContainerEnvEntry9: !Sub 'PnEcQueueNameTrackerStatoSMS=${PnEcQueueNameTrackerStatoSMS}'
         ContainerEnvEntry10: !Sub 'PnEcQueueNameTrackerErroriSMS=${PnEcQueueNameTrackerErroriSMS}'
-        ContainerEnvEntry11: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
-        ContainerEnvEntry12: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
-        ContainerEnvEntry13: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
-        ContainerEnvEntry14: !Sub 'PnEcQueueNameBatchPEC=${PnEcQueueNameBatchPEC}'
-        ContainerEnvEntry15: !Sub 'PnEcQueueNameInteractivePEC=${PnEcQueueNameInteractivePEC}'
-        ContainerEnvEntry16: !Sub 'PnEcQueueNameErroriPEC=${PnEcQueueNameErroriPEC}'
-        ContainerEnvEntry17: !Sub 'PnEcQueueNameBatchEMAIL=${PnEcQueueNameBatchEMAIL}'
-        ContainerEnvEntry18: !Sub 'PnEcQueueNameInteractiveEMAIL=${PnEcQueueNameInteractiveEMAIL}'
-        ContainerEnvEntry19: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
-        ContainerEnvEntry20: 'SafeStorageClientId=pn-external-channels'
-        ContainerEnvEntry21: 'SafeStorageClientApiKey=pn-external-channels_api_key'
-        ContainerEnvEntry22: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry23: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry11: !Sub 'PnEcQueueNameTrackerStatoPEC=${PnEcQueueNameTrackerStatoPEC}'
+        ContainerEnvEntry12: !Sub 'PnEcQueueNameTrackerErroriPEC=${PnEcQueueNameTrackerErroriPEC}'
+        ContainerEnvEntry13: !Sub 'PnEcQueueNameTrackerStatoEMAIL=${PnEcQueueNameTrackerStatoEMAIL}'
+        ContainerEnvEntry14: !Sub 'PnEcQueueNameTrackerErroriEMAIL=${PnEcQueueNameTrackerErroriEMAIL}'
+        ContainerEnvEntry15: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
+        ContainerEnvEntry16: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
+        ContainerEnvEntry17: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
+        ContainerEnvEntry18: !Sub 'PnEcQueueNameBatchPEC=${PnEcQueueNameBatchPEC}'
+        ContainerEnvEntry19: !Sub 'PnEcQueueNameInteractivePEC=${PnEcQueueNameInteractivePEC}'
+        ContainerEnvEntry20: !Sub 'PnEcQueueNameErroriPEC=${PnEcQueueNameErroriPEC}'
+        ContainerEnvEntry21: !Sub 'PnEcQueueNameBatchEMAIL=${PnEcQueueNameBatchEMAIL}'
+        ContainerEnvEntry22: !Sub 'PnEcQueueNameInteractiveEMAIL=${PnEcQueueNameInteractiveEMAIL}'
+        ContainerEnvEntry23: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
+        ContainerEnvEntry24: 'SafeStorageClientId=pn-external-channels'
+        ContainerEnvEntry25: 'SafeStorageClientApiKey=pn-external-channels_api_key'
+        ContainerEnvEntry26: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry27: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         MappedPaths: '/external-channels/*,/external-channel/*'
         ECSClusterName: !Ref ECSClusterName
         Subnets: !Ref SubnetsIds
@@ -384,6 +468,10 @@ Resources:
             Resource:
               - !Sub '${PnEcQueueArnTrackerStatoSMS}'
               - !Sub '${PnEcQueueArnTrackerErroriSMS}'
+              - !Sub '${PnEcQueueArnTrackerStatoPEC}'
+              - !Sub '${PnEcQueueArnTrackerErroriPEC}'
+              - !Sub '${PnEcQueueArnTrackerStatoEMAIL}'
+              - !Sub '${PnEcQueueArnTrackerErroriEMAIL}'
               - !Sub '${PnEcQueueArnNotificheExt1}'
               - !Sub '${PnEcQueueArnBatchSMS}'
               - !Sub '${PnEcQueueArnInteractiveSMS}'
@@ -457,6 +545,106 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
+  PnEcQueuePolicyTrackerStatoPEC:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlTrackerStatoPEC}'
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - 'sqs:SendMessage'
+              - 'sqs:ChangeMessageVisibility'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnTrackerStatoPEC}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+          - Action: 
+              - 'sqs:ReceiveMessage'
+              - 'sqs:DeleteMessage'
+              - 'sqs:ChangeMessageVisibility'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnTrackerStatoPEC}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+
+  PnEcQueuePolicyTrackerErroriPEC:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlTrackerErroriPEC}'
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - 'sqs:SendMessage'
+              - 'sqs:ChangeMessageVisibility'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnTrackerErroriPEC}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+          - Action: 
+              - 'sqs:ReceiveMessage'
+              - 'sqs:DeleteMessage'
+              - 'sqs:ChangeMessageVisibility'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnTrackerErroriPEC}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+
+  PnEcQueuePolicyTrackerStatoEMAIL:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlTrackerStatoEMAIL}'
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - 'sqs:SendMessage'
+              - 'sqs:ChangeMessageVisibility'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnTrackerStatoEMAIL}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+          - Action: 
+              - 'sqs:ReceiveMessage'
+              - 'sqs:DeleteMessage'
+              - 'sqs:ChangeMessageVisibility'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnTrackerStatoEMAIL}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+
+  PnEcQueuePolicyTrackerErroriEMAIL:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlTrackerErroriEMAIL}'
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - 'sqs:SendMessage'
+              - 'sqs:ChangeMessageVisibility'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnTrackerErroriEMAIL}'
+            Principal:  
+              AWS:
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+          - Action: 
+              - 'sqs:ReceiveMessage'
+              - 'sqs:DeleteMessage'
+              - 'sqs:ChangeMessageVisibility'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnTrackerErroriEMAIL}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+  
   PnEcQueuePolicyNotificheExt1:
     Type: AWS::SQS::QueuePolicy
     Properties: 
