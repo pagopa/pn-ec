@@ -47,7 +47,6 @@ class RequestControllerTest {
     @Autowired
     private GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties;
 
-//    @Value("${header.x-pagopa-extch-cx-id:#{null}}")
     private String X_PAGOPA_EXTERNALCHANNEL_CX_ID = "x-pagopa-extch-cx-id";
 
     private static final String DEFAULT_ID_DIGITAL = "DIGITAL";
