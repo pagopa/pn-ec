@@ -553,17 +553,7 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - 'SQS:SendMessage'
-              - 'SQS:ChangeMessageVisibility'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnTrackerStatoPEC}'
-            Principal:  
-              AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-          - Action: 
-              - 'SQS:ReceiveMessage'
-              - 'SQS:DeleteMessage'
-              - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnTrackerStatoPEC}'
             Principal:  
@@ -578,17 +568,7 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - 'SQS:SendMessage'
-              - 'SQS:ChangeMessageVisibility'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnTrackerErroriPEC}'
-            Principal:  
-              AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-          - Action: 
-              - 'SQS:ReceiveMessage'
-              - 'SQS:DeleteMessage'
-              - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnTrackerErroriPEC}'
             Principal:  
@@ -603,18 +583,6 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - 'SQS:SendMessage'
-              - 'SQS:ChangeMessageVisibility'
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnTrackerStatoEMAIL}'
-            Principal:  
-              AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-          - Action: 
-              - 'SQS:ReceiveMessage'
-              - 'SQS:DeleteMessage'
-              - 'SQS:ChangeMessageVisibility'
               - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnTrackerStatoEMAIL}'
@@ -630,18 +598,6 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - 'SQS:SendMessage'
-              - 'SQS:ChangeMessageVisibility'
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnTrackerErroriEMAIL}'
-            Principal:  
-              AWS:
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-          - Action: 
-              - 'SQS:ReceiveMessage'
-              - 'SQS:DeleteMessage'
-              - 'SQS:ChangeMessageVisibility'
               - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnTrackerErroriEMAIL}'
@@ -717,17 +673,7 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - 'SQS:SendMessage'
-              - 'SQS:ChangeMessageVisibility'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnBatchPEC}'
-            Principal:  
-              AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-          - Action: 
-              - 'SQS:ReceiveMessage'
-              - 'SQS:DeleteMessage'
-              - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnBatchPEC}'
             Principal:  
@@ -742,17 +688,7 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - 'SQS:SendMessage'
-              - 'SQS:ChangeMessageVisibility'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnInteractivePEC}'
-            Principal:  
-              AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-          - Action: 
-              - 'SQS:ReceiveMessage'
-              - 'SQS:DeleteMessage'
-              - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnInteractivePEC}'
             Principal:  
@@ -767,17 +703,7 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - 'SQS:SendMessage'
-              - 'SQS:ChangeMessageVisibility'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnErroriPEC}'
-            Principal:  
-              AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-          - Action: 
-              - 'SQS:ReceiveMessage'
-              - 'SQS:DeleteMessage'
-              - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnErroriPEC}'
             Principal:  
@@ -792,18 +718,6 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - 'SQS:SendMessage'
-              - 'SQS:ChangeMessageVisibility'
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnBatchEMAIL}'
-            Principal:  
-              AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-          - Action: 
-              - 'SQS:ReceiveMessage'
-              - 'SQS:DeleteMessage'
-              - 'SQS:ChangeMessageVisibility'
               - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnBatchEMAIL}'
@@ -818,19 +732,7 @@ Resources:
         - !Sub '${PnEcQueueUrlInteractiveEMAIL}'
       PolicyDocument: 
         Statement: 
-          - Action: 
-              - 'SQS:SendMessage'
-              - 'SQS:ChangeMessageVisibility'
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnInteractiveEMAIL}'
-            Principal:  
-              AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-          - Action: 
-              - 'SQS:ReceiveMessage'
-              - 'SQS:DeleteMessage'
-              - 'SQS:ChangeMessageVisibility'
+          - Action:
               - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnInteractiveEMAIL}'
@@ -846,18 +748,6 @@ Resources:
       PolicyDocument: 
         Statement: 
           - Action: 
-              - 'SQS:SendMessage'
-              - 'SQS:ChangeMessageVisibility'
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnErroriEMAIL}'
-            Principal:  
-              AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-          - Action: 
-              - 'SQS:ReceiveMessage'
-              - 'SQS:DeleteMessage'
-              - 'SQS:ChangeMessageVisibility'
               - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnErroriEMAIL}'
