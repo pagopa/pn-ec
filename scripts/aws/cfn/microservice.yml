@@ -605,6 +605,7 @@ Resources:
           - Action: 
               - 'SQS:SendMessage'
               - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnTrackerStatoEMAIL}'
             Principal:  
@@ -614,6 +615,7 @@ Resources:
               - 'SQS:ReceiveMessage'
               - 'SQS:DeleteMessage'
               - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnTrackerStatoEMAIL}'
             Principal:  
@@ -630,6 +632,7 @@ Resources:
           - Action: 
               - 'SQS:SendMessage'
               - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnTrackerErroriEMAIL}'
             Principal:  
@@ -639,6 +642,7 @@ Resources:
               - 'SQS:ReceiveMessage'
               - 'SQS:DeleteMessage'
               - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnTrackerErroriEMAIL}'
             Principal:  
@@ -790,6 +794,7 @@ Resources:
           - Action: 
               - 'SQS:SendMessage'
               - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnBatchEMAIL}'
             Principal:  
@@ -799,6 +804,7 @@ Resources:
               - 'SQS:ReceiveMessage'
               - 'SQS:DeleteMessage'
               - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnBatchEMAIL}'
             Principal:  
@@ -815,6 +821,7 @@ Resources:
           - Action: 
               - 'SQS:SendMessage'
               - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnInteractiveEMAIL}'
             Principal:  
@@ -824,6 +831,7 @@ Resources:
               - 'SQS:ReceiveMessage'
               - 'SQS:DeleteMessage'
               - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnInteractiveEMAIL}'
             Principal:  
@@ -840,6 +848,7 @@ Resources:
           - Action: 
               - 'SQS:SendMessage'
               - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnErroriEMAIL}'
             Principal:  
@@ -849,6 +858,7 @@ Resources:
               - 'SQS:ReceiveMessage'
               - 'SQS:DeleteMessage'
               - 'SQS:ChangeMessageVisibility'
+              - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnErroriEMAIL}'
             Principal:  
