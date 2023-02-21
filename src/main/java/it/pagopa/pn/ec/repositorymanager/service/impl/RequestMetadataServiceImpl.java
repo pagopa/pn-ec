@@ -39,7 +39,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     }
 
     @Override
-    public Mono<RequestMetadata> getRequestMetadata(String xPagopaExtchCxId, String requestIdx) {
+    public Mono<RequestMetadata> getRequestMetadata(String requestIdx) {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestIdx)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()));
@@ -64,7 +64,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     }
 
     @Override
-    public Mono<RequestMetadata> updateEventsMetadata(String xPagopaExtchCxId, String requestIdx, Events events) {
+    public Mono<RequestMetadata> updateEventsMetadata(String requestIdx, Events events) {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestIdx)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
@@ -91,7 +91,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     }
 
     @Override
-    public Mono<RequestMetadata> deleteRequestMetadata(String xPagopaExtchCxId, String requestIdx) {
+    public Mono<RequestMetadata> deleteRequestMetadata(String requestIdx) {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestIdx)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
