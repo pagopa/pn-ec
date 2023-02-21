@@ -49,6 +49,7 @@ class RequestControllerTest {
 
     private static final String DEFAULT_ID_DIGITAL = "DIGITAL";
     private static final String DEFAULT_ID_PAPER = "PAPER";
+    private static final String X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE = "CLIENT1";
     private static final RequestDto digitalRequest = new RequestDto();
     private static final RequestDto paperRequest = new RequestDto();
 
@@ -59,6 +60,7 @@ class RequestControllerTest {
 
 //      Initialize digitalRequestDto
         digitalRequest.setRequestIdx(DEFAULT_ID_DIGITAL);
+        digitalRequest.setxPagopaExtchCxId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE);
         digitalRequest.setClientRequestTimeStamp(OffsetDateTime.now());
         digitalRequest.setRequestTimeStamp(OffsetDateTime.now());
 
@@ -88,6 +90,7 @@ class RequestControllerTest {
 
 //      Initialize paperRequestDto
         paperRequest.setRequestIdx(DEFAULT_ID_PAPER);
+        paperRequest.setxPagopaExtchCxId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE);
         paperRequest.setClientRequestTimeStamp(OffsetDateTime.now());
         paperRequest.setRequestTimeStamp(OffsetDateTime.now());
 
@@ -146,7 +149,7 @@ class RequestControllerTest {
     }
 
     @BeforeAll
-    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient, @Autowired ObjectMapper objectMapper, @Autowired RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
+    public static void insertDefaultRequest(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient, @Autowired ObjectMapper objectMapper, @Autowired RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
         dynamoDbTablePersonal = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiestePersonalName(), TableSchema.fromBean(RequestPersonal.class));
         dynamoDbTableMetadata = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteMetadataName(), TableSchema.fromBean(RequestMetadata.class));
 
@@ -158,7 +161,7 @@ class RequestControllerTest {
     }
 
     @BeforeEach
-    public void createDefaultClientConfigurationDto() {
+    public void createDefaultRequestDto() {
         initializeRequestDto();
     }
 

@@ -19,6 +19,7 @@ public class RequestMetadata {
 
 	@Getter(onMethod=@__({@DynamoDbPartitionKey}))
 	String requestId;
+	String xPagopaExtchCxId;
 	String statusRequest;
 	OffsetDateTime clientRequestTimeStamp;
 	OffsetDateTime requestTimestamp;

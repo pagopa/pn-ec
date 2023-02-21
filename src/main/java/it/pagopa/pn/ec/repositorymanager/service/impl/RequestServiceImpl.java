@@ -43,14 +43,17 @@ public class RequestServiceImpl implements RequestService {
     public Mono<Request> insertRequest(Request request) {
 
         String requestId = request.getRequestId();
+        String clientId = request.getXPagopaExtchCxId();
 
         RequestPersonal requestPersonal = request.getRequestPersonal();
         requestPersonal.setRequestId(requestId);
+        requestPersonal.setXPagopaExtchCxId(clientId);
         requestPersonal.setClientRequestTimeStamp(request.getClientRequestTimeStamp());
         requestPersonal.setRequestTimestamp(OffsetDateTime.now());
 
         RequestMetadata requestMetadata = request.getRequestMetadata();
         requestMetadata.setRequestId(requestId);
+        requestMetadata.setXPagopaExtchCxId(clientId);
         requestMetadata.setClientRequestTimeStamp(request.getClientRequestTimeStamp());
         requestMetadata.setRequestTimestamp(OffsetDateTime.now());
 
