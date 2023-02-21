@@ -12,13 +12,14 @@ public class RequestMapper {
         throw new IllegalStateException("RequestMapper is a utility class");
     }
 
-    public static Request createRequestFromPersonalAndMetadata(String requestId, RequestPersonal requestPersonal,
+    public static Request createRequestFromPersonalAndMetadata(String xPagopaExtchCxId, String requestId, RequestPersonal requestPersonal,
                                                                RequestMetadata requestMetadata) {
         String currentStatus = requestMetadata.getStatusRequest();
         OffsetDateTime clientRequestTimeStamp = requestMetadata.getClientRequestTimeStamp();
         OffsetDateTime requestTimeStamp = requestMetadata.getRequestTimestamp();
         return Request.builder()
                 .requestId(requestId)
+                .xPagopaExtchCxId(xPagopaExtchCxId)
                 .statusRequest(currentStatus)
                 .clientRequestTimeStamp(clientRequestTimeStamp)
                 .requestTimeStamp(requestTimeStamp)

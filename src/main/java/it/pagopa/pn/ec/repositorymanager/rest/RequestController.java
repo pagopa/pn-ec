@@ -28,29 +28,29 @@ public class RequestController implements GestoreRequestApi {
     }
 
     @Override
-    public Mono<ResponseEntity<RequestDto>> getRequest(String requestIdx, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<RequestDto>> getRequest(String xPagopaExtchCxId, String requestIdx, ServerWebExchange exchange) {
         log.info("Try to retrieve request with id -> {}", requestIdx);
-        return requestService.getRequest(requestIdx).map(retrievedClient -> restUtils.endReadRequest(retrievedClient, RequestDto.class));
+        return requestService.getRequest(xPagopaExtchCxId, requestIdx).map(retrievedClient -> restUtils.endReadRequest(retrievedClient, RequestDto.class));
     }
 
     @Override
-    public Mono<ResponseEntity<RequestDto>> insertRequest(Mono<RequestDto> requestDto, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<RequestDto>> insertRequest(String xPagopaExtchCxId, Mono<RequestDto> requestDto, ServerWebExchange exchange) {
         return requestDto.map(requestDtoToInsert -> restUtils.startCreateRequest(requestDtoToInsert, Request.class))
-                         .flatMap(requestService::insertRequest)
+                         .flatMap(requestToInsert -> requestService.insertRequest(xPagopaExtchCxId, requestToInsert))
                          .map(insertedRequest -> restUtils.endCreateOrUpdateRequest(insertedRequest, RequestDto.class));
     }
 
     @Override
-    public Mono<ResponseEntity<RequestDto>> updateRequest(String requestIdx, Mono<EventsDto> eventsPatchDto, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<RequestDto>> updateRequest(String xPagopaExtchCxId, String requestIdx, Mono<EventsDto> eventsPatchDto, ServerWebExchange exchange) {
         return eventsPatchDto.map(eventsToUpdate -> restUtils.startUpdateRequest(eventsToUpdate, Events.class))
-                             .flatMap(requestToUpdate -> requestService.updateEvents(requestIdx, requestToUpdate))
+                             .flatMap(requestToUpdate -> requestService.updateEvents(xPagopaExtchCxId, requestIdx, requestToUpdate))
                              .map(updatedRequest -> restUtils.endCreateOrUpdateRequest(updatedRequest, RequestDto.class));
     }
 
     @Override
-    public Mono<ResponseEntity<Void>> deleteRequest(String requestIdx, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<Void>> deleteRequest(String xPagopaExtchCxId, String requestIdx, ServerWebExchange exchange) {
         log.info("Try to delete request with id -> {}", requestIdx);
-        return requestService.deleteRequest(requestIdx)
+        return requestService.deleteRequest(xPagopaExtchCxId, requestIdx)
                              .map(retrievedRequest -> restUtils.endDeleteRequest(retrievedRequest, RequestDto.class))
                              .thenReturn(new ResponseEntity<>(OK));
     }
