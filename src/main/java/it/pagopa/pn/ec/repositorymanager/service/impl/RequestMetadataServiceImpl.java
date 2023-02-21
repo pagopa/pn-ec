@@ -71,11 +71,31 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                    .doOnSuccess(retrievedRequest -> checkEventsMetadata(retrievedRequest, events))
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
                    .map(retrieveRequestMetadata -> {
+                       List<Events> getEventsList = retrieveRequestMetadata.getEventsList();
+                       String status = null;
                        if (events.getDigProgrStatus() != null) {
-                           retrieveRequestMetadata.setStatusRequest(events.getDigProgrStatus().getStatus());
+                           if (getEventsList != null) {
+                               for (Events eve : getEventsList) {
+                                   if ((events.getDigProgrStatus().getEventTimestamp().isAfter(eve.getDigProgrStatus().getEventTimestamp()))) {
+                                       status = events.getDigProgrStatus().getStatus();
+                                   }
+                               }
+                                   if (status != null){
+                                       retrieveRequestMetadata.setStatusRequest(status);
+                                   }
+                           }
                            events.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
                        } else {
-                           retrieveRequestMetadata.setStatusRequest(events.getPaperProgrStatus().getStatusDescription());
+                           if (getEventsList != null) {
+                               for (Events eve : getEventsList) {
+                                   if ((events.getPaperProgrStatus().getStatusDateTime().isAfter(eve.getPaperProgrStatus().getStatusDateTime()))) {
+                                       status = events.getPaperProgrStatus().getStatusDescription();
+                                   }
+                               }
+                               if (status != null){
+                                   retrieveRequestMetadata.setStatusRequest(status);
+                               }
+                           }
                            events.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
                        }
                        List<Events> eventsList = retrieveRequestMetadata.getEventsList();
@@ -88,6 +108,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                    })
                    .flatMap(requestMetadataWithEventsUpdated -> Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(
                            requestMetadataWithEventsUpdated)));
+
     }
 
     @Override
