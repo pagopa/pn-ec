@@ -6,8 +6,8 @@ import reactor.core.publisher.Mono;
 
 public interface RequestMetadataService {
 
-    Mono<RequestMetadata> getRequestMetadata(String xPagopaExtchCxId, String requestId);
+    Mono<RequestMetadata> getRequestMetadata(String requestId);
     Mono<RequestMetadata> insertRequestMetadata(RequestMetadata requestMetadata);
-    Mono<RequestMetadata> updateEventsMetadata(String xPagopaExtchCxId, String requestId, Events events);
-    Mono<RequestMetadata> deleteRequestMetadata(String xPagopaExtchCxId, String requestId);
+    Mono<RequestMetadata> updateEventsMetadata(String requestId, Events events);
+    Mono<RequestMetadata> deleteRequestMetadata(String requestId);
 }

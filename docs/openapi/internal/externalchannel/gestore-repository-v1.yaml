@@ -76,12 +76,6 @@ paths:
 
   /external-channel/gestoreRepository/requests/{requestIdx}:
     parameters:
-      - name: x-pagopa-extch-cx-id
-        in: header
-        required: true
-        allowEmptyValue: false
-        schema:
-          type: string
       - name: requestIdx
         in: path
         required: true
@@ -123,13 +117,6 @@ paths:
           $ref: '#/components/responses/missingRequestedItem'
 
   /external-channel/gestoreRepository/requests:
-    parameters:
-      - name: x-pagopa-extch-cx-id
-        in: header
-        required: true
-        allowEmptyValue: false
-        schema:
-          type: string
     post:
       tags:
         - GestoreRequest
@@ -189,6 +176,7 @@ components:
       type: object
       required:
         - requestIdx
+        - xPagopaExtchCxId
         - clientRequestTimeStamp
         - requestPersonal
         - requestMetadata
@@ -196,6 +184,8 @@ components:
         requestIdx:
           type: string
           pattern: '[0-9A-Za-z_-]{5,100}'
+        xPagopaExtchCxId:
+          type: string
         statusRequest:
           type: string
           readOnly: true
