@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.commons.service;
 
-import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
+import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedFoundException;
 import reactor.core.publisher.Mono;
 
 public interface AuthService {
@@ -10,8 +10,8 @@ public interface AuthService {
      * tramite il Gestore Repository
      * @param idClient
      * Client id da autenticare
-     * @throws ClientNotAuthorizedException
+     * @throws ClientNotAuthorizedFoundException
      * Eccezione se l'id client non è stato trovato
      */
-    Mono<Void> clientAuth(final String idClient) throws ClientNotAuthorizedException;
+    Mono<Void> clientAuth(final String idClient) throws ClientNotAuthorizedFoundException;
 }

@@ -26,92 +26,90 @@ import static java.time.OffsetDateTime.now;
 @Slf4j
 public class EmailService extends PresaInCaricoService {
 
-	private final SqsService sqsService;
-	private final GestoreRepositoryCall gestoreRepositoryCall;
-	private final AttachmentServiceImpl attachmentService;
-	private final NotificationTrackerSqsName notificationTrackerSqsName;
-	private final EmailSqsQueueName emailSqsQueueName;
-	private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private final SqsService sqsService;
+    private final GestoreRepositoryCall gestoreRepositoryCall;
+    private final AttachmentServiceImpl attachmentService;
+    private final NotificationTrackerSqsName notificationTrackerSqsName;
+    private final EmailSqsQueueName emailSqsQueueName;
+    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
-	protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
-			GestoreRepositoryCall gestoreRepositoryCall1, AttachmentServiceImpl attachmentService,
-			NotificationTrackerSqsName notificationTrackerSqsName, EmailSqsQueueName emailSqsQueueName,
-			TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
-		super(authService, gestoreRepositoryCall);
-		this.sqsService = sqsService;
-		this.gestoreRepositoryCall = gestoreRepositoryCall1;
-		this.attachmentService = attachmentService;
-		this.notificationTrackerSqsName = notificationTrackerSqsName;
-		this.emailSqsQueueName = emailSqsQueueName;
-		this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
-	}
+    protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
+                           GestoreRepositoryCall gestoreRepositoryCall1, AttachmentServiceImpl attachmentService,
+                           NotificationTrackerSqsName notificationTrackerSqsName, EmailSqsQueueName emailSqsQueueName,
+                           TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+        super(authService, gestoreRepositoryCall);
+        this.sqsService = sqsService;
+        this.gestoreRepositoryCall = gestoreRepositoryCall1;
+        this.attachmentService = attachmentService;
+        this.notificationTrackerSqsName = notificationTrackerSqsName;
+        this.emailSqsQueueName = emailSqsQueueName;
+        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+    }
 
-	@Override
-	protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
-		EmailPresaInCaricoInfo emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
-		String xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
+    @Override
+    protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
+        EmailPresaInCaricoInfo emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
 
-		return attachmentService
-				.checkAllegatiPresence(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getAttachmentsUrls(),
-						presaInCaricoInfo.getXPagopaExtchCxId(), true)
-				.flatMap(fileDownloadResponse -> {
-					var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-					digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-					return insertRequestFromEmail(digitalNotificationRequest, xPagopaExtchCxId)
-							.onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
-				})
-				.flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
-						new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
-								presaInCaricoInfo.getXPagopaExtchCxId(), now(),
-								transactionProcessConfigurationProperties.email(),
-								transactionProcessConfigurationProperties.emailStartStatus(), "booked", null)))
-				.flatMap(sendMessageResponse -> {
-					DigitalCourtesyMailRequest.QosEnum qos = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest()
-							.getQos();
-					if (qos == INTERACTIVE) {
-						return sqsService.send(emailSqsQueueName.interactiveName(),
-								emailPresaInCaricoInfo.getDigitalCourtesyMailRequest());
-					} else if (qos == BATCH) {
-						return sqsService.send(emailSqsQueueName.errorName(),
-								emailPresaInCaricoInfo.getDigitalCourtesyMailRequest());
-					} else {
-						return Mono.empty();
-					}
-				}).then();
-	}
+        return attachmentService.checkAllegatiPresence(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getAttachmentsUrls(),
+                                                       presaInCaricoInfo.getXPagopaExtchCxId(),
+                                                       true)
+                                .flatMap(fileDownloadResponse -> {
+                                   var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
+                                   digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
+                                   return insertRequestFromEmail(digitalNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
+                               })
+                                .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
+                                                                      new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
+                                                                                                      presaInCaricoInfo.getXPagopaExtchCxId(),
+                                                                                                      now(),
+                                                                                                      transactionProcessConfigurationProperties.email(),
+                                                                                                      transactionProcessConfigurationProperties.emailStartStatus(),
+                                                                                                      "booked",
+                                                                                                      null)))
+                                .flatMap(sendMessageResponse -> {
+                                   DigitalCourtesyMailRequest.QosEnum qos = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getQos();
+                                   if (qos == INTERACTIVE) {
+                                       return sqsService.send(emailSqsQueueName.interactiveName(),
+                                                              emailPresaInCaricoInfo.getDigitalCourtesyMailRequest());
+                                   } else if (qos == BATCH) {
+                                       return sqsService.send(emailSqsQueueName.errorName(),
+                                                              emailPresaInCaricoInfo.getDigitalCourtesyMailRequest());
+                                   } else {
+                                       return Mono.empty();
+                                   }
+                               })
+                                .then();
+    }
 
-	@SuppressWarnings("Duplicates")
-	private Mono<RequestDto> insertRequestFromEmail(final DigitalCourtesyMailRequest digitalCourtesyMailRequest,
-			String xPagopaExtchCxId) {
-		return Mono.fromCallable(() -> {
-			var requestDto = new RequestDto();
-			requestDto.setRequestIdx(digitalCourtesyMailRequest.getRequestId());
-			requestDto.setClientRequestTimeStamp(digitalCourtesyMailRequest.getClientRequestTimeStamp());
-			requestDto.setxPagopaExtchCxId(xPagopaExtchCxId);
+    @SuppressWarnings("Duplicates")
+    private Mono<RequestDto> insertRequestFromEmail(final DigitalCourtesyMailRequest digitalCourtesyMailRequest) {
+        return Mono.fromCallable(() -> {
+            var requestDto = new RequestDto();
+            requestDto.setRequestIdx(digitalCourtesyMailRequest.getRequestId());
+            requestDto.setClientRequestTimeStamp(digitalCourtesyMailRequest.getClientRequestTimeStamp());
 
-			var requestPersonalDto = new RequestPersonalDto();
-			var digitalRequestPersonalDto = new DigitalRequestPersonalDto();
-			digitalRequestPersonalDto
-					.setQos(DigitalRequestPersonalDto.QosEnum.valueOf(digitalCourtesyMailRequest.getQos().name()));
-			digitalRequestPersonalDto.setReceiverDigitalAddress(digitalCourtesyMailRequest.getReceiverDigitalAddress());
-			digitalRequestPersonalDto.setMessageText(digitalCourtesyMailRequest.getMessageText());
-			digitalRequestPersonalDto.setSenderDigitalAddress(digitalCourtesyMailRequest.getSenderDigitalAddress());
-			digitalRequestPersonalDto.setSubjectText(digitalCourtesyMailRequest.getSubjectText());
-			digitalRequestPersonalDto.setAttachmentsUrls(digitalCourtesyMailRequest.getAttachmentsUrls());
-			requestPersonalDto.setDigitalRequestPersonal(digitalRequestPersonalDto);
+            var requestPersonalDto = new RequestPersonalDto();
+            var digitalRequestPersonalDto = new DigitalRequestPersonalDto();
+            digitalRequestPersonalDto.setQos(DigitalRequestPersonalDto.QosEnum.valueOf(digitalCourtesyMailRequest.getQos().name()));
+            digitalRequestPersonalDto.setReceiverDigitalAddress(digitalCourtesyMailRequest.getReceiverDigitalAddress());
+            digitalRequestPersonalDto.setMessageText(digitalCourtesyMailRequest.getMessageText());
+            digitalRequestPersonalDto.setSenderDigitalAddress(digitalCourtesyMailRequest.getSenderDigitalAddress());
+            digitalRequestPersonalDto.setSubjectText(digitalCourtesyMailRequest.getSubjectText());
+            digitalRequestPersonalDto.setAttachmentsUrls(digitalCourtesyMailRequest.getAttachmentsUrls());
+            requestPersonalDto.setDigitalRequestPersonal(digitalRequestPersonalDto);
 
-			var requestMetadataDto = new RequestMetadataDto();
-			var digitalRequestMetadataDto = new DigitalRequestMetadataDto();
-			digitalRequestMetadataDto.setCorrelationId(digitalCourtesyMailRequest.getCorrelationId());
-			digitalRequestMetadataDto.setEventType(digitalCourtesyMailRequest.getEventType());
-			digitalRequestMetadataDto.setTags(digitalCourtesyMailRequest.getTags());
-			digitalRequestMetadataDto.setChannel(EMAIL);
-			digitalRequestMetadataDto.setMessageContentType(DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN);
-			requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
+            var requestMetadataDto = new RequestMetadataDto();
+            var digitalRequestMetadataDto = new DigitalRequestMetadataDto();
+            digitalRequestMetadataDto.setCorrelationId(digitalCourtesyMailRequest.getCorrelationId());
+            digitalRequestMetadataDto.setEventType(digitalCourtesyMailRequest.getEventType());
+            digitalRequestMetadataDto.setTags(digitalCourtesyMailRequest.getTags());
+            digitalRequestMetadataDto.setChannel(EMAIL);
+            digitalRequestMetadataDto.setMessageContentType(DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN);
+            requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
 
-			requestDto.setRequestPersonal(requestPersonalDto);
-			requestDto.setRequestMetadata(requestMetadataDto);
-			return requestDto;
-		}).flatMap(gestoreRepositoryCall::insertRichiesta);
-	}
+            requestDto.setRequestPersonal(requestPersonalDto);
+            requestDto.setRequestMetadata(requestMetadataDto);
+            return requestDto;
+        }).flatMap(gestoreRepositoryCall::insertRichiesta);
+    }
 }
