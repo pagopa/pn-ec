@@ -163,7 +163,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                   .isUnauthorized()
+                                                                                                   .isForbidden()
                                                                                                    .expectBody(Problem.class);
     }
 

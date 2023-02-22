@@ -155,7 +155,7 @@ public class DigitalNotificationRequestApiControllerTest {
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                 .isUnauthorized()
+                                                                                                 .isForbidden()
                                                                                                  .expectBody(Problem.class);
     }
 
