@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.commons.service.impl;
 
-import it.pagopa.pn.ec.commons.exception.ClientForbiddenException;
+import it.pagopa.pn.ec.commons.exception.ClientNotFoundException;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException.IdClientNotFoundException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -23,7 +23,7 @@ public class AuthServiceImpl implements AuthService {
     public Mono<Void> clientAuth(final String xPagopaExtchCxId) throws IdClientNotFoundException {
         return gestoreRepositoryCall.getClientConfiguration(xPagopaExtchCxId)
                                     .onErrorResume(RestCallException.ResourceNotFoundException.class,
-                                                   throwable -> Mono.error(new ClientForbiddenException(xPagopaExtchCxId)))
+                                                   throwable -> Mono.error(new ClientNotFoundException(xPagopaExtchCxId)))
                                     .then();
     }
 }
