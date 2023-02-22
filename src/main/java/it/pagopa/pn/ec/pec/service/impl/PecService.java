@@ -56,39 +56,41 @@ public class PecService extends PresaInCaricoService {
                                                        presaInCaricoInfo.getXPagopaExtchCxId(),
                                                        true)
                                 .flatMap(fileDownloadResponse -> {
-                                   var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
-                                   digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-                                   return insertRequestFromPec(digitalNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
-                               })
+                                    var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
+                                    digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
+                                    return insertRequestFromPec(pecPresaInCaricoInfo.getXPagopaExtchCxId(),
+                                                                digitalNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
+                                })
                                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
-                                                                      new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
-                                                                                                      presaInCaricoInfo.getXPagopaExtchCxId(),
-                                                                                                      now(),
-                                                                                                      transactionProcessConfigurationProperties.pec(),
-                                                                                                      transactionProcessConfigurationProperties.pecStartStatus(),
-                                                                                                      "booked",
-                                                                                                      null)))
+                                                                       new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
+                                                                                                       presaInCaricoInfo.getXPagopaExtchCxId(),
+                                                                                                       now(),
+                                                                                                       transactionProcessConfigurationProperties.pec(),
+                                                                                                       transactionProcessConfigurationProperties.pecStartStatus(),
+                                                                                                       "booked",
+                                                                                                       null)))
                                 .flatMap(sendMessageResponse -> {
-                                   DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
-                                   if (qos == INTERACTIVE) {
-                                       return sqsService.send(pecSqsQueueName.interactiveName(),
-                                                              pecPresaInCaricoInfo.getDigitalNotificationRequest());
-                                   } else if (qos == BATCH) {
-                                       return sqsService.send(pecSqsQueueName.batchName(),
-                                                              pecPresaInCaricoInfo.getDigitalNotificationRequest());
-                                   } else {
-                                       return Mono.empty();
-                                   }
-                               })
+                                    DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
+                                    if (qos == INTERACTIVE) {
+                                        return sqsService.send(pecSqsQueueName.interactiveName(),
+                                                               pecPresaInCaricoInfo.getDigitalNotificationRequest());
+                                    } else if (qos == BATCH) {
+                                        return sqsService.send(pecSqsQueueName.batchName(),
+                                                               pecPresaInCaricoInfo.getDigitalNotificationRequest());
+                                    } else {
+                                        return Mono.empty();
+                                    }
+                                })
                                 .then();
     }
 
     @SuppressWarnings("Duplicates")
-    private Mono<RequestDto> insertRequestFromPec(final DigitalNotificationRequest digitalNotificationRequest) {
+    private Mono<RequestDto> insertRequestFromPec(String xPagopaExtchCxId, final DigitalNotificationRequest digitalNotificationRequest) {
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
             requestDto.setRequestIdx(digitalNotificationRequest.getRequestId());
             requestDto.setClientRequestTimeStamp(digitalNotificationRequest.getClientRequestTimeStamp());
+            requestDto.setxPagopaExtchCxId(xPagopaExtchCxId);
 
             var requestPersonalDto = new RequestPersonalDto();
             var digitalRequestPersonalDto = new DigitalRequestPersonalDto();

@@ -54,39 +54,42 @@ public class EmailService extends PresaInCaricoService {
                                                        presaInCaricoInfo.getXPagopaExtchCxId(),
                                                        true)
                                 .flatMap(fileDownloadResponse -> {
-                                   var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-                                   digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-                                   return insertRequestFromEmail(digitalNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
-                               })
+                                    var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
+                                    digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
+                                    return insertRequestFromEmail(emailPresaInCaricoInfo.getXPagopaExtchCxId(),
+                                                                  digitalNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
+                                })
                                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                                      new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
-                                                                                                      presaInCaricoInfo.getXPagopaExtchCxId(),
-                                                                                                      now(),
-                                                                                                      transactionProcessConfigurationProperties.email(),
-                                                                                                      transactionProcessConfigurationProperties.emailStartStatus(),
-                                                                                                      "booked",
-                                                                                                      null)))
+                                                                       new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
+                                                                                                       presaInCaricoInfo.getXPagopaExtchCxId(),
+                                                                                                       now(),
+                                                                                                       transactionProcessConfigurationProperties.email(),
+                                                                                                       transactionProcessConfigurationProperties.emailStartStatus(),
+                                                                                                       "booked",
+                                                                                                       null)))
                                 .flatMap(sendMessageResponse -> {
-                                   DigitalCourtesyMailRequest.QosEnum qos = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getQos();
-                                   if (qos == INTERACTIVE) {
-                                       return sqsService.send(emailSqsQueueName.interactiveName(),
-                                                              emailPresaInCaricoInfo.getDigitalCourtesyMailRequest());
-                                   } else if (qos == BATCH) {
-                                       return sqsService.send(emailSqsQueueName.errorName(),
-                                                              emailPresaInCaricoInfo.getDigitalCourtesyMailRequest());
-                                   } else {
-                                       return Mono.empty();
-                                   }
-                               })
+                                    DigitalCourtesyMailRequest.QosEnum qos =
+                                            emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getQos();
+                                    if (qos == INTERACTIVE) {
+                                        return sqsService.send(emailSqsQueueName.interactiveName(),
+                                                               emailPresaInCaricoInfo.getDigitalCourtesyMailRequest());
+                                    } else if (qos == BATCH) {
+                                        return sqsService.send(emailSqsQueueName.errorName(),
+                                                               emailPresaInCaricoInfo.getDigitalCourtesyMailRequest());
+                                    } else {
+                                        return Mono.empty();
+                                    }
+                                })
                                 .then();
     }
 
     @SuppressWarnings("Duplicates")
-    private Mono<RequestDto> insertRequestFromEmail(final DigitalCourtesyMailRequest digitalCourtesyMailRequest) {
+    private Mono<RequestDto> insertRequestFromEmail(String xPagopaExtchCxId, final DigitalCourtesyMailRequest digitalCourtesyMailRequest) {
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
             requestDto.setRequestIdx(digitalCourtesyMailRequest.getRequestId());
             requestDto.setClientRequestTimeStamp(digitalCourtesyMailRequest.getClientRequestTimeStamp());
+            requestDto.setxPagopaExtchCxId(xPagopaExtchCxId);
 
             var requestPersonalDto = new RequestPersonalDto();
             var digitalRequestPersonalDto = new DigitalRequestPersonalDto();
