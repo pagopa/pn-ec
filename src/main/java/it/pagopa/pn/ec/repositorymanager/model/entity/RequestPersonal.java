@@ -18,6 +18,7 @@ public class RequestPersonal {
 
 	@Getter(onMethod=@__({@DynamoDbPartitionKey}))
 	String requestId;
+	String xPagopaExtchCxId;
 	OffsetDateTime clientRequestTimeStamp;
 	OffsetDateTime requestTimestamp;
 	DigitalRequestPersonal digitalRequestPersonal;

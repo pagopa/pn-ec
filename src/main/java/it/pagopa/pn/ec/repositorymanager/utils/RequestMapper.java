@@ -14,11 +14,13 @@ public class RequestMapper {
 
     public static Request createRequestFromPersonalAndMetadata(String requestId, RequestPersonal requestPersonal,
                                                                RequestMetadata requestMetadata) {
+        String clientId = requestMetadata.getXPagopaExtchCxId();
         String currentStatus = requestMetadata.getStatusRequest();
         OffsetDateTime clientRequestTimeStamp = requestMetadata.getClientRequestTimeStamp();
         OffsetDateTime requestTimeStamp = requestMetadata.getRequestTimestamp();
         return Request.builder()
                 .requestId(requestId)
+                .xPagopaExtchCxId(clientId)
                 .statusRequest(currentStatus)
                 .clientRequestTimeStamp(clientRequestTimeStamp)
                 .requestTimeStamp(requestTimeStamp)
