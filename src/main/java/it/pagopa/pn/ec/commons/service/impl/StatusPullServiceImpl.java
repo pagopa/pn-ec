@@ -1,11 +1,10 @@
 package it.pagopa.pn.ec.commons.service.impl;
 
-import it.pagopa.pn.ec.commons.exception.ClientNotFoundException;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
-import it.pagopa.pn.ec.commons.rest.call.machinestate.*;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
+import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMachinaStati;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.rest.v1.dto.CourtesyMessageProgressEvent;
@@ -15,19 +14,17 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Service
 public class StatusPullServiceImpl implements StatusPullService {
 
 	private final AuthService authService;
 	private final GestoreRepositoryCall gestoreRepositoryCall;
-	private final CallMacchinaStati callMacchinaStati;
+	private final CallMachinaStati callMacchinaStati;
 
-	public StatusPullServiceImpl(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall) {
+	public StatusPullServiceImpl(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, CallMachinaStati callMacchinaStati) {
 		this.authService = authService;
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
+		this.callMacchinaStati = callMacchinaStati;
 	}
 
 	@Override
@@ -39,7 +36,8 @@ public class StatusPullServiceImpl implements StatusPullService {
 
 					// Controlla se il clientID della richiesta e quello del chiamante coincidono.
 					// Se non coincidono, lancia un'eccezione FORBIDDEN 403.
-					String requestClientID = requestDTO.getxPagopaExtchCxId();
+					String requestClientID = "";
+//							requestDTO.getXPagopaExtchCxId();
 
 					// TODO In futuro le richieste su DB avranno l'attributo xPagopaExtchCxId
 					// inizializzato, il controllo sulla stringa null è solamente temporaneo
@@ -63,7 +61,11 @@ public class StatusPullServiceImpl implements StatusPullService {
 						event.setStatus(null);
 						event.setEventCode(null);
 							// TODO: MAP INTERNAL STATUS CODE TO EXTERNAL STATUS
-							event.setStatus();
+							String processId = requestDTO.getRequestMetadata().getDigitalRequestMetadata().getChannel().name();
+							String currStatus = digProgrStatus.getStatus();
+
+							var decodedStatusDto = callMacchinaStati.statusDecode(processId, currStatus, xPagopaExtchCxId);
+							event.setStatus(null);
 							event.setEventCode(digProgrStatus.getStatusCode());
 
 						var generatedMessageDTO = digProgrStatus.getGeneratedMessage();

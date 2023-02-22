@@ -101,7 +101,6 @@ components:
       required:
         - eventTimestamp
         - status
-        - eventCode
       properties:
         eventTimestamp:
           description: |
