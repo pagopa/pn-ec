@@ -1,5 +1,7 @@
 package it.pagopa.pn.ec.commons.service.impl;
 
+import it.pagopa.pn.ec.commons.exception.ClientNotFoundException;
+import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -18,59 +20,65 @@ import java.util.List;
 @Service
 public class StatusPullServiceImpl implements StatusPullService {
 
-    private final AuthService authService;
-    private final GestoreRepositoryCall gestoreRepositoryCall;
+	private final AuthService authService;
+	private final GestoreRepositoryCall gestoreRepositoryCall;
 
-    public StatusPullServiceImpl(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall) {
-        this.authService = authService;
-        this.gestoreRepositoryCall = gestoreRepositoryCall;
-    }
+	public StatusPullServiceImpl(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall) {
+		this.authService = authService;
+		this.gestoreRepositoryCall = gestoreRepositoryCall;
+	}
 
-    @Override
-    public Flux<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId) {
-        return authService.clientAuth(xPagopaExtchCxId)
-                          .then(gestoreRepositoryCall.getRichiesta(requestIdx))
-                          .onErrorResume(RestCallException.ResourceNotFoundException.class,
-                                         e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
-                          .map(requestDTO -> {
-                              var eventsListDTO = requestDTO.getRequestMetadata().getEventsList();
-                              List<CourtesyMessageProgressEvent> eventsList = new ArrayList<>();
+	@Override
+	public Flux<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId) {
+		return Flux.from(authService.clientAuth(xPagopaExtchCxId).then(gestoreRepositoryCall.getRichiesta(requestIdx))
+				.onErrorResume(RestCallException.ResourceNotFoundException.class,
+						e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
+				.map(requestDTO -> {
 
-                              if (eventsListDTO != null && !eventsListDTO.isEmpty()) {
-                                  for (EventsDto eventDTO : eventsListDTO) {
+					// Controlla se il clientID della richiesta e quello del chiamante coincidono.
+					// Se non coincidono, lancia un'eccezione FORBIDDEN 403.
+					String requestClientID = requestDTO.getxPagopaExtchCxId();
 
-                                      var event = new CourtesyMessageProgressEvent();
-                                      var digProgrStatus = eventDTO.getDigProgrStatus();
+					// TODO In futuro le richieste su DB avranno l'attributo xPagopaExtchCxId
+					// inizializzato, il controllo sulla stringa null è solamente temporaneo
+					if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId))
+						throw new ClientNotAuthorizedException(xPagopaExtchCxId);
 
-                                      event.setRequestId(requestIdx);
-                                      event.setEventDetails(digProgrStatus.getEventDetails());
-                                      event.setEventTimestamp(digProgrStatus.getEventTimestamp());
+					var eventsListDTO = requestDTO.getRequestMetadata().getEventsList();
+					var event = new CourtesyMessageProgressEvent();
 
-                                      // TODO: MAP INTERNAL STATUS CODE TO EXTERNAL STATUS
-                                      event.setStatus(null);
-                                      event.setEventCode(null);
+					if (eventsListDTO != null && !eventsListDTO.isEmpty()) {
 
-                                      var generatedMessageDTO = digProgrStatus.getGeneratedMessage();
-                                      if (generatedMessageDTO != null) {
-                                          var digitalMessageReference = new DigitalMessageReference();
+						EventsDto eventDTO = eventsListDTO.get(eventsListDTO.size() - 1);
 
-                                          digitalMessageReference.setId(generatedMessageDTO.getId());
-                                          digitalMessageReference.setLocation(generatedMessageDTO.getLocation());
-                                          digitalMessageReference.setSystem(generatedMessageDTO.getSystem());
+						var digProgrStatus = eventDTO.getDigProgrStatus();
 
-                                          event.setGeneratedMessage(digitalMessageReference);
-                                      }
+						event.setRequestId(requestIdx);
+						event.setEventDetails(digProgrStatus.getEventDetails());
+						event.setEventTimestamp(digProgrStatus.getEventTimestamp());
 
-                                      eventsList.add(event);
-                                  }
-                              }
-                              return eventsList;
-                          })
-                          .flatMapIterable(courtesyMessageProgressEvents -> courtesyMessageProgressEvents);
-    }
+						// TODO: MAP INTERNAL STATUS CODE TO EXTERNAL STATUS
+						event.setStatus(null);
+						event.setEventCode(null);
 
-    @Override
-    public Flux<CourtesyMessageProgressEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
-        return null;
-    }
+						var generatedMessageDTO = digProgrStatus.getGeneratedMessage();
+
+						if (generatedMessageDTO != null) {
+							var digitalMessageReference = new DigitalMessageReference();
+
+							digitalMessageReference.setId(generatedMessageDTO.getId());
+							digitalMessageReference.setLocation(generatedMessageDTO.getLocation());
+							digitalMessageReference.setSystem(generatedMessageDTO.getSystem());
+
+							event.setGeneratedMessage(digitalMessageReference);
+						}
+					}
+					return event;
+				}));
+	}
+
+	@Override
+	public Flux<CourtesyMessageProgressEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
+		return null;
+	}
 }

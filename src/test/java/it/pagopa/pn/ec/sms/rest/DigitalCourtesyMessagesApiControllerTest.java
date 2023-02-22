@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.sms.rest;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedFoundException;
+import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -130,7 +130,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 
 //      Client auth call -> OK
 //      Client non tornato dall'anagrafica client
-        when(authService.clientAuth(anyString())).thenReturn(Mono.error(new ClientNotAuthorizedFoundException(DEFAULT_ID_CLIENT_HEADER_VALUE)));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.error(new ClientNotAuthorizedException(DEFAULT_ID_CLIENT_HEADER_VALUE)));
 
 //      Retrieve request -> OK (If no request is found a RestCallException.ResourceNotFoundException is thrown)
         when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
