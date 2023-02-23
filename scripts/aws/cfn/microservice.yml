@@ -424,6 +424,46 @@ Parameters:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriEMAIL'
     Type: String
 
+  PnEcQueueNameBatchCARTACEO:
+    Description: '[Canale CARTACEO] Nome della Coda per la modalità CARTACEO-Batch'
+    Type: String
+    
+  PnEcQueueArnBatchCARTACEO:
+    Description: '[Canale CARTACEO] ARN della Coda per la modalità CARTACEO-Batch'
+    Type: String
+    
+  PnEcQueueUrlBatchCARTACEO:
+    Description: '[Canale CARTACEO] URL della Coda per la modalità CARTACEO-Batch'
+    Type: String
+    
+  PnEcDLQueueNameBatchCARTACEO:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchCARTACEO'
+    Type: String
+    
+  PnEcDLQueueArnBatchCARTACEO:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchCARTACEO'
+    Type: String
+    
+  PnEcQueueNameErroriCARTACEO:
+    Description: '[Canale CARTACEO] Nome della Coda Errori CARTACEO'
+    Type: String
+    
+  PnEcQueueArnErroriCARTACEO:
+    Description: '[Canale CARTACEO] ARN della Coda Errori CARTACEO'
+    Type: String
+    
+  PnEcQueueUrlErroriCARTACEO:
+    Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
+    Type: String
+    
+  PnEcDLQueueNameErroriCARTACEO:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriCARTACEO'
+    Type: String
+    
+  PnEcDLQueueArnErroriCARTACEO:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriCARTACEO'
+    Type: String
+
 Resources:
 
   # PN-TemplateBeMs microservice
@@ -451,19 +491,23 @@ Resources:
         ContainerEnvEntry12: !Sub 'PnEcQueueNameTrackerErroriPEC=${PnEcQueueNameTrackerErroriPEC}'
         ContainerEnvEntry13: !Sub 'PnEcQueueNameTrackerStatoEMAIL=${PnEcQueueNameTrackerStatoEMAIL}'
         ContainerEnvEntry14: !Sub 'PnEcQueueNameTrackerErroriEMAIL=${PnEcQueueNameTrackerErroriEMAIL}'
-        ContainerEnvEntry15: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
-        ContainerEnvEntry16: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
-        ContainerEnvEntry17: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
-        ContainerEnvEntry18: !Sub 'PnEcQueueNameBatchPEC=${PnEcQueueNameBatchPEC}'
-        ContainerEnvEntry19: !Sub 'PnEcQueueNameInteractivePEC=${PnEcQueueNameInteractivePEC}'
-        ContainerEnvEntry20: !Sub 'PnEcQueueNameErroriPEC=${PnEcQueueNameErroriPEC}'
-        ContainerEnvEntry21: !Sub 'PnEcQueueNameBatchEMAIL=${PnEcQueueNameBatchEMAIL}'
-        ContainerEnvEntry22: !Sub 'PnEcQueueNameInteractiveEMAIL=${PnEcQueueNameInteractiveEMAIL}'
-        ContainerEnvEntry23: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
-        ContainerEnvEntry24: 'SafeStorageClientId=pn-external-channels'
-        ContainerEnvEntry25: 'SafeStorageClientApiKey=pn-external-channels_api_key'
-        ContainerEnvEntry26: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry27: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry15: !Sub 'PnEcQueueNameTrackerStatoCARTACEO=${PnEcQueueNameTrackerStatoCARTACEO}'
+        ContainerEnvEntry16: !Sub 'PnEcQueueNameTrackerErroriCARTACEO=${PnEcQueueNameTrackerErroriCARTACEO}'
+        ContainerEnvEntry17: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
+        ContainerEnvEntry18: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
+        ContainerEnvEntry19: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
+        ContainerEnvEntry20: !Sub 'PnEcQueueNameBatchPEC=${PnEcQueueNameBatchPEC}'
+        ContainerEnvEntry21: !Sub 'PnEcQueueNameInteractivePEC=${PnEcQueueNameInteractivePEC}'
+        ContainerEnvEntry22: !Sub 'PnEcQueueNameErroriPEC=${PnEcQueueNameErroriPEC}'
+        ContainerEnvEntry23: !Sub 'PnEcQueueNameBatchEMAIL=${PnEcQueueNameBatchEMAIL}'
+        ContainerEnvEntry24: !Sub 'PnEcQueueNameInteractiveEMAIL=${PnEcQueueNameInteractiveEMAIL}'
+        ContainerEnvEntry25: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
+        ContainerEnvEntry26: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
+        ContainerEnvEntry27: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
+        ContainerEnvEntry30: 'SafeStorageClientId=pn-external-channels'
+        ContainerEnvEntry31: 'SafeStorageClientApiKey=pn-external-channels_api_key'
+        ContainerEnvEntry40: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry41: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         MappedPaths: '/external-channels/*,/external-channel/*'
         ECSClusterName: !Ref ECSClusterName
         Subnets: !Ref SubnetsIds
@@ -555,6 +599,82 @@ Resources:
             Resource:
               - '*'          
 
+###########  NOTIFICATION TRACKER EXTERNAL NOTIFICATION  ###########
+  PnEcEventBusPolicyECSTrackerExternalNotification:
+    Type: AWS::Events::EventBusPolicy
+    Properties:
+      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      StatementId: 'PnEcCustomEventBusPolicyAllowECS'
+      Statement:
+        Action: 
+          - "events:PutEvents"
+          - 'events:DescribeEventBus'
+          - 'events:List*'
+        Effect: "Allow"
+        Principal: 
+          Service:
+          - 'ecs.amazonaws.com'
+        Resource: !Ref PnEcEventBusArnTrackerExternalNotification
+
+  # ####### DENY POLICY FROM OUTSIDE ACCOUNT ########
+  # PnEcEventBusPolicyDenyTrackerExternalNotification:
+  #   Type: AWS::Events::EventBusPolicy
+  #   Properties:
+  #     EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+  #     StatementId: 'PnEcCustomEventBusPolicyDenyCrossAccount'
+  #     Statement:
+  #       Action: 
+  #         - "events:*"
+  #       Effect: 'Deny'
+  #       Principal: 
+  #         Service:
+  #           - 'ecs.amazonaws.com'
+  #       Resource: !Ref PnEcEventBusArnTrackerExternalNotification
+  #       Condition:
+  #         StringNotEquals:
+  #           aws:SourceAccount: !Sub '${AWS::AccountId}'
+
+  PnEcEventBusPolicyManageTrackerExternalNotification:
+    Type: AWS::Events::EventBusPolicy
+    Properties:
+      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      StatementId: 'PnEcCustomEventBusPolicyManage'
+      Statement:
+        Action: 
+          - 'events:PutRule'
+          - 'events:PutTargets'
+          - 'events:DeleteRule'
+          - 'events:RemoveTargets'
+          - 'events:DisableRule'
+          - 'events:EnableRule'
+          - 'events:TagResource'
+          - 'events:UntagResource'
+          - 'events:DescribeRule'
+          - 'events:ListTargetsByRule'
+          - 'events:ListTagsForResource'
+        Effect: 'Allow'
+        Principal: 
+          AWS: !Sub '${AWS::AccountId}'
+        Resource: !Ref PnEcEventBusArnTrackerExternalNotification
+        Condition:
+          StringEqualsIfExists:
+            events:creatorAccount: !Sub '${AWS::AccountId}'
+
+  PnEcQueuePolicyNotificheExt1:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlNotificheExt1}' 
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - "SQS:*"
+            Effect: "Allow"
+            Resource: !Sub ${PnEcQueueArnNotificheExt1}
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+
   PnEcQueuePolicyTrackerStatoSMS:
     Type: AWS::SQS::QueuePolicy
     Properties: 
@@ -645,21 +765,37 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
   
-  PnEcQueuePolicyNotificheExt1:
+    PnEcQueuePolicyTrackerStatoCARTACEO:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlNotificheExt1}' 
+        - !Sub '${PnEcQueueUrlTrackerStatoCARTACEO}'
       PolicyDocument: 
         Statement: 
           - Action: 
-              - "SQS:*"
+              - 'SQS:*'
             Effect: "Allow"
-            Resource: !Sub ${PnEcQueueArnNotificheExt1}
+            Resource: !Sub '${PnEcQueueArnTrackerStatoCARTACEO}'
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
+  PnEcQueuePolicyTrackerErroriCARTACEO:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlTrackerErroriCARTACEO}'
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnTrackerErroriCARTACEO}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+
+###########  CHANNEL SMS - QUEUE POLICIES  ###########
   PnEcQueuePolicyBatchSMS:
     Type: AWS::SQS::QueuePolicy
     Properties: 
@@ -705,6 +841,7 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
+###########  CHANNEL PEC - QUEUE POLICIES  ###########
   PnEcQueuePolicyBatchPEC:
     Type: AWS::SQS::QueuePolicy
     Properties: 
@@ -750,6 +887,7 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
+###########  CHANNEL EMAIL - QUEUE POLICIES  ###########
   PnEcQueuePolicyBatchEMAIL:
     Type: AWS::SQS::QueuePolicy
     Properties: 
@@ -795,61 +933,36 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
-  PnEcEventBusPolicyECSTrackerExternalNotification:
-    Type: AWS::Events::EventBusPolicy
-    Properties:
-      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
-      StatementId: 'PnEcCustomEventBusPolicyAllowECS'
-      Statement:
-        Action: 
-          - "events:PutEvents"
-          - 'events:DescribeEventBus'
-          - 'events:List*'
-        Effect: "Allow"
-        Principal: 
-          Service:
-          - 'ecs.amazonaws.com'
-        Resource: !Ref PnEcEventBusArnTrackerExternalNotification
 
-  # PnEcEventBusPolicyDenyTrackerExternalNotification:
-  #   Type: AWS::Events::EventBusPolicy
-  #   Properties:
-  #     EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
-  #     StatementId: 'PnEcCustomEventBusPolicyDenyCrossAccount'
-  #     Statement:
-  #       Action: 
-  #         - "events:*"
-  #       Effect: 'Deny'
-  #       Principal: 
-  #         Service:
-  #           - 'ecs.amazonaws.com'
-  #       Resource: !Ref PnEcEventBusArnTrackerExternalNotification
-  #       Condition:
-  #         StringNotEquals:
-  #           aws:SourceAccount: !Sub '${AWS::AccountId}'
+###########  CHANNEL CARTACEO - QUEUE POLICIES  ###########
+  PnEcQueuePolicyBatchCARTACEO:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlBatchCARTACEO}'
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnBatchCARTACEO}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+  
+  PnEcQueuePolicyErroriCARTACEO:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlErroriCARTACEO}'
+      PolicyDocument: 
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnErroriCARTACEO}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
-  PnEcEventBusPolicyManageTrackerExternalNotification:
-    Type: AWS::Events::EventBusPolicy
-    Properties:
-      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
-      StatementId: 'PnEcCustomEventBusPolicyManage'
-      Statement:
-        Action: 
-          - 'events:PutRule'
-          - 'events:PutTargets'
-          - 'events:DeleteRule'
-          - 'events:RemoveTargets'
-          - 'events:DisableRule'
-          - 'events:EnableRule'
-          - 'events:TagResource'
-          - 'events:UntagResource'
-          - 'events:DescribeRule'
-          - 'events:ListTargetsByRule'
-          - 'events:ListTagsForResource'
-        Effect: 'Allow'
-        Principal: 
-          AWS: !Sub '${AWS::AccountId}'
-        Resource: !Ref PnEcEventBusArnTrackerExternalNotification
-        Condition:
-          StringEqualsIfExists:
-            events:creatorAccount: !Sub '${AWS::AccountId}'
+

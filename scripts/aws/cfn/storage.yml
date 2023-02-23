@@ -526,6 +526,51 @@ Resources:
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
 
+
+###### CHANNEL CARTACEO #######
+
+  PnEcQueueBatchCARTACEO:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueBatchCARTACEO.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueBatchCARTACEO:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
+  PnEcQueueErroriCARTACEO:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueErroriCARTACEO.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueErroriCARTACEO:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
 Outputs:
 
   PnEcEventBusNameTrackerExternalNotification:
@@ -927,3 +972,43 @@ Outputs:
   PnEcDLQueueArnErroriEMAIL:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriEMAIL'
     Value: !GetAtt  PnEcDLQueueErroriEMAIL.Arn
+
+  PnEcQueueNameBatchCARTACEO:
+    Description: '[Canale CARTACEO] Nome della Coda per la modalità CARTACEO-Batch'
+    Value: !GetAtt  PnEcQueueBatchCARTACEO.QueueName
+
+  PnEcQueueArnBatchCARTACEO:
+    Description: '[Canale CARTACEO] ARN della Coda per la modalità CARTACEO-Batch'
+    Value: !GetAtt  PnEcQueueBatchCARTACEO.Arn
+
+  PnEcQueueUrlBatchCARTACEO:
+    Description: '[Canale CARTACEO] URL della Coda per la modalità CARTACEO-Batch'
+    Value: !Ref  PnEcQueueBatchCARTACEO
+
+  PnEcDLQueueNameBatchCARTACEO:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchCARTACEO'
+    Value: !GetAtt  PnEcDLQueueBatchCARTACEO.QueueName
+
+  PnEcDLQueueArnBatchCARTACEO:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchCARTACEO'
+    Value: !GetAtt  PnEcDLQueueBatchCARTACEO.Arn
+
+  PnEcQueueNameErroriCARTACEO:
+    Description: '[Canale CARTACEO] Nome della Coda Errori CARTACEO'
+    Value: !GetAtt  PnEcQueueErroriCARTACEO.QueueName
+
+  PnEcQueueArnErroriCARTACEO:
+    Description: '[Canale CARTACEO] ARN della Coda Errori CARTACEO'
+    Value: !GetAtt  PnEcQueueErroriCARTACEO.Arn
+
+  PnEcQueueUrlErroriCARTACEO:
+    Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
+    Value: !Ref  PnEcQueueErroriCARTACEO
+
+  PnEcDLQueueNameErroriCARTACEO:
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriCARTACEO'
+    Value: !GetAtt  PnEcDLQueueErroriCARTACEO.QueueName
+
+  PnEcDLQueueArnErroriCARTACEO:
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriCARTACEO'
+    Value: !GetAtt  PnEcDLQueueErroriCARTACEO.Arn
