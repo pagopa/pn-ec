@@ -217,6 +217,51 @@ Resources:
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
 
+######### TRACKER : CARTACEO  #########
+
+  PnEcQueueTrackerStatoCARTACEO:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn : !GetAtt PnEcDLQueueTrackerStatoCARTACEO.Arn
+        maxReceiveCount : 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueTrackerStatoCARTACEO:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
+  PnEcQueueTrackerErroriCARTACEO:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1      
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt PnEcDLQueueTrackerErroriCARTACEO.Arn
+        maxReceiveCount: 10
+      VisibilityTimeout: 30
+
+  PnEcDLQueueTrackerErroriCARTACEO:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsDataKeyReusePeriodSeconds: 300
+      KmsMasterKeyId: "alias/aws/sqs"
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 1
+      VisibilityTimeout: 30
+
+
 ###### EXTERNAL PLATFORM NOTIFICATIONS #######
 
   PnEcQueueNotificheExt1:
@@ -634,6 +679,46 @@ Outputs:
   PnEcDLQueueArnTrackerErroriEMAIL:
     Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriEMAIL'
     Value: !GetAtt  PnEcDLQueueTrackerErroriEMAIL.Arn
+
+  PnEcQueueNameTrackerStatoCARTACEO:
+    Description: '[Notification Tracker: canale CARTACEO] Nome della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
+    Value: !GetAtt  PnEcQueueTrackerStatoCARTACEO.QueueName
+
+  PnEcQueueArnTrackerStatoCARTACEO:
+    Description: '[Notification Tracker: canale CARTACEO] ARN della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
+    Value: !GetAtt  PnEcQueueTrackerStatoCARTACEO.Arn
+
+  PnEcQueueUrlTrackerStatoCARTACEO:
+    Description: '[Notification Tracker: canale CARTACEO] URL della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
+    Value: !Ref  PnEcQueueTrackerStatoCARTACEO
+
+  PnEcDLQueueNameTrackerStatoCARTACEO:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoCARTACEO'
+    Value: !GetAtt  PnEcDLQueueTrackerStatoCARTACEO.QueueName
+
+  PnEcDLQueueArnTrackerStatoCARTACEO:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoCARTACEO'
+    Value: !GetAtt  PnEcDLQueueTrackerStatoCARTACEO.Arn
+
+  PnEcQueueNameTrackerErroriCARTACEO:
+    Description: '[Notification Tracker: canale CARTACEO] Nome della Coda Errori afferenti al canale CARTACEO'
+    Value: !GetAtt  PnEcQueueTrackerErroriCARTACEO.QueueName
+
+  PnEcQueueArnTrackerErroriCARTACEO:
+    Description: '[Notification Tracker: canale CARTACEO] ARN della Coda Errori afferenti al canale CARTACEO'
+    Value: !GetAtt  PnEcQueueTrackerErroriCARTACEO.Arn
+
+  PnEcQueueUrlTrackerErroriCARTACEO:
+    Description: '[Notification Tracker: canale CARTACEO] URL della Coda Errori afferenti al canale CARTACEO'
+    Value: !Ref  PnEcQueueTrackerErroriCARTACEO
+
+  PnEcDLQueueNameTrackerErroriCARTACEO:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriCARTACEO'
+    Value: !GetAtt  PnEcDLQueueTrackerErroriCARTACEO.QueueName
+
+  PnEcDLQueueArnTrackerErroriCARTACEO:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriCARTACEO'
+    Value: !GetAtt  PnEcDLQueueTrackerErroriCARTACEO.Arn
 
   PnEcQueueNameNotificheExt1:
     Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] Nome della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'

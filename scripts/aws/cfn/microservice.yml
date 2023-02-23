@@ -208,6 +208,46 @@ Parameters:
     Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriEMAIL'
     Type: String
 
+  PnEcQueueNameTrackerStatoCARTACEO:
+    Description: '[Notification Tracker: canale CARTACEO] Nome della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
+    Type: String
+
+  PnEcQueueArnTrackerStatoCARTACEO:
+    Description: '[Notification Tracker: canale CARTACEO] ARN della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
+    Type: String
+
+  PnEcQueueUrlTrackerStatoCARTACEO:
+    Description: '[Notification Tracker: canale CARTACEO] URL della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
+    Type: String
+
+  PnEcDLQueueNameTrackerStatoCARTACEO:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoCARTACEO'
+    Type: String
+
+  PnEcDLQueueArnTrackerStatoCARTACEO:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoCARTACEO'
+    Type: String
+
+  PnEcQueueNameTrackerErroriCARTACEO:
+    Description: '[Notification Tracker: canale CARTACEO] Nome della Coda Errori afferenti al canale CARTACEO'
+    Type: String
+    
+  PnEcQueueArnTrackerErroriCARTACEO:
+    Description: '[Notification Tracker: canale CARTACEO] ARN della Coda Errori afferenti al canale CARTACEO'
+    Type: String
+    
+  PnEcQueueUrlTrackerErroriCARTACEO:
+    Description: '[Notification Tracker: canale CARTACEO] URL della Coda Errori afferenti al canale CARTACEO'
+    Type: String
+
+  PnEcDLQueueNameTrackerErroriCARTACEO:
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriCARTACEO'
+    Type: String
+    
+  PnEcDLQueueArnTrackerErroriCARTACEO:
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriCARTACEO'
+    Type: String
+
   PnEcQueueNameNotificheExt1:
     Type: String
     Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] Nome della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
