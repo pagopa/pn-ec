@@ -13,7 +13,6 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -99,7 +98,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 						// events.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
 						String processID = retrieveRequestMetadata.getDigitalRequestMetadata().getChannel();
 						events.getDigProgrStatus().setEventCode(
-								callMacchinaStati.statusDecode(processID, status, clientID).block().getLogicState());
+								callMacchinaStati.statusDecode(processID, status, clientID).block().getLogicStatus());
 					} else {
 						if (getEventsList != null) {
 							for (Events eve : getEventsList) {
@@ -114,7 +113,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 						}
 						// events.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
 						events.getPaperProgrStatus().setStatusCode(
-								callMacchinaStati.statusDecode("PAPER", status, clientID).block().getLogicState());
+								callMacchinaStati.statusDecode("PAPER", status, clientID).block().getLogicStatus());
 					}
 					List<Events> eventsList = retrieveRequestMetadata.getEventsList();
 					if (eventsList == null) {

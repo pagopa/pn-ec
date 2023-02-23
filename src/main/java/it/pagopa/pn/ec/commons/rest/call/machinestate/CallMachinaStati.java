@@ -9,6 +9,4 @@ public interface CallMachinaStati {
     Mono<MacchinaStatiValidateStatoResponseDto> statusValidation(String processId, String currStatus, String clientId, String nextStatus);
 
     Mono<MacchinaStatiDecodeResponseDto> statusDecode(String processId, String currStatus, String clientId);
-
-
 }

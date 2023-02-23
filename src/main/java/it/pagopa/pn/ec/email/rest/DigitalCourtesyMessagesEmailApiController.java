@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.email.rest;
 
 
+import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.email.service.EmailService;
@@ -30,10 +31,13 @@ public class DigitalCourtesyMessagesEmailApiController implements DigitalCourtes
 
     private final EmailService service;
     private final StatusPullService statusPullService;
+    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
-    public DigitalCourtesyMessagesEmailApiController(EmailService service, StatusPullService statusPullService) {
+    public DigitalCourtesyMessagesEmailApiController(EmailService service, StatusPullService statusPullService,
+                                                     TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
         this.service = service;
         this.statusPullService = statusPullService;
+        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
     @Override
@@ -52,6 +56,8 @@ public class DigitalCourtesyMessagesEmailApiController implements DigitalCourtes
     public Mono<ResponseEntity<Flux<CourtesyMessageProgressEvent>>> getDigitalCourtesyMessageStatus(String requestIdx,
                                                                                                     String xPagopaExtchCxId,
                                                                                                     ServerWebExchange exchange) {
-        return Mono.just(ResponseEntity.ok(statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId)));
+        return Mono.just(ResponseEntity.ok(statusPullService.digitalPullService(requestIdx,
+                                                                                xPagopaExtchCxId,
+                                                                                transactionProcessConfigurationProperties.email())));
     }
 }

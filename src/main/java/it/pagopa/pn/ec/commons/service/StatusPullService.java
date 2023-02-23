@@ -5,6 +5,6 @@ import reactor.core.publisher.Flux;
 
 public interface StatusPullService {
 
-    Flux<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId);
+    Flux<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId, String processId);
     Flux<CourtesyMessageProgressEvent> paperPullService(String requestIdx, String xPagopaExtchCxId);
 }

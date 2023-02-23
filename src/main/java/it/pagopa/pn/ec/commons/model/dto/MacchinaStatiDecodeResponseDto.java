@@ -10,7 +10,6 @@ import lombok.experimental.FieldDefaults;
 @Data
 public class MacchinaStatiDecodeResponseDto {
 
-	String logicState;
-	String externalState;
-
+	String logicStatus;
+	String externalStatus;
 }
