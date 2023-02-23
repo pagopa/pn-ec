@@ -11,7 +11,6 @@ import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static org.springframework.http.HttpStatus.OK;
@@ -53,11 +52,9 @@ public class DigitalCourtesyMessagesEmailApiController implements DigitalCourtes
     }
 
     @Override
-    public Mono<ResponseEntity<Flux<CourtesyMessageProgressEvent>>> getDigitalCourtesyMessageStatus(String requestIdx,
-                                                                                                    String xPagopaExtchCxId,
-                                                                                                    ServerWebExchange exchange) {
-        return Mono.just(ResponseEntity.ok(statusPullService.digitalPullService(requestIdx,
-                                                                                xPagopaExtchCxId,
-                                                                                transactionProcessConfigurationProperties.email())));
+    public Mono<ResponseEntity<CourtesyMessageProgressEvent>> getDigitalCourtesyMessageStatus(String requestIdx, String xPagopaExtchCxId,
+                                                                                              ServerWebExchange exchange) {
+        return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.email())
+                                .map(ResponseEntity::ok);
     }
 }

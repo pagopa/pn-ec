@@ -14,8 +14,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-
 @Service
 public class StatusPullServiceImpl implements StatusPullService {
 
@@ -30,7 +28,7 @@ public class StatusPullServiceImpl implements StatusPullService {
     }
 
     @Override
-    public Flux<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId, String processId) {
+    public Mono<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId, String processId) {
         return authService.clientAuth(xPagopaExtchCxId)
                           .then(gestoreRepositoryCall.getRichiesta(requestIdx))
                           .onErrorResume(RestCallException.ResourceNotFoundException.class,
@@ -44,10 +42,15 @@ public class StatusPullServiceImpl implements StatusPullService {
                                   synchronousSink.next(requestDto);
                               }
                           })
-                          .flatMapIterable(object -> {
+                          .flatMap(object -> {
                               var requestDTO = (RequestDto) object;
                               var eventsList = requestDTO.getRequestMetadata().getEventsList();
-                              return eventsList == null ? new ArrayList<>() : eventsList;
+                              if (eventsList != null && !eventsList.isEmpty()) {
+                                  // TODO: GET EVENT WITH LAST TIMESTAMP
+                                  return Mono.just(eventsList.get(0));
+                              } else {
+                                  return Mono.empty();
+                              }
                           })
                           .flatMap(eventDTO -> {
                               var event = new CourtesyMessageProgressEvent();
