@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
+import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMachinaStati;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
@@ -23,9 +24,11 @@ import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     private final DynamoDbAsyncTable<RequestMetadata> requestMetadataDynamoDbTable;
+    private final CallMachinaStati callMacchinaStati;
 
     public RequestMetadataServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
-                                      RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
+                                      RepositoryManagerDynamoTableName repositoryManagerDynamoTableName, CallMachinaStati callMacchinaStati) {
+        this.callMacchinaStati = callMacchinaStati;
         this.requestMetadataDynamoDbTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteMetadataName(),
                                                                          TableSchema.fromBean(RequestMetadata.class));
     }
@@ -73,6 +76,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                    .map(retrieveRequestMetadata -> {
                        List<Events> getEventsList = retrieveRequestMetadata.getEventsList();
                        String status = null;
+                       String clientID = retrieveRequestMetadata.getXPagopaExtchCxId();
                        if (events.getDigProgrStatus() != null) {
                            if (getEventsList != null) {
                                for (Events eve : getEventsList) {
@@ -85,6 +89,8 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                                    }
                            }
                            events.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
+                           String processID = retrieveRequestMetadata.getDigitalRequestMetadata().getChannel();
+                           events.getDigProgrStatus().setEventCode(callMacchinaStati.statusDecode(processID, status, clientID).block().getLogicState());
                        } else {
                            if (getEventsList != null) {
                                for (Events eve : getEventsList) {
@@ -97,6 +103,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                                }
                            }
                            events.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
+                           events.getPaperProgrStatus().setStatusCode(callMacchinaStati.statusDecode("PAPER", status, clientID).block().getLogicState());
                        }
                        List<Events> eventsList = retrieveRequestMetadata.getEventsList();
                        if (eventsList == null) {
