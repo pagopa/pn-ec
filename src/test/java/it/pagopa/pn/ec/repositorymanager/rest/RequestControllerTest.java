@@ -47,8 +47,6 @@ class RequestControllerTest {
     @Autowired
     private GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties;
 
-    private String X_PAGOPA_EXTERNALCHANNEL_CX_ID = "x-pagopa-extch-cx-id";
-
     private static final String DEFAULT_ID_DIGITAL = "DIGITAL";
     private static final String DEFAULT_ID_PAPER = "PAPER";
     private static final String X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE = "CLIENT1";
@@ -62,6 +60,7 @@ class RequestControllerTest {
 
 //      Initialize digitalRequestDto
         digitalRequest.setRequestIdx(DEFAULT_ID_DIGITAL);
+        digitalRequest.setxPagopaExtchCxId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE);
         digitalRequest.setClientRequestTimeStamp(OffsetDateTime.now());
         digitalRequest.setRequestTimeStamp(OffsetDateTime.now());
 
@@ -91,6 +90,7 @@ class RequestControllerTest {
 
 //      Initialize paperRequestDto
         paperRequest.setRequestIdx(DEFAULT_ID_PAPER);
+        paperRequest.setxPagopaExtchCxId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE);
         paperRequest.setClientRequestTimeStamp(OffsetDateTime.now());
         paperRequest.setRequestTimeStamp(OffsetDateTime.now());
 
@@ -138,15 +138,13 @@ class RequestControllerTest {
         paperRequest.setRequestPersonal(requestPersonalDto2);
     }
 
-    private static void insertRequestPersonal(String idClient, String idRequest, RequestPersonal requestPersonal) {
+    private static void insertRequestPersonal(String idRequest, RequestPersonal requestPersonal) {
         requestPersonal.setRequestId(idRequest);
-        requestPersonal.setXPagopaExtchCxId(idClient);
         dynamoDbTablePersonal.putItem(builder -> builder.item(requestPersonal));
     }
 
-    private static void insertRequestMetadata(String idClient, String idRequest, RequestMetadata requestMetadata) {
+    private static void insertRequestMetadata(String idRequest, RequestMetadata requestMetadata) {
         requestMetadata.setRequestId(idRequest);
-        requestMetadata.setXPagopaExtchCxId(idClient);
         dynamoDbTableMetadata.putItem(builder -> builder.item(requestMetadata));
     }
 
@@ -156,10 +154,10 @@ class RequestControllerTest {
         dynamoDbTableMetadata = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteMetadataName(), TableSchema.fromBean(RequestMetadata.class));
 
         initializeRequestDto();
-        insertRequestPersonal(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE, digitalRequest.getRequestIdx(), objectMapper.convertValue(digitalRequest.getRequestPersonal(), RequestPersonal.class));
-        insertRequestMetadata(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE, digitalRequest.getRequestIdx(), objectMapper.convertValue(digitalRequest.getRequestMetadata(), RequestMetadata.class));
-        insertRequestPersonal(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE, paperRequest.getRequestIdx(), objectMapper.convertValue(paperRequest.getRequestPersonal(), RequestPersonal.class));
-        insertRequestMetadata(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE, paperRequest.getRequestIdx(), objectMapper.convertValue(paperRequest.getRequestMetadata(), RequestMetadata.class));
+        insertRequestPersonal(digitalRequest.getRequestIdx(), objectMapper.convertValue(digitalRequest.getRequestPersonal(), RequestPersonal.class));
+        insertRequestMetadata(digitalRequest.getRequestIdx(), objectMapper.convertValue(digitalRequest.getRequestMetadata(), RequestMetadata.class));
+        insertRequestPersonal(paperRequest.getRequestIdx(), objectMapper.convertValue(paperRequest.getRequestPersonal(), RequestPersonal.class));
+        insertRequestMetadata(paperRequest.getRequestIdx(), objectMapper.convertValue(paperRequest.getRequestMetadata(), RequestMetadata.class));
     }
 
     @BeforeEach
@@ -180,7 +178,6 @@ class RequestControllerTest {
 
         webClient.post()
                  .uri(gestoreRepositoryEndpointProperties.postRequest())
-                 .header(X_PAGOPA_EXTERNALCHANNEL_CX_ID, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(requestDto))
@@ -194,7 +191,6 @@ class RequestControllerTest {
     void insertRequestTestFailed() {
         webClient.post()
                  .uri(gestoreRepositoryEndpointProperties.postRequest())
-                 .header(X_PAGOPA_EXTERNALCHANNEL_CX_ID, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(digitalRequest))
@@ -209,7 +205,6 @@ class RequestControllerTest {
     void readRequestTestSuccess(String id) {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(id))
-                 .header(X_PAGOPA_EXTERNALCHANNEL_CX_ID, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -222,7 +217,6 @@ class RequestControllerTest {
     void readRequestTestFailed() {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build("idNotExist"))
-                 .header(X_PAGOPA_EXTERNALCHANNEL_CX_ID, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -285,7 +279,6 @@ class RequestControllerTest {
 
         webClient.patch()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(idRequest))
-                 .header(X_PAGOPA_EXTERNALCHANNEL_CX_ID, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(eventsDto))
@@ -301,7 +294,6 @@ class RequestControllerTest {
 
         webClient.patch()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build("idCheNonEsiste"))
-                 .header(X_PAGOPA_EXTERNALCHANNEL_CX_ID, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(eventsDto))
@@ -319,12 +311,11 @@ class RequestControllerTest {
     @MethodSource("provideDigitalAndPaperRequestForDelete")
     void deleteRequestTestSuccess(RequestDto requestDto, String idToDelete) {
 
-        insertRequestPersonal(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE, idToDelete, objectMapper.convertValue(requestDto.getRequestPersonal(), RequestPersonal.class));
-        insertRequestMetadata(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE, idToDelete, objectMapper.convertValue(requestDto.getRequestMetadata(), RequestMetadata.class));
+        insertRequestPersonal(idToDelete, objectMapper.convertValue(requestDto.getRequestPersonal(), RequestPersonal.class));
+        insertRequestMetadata(idToDelete, objectMapper.convertValue(requestDto.getRequestMetadata(), RequestMetadata.class));
 
         webClient.delete()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest()).build(idToDelete))
-                 .header(X_PAGOPA_EXTERNALCHANNEL_CX_ID, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -336,7 +327,6 @@ class RequestControllerTest {
     void deleteRequestTestFailed() {
         webClient.delete()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest()).build("idCheNonEsiste"))
-                 .header(X_PAGOPA_EXTERNALCHANNEL_CX_ID, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()

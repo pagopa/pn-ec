@@ -17,7 +17,7 @@ public class Request {
 
 	@JsonProperty("requestIdx")
 	String requestId;
-	@JsonProperty("x-pagopa-extch-cx-id")
+	@JsonProperty("xPagopaExtchCxId")
 	String xPagopaExtchCxId;
 	String statusRequest;
 	OffsetDateTime clientRequestTimeStamp;

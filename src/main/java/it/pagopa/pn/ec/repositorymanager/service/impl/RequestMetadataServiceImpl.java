@@ -39,7 +39,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     }
 
     @Override
-    public Mono<RequestMetadata> getRequestMetadata(String xPagopaExtchCxId, String requestIdx) {
+    public Mono<RequestMetadata> getRequestMetadata(String requestIdx) {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestIdx)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()));
@@ -64,18 +64,38 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     }
 
     @Override
-    public Mono<RequestMetadata> updateEventsMetadata(String xPagopaExtchCxId, String requestIdx, Events events) {
+    public Mono<RequestMetadata> updateEventsMetadata(String requestIdx, Events events) {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestIdx)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
                    .doOnSuccess(retrievedRequest -> checkEventsMetadata(retrievedRequest, events))
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
                    .map(retrieveRequestMetadata -> {
+                       List<Events> getEventsList = retrieveRequestMetadata.getEventsList();
+                       String status = null;
                        if (events.getDigProgrStatus() != null) {
-                           retrieveRequestMetadata.setStatusRequest(events.getDigProgrStatus().getStatus());
+                           if (getEventsList != null) {
+                               for (Events eve : getEventsList) {
+                                   if ((events.getDigProgrStatus().getEventTimestamp().isAfter(eve.getDigProgrStatus().getEventTimestamp()))) {
+                                       status = events.getDigProgrStatus().getStatus();
+                                   }
+                               }
+                                   if (status != null){
+                                       retrieveRequestMetadata.setStatusRequest(status);
+                                   }
+                           }
                            events.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
                        } else {
-                           retrieveRequestMetadata.setStatusRequest(events.getPaperProgrStatus().getStatusDescription());
+                           if (getEventsList != null) {
+                               for (Events eve : getEventsList) {
+                                   if ((events.getPaperProgrStatus().getStatusDateTime().isAfter(eve.getPaperProgrStatus().getStatusDateTime()))) {
+                                       status = events.getPaperProgrStatus().getStatusDescription();
+                                   }
+                               }
+                               if (status != null){
+                                   retrieveRequestMetadata.setStatusRequest(status);
+                               }
+                           }
                            events.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
                        }
                        List<Events> eventsList = retrieveRequestMetadata.getEventsList();
@@ -88,10 +108,11 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                    })
                    .flatMap(requestMetadataWithEventsUpdated -> Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(
                            requestMetadataWithEventsUpdated)));
+
     }
 
     @Override
-    public Mono<RequestMetadata> deleteRequestMetadata(String xPagopaExtchCxId, String requestIdx) {
+    public Mono<RequestMetadata> deleteRequestMetadata(String requestIdx) {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestIdx)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))

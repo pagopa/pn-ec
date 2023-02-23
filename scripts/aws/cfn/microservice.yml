@@ -691,7 +691,8 @@ Resources:
     Properties: 
       Queues: 
         - !Sub '${PnEcQueueUrlTrackerStatoSMS}' 
-      PolicyDocument: 
+      PolicyDocument:
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
@@ -707,6 +708,7 @@ Resources:
       Queues: 
         - !Sub '${PnEcQueueUrlTrackerErroriSMS}'
       PolicyDocument: 
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
@@ -722,6 +724,7 @@ Resources:
       Queues: 
         - !Sub '${PnEcQueueUrlTrackerStatoPEC}'
       PolicyDocument: 
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
@@ -737,6 +740,7 @@ Resources:
       Queues: 
         - !Sub '${PnEcQueueUrlTrackerErroriPEC}'
       PolicyDocument: 
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
@@ -752,6 +756,7 @@ Resources:
       Queues: 
         - !Sub '${PnEcQueueUrlTrackerStatoEMAIL}'
       PolicyDocument: 
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
@@ -767,6 +772,7 @@ Resources:
       Queues: 
         - !Sub '${PnEcQueueUrlTrackerErroriEMAIL}'
       PolicyDocument: 
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
@@ -782,6 +788,7 @@ Resources:
       Queues: 
         - !Sub '${PnEcQueueUrlTrackerStatoCARTACEO}'
       PolicyDocument: 
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
@@ -813,6 +820,7 @@ Resources:
       Queues: 
         - !Sub '${PnEcQueueUrlBatchSMS}' 
       PolicyDocument: 
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - "SQS:*"
@@ -828,6 +836,7 @@ Resources:
       Queues: 
         - !Sub '${PnEcQueueUrlInteractiveSMS}' 
       PolicyDocument: 
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - "SQS:*"
@@ -843,6 +852,7 @@ Resources:
       Queues: 
         - !Sub '${PnEcQueueUrlErroriSMS}' 
       PolicyDocument: 
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - "SQS:*"
@@ -859,6 +869,7 @@ Resources:
       Queues: 
         - !Sub '${PnEcQueueUrlBatchPEC}'
       PolicyDocument: 
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
@@ -874,6 +885,7 @@ Resources:
       Queues: 
         - !Sub '${PnEcQueueUrlInteractivePEC}'
       PolicyDocument: 
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
@@ -889,6 +901,7 @@ Resources:
       Queues: 
         - !Sub '${PnEcQueueUrlErroriPEC}'
       PolicyDocument: 
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
@@ -904,7 +917,8 @@ Resources:
     Properties: 
       Queues: 
         - !Sub '${PnEcQueueUrlBatchEMAIL}'
-      PolicyDocument: 
+      PolicyDocument:
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
@@ -920,6 +934,7 @@ Resources:
       Queues: 
         - !Sub '${PnEcQueueUrlInteractiveEMAIL}'
       PolicyDocument: 
+        Version: '2012-10-17'
         Statement: 
           - Action:
               - 'SQS:*'
@@ -935,12 +950,13 @@ Resources:
       Queues: 
         - !Sub '${PnEcQueueUrlErroriEMAIL}'
       PolicyDocument: 
+        Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
             Effect: "Allow"
             Resource: !Sub '${PnEcQueueArnErroriEMAIL}'
-            Principal:  
+            Principal:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 

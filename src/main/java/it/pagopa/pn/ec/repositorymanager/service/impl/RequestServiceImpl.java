@@ -30,29 +30,30 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
-    public Mono<Request> getRequest(String xPagopaExtchCxId, String requestIdx) {
-        return Mono.zip(requestPersonalService.getRequestPersonal(xPagopaExtchCxId, requestIdx), requestMetadataService.getRequestMetadata(xPagopaExtchCxId, requestIdx))
+    public Mono<Request> getRequest(String requestIdx) {
+        return Mono.zip(requestPersonalService.getRequestPersonal(requestIdx), requestMetadataService.getRequestMetadata(requestIdx))
                    .map(objects -> {
                        RequestPersonal retrievedRequestPersonal = objects.getT1();
                        RequestMetadata retrievedRequestMetadata = objects.getT2();
-                       return createRequestFromPersonalAndMetadata(xPagopaExtchCxId, requestIdx, retrievedRequestPersonal, retrievedRequestMetadata);
+                       return createRequestFromPersonalAndMetadata(requestIdx, retrievedRequestPersonal, retrievedRequestMetadata);
                    });
     }
 
     @Override
-    public Mono<Request> insertRequest(String xPagopaExtchCxId, Request request) {
+    public Mono<Request> insertRequest(Request request) {
 
         String requestId = request.getRequestId();
+        String clientId = request.getXPagopaExtchCxId();
 
         RequestPersonal requestPersonal = request.getRequestPersonal();
         requestPersonal.setRequestId(requestId);
-        requestPersonal.setXPagopaExtchCxId(xPagopaExtchCxId);
+        requestPersonal.setXPagopaExtchCxId(clientId);
         requestPersonal.setClientRequestTimeStamp(request.getClientRequestTimeStamp());
         requestPersonal.setRequestTimestamp(OffsetDateTime.now());
 
         RequestMetadata requestMetadata = request.getRequestMetadata();
         requestMetadata.setRequestId(requestId);
-        requestMetadata.setXPagopaExtchCxId(xPagopaExtchCxId);
+        requestMetadata.setXPagopaExtchCxId(clientId);
         requestMetadata.setClientRequestTimeStamp(request.getClientRequestTimeStamp());
         requestMetadata.setRequestTimestamp(OffsetDateTime.now());
 
@@ -65,27 +66,27 @@ public class RequestServiceImpl implements RequestService {
                         requestMetadataService.insertRequestMetadata(requestMetadata)).map(objects -> {
             RequestPersonal insertedRequestPersonal = objects.getT1();
             RequestMetadata insertedRequestMetadata = objects.getT2();
-            return createRequestFromPersonalAndMetadata(xPagopaExtchCxId, requestId, insertedRequestPersonal, insertedRequestMetadata);
+            return createRequestFromPersonalAndMetadata(requestId, insertedRequestPersonal, insertedRequestMetadata);
         });
     }
 
     @Override
-    public Mono<Request> updateEvents(String xPagopaExtchCxId, String requestIdx, Events events) {
-        return Mono.zip(requestPersonalService.getRequestPersonal(xPagopaExtchCxId, requestIdx),
-                        requestMetadataService.updateEventsMetadata(xPagopaExtchCxId, requestIdx, events)).map(objects -> {
+    public Mono<Request> updateEvents(String requestIdx, Events events) {
+        return Mono.zip(requestPersonalService.getRequestPersonal(requestIdx),
+                        requestMetadataService.updateEventsMetadata(requestIdx, events)).map(objects -> {
             RequestPersonal retrievedRequestPersonal = objects.getT1();
             RequestMetadata updatedRequestMetadata = objects.getT2();
-            return createRequestFromPersonalAndMetadata(xPagopaExtchCxId, requestIdx, retrievedRequestPersonal, updatedRequestMetadata);
+            return createRequestFromPersonalAndMetadata(requestIdx, retrievedRequestPersonal, updatedRequestMetadata);
         });
     }
 
     @Override
-    public Mono<Request> deleteRequest(String xPagopaExtchCxId, String requestIdx) {
-        return Mono.zip(requestPersonalService.deleteRequestPersonal(xPagopaExtchCxId, requestIdx), requestMetadataService.deleteRequestMetadata(xPagopaExtchCxId,requestIdx))
+    public Mono<Request> deleteRequest(String requestIdx) {
+        return Mono.zip(requestPersonalService.deleteRequestPersonal(requestIdx), requestMetadataService.deleteRequestMetadata(requestIdx))
                    .map(objects -> {
                        RequestPersonal deletedRequestPersonal = objects.getT1();
                        RequestMetadata deletedRequestMetadata = objects.getT2();
-                       return createRequestFromPersonalAndMetadata(xPagopaExtchCxId, requestIdx, deletedRequestPersonal, deletedRequestMetadata);
+                       return createRequestFromPersonalAndMetadata(requestIdx, deletedRequestPersonal, deletedRequestMetadata);
                    });
     }
 }
