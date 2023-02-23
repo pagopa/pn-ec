@@ -62,7 +62,11 @@ Parameters:
   # LogsKinesisSourceStreamArn:
   #   Type: String
   #   Description: 'Kinesis stream that receive logs'
-  
+
+  PnEcIdentityPec:
+    Type: String
+    Description: 'Secret ID for Identity Pec'
+
   Version:
     Type: String
     Description: 'keep track of used projects commitIds'
@@ -592,6 +596,13 @@ Resources:
               - 'sns:*SMS*'
             Resource:
               - '*'
+          - Effect: Allow
+            Sid: 'ReadFromSecretsManagerInvioPEC'
+            Action:
+              - 'secrets:DescribeSecret'
+              - 'secrets:GetSecretValue'
+            Resource:
+              - !Join [ '', [ !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:' , !Ref PnEcIdentityPec , '*']]
           - Effect: Allow
             Sid: 'AvoidIssues'
             Action:
