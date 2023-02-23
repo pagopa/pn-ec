@@ -1,8 +1,14 @@
 package it.pagopa.pn.ec.commons.rest.call.machinestate;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.statemachine.StateMachineEndpointProperties;
+import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
+import it.pagopa.pn.ec.commons.rest.call.RestCallException;
+
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -34,7 +40,10 @@ public class CallMachinaStatiImpl implements CallMachinaStati {
 		return stateMachineWebClient.get()
 				.uri(uriBuilder -> uriBuilder.path(stateMachineEndpointProperties.decode())
 						.queryParam("clientId", clientId).build(processId, currStatus))
-				.retrieve().bodyToMono(MacchinaStatiDecodeResponseDto.class);
+				.retrieve()
+				.onStatus(NOT_FOUND::equals,
+						clientResponse -> Mono.error(new Generic400ErrorException("Not found", "Not found")))
+				.bodyToMono(MacchinaStatiDecodeResponseDto.class);
 
 	}
 

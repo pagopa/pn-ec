@@ -2,6 +2,8 @@ package it.pagopa.pn.ec.commons.service.impl;
 
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
+import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
+import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic404ErrorException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMachinaStati;
@@ -10,9 +12,13 @@ import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.rest.v1.dto.CourtesyMessageProgressEvent;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalMessageReference;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
+import it.pagopa.pn.ec.rest.v1.dto.ProgressEventCategory;
+import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
+
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 @Service
 public class StatusPullServiceImpl implements StatusPullService {
@@ -21,7 +27,8 @@ public class StatusPullServiceImpl implements StatusPullService {
 	private final GestoreRepositoryCall gestoreRepositoryCall;
 	private final CallMachinaStati callMacchinaStati;
 
-	public StatusPullServiceImpl(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, CallMachinaStati callMacchinaStati) {
+	public StatusPullServiceImpl(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall,
+			CallMachinaStati callMacchinaStati) {
 		this.authService = authService;
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.callMacchinaStati = callMacchinaStati;
@@ -32,17 +39,20 @@ public class StatusPullServiceImpl implements StatusPullService {
 		return Flux.from(authService.clientAuth(xPagopaExtchCxId).then(gestoreRepositoryCall.getRichiesta(requestIdx))
 				.onErrorResume(RestCallException.ResourceNotFoundException.class,
 						e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
-				.map(requestDTO -> {
-
-					// Controlla se il clientID della richiesta e quello del chiamante coincidono.
-					// Se non coincidono, lancia un'eccezione FORBIDDEN 403.
-					String requestClientID = "";
-//							requestDTO.getXPagopaExtchCxId();
-
-					// TODO In futuro le richieste su DB avranno l'attributo xPagopaExtchCxId
-					// inizializzato, il controllo sulla stringa null è solamente temporaneo
+				.handle((requestDTO, sink) -> {
+//					// Controlla se il clientID della richiesta e quello del chiamante coincidono.
+//					// Se non coincidono, lancia un'eccezione FORBIDDEN 403.
+					String requestClientID = requestDTO.getxPagopaExtchCxId();
 					if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId))
-						throw new ClientNotAuthorizedException(xPagopaExtchCxId);
+						sink.error(new ClientNotAuthorizedException(xPagopaExtchCxId));
+					else
+						sink.next(requestDTO);
+				}).map(dto -> {
+
+					var requestDTO = (RequestDto) dto;
+
+					String processId = requestDTO.getRequestMetadata().getDigitalRequestMetadata().getChannel().name();
+					String currStatus = "";
 
 					var eventsListDTO = requestDTO.getRequestMetadata().getEventsList();
 					var event = new CourtesyMessageProgressEvent();
@@ -57,16 +67,13 @@ public class StatusPullServiceImpl implements StatusPullService {
 						event.setEventDetails(digProgrStatus.getEventDetails());
 						event.setEventTimestamp(digProgrStatus.getEventTimestamp());
 
-						// TODO: MAP INTERNAL STATUS CODE TO EXTERNAL STATUS
-						event.setStatus(null);
-						event.setEventCode(null);
-							// TODO: MAP INTERNAL STATUS CODE TO EXTERNAL STATUS
-							String processId = requestDTO.getRequestMetadata().getDigitalRequestMetadata().getChannel().name();
-							String currStatus = digProgrStatus.getStatus();
+						currStatus = digProgrStatus.getStatus();
 
-							var decodedStatusDto = callMacchinaStati.statusDecode(processId, currStatus, xPagopaExtchCxId);
-							event.setStatus(null);
-							event.setEventCode(digProgrStatus.getStatusCode());
+//						var decodedStatusDto = callMacchinaStati.statusDecode(processId, currStatus.toLowerCase(),
+//								xPagopaExtchCxId);
+//
+//						event.setStatus(ProgressEventCategory.fromValue(decodedStatusDto.block().getExternalState()));
+						event.setEventCode(digProgrStatus.getStatusCode());
 
 						var generatedMessageDTO = digProgrStatus.getGeneratedMessage();
 
@@ -80,7 +87,19 @@ public class StatusPullServiceImpl implements StatusPullService {
 							event.setGeneratedMessage(digitalMessageReference);
 						}
 					}
-					return event;
+					return Tuples.of(processId, currStatus, event);
+				}).flatMap(info ->
+
+				{
+					CourtesyMessageProgressEvent event = info.getT3();
+					//System.out.println("TUPLAAAAA---->" + info);
+
+					return callMacchinaStati.statusDecode(info.getT1(), info.getT2().toLowerCase(), xPagopaExtchCxId)
+							.flatMap(decodedStatus -> {
+								event.setStatus(ProgressEventCategory.fromValue(decodedStatus.getExternalState()));
+								return Mono.just(event);
+							});
+
 				}));
 	}
 
