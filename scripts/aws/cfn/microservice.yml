@@ -776,7 +776,7 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
   
-    PnEcQueuePolicyTrackerStatoCARTACEO:
+  PnEcQueuePolicyTrackerStatoCARTACEO:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
