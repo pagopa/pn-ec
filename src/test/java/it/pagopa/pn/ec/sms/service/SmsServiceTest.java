@@ -65,6 +65,7 @@ class SmsServiceTest {
 
         smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO, acknowledgment);
 
+        verify(snsService, times(1)).send(anyString(), anyString());
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class));
     }
 
@@ -121,6 +122,7 @@ class SmsServiceTest {
 
         smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO, acknowledgment);
 
+        verify(snsService, times(1)).send(anyString(), anyString());
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class));
         verify(sqsService, times(1)).send(eq(smsSqsQueueName.errorName()), any(SmsPresaInCaricoInfo.class));
     }
