@@ -6,6 +6,7 @@ import it.pagopa.pn.ec.commons.service.AttachmentService;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -30,6 +31,7 @@ public class AttachmentServiceImpl implements AttachmentService {
         }).flatMap(object -> {
             String attachmentUrl = (String) object;
             return uriBuilderCall.getFile(attachmentUrl.substring(ATTACHMENT_PREFIX.length()), xPagopaExtchCxId, metadataOnly);
-        });
+        })
+          .switchIfEmpty(Mono.just(new FileDownloadResponse()));
     }
 }
