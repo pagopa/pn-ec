@@ -25,9 +25,9 @@ public class SnsServiceImpl implements SnsService {
                        log.error(throwable.getMessage());
                        return Mono.error(new SnsSendException());
                    })
-                   .doOnSuccess(sendMessageResponse -> log.info("Send SMS '{} 'to '{}' has returned a {} as status",
-                                                                message,
-                                                                phoneNumber,
-                                                                sendMessageResponse.sdkHttpResponse().statusCode()));
+                   .doOnNext(sendMessageResponse -> log.info("Send SMS '{} 'to '{}' has returned a {} as status",
+                                                             message,
+                                                             phoneNumber,
+                                                             sendMessageResponse.sdkHttpResponse().statusCode()));
     }
 }

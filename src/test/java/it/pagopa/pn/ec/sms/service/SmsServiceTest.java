@@ -11,14 +11,19 @@ import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+import reactor.test.publisher.TestPublisher;
 import software.amazon.awssdk.services.sns.model.PublishResponse;
 
+import static it.pagopa.pn.ec.commons.service.SnsService.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.sms.testutils.DigitalCourtesySmsRequestFactory.createSmsRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 
@@ -40,6 +45,11 @@ class SmsServiceTest {
     @SpyBean
     private SnsService snsService;
 
+    private final PublishResponse SNS_DEFAULT_PUBLISH_RESPONSE = PublishResponse.builder().build();
+
+    private final ArgumentCaptor<NotificationTrackerQueueDto> trackerQueueDtoCaptor =
+            ArgumentCaptor.forClass(NotificationTrackerQueueDto.class);
+
     private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO =
             new SmsPresaInCaricoInfo(DEFAULT_REQUEST_IDX, DEFAULT_ID_CLIENT_HEADER_VALUE, createSmsRequest());
 
@@ -58,10 +68,11 @@ class SmsServiceTest {
         // TODO: Eliminare il mock una volta sistemato l'ambiente Localstack
         when(snsService.send(anyString(), anyString())).thenReturn(Mono.just(PublishResponse.builder().build()));
 
-        smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
 
         verify(snsService, times(1)).send(anyString(), anyString());
-        verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class));
+        verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoSmsName()), trackerQueueDtoCaptor.capture());
+        assertEquals("sent", trackerQueueDtoCaptor.getValue().getNextStatus());
     }
 
     /**
@@ -83,7 +94,7 @@ class SmsServiceTest {
         when(snsService.send(anyString(), anyString())).thenReturn(Mono.error(new SnsSendException()))
                                                        .thenReturn(Mono.just(PublishResponse.builder().build()));
 
-        smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
 
         verify(snsService, times(2)).send(anyString(), anyString());
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class));
@@ -114,10 +125,32 @@ class SmsServiceTest {
         when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
                 new SqsPublishException(notificationTrackerSqsName.statoSmsName())));
 
-        smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
 
         verify(snsService, times(1)).send(anyString(), anyString());
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class));
         verify(sqsService, times(1)).send(eq(smsSqsQueueName.errorName()), any(SmsPresaInCaricoInfo.class));
+    }
+
+    @Test
+    void testRetrySms() {
+        when(snsService.send(anyString(), anyString())).thenReturn(Mono.error(new SnsSendException()));
+
+        StepVerifier.create(smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
+
+        verify(snsService, times(1)).send(anyString(), anyString());
+        verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoSmsName()), trackerQueueDtoCaptor.capture());
+        assertEquals("retry", trackerQueueDtoCaptor.getValue().getNextStatus());
+        verify(sqsService, times(1)).send(eq(smsSqsQueueName.errorName()), any(SmsPresaInCaricoInfo.class));
+    }
+
+    @Test
+    void testLavorazioneRichiesta() {
+        StepVerifier.create(TestPublisher.create()
+                                         .next(SNS_DEFAULT_PUBLISH_RESPONSE)
+                                         .mono()
+                                         .retryWhen(DEFAULT_RETRY_STRATEGY))
+                    .expectNext(SNS_DEFAULT_PUBLISH_RESPONSE)
+                    .verifyComplete();
     }
 }
