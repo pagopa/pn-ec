@@ -52,13 +52,14 @@ public class PecService extends PresaInCaricoService {
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
 //      Cast PresaInCaricoInfo to specific SmsPresaInCaricoInfo
         PecPresaInCaricoInfo pecPresaInCaricoInfo = (PecPresaInCaricoInfo) presaInCaricoInfo;
+        String xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
         return attachmentService.checkAllegatiPresence(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls(),
-                                                       presaInCaricoInfo.getXPagopaExtchCxId(),
+                                                       xPagopaExtchCxId,
                                                        true)
                                 .flatMap(fileDownloadResponse -> {
                                    var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
                                    digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-                                   return insertRequestFromPec(digitalNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
+                                   return insertRequestFromPec(digitalNotificationRequest, xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
                                })
                                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                                                       new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
@@ -84,11 +85,13 @@ public class PecService extends PresaInCaricoService {
     }
 
     @SuppressWarnings("Duplicates")
-    private Mono<RequestDto> insertRequestFromPec(final DigitalNotificationRequest digitalNotificationRequest) {
+    private Mono<RequestDto> insertRequestFromPec(final DigitalNotificationRequest digitalNotificationRequest,
+                                                  String xPagopaExtchCxId) {
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
             requestDto.setRequestIdx(digitalNotificationRequest.getRequestId());
             requestDto.setClientRequestTimeStamp(digitalNotificationRequest.getClientRequestTimeStamp());
+            requestDto.setxPagopaExtchCxId(xPagopaExtchCxId);
 
             var requestPersonalDto = new RequestPersonalDto();
             var digitalRequestPersonalDto = new DigitalRequestPersonalDto();
