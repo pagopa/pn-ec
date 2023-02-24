@@ -3,12 +3,16 @@ package it.pagopa.pn.ec.repositorymanager.service.impl;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMachinaStati;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
+import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
+import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
+import it.pagopa.pn.ec.rest.v1.dto.ProgressEventCategory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -79,52 +83,86 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 				.doOnSuccess(retrievedRequest -> checkEventsMetadata(retrievedRequest, events))
 				.doOnError(RepositoryManagerException.RequestMalformedException.class,
 						throwable -> log.info(throwable.getMessage()))
-				.map(retrieveRequestMetadata -> {
-					List<Events> getEventsList = retrieveRequestMetadata.getEventsList();
-					String status = null;
+				.flatMap(retrieveRequestMetadata -> {
+
 					String clientID = retrieveRequestMetadata.getXPagopaExtchCxId();
-					if (events.getDigProgrStatus() != null) {
-						if (getEventsList != null) {
-							for (Events eve : getEventsList) {
-								if ((events.getDigProgrStatus().getEventTimestamp()
-										.isAfter(eve.getDigProgrStatus().getEventTimestamp()))) {
-									status = events.getDigProgrStatus().getStatus();
-								}
-							}
-							if (status != null) {
-								retrieveRequestMetadata.setStatusRequest(status);
-							}
-						}
-						// events.getDigProgrStatus().setEventTimestamp(OffsetDateTime.now());
-						String processID = retrieveRequestMetadata.getDigitalRequestMetadata().getChannel();
-						events.getDigProgrStatus().setEventCode(
-								callMacchinaStati.statusDecode(processID, status, clientID).block().getLogicStatus());
-					} else {
-						if (getEventsList != null) {
-							for (Events eve : getEventsList) {
-								if ((events.getPaperProgrStatus().getStatusDateTime()
-										.isAfter(eve.getPaperProgrStatus().getStatusDateTime()))) {
-									status = events.getPaperProgrStatus().getStatusDescription();
-								}
-							}
-							if (status != null) {
-								retrieveRequestMetadata.setStatusRequest(status);
-							}
-						}
-						// events.getPaperProgrStatus().setStatusDateTime(OffsetDateTime.now());
-						events.getPaperProgrStatus().setStatusCode(
-								callMacchinaStati.statusDecode("PAPER", status, clientID).block().getLogicStatus());
-					}
+					String status = null;
+					String statusToConvert = null;
+					String processID = null;
+
 					List<Events> eventsList = retrieveRequestMetadata.getEventsList();
-					if (eventsList == null) {
-						eventsList = new ArrayList<>();
+					
+					// CASO 1: RICHIESTA DIGITALE
+					if (events.getDigProgrStatus() != null) {
+
+						statusToConvert = events.getDigProgrStatus().getStatus();
+
+						if (eventsList != null) {
+							for (Events eve : eventsList) {
+
+								if (events.getDigProgrStatus().getEventTimestamp()
+										.isBefore(eve.getDigProgrStatus().getEventTimestamp()))
+									status = null;
+								else
+									status = events.getDigProgrStatus().getStatus();
+							}
+						} else {
+							status = events.getDigProgrStatus().getStatus();
+							retrieveRequestMetadata.setStatusRequest(status);
+						}
+						processID = retrieveRequestMetadata.getDigitalRequestMetadata().getChannel();
 					}
-					eventsList.add(events);
-					retrieveRequestMetadata.setEventsList(eventsList);
-					return retrieveRequestMetadata;
+
+					// CASO 2: RICHIESTA CARTACEO
+					else {
+						statusToConvert = events.getPaperProgrStatus().getStatusDescription();
+						if (eventsList != null) {
+							for (Events eve : eventsList) {
+								if (events.getPaperProgrStatus().getStatusDateTime()
+										.isBefore(eve.getPaperProgrStatus().getStatusDateTime()))
+									status = null;
+								else
+									status = events.getPaperProgrStatus().getStatusDescription();
+							}
+						} else {
+							status = events.getPaperProgrStatus().getStatusDescription();
+							retrieveRequestMetadata.setStatusRequest(status);
+						}
+
+						processID = "PAPER";
+
+					}
+
+					if (status != null) {
+						retrieveRequestMetadata.setStatusRequest(status);
+					}
+
+					// Conversione da stato tecnico a stato logico.
+					return callMacchinaStati.statusDecode(processID, statusToConvert, clientID)
+							.map(macchinaStatiDecodeResponseDto -> {
+
+								if (events.getDigProgrStatus() != null) {
+									events.getDigProgrStatus()
+											.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+								} else {
+									events.getPaperProgrStatus()
+											.setStatusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+								}
+
+								List<Events> getEventsList = retrieveRequestMetadata.getEventsList();
+								if (getEventsList == null) {
+									getEventsList = new ArrayList<>();
+								}
+
+								getEventsList.add(events);
+								retrieveRequestMetadata.setEventsList(getEventsList);
+								return retrieveRequestMetadata;
+							}
+
+							);
+
 				}).flatMap(requestMetadataWithEventsUpdated -> Mono.fromCompletionStage(
 						requestMetadataDynamoDbTable.updateItem(requestMetadataWithEventsUpdated)));
-
 	}
 
 	@Override
