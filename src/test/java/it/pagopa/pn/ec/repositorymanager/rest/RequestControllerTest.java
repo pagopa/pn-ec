@@ -2,11 +2,14 @@ package it.pagopa.pn.ec.repositorymanager.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.GestoreRepositoryEndpointProperties;
+import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import reactor.core.publisher.Mono;
+import it.pagopa.pn.ec.commons.rest.call.machinestate.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +17,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -24,6 +28,7 @@ import org.springframework.web.reactive.function.BodyInserters;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -45,6 +50,9 @@ class RequestControllerTest {
 
 	@Autowired
 	ObjectMapper objectMapper;
+
+	@MockBean
+	private CallMacchinaStati callMacchinaStati;
 
 	@Autowired
 	private GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties;
@@ -175,6 +183,8 @@ class RequestControllerTest {
 	@BeforeEach
 	public void createDefaultRequestDto() {
 		initializeRequestDto();
+		Mockito.when(callMacchinaStati.statusDecode(anyString(), anyString(), anyString()))
+				.thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto()));
 	}
 
 	private static Stream<Arguments> provideDigitalAndPaperRequestToInsert() {
@@ -271,6 +281,17 @@ class RequestControllerTest {
 	@ParameterizedTest
 	@MethodSource("provideDigitalAndPaperEventToUpdate")
 	void testUpdateSuccess(EventsDto eventsDto, String idRequest) {
+
+//		if (eventsDto.getDigProgrStatus() != null) {
+//			Mockito.when(callMacchinaStati.statusDecode(DEFAULT_ID_DIGITAL, eventsDto.getDigProgrStatus().getStatus(),
+//					X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)).thenReturn(Mono.just(decodeResponseDto));
+//		}
+//
+//		if (eventsDto.getPaperProgrStatus() != null) {
+//			Mockito.when(callMacchinaStati.statusDecode(DEFAULT_ID_PAPER,
+//					eventsDto.getPaperProgrStatus().getStatusDescription(), X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE))
+//					.thenReturn(Mono.just(decodeResponseDto));
+//		}
 
 		webClient.patch()
 				.uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(idRequest))

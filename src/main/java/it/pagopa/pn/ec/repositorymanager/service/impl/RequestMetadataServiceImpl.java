@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
-import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMachinaStati;
+import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
@@ -27,10 +27,10 @@ import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 public class RequestMetadataServiceImpl implements RequestMetadataService {
 
 	private final DynamoDbAsyncTable<RequestMetadata> requestMetadataDynamoDbTable;
-	private final CallMachinaStati callMacchinaStati;
+	private final CallMacchinaStati callMacchinaStati;
 
 	public RequestMetadataServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
-			RepositoryManagerDynamoTableName repositoryManagerDynamoTableName, CallMachinaStati callMacchinaStati) {
+			RepositoryManagerDynamoTableName repositoryManagerDynamoTableName, CallMacchinaStati callMacchinaStati) {
 		this.callMacchinaStati = callMacchinaStati;
 		this.requestMetadataDynamoDbTable = dynamoDbEnhancedClient.table(
 				repositoryManagerDynamoTableName.richiesteMetadataName(), TableSchema.fromBean(RequestMetadata.class));
