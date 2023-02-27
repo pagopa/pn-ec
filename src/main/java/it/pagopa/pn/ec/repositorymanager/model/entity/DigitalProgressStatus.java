@@ -8,6 +8,8 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 
 import java.time.OffsetDateTime;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @Data
@@ -16,6 +18,7 @@ public class DigitalProgressStatus {
 
 	private OffsetDateTime eventTimestamp;
 	private String status;
+	@JsonProperty("statusCode")
 	private String eventCode;
 	private String eventDetails;
 	private GeneratedMessage generatedMessage;

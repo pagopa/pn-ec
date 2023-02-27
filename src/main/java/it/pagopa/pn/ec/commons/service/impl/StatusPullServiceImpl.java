@@ -1,80 +1,84 @@
 package it.pagopa.pn.ec.commons.service.impl;
 
-import it.pagopa.pn.ec.commons.exception.ClientNotFoundException;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
+import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.rest.v1.dto.CourtesyMessageProgressEvent;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalMessageReference;
-import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
+import it.pagopa.pn.ec.rest.v1.dto.ProgressEventCategory;
+import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 public class StatusPullServiceImpl implements StatusPullService {
 
 	private final AuthService authService;
 	private final GestoreRepositoryCall gestoreRepositoryCall;
+	private final CallMacchinaStati callMacchinaStati;
 
-	public StatusPullServiceImpl(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall) {
+	public StatusPullServiceImpl(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall,
+			CallMacchinaStati callMacchinaStati) {
 		this.authService = authService;
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
+		this.callMacchinaStati = callMacchinaStati;
 	}
 
 	@Override
-	public Flux<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId) {
-		return Flux.from(authService.clientAuth(xPagopaExtchCxId).then(gestoreRepositoryCall.getRichiesta(requestIdx))
+	public Mono<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId,
+			String processId) {
+		return authService.clientAuth(xPagopaExtchCxId).then(gestoreRepositoryCall.getRichiesta(requestIdx))
 				.onErrorResume(RestCallException.ResourceNotFoundException.class,
 						e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
-				.map(requestDTO -> {
-
-					// Controlla se il clientID della richiesta e quello del chiamante coincidono.
-					// Se non coincidono, lancia un'eccezione FORBIDDEN 403.
-					String requestClientID = requestDTO.getxPagopaExtchCxId();
-
-					// TODO In futuro le richieste su DB avranno l'attributo xPagopaExtchCxId
-					// inizializzato, il controllo sulla stringa null è solamente temporaneo
-					if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId))
-						throw new ClientNotAuthorizedException(xPagopaExtchCxId);
-
-					var eventsListDTO = requestDTO.getRequestMetadata().getEventsList();
-					var event = new CourtesyMessageProgressEvent();
-
-					if (eventsListDTO != null && !eventsListDTO.isEmpty()) {
-
-						EventsDto eventDTO = eventsListDTO.get(eventsListDTO.size() - 1);
-
-						var digProgrStatus = eventDTO.getDigProgrStatus();
-
-						event.setRequestId(requestIdx);
-						event.setEventDetails(digProgrStatus.getEventDetails());
-						event.setEventTimestamp(digProgrStatus.getEventTimestamp());
-
-						// TODO: MAP INTERNAL STATUS CODE TO EXTERNAL STATUS
-						event.setStatus(null);
-						event.setEventCode(null);
-
-						var generatedMessageDTO = digProgrStatus.getGeneratedMessage();
-
-						if (generatedMessageDTO != null) {
-							var digitalMessageReference = new DigitalMessageReference();
-
-							digitalMessageReference.setId(generatedMessageDTO.getId());
-							digitalMessageReference.setLocation(generatedMessageDTO.getLocation());
-							digitalMessageReference.setSystem(generatedMessageDTO.getSystem());
-
-							event.setGeneratedMessage(digitalMessageReference);
-						}
+				.handle((requestDto, synchronousSink) -> {
+					String requestClientID = requestDto.getxPagopaExtchCxId();
+					if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId)) {
+						synchronousSink.error(new ClientNotAuthorizedException(xPagopaExtchCxId));
+					} else {
+						synchronousSink.next(requestDto);
 					}
-					return event;
-				}));
+				}).flatMap(object -> {
+					var requestDTO = (RequestDto) object;
+					var eventsList = requestDTO.getRequestMetadata().getEventsList();
+					if (eventsList != null && !eventsList.isEmpty()) {
+						var eventDTO = eventsList.stream()
+								.sorted((e1, e2) -> e1.getDigProgrStatus().getEventTimestamp()
+										.compareTo(e2.getDigProgrStatus().getEventTimestamp()))
+								.skip(eventsList.size() - 1).findFirst().get();
+						return Mono.just(eventDTO);
+					} else {
+						return Mono.empty();
+					}
+				}).flatMap(eventDTO -> {
+					var event = new CourtesyMessageProgressEvent();
+					var digProgrStatus = eventDTO.getDigProgrStatus();
+
+					event.setRequestId(requestIdx);
+					event.setEventDetails(digProgrStatus.getEventDetails());
+					event.setEventTimestamp(digProgrStatus.getEventTimestamp());
+
+					var generatedMessageDTO = digProgrStatus.getGeneratedMessage();
+					if (generatedMessageDTO != null) {
+						var digitalMessageReference = new DigitalMessageReference();
+
+						digitalMessageReference.setId(generatedMessageDTO.getId());
+						digitalMessageReference.setLocation(generatedMessageDTO.getLocation());
+						digitalMessageReference.setSystem(generatedMessageDTO.getSystem());
+
+						event.setGeneratedMessage(digitalMessageReference);
+					}
+					return callMacchinaStati
+							.statusDecode(processId, digProgrStatus.getStatus().toLowerCase(), xPagopaExtchCxId)
+							.map(macchinaStatiDecodeResponseDto -> event
+									.status(ProgressEventCategory
+											.valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()))
+									.eventCode(macchinaStatiDecodeResponseDto.getLogicStatus()));
+				});
 	}
 
 	@Override
