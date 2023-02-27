@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.testutils.localstack;
 
+import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
@@ -92,6 +93,9 @@ public class LocalStackTestConfig {
     @Autowired
     private PecSqsQueueName pecSqsQueueName;
 
+    @Autowired
+    private CartaceoSqsQueueName cartaceoSqsQueueName;
+
     private void initSqs() {
         log.info("<-- START initLocalStack.initSqs -->");
 
@@ -111,11 +115,14 @@ public class LocalStackTestConfig {
 
         List<String> pecQueueNames = List.of(pecSqsQueueName.interactiveName(), pecSqsQueueName.batchName(), pecSqsQueueName.errorName());
 
+        List<String> cartceoQueueNames = List.of(cartaceoSqsQueueName.interactiveName(), cartaceoSqsQueueName.batchName(), cartaceoSqsQueueName.errorName());
+
         List<String> allQueueName = new ArrayList<>();
         allQueueName.addAll(notificationTrackerQueueNames);
         allQueueName.addAll(smsQueueNames);
         allQueueName.addAll(emailQueueNames);
         allQueueName.addAll(pecQueueNames);
+        allQueueName.addAll(cartceoQueueNames);
 
         allQueueName.forEach(queueName -> {
             try {

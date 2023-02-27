@@ -186,7 +186,7 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <inputSpec>${project.basedir}/docs/openapi/external/consolidatore-2023-01-02.yml</inputSpec>
+                            <inputSpec>${project.basedir}/docs/openapi/external/consolidatore-v1.yml</inputSpec>
                             <generatorName>java</generatorName>
                             <generateApiTests>false</generateApiTests>
                             <configOptions>
