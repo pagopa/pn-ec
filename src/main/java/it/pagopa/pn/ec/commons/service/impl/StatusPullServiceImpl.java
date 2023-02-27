@@ -4,7 +4,7 @@ import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMachinaStati;
+import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.rest.v1.dto.CourtesyMessageProgressEvent;
@@ -20,10 +20,10 @@ public class StatusPullServiceImpl implements StatusPullService {
 
 	private final AuthService authService;
 	private final GestoreRepositoryCall gestoreRepositoryCall;
-	private final CallMachinaStati callMacchinaStati;
+	private final CallMacchinaStati callMacchinaStati;
 
 	public StatusPullServiceImpl(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall,
-			CallMachinaStati callMacchinaStati) {
+			CallMacchinaStati callMacchinaStati) {
 		this.authService = authService;
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.callMacchinaStati = callMacchinaStati;
