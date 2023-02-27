@@ -85,56 +85,75 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 						throwable -> log.info(throwable.getMessage()))
 				.flatMap(retrieveRequestMetadata -> {
 
+					// Id del client
 					String clientID = retrieveRequestMetadata.getXPagopaExtchCxId();
-					String status = null;
+					// Stato generale della richiesta
+					String generalStatus = null;
+					// Stato dell'evento da convertire
 					String statusToConvert = null;
+					// process ID (es. PEC, SMS ecc.)
 					String processID = null;
 
 					List<Events> eventsList = retrieveRequestMetadata.getEventsList();
-					
-					// CASO 1: RICHIESTA DIGITALE
+
+					// ---> CASO 1: RICHIESTA DIGITALE <---
 					if (events.getDigProgrStatus() != null) {
 
 						statusToConvert = events.getDigProgrStatus().getStatus();
 
 						if (eventsList != null) {
+
+							// Controlla se l'evento che stiamo inserendo viene temporalmente prima degli
+							// eventi già presenti.
+							// In tal caso, non aggiorna lo stato della richiesta.
 							for (Events eve : eventsList) {
 
 								if (events.getDigProgrStatus().getEventTimestamp()
 										.isBefore(eve.getDigProgrStatus().getEventTimestamp()))
-									status = null;
+									generalStatus = null;
 								else
-									status = events.getDigProgrStatus().getStatus();
+									generalStatus = events.getDigProgrStatus().getStatus();
 							}
-						} else {
-							status = events.getDigProgrStatus().getStatus();
-							retrieveRequestMetadata.setStatusRequest(status);
+						}
+						// Se la lista eventi è nulla, viene automaticamente aggiornato lo stato della
+						// richiesta.
+						else {
+							generalStatus = events.getDigProgrStatus().getStatus();
+							retrieveRequestMetadata.setStatusRequest(generalStatus);
 						}
 						processID = retrieveRequestMetadata.getDigitalRequestMetadata().getChannel();
 					}
 
-					// CASO 2: RICHIESTA CARTACEO
+					// ---> CASO 2: RICHIESTA CARTACEO <---
 					else {
+
 						statusToConvert = events.getPaperProgrStatus().getStatusDescription();
+
 						if (eventsList != null) {
+							// Controlla se l'evento che stiamo inserendo viene temporalmente prima degli
+							// eventi già presenti.
+							// In tal caso, non aggiorna lo stato della richiesta.
 							for (Events eve : eventsList) {
 								if (events.getPaperProgrStatus().getStatusDateTime()
 										.isBefore(eve.getPaperProgrStatus().getStatusDateTime()))
-									status = null;
+									generalStatus = null;
 								else
-									status = events.getPaperProgrStatus().getStatusDescription();
+									generalStatus = events.getPaperProgrStatus().getStatusDescription();
 							}
-						} else {
-							status = events.getPaperProgrStatus().getStatusDescription();
-							retrieveRequestMetadata.setStatusRequest(status);
+						}
+						// Se la lista eventi è nulla, viene automaticamente aggiornato lo stato della
+						// richiesta.
+						else {
+							generalStatus = events.getPaperProgrStatus().getStatusDescription();
+							retrieveRequestMetadata.setStatusRequest(generalStatus);
 						}
 
 						processID = "PAPER";
 
 					}
 
-					if (status != null) {
-						retrieveRequestMetadata.setStatusRequest(status);
+					if (generalStatus != null) {
+						retrieveRequestMetadata.setStatusRequest(generalStatus);
 					}
 
 					// Conversione da stato tecnico a stato logico.
