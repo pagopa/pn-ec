@@ -9,9 +9,17 @@ import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.rest.v1.dto.CourtesyMessageProgressEvent;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalMessageReference;
+import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
+import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
+import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.ProgressEventCategory;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
+
+import java.sql.Timestamp;
+import java.time.OffsetDateTime;
+
 import org.springframework.stereotype.Service;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -74,11 +82,16 @@ public class StatusPullServiceImpl implements StatusPullService {
 					}
 					return callMacchinaStati
 							.statusDecode(processId, digProgrStatus.getStatus().toLowerCase(), xPagopaExtchCxId)
-							.map(macchinaStatiDecodeResponseDto -> event
-									.status(ProgressEventCategory
-											.valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()))
-									.eventCode(macchinaStatiDecodeResponseDto.getLogicStatus()));
-				});
+							.map(macchinaStatiDecodeResponseDto -> {
+
+								event.setStatus(ProgressEventCategory
+										.valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
+								event.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+								return event;
+							});
+				}).switchIfEmpty(
+						Mono.just(new CourtesyMessageProgressEvent().eventCode("").eventDetails("").requestId("")));
+
 	}
 
 	@Override
