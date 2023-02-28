@@ -127,6 +127,57 @@
             <version>1.6.5</version>
         </dependency>
 
+        <!-- Start SOAP dependencies -->
+        <dependency>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>jakarta.jws</groupId>
+            <artifactId>jakarta.jws-api</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>jakarta.xml.ws</groupId>
+            <artifactId>jakarta.xml.ws-api</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>jakarta.xml.soap</groupId>
+            <artifactId>jakarta.xml.soap-api</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>jakarta.activation</groupId>
+            <artifactId>jakarta.activation-api</artifactId>
+            <version>2.1.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sun.xml.bind</groupId>
+            <artifactId>jaxb-impl</artifactId>
+            <version>4.0.1</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sun.xml.ws</groupId>
+            <artifactId>jaxws-rt</artifactId>
+            <version>4.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.cxf.systests</groupId>
+            <artifactId>cxf-systests-transport-hc5</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+        <!-- End SOAP dependencies -->
+
         <!-- TEST DEPENDENCIES-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -146,17 +197,17 @@
             <scope>test</scope>
         </dependency>
 
-		<dependency>
-			<groupId>org.testcontainers</groupId>
-			<artifactId>junit-jupiter</artifactId>
-			<scope>test</scope>
-		</dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
 
-		<dependency>
-			<groupId>org.awaitility</groupId>
-			<artifactId>awaitility</artifactId>
-			<scope>test</scope>
-		</dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 
@@ -262,7 +313,8 @@
                         </goals>
                         <phase>process-resources</phase>
                         <configuration>
-                            <inputSpec>${project.basedir}/docs/openapi/internal/safestorage/pn-safestorage-api.yaml</inputSpec>
+                            <inputSpec>${project.basedir}/docs/openapi/internal/safestorage/pn-safestorage-api.yaml
+                            </inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
                             <generateApiDocumentation>false</generateApiDocumentation>
@@ -293,6 +345,36 @@
                     <source>17</source>
                     <target>17</target>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.cxf</groupId>
+                <artifactId>cxf-codegen-plugin</artifactId>
+                <version>4.0.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-sources</id>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <wsdlOptions>
+                                <wsdlOption>
+                                    <wsdl>${project.basedir}/src/main/resources/pec/PecImapBridgeBWS1.5.wsdl</wsdl>
+                                    <extraargs>
+                                        <extraarg>-client</extraarg>
+                                        <extraarg>-verbose</extraarg>
+                                        <extraarg>-p</extraarg>
+                                        <extraarg>it.pec.bridgews</extraarg>
+                                        <extraarg>-asyncMethods</extraarg>
+                                        <extraarg>-bareMethods</extraarg>
+                                    </extraargs>
+                                </wsdlOption>
+                            </wsdlOptions>
+                        </configuration>
+                        <goals>
+                            <goal>wsdl2java</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
         </plugins>
