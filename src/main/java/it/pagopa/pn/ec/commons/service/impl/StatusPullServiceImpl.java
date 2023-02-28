@@ -7,21 +7,12 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
-import it.pagopa.pn.ec.rest.v1.dto.CourtesyMessageProgressEvent;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalMessageReference;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
-import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
-import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
-import it.pagopa.pn.ec.rest.v1.dto.ProgressEventCategory;
-import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
-
-import java.sql.Timestamp;
-import java.time.OffsetDateTime;
-
+import it.pagopa.pn.ec.rest.v1.dto.*;
 import org.springframework.stereotype.Service;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Comparator;
 
 @Service
 public class StatusPullServiceImpl implements StatusPullService {
@@ -55,8 +46,7 @@ public class StatusPullServiceImpl implements StatusPullService {
 					var eventsList = requestDTO.getRequestMetadata().getEventsList();
 					if (eventsList != null && !eventsList.isEmpty()) {
 						var eventDTO = eventsList.stream()
-								.sorted((e1, e2) -> e1.getDigProgrStatus().getEventTimestamp()
-										.compareTo(e2.getDigProgrStatus().getEventTimestamp()))
+								.sorted(Comparator.comparing(e -> e.getDigProgrStatus().getEventTimestamp()))
 								.skip(eventsList.size() - 1).findFirst().get();
 						return Mono.just(eventDTO);
 					} else {
@@ -97,5 +87,60 @@ public class StatusPullServiceImpl implements StatusPullService {
 	@Override
 	public Flux<CourtesyMessageProgressEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
 		return null;
+	}
+
+	@Override
+	public Mono<LegalMessageSentDetails> legalPullService(String requestIdx, String xPagopaExtchCxId, String processId) {
+		return authService.clientAuth(xPagopaExtchCxId).then(gestoreRepositoryCall.getRichiesta(requestIdx))
+				.onErrorResume(RestCallException.ResourceNotFoundException.class,
+						e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
+				.handle((requestDto, synchronousSink) -> {
+					String requestClientID = requestDto.getxPagopaExtchCxId();
+					if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId)) {
+						synchronousSink.error(new ClientNotAuthorizedException(xPagopaExtchCxId));
+					} else {
+						synchronousSink.next(requestDto);
+					}
+				}).flatMap(object -> {
+					var requestDTO = (RequestDto) object;
+					var eventsList = requestDTO.getRequestMetadata().getEventsList();
+					if (eventsList != null && !eventsList.isEmpty()) {
+						var eventDTO = eventsList.stream()
+								.sorted(Comparator.comparing(e -> e.getDigProgrStatus().getEventTimestamp()))
+								.skip(eventsList.size() - 1).findFirst().get();
+						return Mono.just(eventDTO);
+					} else {
+						return Mono.empty();
+					}
+				}).flatMap(eventDTO -> {
+					var event = new LegalMessageSentDetails();
+					var digProgrStatus = eventDTO.getDigProgrStatus();
+
+					event.setRequestId(requestIdx);
+					event.setEventDetails(digProgrStatus.getEventDetails());
+					event.setEventTimestamp(digProgrStatus.getEventTimestamp());
+
+					var generatedMessageDTO = digProgrStatus.getGeneratedMessage();
+					if (generatedMessageDTO != null) {
+						var digitalMessageReference = new DigitalMessageReference();
+
+						digitalMessageReference.setId(generatedMessageDTO.getId());
+						digitalMessageReference.setLocation(generatedMessageDTO.getLocation());
+						digitalMessageReference.setSystem(generatedMessageDTO.getSystem());
+
+						event.setGeneratedMessage(digitalMessageReference);
+					}
+					return callMacchinaStati
+							.statusDecode(processId, digProgrStatus.getStatus().toLowerCase(), xPagopaExtchCxId)
+							.map(macchinaStatiDecodeResponseDto -> {
+
+								event.setStatus(ProgressEventCategory
+										.valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
+								event.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+								return event;
+							});
+				}).switchIfEmpty(
+						Mono.just(new LegalMessageSentDetails().eventCode("").eventDetails("").requestId("")));
+
 	}
 }

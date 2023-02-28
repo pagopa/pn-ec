@@ -1,8 +1,12 @@
 package it.pagopa.pn.ec.pec.service.impl;
 
+import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
+import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -16,7 +20,10 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import software.amazon.awssdk.services.sns.model.PublishResponse;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
@@ -28,6 +35,7 @@ import static java.time.OffsetDateTime.now;
 public class PecService extends PresaInCaricoService {
 
     private final SqsService sqsService;
+    //ARUBA?
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final AttachmentServiceImpl attachmentService;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
@@ -50,16 +58,18 @@ public class PecService extends PresaInCaricoService {
 
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
-//      Cast PresaInCaricoInfo to specific SmsPresaInCaricoInfo
-        PecPresaInCaricoInfo pecPresaInCaricoInfo = (PecPresaInCaricoInfo) presaInCaricoInfo;
-        String xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
+//      Cast PresaInCaricoInfo to specific PecPresaInCaricoInfo
+        var pecPresaInCaricoInfo = (PecPresaInCaricoInfo) presaInCaricoInfo;
+        var xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
         return attachmentService.checkAllegatiPresence(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls(),
                                                        xPagopaExtchCxId,
                                                        true)
                                 .flatMap(fileDownloadResponse -> {
                                    var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
                                    digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-                                   return insertRequestFromPec(digitalNotificationRequest, xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
+//                                 Insert request from PEC request and publish to Notification Tracker with next status -> BOOKED
+                                   return insertRequestFromPec(digitalNotificationRequest, xPagopaExtchCxId)
+                                           .onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
                                })
                                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                                                       new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
@@ -68,15 +78,18 @@ public class PecService extends PresaInCaricoService {
                                                                                                       transactionProcessConfigurationProperties.pec(),
                                                                                                       transactionProcessConfigurationProperties.pecStartStatus(),
                                                                                                       "booked",
+                                                                                                      // TODO: SET eventDetails
+                                                                                                      "",
                                                                                                       null)))
+//                              Publish to PEC INTERACTIVE or PEC BATCH
                                 .flatMap(sendMessageResponse -> {
                                    DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
                                    if (qos == INTERACTIVE) {
                                        return sqsService.send(pecSqsQueueName.interactiveName(),
-                                                              pecPresaInCaricoInfo.getDigitalNotificationRequest());
+                                                              pecPresaInCaricoInfo);
                                    } else if (qos == BATCH) {
                                        return sqsService.send(pecSqsQueueName.batchName(),
-                                                              pecPresaInCaricoInfo.getDigitalNotificationRequest());
+                                                              pecPresaInCaricoInfo);
                                    } else {
                                        return Mono.empty();
                                    }
@@ -117,4 +130,70 @@ public class PecService extends PresaInCaricoService {
             return requestDto;
         }).flatMap(gestoreRepositoryCall::insertRichiesta);
     }
+
+    @SqsListener(value = "${sqs.queue.pec.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void lavorazioneRichiestaListener(final PecPresaInCaricoInfo pecPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+
+        log.info("<-- START LAVORAZIONE RICHIESTA PEC -->");
+        logIncomingMessage(pecSqsQueueName.interactiveName(), pecPresaInCaricoInfo);
+
+//        lavorazioneRichiesta(pecPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
+    }
+
+//    public Mono<SendMessageResponse> lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
+////      Try to send PEC - Aruba?
+//        return snsService.send(pecPresaInCaricoInfo.getDigitalNotificationRequest().getReceiverDigitalAddress(),
+//                        pecPresaInCaricoInfo.getDigitalNotificationRequest().getSubjectText(),
+//                        pecPresaInCaricoInfo.getDigitalNotificationRequest().getMessageText(),
+//                        pecPresaInCaricoInfo.getDigitalNotificationRequest().getMessageContentType(),
+//                        pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls())
+//
+////                       Retry to send PEC
+//                .retryWhen(DEFAULT_RETRY_STRATEGY)
+//
+////                        Set message id after send
+//                .map(this::createGeneratedMessageDto)
+//
+////                       The PEC in sent, publish to Notification Tracker with next status -> SENT
+//                .flatMap(generatedMessageDto -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
+//                                new NotificationTrackerQueueDto(pecPresaInCaricoInfo.getRequestIdx(),
+//                                        pecPresaInCaricoInfo.getXPagopaExtchCxId(),
+//                                        now(),
+//                                        transactionProcessConfigurationProperties.pec(),
+//                                        pecPresaInCaricoInfo.getStatusAfterStart(),
+//                                        "sent",
+//                                        // TODO: SET eventDetails
+//                                        "",
+//                                        generatedMessageDto))
+//
+////                                                                An error occurred during SQS publishing to the Notification Tracker ->
+////                                                                Publish to Errori PEC queue and notify to retry update status only
+////                                                                TODO: CHANGE THE PAYLOAD
+//                        .onErrorResume(SqsPublishException.class,
+//                                sqsPublishException -> sqsService.send(pecSqsQueueName.errorName(),
+//                                        pecPresaInCaricoInfo)))
+//
+////                       The maximum number of retries has ended
+//                .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
+//                        snsMaxRetriesExceeded -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
+//                                        new NotificationTrackerQueueDto(pecPresaInCaricoInfo.getRequestIdx(),
+//                                                pecPresaInCaricoInfo.getXPagopaExtchCxId(),
+//                                                now(),
+//                                                transactionProcessConfigurationProperties.pec(),
+//                                                pecPresaInCaricoInfo.getStatusAfterStart(),
+//                                                "retry",
+//                                                // TODO: SET eventDetails
+//                                                "",
+//                                                null))
+//
+////                                                                         Publish to ERRORI PEC queue
+//                                .then(sqsService.send(pecSqsQueueName.errorName(),
+//                                        pecPresaInCaricoInfo)));
+//    }
+
+    private GeneratedMessageDto createGeneratedMessageDto(PublishResponse publishResponse) {
+        return new GeneratedMessageDto().id(publishResponse.messageId()).system("toBeDefined");
+//        return null;
+    }
+
 }
