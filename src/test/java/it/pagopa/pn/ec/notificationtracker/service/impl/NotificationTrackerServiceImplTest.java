@@ -7,7 +7,7 @@ import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
-import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMachinaStatiImpl;
+import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStatiImpl;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.notificationtracker.model.NtStatoError;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
@@ -44,7 +44,7 @@ class NotificationTrackerServiceImplTest {
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
 
     @MockBean
-    private CallMachinaStatiImpl callMachinaStati;
+    private CallMacchinaStatiImpl callMachinaStati;
 
     @Autowired
     private WebTestClient webClient;

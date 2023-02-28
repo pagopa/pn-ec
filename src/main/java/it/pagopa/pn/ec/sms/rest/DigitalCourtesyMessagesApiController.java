@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.sms.rest;
 
+import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.email.service.EmailService;
@@ -13,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static org.springframework.http.HttpStatus.OK;
@@ -25,18 +25,22 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
     private final SmsService smsService;
     private final EmailService emailService;
     private final StatusPullService statusPullService;
+    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
-    public DigitalCourtesyMessagesApiController(SmsService smsService, EmailService emailService, StatusPullService statusPullService) {
+
+    public DigitalCourtesyMessagesApiController(SmsService smsService, EmailService emailService, StatusPullService statusPullService,
+                                                TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
         this.smsService = smsService;
         this.emailService = emailService;
         this.statusPullService = statusPullService;
+        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
     @Override
-    public Mono<ResponseEntity<Flux<CourtesyMessageProgressEvent>>> getCourtesyShortMessageStatus(String requestIdx,
-                                                                                                  String xPagopaExtchCxId,
-                                                                                                  ServerWebExchange exchange) {
-        return Mono.just(ResponseEntity.ok(statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId)));
+    public Mono<ResponseEntity<CourtesyMessageProgressEvent>> getCourtesyShortMessageStatus(String requestIdx, String xPagopaExtchCxId,
+                                                                                            ServerWebExchange exchange) {
+        return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.sms())
+                                .map(ResponseEntity::ok);
 
     }
 
@@ -73,9 +77,9 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
     }
 
     @Override
-    public Mono<ResponseEntity<Flux<CourtesyMessageProgressEvent>>> getDigitalCourtesyMessageStatus(String requestIdx,
-                                                                                                    String xPagopaExtchCxId,
-                                                                                                    ServerWebExchange exchange) {
-        return Mono.just(ResponseEntity.ok(statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId)));
+    public Mono<ResponseEntity<CourtesyMessageProgressEvent>> getDigitalCourtesyMessageStatus(String requestIdx, String xPagopaExtchCxId,
+                                                                                              ServerWebExchange exchange) {
+        return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.email())
+                                .map(ResponseEntity::ok);
     }
 }
