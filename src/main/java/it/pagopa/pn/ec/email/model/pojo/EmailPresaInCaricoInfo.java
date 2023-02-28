@@ -15,6 +15,7 @@ import lombok.experimental.FieldDefaults;
 public class EmailPresaInCaricoInfo extends PresaInCaricoInfo {
 
     DigitalCourtesyMailRequest digitalCourtesyMailRequest;
+    String statusAfterStart;
 
     public EmailPresaInCaricoInfo(String requestIdx, String xPagopaExtchCxId, DigitalCourtesyMailRequest digitalCourtesyMailRequest) {
         super(requestIdx, xPagopaExtchCxId );
