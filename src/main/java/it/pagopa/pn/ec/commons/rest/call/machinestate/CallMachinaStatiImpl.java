@@ -2,11 +2,11 @@ package it.pagopa.pn.ec.commons.rest.call.machinestate;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.statemachine.StateMachineEndpointProperties;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
-import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-@Service
+@Configuration
 public class CallMachinaStatiImpl implements CallMachinaStati {
 
 

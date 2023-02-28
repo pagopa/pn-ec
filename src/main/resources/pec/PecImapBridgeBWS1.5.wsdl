@@ -3,7 +3,7 @@
                   xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
                   name="PecImapBridge" targetNamespace="https://bridgews.pec.it/PecImapBridge/">
     <wsdl:types>
-        <xsd:schema targetNamespace="https://bridgews.pec.it/PecImapBridge/">
+        <xsd:schema elementFormDefault="qualified" targetNamespace="https://bridgews.pec.it/PecImapBridge/">
             <xsd:element name="sendMail">
                 <xsd:complexType>
                     <xsd:sequence>
