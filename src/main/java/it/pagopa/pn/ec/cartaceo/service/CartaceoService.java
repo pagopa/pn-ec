@@ -18,7 +18,12 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.BATCH;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static java.time.OffsetDateTime.now;
 
 @Service
@@ -68,17 +73,12 @@ public class CartaceoService  extends PresaInCaricoService {
                                 null)))
                 .flatMap(sendMessageResponse -> {
                     PaperEngageRequest req = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
-//                    if (qos =="" ) {
-//                        return sqsService.send(cartaceoSqsQueueName.interactiveName(),
-//                                cartaceoPresaInCaricoInfo.getPaperEngageRequest());
-//                    } else if (qos == "") {
-//                        return sqsService.send(cartaceoSqsQueueName.batchName(),
-//                                cartaceoPresaInCaricoInfo.getPaperEngageRequest());
-//                    } else {
-//                        return Mono.empty();
-//                    }
-                            return sqsService.send(cartaceoSqsQueueName.interactiveName(),
+                    if (req !=null) {
+                        return sqsService.send(cartaceoSqsQueueName.batchName(),
                                 cartaceoPresaInCaricoInfo.getPaperEngageRequest());
+                    } else {
+                        return Mono.empty();
+                    }
                         }
                 )
                 .then();
@@ -92,8 +92,15 @@ public class CartaceoService  extends PresaInCaricoService {
             requestDto.setClientRequestTimeStamp(peperNotificationRequest.getClientRequestTimeStamp());
             var requestPersonalDto = new RequestPersonalDto();
             var digitalRequestPersonalDto = new PaperRequestPersonalDto();
+            var attachments =  new AttachmentsEngageRequestDto();
+            attachments.setUri(peperNotificationRequest.getAttachmentUrl());
+//            attachments.setDocumentType(peperNotificationRequest.getPrintType());
 
-//            digitalRequestPersonalDto.setAttachments(attachments);
+
+            List<AttachmentsEngageRequestDto> attachmentsEngageRequestDtos = new ArrayList<>();
+            attachmentsEngageRequestDtos.add(attachments);
+
+            digitalRequestPersonalDto.setAttachments(attachmentsEngageRequestDtos);
             digitalRequestPersonalDto.setReceiverNameRow2(peperNotificationRequest.getReceiverNameRow2());
             digitalRequestPersonalDto.setReceiverAddress(peperNotificationRequest.getReceiverAddress());
             digitalRequestPersonalDto.setReceiverAddressRow2(peperNotificationRequest.getReceiverAddressRow2());
@@ -112,7 +119,7 @@ public class CartaceoService  extends PresaInCaricoService {
             digitalRequestPersonalDto.setArAddress(peperNotificationRequest.getArAddress());
             digitalRequestPersonalDto.setArCap(peperNotificationRequest.getArCap());
             digitalRequestPersonalDto.setArCity(peperNotificationRequest.getArCity());
-
+            requestPersonalDto.setPaperRequestPersonal(digitalRequestPersonalDto);
 
 
 
@@ -125,7 +132,7 @@ public class CartaceoService  extends PresaInCaricoService {
             digitalRequestMetadataDto.setVas(peperNotificationRequest.getVas());
             digitalRequestMetadataDto.setPrintType(peperNotificationRequest.getPrintType());
             digitalRequestMetadataDto.setProductType(peperNotificationRequest.getProductType());
-
+            requestMetadataDto.setPaperRequestMetadata(digitalRequestMetadataDto);
 
             requestDto.setRequestPersonal(requestPersonalDto);
             requestDto.setRequestMetadata(requestMetadataDto);

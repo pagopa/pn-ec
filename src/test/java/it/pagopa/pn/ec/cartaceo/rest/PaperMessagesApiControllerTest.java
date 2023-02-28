@@ -14,7 +14,6 @@ import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -70,12 +69,10 @@ class PaperMessagesApiControllerTest {
     @MockBean
     private FileCall uriBuilderCall;
 
-    private static final String SEND_SMS_ENDPOINT = "/external-channel/v1/paper-deliveries-engagements"
+    private static final String SEND_CARTACEO_ENDPOINT = "/external-channel/v1/paper-deliveries-engagements"
             + "/{requestIdx}";
 
-    private static final String DEFAULT_ID_PAPER = "PAPER";
-    private static final String X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE = "CLIENT1";
-
+    private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final PaperEngageRequest paperEngageRequest = new PaperEngageRequest();
     private static final RequestDto requestDto = new RequestDto();
     private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
@@ -84,60 +81,46 @@ class PaperMessagesApiControllerTest {
 
 //      Mock an existing request. Set the requestIdx
         requestDto.setRequestIdx("requestIdx");
-        requestDto.setRequestIdx(DEFAULT_ID_PAPER);
-        requestDto.setxPagopaExtchCxId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE);
-        requestDto.setClientRequestTimeStamp(OffsetDateTime.now());
-        requestDto.setRequestTimeStamp(OffsetDateTime.now());
-
-        var paperRequestMetadataDto = new PaperRequestMetadataDto();
-        paperRequestMetadataDto.setIun("iun");
-        paperRequestMetadataDto.setRequestPaId("PagoPa");
-        paperRequestMetadataDto.setProductType("product type");
-        paperRequestMetadataDto.setPrintType("B/N");
+        paperEngageRequest.setAttachmentUrl(defaultAttachmentUrl);
+        paperEngageRequest.setReceiverName("");
+        paperEngageRequest.setReceiverNameRow2("");
+        paperEngageRequest.setReceiverAddress("");
+        paperEngageRequest.setReceiverAddressRow2("");
+        paperEngageRequest.setReceiverCap("");
+        paperEngageRequest.setReceiverCity("");
+        paperEngageRequest.setReceiverCity2("");
+        paperEngageRequest.setReceiverPr("");
+        paperEngageRequest.setReceiverCountry("");
+        paperEngageRequest.setReceiverFiscalCode("");
+        paperEngageRequest.setSenderName("");
+        paperEngageRequest.setSenderAddress("");
+        paperEngageRequest.setSenderCity("");
+        paperEngageRequest.setSenderPr("");
+        paperEngageRequest.setSenderDigitalAddress("");
+        paperEngageRequest.setArName("");
+        paperEngageRequest.setArAddress("");
+        paperEngageRequest.setArCap("");
+        paperEngageRequest.setArCity("");
         var vas = new HashMap<String,String>();
-        paperRequestMetadataDto.setVas(vas);
-        var requestMetadataDto2 = new RequestMetadataDto();
-        requestMetadataDto2.setPaperRequestMetadata(paperRequestMetadataDto);
-        requestDto.setRequestMetadata(requestMetadataDto2);
-
-        var paperRequestPersonalDto = new PaperRequestPersonalDto();
-        var attachments = new ArrayList<AttachmentsEngageRequestDto>();
-        var attachment = new AttachmentsEngageRequestDto();
-        attachment.setUri("");
-        attachment.setOrder(new BigDecimal(1));
-        attachment.setDocumentType("documentType");
-        attachment.setSha256("sha256");
-        attachments.add(attachment);
-        paperRequestPersonalDto.setAttachments(attachments);
-        paperRequestPersonalDto.setReceiverName("");
-        paperRequestPersonalDto.setReceiverNameRow2("");
-        paperRequestPersonalDto.setReceiverAddress("");
-        paperRequestPersonalDto.setReceiverAddressRow2("");
-        paperRequestPersonalDto.setReceiverCap("");
-        paperRequestPersonalDto.setReceiverCity("");
-        paperRequestPersonalDto.setReceiverCity2("");
-        paperRequestPersonalDto.setReceiverPr("");
-        paperRequestPersonalDto.setReceiverCountry("");
-        paperRequestPersonalDto.setReceiverFiscalCode("");
-        paperRequestPersonalDto.setSenderName("");
-        paperRequestPersonalDto.setSenderAddress("");
-        paperRequestPersonalDto.setSenderCity("");
-        paperRequestPersonalDto.setSenderPr("");
-        paperRequestPersonalDto.setSenderDigitalAddress("");
-        paperRequestPersonalDto.setArName("");
-        paperRequestPersonalDto.setArAddress("");
-        paperRequestPersonalDto.setArCap("");
-        paperRequestPersonalDto.setArCity("");
-        var requestPersonalDto2 = new RequestPersonalDto();
-        requestPersonalDto2.setPaperRequestPersonal(paperRequestPersonalDto);
-        requestDto.setRequestPersonal(requestPersonalDto2);
+        paperEngageRequest.setVas(vas);
+        paperEngageRequest.setIun("iun");
+        paperEngageRequest.setRequestPaId("PagoPa");
+        paperEngageRequest.setProductType("product type");
+        paperEngageRequest.setPrintType("B/N");
+        paperEngageRequest.setRequestId("requestIdx");
+        paperEngageRequest.setClientRequestTimeStamp(OffsetDateTime.now());
     }
 
-    private WebTestClient.ResponseSpec sendCartaceoTestCall(
-            BodyInserter<PaperEngageRequest, ReactiveHttpOutputMessage> bodyInserter, String requestIdx) {
-        return this.webTestClient.put().uri(uriBuilder -> uriBuilder.path(SEND_SMS_ENDPOINT).build(requestIdx))
-                .accept(APPLICATION_JSON).contentType(APPLICATION_JSON).body(bodyInserter)
-                .header(ID_CLIENT_HEADER_NAME, DEFAULT_ID_CLIENT_HEADER_VALUE).exchange();
+    private WebTestClient.ResponseSpec sendCartaceoTestCall(BodyInserter<PaperEngageRequest, ReactiveHttpOutputMessage> bodyInserter
+            , String requestIdx) {
+
+        return this.webTestClient.put()
+                .uri(uriBuilder -> uriBuilder.path(SEND_CARTACEO_ENDPOINT).build(requestIdx))
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .body(bodyInserter)
+                .header(ID_CLIENT_HEADER_NAME, DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .exchange();
     }
 
     // Per il momento le chiamate tra i vari microservizi di EC sono mocckate per
@@ -148,8 +131,8 @@ class PaperMessagesApiControllerTest {
     void sendCartaceoOk() {
 
         when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
-        when(gestoreRepositoryCall.getRichiesta(anyString()))
-                .thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus().isOk();
@@ -177,7 +160,7 @@ class PaperMessagesApiControllerTest {
         when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(SERVICE_UNAVAILABLE).expectBody(Problem.class);
+                .isEqualTo(SERVICE_UNAVAILABLE).expectBody(RequestDto.class);
     }
 
 
@@ -230,42 +213,42 @@ class PaperMessagesApiControllerTest {
     @Test
     void sendCartaceoNotificationTrackerKo() {
 
+
+        when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-//      Retrieve request -> OK (If no request is found a RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString()))
-                .thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
-
-        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
+//      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class)))
-                .thenReturn(Mono.error(new SqsPublishException(notificationTrackerSqsName.statoSmsName())));
+        when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
+                new SqsPublishException(notificationTrackerSqsName.statoCartaceoName())));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(SERVICE_UNAVAILABLE).expectBody(Problem.class);
+                .isEqualTo(SERVICE_UNAVAILABLE)
+                .expectBody(Problem.class);
     }
+
+
 
 
     @Test
     void sendCartaceoQueueKo() {
+        //      Client auth -> OK
+        when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-//      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
-
-//      Retrieve request -> OK (If no request is found a RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString()))
-                .thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
-
-        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
+//      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
+        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(cartaceoSqsQueueName.interactiveName()), any(CartaceoPresaInCaricoInfo.class)))
-                .thenReturn(Mono.error(new SqsPublishException(cartaceoSqsQueueName.interactiveName())));
+        when(sqsService.send(eq(cartaceoSqsQueueName.batchName()),
+                any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsPublishException(cartaceoSqsQueueName.batchName())));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(SERVICE_UNAVAILABLE).expectBody(Problem.class);
+                .isEqualTo(SERVICE_UNAVAILABLE)
+                .expectBody(Problem.class);
     }
 
 
