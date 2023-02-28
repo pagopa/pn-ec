@@ -4,12 +4,13 @@ import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.statema
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic404ErrorException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-@Service
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+
+@Component
 public class CallMacchinaStatiImpl implements CallMacchinaStati {
 
 	private final WebClient stateMachineWebClient;
