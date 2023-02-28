@@ -4,7 +4,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigu
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
-import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMachinaStatiImpl;
+import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStatiImpl;
 import it.pagopa.pn.ec.notificationtracker.service.impl.NotificationTrackerMessageReceiver;
 import it.pagopa.pn.ec.notificationtracker.service.impl.PutEventsImpl;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
@@ -42,7 +42,7 @@ class NotificationTrackerControllerTest {
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
 
     @MockBean
-    private CallMachinaStatiImpl callMachinaStati;
+    private CallMacchinaStatiImpl callMachinaStati;
 
     public static final MacchinaStatiValidateStatoResponseDto STATE_MACHINE_DTO = new MacchinaStatiValidateStatoResponseDto();
     public static final NotificationTrackerQueueDto  notificationTrackerQueueDto = new NotificationTrackerQueueDto();

@@ -4,7 +4,7 @@ package it.pagopa.pn.ec.notificationtracker.service.impl;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMachinaStati;
+import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.notificationtracker.service.NotificationTrackerService;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
@@ -18,12 +18,12 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
     private final PutEventsImpl putEventsImpl;
     private final GestoreRepositoryCall gestoreRepositoryCall;
-    private final CallMachinaStati callMachinaStatiImpl;
+    private final CallMacchinaStati callMachinaStatiImpl;
     private final SqsService sqsService;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
 
     public NotificationTrackerServiceImpl(PutEventsImpl putEventsImpl, GestoreRepositoryCall gestoreRepositoryCall,
-                                          CallMachinaStati callMachinaStatiImpl, SqsService sqsService,
+                                          CallMacchinaStati callMachinaStatiImpl, SqsService sqsService,
                                           NotificationTrackerSqsName notificationTrackerSqsName) {
         this.putEventsImpl = putEventsImpl;
         this.gestoreRepositoryCall = gestoreRepositoryCall;

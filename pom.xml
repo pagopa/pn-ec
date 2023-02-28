@@ -237,7 +237,7 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <inputSpec>${project.basedir}/docs/openapi/external/consolidatore-2023-01-02.yml</inputSpec>
+                            <inputSpec>${project.basedir}/docs/openapi/external/consolidatore-v1.yml</inputSpec>
                             <generatorName>java</generatorName>
                             <generateApiTests>false</generateApiTests>
                             <configOptions>
@@ -337,6 +337,14 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                </configuration>
             </plugin>
 
             <plugin>

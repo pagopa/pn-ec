@@ -38,12 +38,12 @@ tags:
     description: Operazioni per le configurazioni dei clients
 paths:
 
-    #############################################################################################
-    ###                                DIGITAL LEGAL MESSAGES                                 ###
-    #############################################################################################
+  #############################################################################################
+  ###                                DIGITAL LEGAL MESSAGES                                 ###
+  #############################################################################################
   /external-channels/v1/digital-deliveries/legal-full-message-requests/{requestIdx}:
     parameters:
-      - $ref: '#/components/parameters/requestIdx' 
+      - $ref: '#/components/parameters/requestIdx'
       - $ref: '#/components/parameters/xPagopaExtchCxId'                            # NO EXTERNAL
     put:
       tags:
@@ -96,9 +96,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/LegalMessageSentDetails'
+                $ref: '#/components/schemas/LegalMessageSentDetails'
         '404':
           $ref: '#/components/responses/getDeliveryStatusHistoryNotFound'
     
@@ -107,9 +105,9 @@ paths:
     ###                              DIGITAL COURTESY MESSAGES                                ###
     #############################################################################################
   
-  /external-channels/v1/digital-deliveries/courtesy-full-message-requests/{requestIdx}:  
+  /external-channels/v1/digital-deliveries/courtesy-full-message-requests/{requestIdx}:
     parameters:
-      - $ref: '#/components/parameters/requestIdx'  
+      - $ref: '#/components/parameters/requestIdx'
       - $ref: '#/components/parameters/xPagopaExtchCxId'                            # NO EXTERNAL
     put:
       tags:
@@ -162,9 +160,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CourtesyMessageProgressEvent'
+                $ref: '#/components/schemas/CourtesyMessageProgressEvent'
         '404':
           $ref: '#/components/responses/getDeliveryStatusHistoryNotFound'
 
@@ -174,7 +170,7 @@ paths:
 
   /external-channels/v1/digital-deliveries/courtesy-simple-message-requests/{requestIdx}:
     parameters:
-      - $ref: '#/components/parameters/requestIdx'  
+      - $ref: '#/components/parameters/requestIdx'
       - $ref: '#/components/parameters/xPagopaExtchCxId'                            # NO EXTERNAL
     put:
       tags:
@@ -227,12 +223,10 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CourtesyMessageProgressEvent'
+                $ref: '#/components/schemas/CourtesyMessageProgressEvent'
         '404':
           $ref: '#/components/responses/getDeliveryStatusHistoryNotFound'
-  
+
 
 
     #############################################################################################
@@ -240,14 +234,14 @@ paths:
     #############################################################################################
   /external-channel/v1/paper-deliveries-engagements/{requestIdx}:
     parameters:
-      - $ref: '#/components/parameters/requestIdx'  
+      - $ref: '#/components/parameters/requestIdx'
       - $ref: '#/components/parameters/xPagopaExtchCxId'                            # NO EXTERNAL
     put:
       operationId: sendPaperEngageRequest
       tags:
         - PaperMessages
       summary: Invio di corrispondenza cartacea
-      description: >- 
+      description: >-
         Questa operazione sottomette ad external-channel una richiesta di invio di corrispondenza 
         cartacea. <br/>
         External channel deve validare la sintatticamente la richiesta e, se tale validazione ha 
@@ -266,7 +260,7 @@ paths:
         '400':
           $ref: '#/components/responses/putDeliveryBad'
         '409':
-            $ref: '#/components/responses/putDeliveryDuplicated'
+          $ref: '#/components/responses/putDeliveryDuplicated'
       callbacks:
         deliveryStatusPushUpdates:
           'indirizzo_webhook_oppure_coda_sqs_legato_al_valore_header_xPagopaExtchCxId':
@@ -295,7 +289,7 @@ paths:
       tags:
         - PaperMessages
       summary: Pull avanzamenti messaggi cartacei
-      description: >- 
+      description: >-
         Questa richiesta permette di ottenere l'elenco degli eventi salienti 
         riguardanti un processo di postalizzazione. <br/>
         Oltre all'elenco degli eventi si ottengono informazioni sulle cause di tali eventi 
@@ -307,16 +301,14 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PaperProgressStatusEvent'
+                $ref: '#/components/schemas/PaperProgressStatusEvent'
         '404':
           $ref: '#/components/responses/getDeliveryStatusHistoryNotFound'
-  
+
     #############################################################################################
     ###                                CONFIGURAZIONI CLIENTS                                 ###
     #############################################################################################
-  /external-channels/v1/configurations:  
+  /external-channels/v1/configurations:
     get:
       tags:
         - Configurations
@@ -350,13 +342,13 @@ paths:
                   $ref: '#/components/schemas/ClientConfigurationDto'
         '400':
           description: Bad Request
-                  
+
 
 components:
   
-    #############################################################################################
-    ###             PARAMETRI E RISPOSTE IN COMUNE PER TUTTI I TIPI DI MESSAGGIO              ###
-    #############################################################################################
+  #############################################################################################
+  ###             PARAMETRI E RISPOSTE IN COMUNE PER TUTTI I TIPI DI MESSAGGIO              ###
+  #############################################################################################
   parameters:
 
     xPagopaExtchCxId:
@@ -474,15 +466,15 @@ components:
       $ref: 'schemas-paper-v1.yaml#/components/schemas/PaperEngageRequest'
     PaperProgressStatusEvent:
       $ref: 'schemas-paper-v1.yaml#/components/schemas/PaperProgressStatusEvent'
-      
-    
 
-#  securitySchemes:        # ONLY EXTERNAL
-#    ApiKeyAuth:           # ONLY EXTERNAL
-#      type: apiKey        # ONLY EXTERNAL
-#      in: header          # ONLY EXTERNAL
-#      name: x-api-key     # ONLY EXTERNAL
 
-#security:                 # ONLY EXTERNAL
-#  - ApiKeyAuth: [] # use the same name as under securitySchemes    # ONLY EXTERNAL
+
+        #  securitySchemes:        # ONLY EXTERNAL
+        #    ApiKeyAuth:           # ONLY EXTERNAL
+        #      type: apiKey        # ONLY EXTERNAL
+        #      in: header          # ONLY EXTERNAL
+        #      name: x-api-key     # ONLY EXTERNAL
+
+        #security:                 # ONLY EXTERNAL
+        #  - ApiKeyAuth: [] # use the same name as under securitySchemes    # ONLY EXTERNAL
               
