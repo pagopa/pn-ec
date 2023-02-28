@@ -20,8 +20,9 @@ import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import software.amazon.awssdk.services.sns.model.PublishResponse;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 import static it.pagopa.pn.ec.commons.service.SnsService.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
@@ -72,7 +73,8 @@ public class SmsService extends PresaInCaricoService {
                                                                                                            transactionProcessConfigurationProperties.sms(),
                                                                                                            transactionProcessConfigurationProperties.smsStartStatus(),
                                                                                                            "booked",
-                                                                                                           // TODO: SET eventDetails
+                                                                                                           // TODO: SET
+                                                                                                           // eventDetails
                                                                                                            "",
                                                                                                            null)))
 //                                                            Publish to SMS INTERACTIVE or SMS BATCH
@@ -125,93 +127,113 @@ public class SmsService extends PresaInCaricoService {
     }
 
     @SqsListener(value = "${sqs.queue.sms.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void lavorazioneRichiestaListener(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+    public void lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgment acknowledgment) {
 
         log.info("<-- START LAVORAZIONE RICHIESTA SMS -->");
         logIncomingMessage(smsSqsQueueName.interactiveName(), smsPresaInCaricoInfo);
 
-        lavorazioneRichiesta(smsPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
-    }
+        var requestId = smsPresaInCaricoInfo.getRequestIdx();
+        var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
+        var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
 
-    public Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
-//      Try to send SMS
-        return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
-                               smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
-
-//                        Set message id after send
-                         .map(this::createGeneratedMessageDto)
-
-//                       The SMS in sent, publish to Notification Tracker with next status -> SENT
-                         .flatMap(generatedMessageDto -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                                                                         new NotificationTrackerQueueDto(smsPresaInCaricoInfo.getRequestIdx(),
-                                                                                                         smsPresaInCaricoInfo.getXPagopaExtchCxId(),
-                                                                                                         now(),
-                                                                                                         transactionProcessConfigurationProperties.sms(),
-                                                                                                         smsPresaInCaricoInfo.getStatusAfterStart(),
-                                                                                                         "sent",
-                                                                                                         // TODO: SET eventDetails
-                                                                                                         "",
-                                                                                                         generatedMessageDto)))
-
-//                       An error occurred during SMS send, start retries
-                         .onErrorResume(SnsSendException.class,
-                                        snsSendException -> retrySmsSend(smsPresaInCaricoInfo, smsPresaInCaricoInfo.getStatusAfterStart()))
-
-//                       An error occurred during SQS publishing to the Notification Tracker -> Publish to Errori SMS queue and
-//                       notify to retry update status only
-//                       TODO: CHANGE THE PAYLOAD
-                         .onErrorResume(SqsPublishException.class,
-                                        sqsPublishException -> sqsService.send(smsSqsQueueName.errorName(), smsPresaInCaricoInfo));
-    }
-
-    private Mono<SendMessageResponse> retrySmsSend(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final String currentStatus) {
+        AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
 //      Try to send SMS
-        return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
-                               smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
+        snsService.send(digitalCourtesySmsRequest.getReceiverDigitalAddress(), digitalCourtesySmsRequest.getMessageText())
+
+//                The SMS in sent, publish to Notification Tracker with next status -> SENT
+                  .flatMap(publishResponse -> {
+                      generatedMessageDto.set(new GeneratedMessageDto().id(publishResponse.messageId()).system("systemPlaceholder"));
+                      return sqsService.send(notificationTrackerSqsName.statoSmsName(),
+                                             new NotificationTrackerQueueDto(requestId,
+                                                                             clientId,
+                                                                             now(),
+                                                                             transactionProcessConfigurationProperties.sms(),
+                                                                             smsPresaInCaricoInfo.getStatusAfterStart(),
+                                                                             "sent",
+                                                                             // TODO: SET eventDetails
+                                                                             "",
+                                                                             generatedMessageDto.get()));
+                  })
+
+//                Delete from queue
+                  .doOnSuccess(result -> acknowledgment.acknowledge())
+
+//                 An error occurred during SMS send, start retries
+                  .onErrorResume(SnsSendException.class,
+                                 snsSendException -> retrySmsSend(acknowledgment,
+                                                                  smsPresaInCaricoInfo,
+                                                                  smsPresaInCaricoInfo.getStatusAfterStart(),
+                                                                  generatedMessageDto.get()))
+
+//                An error occurred during SQS publishing to the Notification Tracker -> Publish to Errori SMS queue and
+//                notify to retry update status only
+//                TODO: CHANGE THE PAYLOAD
+                  .onErrorResume(SqsPublishException.class,
+                                 sqsPublishException -> sqsService.send(smsSqsQueueName.errorName(), smsPresaInCaricoInfo)).subscribe();
+    }
+
+    private Mono<SendMessageResponse> retrySmsSend(final Acknowledgment acknowledgment, final SmsPresaInCaricoInfo smsPresaInCaricoInfo,
+                                                   final String currentStatus, final GeneratedMessageDto generateMessageDto) {
+
+        var requestId = smsPresaInCaricoInfo.getRequestIdx();
+        var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
+        var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
+
+//      Try to send SMS
+        return snsService.send(digitalCourtesySmsRequest.getReceiverDigitalAddress(), digitalCourtesySmsRequest.getMessageText())
 
 //                       Retry to send SMS
                          .retryWhen(DEFAULT_RETRY_STRATEGY)
 
-//                       The SMS in sent, set the message id
-                         .map(this::createGeneratedMessageDto)
+//                       The SMS in sent, publish to Notification Tracker with next status -> SENT
+                         .flatMap(publishResponse -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
+                                                                     new NotificationTrackerQueueDto(requestId,
+                                                                                                     clientId,
+                                                                                                     now(),
+                                                                                                     transactionProcessConfigurationProperties.sms(),
+                                                                                                     currentStatus,
+                                                                                                     "sent",
+                                                                                                     // TODO: SET eventDetails
+                                                                                                     "",
+                                                                                                     new GeneratedMessageDto().id(
+                                                                                                                                      publishResponse.messageId())
+                                                                                                                              .system("systemPlaceholder"))))
 
-//                       Publish to Notification Tracker with next status -> SENT
-                         .flatMap(generatedMessageDto -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                                                                         new NotificationTrackerQueueDto(smsPresaInCaricoInfo.getRequestIdx(),
-                                                                                                         smsPresaInCaricoInfo.getXPagopaExtchCxId(),
-                                                                                                         now(),
-                                                                                                         transactionProcessConfigurationProperties.sms(),
-                                                                                                         currentStatus,
-                                                                                                         "sent",
-                                                                                                         // TODO: SET eventDetails
-                                                                                                         "",
-                                                                                                         generatedMessageDto)))
+//                       Delete from queue
+                         .doOnSuccess(result -> acknowledgment.acknowledge())
 
 //                       The maximum number of retries has ended
                          .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
-                                        snsMaxRetriesExceeded -> smsRetriesExceeded(smsPresaInCaricoInfo, currentStatus));
+                                        snsMaxRetriesExceeded -> smsRetriesExceeded(acknowledgment,
+                                                                                    smsPresaInCaricoInfo,
+                                                                                    generateMessageDto,
+                                                                                    currentStatus));
     }
 
-    private Mono<SendMessageResponse> smsRetriesExceeded(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, String currentStatus) {
+    private Mono<SendMessageResponse> smsRetriesExceeded(final Acknowledgment acknowledgment,
+                                                         final SmsPresaInCaricoInfo smsPresaInCaricoInfo,
+                                                         final GeneratedMessageDto generatedMessageDto, String currentStatus) {
+
+        var requestId = smsPresaInCaricoInfo.getRequestIdx();
+        var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
 
 //      Publish to Notification Tracker with next status -> RETRY
         return sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                               new NotificationTrackerQueueDto(smsPresaInCaricoInfo.getRequestIdx(),
-                                                               smsPresaInCaricoInfo.getXPagopaExtchCxId(),
+                               new NotificationTrackerQueueDto(requestId,
+                                                               clientId,
                                                                now(),
                                                                transactionProcessConfigurationProperties.sms(),
                                                                currentStatus,
                                                                "retry",
                                                                // TODO: SET eventDetails
                                                                "",
-                                                               null))
+                                                               generatedMessageDto))
 
                          // Publish to ERRORI SMS queue
-                         .then(sqsService.send(smsSqsQueueName.errorName(), smsPresaInCaricoInfo));
-    }
+                         .then(sqsService.send(smsSqsQueueName.errorName(), smsPresaInCaricoInfo))
 
-    private GeneratedMessageDto createGeneratedMessageDto(PublishResponse publishResponse) {
-        return new GeneratedMessageDto().id(publishResponse.messageId()).system("toBeDefined");
+//                       Delete from queue
+                         .doOnSuccess(result -> acknowledgment.acknowledge());
     }
 }
