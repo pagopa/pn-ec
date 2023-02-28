@@ -29,19 +29,21 @@ public class WebClientConf {
     }
 
     private WebClient.Builder defaultWebClientBuilder() {
-        return WebClient.builder()
-                        .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()))
-                        .defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
+        return WebClient.builder().clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()));
+    }
+
+    private WebClient.Builder defaultJsonWebClientBuilder() {
+        return defaultWebClientBuilder().defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
     }
 
     @Bean
     public WebClient ecWebClient() {
-        return defaultWebClientBuilder().baseUrl(externalChannelEndpointProperties.containerBaseUrl()).build();
+        return defaultJsonWebClientBuilder().baseUrl(externalChannelEndpointProperties.containerBaseUrl()).build();
     }
 
     @Bean
     public WebClient ssWebClient() {
-        return defaultWebClientBuilder().baseUrl(safeStorageEndpointProperties.containerBaseUrl()).defaultHeaders(httpHeaders -> {
+        return defaultJsonWebClientBuilder().baseUrl(safeStorageEndpointProperties.containerBaseUrl()).defaultHeaders(httpHeaders -> {
             httpHeaders.set(safeStorageEndpointProperties.clientHeaderName(), safeStorageEndpointProperties.clientHeaderValue());
             httpHeaders.set(safeStorageEndpointProperties.apiKeyHeaderName(), safeStorageEndpointProperties.apiKeyHeaderValue());
         }).build();
@@ -49,6 +51,6 @@ public class WebClientConf {
 
     @Bean
     public WebClient stateMachineWebClient() {
-        return defaultWebClientBuilder().baseUrl(stateMachineEndpointProperties.containerBaseUrl()).build();
+        return defaultJsonWebClientBuilder().baseUrl(stateMachineEndpointProperties.containerBaseUrl()).build();
     }
 }
