@@ -104,6 +104,7 @@ class RequestControllerTest {
         paperRequest.setxPagopaExtchCxId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE);
         paperRequest.setClientRequestTimeStamp(OffsetDateTime.now());
         paperRequest.setRequestTimeStamp(OffsetDateTime.now());
+        paperRequest.setMessageId(DEFAULT_MESSAGE_ID);
 
         var paperRequestMetadataDto = new PaperRequestMetadataDto();
         paperRequestMetadataDto.setIun("iun");
