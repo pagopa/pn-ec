@@ -2,9 +2,10 @@ package it.pagopa.pn.ec.commons.service;
 
 import it.pagopa.pn.ec.rest.v1.dto.CourtesyMessageProgressEvent;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public interface StatusPullService {
 
-    Flux<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId);
+    Mono<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId, String processId);
     Flux<CourtesyMessageProgressEvent> paperPullService(String requestIdx, String xPagopaExtchCxId);
 }
