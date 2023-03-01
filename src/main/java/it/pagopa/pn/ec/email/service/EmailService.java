@@ -79,17 +79,27 @@ public class EmailService extends PresaInCaricoService {
 		EmailPresaInCaricoInfo emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
 		String xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
 
-		return attachmentService.checkAllegatiPresence(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getAttachmentsUrls(), presaInCaricoInfo.getXPagopaExtchCxId(), true)
+		return attachmentService//
+				.checkAllegatiPresence(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getAttachmentsUrls()//
+						, presaInCaricoInfo.getXPagopaExtchCxId()//
+						, true)
 
 				.flatMap(fileDownloadResponse -> {
 					var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
 					digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-					return insertRequestFromEmail(digitalNotificationRequest, xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
+					return insertRequestFromEmail(digitalNotificationRequest, xPagopaExtchCxId)//
+							.onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
 				})
 
-				.flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
-						new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(), presaInCaricoInfo.getXPagopaExtchCxId(), now(), transactionProcessConfigurationProperties.email(),
-								transactionProcessConfigurationProperties.emailStartStatus(), "booked", null)))
+				.flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoEmailName()//
+						, new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx()//
+								, presaInCaricoInfo.getXPagopaExtchCxId()//
+								, now()//
+								, transactionProcessConfigurationProperties.email()//
+								, transactionProcessConfigurationProperties.emailStartStatus()//
+								, "booked"//
+								, null))//
+				)
 
 				.flatMap(sendMessageResponse -> {
 					DigitalCourtesyMailRequest.QosEnum qos = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getQos();
@@ -107,7 +117,9 @@ public class EmailService extends PresaInCaricoService {
 	}
 
 	@SuppressWarnings("Duplicates")
-	private Mono<RequestDto> insertRequestFromEmail(final DigitalCourtesyMailRequest digitalCourtesyMailRequest, String xPagopaExtchCxId) {
+	private Mono<RequestDto> insertRequestFromEmail(final DigitalCourtesyMailRequest digitalCourtesyMailRequest//
+			, String xPagopaExtchCxId//
+	) {
 		return Mono.fromCallable(() -> {
 			var requestDto = new RequestDto();
 			requestDto.setRequestIdx(digitalCourtesyMailRequest.getRequestId());

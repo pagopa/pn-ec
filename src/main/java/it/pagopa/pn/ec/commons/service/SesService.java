@@ -6,7 +6,7 @@ import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
 import it.pagopa.pn.ec.email.model.pojo.EmailField;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
-import software.amazon.awssdk.services.ses.model.SendEmailResponse;
+import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
 
 public interface SesService {
 
@@ -17,6 +17,6 @@ public interface SesService {
 				throw new SesSendException.SesMaxRetriesExceededException();
 			});
 
-	Mono<SendEmailResponse> send(EmailField field);
+	Mono<SendRawEmailResponse> send(EmailField field);
 
 }

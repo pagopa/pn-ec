@@ -1,5 +1,7 @@
 package it.pagopa.pn.ec.email.model.pojo;
 
+import java.util.List;
+
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,5 +18,6 @@ public class EmailField {
 	String subject;
 	String htmlBody;
 	String textBody;
+	List<String> attachmentsUrls;
 
 }

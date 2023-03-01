@@ -27,7 +27,7 @@ import it.pagopa.pn.ec.email.model.pojo.EmailField;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import reactor.core.publisher.Mono;
-import software.amazon.awssdk.services.ses.model.SendEmailResponse;
+import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
 
 @SpringBootTestWebEnv
 class EmailServiceTest {
@@ -50,7 +50,15 @@ class EmailServiceTest {
 	@Mock
 	private Acknowledgment acknowledgment;
 
-	private static final EmailPresaInCaricoInfo EMAIL_PRESA_IN_CARICO_INFO = new EmailPresaInCaricoInfo(DEFAULT_REQUEST_IDX, DEFAULT_ID_CLIENT_HEADER_VALUE, createMailRequest());
+	private static final EmailPresaInCaricoInfo EMAIL_PRESA_IN_CARICO_INFO = new EmailPresaInCaricoInfo(DEFAULT_REQUEST_IDX//
+			, DEFAULT_ID_CLIENT_HEADER_VALUE//
+			, createMailRequest(0)//
+	);
+
+	private static final EmailPresaInCaricoInfo EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH = new EmailPresaInCaricoInfo(DEFAULT_REQUEST_IDX//
+			, DEFAULT_ID_CLIENT_HEADER_VALUE//
+			, createMailRequest(2)//
+	);
 
 	/**
 	 * <h3>EMAILLR.100.1</h3>
@@ -70,8 +78,8 @@ class EmailServiceTest {
 
 		// TODO: Eliminare il mock una volta sistemato l'ambiente Localstack
 		// Mock ses: il servizio send va a buon fine (in pratica non è richiesta l'implementazione dell'interfaccia SesService)
-		when(sesService.send(any(EmailField.class)))//
-				.thenReturn(Mono.just(SendEmailResponse.builder().build()));
+		//		when(sesService.send(any(EmailField.class)))//
+		//				.thenReturn(Mono.just(SendRawEmailResponse.builder().build()));
 
 		emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO, acknowledgment);
 
@@ -99,8 +107,19 @@ class EmailServiceTest {
 	 */
 	@Test
 	void lavorazioneRichiestaWithAttachOk() {
-		boolean testImplemented = false;
-		assertTrue(testImplemented);
+
+		// TODO: Eliminare il mock una volta sistemato l'ambiente Localstack
+		// Mock ses: il servizio send va a buon fine (in pratica non è richiesta l'implementazione dell'interfaccia SesService)
+		//		when(sesService.send(any(EmailField.class)))//
+		//				.thenReturn(Mono.just(SendRawEmailResponse.builder().build()));
+
+		emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, acknowledgment);
+
+		// Risultato atteso: pubblicato dto sulla coda per "notification tracker"
+		// verifica che sulla coda sqs, sia stata pubblicata un mess per "notification tracker" 
+		verify(sqsService, times(1))//
+				.send(eq(notificationTrackerSqsName.statoEmailName()), any(NotificationTrackerQueueDto.class));
+
 	}
 
 	/**
@@ -164,7 +183,7 @@ class EmailServiceTest {
 		// TODO: Eliminare il mock una volta sistemato l'ambiente Localstack
 		// Mock ses: il servizio send va a buon fine (in pratica non è richiesta l'implementazione dell'interfaccia SesService)
 		when(sesService.send(any(EmailField.class)))//
-				.thenReturn(Mono.just(SendEmailResponse.builder().build()));
+				.thenReturn(Mono.just(SendRawEmailResponse.builder().build()));
 
 		// Mock sqs: la cosa sqs va in errore nel caso si pubblichi un mess per "notification tracker"
 		when(sqsService.send(eq(notificationTrackerSqsName.statoEmailName()), any(NotificationTrackerQueueDto.class)))//
