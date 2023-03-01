@@ -116,9 +116,23 @@ public class StatusPullServiceImpl implements StatusPullService {
 
 						event.setStatusDateTime(paperProgrStatus.getStatusDateTime());
 						event.setDeliveryFailureCause(paperProgrStatus.getDeliveryFailureCause());
-//						event.setDiscoveredAddress(paperProgrStatus.getDiscoveredAddress());
-//						event.getDiscoveredAddress().setAddress(paperProgrStatus.getDiscoveredAddress().getAddress());
 						event.setRegisteredLetterCode(paperProgrStatus.getRegisteredLetterCode());
+
+						var discoveredAddress = new DiscoveredAddress();
+						var discoveredAddressDTO = paperProgrStatus.getDiscoveredAddress();
+
+						if (discoveredAddressDTO != null) {
+							discoveredAddress.setAddress(discoveredAddressDTO.getAddress());
+							discoveredAddress.setAddressRow2(discoveredAddressDTO.getAddressRow2());
+							discoveredAddress.setCap(discoveredAddressDTO.getCap());
+							discoveredAddress.setCity(discoveredAddressDTO.getCity());
+							discoveredAddress.setCity2(discoveredAddressDTO.getCity2());
+							discoveredAddress.setCountry(discoveredAddressDTO.getCountry());
+							discoveredAddress.setName(discoveredAddressDTO.getName());
+							discoveredAddress.setNameRow2(discoveredAddressDTO.getNameRow2());
+							discoveredAddress.setPr(discoveredAddressDTO.getPr());
+						}
+						event.setDiscoveredAddress(discoveredAddress);
 
 						// Settiamo all'evento lo status NON ANCORA decodificato. La decodifica avverrà
 						// successivamente.
