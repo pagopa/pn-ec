@@ -19,13 +19,26 @@ public class DigitalCourtesyMailRequestFactory {
 	static final String ADDRESS_RECIVE = "filippo.forcina@dgsspa.com";
 	static final String SUBJECT = "Amazon SES Test";
 	static final String MESSAGE = "This email was sent through Amazon SES by using the AWS SDK for Java.";
+	static final String CONTENT = "<!DOCTYPE html>\n" //
+			+ "<html lang=\"en\">\n" //
+			+ "<head>\n" //
+			+ "    <meta charset=\"utf-8\">\n"//
+			+ "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" //
+			+ "    <title>Example HTML Email with multiple attachents</title>\n" //
+			+ "</head>\n"//
+			+ "<body style=\"background: whitesmoke; padding: 30px; height: 100%\">\n" //
+			+ "<h5 style=\"font-size: 18px; margin-bottom: 6px\">Dear example,</h5>\n" //
+			+ "<p style=\"font-size: 16px; font-weight: 500\">Greetings from TutorialsBuddy</p>\n" //
+			+ "<p>This is a simple html based email with multiple attachments.</p>\n" //
+			+ "</body>\n" //
+			+ "</html>";
 
 	private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
 	private static String getTimeStamp() {
 		Timestamp timestamp = new Timestamp(System.currentTimeMillis());
 		String val = sdf.format(timestamp);
-		return " [" + val + "]";
+		return "[" + val + "]";
 	}
 
 	public static DigitalCourtesyMailRequest createMailRequest(int attachNum) {
@@ -39,12 +52,12 @@ public class DigitalCourtesyMailRequestFactory {
 		digitalCourtesyMailRequestFactory.channel(EMAIL);
 		digitalCourtesyMailRequestFactory.setSenderDigitalAddress(ADDRESS_SEND);
 		digitalCourtesyMailRequestFactory.setReceiverDigitalAddress(ADDRESS_RECIVE);
-		digitalCourtesyMailRequestFactory.setSubjectText(SUBJECT + DigitalCourtesyMailRequestFactory.getTimeStamp());
+		digitalCourtesyMailRequestFactory.setSubjectText(SUBJECT + " with #" + attachNum + " attach " + DigitalCourtesyMailRequestFactory.getTimeStamp());
+		digitalCourtesyMailRequestFactory.setMessageText(CONTENT);
 		digitalCourtesyMailRequestFactory.setMessageContentType(MessageContentTypeEnum.HTML);
-		digitalCourtesyMailRequestFactory.setMessageText(MESSAGE);
 
 		List<String> attachList = new ArrayList<>();
-		for (int idx = 1; idx <= attachNum; idx++) {
+		for (int idx = 0; idx < attachNum; idx++) {
 			attachList.add("C:\\Temp\\example.pdf");
 		}
 		digitalCourtesyMailRequestFactory.setAttachmentsUrls(attachList);

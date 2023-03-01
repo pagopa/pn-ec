@@ -16,8 +16,8 @@ public class EmailField {
 	String to;
 	String configSet;
 	String subject;
-	String htmlBody;
-	String textBody;
+	String contentObject;
+	String contentType;
 	List<String> attachmentsUrls;
 
 }

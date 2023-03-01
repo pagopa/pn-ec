@@ -11,16 +11,8 @@ public class EmailFieldMapper {
 		ret.setFrom(req.getSenderDigitalAddress());
 		ret.setTo(req.getReceiverDigitalAddress());
 		ret.setSubject(req.getSubjectText());
-
-		switch (req.getMessageContentType()) {
-		case PLAIN:
-			ret.setTextBody(req.getMessageText());
-			break;
-		case HTML:
-			ret.setHtmlBody(req.getMessageText());
-			break;
-		}
-
+		ret.setContentObject(req.getMessageText());
+		ret.setContentType(req.getMessageContentType().getValue() + "; charset=UTF-8");
 		ret.setAttachmentsUrls(req.getAttachmentsUrls());
 
 		return ret;

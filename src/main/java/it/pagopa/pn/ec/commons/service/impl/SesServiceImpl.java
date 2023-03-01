@@ -49,7 +49,7 @@ public class SesServiceImpl implements SesService {
 		mimeMessage.setSubject(field.getSubject(), "UTF-8");
 
 		MimeBodyPart htmlPart = new MimeBodyPart();
-		htmlPart.setContent(field.getHtmlBody(), "text/html; charset=UTF-8");
+		htmlPart.setContent(field.getContentObject(), field.getContentType());
 
 		MimeMultipart msgBody = new MimeMultipart("alternative");
 		msgBody.addBodyPart(htmlPart);
@@ -62,12 +62,12 @@ public class SesServiceImpl implements SesService {
 
 		// Add multiple files to attachment
 		List<String> files = field.getAttachmentsUrls();
-		for (int idx = 1; idx <= files.size(); idx++) {
+		for (int idx = 0; idx < files.size(); idx++) {
 			MimeBodyPart messageBodyPart = new MimeBodyPart();
 
-			DataSource source = new FileDataSource(files.get(i));
+			DataSource source = new FileDataSource(files.get(idx));
 			messageBodyPart.setDataHandler(new DataHandler(source));
-			messageBodyPart.setFileName("attach-" + idx + ".pdf");
+			messageBodyPart.setFileName("attach-" + (idx + 1) + ".pdf");
 
 			msg.addBodyPart(messageBodyPart);
 		}
