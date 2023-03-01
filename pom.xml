@@ -358,7 +358,7 @@
                         <configuration>
                             <wsdlOptions>
                                 <wsdlOption>
-                                    <wsdl>${project.basedir}/docs/wsdl/PecImapBridgeBWS1.5.wsdl</wsdl>
+                                    <wsdl>${project.basedir}/src/main/resources/pec/PecImapBridgeBWS1.5.wsdl</wsdl>
                                     <extraargs>
                                         <extraarg>-client</extraarg>
                                         <extraarg>-verbose</extraarg>
