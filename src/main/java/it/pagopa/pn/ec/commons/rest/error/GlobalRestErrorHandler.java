@@ -4,6 +4,7 @@ import it.pagopa.pn.ec.commons.exception.ClientNotFoundException;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.RequestAlreadyInProgressException;
+import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -116,5 +117,15 @@ public class GlobalRestErrorHandler {
 		problem.setDetail(exception.getMessage());
 		problem.setTraceId(UUID.randomUUID().toString());
 		return new ResponseEntity<>(problem, BAD_REQUEST);
+	}
+
+	@ExceptionHandler(StatusNotFoundException.class)
+	public final ResponseEntity<Problem> handleStatusNotFound(StatusNotFoundException exception) {
+		var problem = new Problem();
+		problem.setStatus(NOT_FOUND.value());
+		problem.setTitle("Status not found");
+		problem.setDetail(exception.getMessage());
+		problem.setTraceId(UUID.randomUUID().toString());
+		return new ResponseEntity<>(problem, NOT_FOUND);
 	}
 }
