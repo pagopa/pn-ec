@@ -58,12 +58,19 @@ public class RequestController implements GestoreRequestApi {
 
     @Override
     public Mono<ResponseEntity<RequestDto>> getRequestByMessageId(String messageId, ServerWebExchange exchange) {
-        return GestoreRequestApi.super.getRequestByMessageId(messageId, exchange);
+        log.info("Try to retrieve request with messageId -> {}", messageId);
+        return requestService.getRequestByMessageId(messageId)
+                             .map(retrievedRequest -> restUtils.endReadRequest(retrievedRequest, RequestDto.class));
     }
 
     @Override
     public Mono<ResponseEntity<RequestDto>> updateMessageIdInRequestMetadata(String requestIdx, Mono<InlineObject> inlineObject,
-                                                                  ServerWebExchange exchange) {
-        return GestoreRequestApi.super.updateMessageIdInRequestMetadata(requestIdx, inlineObject, exchange);
+                                                                             ServerWebExchange exchange) {
+        return inlineObject.map(messageId -> {
+                               log.info("Try to set messageId '{}' in request with id '{}'", messageId, requestIdx);
+                               return messageId.getMessageId();
+                           })
+                           .flatMap(messageId -> requestService.updateMessageIdInRequestMetadata(requestIdx, messageId))
+                           .map(updatedRequest -> restUtils.endCreateOrUpdateRequest(updatedRequest, RequestDto.class));
     }
 }

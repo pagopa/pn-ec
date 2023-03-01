@@ -89,4 +89,14 @@ public class RequestServiceImpl implements RequestService {
                        return createRequestFromPersonalAndMetadata(requestIdx, deletedRequestPersonal, deletedRequestMetadata);
                    });
     }
+
+    @Override
+    public Mono<Request> getRequestByMessageId(String messageId) {
+        return null;
+    }
+
+    @Override
+    public Mono<Request> updateMessageIdInRequestMetadata(String requestIdx, String messageId) {
+        return null;
+    }
 }

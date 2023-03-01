@@ -10,4 +10,6 @@ public interface RequestService {
     Mono<Request> insertRequest(Request request);
     Mono<Request> updateEvents(String requestIdx, Events events);
     Mono<Request> deleteRequest(String requestIdx);
+    Mono<Request> getRequestByMessageId(String messageId);
+    Mono<Request> updateMessageIdInRequestMetadata(String requestIdx, String messageId);
 }

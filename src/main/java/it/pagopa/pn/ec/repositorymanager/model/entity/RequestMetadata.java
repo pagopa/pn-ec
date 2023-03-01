@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -19,7 +20,7 @@ public class RequestMetadata {
 
 	@Getter(onMethod=@__({@DynamoDbPartitionKey}))
 	String requestId;
-	// TODO: ANNOTATE WITH SECONDARY INDEX
+	@Getter(onMethod=@__({@DynamoDbSecondaryPartitionKey(indexNames = "messageId")}))
 	String messageId;
 	String xPagopaExtchCxId;
 	String statusRequest;

@@ -181,6 +181,12 @@ paths:
           $ref: '#/components/responses/requestResponseOk'
         404:
           $ref: '#/components/responses/missingRequestedItem'
+        409:
+          description: MessageId già presente a sistema
+          content:
+            application/json:
+              schema:
+                $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
 
 components:
 
