@@ -7,28 +7,11 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
-import it.pagopa.pn.ec.rest.v1.dto.AttachmentDetails;
-import it.pagopa.pn.ec.rest.v1.dto.AttachmentsProgressEventDto;
-import it.pagopa.pn.ec.rest.v1.dto.CourtesyMessageProgressEvent;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalMessageReference;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
-import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
-import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
-import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusEvent;
-import it.pagopa.pn.ec.rest.v1.dto.ProgressEventCategory;
-import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
-
-import java.sql.Timestamp;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-
-import org.springframework.http.HttpStatus;
+import it.pagopa.pn.ec.rest.v1.dto.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
-
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuples;
+
+import java.util.ArrayList;
 
 @Service
 public class StatusPullServiceImpl implements StatusPullService {
@@ -133,8 +116,23 @@ public class StatusPullServiceImpl implements StatusPullService {
 
 						event.setStatusDateTime(paperProgrStatus.getStatusDateTime());
 						event.setDeliveryFailureCause(paperProgrStatus.getDeliveryFailureCause());
-						event.setDiscoveredAddress(paperProgrStatus.getDiscoveredAddress());
 						event.setRegisteredLetterCode(paperProgrStatus.getRegisteredLetterCode());
+
+						var discoveredAddress = new DiscoveredAddress();
+						var discoveredAddressDTO = paperProgrStatus.getDiscoveredAddress();
+
+						if (discoveredAddressDTO != null) {
+							discoveredAddress.setAddress(discoveredAddressDTO.getAddress());
+							discoveredAddress.setAddressRow2(discoveredAddressDTO.getAddressRow2());
+							discoveredAddress.setCap(discoveredAddressDTO.getCap());
+							discoveredAddress.setCity(discoveredAddressDTO.getCity());
+							discoveredAddress.setCity2(discoveredAddressDTO.getCity2());
+							discoveredAddress.setCountry(discoveredAddressDTO.getCountry());
+							discoveredAddress.setName(discoveredAddressDTO.getName());
+							discoveredAddress.setNameRow2(discoveredAddressDTO.getNameRow2());
+							discoveredAddress.setPr(discoveredAddressDTO.getPr());
+						}
+						event.setDiscoveredAddress(discoveredAddress);
 
 						// Settiamo all'evento lo status NON ANCORA decodificato. La decodifica avverrà
 						// successivamente.
