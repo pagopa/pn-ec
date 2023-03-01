@@ -9,9 +9,9 @@ import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 
 @Service
@@ -85,8 +85,87 @@ public class StatusPullServiceImpl implements StatusPullService {
 	}
 
 	@Override
-	public Flux<CourtesyMessageProgressEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
-		return null;
+	public Mono<PaperProgressStatusEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
+		return authService.clientAuth(xPagopaExtchCxId).then(gestoreRepositoryCall.getRichiesta(requestIdx))
+				.onErrorResume(RestCallException.ResourceNotFoundException.class,
+						e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
+				.handle((requestDto, synchronousSink) -> {
+					// Controlla se il client è autorizzato.
+					String requestClientID = requestDto.getxPagopaExtchCxId();
+					if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId)) {
+						synchronousSink.error(new ClientNotAuthorizedException(xPagopaExtchCxId));
+					} else {
+						synchronousSink.next(requestDto);
+					}
+				}).flatMap(object -> {
+					var requestDTO = (RequestDto) object;
+					var event = new PaperProgressStatusEvent();
+					var eventsList = requestDTO.getRequestMetadata().getEventsList();
+
+					// Se l'ultimo evento della lista esiste, viene costruito il suo DTO. Altrimenti
+					// viene restituito un Mono.empty().
+					if (eventsList != null && !eventsList.isEmpty()) {
+						var eventDTO = eventsList.stream()
+								.sorted((e1, e2) -> e1.getPaperProgrStatus().getStatusDateTime()
+										.compareTo(e2.getPaperProgrStatus().getStatusDateTime()))
+								.skip(eventsList.size() - 1).findFirst().get();
+
+						var paperProgrStatus = eventDTO.getPaperProgrStatus();
+
+						event.setRequestId(requestIdx);
+
+						event.setStatusDateTime(paperProgrStatus.getStatusDateTime());
+						event.setDeliveryFailureCause(paperProgrStatus.getDeliveryFailureCause());
+						event.setDiscoveredAddress(paperProgrStatus.getDiscoveredAddress());
+						event.setRegisteredLetterCode(paperProgrStatus.getRegisteredLetterCode());
+
+						// Settiamo all'evento lo status NON ANCORA decodificato. La decodifica avverrà
+						// successivamente.
+						event.setStatusDescription(paperProgrStatus.getStatusDescription());
+
+						var attachmentsListDTO = paperProgrStatus.getAttachments();
+						var attachmentList = new ArrayList<AttachmentDetails>();
+
+						if (attachmentsListDTO != null) {
+							for (AttachmentsProgressEventDto attachmentDTO : attachmentsListDTO) {
+
+								var attachment = new AttachmentDetails();
+
+								attachment.setDate(attachmentDTO.getDate());
+								attachment.setDocumentType(attachmentDTO.getDocumentType());
+								attachment.setId(attachmentDTO.getId());
+								attachment.setUrl(attachmentDTO.getUri());
+
+								attachmentList.add(attachment);
+							}
+						}
+						event.setAttachments(attachmentList);
+
+						event.setClientRequestTimeStamp(requestDTO.getClientRequestTimeStamp());
+						event.setIun(requestDTO.getRequestMetadata().getPaperRequestMetadata().getIun());
+						event.setProductType(
+								requestDTO.getRequestMetadata().getPaperRequestMetadata().getProductType());
+
+						return Mono.just(event);
+					} else {
+						return Mono.empty();
+					}
+				}).flatMap(event -> {
+
+					// Decodifica dello stato della richiesta.
+					return callMacchinaStati.statusDecode("PAPER", event.getStatusDescription(), xPagopaExtchCxId)
+							.map(macchinaStatiDecodeResponseDto -> {
+
+								event.setStatusDescription(macchinaStatiDecodeResponseDto.getExternalStatus());
+								event.setStatusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+								return event;
+							});
+				})
+
+				.switchIfEmpty(Mono.just(new PaperProgressStatusEvent().requestId(requestIdx).statusDescription("")
+						.deliveryFailureCause("").productType("").statusCode("").statusDescription("").iun("")
+						.registeredLetterCode("")));
+
 	}
 
 	@Override
