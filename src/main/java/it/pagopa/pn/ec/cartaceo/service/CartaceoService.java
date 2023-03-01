@@ -92,15 +92,22 @@ public class CartaceoService  extends PresaInCaricoService {
             requestDto.setClientRequestTimeStamp(peperNotificationRequest.getClientRequestTimeStamp());
             var requestPersonalDto = new RequestPersonalDto();
             var digitalRequestPersonalDto = new PaperRequestPersonalDto();
-            var attachments =  new AttachmentsEngageRequestDto();
-//            attachments.setUri();
-//            attachments.setDocumentType(peperNotificationRequest.getPrintType());
-
 
             List<AttachmentsEngageRequestDto> attachmentsEngageRequestDtos = new ArrayList<>();
-            attachmentsEngageRequestDtos.add(attachments);
+            if(!peperNotificationRequest.getAttachments().isEmpty() ){
+                for ( PaperEngageRequestAttachments attachment : peperNotificationRequest.getAttachments() ){
+                    AttachmentsEngageRequestDto attachments =  new AttachmentsEngageRequestDto();
+                    attachments.setUri(attachment.getUri());
+                    attachments.setOrder(attachment.getOrder());
+                    attachments.setDocumentType(attachment.getDocumentType());
+                    attachments.setSha256(attachment.getSha256());
+                    attachmentsEngageRequestDtos.add(attachments);
+
+                }
+            }
 
             digitalRequestPersonalDto.setAttachments(attachmentsEngageRequestDtos);
+
             digitalRequestPersonalDto.setReceiverNameRow2(peperNotificationRequest.getReceiverNameRow2());
             digitalRequestPersonalDto.setReceiverAddress(peperNotificationRequest.getReceiverAddress());
             digitalRequestPersonalDto.setReceiverAddressRow2(peperNotificationRequest.getReceiverAddressRow2());
@@ -120,10 +127,6 @@ public class CartaceoService  extends PresaInCaricoService {
             digitalRequestPersonalDto.setArCap(peperNotificationRequest.getArCap());
             digitalRequestPersonalDto.setArCity(peperNotificationRequest.getArCity());
             requestPersonalDto.setPaperRequestPersonal(digitalRequestPersonalDto);
-
-
-
-
 
             var requestMetadataDto = new RequestMetadataDto();
             var digitalRequestMetadataDto = new PaperRequestMetadataDto();

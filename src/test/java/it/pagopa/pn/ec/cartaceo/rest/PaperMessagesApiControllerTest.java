@@ -91,7 +91,6 @@ class PaperMessagesApiControllerTest {
         List<PaperEngageRequestAttachments> paperEngageRequestAttachmentsList = new ArrayList<>();
         paperEngageRequestAttachmentsList.add(paperEngageRequestAttachments);
         paperEngageRequest.setAttachments(paperEngageRequestAttachmentsList);
-//                .get(0).setUri(defaultAttachmentUrl);
         paperEngageRequest.setReceiverName("");
         paperEngageRequest.setReceiverNameRow2("");
         paperEngageRequest.setReceiverAddress("");
