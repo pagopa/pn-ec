@@ -1,3 +1,4 @@
+
 components:
   schemas:
 
@@ -16,7 +17,7 @@ components:
         - clientRequestTimeStamp
         - eventType
         - productType
-        - attachmentUrl
+        - attachments
         - printType
         - receiverName
         - receiverAddress
@@ -24,10 +25,10 @@ components:
         - senderName
         - senderAddress
         - senderCity
-        - senderPr        
+        - senderPr
       type: object
       properties:
-        iun: 
+        iun:
           type: string
           example: 'ABCD-HILM-YKWX-202202-1'
           description: >-
@@ -57,13 +58,48 @@ components:
             - __890__: Recapito a norma della legge 890/1982, <br/>
             - __RI__: Raccomandata Internazionale, <br/>
             - __RS__: Raccomandata Semplice (per Avviso di mancato Recapito). <br/>
-            - ... ulteriori prodotti 
+            - ... ulteriori prodotti
           type: string
           example: 'AR'
-        attachmentUrl:
-          type: string
+        attachments:
+          type: array
+          items:
+            type: object
+            required:
+              - uri
+              - order
+              - documentType
+              - sha256
+            properties:
+              uri:
+                type: string
+                description: URI indicante
+                example: safestorage://PN_EXTERNAL_LEGALFACT_....
+                minLength: 5
+                maxLength: 2000
+              order:
+                type: number
+                description: Ordine di stampa, intero positivo, continuo, inizia da 0
+                example: 0
+              documentType:
+                type: string
+                minLength: 3
+                maxLength: 4
+                description: >-
+                  Tipo di documento: <br/>
+                  - __AAR__: Avviso di avvenuta ricezione, tipicamente associato a campo _order_ valorizzato a 0
+                  - __ATTO__: Documento inviato dalla pubblica amministrazione.
+                example: AAR
+              sha256:
+                type: string
+                description: >-
+                  sha256, codificato in base 64, del contenuto del file riferenziato dal campo uri
+                minLength: 40
+                maxLength: 50
           description: >-
-            Coordinate per l'accesso al documento PDF da inviare. <br/>
+            Coordinate per l'accesso ai documenti PDF da inviare. <br/>
+          minItems: 0
+          maxItems: 200
         printType:
           type: string
           description: >-
@@ -176,7 +212,7 @@ components:
         - requestId
         - statusCode
         - statusDescription
-        - statusDateTime        
+        - statusDateTime
         - productType
         - clientRequestTimeStamp
       type: object
@@ -185,7 +221,7 @@ components:
           type: string
           description: >-
             Identificativo della richiesta.
-          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1'  
+          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1'
         registeredLetterCode:
           type: string
           description: >-
@@ -200,7 +236,7 @@ components:
             - __RS__: Raccomandata Semplice (per Avviso di mancato Recapito). <br/>
             - ... ulteriori prodotti concordati con il consolidatore <br/>
           type: string
-        iun: 
+        iun:
           type: string
           description: >-
             Identificativo Unico della Notifica. Proviene dalla richiesta originaria di PN.
@@ -219,7 +255,7 @@ components:
             - __008__ Mancata consegna Ufficio Postale  <br/>
             - __009__ Compiuta giacenza  <br/>
             - ... Stati aggiuntivi concordati con il consolidatore
-        statusDescription: 
+        statusDescription:
           type: string
           example: 'Stampato'
           description: >-
@@ -229,7 +265,7 @@ components:
           format: date-time
           description: >-
             Data stato con timezone
-        deliveryFailureCause: 
+        deliveryFailureCause:
           description: >-
             _Motivazione di mancata consegna_ obbligtorie negli stati di mancata consegna  <br/>
             - __01__ destinatario irreperibile <br/>
@@ -242,7 +278,7 @@ components:
             - __08__ indirizzo insufficiente <br/>
             - ... Motivazioni aggiuntive concordate con il consolidatore
           type: string
-        attachments: 
+        attachments:
           description: >-
             elenco dei documenti prodotti che attestano quanto accaduto durante il processo 
             di postalizzazione
@@ -256,7 +292,7 @@ components:
             - name
             - address
             - city
-          properties:  
+          properties:
             name:
               type: string
               description: >-
@@ -299,18 +335,18 @@ components:
           format: date-time
           description: >-
             Timestamp della richiesta in UTC specificando la timezone
-
+    
     
     AttachmentDetails:
       title: dettagli allegato a un evento del processo postale
       type: object
-      required: 
+      required:
         - id
         - documentType
         - url
         - date
       properties:
-        id: 
+        id:
           type: string
           description: >-
             Identificativo di riga.

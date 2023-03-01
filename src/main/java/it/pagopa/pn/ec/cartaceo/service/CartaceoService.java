@@ -22,8 +22,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.BATCH;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static java.time.OffsetDateTime.now;
 
 @Service
@@ -55,7 +53,9 @@ public class CartaceoService  extends PresaInCaricoService {
     @Override
     protected Mono<Void> specificPresaInCarico(PresaInCaricoInfo presaInCaricoInfo) {
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = (CartaceoPresaInCaricoInfo)presaInCaricoInfo;
-        return attachmentService.checkAllegatiPresence(Collections.singletonList(cartaceoPresaInCaricoInfo.getPaperEngageRequest().getAttachmentUrl()),
+        var paperEngageRequestAttachments =  cartaceoPresaInCaricoInfo.getPaperEngageRequest().getAttachments();
+        String attachmentsUri = paperEngageRequestAttachments.get(0).getUri();
+        return attachmentService.checkAllegatiPresence(Collections.singletonList(attachmentsUri),
                         presaInCaricoInfo.getXPagopaExtchCxId(),
                         true)
                 .flatMap(fileDownloadResponse -> {
@@ -93,7 +93,7 @@ public class CartaceoService  extends PresaInCaricoService {
             var requestPersonalDto = new RequestPersonalDto();
             var digitalRequestPersonalDto = new PaperRequestPersonalDto();
             var attachments =  new AttachmentsEngageRequestDto();
-            attachments.setUri(peperNotificationRequest.getAttachmentUrl());
+//            attachments.setUri();
 //            attachments.setDocumentType(peperNotificationRequest.getPrintType());
 
 

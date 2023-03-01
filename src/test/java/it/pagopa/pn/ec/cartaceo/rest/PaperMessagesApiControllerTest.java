@@ -33,6 +33,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
@@ -75,13 +76,22 @@ class PaperMessagesApiControllerTest {
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final PaperEngageRequest paperEngageRequest = new PaperEngageRequest();
     private static final RequestDto requestDto = new RequestDto();
+
+    private static  PaperEngageRequestAttachments paperEngageRequestAttachments = new PaperEngageRequestAttachments();
     private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
     @BeforeAll
     public static void createDigitalCourtesyCartaceoRequest() {
 
 //      Mock an existing request. Set the requestIdx
         requestDto.setRequestIdx("requestIdx");
-        paperEngageRequest.setAttachmentUrl(defaultAttachmentUrl);
+        paperEngageRequestAttachments.setUri(defaultAttachmentUrl);
+        paperEngageRequestAttachments.setOrder(BigDecimal.valueOf(1));
+        paperEngageRequestAttachments.setDocumentType("TEST");
+        paperEngageRequestAttachments.setSha256("stringstringstringstringstringstringstri");
+        List<PaperEngageRequestAttachments> paperEngageRequestAttachmentsList = new ArrayList<>();
+        paperEngageRequestAttachmentsList.add(paperEngageRequestAttachments);
+        paperEngageRequest.setAttachments(paperEngageRequestAttachmentsList);
+//                .get(0).setUri(defaultAttachmentUrl);
         paperEngageRequest.setReceiverName("");
         paperEngageRequest.setReceiverNameRow2("");
         paperEngageRequest.setReceiverAddress("");
