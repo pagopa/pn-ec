@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
@@ -45,8 +44,6 @@ import org.springframework.context.annotation.PropertySource;
 //  <-- NOTIFICATION TRACKER -->
 // EVENTBRIDGE EVENT
 @PropertySource("classpath:notificationtracker/notificationtracker-eventbridge-eventbus.properties")
-
-@Slf4j
 public class EcApplication {
 
     public static void main(String[] args) {
