@@ -6,6 +6,7 @@ import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.service.RequestService;
 import it.pagopa.pn.ec.rest.v1.api.GestoreRequestApi;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
+import it.pagopa.pn.ec.rest.v1.dto.InlineObject;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -41,7 +42,7 @@ public class RequestController implements GestoreRequestApi {
     }
 
     @Override
-    public Mono<ResponseEntity<RequestDto>> updateRequest(String requestIdx, Mono<EventsDto> eventsPatchDto, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<RequestDto>> updateEvents(String requestIdx, Mono<EventsDto> eventsPatchDto, ServerWebExchange exchange) {
         return eventsPatchDto.map(eventsToUpdate -> restUtils.startUpdateRequest(eventsToUpdate, Events.class))
                              .flatMap(requestToUpdate -> requestService.updateEvents(requestIdx, requestToUpdate))
                              .map(updatedRequest -> restUtils.endCreateOrUpdateRequest(updatedRequest, RequestDto.class));
@@ -53,5 +54,16 @@ public class RequestController implements GestoreRequestApi {
         return requestService.deleteRequest(requestIdx)
                              .map(retrievedRequest -> restUtils.endDeleteRequest(retrievedRequest, RequestDto.class))
                              .thenReturn(new ResponseEntity<>(OK));
+    }
+
+    @Override
+    public Mono<ResponseEntity<RequestDto>> getRequestByMessageId(String messageId, ServerWebExchange exchange) {
+        return GestoreRequestApi.super.getRequestByMessageId(messageId, exchange);
+    }
+
+    @Override
+    public Mono<ResponseEntity<RequestDto>> updateMessageIdInRequestMetadata(String requestIdx, Mono<InlineObject> inlineObject,
+                                                                  ServerWebExchange exchange) {
+        return GestoreRequestApi.super.updateMessageIdInRequestMetadata(requestIdx, inlineObject, exchange);
     }
 }

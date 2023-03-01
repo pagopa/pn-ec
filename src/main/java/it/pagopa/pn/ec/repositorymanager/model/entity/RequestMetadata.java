@@ -19,6 +19,8 @@ public class RequestMetadata {
 
 	@Getter(onMethod=@__({@DynamoDbPartitionKey}))
 	String requestId;
+	// TODO: ANNOTATE WITH SECONDARY INDEX
+	String messageId;
 	String xPagopaExtchCxId;
 	String statusRequest;
 	OffsetDateTime clientRequestTimeStamp;

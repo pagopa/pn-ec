@@ -103,25 +103,13 @@ paths:
     patch:
       tags:
         - GestoreRequest
-      operationId: updateRequest
+      operationId: updateEvents
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/EventsDto'
         required: true
-      responses:
-        200:
-          $ref: '#/components/responses/requestResponseOk'
-        404:
-          $ref: '#/components/responses/missingRequestedItem'
-
-  /external-channel/gestoreRepository/requests/{messageId}:
-    get:
-      tags:
-        - GestoreRequest
-      operationId: getRequestByMessageId
-      description: Recupero di una richiesta tramite l'identificativo del messaggio
       responses:
         200:
           $ref: '#/components/responses/requestResponseOk'
@@ -144,6 +132,55 @@ paths:
           $ref: '#/components/responses/requestResponseOk'
         409:
           $ref: '#/components/responses/requestedItemAlreadyExist'
+
+  /external-channel/gestoreRepository/requests/messageId/{messageId}:
+    parameters:
+      - name: messageId
+        in: path
+        required: true
+        allowEmptyValue: false
+        schema:
+          type: string
+    get:
+      tags:
+        - GestoreRequest
+      operationId: getRequestByMessageId
+      description: Recupero di una richiesta tramite l'identificativo del messaggio
+      responses:
+        200:
+          $ref: '#/components/responses/requestResponseOk'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+
+  /external-channel/gestoreRepository/requests/messageId/{requestIdx}:
+    parameters:
+      - name: requestIdx
+        in: path
+        required: true
+        allowEmptyValue: false
+        schema:
+          type: string
+    patch:
+      tags:
+        - GestoreRequest
+      operationId: updateMessageIdInRequestMetadata
+      description: Set diretto per il messageId nei metadata di una richiesta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - messageId
+              properties:
+                messageId:
+                  type: string
+      responses:
+        200:
+          $ref: '#/components/responses/requestResponseOk'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
 
 components:
 
@@ -196,6 +233,9 @@ components:
         requestIdx:
           type: string
           pattern: '[0-9A-Za-z_-]{5,100}'
+        messageId:
+          type: string
+          readOnly: true
         xPagopaExtchCxId:
           type: string
         statusRequest:
