@@ -160,7 +160,7 @@ public class PecService extends PresaInCaricoService {
 
 //                       The PEC in sent, publish to Notification Tracker with next status -> SENT
                 .flatMap(sendMailResponse -> {
-                    //check with sms
+                    // TODO check with sms - come implementare il messageId della pec
                     generatedMessageDto.set(new GeneratedMessageDto().id(sendMailResponse.getErrstr()).system("").location(""));
                     return sqsService.send(notificationTrackerSqsName.statoPecName(),
                             new NotificationTrackerQueueDto(requestId,
