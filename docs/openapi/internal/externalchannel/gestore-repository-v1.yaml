@@ -116,6 +116,18 @@ paths:
         404:
           $ref: '#/components/responses/missingRequestedItem'
 
+  /external-channel/gestoreRepository/requests/{messageId}:
+    get:
+      tags:
+        - GestoreRequest
+      operationId: getRequestByMessageId
+      description: Recupero di una richiesta tramite l'identificativo del messaggio
+      responses:
+        200:
+          $ref: '#/components/responses/requestResponseOk'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+
   /external-channel/gestoreRepository/requests:
     post:
       tags:
