@@ -326,9 +326,10 @@ class RequestControllerTest {
 		insertRequestMetadata(idToDelete,
 				objectMapper.convertValue(requestDto.getRequestMetadata(), RequestMetadata.class));
 
-		webClient.delete().uri(
-				uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest()).build(idToDelete))
-				.accept(APPLICATION_JSON).exchange().expectStatus().isOk();
+		webClient.delete()
+				.uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest())
+						.build(idToDelete))
+				.accept(APPLICATION_JSON).exchange().expectStatus().isEqualTo(HttpStatus.NO_CONTENT);
 	}
 
 	// test.103.2

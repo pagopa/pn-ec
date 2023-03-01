@@ -14,6 +14,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 @RestController
 @Slf4j
@@ -71,6 +72,6 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
         log.info("Try to delete client with id -> {}", xPagopaExtchCxId);
         return clientConfigurationService.deleteClient(xPagopaExtchCxId)
                                          .map(retrievedClient -> restUtils.endDeleteRequest(retrievedClient, ClientConfigurationDto.class))
-                                         .thenReturn(new ResponseEntity<>(OK));
+                                         .thenReturn(new ResponseEntity<>(NO_CONTENT));
     }
 }
