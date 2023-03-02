@@ -34,6 +34,13 @@ public class RepositoryManagerException extends RuntimeException {
         }
     }
 
+    public static class RequestByMessageIdNotFoundException extends RuntimeException {
+
+        public RequestByMessageIdNotFoundException(String messageId) {
+            super(String.format("Request with message id '%s' not found", messageId));
+        }
+    }
+
     public static class RequestMalformedException extends RuntimeException {
 
         public RequestMalformedException(String message) {

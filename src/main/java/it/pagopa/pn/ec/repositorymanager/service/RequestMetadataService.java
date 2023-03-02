@@ -11,4 +11,5 @@ public interface RequestMetadataService {
     Mono<RequestMetadata> updateEventsMetadata(String requestId, Events events);
     Mono<RequestMetadata> deleteRequestMetadata(String requestId);
     Mono<RequestMetadata> getRequestMetadataByMessageId(String requestId);
+    Mono<RequestMetadata> updateMessageIdInRequestMetadata(String requestId, String messageId);
 }
