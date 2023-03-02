@@ -358,7 +358,7 @@
                         <configuration>
                             <wsdlOptions>
                                 <wsdlOption>
-                                    <wsdl>${project.basedir}/docs/wsdl/PecImapBridgeBWS1.5.wsdl</wsdl>
+                                    <wsdl>${project.basedir}/src/main/resources/pec/PecImapBridgeBWS1.5.wsdl</wsdl>
                                     <extraargs>
                                         <extraarg>-client</extraarg>
                                         <extraarg>-verbose</extraarg>
@@ -375,6 +375,25 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>jaxb2-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>xjc</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <sources>
+                        <source>src/main/resources/pec/daticert-xml-schema.xsd</source>
+                    </sources>
+                    <packageName>it.pec.daticert</packageName>
+                </configuration>
             </plugin>
 
         </plugins>

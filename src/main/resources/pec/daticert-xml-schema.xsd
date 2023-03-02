@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <xs:element name="postacert">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element type="IntestazionePostacert" name="intestazione"/>
+                <xs:element type="DatiPostacert" name="dati"/>
+            </xs:sequence>
+            <xs:attribute type="xs:string" name="tipo"/>
+            <xs:attribute type="xs:string" name="errore"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="DestinatariIntestazionePostacert">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute type="xs:string" name="tipo"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="IntestazionePostacert">
+        <xs:sequence>
+            <xs:element type="xs:string" name="mittente"/>
+            <xs:element type="DestinatariIntestazionePostacert" name="destinatari" maxOccurs="unbounded"/>
+            <xs:element type="xs:string" name="risposte"/>
+            <xs:element type="xs:string" name="oggetto"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="DaticertDate">
+        <xs:sequence>
+            <xs:element type="xs:string" name="giorno"/>
+            <xs:element type="xs:time" name="ora"/>
+        </xs:sequence>
+        <xs:attribute type="xs:string" name="zona"/>
+    </xs:complexType>
+
+    <xs:complexType name="DatiPostacertRicevuta">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute type="xs:string" name="tipo"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="DatiPostacert">
+        <xs:sequence>
+            <xs:element type="xs:string" name="gestore-emittente"/>
+            <xs:element type="DaticertDate" name="data"/>
+            <xs:element type="xs:string" name="identificativo"/>
+            <xs:element type="xs:string" name="msgid"/>
+            <xs:element type="DatiPostacertRicevuta" name="ricevuta"/>
+            <xs:element type="xs:string" name="consegna"/>
+        </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>
