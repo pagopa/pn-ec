@@ -1,15 +1,23 @@
 package it.pagopa.pn.ec.commons.rest.call.machinestate;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.statemachine.StateMachineEndpointProperties;
+import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic404ErrorException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
-import org.springframework.stereotype.Service;
+import it.pagopa.pn.ec.commons.rest.call.RestCallException;
+
+import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ResponseStatusException;
+
 import reactor.core.publisher.Mono;
 
-@Service
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+
+import org.springframework.http.HttpStatus;
+
+@Component
 public class CallMacchinaStatiImpl implements CallMacchinaStati {
 
 	private final WebClient stateMachineWebClient;
@@ -38,7 +46,8 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
 						.queryParam("clientId", clientId).build(processId, currStatus))
 				.retrieve()
 				.onStatus(NOT_FOUND::equals,
-						clientResponse -> Mono.error(new Generic404ErrorException("Not found", "Status not found")))
+						clientResponse -> Mono
+								.error(new StatusNotFoundException(currStatus)))
 				.bodyToMono(MacchinaStatiDecodeResponseDto.class);
 
 	}

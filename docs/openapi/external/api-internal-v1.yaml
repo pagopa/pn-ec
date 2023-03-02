@@ -463,9 +463,9 @@ components:
     CourtesyMessageProgressEvent:
       $ref: 'schemas-digital-v1.yaml#/components/schemas/CourtesyMessageProgressEvent'
     PaperEngageRequest:
-      $ref: 'schemas-paper-v1.yaml#/components/schemas/PaperEngageRequest'
+      $ref: 'schemas-paper-v1.1.yaml#/components/schemas/PaperEngageRequest'
     PaperProgressStatusEvent:
-      $ref: 'schemas-paper-v1.yaml#/components/schemas/PaperProgressStatusEvent'
+      $ref: 'schemas-paper-v1.1.yaml#/components/schemas/PaperProgressStatusEvent'
 
 
 
