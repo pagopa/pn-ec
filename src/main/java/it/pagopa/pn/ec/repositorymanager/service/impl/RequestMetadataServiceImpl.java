@@ -8,17 +8,16 @@ import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
-import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
+import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 
 @Service
 @Slf4j
@@ -184,13 +183,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     @Override
     public Mono<RequestMetadata> getRequestMetadataByMessageId(String messageId) {
-        return Flux.from(requestMetadataDynamoDbTable.index("messageId")
-                                                     .query(QueryConditional.keyEqualTo(builder -> builder.partitionValue(messageId))))
-                   .flatMap(page -> Flux.fromIterable(page.items()))
-                   .singleOrEmpty()
-                   .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestByMessageIdNotFoundException(messageId)))
-                   .doOnError(RepositoryManagerException.RequestByMessageIdNotFoundException.class,
-                              throwable -> log.info(throwable.getMessage()));
+        return getRequestMetadata(decodeMessageId(messageId).getRequestIdx());
     }
 
     @Override
