@@ -17,6 +17,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClientBuilder;
 import software.amazon.awssdk.services.eventbridge.EventBridgeAsyncClient;
 import software.amazon.awssdk.services.eventbridge.EventBridgeAsyncClientBuilder;
+import software.amazon.awssdk.services.ses.SesAsyncClient;
+import software.amazon.awssdk.services.ses.SesAsyncClientBuilder;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.SnsAsyncClientBuilder;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
@@ -47,6 +49,12 @@ public class AwsConfiguration {
      */
     @Value("${test.aws.sns.endpoint:#{null}}")
     String snsLocalStackEndpoint;
+
+    /**
+     * Set in LocalStackTestConfig
+     */
+    @Value("${test.aws.ses.endpoint:#{null}}")
+    String sesLocalStackEndpoint;
 
     @Value("${test.aws.event:#{null}}")
     String eventLocalStackEndpoint;
@@ -135,4 +143,18 @@ public class AwsConfiguration {
 
         return snsAsyncClientBuilder.build();
     }
+
+    @Bean
+    public SesAsyncClient sesClient() {
+        SesAsyncClientBuilder sesAsyncClientBuilder = SesAsyncClient.builder()
+                                                                    .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER)
+                                                                    .region(Region.of(awsConfigurationProperties.regionCode()));
+
+        if (sesLocalStackEndpoint != null) {
+            sesAsyncClientBuilder.endpointOverride(URI.create(sesLocalStackEndpoint));
+        }
+
+        return sesAsyncClientBuilder.build();
+    }
+
 }
