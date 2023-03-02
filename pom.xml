@@ -125,6 +125,12 @@
             <artifactId>eventbridge</artifactId>
         </dependency>
 
+        <!-- MAIL DEPENDENCIES-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
         <!-- Usato nella generazione del client consolidatore-2023-01-02.yml -->
         <dependency>
             <groupId>org.threeten</groupId>
@@ -182,12 +188,6 @@
             <version>4.0.0</version>
         </dependency>
         <!-- End SOAP dependencies -->
-
-        <!-- MAIL DEPENDENCIES-->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-mail</artifactId>
-		</dependency>
 
         <!-- TEST DEPENDENCIES-->
         <dependency>
