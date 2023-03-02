@@ -182,4 +182,58 @@ public class StatusPullServiceImpl implements StatusPullService {
 						.registeredLetterCode("")));
 
 	}
+
+	@Override
+	public Mono<LegalMessageSentDetails> pecPullService(String requestIdx, String xPagopaExtchCxId, String processId) {
+		return authService.clientAuth(xPagopaExtchCxId).then(gestoreRepositoryCall.getRichiesta(requestIdx))
+				.onErrorResume(RestCallException.ResourceNotFoundException.class,
+						e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
+				.handle((requestDto, synchronousSink) -> {
+					String requestClientID = requestDto.getxPagopaExtchCxId();
+					if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId)) {
+						synchronousSink.error(new ClientNotAuthorizedException(xPagopaExtchCxId));
+					} else {
+						synchronousSink.next(requestDto);
+					}
+				}).flatMap(object -> {
+					var requestDTO = (RequestDto) object;
+					var eventsList = requestDTO.getRequestMetadata().getEventsList();
+					if (eventsList != null && !eventsList.isEmpty()) {
+						var eventDTO = eventsList.stream()
+								.sorted((e1, e2) -> e1.getDigProgrStatus().getEventTimestamp()
+										.compareTo(e2.getDigProgrStatus().getEventTimestamp()))
+								.skip(eventsList.size() - 1).findFirst().get();
+						return Mono.just(eventDTO);
+					} else {
+						return Mono.empty();
+					}
+				}).flatMap(eventDTO -> {
+					var event = new LegalMessageSentDetails();
+					var digProgrStatus = eventDTO.getDigProgrStatus();
+
+					event.setRequestId(requestIdx);
+					event.setEventDetails(digProgrStatus.getEventDetails());
+					event.setEventTimestamp(digProgrStatus.getEventTimestamp());
+
+					var generatedMessageDTO = digProgrStatus.getGeneratedMessage();
+					if (generatedMessageDTO != null) {
+						var digitalMessageReference = new DigitalMessageReference();
+
+						digitalMessageReference.setId(generatedMessageDTO.getId());
+						digitalMessageReference.setLocation(generatedMessageDTO.getLocation());
+						digitalMessageReference.setSystem(generatedMessageDTO.getSystem());
+
+						event.setGeneratedMessage(digitalMessageReference);
+					}
+					return callMacchinaStati
+							.statusDecode(processId, digProgrStatus.getStatus().toLowerCase(), xPagopaExtchCxId)
+							.map(macchinaStatiDecodeResponseDto -> {
+
+								event.setStatus(ProgressEventCategory
+										.valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
+								event.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+								return event;
+							});
+				}).switchIfEmpty(Mono.just(new LegalMessageSentDetails().eventCode("").eventDetails("").requestId("")));
+	}
 }
