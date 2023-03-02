@@ -117,8 +117,19 @@
 
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
+            <artifactId>ses</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
             <artifactId>eventbridge</artifactId>
         </dependency>
+
+        <!-- MAIL DEPENDENCIES-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
 
         <!-- Usato nella generazione del client consolidatore-2023-01-02.yml -->
         <dependency>
