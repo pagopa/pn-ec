@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.pec.configuration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
@@ -10,10 +11,20 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 @Configuration
 public class ArubaCredentialConf {
 
+    @Value("${aruba.pec.username:#{null}}")
+    String arubaPecUsername;
+
+    @Value("${aruba.pec.password:#{null}}")
+    String arubaPecPassword;
+
     @Bean
     public ArubaSecretValue arubaCredentialProvider(SecretsManagerClient secretsManagerClient, ObjectMapper objectMapper)
             throws JsonProcessingException {
-        String secretStringJson = secretsManagerClient.getSecretValue(builder -> builder.secretId("deploykey/pn-ec")).secretString();
-        return objectMapper.readValue(secretStringJson, ArubaSecretValue.class);
+        if (arubaPecUsername != null && arubaPecPassword != null) {
+            return new ArubaSecretValue(arubaPecUsername, arubaPecPassword);
+        } else {
+            String secretStringJson = secretsManagerClient.getSecretValue(builder -> builder.secretId("deploykey/pn-ec")).secretString();
+            return objectMapper.readValue(secretStringJson, ArubaSecretValue.class);
+        }
     }
 }
