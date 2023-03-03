@@ -11,10 +11,10 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 @Configuration
 public class ArubaCredentialConf {
 
-    @Value("${aruba.pec.username:#{null}}")
+    @Value("${ArubaPecUsername:#{null}}")
     String arubaPecUsername;
 
-    @Value("${aruba.pec.password:#{null}}")
+    @Value("${ArubaPecPassword:#{null}}")
     String arubaPecPassword;
 
     @Bean
