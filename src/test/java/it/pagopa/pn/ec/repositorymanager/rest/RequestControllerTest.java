@@ -376,7 +376,7 @@ class RequestControllerTest {
     @ValueSource(strings = {DEFAULT_ID_DIGITAL, DEFAULT_ID_PAPER})
     void updateMessageIdInRequestMetadataOk(String idRequest) {
         webClient.post()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.updateMessageIdInRequestMetadata())
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
                                               .build(idRequest))
                  .exchange()
                  .expectStatus()
@@ -386,7 +386,7 @@ class RequestControllerTest {
     @Test
     void updateMessageIdInRequestMetadataNotFound() {
         webClient.post()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.updateMessageIdInRequestMetadata())
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
                                               .build("idRequestCheNonEsiste"))
                  .exchange()
                  .expectStatus()

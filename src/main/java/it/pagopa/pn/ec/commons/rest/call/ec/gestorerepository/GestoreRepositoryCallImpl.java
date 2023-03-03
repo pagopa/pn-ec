@@ -89,4 +89,14 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     public Mono<Void> deleteRichiesta(String requestIdx) {
         return null;
     }
+
+    @Override
+    public Mono<RequestDto> getRequestByMessageId(String messageId) {
+        return null;
+    }
+
+    @Override
+    public Mono<RequestDto> setMessageIdInRequestMetadata(String requestIdx) {
+        return null;
+    }
 }
