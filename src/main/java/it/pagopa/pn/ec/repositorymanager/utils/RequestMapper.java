@@ -20,6 +20,7 @@ public class RequestMapper {
         return Request.builder()
                       .requestId(requestPersonal.getRequestId())
                       .xPagopaExtchCxId(clientId)
+                      .messageId(requestMetadata.getMessageId())
                       .statusRequest(currentStatus)
                       .clientRequestTimeStamp(clientRequestTimeStamp)
                       .requestTimeStamp(requestTimeStamp)

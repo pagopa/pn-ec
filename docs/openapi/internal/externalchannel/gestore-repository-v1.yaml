@@ -151,6 +151,12 @@ paths:
           $ref: '#/components/responses/requestResponseOk'
         404:
           $ref: '#/components/responses/missingRequestedItem'
+        400:
+          description: Decoding messageId error
+          content:
+            application/json:
+              schema:
+                $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
 
   /external-channel/gestoreRepository/requests/messageId/{requestIdx}:
     parameters:
@@ -160,29 +166,21 @@ paths:
         allowEmptyValue: false
         schema:
           type: string
-    patch:
+    post:
       tags:
         - GestoreRequest
-      operationId: updateMessageIdInRequestMetadata
-      description: Set diretto per il messageId nei metadata di una richiesta
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - messageId
-              properties:
-                messageId:
-                  type: string
+      operationId: setMessageIdInRequestMetadata
+      description: Chiamata per generare il messageId nei metadata di una richiesta.
+        Tramite il path param requestIdx (idRequest) verrà recuperato il xPagopaExtchCxId (idClient)
+        e creata una stringa 'base64RequestId~base64ClientId@pagopa.it'.
+        Questo valore sarà tornato come response body della chiamata insieme alla richiesta.
       responses:
         200:
           $ref: '#/components/responses/requestResponseOk'
         404:
           $ref: '#/components/responses/missingRequestedItem'
-        409:
-          description: MessageId già presente a sistema
+        500:
+          description: Encoding messageId error
           content:
             application/json:
               schema:
