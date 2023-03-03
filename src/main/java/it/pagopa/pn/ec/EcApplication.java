@@ -35,6 +35,8 @@ import org.springframework.context.annotation.PropertySource;
 //  <-- PEC -->
 // SQS QUEUE
 @PropertySource("classpath:pec/pec-sqs-queue.properties")
+// ARUBA
+@PropertySource("classpath:pec/aruba.properties")
 
 
 //  <-- CARTACEO -->
