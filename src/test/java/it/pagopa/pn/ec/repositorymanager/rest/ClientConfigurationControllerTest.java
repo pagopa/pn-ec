@@ -155,5 +155,4 @@ class ClientConfigurationControllerTest {
                  .expectStatus()
                  .isNotFound();
     }
-
 }
