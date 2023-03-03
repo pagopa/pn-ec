@@ -9,5 +9,6 @@ public record GestoreRepositoryEndpointProperties(
         String getClientConfiguration, String postClientConfiguration, String putClientConfiguration, String deleteClientConfiguration,
 
 //      <-- REQUEST -->
-        String getRequest, String postRequest, String patchRequest, String deleteRequest) {}
+        String getRequest, String postRequest, String patchRequest, String deleteRequest, String getRequestByMessageId,
+        String setMessageIdInRequestMetadata) {}
 

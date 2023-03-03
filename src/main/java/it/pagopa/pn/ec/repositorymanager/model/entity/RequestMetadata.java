@@ -6,8 +6,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -18,13 +17,14 @@ import java.util.List;
 @DynamoDbBean
 public class RequestMetadata extends DocumentVersion {
 
-	@Getter(onMethod=@__({@DynamoDbPartitionKey}))
-	String requestId;
-	String xPagopaExtchCxId;
-	String statusRequest;
-	OffsetDateTime clientRequestTimeStamp;
-	OffsetDateTime requestTimestamp;
-	DigitalRequestMetadata digitalRequestMetadata;
-	PaperRequestMetadata paperRequestMetadata;
-	List<Events> eventsList;
+    @Getter(onMethod = @__({@DynamoDbPartitionKey}))
+    String requestId;
+    String messageId;
+    String xPagopaExtchCxId;
+    String statusRequest;
+    OffsetDateTime clientRequestTimeStamp;
+    OffsetDateTime requestTimestamp;
+    DigitalRequestMetadata digitalRequestMetadata;
+    PaperRequestMetadata paperRequestMetadata;
+    List<Events> eventsList;
 }
