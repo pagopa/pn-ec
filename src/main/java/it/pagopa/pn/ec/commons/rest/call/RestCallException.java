@@ -11,10 +11,6 @@ public class RestCallException extends RuntimeException{
         public ResourceNotFoundException() {
             super("Resource not found");
         }
-
-        public ResourceNotFoundException(String message) {
-            super(message);
-        }
     }
 
     public static class ResourceAlreadyExistsException extends RestCallException{
@@ -22,9 +18,19 @@ public class RestCallException extends RuntimeException{
         public ResourceAlreadyExistsException() {
             super("Resource already exists");
         }
+    }
 
-        public ResourceAlreadyExistsException(String message) {
-            super(message);
+    public static class BadMessageIdProvidedException extends RestCallException{
+
+        public BadMessageIdProvidedException() {
+            super("Bad messageId provided");
+        }
+    }
+
+    public static class ISEForMessageIdCreationException extends RestCallException{
+
+        public ISEForMessageIdCreationException() {
+            super("Internal server error for messageId creation provided");
         }
     }
 }
