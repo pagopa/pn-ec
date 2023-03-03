@@ -46,7 +46,7 @@ public class ScaricamentoEsitiPecScheduler {
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
-    @Scheduled(fixedDelay = 10000)
+    @Scheduled(fixedDelay = 600000)
     void scaricamentoEsitiPec() {
 
 //      Chiamata al servizio imap bridge getMessages per il recupero di tutti i messaggi non letti.
