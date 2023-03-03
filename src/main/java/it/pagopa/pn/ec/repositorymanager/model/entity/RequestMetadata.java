@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.model.entity;
 
+import it.pagopa.pn.ec.commons.model.entity.DocumentVersion;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
@@ -15,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 @DynamoDbBean
-public class RequestMetadata {
+public class RequestMetadata extends DocumentVersion {
 
 	@Getter(onMethod=@__({@DynamoDbPartitionKey}))
 	String requestId;
