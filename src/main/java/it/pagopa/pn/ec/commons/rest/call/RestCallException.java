@@ -30,7 +30,7 @@ public class RestCallException extends RuntimeException{
     public static class ISEForMessageIdCreationException extends RestCallException{
 
         public ISEForMessageIdCreationException() {
-            super("Internal server error for messageId creation provided");
+            super("Internal server error for messageId creation");
         }
     }
 }
