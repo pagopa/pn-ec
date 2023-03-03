@@ -261,7 +261,6 @@ Resources:
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
 
-
 ###### EXTERNAL PLATFORM NOTIFICATIONS #######
 
   PnEcQueueNotificheExt1:
@@ -285,30 +284,6 @@ Resources:
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
    
-  PnEcSNSNotificheExt1:
-    Type: AWS::SNS::Topic
-    Properties:
-      #DataProtectionPolicy: JSON
-      KmsMasterKeyId: alias/aws/sns
-      Subscription:
-        - Endpoint: !GetAtt PnEcQueueNotificheExt1.Arn
-          Protocol: sqs
-  
-  PnEcSNSPolicyNotificheExt1:
-    Type: AWS::SNS::TopicPolicy
-    Properties:
-      PolicyDocument:
-        Statement: 
-          - Action: 
-              - 'sns:Publish'
-            Effect: 'Allow'
-            Principal:  
-              Service: 
-                - 'events.amazonaws.com'
-            Resource: '*'
-      Topics: 
-        - !Ref PnEcSNSNotificheExt1
-
   PnEcEventRuleNotificheExt1:
     Type: AWS::Events::Rule
     Properties:
@@ -318,8 +293,20 @@ Resources:
           - 'NOTIFICATION TRACKER'
       State: 'ENABLED'
       Targets:
-        - Arn: !Ref PnEcSNSNotificheExt1
-          Id: 'TopicTargetForExtNotification'
+        - Arn: !GetAtt PnEcQueueNotificheExt1.Arn
+          Id: 'PnEcExt1QueueTargetForExtNotification'
+
+  PnEcEventBusTrackerExternalNotification: 
+    Type: AWS::Events::EventBus
+    Properties: 
+        Name: 'Pn-Ec-Tracker-Notifications-Bus'
+
+  # PnEcEventBusArchiveTrackerExternalNotification:
+  #   Type: AWS::Events::Archive
+  #   Properties: 
+  #     Description: 'Archive for storage of events to be delivered from Notification Tracker towards external platform'
+  #     RetentionDays: 15
+  #     SourceArn: !Ref PnEcEventBusTrackerExternalNotification
 
 ###### CHANNEL SMS #######
 
@@ -386,17 +373,6 @@ Resources:
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
 
-  PnEcEventBusTrackerExternalNotification: 
-    Type: AWS::Events::EventBus
-    Properties: 
-        Name: 'Pn-Ec-Tracker-Notifications-Bus'
-
-  # PnEcEventBusArchiveTrackerExternalNotification:
-  #   Type: AWS::Events::Archive
-  #   Properties: 
-  #     Description: 'Archive for storage of events to be delivered from Notification Tracker towards external platform'
-  #     RetentionDays: 15
-  #     SourceArn: !Ref PnEcEventBusTrackerExternalNotification
 
 ###### CHANNEL PEC #######
   PnEcQueueBatchPEC:
@@ -784,14 +760,6 @@ Outputs:
   PnEcDLQueueArnNotificheExt1:
     Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueNotificheExt1'
     Value: !GetAtt  PnEcDLQueueNotificheExt1.Arn
-
-  PnEcSNSNameNotificheExt1:
-    Description: '[Notification Tracker: Piattaforme esterne] Nome dello SNS Topic per smistare le notifiche alle Piattaforme esterne'
-    Value: !GetAtt PnEcSNSNotificheExt1.TopicName
-
-  PnEcSNSArnNotificheExt1:
-    Description: '[Notification Tracker: Piattaforme esterne] ARN dello SNS Topic per smistare le notifiche alle Piattaforme esterne'
-    Value: !Ref PnEcSNSNotificheExt1
 
   PnEcQueueNameBatchSMS:
     Description: '[Canale SMS] Nome della Coda per la modalità SMS-Batch'
