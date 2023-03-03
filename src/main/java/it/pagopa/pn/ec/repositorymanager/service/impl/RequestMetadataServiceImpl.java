@@ -16,6 +16,7 @@ import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import java.util.ArrayList;
 import java.util.List;
 
+import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.DYNAMO_OPTIMISTIC_LOCKING_RETRY;
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
@@ -171,10 +172,10 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
                                                                              );
 
-                                             })
-                                             .flatMap(requestMetadataWithEventsUpdated -> Mono.fromCompletionStage(
-                                                     requestMetadataDynamoDbTable.updateItem(requestMetadataWithEventsUpdated)));
-    }
+				}).flatMap(requestMetadataWithEventsUpdated -> Mono.fromCompletionStage(
+						requestMetadataDynamoDbTable.updateItem(requestMetadataWithEventsUpdated)))
+				  .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
+	}
 
     @Override
     public Mono<RequestMetadata> deleteRequestMetadata(String requestId) {
