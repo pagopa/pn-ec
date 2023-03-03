@@ -69,7 +69,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                  Mono<DigitalCourtesyMailRequest> digitalCourtesyMailRequest,
                                                                  final ServerWebExchange exchange) {
 
-        return digitalCourtesyMailRequest.doOnNext(request -> log.info("<-- Start presa in email -->"))
+        return digitalCourtesyMailRequest.doOnNext(request -> log.info("<-- START PRESA IN CARICO EMAIL -->"))
                                          .flatMap(request -> emailService.presaInCarico(new EmailPresaInCaricoInfo(requestIdx,
                                                                                                                    xPagopaExtchCxId,
                                                                                                                    request)))
