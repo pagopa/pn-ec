@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.stream.Stream;
 
+import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestPersonalDto.QosEnum.INTERACTIVE;
@@ -57,7 +58,6 @@ class RequestControllerTest {
 
     private static final String DEFAULT_ID_DIGITAL = "DIGITAL";
     private static final String DEFAULT_ID_PAPER = "PAPER";
-    private static final String DEFAULT_MESSAGE_ID = "base64RequestId~base64ClientId@pagopa.it";
     private static final String X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE = "CLIENT1";
     private static final RequestDto digitalRequest = new RequestDto();
     private static final RequestDto paperRequest = new RequestDto();
@@ -72,7 +72,6 @@ class RequestControllerTest {
         digitalRequest.setxPagopaExtchCxId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE);
         digitalRequest.setClientRequestTimeStamp(OffsetDateTime.now());
         digitalRequest.setRequestTimeStamp(OffsetDateTime.now());
-        digitalRequest.setMessageId(DEFAULT_MESSAGE_ID);
 
         var digitalRequestMetadataDto = new DigitalRequestMetadataDto();
         digitalRequestMetadataDto.setCorrelationId(DEFAULT_ID_DIGITAL);
@@ -103,7 +102,6 @@ class RequestControllerTest {
         paperRequest.setxPagopaExtchCxId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE);
         paperRequest.setClientRequestTimeStamp(OffsetDateTime.now());
         paperRequest.setRequestTimeStamp(OffsetDateTime.now());
-        paperRequest.setMessageId(DEFAULT_MESSAGE_ID);
 
         var paperRequestMetadataDto = new PaperRequestMetadataDto();
         paperRequestMetadataDto.setIun("iun");
@@ -158,7 +156,7 @@ class RequestControllerTest {
     private static void insertRequestMetadata(String idRequest, RequestMetadata requestMetadata) {
         requestMetadata.setRequestId(idRequest);
         requestMetadata.setXPagopaExtchCxId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE);
-        requestMetadata.setMessageId(DEFAULT_MESSAGE_ID);
+        requestMetadata.setMessageId(encodeMessageId(idRequest, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE));
         dynamoDbTableMetadata.putItem(builder -> builder.item(requestMetadata));
     }
 
@@ -344,10 +342,12 @@ class RequestControllerTest {
                  .isNotFound();
     }
 
-    @Test
-    void getRequestByMessageIdOk() {
+    @ParameterizedTest
+    @ValueSource(strings = {DEFAULT_ID_DIGITAL, DEFAULT_ID_PAPER})
+    void getRequestByMessageIdOk(String idRequest) {
         webClient.get()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId()).build(DEFAULT_MESSAGE_ID))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId())
+                                              .build(encodeMessageId(idRequest, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)))
                  .exchange()
                  .expectStatus()
                  .isOk();
@@ -357,7 +357,7 @@ class RequestControllerTest {
     void getRequestByMessageNotFound() {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId())
-                                              .build(DEFAULT_MESSAGE_ID))
+                                              .build(encodeMessageId("idRequestCheNonEsiste", "idClientCheNonEsiste")))
                  .exchange()
                  .expectStatus()
                  .isNotFound();
@@ -366,8 +366,7 @@ class RequestControllerTest {
     @Test
     void getRequestByMessageBadMessageId() {
         webClient.get()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId())
-                                              .build("badMessageId"))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId()).build("badMessageId"))
                  .exchange()
                  .expectStatus()
                  .isBadRequest();
@@ -375,10 +374,10 @@ class RequestControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {DEFAULT_ID_DIGITAL, DEFAULT_ID_PAPER})
-    void updateMessageIdInRequestMetadataOk(String id) {
-        webClient.patch()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.updateMessageIdInRequestMetadata()).build(id))
-                 .body(BodyInserters.fromValue(new InlineObject().messageId(DEFAULT_MESSAGE_ID)))
+    void updateMessageIdInRequestMetadataOk(String idRequest) {
+        webClient.post()
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.updateMessageIdInRequestMetadata())
+                                              .build(idRequest))
                  .exchange()
                  .expectStatus()
                  .isOk();
@@ -386,13 +385,11 @@ class RequestControllerTest {
 
     @Test
     void updateMessageIdInRequestMetadataNotFound() {
-        webClient.patch()
+        webClient.post()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.updateMessageIdInRequestMetadata())
                                               .build("idRequestCheNonEsiste"))
-                 .body(BodyInserters.fromValue(new InlineObject().messageId(DEFAULT_MESSAGE_ID)))
                  .exchange()
                  .expectStatus()
                  .isNotFound();
     }
 }
-

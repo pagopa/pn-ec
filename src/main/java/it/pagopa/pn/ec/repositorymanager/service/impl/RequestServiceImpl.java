@@ -102,8 +102,8 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
-    public Mono<Request> updateMessageIdInRequestMetadata(String requestIdx, String messageId) {
-        return requestMetadataService.updateMessageIdInRequestMetadata(requestIdx, messageId)
+    public Mono<Request> setMessageIdInRequestMetadata(String requestIdx) {
+        return requestMetadataService.setMessageIdInRequestMetadata(requestIdx)
                                      .zipWhen(requestMetadata -> requestPersonalService.getRequestPersonal(requestMetadata.getRequestId()))
                                      .map(objects -> {
                                          RequestMetadata retrievedRequestMetadata = objects.getT1();

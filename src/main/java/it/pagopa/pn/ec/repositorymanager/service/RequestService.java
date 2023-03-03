@@ -11,5 +11,5 @@ public interface RequestService {
     Mono<Request> updateEvents(String requestIdx, Events events);
     Mono<Request> deleteRequest(String requestIdx);
     Mono<Request> getRequestByMessageId(String messageId);
-    Mono<Request> updateMessageIdInRequestMetadata(String requestIdx, String messageId);
+    Mono<Request> setMessageIdInRequestMetadata(String requestIdx);
 }

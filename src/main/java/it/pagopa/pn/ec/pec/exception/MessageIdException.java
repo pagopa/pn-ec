@@ -6,10 +6,17 @@ public class MessageIdException extends RuntimeException{
         super(message);
     }
 
+    public static class EncodeMessageIdException extends MessageIdException{
+
+        public EncodeMessageIdException() {
+            super("Error while messageId encoding");
+        }
+    }
+
     public static class DecodeMessageIdException extends MessageIdException{
 
         public DecodeMessageIdException() {
-            super("Decoding messageId error");
+            super("Error while messageId decoding");
         }
     }
 }

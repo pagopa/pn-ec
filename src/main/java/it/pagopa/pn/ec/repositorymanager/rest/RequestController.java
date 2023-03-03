@@ -6,7 +6,6 @@ import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.service.RequestService;
 import it.pagopa.pn.ec.rest.v1.api.GestoreRequestApi;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
-import it.pagopa.pn.ec.rest.v1.dto.InlineObject;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -64,13 +63,9 @@ public class RequestController implements GestoreRequestApi {
     }
 
     @Override
-    public Mono<ResponseEntity<RequestDto>> updateMessageIdInRequestMetadata(String requestIdx, Mono<InlineObject> inlineObject,
-                                                                             ServerWebExchange exchange) {
-        return inlineObject.map(messageId -> {
-                               log.info("Try to set messageId '{}' in request with id '{}'", messageId, requestIdx);
-                               return messageId.getMessageId();
-                           })
-                           .flatMap(messageId -> requestService.updateMessageIdInRequestMetadata(requestIdx, messageId))
-                           .map(updatedRequest -> restUtils.endCreateOrUpdateRequest(updatedRequest, RequestDto.class));
+    public Mono<ResponseEntity<RequestDto>> setMessageIdInRequestMetadata(String requestIdx, ServerWebExchange exchange) {
+        log.info("Try to set messageId in request with id '{}'", requestIdx);
+        return requestService.setMessageIdInRequestMetadata(requestIdx)
+                             .map(retrievedClient -> restUtils.endReadRequest(retrievedClient, RequestDto.class));
     }
 }

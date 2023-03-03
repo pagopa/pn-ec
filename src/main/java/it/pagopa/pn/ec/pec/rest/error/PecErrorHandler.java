@@ -9,9 +9,20 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
 @ControllerAdvice
 public class PecErrorHandler {
+
+    @ExceptionHandler(MessageIdException.EncodeMessageIdException.class)
+    public final ResponseEntity<Problem> handleEncodeMessageIdException(MessageIdException.EncodeMessageIdException encodeMessageIdException) {
+        var problem = new Problem();
+        problem.setStatus(INTERNAL_SERVER_ERROR.value());
+        problem.setTitle("An error occurred during messageId encoding");
+        problem.setDetail(encodeMessageIdException.getMessage());
+        problem.setTraceId(UUID.randomUUID().toString());
+        return new ResponseEntity<>(problem, INTERNAL_SERVER_ERROR);
+    }
 
     @ExceptionHandler(MessageIdException.DecodeMessageIdException.class)
     public final ResponseEntity<Problem> handleDecodeMessageIdException(MessageIdException.DecodeMessageIdException decodeMessageIdException) {

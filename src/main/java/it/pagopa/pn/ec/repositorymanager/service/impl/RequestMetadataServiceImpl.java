@@ -18,6 +18,7 @@ import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
+import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 
 @Service
 @Slf4j
@@ -187,9 +188,9 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     }
 
     @Override
-    public Mono<RequestMetadata> updateMessageIdInRequestMetadata(String requestId, String messageId) {
+    public Mono<RequestMetadata> setMessageIdInRequestMetadata(String requestId) {
         return getRequestMetadata(requestId).flatMap(retrievedRequestMetadata -> {
-            retrievedRequestMetadata.setMessageId(messageId);
+            retrievedRequestMetadata.setMessageId(encodeMessageId(requestId, retrievedRequestMetadata.getXPagopaExtchCxId()));
             return Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(retrievedRequestMetadata));
         });
     }
