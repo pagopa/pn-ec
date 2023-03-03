@@ -24,6 +24,7 @@ public class RepositoryManagerErrorHandler {
     }
 
     @ExceptionHandler({RepositoryManagerException.IdClientNotFoundException.class,
+            RepositoryManagerException.RequestByMessageIdNotFoundException.class,
             RepositoryManagerException.RequestNotFoundException.class})
     public final ResponseEntity<Problem> handleNotFoundIdClient(Exception exception) {
         var problem = new Problem();

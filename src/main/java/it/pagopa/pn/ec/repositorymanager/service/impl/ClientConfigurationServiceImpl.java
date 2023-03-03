@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
-import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
+import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
 import it.pagopa.pn.ec.repositorymanager.service.ClientConfigurationService;
 import lombok.extern.slf4j.Slf4j;
@@ -56,13 +56,8 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(cxId)))
                    .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
                    .flatMap(retrievedClientConfiguration -> {
-                       retrievedClientConfiguration.setCxId(cxId);
-                       retrievedClientConfiguration.setSqsArn(clientConfiguration.getSqsArn());
-                       retrievedClientConfiguration.setSqsName(clientConfiguration.getSqsArn());
-                       retrievedClientConfiguration.setMailReplyTo(clientConfiguration.getMailReplyTo());
-                       retrievedClientConfiguration.setPecReplyTo(clientConfiguration.getPecReplyTo());
-                       retrievedClientConfiguration.setSenderPhysicalAddress(clientConfiguration.getSenderPhysicalAddress());
-                       return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.updateItem(retrievedClientConfiguration));
+                       clientConfiguration.setCxId(cxId);
+                       return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.updateItem(clientConfiguration));
                    });
     }
 

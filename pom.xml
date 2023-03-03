@@ -125,6 +125,11 @@
             <artifactId>eventbridge</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>secretsmanager</artifactId>
+        </dependency>
+
         <!-- MAIL DEPENDENCIES-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
