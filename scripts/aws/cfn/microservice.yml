@@ -571,15 +571,6 @@ Resources:
             Resource:
               - !Sub '${PnEcEventBusArnTrackerExternalNotification}'
           - Effect: Allow
-            Sid: 'PublishOnExternalTopic'
-            Action:
-              - 'sns:Get*'
-              - 'sns:List*'
-              - 'sns:Publish'
-              - 'sns:Set*'
-            Resource:
-              - !Sub '${PnEcSNSArnNotificheExt1}'
-          - Effect: Allow
             Sid: 'SMS'
             Action:
               - 'sns:Get*'
