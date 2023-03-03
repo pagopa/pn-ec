@@ -21,7 +21,7 @@ class ApiControllerTest {
 
 	@Test
 	void getStatusTest() {
-		webClient.get().uri(extChannelEndpoint.containerBaseUrl() + "/").accept(APPLICATION_JSON).exchange()
+		webClient.get().uri("http://localhost:8080/").accept(APPLICATION_JSON).exchange()
 				.expectStatus().isOk();
 	}
 }
