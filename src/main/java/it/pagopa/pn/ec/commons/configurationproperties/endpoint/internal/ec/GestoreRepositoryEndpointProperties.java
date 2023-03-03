@@ -10,5 +10,5 @@ public record GestoreRepositoryEndpointProperties(
 
 //      <-- REQUEST -->
         String getRequest, String postRequest, String patchRequest, String deleteRequest, String getRequestByMessageId,
-        String updateMessageIdInRequestMetadata) {}
+        String setMessageIdInRequestMetadata) {}
 
