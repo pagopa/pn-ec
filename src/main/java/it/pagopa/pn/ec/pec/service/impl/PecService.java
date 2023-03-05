@@ -26,6 +26,15 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Base64;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall.DEFAULT_RETRY_STRATEGY;
@@ -47,6 +56,8 @@ public class PecService extends PresaInCaricoService {
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final PecSqsQueueName pecSqsQueueName;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+
+    private static final String SEPARATORE = "~";
 
 
     protected PecService(AuthService authService, ArubaCall arubaCall, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
@@ -139,7 +150,7 @@ public class PecService extends PresaInCaricoService {
     }
 
     @SqsListener(value = "${sqs.queue.pec.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+    public void lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo, final Acknowledgment acknowledgment) throws MessagingException {
 
         log.info("<-- START LAVORAZIONE RICHIESTA PEC -->");
         logIncomingMessage(pecSqsQueueName.interactiveName(), pecPresaInCaricoInfo);
@@ -148,20 +159,27 @@ public class PecService extends PresaInCaricoService {
         var clientId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
 
+        var endcodeReqId = generateMessageId(pecPresaInCaricoInfo.getRequestIdx());
+        String pagoPa = "@pagopa.it";
+        String endcodeClientId = generateMessageId(pecPresaInCaricoInfo.getXPagopaExtchCxId());
+        var messageId = endcodeReqId+SEPARATORE+endcodeClientId + pagoPa;
+
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
+
+        String data = createMimeMassage(digitalNotificationRequest);
 
 //      Try to send PEC
         var sendMail = new SendMail();
         // TODO finire di valorizzare
         sendMail.setUser(digitalNotificationRequest.getSenderDigitalAddress());
-        sendMail.setData(digitalNotificationRequest.getMessageText());
+        sendMail.setData(data);
 
         arubaCall.sendMail(sendMail)
 
 //                       The PEC in sent, publish to Notification Tracker with next status -> SENT
                 .flatMap(sendMailResponse -> {
                     // TODO check with sms - come implementare il messageId della pec
-                    generatedMessageDto.set(new GeneratedMessageDto().id(sendMailResponse.getErrstr()).system("").location(""));
+                    generatedMessageDto.set(new GeneratedMessageDto().id(messageId).system("systemPlaceholder"));
                     return sqsService.send(notificationTrackerSqsName.statoPecName(),
                             new NotificationTrackerQueueDto(requestId,
                                     clientId,
@@ -254,5 +272,34 @@ public class PecService extends PresaInCaricoService {
                 // Delete from queue
                 .doOnSuccess(result -> acknowledgment.acknowledge());
     }
+
+
+    private String generateMessageId(String bydeId) {
+        Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
+        return encoder.encodeToString(bydeId.getBytes());
+    }
+
+    private String createMimeMassage(DigitalNotificationRequest digitalNotificationRequest) throws MessagingException {
+
+        MimeMessage mimeMessage = new MimeMessage(Session.getInstance(new Properties()));
+        mimeMessage.setFrom(digitalNotificationRequest.getReceiverDigitalAddress());
+        mimeMessage.setSender(new InternetAddress(digitalNotificationRequest.getSenderDigitalAddress()));
+        mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(digitalNotificationRequest.getReceiverDigitalAddress()));
+        mimeMessage.setContent("Content-Type", String.valueOf(digitalNotificationRequest.getMessageContentType()));
+        mimeMessage.setSubject(digitalNotificationRequest.getSubjectText());
+        mimeMessage.getSentDate();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            mimeMessage.writeTo(output);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        String rawEmail = output.toString();
+        System.out.println(rawEmail);
+        return rawEmail;
+    }
+
+
 
 }
