@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.testutils.localstack;
 
+import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
@@ -29,6 +30,7 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
 
 import javax.annotation.PostConstruct;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,20 +47,37 @@ public class LocalStackTestConfig {
 
     static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4");
     static LocalStackContainer localStackContainer =
-            new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS).withStartupTimeout(Duration.ofMinutes(2));
+            new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS, SECRETSMANAGER)
+                                                    .withStartupTimeout(Duration.ofMinutes(2));
 
     static {
         localStackContainer.start();
 
 //      <-- Override spring-cloud-starter-aws-messaging endpoints for testing -->
         System.setProperty("cloud.aws.sqs.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
-
 //      <-- Override AWS services endpoint variables for testing -->
         System.setProperty("test.aws.sqs.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
+        System.setProperty("test.aws.event", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
+
         System.setProperty("test.aws.dynamodb.endpoint", String.valueOf(localStackContainer.getEndpointOverride(DYNAMODB)));
+
         System.setProperty("test.aws.sns.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SNS)));
 
-        System.setProperty("test.aws.event", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
+        System.setProperty("test.aws.ses.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SES)));
+        
+        System.setProperty("test.aws.secretsmanager.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SECRETSMANAGER)));
+
+        try {
+            localStackContainer.execInContainer("awslocal",
+                                                "secretsmanager",
+                                                "create-secret",
+                                                "--name",
+                                                "deploykey/pn-ec",
+                                                "--secret-string",
+                                                "{\"user\":\"aruba_username\",\"pass\":\"aruba_password\"}");
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void createTable(final String tableName, final Class<?> entityClass) {
@@ -92,6 +111,9 @@ public class LocalStackTestConfig {
     @Autowired
     private PecSqsQueueName pecSqsQueueName;
 
+    @Autowired
+    private CartaceoSqsQueueName cartaceoSqsQueueName;
+
     private void initSqs() {
         log.info("<-- START initLocalStack.initSqs -->");
 
@@ -108,14 +130,17 @@ public class LocalStackTestConfig {
 
         List<String> emailQueueNames =
                 List.of(emailSqsQueueName.interactiveName(), emailSqsQueueName.batchName(), emailSqsQueueName.errorName());
-
+        List<String> cartceoQueueNames = List.of(cartaceoSqsQueueName.batchName(), cartaceoSqsQueueName.errorName());
+//        cartaceoSqsQueueName.interactiveName(),
         List<String> pecQueueNames = List.of(pecSqsQueueName.interactiveName(), pecSqsQueueName.batchName(), pecSqsQueueName.errorName());
+
 
         List<String> allQueueName = new ArrayList<>();
         allQueueName.addAll(notificationTrackerQueueNames);
         allQueueName.addAll(smsQueueNames);
         allQueueName.addAll(emailQueueNames);
         allQueueName.addAll(pecQueueNames);
+        allQueueName.addAll(cartceoQueueNames);
 
         allQueueName.forEach(queueName -> {
             try {

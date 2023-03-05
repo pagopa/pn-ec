@@ -9,5 +9,5 @@ public interface StatusPullService {
 
     Mono<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId, String processId);
     Mono<PaperProgressStatusEvent> paperPullService(String requestIdx, String xPagopaExtchCxId);
-    Mono<LegalMessageSentDetails> legalPullService(String requestIdx, String xPagopaExtchCxId, String processId);
+    Mono<LegalMessageSentDetails> pecPullService(String requestIdx, String xPagopaExtchCxId, String processId);
 }

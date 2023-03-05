@@ -41,7 +41,7 @@ public class RequestController implements GestoreRequestApi {
     }
 
     @Override
-    public Mono<ResponseEntity<RequestDto>> updateRequest(String requestIdx, Mono<EventsDto> eventsPatchDto, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<RequestDto>> updateEvents(String requestIdx, Mono<EventsDto> eventsPatchDto, ServerWebExchange exchange) {
         return eventsPatchDto.map(eventsToUpdate -> restUtils.startUpdateRequest(eventsToUpdate, Events.class))
                              .flatMap(requestToUpdate -> requestService.updateEvents(requestIdx, requestToUpdate))
                              .map(updatedRequest -> restUtils.endCreateOrUpdateRequest(updatedRequest, RequestDto.class));
@@ -53,5 +53,19 @@ public class RequestController implements GestoreRequestApi {
         return requestService.deleteRequest(requestIdx)
                              .map(retrievedRequest -> restUtils.endDeleteRequest(retrievedRequest, RequestDto.class))
                              .thenReturn(new ResponseEntity<>(OK));
+    }
+
+    @Override
+    public Mono<ResponseEntity<RequestDto>> getRequestByMessageId(String messageId, ServerWebExchange exchange) {
+        log.info("Try to retrieve request with messageId -> {}", messageId);
+        return requestService.getRequestByMessageId(messageId)
+                             .map(retrievedRequest -> restUtils.endReadRequest(retrievedRequest, RequestDto.class));
+    }
+
+    @Override
+    public Mono<ResponseEntity<RequestDto>> setMessageIdInRequestMetadata(String requestIdx, ServerWebExchange exchange) {
+        log.info("Try to set messageId in request with id '{}'", requestIdx);
+        return requestService.setMessageIdInRequestMetadata(requestIdx)
+                             .map(retrievedClient -> restUtils.endReadRequest(retrievedClient, RequestDto.class));
     }
 }

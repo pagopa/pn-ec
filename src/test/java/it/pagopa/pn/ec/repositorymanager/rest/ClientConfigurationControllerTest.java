@@ -142,7 +142,7 @@ class ClientConfigurationControllerTest {
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
-                 .isOk();
+                 .isEqualTo(HttpStatus.NO_CONTENT);
     }
 
     //test.103.2
@@ -155,4 +155,5 @@ class ClientConfigurationControllerTest {
                  .expectStatus()
                  .isNotFound();
     }
+
 }
