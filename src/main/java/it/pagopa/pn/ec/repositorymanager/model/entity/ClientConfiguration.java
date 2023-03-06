@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.repositorymanager.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import it.pagopa.pn.ec.commons.model.entity.DocumentVersion;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
@@ -13,7 +14,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbParti
 @NoArgsConstructor
 @Data
 @DynamoDbBean
-public class ClientConfiguration {
+public class ClientConfiguration extends DocumentVersion {
 
     @Getter(onMethod=@__({@DynamoDbPartitionKey}))
     @JsonProperty("xPagopaExtchCxId")

@@ -103,7 +103,7 @@ paths:
     patch:
       tags:
         - GestoreRequest
-      operationId: updateRequest
+      operationId: updateEvents
       requestBody:
         content:
           application/json:
@@ -132,6 +132,59 @@ paths:
           $ref: '#/components/responses/requestResponseOk'
         409:
           $ref: '#/components/responses/requestedItemAlreadyExist'
+
+  /external-channel/gestoreRepository/requests/messageId/{messageId}:
+    parameters:
+      - name: messageId
+        in: path
+        required: true
+        allowEmptyValue: false
+        schema:
+          type: string
+    get:
+      tags:
+        - GestoreRequest
+      operationId: getRequestByMessageId
+      description: Recupero di una richiesta tramite l'identificativo del messaggio
+      responses:
+        200:
+          $ref: '#/components/responses/requestResponseOk'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+        400:
+          description: Decoding messageId error
+          content:
+            application/json:
+              schema:
+                $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
+
+  /external-channel/gestoreRepository/requests/messageId/{requestIdx}:
+    parameters:
+      - name: requestIdx
+        in: path
+        required: true
+        allowEmptyValue: false
+        schema:
+          type: string
+    post:
+      tags:
+        - GestoreRequest
+      operationId: setMessageIdInRequestMetadata
+      description: Chiamata per generare il messageId nei metadata di una richiesta.
+        Tramite il path param requestIdx (idRequest) verrà recuperato il xPagopaExtchCxId (idClient)
+        e creata una stringa 'base64RequestId~base64ClientId@pagopa.it'.
+        Questo valore sarà tornato come response body della chiamata insieme alla richiesta.
+      responses:
+        200:
+          $ref: '#/components/responses/requestResponseOk'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+        500:
+          description: Encoding messageId error
+          content:
+            application/json:
+              schema:
+                $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
 
 components:
 
@@ -184,6 +237,9 @@ components:
         requestIdx:
           type: string
           pattern: '[0-9A-Za-z_-]{5,100}'
+        messageId:
+          type: string
+          readOnly: true
         xPagopaExtchCxId:
           type: string
         statusRequest:
