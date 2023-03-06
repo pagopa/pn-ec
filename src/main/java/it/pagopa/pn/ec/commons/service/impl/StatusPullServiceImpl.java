@@ -2,6 +2,8 @@ package it.pagopa.pn.ec.commons.service.impl;
 
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
+import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
+import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
@@ -72,8 +74,15 @@ public class StatusPullServiceImpl implements StatusPullService {
                     }
                     return callMacchinaStati
                             .statusDecode(processId, digProgrStatus.getStatus().toLowerCase(), xPagopaExtchCxId)
-                            .map(macchinaStatiDecodeResponseDto -> {
-
+                            .handle((macchinaStatiDecodeResponseDto, sink) ->
+                                    {
+                                        if (macchinaStatiDecodeResponseDto.getExternalStatus() == null)
+                                            sink.error(new StatusNotFoundException(digProgrStatus.getStatus()));
+                                        else sink.next(macchinaStatiDecodeResponseDto);
+                                    }
+                            )
+                            .map(object -> {
+                                var macchinaStatiDecodeResponseDto = (MacchinaStatiDecodeResponseDto) object;
                                 event.setStatus(ProgressEventCategory
                                         .valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
                                 event.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
@@ -169,8 +178,15 @@ public class StatusPullServiceImpl implements StatusPullService {
 
                     // Decodifica dello stato della richiesta.
                     return callMacchinaStati.statusDecode("PAPER", event.getStatusDescription(), xPagopaExtchCxId)
-                            .map(macchinaStatiDecodeResponseDto -> {
-
+                            .handle((macchinaStatiDecodeResponseDto, sink) ->
+                                    {
+                                        if (macchinaStatiDecodeResponseDto.getExternalStatus() == null)
+                                            sink.error(new StatusNotFoundException(event.getStatusDescription()));
+                                        else sink.next(macchinaStatiDecodeResponseDto);
+                                    }
+                            )
+                            .map(object -> {
+                                var macchinaStatiDecodeResponseDto = (MacchinaStatiDecodeResponseDto) object;
                                 event.setStatusDescription(macchinaStatiDecodeResponseDto.getExternalStatus());
                                 event.setStatusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
                                 return event;
@@ -195,6 +211,7 @@ public class StatusPullServiceImpl implements StatusPullService {
                     } else {
                         synchronousSink.next(requestDto);
                     }
+
                 }).flatMap(object -> {
                     var requestDTO = (RequestDto) object;
                     var eventsList = requestDTO.getRequestMetadata().getEventsList();
@@ -227,11 +244,20 @@ public class StatusPullServiceImpl implements StatusPullService {
                     }
                     return callMacchinaStati
                             .statusDecode(processId, digProgrStatus.getStatus().toLowerCase(), xPagopaExtchCxId)
-                            .map(macchinaStatiDecodeResponseDto -> {
-
-                                event.setStatus(ProgressEventCategory
-                                        .valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
-                                event.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                            .handle((macchinaStatiDecodeResponseDto, sink) ->
+                                    {
+                                        if (macchinaStatiDecodeResponseDto.getExternalStatus() == null)
+                                            sink.error(new StatusNotFoundException(digProgrStatus.getStatus()));
+                                        else sink.next(macchinaStatiDecodeResponseDto);
+                                    }
+                            )
+                            .map(object -> {
+                                var macchinaStatiDecodeResponseDto = (MacchinaStatiDecodeResponseDto) object;
+                                if (macchinaStatiDecodeResponseDto.getExternalStatus() != null) {
+                                    event.setStatus(ProgressEventCategory
+                                            .valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
+                                    event.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                                }
                                 return event;
                             });
                 }).switchIfEmpty(Mono.just(new LegalMessageSentDetails().eventCode("").eventDetails("").requestId("")));
