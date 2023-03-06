@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.commons.configuration;
+package it.pagopa.pn.ec.commons.configuration.aws;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.messaging.config.QueueMessageHandlerFactory;

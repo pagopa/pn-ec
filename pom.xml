@@ -405,9 +405,11 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <sourceType>dtd</sourceType>
                     <sources>
-                        <source>src/main/resources/pec/daticert-xml-schema.xsd</source>
+                        <source>src/main/resources/pec/daticert-xml-schema.dtd</source>
                     </sources>
+                    <externalEntityProcessing>true</externalEntityProcessing>
                     <packageName>it.pec.daticert</packageName>
                 </configuration>
             </plugin>
