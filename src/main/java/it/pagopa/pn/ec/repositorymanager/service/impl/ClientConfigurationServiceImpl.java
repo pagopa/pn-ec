@@ -12,6 +12,7 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
+import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.DYNAMO_OPTIMISTIC_LOCKING_RETRY;
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 
 @Service
@@ -57,7 +58,8 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
                    .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
                    .flatMap(retrievedClientConfiguration -> {
                        clientConfiguration.setCxId(cxId);
-                       return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.updateItem(clientConfiguration));
+                       return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.updateItem(retrievedClientConfiguration))
+                               .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
                    });
     }
 
