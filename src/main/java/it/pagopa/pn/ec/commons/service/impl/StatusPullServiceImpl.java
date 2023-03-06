@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class StatusPullServiceImpl implements StatusPullService {
@@ -32,81 +33,81 @@ public class StatusPullServiceImpl implements StatusPullService {
     @Override
     public Mono<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId,
                                                                  String processId) {
-        return authService.clientAuth(xPagopaExtchCxId).then(gestoreRepositoryCall.getRichiesta(requestIdx))
-                .onErrorResume(RestCallException.ResourceNotFoundException.class,
-                        e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
-                .handle((requestDto, synchronousSink) -> {
-                    String requestClientID = requestDto.getxPagopaExtchCxId();
-                    if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId)) {
-                        synchronousSink.error(new ClientNotAuthorizedException(xPagopaExtchCxId));
-                    } else {
-                        synchronousSink.next(requestDto);
-                    }
-                }).flatMap(object -> {
-                    var requestDTO = (RequestDto) object;
-                    var eventsList = requestDTO.getRequestMetadata().getEventsList();
-                    if (eventsList != null && !eventsList.isEmpty()) {
-                        var eventDTO = eventsList.stream()
-                                .sorted((e1, e2) -> e1.getDigProgrStatus().getEventTimestamp()
-                                        .compareTo(e2.getDigProgrStatus().getEventTimestamp()))
-                                .skip(eventsList.size() - 1).findFirst().get();
-                        return Mono.just(eventDTO);
-                    } else {
-                        return Mono.empty();
-                    }
-                }).flatMap(eventDTO -> {
-                    var event = new CourtesyMessageProgressEvent();
-                    var digProgrStatus = eventDTO.getDigProgrStatus();
+        return getRequest(xPagopaExtchCxId, requestIdx).flatMap(object -> {
+            var requestDTO = (RequestDto) object;
+            var eventsList = requestDTO.getRequestMetadata().getEventsList();
+            return checkEmptyList(eventsList);
+        }).flatMap(eventDTO -> {
+            var event = new CourtesyMessageProgressEvent();
+            var digProgrStatus = eventDTO.getDigProgrStatus();
 
-                    event.setRequestId(requestIdx);
-                    event.setEventDetails(digProgrStatus.getEventDetails());
-                    event.setEventTimestamp(digProgrStatus.getEventTimestamp());
+            event.setRequestId(requestIdx);
+            event.setEventDetails(digProgrStatus.getEventDetails());
+            event.setEventTimestamp(digProgrStatus.getEventTimestamp());
 
-                    var generatedMessageDTO = digProgrStatus.getGeneratedMessage();
-                    if (generatedMessageDTO != null) {
-                        var digitalMessageReference = new DigitalMessageReference();
+            var generatedMessageDTO = digProgrStatus.getGeneratedMessage();
+            if (generatedMessageDTO != null) {
+                var digitalMessageReference = new DigitalMessageReference();
 
-                        digitalMessageReference.setId(generatedMessageDTO.getId());
-                        digitalMessageReference.setLocation(generatedMessageDTO.getLocation());
-                        digitalMessageReference.setSystem(generatedMessageDTO.getSystem());
+                digitalMessageReference.setId(generatedMessageDTO.getId());
+                digitalMessageReference.setLocation(generatedMessageDTO.getLocation());
+                digitalMessageReference.setSystem(generatedMessageDTO.getSystem());
 
-                        event.setGeneratedMessage(digitalMessageReference);
-                    }
-                    return callMacchinaStati
-                            .statusDecode(processId, digProgrStatus.getStatus().toLowerCase(), xPagopaExtchCxId)
-                            .handle((macchinaStatiDecodeResponseDto, sink) ->
-                                    {
-                                        if (macchinaStatiDecodeResponseDto.getExternalStatus() == null)
-                                            sink.error(new StatusNotFoundException(digProgrStatus.getStatus()));
-                                        else sink.next(macchinaStatiDecodeResponseDto);
-                                    }
-                            )
-                            .map(object -> {
-                                var macchinaStatiDecodeResponseDto = (MacchinaStatiDecodeResponseDto) object;
-                                event.setStatus(ProgressEventCategory
-                                        .valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
-                                event.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
-                                return event;
-                            });
-                }).switchIfEmpty(
-                        Mono.just(new CourtesyMessageProgressEvent().eventCode("").eventDetails("").requestId("")));
+                event.setGeneratedMessage(digitalMessageReference);
+            }
+            return statusDecode(processId, digProgrStatus.getStatus().toLowerCase(), xPagopaExtchCxId)
+                    .map(object -> {
+                        var macchinaStatiDecodeResponseDto = (MacchinaStatiDecodeResponseDto) object;
+                        event.setStatus(ProgressEventCategory
+                                .valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
+                        event.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                        return event;
+                    });
+        }).switchIfEmpty(
+                Mono.just(new CourtesyMessageProgressEvent().eventCode("").eventDetails("").requestId("")));
 
     }
 
     @Override
+    public Mono<LegalMessageSentDetails> pecPullService(String requestIdx, String xPagopaExtchCxId, String processId) {
+        return getRequest(xPagopaExtchCxId, requestIdx).flatMap(object -> {
+            var requestDTO = (RequestDto) object;
+            var eventsList = requestDTO.getRequestMetadata().getEventsList();
+            return checkEmptyList(eventsList);
+        }).flatMap(eventDTO -> {
+            var event = new LegalMessageSentDetails();
+            var digProgrStatus = eventDTO.getDigProgrStatus();
+
+            event.setRequestId(requestIdx);
+            event.setEventDetails(digProgrStatus.getEventDetails());
+            event.setEventTimestamp(digProgrStatus.getEventTimestamp());
+
+            var generatedMessageDTO = digProgrStatus.getGeneratedMessage();
+            if (generatedMessageDTO != null) {
+                var digitalMessageReference = new DigitalMessageReference();
+
+                digitalMessageReference.setId(generatedMessageDTO.getId());
+                digitalMessageReference.setLocation(generatedMessageDTO.getLocation());
+                digitalMessageReference.setSystem(generatedMessageDTO.getSystem());
+
+                event.setGeneratedMessage(digitalMessageReference);
+            }
+            return statusDecode(processId, digProgrStatus.getStatus().toLowerCase(), xPagopaExtchCxId)
+                    .map(object -> {
+                        var macchinaStatiDecodeResponseDto = (MacchinaStatiDecodeResponseDto) object;
+                        if (macchinaStatiDecodeResponseDto.getExternalStatus() != null) {
+                            event.setStatus(ProgressEventCategory
+                                    .valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
+                            event.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                        }
+                        return event;
+                    });
+        }).switchIfEmpty(Mono.just(new LegalMessageSentDetails().eventCode("").eventDetails("").requestId("")));
+    }
+
+    @Override
     public Mono<PaperProgressStatusEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
-        return authService.clientAuth(xPagopaExtchCxId).then(gestoreRepositoryCall.getRichiesta(requestIdx))
-                .onErrorResume(RestCallException.ResourceNotFoundException.class,
-                        e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
-                .handle((requestDto, synchronousSink) -> {
-                    // Controlla se il client è autorizzato.
-                    String requestClientID = requestDto.getxPagopaExtchCxId();
-                    if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId)) {
-                        synchronousSink.error(new ClientNotAuthorizedException(xPagopaExtchCxId));
-                    } else {
-                        synchronousSink.next(requestDto);
-                    }
-                }).flatMap(object -> {
+        return getRequest(xPagopaExtchCxId, requestIdx).flatMap(object -> {
                     var requestDTO = (RequestDto) object;
                     var event = new PaperProgressStatusEvent();
                     var eventsList = requestDTO.getRequestMetadata().getEventsList();
@@ -177,14 +178,7 @@ public class StatusPullServiceImpl implements StatusPullService {
                 }).flatMap(event -> {
 
                     // Decodifica dello stato della richiesta.
-                    return callMacchinaStati.statusDecode("PAPER", event.getStatusDescription(), xPagopaExtchCxId)
-                            .handle((macchinaStatiDecodeResponseDto, sink) ->
-                                    {
-                                        if (macchinaStatiDecodeResponseDto.getExternalStatus() == null)
-                                            sink.error(new StatusNotFoundException(event.getStatusDescription()));
-                                        else sink.next(macchinaStatiDecodeResponseDto);
-                                    }
-                            )
+                    return statusDecode("PAPER", event.getStatusDescription(), xPagopaExtchCxId)
                             .map(object -> {
                                 var macchinaStatiDecodeResponseDto = (MacchinaStatiDecodeResponseDto) object;
                                 event.setStatusDescription(macchinaStatiDecodeResponseDto.getExternalStatus());
@@ -199,8 +193,19 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     }
 
-    @Override
-    public Mono<LegalMessageSentDetails> pecPullService(String requestIdx, String xPagopaExtchCxId, String processId) {
+    private Mono<MacchinaStatiDecodeResponseDto> statusDecode(String processId, String currStatus, String clientId) {
+        return callMacchinaStati
+                .statusDecode(processId, currStatus, clientId)
+                .handle((macchinaStatiDecodeResponseDto, sink) ->
+                        {
+                            if (macchinaStatiDecodeResponseDto.getExternalStatus() == null)
+                                sink.error(new StatusNotFoundException(currStatus));
+                            else sink.next(macchinaStatiDecodeResponseDto);
+                        }
+                );
+    }
+
+    private Mono<RequestDto> getRequest(String xPagopaExtchCxId, String requestIdx) {
         return authService.clientAuth(xPagopaExtchCxId).then(gestoreRepositoryCall.getRichiesta(requestIdx))
                 .onErrorResume(RestCallException.ResourceNotFoundException.class,
                         e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
@@ -212,54 +217,18 @@ public class StatusPullServiceImpl implements StatusPullService {
                         synchronousSink.next(requestDto);
                     }
 
-                }).flatMap(object -> {
-                    var requestDTO = (RequestDto) object;
-                    var eventsList = requestDTO.getRequestMetadata().getEventsList();
-                    if (eventsList != null && !eventsList.isEmpty()) {
-                        var eventDTO = eventsList.stream()
-                                .sorted((e1, e2) -> e1.getDigProgrStatus().getEventTimestamp()
-                                        .compareTo(e2.getDigProgrStatus().getEventTimestamp()))
-                                .skip(eventsList.size() - 1).findFirst().get();
-                        return Mono.just(eventDTO);
-                    } else {
-                        return Mono.empty();
-                    }
-                }).flatMap(eventDTO -> {
-                    var event = new LegalMessageSentDetails();
-                    var digProgrStatus = eventDTO.getDigProgrStatus();
+                });
+    }
 
-                    event.setRequestId(requestIdx);
-                    event.setEventDetails(digProgrStatus.getEventDetails());
-                    event.setEventTimestamp(digProgrStatus.getEventTimestamp());
-
-                    var generatedMessageDTO = digProgrStatus.getGeneratedMessage();
-                    if (generatedMessageDTO != null) {
-                        var digitalMessageReference = new DigitalMessageReference();
-
-                        digitalMessageReference.setId(generatedMessageDTO.getId());
-                        digitalMessageReference.setLocation(generatedMessageDTO.getLocation());
-                        digitalMessageReference.setSystem(generatedMessageDTO.getSystem());
-
-                        event.setGeneratedMessage(digitalMessageReference);
-                    }
-                    return callMacchinaStati
-                            .statusDecode(processId, digProgrStatus.getStatus().toLowerCase(), xPagopaExtchCxId)
-                            .handle((macchinaStatiDecodeResponseDto, sink) ->
-                                    {
-                                        if (macchinaStatiDecodeResponseDto.getExternalStatus() == null)
-                                            sink.error(new StatusNotFoundException(digProgrStatus.getStatus()));
-                                        else sink.next(macchinaStatiDecodeResponseDto);
-                                    }
-                            )
-                            .map(object -> {
-                                var macchinaStatiDecodeResponseDto = (MacchinaStatiDecodeResponseDto) object;
-                                if (macchinaStatiDecodeResponseDto.getExternalStatus() != null) {
-                                    event.setStatus(ProgressEventCategory
-                                            .valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
-                                    event.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
-                                }
-                                return event;
-                            });
-                }).switchIfEmpty(Mono.just(new LegalMessageSentDetails().eventCode("").eventDetails("").requestId("")));
+    private Mono<EventsDto> checkEmptyList(List<EventsDto> eventsList) {
+        if (eventsList != null && !eventsList.isEmpty()) {
+            var eventDTO = eventsList.stream()
+                    .sorted((e1, e2) -> e1.getDigProgrStatus().getEventTimestamp()
+                            .compareTo(e2.getDigProgrStatus().getEventTimestamp()))
+                    .skip(eventsList.size() - 1).findFirst().get();
+            return Mono.just(eventDTO);
+        } else {
+            return Mono.empty();
+        }
     }
 }
