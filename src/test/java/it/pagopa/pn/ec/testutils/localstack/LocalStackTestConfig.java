@@ -47,7 +47,7 @@ public class LocalStackTestConfig {
 
     static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4");
     static LocalStackContainer localStackContainer =
-            new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS, SECRETSMANAGER)
+            new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS, SES, SECRETSMANAGER)
                                                     .withStartupTimeout(Duration.ofMinutes(2));
 
     static {
@@ -72,7 +72,7 @@ public class LocalStackTestConfig {
                                                 "secretsmanager",
                                                 "create-secret",
                                                 "--name",
-                                                "deploykey/pn-ec",
+                                                "pn/identity/pec",
                                                 "--secret-string",
                                                 "{\"user\":\"aruba_username\",\"pass\":\"aruba_password\"}");
         } catch (IOException | InterruptedException e) {
