@@ -296,7 +296,7 @@ Resources:
   PnEcEventBusPolicyECSTrackerExternalNotification:
     Type: AWS::Events::EventBusPolicy
     Properties:
-      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      EventBusName: !Ref PnEcEventBusTrackerExternalNotification
       StatementId: 'PnEcCustomEventBusPolicyAllowECS'
       Statement:
         Action: 
@@ -305,14 +305,12 @@ Resources:
         Principal: 
           Service:
           - 'ecs.amazonaws.com'
-        Resource: !Ref PnEcEventBusArnTrackerExternalNotification
-
-
+        Resource: !GetAtt PnEcEventBusTrackerExternalNotification.Arn
 
   PnEcEventBusPolicyManageTrackerExternalNotification:
     Type: AWS::Events::EventBusPolicy
     Properties:
-      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      EventBusName: !Ref PnEcEventBusTrackerExternalNotification
       StatementId: 'PnEcCustomEventBusPolicyManage'
       Statement:
         Action: 
@@ -330,7 +328,7 @@ Resources:
         Effect: 'Allow'
         Principal: 
           AWS: !Sub '${AWS::AccountId}'
-        Resource: !Ref PnEcEventBusArnTrackerExternalNotification
+        Resource: !GetAtt PnEcEventBusTrackerExternalNotification.Arn
         Condition:
           StringEqualsIfExists:
             events:creatorAccount: !Sub '${AWS::AccountId}'
@@ -339,7 +337,7 @@ Resources:
   # PnEcEventBusPolicyDenyTrackerExternalNotification:
   #   Type: AWS::Events::EventBusPolicy
   #   Properties:
-  #     EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+  #     EventBusName: !Ref PnEcEventBusTrackerExternalNotification
   #     StatementId: 'PnEcCustomEventBusPolicyDenyCrossAccount'
   #     Statement:
   #       Action: 
@@ -348,7 +346,7 @@ Resources:
   #       Principal: 
   #         Service:
   #           - 'ecs.amazonaws.com'
-  #       Resource: !Ref PnEcEventBusArnTrackerExternalNotification
+  #       Resource: !GetAtt PnEcEventBusTrackerExternalNotification.Arn
   #       Condition:
   #         StringNotEquals:
   #           aws:SourceAccount: !Sub '${AWS::AccountId}'

@@ -566,7 +566,6 @@ Resources:
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
-              - 'events:List*'
               - 'events:PutEvents'
             Resource:
               - !Sub '${PnEcEventBusArnTrackerExternalNotification}'
