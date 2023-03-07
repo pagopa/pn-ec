@@ -2,14 +2,14 @@ package it.pagopa.pn.ec.commons.service.impl;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
-import javax.activation.FileDataSource;
+import javax.activation.URLDataSource;
 import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
 import it.pagopa.pn.ec.commons.service.SesService;
+import it.pagopa.pn.ec.email.model.pojo.EmailAttach;
 import it.pagopa.pn.ec.email.model.pojo.EmailField;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -38,6 +39,26 @@ public class SesServiceImpl implements SesService {
 
 	public SesServiceImpl(SesAsyncClient sesAsyncClient) {
 		this.sesAsyncClient = sesAsyncClient;
+	}
+
+	@Override
+	public Mono<SendRawEmailResponse> send(EmailField field) {
+
+		return Mono.fromCallable(() -> composeSendRawEmailRequest(field))//
+
+				.flatMap(sendRawEmailRequest -> Mono.fromCompletionStage(sesAsyncClient.sendRawEmail(sendRawEmailRequest)))
+
+				.onErrorResume(throwable -> {//
+					log.error(throwable.getMessage());
+					return Mono.error(new SesSendException());
+				})//
+
+				.doOnSuccess(sendMessageResponse -> log.info("Send MAIL '{} 'to '{}' has returned a {} as status"//
+						, field.getSubject()//
+						, field.getTo()//
+						, sendMessageResponse.sdkHttpResponse().statusCode()//
+				));
+
 	}
 
 	private SendRawEmailRequest composeSendRawEmailRequest(EmailField field) throws IOException, MessagingException {
@@ -61,13 +82,13 @@ public class SesServiceImpl implements SesService {
 		msg.addBodyPart(wrap);
 
 		// Add multiple files to attachment
-		List<String> files = field.getAttachmentsUrls();
-		for (int idx = 0; idx < files.size(); idx++) {
+		List<EmailAttach> files = field.getAttach();
+		for (EmailAttach file : files) {
 			MimeBodyPart messageBodyPart = new MimeBodyPart();
 
-			DataSource source = new FileDataSource(files.get(idx));
+			DataSource source = new URLDataSource(new URL(file.getUrl()));
 			messageBodyPart.setDataHandler(new DataHandler(source));
-			messageBodyPart.setFileName("attach-" + (idx + 1) + ".pdf");
+			messageBodyPart.setFileName(file.getKey());
 
 			msg.addBodyPart(messageBodyPart);
 		}
@@ -88,36 +109,6 @@ public class SesServiceImpl implements SesService {
 				.build();
 
 		return rawEmailRequest;
-	}
-
-	@Override
-	public Mono<SendRawEmailResponse> send(EmailField field) {
-
-		try {
-
-			// Assemble the email.
-			SendRawEmailRequest reqRaw = composeSendRawEmailRequest(field);
-
-			CompletableFuture<SendRawEmailResponse> resRaw = sesAsyncClient.sendRawEmail(reqRaw);
-
-			return Mono.fromFuture(resRaw)//
-
-					.onErrorResume(throwable -> {//
-						log.error(throwable.getMessage());
-						return Mono.error(new SesSendException());
-					})//
-
-					.doOnSuccess(sendMessageResponse -> log.info("Send MAIL '{} 'to '{}' has returned a {} as status"//
-							, field.getSubject()//
-							, field.getTo()//
-							, sendMessageResponse.sdkHttpResponse().statusCode()//
-					));
-
-		} catch (IOException | MessagingException e) {
-			log.error(e.getMessage());
-			return Mono.error(new SesSendException());
-		}
-
 	}
 
 }
