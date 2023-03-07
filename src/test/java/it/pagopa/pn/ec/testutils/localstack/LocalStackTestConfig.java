@@ -72,7 +72,7 @@ public class LocalStackTestConfig {
                                                 "secretsmanager",
                                                 "create-secret",
                                                 "--name",
-                                                "deploykey/pn-ec",
+                                                "pn/identity/pec",
                                                 "--secret-string",
                                                 "{\"user\":\"aruba_username\",\"pass\":\"aruba_password\"}");
         } catch (IOException | InterruptedException e) {

@@ -29,7 +29,7 @@ public class ArubaCallImpl implements ArubaCall {
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
-        })).cast(GetMessagesResponse.class);
+        })).cast(GetMessagesResponse.class).retryWhen(ARUBA_CALL_RETRY_STRATEGY);
     }
 
     @Override
@@ -42,7 +42,7 @@ public class ArubaCallImpl implements ArubaCall {
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
-        })).cast(GetMessageIDResponse.class);
+        })).cast(GetMessageIDResponse.class).retryWhen(ARUBA_CALL_RETRY_STRATEGY);
     }
 
     @Override
@@ -55,7 +55,7 @@ public class ArubaCallImpl implements ArubaCall {
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
-        })).cast(SendMailResponse.class);
+        })).cast(SendMailResponse.class).retryWhen(ARUBA_CALL_RETRY_STRATEGY);
     }
 
     @Override
@@ -68,10 +68,11 @@ public class ArubaCallImpl implements ArubaCall {
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
-        })).cast(GetAttachResponse.class);
+        })).cast(GetAttachResponse.class).retryWhen(ARUBA_CALL_RETRY_STRATEGY);
     }
 
     private void endSoapRequest(MonoSink<Object> sink, Throwable throwable) {
+        log.error(throwable.getMessage());
         sink.error(throwable);
         Thread.currentThread().interrupt();
     }
