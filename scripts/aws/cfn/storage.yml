@@ -297,7 +297,7 @@ Resources:
     Type: AWS::Events::EventBusPolicy
     Properties:
       EventBusName: !Ref PnEcEventBusTrackerExternalNotification
-      StatementId: 'PnEcCustomEventBusPolicyAllowECS'
+      StatementId: 'PnEcCustomEventBusPolicyAllowECS1'
       Statement:
         Action: 
           - "events:PutEvents"
@@ -311,7 +311,7 @@ Resources:
     Type: AWS::Events::EventBusPolicy
     Properties:
       EventBusName: !Ref PnEcEventBusTrackerExternalNotification
-      StatementId: 'PnEcCustomEventBusPolicyManage'
+      StatementId: 'PnEcCustomEventBusPolicyManage1'
       Statement:
         Action: 
           - 'events:PutRule'
