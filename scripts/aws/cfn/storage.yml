@@ -24,6 +24,10 @@ Parameters:
   #   Type: String
   #   Description: 'Where to send CDC'
 
+  PnEcEventBusTrackerExternalNotificationName:
+    Type: String 
+    Description: 'Nome del Event Bus che raccoglie gli eventi del microservizio Gestore Disponibilita'
+    Default: 'Pn-Ec-Tracker-Notifications-Bus'
 
 Resources:
 
@@ -261,13 +265,13 @@ Resources:
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
 
-###### EXTERNAL PLATFORM NOTIFICATIONS #######
-
+###########  NOTIFICATION TRACKER EXTERNAL NOTIFICATION  ###########
   PnEcQueueNotificheExt1:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: 'alias/aws/sqs'
+      # KmsDataKeyReusePeriodSeconds: 300
+      # KmsMasterKeyId: 'alias/aws/sqs'
+      SqsManagedSseEnabled: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -283,7 +287,98 @@ Resources:
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
-   
+      
+  PnEcEventBusTrackerExternalNotification: 
+    Type: AWS::Events::EventBus
+    Properties: 
+        Name: !Ref PnEcEventBusTrackerExternalNotificationName
+  
+  PnEcEventBusPolicyECSTrackerExternalNotification:
+    Type: AWS::Events::EventBusPolicy
+    Properties:
+      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      StatementId: 'PnEcCustomEventBusPolicyAllowECS'
+      Statement:
+        Action: 
+          - "events:PutEvents"
+        Effect: "Allow"
+        Principal: 
+          Service:
+          - 'ecs.amazonaws.com'
+        Resource: !Ref PnEcEventBusArnTrackerExternalNotification
+
+
+
+  PnEcEventBusPolicyManageTrackerExternalNotification:
+    Type: AWS::Events::EventBusPolicy
+    Properties:
+      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      StatementId: 'PnEcCustomEventBusPolicyManage'
+      Statement:
+        Action: 
+          - 'events:PutRule'
+          - 'events:PutTargets'
+          - 'events:DeleteRule'
+          - 'events:RemoveTargets'
+          - 'events:DisableRule'
+          - 'events:EnableRule'
+          - 'events:TagResource'
+          - 'events:UntagResource'
+          - 'events:DescribeRule'
+          - 'events:ListTargetsByRule'
+          - 'events:ListTagsForResource'
+        Effect: 'Allow'
+        Principal: 
+          AWS: !Sub '${AWS::AccountId}'
+        Resource: !Ref PnEcEventBusArnTrackerExternalNotification
+        Condition:
+          StringEqualsIfExists:
+            events:creatorAccount: !Sub '${AWS::AccountId}'
+
+  # ####### DENY POLICY FROM OUTSIDE ACCOUNT ########
+  # PnEcEventBusPolicyDenyTrackerExternalNotification:
+  #   Type: AWS::Events::EventBusPolicy
+  #   Properties:
+  #     EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+  #     StatementId: 'PnEcCustomEventBusPolicyDenyCrossAccount'
+  #     Statement:
+  #       Action: 
+  #         - "events:*"
+  #       Effect: 'Deny'
+  #       Principal: 
+  #         Service:
+  #           - 'ecs.amazonaws.com'
+  #       Resource: !Ref PnEcEventBusArnTrackerExternalNotification
+  #       Condition:
+  #         StringNotEquals:
+  #           aws:SourceAccount: !Sub '${AWS::AccountId}'
+
+  PnEcQueuePolicyNotificheExt1:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Ref PnEcQueueNotificheExt1
+      PolicyDocument: 
+        Statement: 
+          - Sid: 'AllowAccessSameAccount'
+            Action: 
+              - "SQS:*"
+            Effect: "Allow"
+            Resource: !GetAtt PnEcQueueNotificheExt1.Arn
+            Principal: 
+              AWS: !Sub ${AWS::AccountId}
+          - Sid: 'AllowPutEventsFromEventRule'
+            Action: 
+              - "sqs:SendMessage"
+            Effect: "Allow"
+            Resource: !GetAtt PnEcQueueNotificheExt1.Arn
+            Principal: 
+              Service:
+              - 'events.amazonaws.com'
+            Condition: 
+              ArnEquals:
+                aws:SourceArn: !GetAtt PnEcEventRuleNotificheExt1.Arn
+
   PnEcEventRuleNotificheExt1:
     Type: AWS::Events::Rule
     Properties:
@@ -291,15 +386,16 @@ Resources:
       EventPattern:   
         source: 
           - 'NOTIFICATION TRACKER'
+        account: 
+          - !Sub ${AWS::AccountId}
+        region: 
+          - !Sub ${AWS::Region}
       State: 'ENABLED'
       Targets:
         - Arn: !GetAtt PnEcQueueNotificheExt1.Arn
           Id: 'PnEcExt1QueueTargetForExtNotification'
 
-  PnEcEventBusTrackerExternalNotification: 
-    Type: AWS::Events::EventBus
-    Properties: 
-        Name: 'Pn-Ec-Tracker-Notifications-Bus'
+
 
   # PnEcEventBusArchiveTrackerExternalNotification:
   #   Type: AWS::Events::Archive
