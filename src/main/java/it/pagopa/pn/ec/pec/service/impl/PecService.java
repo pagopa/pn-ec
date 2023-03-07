@@ -7,7 +7,6 @@ import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigu
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
-import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
@@ -34,11 +33,13 @@ import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Base64;
+import java.util.Date;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
+import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
@@ -159,22 +160,28 @@ public class PecService extends PresaInCaricoService {
         var clientId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
 
-        var endcodeReqId = generateMessageId(pecPresaInCaricoInfo.getRequestIdx());
-        String pagoPa = "@pagopa.it";
-        String endcodeClientId = generateMessageId(pecPresaInCaricoInfo.getXPagopaExtchCxId());
-        var messageId = endcodeReqId+SEPARATORE+endcodeClientId + pagoPa;
+        var messageId = encodeMessageId(requestId,clientId);
 
-        AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
+        String data = createMimeMassage(digitalNotificationRequest,messageId);
 
-        String data = createMimeMassage(digitalNotificationRequest);
 
 //      Try to send PEC
         var sendMail = new SendMail();
         // TODO finire di valorizzare
-        sendMail.setUser(digitalNotificationRequest.getSenderDigitalAddress());
         sendMail.setData(data);
 
+        AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
+
+
+        attachmentService.checkAllegatiPresence(digitalNotificationRequest.getAttachmentsUrls(),
+                clientId,
+                false);
+
+
+
         arubaCall.sendMail(sendMail)
+
+
 
 //                       The PEC in sent, publish to Notification Tracker with next status -> SENT
                 .flatMap(sendMailResponse -> {
@@ -274,20 +281,20 @@ public class PecService extends PresaInCaricoService {
     }
 
 
-    private String generateMessageId(String bydeId) {
-        Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
-        return encoder.encodeToString(bydeId.getBytes());
-    }
 
-    private String createMimeMassage(DigitalNotificationRequest digitalNotificationRequest) throws MessagingException {
+
+    private String createMimeMassage(DigitalNotificationRequest digitalNotificationRequest, String messageId) throws MessagingException {
 
         MimeMessage mimeMessage = new MimeMessage(Session.getInstance(new Properties()));
+        mimeMessage.saveChanges();
+        mimeMessage.setHeader("Message-ID", messageId);
+        mimeMessage.getSentDate();
+
         mimeMessage.setFrom(digitalNotificationRequest.getReceiverDigitalAddress());
         mimeMessage.setSender(new InternetAddress(digitalNotificationRequest.getSenderDigitalAddress()));
-        mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(digitalNotificationRequest.getReceiverDigitalAddress()));
-        mimeMessage.setContent("Content-Type", String.valueOf(digitalNotificationRequest.getMessageContentType()));
-        mimeMessage.setSubject(digitalNotificationRequest.getSubjectText());
-        mimeMessage.getSentDate();
+        mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress("topolino@pluto.com"));
+        mimeMessage.setContent("Prova di invio mail", "text/plain");
+
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try {
             mimeMessage.writeTo(output);
