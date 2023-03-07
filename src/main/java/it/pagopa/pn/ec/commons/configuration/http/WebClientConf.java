@@ -50,6 +50,11 @@ public class WebClientConf {
     }
 
     @Bean
+    public WebClient downloadWebClient() {
+        return WebClient.builder().build();
+    }
+
+    @Bean
     public WebClient stateMachineWebClient() {
         return defaultJsonWebClientBuilder().baseUrl(stateMachineEndpointProperties.containerBaseUrl()).build();
     }

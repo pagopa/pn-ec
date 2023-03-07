@@ -55,9 +55,9 @@ public class CartaceoService  extends PresaInCaricoService {
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = (CartaceoPresaInCaricoInfo)presaInCaricoInfo;
         var paperEngageRequestAttachments =  cartaceoPresaInCaricoInfo.getPaperEngageRequest().getAttachments();
         String attachmentsUri = paperEngageRequestAttachments.get(0).getUri();
-        return attachmentService.checkAllegatiPresence(Collections.singletonList(attachmentsUri),
-                        presaInCaricoInfo.getXPagopaExtchCxId(),
-                        true)
+        return attachmentService.getAllegatiPresignedUrlOrMetadata(Collections.singletonList(attachmentsUri),
+                                                                   presaInCaricoInfo.getXPagopaExtchCxId(),
+                                                                   true)
                 .flatMap(fileDownloadResponse -> {
                     var peperNotificationRequest = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
                     peperNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());

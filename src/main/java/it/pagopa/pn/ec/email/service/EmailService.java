@@ -80,7 +80,7 @@ public class EmailService extends PresaInCaricoService {
 		String xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
 
 		return attachmentService//
-				.checkAllegatiPresence(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getAttachmentsUrls()//
+				.getAllegatiPresignedUrlOrMetadata(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getAttachmentsUrls()//
 						, presaInCaricoInfo.getXPagopaExtchCxId()//
 						, true)
 

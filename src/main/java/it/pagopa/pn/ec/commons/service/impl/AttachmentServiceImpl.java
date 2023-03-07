@@ -21,17 +21,17 @@ public class AttachmentServiceImpl implements AttachmentService {
     }
 
     @Override
-    public Flux<FileDownloadResponse> checkAllegatiPresence(List<String> attachmentUrls, String xPagopaExtchCxId, boolean metadataOnly) {
-        return Flux.fromIterable(attachmentUrls).handle((attachmentUrl, synchronousSink) -> {
-            if (!attachmentUrl.startsWith(ATTACHMENT_PREFIX)) {
-                synchronousSink.error(new InvalidAttachmentSchemaException());
-            } else {
-                synchronousSink.next(attachmentUrl);
-            }
-        }).flatMap(object -> {
-            String attachmentUrl = (String) object;
-            return uriBuilderCall.getFile(attachmentUrl.substring(ATTACHMENT_PREFIX.length()), xPagopaExtchCxId, metadataOnly);
-        })
-          .switchIfEmpty(Mono.just(new FileDownloadResponse()));
+    public Flux<FileDownloadResponse> getAllegatiPresignedUrlOrMetadata(List<String> attachmentUrls, String xPagopaExtchCxId, boolean metadataOnly) {
+        return Flux.fromIterable(attachmentUrls)
+                   .handle((attachmentUrl, synchronousSink) -> {
+                       if (!attachmentUrl.startsWith(ATTACHMENT_PREFIX)) {
+                           synchronousSink.error(new InvalidAttachmentSchemaException());
+                       } else {
+                           synchronousSink.next(attachmentUrl);
+                       }
+                   })
+                   .cast(String.class)
+                   .flatMap(attachmentUrl -> uriBuilderCall.getFile(attachmentUrl.substring(ATTACHMENT_PREFIX.length()), xPagopaExtchCxId, metadataOnly))
+                   .switchIfEmpty(Mono.just(new FileDownloadResponse()));
     }
 }

@@ -17,6 +17,7 @@ import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
+import it.pagopa.pn.ec.pec.model.pojo.PagopaMimeMessage;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pec.bridgews.SendMail;
@@ -26,12 +27,11 @@ import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import javax.mail.Message;
-import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMultipart;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -55,9 +55,6 @@ public class PecService extends PresaInCaricoService {
     private final PecSqsQueueName pecSqsQueueName;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
-    private static final String SEPARATORE = "~";
-
-
     protected PecService(AuthService authService, ArubaCall arubaCall, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
             , AttachmentServiceImpl attachmentService, NotificationTrackerSqsName notificationTrackerSqsName,
                          PecSqsQueueName pecSqsQueueName,
@@ -77,9 +74,9 @@ public class PecService extends PresaInCaricoService {
 //      Cast PresaInCaricoInfo to specific PecPresaInCaricoInfo
         var pecPresaInCaricoInfo = (PecPresaInCaricoInfo) presaInCaricoInfo;
         var xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
-        return attachmentService.checkAllegatiPresence(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls(),
-                                                       xPagopaExtchCxId,
-                                                       true)
+        return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls(),
+                                                                   xPagopaExtchCxId,
+                                                                   true)
                                 .flatMap(fileDownloadResponse -> {
                                     var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
                                     digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
@@ -145,8 +142,7 @@ public class PecService extends PresaInCaricoService {
     }
 
     @SqsListener(value = "${sqs.queue.pec.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo, final Acknowledgment acknowledgment)
-            throws MessagingException {
+    public void lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo, final Acknowledgment acknowledgment) {
 
         log.info("<-- START LAVORAZIONE RICHIESTA PEC -->");
         logIncomingMessage(pecSqsQueueName.interactiveName(), pecPresaInCaricoInfo);
@@ -157,7 +153,7 @@ public class PecService extends PresaInCaricoService {
 
         var messageId = encodeMessageId(requestId, clientId);
 
-        String data = createMimeMassage(digitalNotificationRequest, messageId);
+        String data = createMimeMessage(digitalNotificationRequest, messageId);
 
 
 //      Try to send PEC
@@ -166,12 +162,9 @@ public class PecService extends PresaInCaricoService {
 
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
+        attachmentService.getAllegatiPresignedUrlOrMetadata(digitalNotificationRequest.getAttachmentsUrls(), clientId, false)
 
-        attachmentService.checkAllegatiPresence(digitalNotificationRequest.getAttachmentsUrls(), clientId, false);
-
-
-        Mono.fromCallable(() -> encodeMessageId(requestId, clientId)).subscribe();
-
+                         .subscribe();
 
         arubaCall.sendMail(sendMail)
 
@@ -279,37 +272,42 @@ public class PecService extends PresaInCaricoService {
     }
 
 
-    private static String createMimeMassage(DigitalNotificationRequest digitalNotificationRequest, String messageId)
-            throws MessagingException {
-
-        MimeMessage mimeMessage = new MimeMessage(Session.getInstance(new Properties()));
-        mimeMessage.saveChanges();
-        mimeMessage.setHeader("Message-ID", messageId);
-        mimeMessage.getSentDate();
-
-        mimeMessage.setFrom(new InternetAddress(digitalNotificationRequest.getSenderDigitalAddress()));
-        mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(digitalNotificationRequest.getReceiverDigitalAddress()));
-
-        var messageText = digitalNotificationRequest.getMessageText();
-        if (digitalNotificationRequest.getMessageContentType() == DigitalNotificationRequest.MessageContentTypeEnum.PLAIN) {
-            mimeMessage.setContent(messageText, "text/plain");
-        }
-
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
+    public String createMimeMessage(DigitalNotificationRequest digitalNotificationRequest, String messageId) {
         try {
-            mimeMessage.writeTo(output);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        String rawEmail = output.toString();
-        System.out.println(rawEmail);
-        return rawEmail;
-    }
+            var pagopaMimeMessage = new PagopaMimeMessage(Session.getInstance(new Properties()), messageId);
 
-//    public static void main(String[] args) {
+            pagopaMimeMessage.setFrom(new InternetAddress(digitalNotificationRequest.getSenderDigitalAddress()));
+            pagopaMimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(digitalNotificationRequest.getReceiverDigitalAddress()));
+            pagopaMimeMessage.setSubject(digitalNotificationRequest.getSubjectText());
+
+            var messageText = digitalNotificationRequest.getMessageText();
+//            if (digitalNotificationRequest.getMessageContentType() == DigitalNotificationRequest.MessageContentTypeEnum.PLAIN) {
+//                pagopaMimeMessage.setContent(messageText, DigitalNotificationRequest.MessageContentTypeEnum.PLAIN.getValue());
+//            } else {
+//                pagopaMimeMessage.setContent(messageText, DigitalNotificationRequest.MessageContentTypeEnum.HTML.getValue());
+//            }
+
+            var messageBodyPart = new MimeBodyPart();
+            messageBodyPart.setText(messageText);
+
+            var multipart = new MimeMultipart();
+
+//            DataSource source = new FileDataSource(filename);
 //
-//        createMimeMassage(new DigitalNotificationRequest().receiverDigitalAddress("consitsas@arubapec.it")
-//                                                          .senderDigitalAddress(" mario.ottone@arubapec.it"))
-//    }
+//            messageBodyPart.setDataHandler(new DataHandler(source));
+//
+//            messageBodyPart.setFileName(filename);
+
+            multipart.addBodyPart(messageBodyPart);
+
+            pagopaMimeMessage.setContent(multipart);
+//
+            var output = new ByteArrayOutputStream();
+            pagopaMimeMessage.writeTo(output);
+            return String.format("<![CDATA[%s]]>", output);
+        } catch (Exception e) {
+            log.info(e.getMessage(), e);
+            throw new RuntimeException();
+        }
+    }
 }
