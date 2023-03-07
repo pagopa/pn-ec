@@ -47,7 +47,7 @@ public class ScaricamentoEsitiPecScheduler {
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
-    @Scheduled(fixedDelay = 20, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(fixedDelay = 20, initialDelay = 20, timeUnit = TimeUnit.MINUTES)
     void scaricamentoEsitiPec() {
 
         log.info("<-- SCARICAMENTO ESITI PEC SCHEDULER -->");
