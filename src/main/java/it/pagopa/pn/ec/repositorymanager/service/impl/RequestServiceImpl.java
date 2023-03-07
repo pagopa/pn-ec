@@ -35,7 +35,7 @@ public class RequestServiceImpl implements RequestService {
                    .map(objects -> {
                        RequestPersonal retrievedRequestPersonal = objects.getT1();
                        RequestMetadata retrievedRequestMetadata = objects.getT2();
-                       return createRequestFromPersonalAndMetadata(requestIdx, retrievedRequestPersonal, retrievedRequestMetadata);
+                       return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, retrievedRequestMetadata);
                    });
     }
 
@@ -66,7 +66,7 @@ public class RequestServiceImpl implements RequestService {
                         requestMetadataService.insertRequestMetadata(requestMetadata)).map(objects -> {
             RequestPersonal insertedRequestPersonal = objects.getT1();
             RequestMetadata insertedRequestMetadata = objects.getT2();
-            return createRequestFromPersonalAndMetadata(requestId, insertedRequestPersonal, insertedRequestMetadata);
+            return createRequestFromPersonalAndMetadata(insertedRequestPersonal, insertedRequestMetadata);
         });
     }
 
@@ -76,7 +76,7 @@ public class RequestServiceImpl implements RequestService {
                         requestMetadataService.updateEventsMetadata(requestIdx, events)).map(objects -> {
             RequestPersonal retrievedRequestPersonal = objects.getT1();
             RequestMetadata updatedRequestMetadata = objects.getT2();
-            return createRequestFromPersonalAndMetadata(requestIdx, retrievedRequestPersonal, updatedRequestMetadata);
+            return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, updatedRequestMetadata);
         });
     }
 
@@ -86,7 +86,29 @@ public class RequestServiceImpl implements RequestService {
                    .map(objects -> {
                        RequestPersonal deletedRequestPersonal = objects.getT1();
                        RequestMetadata deletedRequestMetadata = objects.getT2();
-                       return createRequestFromPersonalAndMetadata(requestIdx, deletedRequestPersonal, deletedRequestMetadata);
+                       return createRequestFromPersonalAndMetadata(deletedRequestPersonal, deletedRequestMetadata);
                    });
+    }
+
+    @Override
+    public Mono<Request> getRequestByMessageId(String messageId) {
+        return requestMetadataService.getRequestMetadataByMessageId(messageId)
+                                     .zipWhen(requestMetadata -> requestPersonalService.getRequestPersonal(requestMetadata.getRequestId()))
+                                     .map(objects -> {
+                                         RequestMetadata retrievedRequestMetadata = objects.getT1();
+                                         RequestPersonal retrievedRequestPersonal = objects.getT2();
+                                         return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, retrievedRequestMetadata);
+                                     });
+    }
+
+    @Override
+    public Mono<Request> setMessageIdInRequestMetadata(String requestIdx) {
+        return requestMetadataService.setMessageIdInRequestMetadata(requestIdx)
+                                     .zipWhen(requestMetadata -> requestPersonalService.getRequestPersonal(requestMetadata.getRequestId()))
+                                     .map(objects -> {
+                                         RequestMetadata retrievedRequestMetadata = objects.getT1();
+                                         RequestPersonal retrievedRequestPersonal = objects.getT2();
+                                         return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, retrievedRequestMetadata);
+                                     });
     }
 }

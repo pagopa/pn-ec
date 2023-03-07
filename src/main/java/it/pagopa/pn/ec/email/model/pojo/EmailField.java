@@ -18,6 +18,6 @@ public class EmailField {
 	String subject;
 	String contentObject;
 	String contentType;
-	List<String> attachmentsUrls;
+	List<EmailAttach> attach;
 
 }

@@ -58,7 +58,7 @@ public class DigitalCourtesyMailRequestFactory {
 
 		List<String> attachList = new ArrayList<>();
 		for (int idx = 0; idx < attachNum; idx++) {
-			attachList.add("C:\\Temp\\example.pdf");
+			attachList.add("safestorage://PN_EXTERNAL_LEGAL_FACTS-14d277f9beb4c8a9da322092c350d51");
 		}
 		digitalCourtesyMailRequestFactory.setAttachmentsUrls(attachList);
 
