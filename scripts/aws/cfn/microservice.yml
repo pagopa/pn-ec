@@ -583,8 +583,8 @@ Resources:
           - Effect: Allow
             Sid: 'ReadFromSecretsManagerInvioPEC'
             Action:
-              - 'secrets:DescribeSecret'
-              - 'secrets:GetSecretValue'
+              - 'secretsmanager:DescribeSecret'
+              - 'secretsmanager:GetSecretValue'
             Resource:
               - !Join [ '', [ !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:' , !Ref PnEcIdentityPec , '*']]
           - Effect: Allow
