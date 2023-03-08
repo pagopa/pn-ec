@@ -11,7 +11,7 @@ import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
-import it.pagopa.pn.ec.commons.model.pojo.email.Attachment;
+import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
@@ -160,11 +160,11 @@ public class PecService extends PresaInCaricoService {
         return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalNotificationRequest.getAttachmentsUrls(), xPagopaExtchCxId, false)
 
                                 .flatMap(fileDownloadResponse -> downloadCall.downloadFile(fileDownloadResponse.getDownload().getUrl())
-                                                                             .map(outputStream -> Attachment.builder()
-                                                                                                            .nameWithExtension(
-                                                                                                                    fileDownloadResponse.getKey())
-                                                                                                            .content(outputStream)
-                                                                                                            .build()))
+                                                                             .map(outputStream -> EmailAttachment.builder()
+                                                                                                                 .nameWithExtension(
+                                                                                                                         fileDownloadResponse.getKey())
+                                                                                                                 .content(outputStream)
+                                                                                                                 .build()))
 
 //                              Convert to Mono<List>
                                 .collectList()
@@ -178,7 +178,7 @@ public class PecService extends PresaInCaricoService {
                                                                         .text(digitalNotificationRequest.getMessageText())
                                                                         .contentType(digitalNotificationRequest.getMessageContentType()
                                                                                                                .getValue())
-                                                                        .outputStreamAttachments(fileDownloadResponses)
+                                                                        .emailAttachments(fileDownloadResponses)
                                                                         .build())
 
                                 .map(EmailUtils::getMimeMessageInCDATATag)

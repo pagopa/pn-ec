@@ -49,7 +49,7 @@ public class EmailUtils {
 
             mimeMultipart.addBodyPart(htmlOrPlainTextPart);
 
-            emailField.getOutputStreamAttachments().forEach(attachment -> {
+            emailField.getEmailAttachments().forEach(attachment -> {
                 var attachmentPart = new MimeBodyPart();
                 var byteArrayOutputStream = (ByteArrayOutputStream) attachment.getContent();
                 DataSource aAttachment = new ByteArrayDataSource(byteArrayOutputStream.toByteArray(), APPLICATION_OCTET_STREAM_VALUE);

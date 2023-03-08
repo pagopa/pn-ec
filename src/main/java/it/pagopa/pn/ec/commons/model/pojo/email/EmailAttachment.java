@@ -10,8 +10,9 @@ import java.io.OutputStream;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Data
 @Builder
-public class Attachment {
+public class EmailAttachment {
 
     String nameWithExtension;
     OutputStream content;
+    String url;
 }

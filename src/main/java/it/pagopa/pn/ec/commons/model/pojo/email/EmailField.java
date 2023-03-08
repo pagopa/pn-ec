@@ -1,13 +1,13 @@
 package it.pagopa.pn.ec.commons.model.pojo.email;
 
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@NoArgsConstructor
+@AllArgsConstructor
 @Data
 @Builder
 public class EmailField {
@@ -18,6 +18,5 @@ public class EmailField {
     String subject;
     String text;
     String contentType;
-    List<String> attachmentsUrls;
-    List<Attachment> outputStreamAttachments;
+    List<EmailAttachment> emailAttachments;
 }
