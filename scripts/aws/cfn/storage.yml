@@ -381,6 +381,7 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Description: Description
+      EventBusName: !Ref PnEcEventBusTrackerExternalNotification
       EventPattern:   
         source: 
           - 'NOTIFICATION TRACKER'
