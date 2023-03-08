@@ -2,9 +2,9 @@ package it.pagopa.pn.ec.cartaceo.utils;
 
 import java.util.Map;
 
-public class PaperStatusCode {
+public class PaperElem {
 	
-	private PaperStatusCode() {
+	private PaperElem() {
 	}
 	
 	public static Map<String, String> statusCodeDescriptionMap() {
@@ -113,7 +113,33 @@ public class PaperStatusCode {
 				            Map.entry("RECRSI005","Furto/Smarrimanto/deterioramento"),
 				            Map.entry("REC090","Archiviazione fisica materialità di ritorno")
 						);
+	
+	public static Map<String, String> productTypeMap() {
+		return productTypeMap;
+	}
 
+	private static final Map<String, String> productTypeMap = Map.ofEntries(
+			Map.entry("AR","Raccomandata Andata e Ritorno nazionale"),
+			Map.entry("890","Recapito a norma della legge 890/1982"),
+			Map.entry("RS","Raccomandata Semplice nazionale (per Avviso di mancato Recapito)"),
+			Map.entry("RIS","Raccomandata Internazionale Semplice"),
+			Map.entry("RIR","Raccomandata Internazionale con AR"));
+	
+	public static Map<String, String> deliveryFailureCausemap() {
+		return deliveryFailureCauseMap;
+	}
 
+	private static final Map<String, String> deliveryFailureCauseMap = Map.ofEntries(
+			Map.entry("M01","destinatario irreperibile"),
+			Map.entry("M02","destinatario deceduto"),
+			Map.entry("M03","destinatario sconosciuto"),
+			Map.entry("M04","destinatario trasferito"),
+			Map.entry("M05","invio rifiutato"),
+			Map.entry("M06","indirizzo inesatto"),
+			Map.entry("M07","indirizzo inesistente"),
+			Map.entry("M08","indirizzo insufficiente"),
+			Map.entry("F01","in caso di furto"),
+			Map.entry("F02","in caso di smarrimento"),
+			Map.entry("F03","in caso di deterioramento"));
 	
 }
