@@ -1,4 +1,4 @@
-openapi: 3.0.1
+openapi: 3.0.3
 info:
   title: API che il fornitore dei servizi di consolidamento dovrà mettere a disposizione
   description: >- 
@@ -18,7 +18,7 @@ servers:
     description: Server url
 paths:  
   /piattaforma-notifiche-ingress/v1/paper-deliveries-engagement:
-    post:
+    put:
       operationId: sendPaperEngageRequest
       summary: PN richiede l'invio di corrispondenza cartacea
       description: >- 
@@ -121,7 +121,7 @@ paths:
                 $ref: '#/components/schemas/OperationResultCodeResponse'
         
   /piattaforma-notifiche-ingress/v1/paper-replicas-engagement:
-    post:
+    put:
       operationId: sendPaperReplicasEngagementRequest
       summary: PN richiede la generazione di un duplicato
       description: >- 
@@ -710,7 +710,20 @@ components:
           description: >-
             _Codifica sintetica dello stato dell'esito._  <br/>
             Eventi relativi alla fase di __Stampa/Postalizzazione__ <br/>
-            - ... TODO: in definizione con il Consolidatore <br/>
+            - __CON998__    - [ALL] - Scartato NODOC <br/>
+            - __CON997__    - [ALL] - Scartato CAP/INTERNAZIONALE <br/>
+            - __CON996__    - [ALL] - Scartato PDF <br/>
+            - __CON995__    - [ALL] - Errore Stampa <br/>
+            - __CON080__    - [ALL] - Stampato ed Imbustato <br/>
+            - __CON993__    - [ALL] - Errore Stampa - parziale <br/>
+            - __CON010__    - [ALL] - Distinta Elettronica inviata a Recapitista <br/>
+            - __CON011__    - [ALL] - Distinta Elettronica Sigillata <br/>
+            - __CON012__    - [ALL] - OK Distinta Elettronica da Recapitista <br/>
+            - __CON992__    - [ALL] - KO Distinta Elettronica da Recapitista <br/>
+            - __CON09A__    - [ALL] - Materialità Pronta <br/>
+            - __CON016__    - [ALL] - PICKUP Sigillata <br/>
+            - __CON018__    - [ALL] - Accettazione Recapitista <br/>
+            - __CON991__    - [ALL] - Mancata Accetazione Recapitsita <br/>
             Eventi relativi alla fase di __Recapito__ <br/>
             - __RECRS010__		- [RS] - Inesito <br/> 
             - __RECRS011__		- [RS] - In giacenza <br/> 

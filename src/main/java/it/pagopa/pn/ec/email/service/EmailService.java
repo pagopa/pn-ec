@@ -148,19 +148,38 @@ public class EmailService extends PresaInCaricoService {
 	public void lavorazioneRichiesta(final EmailPresaInCaricoInfo emailPresaInCaricoInfo//
 			, final Acknowledgment acknowledgment//
 	) {
-
 		log.info("<-- START LAVORAZIONE RICHIESTA EMAIL -->");
 		logIncomingMessage(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
+		var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
+		if (digitalCourtesyMailRequest.getAttachmentsUrls().size() > 0) {
+			processWithAttach(emailPresaInCaricoInfo, acknowledgment);
+		} else {
+			processOnlyBody(emailPresaInCaricoInfo, acknowledgment);
+		}
+	}
+
+	private void processWithAttach(final EmailPresaInCaricoInfo emailPresaInCaricoInfo//
+			, final Acknowledgment acknowledgment//
+	) {
 
 		var requestId = emailPresaInCaricoInfo.getRequestIdx();
 		var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
 		var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-		EmailField emailField = EmailFieldMapper.converti(digitalCourtesyMailRequest);
 
 		AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
 		// Try to send EMAIL
-		sesService.send(emailField)
+		attachmentService//
+				.checkAllegatiPresence(digitalCourtesyMailRequest.getAttachmentsUrls()//
+						, clientId//
+						, false)
+				.map(this::convertiUrl)//
+				.collectList()//
+				.flatMap(attList -> {
+					EmailField mailFld = compilaMail(digitalCourtesyMailRequest);
+					mailFld.setAttach(attList);
+					return sesService.send(mailFld);
+				})
 
 				// The EMAIL in sent, publish to Notification Tracker with next status -> SENT
 				.flatMap(publishResponse -> {
@@ -182,11 +201,13 @@ public class EmailService extends PresaInCaricoService {
 				.doOnSuccess(result -> acknowledgment.acknowledge())
 
 				// An error occurred during EMAIL send, start retries
-				.onErrorResume(SesSendException.class//
-						, sesSendException -> retryEmailSend(acknowledgment//
+				.retryWhen(DEFAULT_RETRY_STRATEGY)
+
+				// The maximum number of retries has ended
+				.onErrorResume(SesSendException.SesMaxRetriesExceededException.class//
+						, sesMaxRetriesExceeded -> emailRetriesExceeded(acknowledgment//
 								, emailPresaInCaricoInfo//
 								, emailPresaInCaricoInfo.getStatusAfterStart()//
-								, generatedMessageDto.get()//
 						))
 
 				// An error occurred during SQS publishing to the Notification Tracker -> Publish to Errori EMAIL queue and
@@ -200,52 +221,93 @@ public class EmailService extends PresaInCaricoService {
 				.subscribe();
 	}
 
-	private Mono<SendMessageResponse> retryEmailSend(final Acknowledgment acknowledgment//
-			, final EmailPresaInCaricoInfo emailPresaInCaricoInfo//
-			, final String currentStatus//
-			, final GeneratedMessageDto generateMessageDto//
+	private void processOnlyBody(final EmailPresaInCaricoInfo emailPresaInCaricoInfo//
+			, final Acknowledgment acknowledgment//
 	) {
 
 		var requestId = emailPresaInCaricoInfo.getRequestIdx();
 		var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
 		var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-		EmailField emailField = EmailFieldMapper.converti(digitalCourtesyMailRequest);
+
+		AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
 		// Try to send EMAIL
-		return sesService.send(emailField)
+		EmailField mailFld = compilaMail(digitalCourtesyMailRequest);
 
-				// Retry to send EMAIL
-				.retryWhen(DEFAULT_RETRY_STRATEGY)
+		sesService.send(mailFld)//
 
 				// The EMAIL in sent, publish to Notification Tracker with next status -> SENT
-				.flatMap(publishResponse -> sqsService.send(notificationTrackerSqsName.statoEmailName()//
-						, new NotificationTrackerQueueDto(requestId//
-								, clientId//
-								, now()//
-								, transactionProcessConfigurationProperties.email()//
-								, currentStatus//
-								, "sent"//
-								// TODO: SET eventDetails
-								, ""//
-								, new GeneratedMessageDto().id(publishResponse.messageId()).system("systemPlaceholder")//
-						)))
+				.flatMap(publishResponse -> {
+					generatedMessageDto.set(new GeneratedMessageDto().id(publishResponse.messageId()).system("systemPlaceholder"));
+					return sqsService.send(notificationTrackerSqsName.statoEmailName()//
+							, new NotificationTrackerQueueDto(requestId//
+									, clientId//
+									, now()//
+									, transactionProcessConfigurationProperties.email()//
+									, emailPresaInCaricoInfo.getStatusAfterStart()//
+									, "sent"//
+					// TODO: SET eventDetails
+									, ""//
+									, generatedMessageDto.get()//
+					));
+				})
 
 				// Delete from queue
 				.doOnSuccess(result -> acknowledgment.acknowledge())
+
+				// An error occurred during EMAIL send, start retries
+				.retryWhen(DEFAULT_RETRY_STRATEGY)
 
 				// The maximum number of retries has ended
 				.onErrorResume(SesSendException.SesMaxRetriesExceededException.class//
 						, sesMaxRetriesExceeded -> emailRetriesExceeded(acknowledgment//
 								, emailPresaInCaricoInfo//
-								, generateMessageDto//
-								, currentStatus//
-						));
+								, emailPresaInCaricoInfo.getStatusAfterStart()//
+						))
 
+				// An error occurred during SQS publishing to the Notification Tracker -> Publish to Errori EMAIL queue and
+				// notify to retry update status only
+				// TODO: CHANGE THE PAYLOAD
+				.onErrorResume(SqsPublishException.class//
+						, sqsPublishException -> sqsService.send(emailSqsQueueName.errorName()//
+								, emailPresaInCaricoInfo//
+						))//
+
+				.subscribe();
+	}
+
+	private EmailAttach convertiUrl(FileDownloadResponse resp) {
+		EmailAttach ea = new EmailAttach();
+
+		ea.setKey(resp.getKey());
+		ea.setContentType(resp.getContentType());
+		ea.setUrl(resp.getDownload().getUrl());
+
+		return ea;
+	}
+
+	private EmailField compilaMail(DigitalCourtesyMailRequest req) {
+		EmailField ret = new EmailField();
+
+		ret.setFrom(req.getSenderDigitalAddress());
+		ret.setTo(req.getReceiverDigitalAddress());
+		ret.setSubject(req.getSubjectText());
+		ret.setContentObject(req.getMessageText());
+		switch (req.getMessageContentType()) {
+		case PLAIN:
+			ret.setContentType("text/plain; charset=UTF-8");
+			break;
+		case HTML:
+			ret.setContentType("text/html; charset=UTF-8");
+			break;
+		}
+		ret.setAttach(new ArrayList<>());
+
+		return ret;
 	}
 
 	private Mono<SendMessageResponse> emailRetriesExceeded(final Acknowledgment acknowledgment//
 			, final EmailPresaInCaricoInfo emailPresaInCaricoInfo//
-			, final GeneratedMessageDto generatedMessageDto//
 			, String currentStatus//
 	) {
 
@@ -262,7 +324,7 @@ public class EmailService extends PresaInCaricoService {
 						, "retry"//
 						// TODO: SET eventDetails
 						, ""//
-						, generatedMessageDto//
+						, null//
 				))
 
 				// Publish to ERRORI EMAIL queue
