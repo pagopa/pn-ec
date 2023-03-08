@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static it.pagopa.pn.ec.commons.service.SnsService.DEFAULT_RETRY_STRATEGY;
@@ -235,5 +236,52 @@ public class SmsService extends PresaInCaricoService {
 
 //                       Delete from queue
                          .doOnSuccess(result -> acknowledgment.acknowledge());
+    }
+
+    @SqsListener(value = "${sqs.queue.sms.error-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+
+        log.info("<-- START GESTIONE ERRORI SMS -->");
+        logIncomingMessage(smsSqsQueueName.errorName(), smsPresaInCaricoInfo);
+
+        var requestId = smsPresaInCaricoInfo.getRequestIdx();
+        var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
+        var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
+
+        gestoreRepositoryCall.getRichiesta(requestId)
+                .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), "toDelete"))
+                .flatMap(requestDto -> {
+                    //check step retry TODO
+                    return snsService.send(digitalCourtesySmsRequest.getReceiverDigitalAddress(), digitalCourtesySmsRequest.getMessageText())
+                            .flatMap(publishResponse -> {
+                                var generatedMessageDto = new GeneratedMessageDto().id(publishResponse.messageId()).system("systemPlaceholder");
+                                return sqsService.send(notificationTrackerSqsName.statoSmsName(),
+                                        new NotificationTrackerQueueDto(requestId,
+                                                clientId,
+                                                now(),
+                                                transactionProcessConfigurationProperties.sms(),
+                                                smsPresaInCaricoInfo.getStatusAfterStart(),
+                                                "sent",
+                                                // TODO: SET eventDetails
+                                                "",
+                                                generatedMessageDto));
+                            })
+                            .onErrorResume(snsSendException -> {
+                                log.error("Errore durante l'invio dell'SMS: {}", snsSendException.getMessage());
+                                return retrySmsSend(acknowledgment,
+                                        smsPresaInCaricoInfo,
+                                        smsPresaInCaricoInfo.getStatusAfterStart(),
+                                        null);
+                            })
+                            .doOnSuccess(result -> {
+                                acknowledgment.acknowledge();
+                                log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda: {}", smsSqsQueueName.errorName());
+                            });
+
+
+                });
+
+
+
     }
 }
