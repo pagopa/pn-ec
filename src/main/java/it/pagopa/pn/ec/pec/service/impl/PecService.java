@@ -71,6 +71,7 @@ public class PecService extends PresaInCaricoService {
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
 //      Cast PresaInCaricoInfo to specific PecPresaInCaricoInfo
         var pecPresaInCaricoInfo = (PecPresaInCaricoInfo) presaInCaricoInfo;
+        pecPresaInCaricoInfo.setStatusAfterStart("booked");
         var digitalCourtesySmsRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
         digitalCourtesySmsRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
         var xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
@@ -90,7 +91,7 @@ public class PecService extends PresaInCaricoService {
                                                                                                        now(),
                                                                                                        transactionProcessConfigurationProperties.pec(),
                                                                                                        transactionProcessConfigurationProperties.pecStartStatus(),
-                                                                                                       "booked",
+                                                                                                       pecPresaInCaricoInfo.getStatusAfterStart(),
                                                                                                        // TODO: SET eventDetails
                                                                                                        "",
                                                                                                        null)))
@@ -159,7 +160,10 @@ public class PecService extends PresaInCaricoService {
 //      Get attachment presigned url Flux
         return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalNotificationRequest.getAttachmentsUrls(), xPagopaExtchCxId, false)
 
+                                .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
+
                                 .flatMap(fileDownloadResponse -> downloadCall.downloadFile(fileDownloadResponse.getDownload().getUrl())
+                                                                             .retryWhen(ARUBA_CALL_RETRY_STRATEGY)
                                                                              .map(outputStream -> EmailAttachment.builder()
                                                                                                                  .nameWithExtension(
                                                                                                                          fileDownloadResponse.getKey())
@@ -172,7 +176,6 @@ public class PecService extends PresaInCaricoService {
 //                              Create EmailField object with request info and attachments
                                 .map(fileDownloadResponses -> EmailField.builder()
                                                                         .msgId(encodeMessageId(requestIdx, xPagopaExtchCxId))
-                                                                        .from(digitalNotificationRequest.getSenderDigitalAddress())
                                                                         .to(digitalNotificationRequest.getReceiverDigitalAddress())
                                                                         .subject(digitalNotificationRequest.getSubjectText())
                                                                         .text(digitalNotificationRequest.getMessageText())
@@ -186,7 +189,7 @@ public class PecService extends PresaInCaricoService {
                                 .flatMap(mimeMessageInCdata -> {
                                     var sendMail = new SendMail();
                                     sendMail.setData(mimeMessageInCdata);
-                                    return arubaCall.sendMail(sendMail);
+                                    return arubaCall.sendMail(sendMail).retryWhen(ARUBA_CALL_RETRY_STRATEGY);
                                 })
 
                                 .handle((sendMailResponse, sink) -> {
@@ -197,7 +200,10 @@ public class PecService extends PresaInCaricoService {
                                     }
                                 })
 
-                                .retryWhen(ARUBA_CALL_RETRY_STRATEGY)
+                                .doOnError(throwable -> {
+                                    log.info("An error occurred during lavorazione PEC");
+                                    log.error(throwable.getMessage(), throwable);
+                                })
 
                                 .cast(SendMailResponse.class)
 

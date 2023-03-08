@@ -49,18 +49,21 @@ public class EmailUtils {
 
             mimeMultipart.addBodyPart(htmlOrPlainTextPart);
 
-            emailField.getEmailAttachments().forEach(attachment -> {
-                var attachmentPart = new MimeBodyPart();
-                var byteArrayOutputStream = (ByteArrayOutputStream) attachment.getContent();
-                DataSource aAttachment = new ByteArrayDataSource(byteArrayOutputStream.toByteArray(), APPLICATION_OCTET_STREAM_VALUE);
-                try {
-                    attachmentPart.setDataHandler(new DataHandler(aAttachment));
-                    mimeMultipart.addBodyPart(attachmentPart);
-                } catch (MessagingException exception) {
-                    log.error(exception.getMessage());
-                    throw new ComposeMimeMessageException();
-                }
-            });
+            var emailAttachments = emailField.getEmailAttachments();
+            if (emailAttachments != null) {
+                emailAttachments.forEach(attachment -> {
+                    var attachmentPart = new MimeBodyPart();
+                    var byteArrayOutputStream = (ByteArrayOutputStream) attachment.getContent();
+                    DataSource aAttachment = new ByteArrayDataSource(byteArrayOutputStream.toByteArray(), APPLICATION_OCTET_STREAM_VALUE);
+                    try {
+                        attachmentPart.setDataHandler(new DataHandler(aAttachment));
+                        mimeMultipart.addBodyPart(attachmentPart);
+                    } catch (MessagingException exception) {
+                        log.error(exception.getMessage());
+                        throw new ComposeMimeMessageException();
+                    }
+                });
+            }
 
             mimeMessage.setContent(mimeMultipart);
 
