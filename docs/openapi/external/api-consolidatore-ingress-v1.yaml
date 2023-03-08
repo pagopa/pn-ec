@@ -145,5 +145,5 @@ components:
       $ref: 'consolidatore-v1.yml#/components/schemas/PreLoadResponse'
     OperationResultCodeResponse:
       $ref: 'consolidatore-v1.yml#/components/schemas/OperationResultCodeResponse'
-    PaperProgressStatusEvent:
-      $ref: 'consolidatore-v1.yml#/components/schemas/PaperProgressStatusEvent'    
+    PaperProgressStatusEvent: 
+      $ref: 'schemas-paper-v1.1.yaml#/components/schemas/PaperProgressStatusEvent'
