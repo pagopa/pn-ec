@@ -11,6 +11,8 @@ servers:
 tags:
   - name: PushAttachmentsPreload
     description: Richiesta di pre-caricamento dei documenti da comunicare a PN.
+  - name: PushProgressEventsToNotificationPlatform
+    description: Webhook con cui PN riceve progressi postalizzazioni
 
 paths:
   /consolidatore-ingress/v1/attachement-preload:
@@ -66,8 +68,76 @@ paths:
                 semanticError:
                   summary: 'Errore semantico'
                   value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type' ], clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
+ 
+  /consolidatore-ingress/v1/push-progress-events/:
+    post:
+      operationId: sendPaperProgressStatusRequest
+      summary: Webhook con cui PN riceve progressi postalizzazioni
+      description: |-
+        inserire
+      tags:
+        - PushProgressEventsToNotificationPlatform
+      parameters:
+        - $ref: '#/components/parameters/xPagopaExtchServiceId'
+        - $ref: '#/components/parameters/xPagopaExtchApiKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/PaperProgressStatusEvent'
+        required: true
+      responses:
+        '202':
+          description: >-
+            OK, l'evento è stato registrato
+          content:
+            application/json:
+              example: { resultCode: '202.00', resultDescription: 'Accepted', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+        '400':
+          description: >- 
+            Il ricevente ha eseguito la validazione sintattica o semantica dei campi e 
+            tale validazione è fallita: possiblie mismatch di versione
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+              examples: 
+                syntaxError: 
+                  summary: 'Errore sintattico'
+                  value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+                semanticError: 
+                  summary: 'Errore semantico'
+                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}  
+        '401':
+          description: >- 
+            Il sistema chiamante non è stato identificato, verificare le configurazioni
+          content:
+            application/json:
+              example: { resultCode: '401.00', resultDescription: 'Authentication Failed', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse' 
 
 components:
+  parameters:
+    xPagopaExtchServiceId:
+      name: x-pagopa-extch-service-id
+      description: Identificativo con cui Piattaforma Notifiche si identifica
+      in: header
+      required: true
+      schema:
+        type: string
+    xPagopaExtchApiKey:
+      name: x-api-key
+      description: Credenziale di accesso
+      in: header
+      required: true
+      schema:
+        type: string
   schemas:
     PreLoadRequest:
       $ref: 'consolidatore-v1.yml#/components/schemas/PreLoadRequest'
@@ -75,3 +145,5 @@ components:
       $ref: 'consolidatore-v1.yml#/components/schemas/PreLoadResponse'
     OperationResultCodeResponse:
       $ref: 'consolidatore-v1.yml#/components/schemas/OperationResultCodeResponse'
+    PaperProgressStatusEvent:
+      $ref: 'consolidatore-v1.yml#/components/schemas/PaperProgressStatusEvent'    
