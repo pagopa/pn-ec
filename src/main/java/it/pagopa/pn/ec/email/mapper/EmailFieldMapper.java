@@ -1,21 +1,22 @@
 package it.pagopa.pn.ec.email.mapper;
 
-import it.pagopa.pn.ec.email.model.pojo.EmailField;
+import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest;
 
 public class EmailFieldMapper {
 
-	public static EmailField converti(DigitalCourtesyMailRequest req) {
-		EmailField ret = new EmailField();
+    private EmailFieldMapper() {
+        throw new IllegalStateException("EmailFieldMapper is a utility class");
+    }
 
-		ret.setFrom(req.getSenderDigitalAddress());
-		ret.setTo(req.getReceiverDigitalAddress());
-		ret.setSubject(req.getSubjectText());
-		ret.setContentObject(req.getMessageText());
-		ret.setContentType(req.getMessageContentType().getValue() + "; charset=UTF-8");
-		ret.setAttachmentsUrls(req.getAttachmentsUrls());
-
-		return ret;
-	}
-
+    public static EmailField converti(DigitalCourtesyMailRequest req) {
+        return EmailField.builder()
+                         .from(req.getSenderDigitalAddress())
+                         .to(req.getReceiverDigitalAddress())
+                         .subject(req.getSubjectText())
+                         .text(req.getMessageText())
+                         .contentType(req.getMessageContentType().getValue() + "; charset=UTF-8")
+                         .attachmentsUrls(req.getAttachmentsUrls())
+                         .build();
+    }
 }

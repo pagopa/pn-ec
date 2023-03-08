@@ -1,16 +1,5 @@
 package it.pagopa.pn.ec.email.service;
 
-import static it.pagopa.pn.ec.commons.service.SesService.DEFAULT_RETRY_STRATEGY;
-import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.BATCH;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.EMAIL;
-import static java.time.OffsetDateTime.now;
-
-import java.util.concurrent.atomic.AtomicReference;
-
-import org.springframework.stereotype.Service;
-
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
@@ -21,6 +10,7 @@ import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
@@ -29,18 +19,21 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.mapper.EmailFieldMapper;
-import it.pagopa.pn.ec.email.model.pojo.EmailField;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalRequestPersonalDto;
-import it.pagopa.pn.ec.rest.v1.dto.GeneratedMessageDto;
-import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
-import it.pagopa.pn.ec.rest.v1.dto.RequestMetadataDto;
-import it.pagopa.pn.ec.rest.v1.dto.RequestPersonalDto;
+import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+
+import java.util.concurrent.atomic.AtomicReference;
+
+import static it.pagopa.pn.ec.commons.service.SesService.DEFAULT_RETRY_STRATEGY;
+import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.BATCH;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.EMAIL;
+import static java.time.OffsetDateTime.now;
 
 @Service
 @Slf4j

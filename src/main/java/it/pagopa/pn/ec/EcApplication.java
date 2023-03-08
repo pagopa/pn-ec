@@ -1,20 +1,9 @@
 package it.pagopa.pn.ec;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
@@ -55,38 +44,9 @@ import java.nio.file.Paths;
 //  <-- NOTIFICATION TRACKER -->
 // EVENTBRIDGE EVENT
 @PropertySource("classpath:notificationtracker/notificationtracker-eventbridge-eventbus.properties")
-@Slf4j
 public class EcApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(EcApplication.class, args);
-    }
-
-//    @Bean
-//    CommandLineRunner comaLineRunner(PecService pecService) {
-//        return args -> {
-//            var digitalNotificationRequest = new DigitalNotificationRequest().senderDigitalAddress(" mario.ottone@arubapec.it")
-//                                                                             .receiverDigitalAddress("consitsas@arubapec.it")
-//                                                                             .messageText("Hello World !")
-//                                                                             .messageContentType(DigitalNotificationRequest
-//                                                                             .MessageContentTypeEnum.PLAIN);
-//
-//            log.info(pecService.createMimeMessage(digitalNotificationRequest, "VGVzdFBFQ1dpdGhDbGllbnRJZA==~Y2xpZW50MQ==@pagopa.it"));
-//        };
-//    }
-
-    @Bean
-    CommandLineRunner comaLineRunner(WebClient downloadWebClient) {
-        return args -> {
-            Flux<DataBuffer> flux = WebClient.builder()
-                                             .build()
-                                             .get()
-                                             .uri("https://ia904605.us.archive" +
-                                                  ".org/0/items/completeworksrep11shakuoft/completeworksrep11shakuoft.pdf")
-                                             .retrieve()
-                                             .bodyToFlux(DataBuffer.class);
-            Path path = Paths.get("src/main/resources/prova.pdf");
-            DataBufferUtils.write(flux, path).block();
-        };
     }
 }

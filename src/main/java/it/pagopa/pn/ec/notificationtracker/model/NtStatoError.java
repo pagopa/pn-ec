@@ -1,12 +1,14 @@
 package it.pagopa.pn.ec.notificationtracker.model;
 
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
 
 @Data
 @Getter
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
 public class NtStatoError {
 

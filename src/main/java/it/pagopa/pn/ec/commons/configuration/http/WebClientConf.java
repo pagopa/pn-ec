@@ -51,7 +51,7 @@ public class WebClientConf {
 
     @Bean
     public WebClient downloadWebClient() {
-        return WebClient.builder().build();
+        return defaultWebClientBuilder().build();
     }
 
     @Bean

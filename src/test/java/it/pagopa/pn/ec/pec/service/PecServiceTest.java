@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.pec.service;
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
@@ -82,7 +83,7 @@ class PecServiceTest {
         // TODO: Eliminare il mock una volta sistemato l'ambiente Localstack, togliere publish response
         when(arubaCall.sendMail(sendMail).thenReturn(Mono.just(SendMailResponse.class)));
 
-        pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO, acknowledgment);
+        pecService.lavorazioneRichiestaListener(PEC_PRESA_IN_CARICO_INFO, acknowledgment);
 
 
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class));
@@ -111,7 +112,7 @@ class PecServiceTest {
         when(arubaCall.sendMail(sendMail).thenReturn(Mono.error(new ArubaSendException()))
                                                     .thenReturn(Mono.just(SendMailResponse.class)));
 
-        pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO, acknowledgment);
+        pecService.lavorazioneRichiestaListener(PEC_PRESA_IN_CARICO_INFO, acknowledgment);
 
         verify(arubaCall, times(2)).sendMail(any(SendMail.class));
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class));
@@ -176,7 +177,7 @@ class PecServiceTest {
         when(sqsService.send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
                 new SqsPublishException(notificationTrackerSqsName.statoPecName())));
 
-        pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO, acknowledgment);
+        pecService.lavorazioneRichiestaListener(PEC_PRESA_IN_CARICO_INFO, acknowledgment);
 
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class));
         verify(sqsService, times(1)).send(eq(pecSqsQueueName.errorName()), any(PecPresaInCaricoInfo.class));
@@ -186,7 +187,7 @@ class PecServiceTest {
     void testRetryPec() throws MessagingException {
         when(arubaCall.sendMail(any(SendMail.class)).thenReturn(Mono.error(new ArubaSendException())));
 
-        pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO, acknowledgment);
+        pecService.lavorazioneRichiestaListener(PEC_PRESA_IN_CARICO_INFO, acknowledgment);
 
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), trackerQueueDtoCaptor.capture());
         assertEquals("retry", trackerQueueDtoCaptor.getValue().getNextStatus());

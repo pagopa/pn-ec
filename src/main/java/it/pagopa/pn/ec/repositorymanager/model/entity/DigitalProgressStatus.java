@@ -1,17 +1,14 @@
 package it.pagopa.pn.ec.repositorymanager.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 
 import java.time.OffsetDateTime;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@NoArgsConstructor
 @Data
 @DynamoDbBean
 public class DigitalProgressStatus {

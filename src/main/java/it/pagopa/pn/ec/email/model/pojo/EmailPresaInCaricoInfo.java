@@ -5,12 +5,10 @@ import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@NoArgsConstructor
 @Data
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
@@ -20,7 +18,7 @@ public class EmailPresaInCaricoInfo extends PresaInCaricoInfo {
     String statusAfterStart;
 
     public EmailPresaInCaricoInfo(String requestIdx, String xPagopaExtchCxId, DigitalCourtesyMailRequest digitalCourtesyMailRequest) {
-        super(requestIdx, xPagopaExtchCxId );
+        super(requestIdx, xPagopaExtchCxId);
         this.digitalCourtesyMailRequest = digitalCourtesyMailRequest;
     }
 }
