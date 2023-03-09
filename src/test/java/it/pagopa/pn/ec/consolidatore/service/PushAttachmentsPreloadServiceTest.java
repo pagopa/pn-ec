@@ -1,0 +1,97 @@
+package it.pagopa.pn.ec.consolidatore.service;
+
+import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
+import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
+import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.ReactiveHttpOutputMessage;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.BodyInserter;
+import org.springframework.web.reactive.function.BodyInserters;
+import reactor.core.publisher.Mono;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+
+@SpringBootTestWebEnv
+@AutoConfigureWebTestClient
+public class PushAttachmentsPreloadServiceTest {
+
+    @Autowired
+    private WebTestClient webTestClient;
+    @MockBean
+    private FileCall fileCall;
+    private static final String BAD_CONTENT_TYPE = "BAD_CONTENT_TYPE";
+    private static final String DOC_TYPE = "PN_EXTERNAL_LEGAL_FACTS";
+
+    private static final String URI = "/consolidatore-ingress/v1/attachement-preload";
+
+    private static final PreLoadRequest preLoadRequest = new PreLoadRequest();
+
+    @BeforeAll
+    public static void buildPreLoadRequest() {
+        preLoadRequest.setPreloadIdx("ID_TEST");
+        preLoadRequest.setContentType("CONTENT_TEST");
+        preLoadRequest.setSha256("BD94760347BABBB0B12ADFEB41FF01B90DD7F4C16F9B6");
+    }
+
+    private WebTestClient.ResponseSpec pushAttachmentsPreloadTestCall(BodyInserter<PreLoadRequestData, ReactiveHttpOutputMessage> bodyInserter) {
+
+        return this.webTestClient.post()
+                .uri(uriBuilder -> uriBuilder.path(URI).build())
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .body(bodyInserter)
+                .exchange();
+    }
+
+    @Test
+    void pushAttachmentsOk() {
+        when(fileCall.postFile(any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
+
+        PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
+        preLoadRequestSchema.getPreloads().add(preLoadRequest);
+
+        pushAttachmentsPreloadTestCall(BodyInserters.fromValue(preLoadRequestSchema))
+                .expectStatus()
+                .isOk();
+    }
+
+    @Test
+    void testEmptyPreloadsBadRequest() {
+        when(fileCall.postFile(any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
+
+        PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
+
+        pushAttachmentsPreloadTestCall(BodyInserters.fromValue(preLoadRequestSchema))
+                .expectStatus()
+                .isBadRequest();
+    }
+
+    @Test
+    void testContentTypeBadRequest() {
+        PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
+
+        var preLoadRequest1 = preLoadRequest;
+        preLoadRequest1.setContentType("BAD_CONTENT_TYPE");
+        preLoadRequestSchema.getPreloads().add(preLoadRequest1);
+
+        FileCreationRequest fileCreationRequest = new FileCreationRequest();
+        fileCreationRequest.setContentType(BAD_CONTENT_TYPE);
+        fileCreationRequest.setDocumentType(DOC_TYPE);
+        fileCreationRequest.setStatus("");
+
+        when(fileCall.postFile(fileCreationRequest)).thenReturn(Mono.error(new Generic400ErrorException("Bad Request", "Bad Request")));
+
+        pushAttachmentsPreloadTestCall(BodyInserters.fromValue(preLoadRequestSchema))
+                .expectStatus()
+                .isBadRequest();
+    }
+}

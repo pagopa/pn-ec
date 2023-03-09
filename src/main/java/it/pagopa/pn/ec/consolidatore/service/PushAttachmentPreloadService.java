@@ -1,43 +1,30 @@
-package it.pagopa.pn.ec.cartaceo.service;
+package it.pagopa.pn.ec.consolidatore.service;
 
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.FilesEndpointProperties;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
-
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-
 @Service
+@Slf4j
 public class PushAttachmentPreloadService {
 
     @Autowired
-    private WebClient ssWebClient;
-    @Autowired
     private FileCall fileCall;
-    @Autowired
-    private FilesEndpointProperties filesEndpointProperties;
-
     private static final String DOC_TYPE = "PN_EXTERNAL_LEGAL_FACTS";
-    private static final String DOC_STATUS = "SAVED";
 
 
-    public Mono<PreLoadResponseSchema> presignedUploadRequest(Mono<PreLoadRequestSchema> attachments) {
-        return attachments.map(PreLoadRequestSchema::getPreloads)
+    public Mono<PreLoadResponseData> presignedUploadRequest(Mono<PreLoadRequestData> attachments) {
+        return attachments.map(PreLoadRequestData::getPreloads)
                 .flatMapMany(Flux::fromIterable)
                 .flatMap(preLoadRequest ->
                 {
                     var fileCreationRequest = new FileCreationRequest();
                     fileCreationRequest.setContentType(preLoadRequest.getContentType());
-                    fileCreationRequest.setStatus(DOC_STATUS);
+                    fileCreationRequest.setStatus("");
                     fileCreationRequest.setDocumentType(DOC_TYPE);
                     return fileCall.postFile(fileCreationRequest)
                             .flux()
@@ -47,19 +34,26 @@ public class PushAttachmentPreloadService {
                                 preLoadResponse.setKey(fileCreationResponse.getKey());
                                 preLoadResponse.setSecret(fileCreationResponse.getSecret());
                                 preLoadResponse.setUrl(fileCreationResponse.getUploadUrl());
-                                preLoadResponse.setHttpMethod(PreLoadResponse.HttpMethodEnum.POST);
+
+                                var uploadMethod = fileCreationResponse.getUploadMethod();
+                                if (uploadMethod == null) {
+                                    preLoadResponse.setHttpMethod(PreLoadResponse.HttpMethodEnum.PUT);
+                                } else
+                                    preLoadResponse.setHttpMethod(PreLoadResponse.HttpMethodEnum.fromValue(uploadMethod.name()));
+
                                 preLoadResponse.setPreloadIdx(preLoadRequest.getPreloadIdx());
                                 return preLoadResponse;
                             });
-                }).collectList()
-                .map(list ->
+                })
+                .collectList()
+                .map(preLoadResponseList ->
                 {
-                    var preLoadResponse = new PreLoadResponseSchema();
-                    for (var r : list) {
-                        preLoadResponse.getPreloads().add((PreLoadResponse) r);
+                    var preLoadResponseSchema = new PreLoadResponseData();
+                    for (var preLoadResponse : preLoadResponseList) {
+                        preLoadResponseSchema.getPreloads().add(preLoadResponse);
                     }
-                    return preLoadResponse;
-                });
+                    return preLoadResponseSchema;
+                })
+                .doOnError(throwable -> log.info(throwable.getMessage()));
     }
-
 }
