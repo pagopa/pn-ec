@@ -87,7 +87,7 @@ paths:
               type: array
               minItems: 1
               items:
-                $ref: '#/components/schemas/PaperProgressStatusEvent'
+                $ref: '#/components/schemas/ConsolidatoreIngressPaperProgressStatusEvent'
         required: true
       responses:
         '202':
@@ -145,5 +145,285 @@ components:
       $ref: 'consolidatore-v1.yml#/components/schemas/PreLoadResponse'
     OperationResultCodeResponse:
       $ref: 'consolidatore-v1.yml#/components/schemas/OperationResultCodeResponse'
-    PaperProgressStatusEvent: 
-      $ref: 'schemas-paper-v1.1.yaml#/components/schemas/PaperProgressStatusEvent'
+    ConsolidatoreIngressPaperProgressStatusEvent: 
+      required:
+        - requestId
+        - statusCode
+        - statusDescription
+        - statusDateTime        
+        - productType
+        - clientRequestTimeStamp
+      type: object
+      properties:
+        requestId:
+          type: string
+          minLength: 30
+          maxLength: 250
+          description: >-
+            Identificativo della richiesta.
+          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1'  
+        registeredLetterCode:
+          type: string
+          description: >-
+            Il codice di tracciatura obbligatorio per i prodotti di corrispondenza tracciata.
+          example: '123456789abc'
+        productType:
+          description: >-
+            Tipo prodotto di cui viene chiesto il recapito:  <br/>
+            - __AR__: Raccomandata Andata e Ritorno nazionale,  <br/>
+            - __890__: Recapito a norma della legge 890/1982,  <br/>
+            - __RS__: Raccomandata Semplice nazionale (per Avviso di mancato Recapito). <br/>
+            - __RIS__: Raccomandata Internazionale Semplice,  <br/>
+            - __RIR__: Raccomandata Internazionale con AR.  <br/>
+          minLength: 2
+          maxLength: 3
+          type: string
+        iun: 
+          type: string
+          minLength: 30 
+          maxLength: 50
+          description: >-
+            Identificativo Unico della Notifica. Proviene dalla richiesta originaria di PN.
+          example: 'ABCD-HILM-YKWX-202202-1'
+        statusCode:
+          type: string
+          minLength: 3 
+          maxLength: 20
+          description: >-
+            _Codifica sintetica dello stato dell'esito._  <br/>
+            Eventi relativi alla fase di __Stampa/Postalizzazione__ <br/>
+            - __CON998__    - [ALL] - Scartato NODOC <br/>
+            - __CON997__    - [ALL] - Scartato CAP/INTERNAZIONALE <br/>
+            - __CON996__    - [ALL] - Scartato PDF <br/>
+            - __CON995__    - [ALL] - Errore Stampa <br/>
+            - __CON080__    - [ALL] - Stampato ed Imbustato <br/>
+            - __CON993__    - [ALL] - Errore Stampa - parziale <br/>
+            - __CON010__    - [ALL] - Distinta Elettronica inviata a Recapitista <br/>
+            - __CON011__    - [ALL] - Distinta Elettronica Sigillata <br/>
+            - __CON012__    - [ALL] - OK Distinta Elettronica da Recapitista <br/>
+            - __CON992__    - [ALL] - KO Distinta Elettronica da Recapitista <br/>
+            - __CON09A__    - [ALL] - Materialità Pronta <br/>
+            - __CON016__    - [ALL] - PICKUP Sigillata <br/>
+            - __CON018__    - [ALL] - Accettazione Recapitista <br/>
+            - __CON991__    - [ALL] - Mancata Accetazione Recapitsita <br/>
+            Eventi relativi alla fase di __Recapito__ <br/>
+            - __RECRS010__		- [RS] - Inesito <br/> 
+            - __RECRS011__		- [RS] - In giacenza <br/> 
+            - __RECRS001C__		- [RS] - Consegnato - Fascicolo Chiuso <br/> 
+            - __RECRS002A__		- [RS] - Mancata consegna - pre-esito <br/> 
+            - __RECRS002B__		- [RS] - Mancata consegna - In Dematerializzazione <br/> 
+            - __RECRS002C__		- [RS] - Mancata consegna - Fascicolo Chiuso <br/> 
+            - __RECRS002D__		- [RS] - Irreperibilità Assoluta - pre-esito <br/> 
+            - __RECRS002E__		- [RS] - Irreperibilità Assoluta - In Dematerializzazione <br/> 
+            - __RECRS002F__		- [RS] - Irreperibilità Assoluta - Fascicolo Chiuso <br/> 
+            - __RECRS003C__		- [RS] - Consegnato presso Punti di Giacenza - Fascicolo Chiuso <br/> 
+            - __RECRS004A__		- [RS] - Mancata consegna presso Punti di Giacenza - pre-esito <br/> 
+            - __RECRS004B__		- [RS] - Mancata consegna presso Punti di Giacenza - In Dematerializzazione <br/> 
+            - __RECRS004C__		- [RS] - Mancata consegna presso Punti di Giacenza - Fascicolo Chiuso <br/> 
+            - __RECRS005A__		- [RS] - Compiuta giacenza pre-esito <br/> 
+            - __RECRS005B__		- [RS] - Compiuta giacenza - In Dematerializzazione <br/> 
+            - __RECRS005C__		- [RS] - Compiuta giacenza - Fascicolo Chiuso <br/> 
+            - __RECRS006__		- [RS] - Furto/Smarrimanto/deterioramento <br/> 
+            - __RECRN010__		- [AR] - Inesito <br/> 
+            - __RECRN011__		- [AR] - In giacenza <br/> 
+            - __RECRN001A__		- [AR] - Consegnato - pre-esito <br/> 
+            - __RECRN001B__		- [AR] - Consegnato - In Dematerializzazione <br/> 
+            - __RECRN001C__		- [AR] - Consegnato - Fascicolo Chiuso <br/> 
+            - __RECRN002A__		- [AR] - Mancata consegna - pre-esito <br/> 
+            - __RECRN002B__		- [AR] - Mancata consegna - In Dematerializzazione <br/> 
+            - __RECRN002C__		- [AR] - Mancata consegna - Fascicolo Chiuso <br/> 
+            - __RECRN002D__		- [AR] - Irreperibilità Assoluta - pre-esito <br/> 
+            - __RECRN002E__		- [AR] - Irreperibilità Assoluta - In Dematerializzazione <br/> 
+            - __RECRN002F__		- [AR] - Irreperibilità Assoluta - Fascicolo Chiuso <br/> 
+            - __RECRN003A__		- [AR] - Consegnato presso Punti di Giacenza - pre-esito <br/> 
+            - __RECRN003B__		- [AR] - Consegnato presso Punti di Giacenza - In Dematerializzazione <br/> 
+            - __RECRN003C__		- [AR] - Consegnato presso Punti di Giacenza - Fascicolo Chiuso <br/> 
+            - __RECRN004A__		- [AR] - Mancata consegna presso Punti di Giacenza - pre-esito <br/> 
+            - __RECRN004B__		- [AR] - Mancata consegna presso Punti di Giacenza - In Dematerializzazione <br/> 
+            - __RECRN004C__		- [AR] - Mancata consegna presso Punti di Giacenza - Fascicolo Chiuso <br/> 
+            - __RECRN005A__		- [AR] - Compiuta giacenza pre-esito <br/> 
+            - __RECRN005B__		- [AR] - Compiuta giacenza - In Dematerializzazione <br/> 
+            - __RECRN005C__		- [AR] - Compiuta giacenza - Fascicolo Chiuso <br/> 
+            - __RECRN006__		- [AR] - Furto/Smarrimanto/deterioramento <br/> 
+            - __RECAG010__		- [890] - Inesito <br/> 
+            - __RECAG011A__		- [890] - In giacenza <br/> 
+            - __RECAG011B__		- [890] - In giacenza - In Dematerializzazione <br/> 
+            - __RECAG012__		- [890] - Accettazione 23L <br/> 
+            - __RECAG001A__		- [890] - Consegnato - pre-esito <br/> 
+            - __RECAG001B__		- [890] - Consegnato - In Dematerializzazione <br/> 
+            - __RECAG001C__		- [890] - Consegnato - Fascicolo Chiuso <br/> 
+            - __RECAG002A__		- [890] - Consegnato a persona abilitata - pre-esito <br/> 
+            - __RECAG002B__		- [890] - Consegnato a persona abilitata - In Dematerializzazione <br/> 
+            - __RECAG002C__		- [890] - Consegnato a persona abilitata - Fascicolo Chiuso <br/> 
+            - __RECAG003A__		- [890] - Mancata consegna - pre-esito <br/> 
+            - __RECAG003B__		- [890] - Mancata consegna - In Dematerializzazione <br/> 
+            - __RECAG003C__		- [890] - Mancata consegna - Fascicolo Chiuso <br/> 
+            - __RECAG003D__		- [890] - Irreperibilità Assoluta - pre-esito <br/> 
+            - __RECAG003E__		- [890] - Irreperibilità Assoluta - In Dematerializzazione <br/> 
+            - __RECAG003F__		- [890] - Irreperibilità Assoluta - Fascicolo Chiuso <br/> 
+            - __RECAG004__		- [890] - Furto/Smarrimanto/deterioramento <br/> 
+            - __RECAG005A__		- [890] - Consegnato presso Punti di Giacenza - pre-esito <br/> 
+            - __RECAG005B__		- [890] - Consegnato presso Punti di Giacenza - In Dematerializzazione <br/> 
+            - __RECAG005C__		- [890] - Consegnato presso Punti di Giacenza - Fascicolo Chiuso <br/> 
+            - __RECAG006A__		- [890] - Consegna a persona abilitata presso Punti di Giacenza - pre-esito <br/> 
+            - __RECAG006B__		- [890] - Consegna a persona abilitata presso Punti di Giacenza - In Dematerializzazione <br/> 
+            - __RECAG006C__		- [890] - Consegna a persona abilitata presso Punti di Giacenza - Fascicolo Chiuso <br/> 
+            - __RECAG007A__		- [890] - Mancata consegna presso Punti di Giacenza - pre-esito <br/> 
+            - __RECAG007B__		- [890] - Mancata consegna presso Punti di Giacenza - In Dematerializzazione <br/> 
+            - __RECAG007C__		- [890] - Mancata consegna presso Punti di Giacenza - Fascicolo Chiuso <br/> 
+            - __RECAG008A__		- [890] - Compiuta giacenza - pre-esito <br/> 
+            - __RECAG008B__		- [890] - Compiuta giacenza - In Dematerializzazione <br/> 
+            - __RECAG008C__		- [890] - Compiuta giacenza - Fascicolo Chiuso <br/> 
+            - __RECRI001__		- [RIR] - Avviato all'estero <br/> 
+            - __RECRI002__		- [RIR] - Ingresso nel paese estero <br/> 
+            - __RECRI003A__		- [RIR] - Consegnato - pre-esito <br/> 
+            - __RECRI003B__		- [RIR] - Consegnato - In Dematerializzazione <br/> 
+            - __RECRI003C__		- [RIR] - Consegnato - Fascicolo Chiuso <br/> 
+            - __RECRI004A__		- [RIR] - Non Consegnato - pre-esito <br/> 
+            - __RECRI004B__		- [RIR] - Non Consegnato - In Dematerializzazione <br/> 
+            - __RECRI004C__		- [RIR] - Non Consegnato - fascicolo Chiuso <br/> 
+            - __RECRI005__		- [RIR] - Furto/Smarrimanto/deterioramento <br/> 
+            - __RECRSI001__		- [RIS] - Avviato all'estero <br/> 
+            - __RECRSI002__		- [RIS] - Ingresso nel paese estero <br/> 
+            - __RECRSI003C__	- [RIS] - Consegnato - Fascicolo Chiuso <br/> 
+            - __RECRSI004A__	- [RIS] - Non Consegnato - pre-esito <br/> 
+            - __RECRSI004B__	- [RIS] - Non Consegnato - In Dematerializzazione <br/> 
+            - __RECRSI004C__	- [RIS] - Non Consegnato - fascicolo Chiuso <br/> 
+            - __RECRSI005__		- [RIS] - Furto/Smarrimanto/deterioramento <br/> 
+            - __REC090__		  - [ALL] - Archiviazione fisica materialità di ritorno
+        statusDescription: 
+          type: string
+          minLength: 5
+          maxLength: 250
+          example: 'Stampato'
+          description: >-
+            Descrizione dello stato del delivery cartaceo che viene notificato.
+        statusDateTime:
+          type: string
+          format: date-time
+          description: >-
+            Data stato con timezone
+        deliveryFailureCause: 
+          description: >-
+            _Motivazione di mancata consegna_ obbligtorie negli stati di mancata consegna  <br/>
+            - __M01__ destinatario irreperibile <br/>
+            - __M02__ destinatario deceduto <br/>
+            - __M03__ destinatario sconosciuto <br/>
+            - __M04__ destinatario trasferito <br/>
+            - __M05__ invio rifiutato <br/>
+            - __M06__ indirizzo inesatto <br/>
+            - __M07__ indirizzo inesistente <br/>
+            - __M08__ indirizzo insufficiente <br/>
+            - __F01__ - in caso di furto  <br/>
+            - __F02__ - in caso di smarrimento  <br/>
+            - __F03__  - in caso di deterioramento  <br/>
+          type: string
+          minLength: 2
+          maxLength: 10
+        attachments:
+          description: >-
+            elenco dei documenti prodotti che attestano quanto accaduto durante il processo 
+            di postalizzazione
+          type: array
+          minItems: 0
+          maxItems: 10
+          items:
+            type: object
+            required: 
+              - id
+              - documentType
+              - uri
+              - sha256
+              - date
+            properties:
+              id: 
+                type: string
+                description: >-
+                  Identificativo di riga.
+                minLength: 1 
+                maxLength: 10
+              documentId:
+                type: string
+                description: >-
+                  Codice postale dell'oggetto di ritorno
+              documentType:
+                type: string
+                minLength: 2
+                maxLength: 10
+                description: >-
+                  _La descrizione della tipologia di oggetto._
+                  - __23L__ <br/>
+                  - __ARCAD__ <br/>
+                  - __CAD__ <br/>
+                  - __CAN__ <br/>
+                  - __Plico__ <br/>
+                  - __Indagine__ <br/>
+                  - __AR__ <br/>
+              uri:
+                type: string
+                minLength: 5
+                maxLength: 2000
+                description: >-
+                  Le coordinate del documento correlato allo stato. 
+              sha256:
+                type: string 
+                minLength: 40
+                maxLength: 50
+                description: >-
+                  sha256, codificato in base 64, del contenuto del file riferenziato dal campo uri
+              date:
+                type: string
+                format: date-time
+                description: >-
+                  Data di produzione del documento.
+        discoveredAddress:
+          description: >-
+            Indirizzo del destinatario desunto dalle indagini del personale postale.
+          type: object            
+          required:
+            - name
+            - address
+            - city
+          properties:  
+            name:
+              type: string
+              description: >-
+                Cognome e nome o ragione sociale del destinatario
+            nameRow2:
+              type: string
+              description: >-
+                Seconda riga sulla busta.
+            address:
+              type: string
+              description: >-
+                Indirizzo del destinatario.
+            addressRow2:
+              type: string
+              description: >-
+                Specifica dell’indirizzo di residenza del destinatario (seconda riga indirizzo sulla busta).
+            cap:
+              type: string
+              description: >-
+                Cap del destinatario; in caso di invio estero diventa facoltativo.
+            city:
+              type: string
+              description: >-
+                Comune del destinatario.
+            city2:
+              type: string
+              description: >-
+                Frazione del destinatario. Potrebbe essere utile se il chiamante non fornisce il cap.
+            pr:
+              type: string
+              description: >-
+                Provincia del destinatario; in caso di invio estero diventa facoltativo.
+            country:
+              type: string
+              description: >-
+                In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 
+                in standard UPU o altro standard condiviso.
+        clientRequestTimeStamp:
+          type: string
+          format: date-time
+          description: >-
+            Timestamp della richiesta in UTC

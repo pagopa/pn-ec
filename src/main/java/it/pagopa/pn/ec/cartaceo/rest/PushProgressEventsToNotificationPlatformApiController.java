@@ -10,6 +10,7 @@ import org.springframework.web.server.ServerWebExchange;
 import it.pagopa.pn.ec.cartaceo.exception.RicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.cartaceo.service.RicezioneEsitiCartaceoService;
 import it.pagopa.pn.ec.rest.v1.api.PushProgressEventsToNotificationPlatformApi;
+import it.pagopa.pn.ec.rest.v1.dto.ConsolidatoreIngressPaperProgressStatusEvent;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusEvent;
 import lombok.extern.slf4j.Slf4j;
@@ -40,10 +41,10 @@ public class PushProgressEventsToNotificationPlatformApiController implements Pu
 	@Override
 	public Mono<ResponseEntity<OperationResultCodeResponse>> sendPaperProgressStatusRequest(
 			String xPagopaExtchServiceId, String xApiKey, 
-			Flux<PaperProgressStatusEvent> paperProgressStatusEvent, 
+			Flux<ConsolidatoreIngressPaperProgressStatusEvent> consolidatoreIngressPaperProgressStatusEvent,  
 			final ServerWebExchange exchange)
 	{ 
-		paperProgressStatusEvent
+		consolidatoreIngressPaperProgressStatusEvent
 				.doOnNext(event -> log.info("PushProgressEventsToNotificationPlatformApiController.sendPaperProgressStatusRequest() : "
 											+ "START for requestId {}",
 											event.getRequestId()))

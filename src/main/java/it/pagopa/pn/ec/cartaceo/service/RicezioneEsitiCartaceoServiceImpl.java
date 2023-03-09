@@ -7,6 +7,11 @@ import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.SEMANTIC_ERROR;
 import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.SEMANTIC_ERROR_CODE;
 import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.SYNTAX_ERROR;
 import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.SYNTAX_ERROR_CODE;
+import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.attachmentDocumentTypeMap;
+import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.deliveryFailureCausemap;
+import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.productTypeMap;
+import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.statusCodeDescriptionMap;
+
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -22,9 +27,9 @@ import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.rest.v1.dto.ConsolidatoreIngressPaperProgressStatusEvent;
 import it.pagopa.pn.ec.rest.v1.dto.GeneratedMessageDto;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
-import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusEvent;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;;
 
@@ -48,39 +53,42 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	}
 	
 	// errore sintattico -> resultDescription: 'Syntax Error'
-	private Mono<List<String>> verificaErroriSintattici(PaperProgressStatusEvent paperProgressStatusEvent) {
+	private Mono<List<String>> verificaErroriSintattici(ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent) {
 		log.info("RicezioneEsitiCartaceoServiceImpl.verificaErroriSintattici() : START for requestId \"{}\"",
-				 paperProgressStatusEvent.getRequestId() != null ? paperProgressStatusEvent.getRequestId() : "assente");
+				 progressStatusEvent.getRequestId() != null ? progressStatusEvent.getRequestId() : "assente");
 		String errore = "field %s is required";
 		List<String> errori = new ArrayList<>();
-		if (paperProgressStatusEvent.getRequestId() == null || paperProgressStatusEvent.getRequestId().isBlank()) {
+		if (progressStatusEvent.getRequestId() == null || progressStatusEvent.getRequestId().isBlank()) {
 			errori.add(String.format(errore, "requestId"));
 		}
-		if (paperProgressStatusEvent.getStatusCode() == null || paperProgressStatusEvent.getStatusCode().isBlank()) {
+		if (progressStatusEvent.getStatusCode() == null || progressStatusEvent.getStatusCode().isBlank()) {
 			errori.add(String.format(errore, "statusCode"));
 		}
-		if (paperProgressStatusEvent.getStatusDescription() == null || paperProgressStatusEvent.getStatusDescription().isBlank()) {
+		if (progressStatusEvent.getStatusDescription() == null || progressStatusEvent.getStatusDescription().isBlank()) {
 			errori.add(String.format(errore, "statusDescription"));
 		}
-		if (paperProgressStatusEvent.getStatusDateTime() == null) {
+		if (progressStatusEvent.getStatusDateTime() == null) {
 			errori.add(String.format(errore, "statusDateTime"));
 		}
-		if (paperProgressStatusEvent.getProductType() == null || paperProgressStatusEvent.getProductType().isBlank()) {
+		if (progressStatusEvent.getProductType() == null || progressStatusEvent.getProductType().isBlank()) {
 			errori.add(String.format(errore, "statusDateTime"));
 		}
-		if (paperProgressStatusEvent.getClientRequestTimeStamp() == null) {
+		if (progressStatusEvent.getClientRequestTimeStamp() == null) {
 			errori.add(String.format(errore, "clientRequestTimeStamp"));
 		}
-		if (paperProgressStatusEvent.getAttachments() != null && !paperProgressStatusEvent.getAttachments().isEmpty()) {
-			paperProgressStatusEvent.getAttachments().forEach(attachment -> {
+		if (progressStatusEvent.getAttachments() != null && !progressStatusEvent.getAttachments().isEmpty()) {
+			progressStatusEvent.getAttachments().forEach(attachment -> {
 				if (attachment.getId() == null || attachment.getId().isBlank()) {
 					errori.add(String.format(errore, "attachment.id"));
 				}
 				if (attachment.getDocumentType() == null || attachment.getDocumentType().isBlank()) {
 					errori.add(String.format(errore, "attachment.documentType"));
 				}
-				if (attachment.getUrl() == null || attachment.getUrl().isBlank()) {
-					errori.add(String.format(errore, "attachment.url"));
+				if (attachment.getUri() == null || attachment.getUri().isBlank()) {
+					errori.add(String.format(errore, "attachment.uri"));
+				}
+				if (attachment.getSha256() == null || attachment.getSha256().isBlank()) {
+					errori.add(String.format(errore, "attachment.sha256"));
 				}
 				if (attachment.getDate() == null) {
 					errori.add(String.format(errore, "attachment.date"));
@@ -91,24 +99,33 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	}
 	
 	// errore semantico -> resultDescription: 'Semantic Error'
-	private Mono<List<String>> verificaErroriSemantici(PaperProgressStatusEvent paperProgressStatusEvent) {
+	private Mono<List<String>> verificaErroriSemantici(ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent) {
 		log.info("RicezioneEsitiCartaceoServiceImpl.verificaCorrettezzaStatusCode() : START for requestId \"{}\"",
-				paperProgressStatusEvent.getRequestId() != null ? paperProgressStatusEvent.getRequestId() : "assente");
+				progressStatusEvent.getRequestId() != null ? progressStatusEvent.getRequestId() : "assente");
 
 		List<String> errori = new ArrayList<>();
-		String erroreUnrecognized = "%s unrecognized";
-		if (paperProgressStatusEvent != null) {
-			if (!PaperElem.statusCodeDescriptionMap().containsKey(paperProgressStatusEvent.getStatusCode())) {
-				errori.add(String.format(erroreUnrecognized, "statusCode"));
-			}
-			if (!PaperElem.productTypeMap().containsKey(paperProgressStatusEvent.getProductType())) {
-				errori.add(String.format(erroreUnrecognized, "productType"));
-			}
-			if (paperProgressStatusEvent.getDeliveryFailureCause() != null 
-					&& !paperProgressStatusEvent.getDeliveryFailureCause().isBlank()
-					&& !PaperElem.deliveryFailureCausemap().containsKey(paperProgressStatusEvent.getDeliveryFailureCause())) {
-				errori.add(String.format(erroreUnrecognized, "deliveryFailureCause"));
-			}
+		String erroreUnrecognized = "%s unrecognized : wrong value = %s";
+		
+		if (!statusCodeDescriptionMap().containsKey(progressStatusEvent.getStatusCode())) {
+			errori.add(String.format(erroreUnrecognized, "statusCode"));
+		}
+		if (!productTypeMap().containsKey(progressStatusEvent.getProductType())) {
+			errori.add(String.format(erroreUnrecognized, "productType"));
+		}
+		// DeliveryFailureCaus non è un campo obbligatorio
+		if (progressStatusEvent.getDeliveryFailureCause() != null 
+				&& !progressStatusEvent.getDeliveryFailureCause().isBlank()
+				&& !deliveryFailureCausemap().containsKey(progressStatusEvent.getDeliveryFailureCause())) {
+			errori.add(String.format(erroreUnrecognized, "deliveryFailureCause", progressStatusEvent.getDeliveryFailureCause()));
+		}
+		// Attachments non e' una lista obbligatoria
+		if (progressStatusEvent.getAttachments() != null && !progressStatusEvent.getAttachments().isEmpty()) {
+			progressStatusEvent.getAttachments().forEach(attachment -> {
+				if (attachment.getDocumentType() != null 
+						&& !attachmentDocumentTypeMap().contains(attachment.getDocumentType())) {
+					errori.add(String.format(erroreUnrecognized, "attachment.documentType", attachment.getDocumentType()));
+				}
+			});
 		}
 		return Mono.just(errori);
 	}
@@ -127,15 +144,15 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	@Override
 	public Mono<OperationResultCodeResponse> ricezioneEsitiDaConsolidatore(
 			String xPagopaExtchServiceId,
-			PaperProgressStatusEvent paperProgressStatusEvent) 
+			ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent) 
 	{
-		 return  Mono.just(paperProgressStatusEvent)
+		 return  Mono.just(progressStatusEvent)
 				     .doOnNext(event -> log.info("RicezioneEsitiCartaceoServiceImpl.ricezioneEsitiDaConsolidatore() : "
 				     							 + "START for requestId {}",
-				     							 paperProgressStatusEvent.getRequestId()))
+				     							progressStatusEvent.getRequestId()))
 				     .flatMap(event -> {
 				    	 // verificare presenza attributi obbligatori
-				    	 return verificaErroriSintattici(paperProgressStatusEvent)
+				    	 return verificaErroriSintattici(progressStatusEvent)
 				    	 		.flatMap(errori -> {
 				    	 			if (errori != null && !errori.isEmpty()) {
 				    	 				return Mono.error(new RicezioneEsitiCartaceoException(
@@ -145,7 +162,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				    	 						errori));
 				    	 			}
 				    	 			// verificare correttezza dati
-				    	 			return verificaErroriSemantici(paperProgressStatusEvent);
+				    	 			return verificaErroriSemantici(progressStatusEvent);
 				    	 		})
 				    	 		.flatMap(errori -> {
 				    	 			if (errori != null && !errori.isEmpty()) {
@@ -156,7 +173,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				    	 						errori));
 				    	 			}
 				    	 			// verificare esistenza requestId
-				    	 			return gestoreRepositoryCall.getRichiesta(paperProgressStatusEvent.getRequestId());
+				    	 			return gestoreRepositoryCall.getRichiesta(progressStatusEvent.getRequestId());
 				    	 		})
 				    	 		.flatMap(requestDto -> {
 				    	 			// pubblicazione sulla coda del notification tracker
@@ -164,7 +181,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				    	 			gmDTO.setId(""); // altrimenti "N/A"
 				    	 			return sqsService.send(notificationTrackerSqsName.statoCartaceoName(), 
 						    	 							new NotificationTrackerQueueDto(
-								    	 							paperProgressStatusEvent.getRequestId(),        
+						    	 									progressStatusEvent.getRequestId(),        
 								    	 							xPagopaExtchServiceId,        
 								    	 							OffsetDateTime.now(),        
 									    	 						transactionProcessConfigurationProperties.paper(),        

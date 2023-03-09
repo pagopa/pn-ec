@@ -1,14 +1,11 @@
 package it.pagopa.pn.ec.cartaceo.utils;
 
+import java.util.List;
 import java.util.Map;
 
 public class PaperElem {
 	
 	private PaperElem() {
-	}
-	
-	public static Map<String, String> statusCodeDescriptionMap() {
-		return statusCodeDescriptionMap;
 	}
 	
 	private static final Map<String, String> statusCodeDescriptionMap = Map.ofEntries(
@@ -114,10 +111,10 @@ public class PaperElem {
 				            Map.entry("REC090","Archiviazione fisica materialità di ritorno")
 						);
 	
-	public static Map<String, String> productTypeMap() {
-		return productTypeMap;
+	public static Map<String, String> statusCodeDescriptionMap() {
+		return statusCodeDescriptionMap;
 	}
-
+	
 	private static final Map<String, String> productTypeMap = Map.ofEntries(
 			Map.entry("AR","Raccomandata Andata e Ritorno nazionale"),
 			Map.entry("890","Recapito a norma della legge 890/1982"),
@@ -125,8 +122,8 @@ public class PaperElem {
 			Map.entry("RIS","Raccomandata Internazionale Semplice"),
 			Map.entry("RIR","Raccomandata Internazionale con AR"));
 	
-	public static Map<String, String> deliveryFailureCausemap() {
-		return deliveryFailureCauseMap;
+	public static Map<String, String> productTypeMap() {
+		return productTypeMap;
 	}
 
 	private static final Map<String, String> deliveryFailureCauseMap = Map.ofEntries(
@@ -141,5 +138,15 @@ public class PaperElem {
 			Map.entry("F01","in caso di furto"),
 			Map.entry("F02","in caso di smarrimento"),
 			Map.entry("F03","in caso di deterioramento"));
+	
+	public static Map<String, String> deliveryFailureCausemap() {
+		return deliveryFailureCauseMap;
+	}
+	
+	private static final List<String> attachmentDocumentTypeMap = List.of("23L", "ARCAD","CAD","CAN","Plico","Indagine","AR");
+
+	public static List<String> attachmentDocumentTypeMap() {
+		return attachmentDocumentTypeMap;
+	}
 	
 }
