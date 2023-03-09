@@ -9,10 +9,8 @@ servers:
       https://api.externalchannel.pagopa.local
     description: Server url
 tags:
-  - name: PushAttachmentsPreload
-    description: Richiesta di pre-caricamento dei documenti da comunicare a PN.
-  - name: PushProgressEventsToNotificationPlatform
-    description: Webhook con cui PN riceve progressi postalizzazioni
+  - name: Consolidatore
+    description: API del consolidatore.
 
 paths:
   /consolidatore-ingress/v1/attachement-preload:
@@ -22,13 +20,13 @@ paths:
         Operazione che richiede a Piattaforma Notifica le informazioni e le autorizzazioni necessarie 
         a precaricare uno o più file.
       tags:
-        - PushAttachmentsPreload
+        - Consolidatore
       operationId: presignedUploadRequest
       requestBody:
         content:
           application/json:
             schema:
-              title: PreLoadRequestSchema
+              title: PreLoadRequestData
               type: object
               required:
                 - preloads
@@ -46,7 +44,7 @@ paths:
           content:
             application/json:
               schema:
-                title: PreLoadResponseSchema
+                title: PreLoadResponseData
                 type: object
                 required:
                   - preloads
@@ -68,7 +66,7 @@ paths:
                 semanticError:
                   summary: 'Errore semantico'
                   value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type' ], clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
- 
+
   /consolidatore-ingress/v1/push-progress-events/:
     post:
       operationId: sendPaperProgressStatusRequest
@@ -76,7 +74,7 @@ paths:
       description: |-
         inserire
       tags:
-        - PushProgressEventsToNotificationPlatform
+        - Consolidatore
       parameters:
         - $ref: '#/components/parameters/xPagopaExtchServiceId'
         - $ref: '#/components/parameters/xPagopaExtchApiKey'
