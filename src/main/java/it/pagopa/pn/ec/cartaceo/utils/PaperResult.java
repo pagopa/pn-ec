@@ -5,7 +5,7 @@ public class PaperResult {
 	private PaperResult() {
 	}
 	
-	public static final String COMPLETED__CODE = "";
+	public static final String COMPLETED_OK_CODE = "202.00";
 	public static final String COMPLETED_MESSAGE = "Accepted";
 	
 	public static final String GENERIC_ERROR_CODE = "400.00";

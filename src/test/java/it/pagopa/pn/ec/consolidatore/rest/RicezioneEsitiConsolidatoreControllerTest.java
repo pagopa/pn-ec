@@ -1,5 +1,9 @@
 package it.pagopa.pn.ec.consolidatore.rest;
 
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +11,8 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.rest.v1.dto.AttachmentDetails;
+import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusEvent;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,6 +26,26 @@ class RicezioneEsitiConsolidatoreControllerTest {
     
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
+    
+    private static final String xPagopaExtchServiceId = "";
+    private static final String xApiKey = "";
+    private static final OffsetDateTime now = OffsetDateTime.now();
+    
+    private PaperProgressStatusEvent getPaperProgressStatusEvent() {
+    	AttachmentDetails attachmentDetails = new AttachmentDetails();
+    	
+    	List<AttachmentDetails> list = new ArrayList<>();
+    	list.add(attachmentDetails);
+    	
+    	PaperProgressStatusEvent paperProgressStatusEvent = new PaperProgressStatusEvent();
+    	paperProgressStatusEvent.setRequestId(null);
+    	paperProgressStatusEvent.setStatusCode(null);
+    	paperProgressStatusEvent.setStatusDescription(null);
+    	paperProgressStatusEvent.setStatusDateTime(now);
+    	paperProgressStatusEvent.setProductType(null);
+    	paperProgressStatusEvent.setClientRequestTimeStamp(now);
+    	return paperProgressStatusEvent;
+    }
     
     @Test
     /** Test CRCRE.100.1 */

@@ -1,5 +1,8 @@
 package it.pagopa.pn.ec.cartaceo.rest;
 
+import java.time.OffsetDateTime;
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
@@ -24,6 +27,16 @@ public class PushProgressEventsToNotificationPlatformApiController implements Pu
 		this.ricezioneEsitiCartaceoService = ricezioneEsitiCartaceoService;
 	}
 	
+	private Mono<OperationResultCodeResponse> getOperationResultCodeResponse(
+			String resultCode, String resultDescription, List<String> errorList) {
+		OperationResultCodeResponse response = new OperationResultCodeResponse();
+		response.setResultCode(resultCode);
+		response.setResultDescription(resultDescription);
+		response.setErrorList(errorList);
+		response.setClientResponseTimeStamp(OffsetDateTime.now());
+		return Mono.just(response);
+	}
+	
 	@Override
 	public Mono<ResponseEntity<OperationResultCodeResponse>> sendPaperProgressStatusRequest(
 			String xPagopaExtchServiceId, String xApiKey, 
@@ -34,12 +47,11 @@ public class PushProgressEventsToNotificationPlatformApiController implements Pu
 				.doOnNext(event -> log.info("PushProgressEventsToNotificationPlatformApiController.sendPaperProgressStatusRequest() : "
 											+ "START for requestId {}",
 											event.getRequestId()))
-				.flatMap(ricezioneEsitiCartaceoService::ricezioneEsitiDaConsolidatore)
-			    .onErrorResume(RicezioneEsitiCartaceoException.class, throwable -> {
+				.flatMap(statusEvent -> ricezioneEsitiCartaceoService.ricezioneEsitiDaConsolidatore(xPagopaExtchServiceId, statusEvent))
+			    .onErrorResume(RuntimeException.class, throwable -> {
 			    	 
 			    	 return null;
 			     });
-//				.flatMap(response -> ResponseEntity.ok(response));
 		 
 		 return null;
 	}

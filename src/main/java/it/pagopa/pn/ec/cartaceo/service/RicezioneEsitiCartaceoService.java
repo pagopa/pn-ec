@@ -6,6 +6,7 @@ import reactor.core.publisher.Mono;
 
 public interface RicezioneEsitiCartaceoService {
 	
-	Mono<OperationResultCodeResponse> ricezioneEsitiDaConsolidatore(PaperProgressStatusEvent paperProgressStatusEvent);
+	Mono<OperationResultCodeResponse> ricezioneEsitiDaConsolidatore(
+			String xPagopaExtchServiceId, PaperProgressStatusEvent paperProgressStatusEvent);
 
 }
