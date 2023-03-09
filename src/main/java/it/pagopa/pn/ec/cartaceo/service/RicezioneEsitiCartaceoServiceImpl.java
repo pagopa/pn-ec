@@ -1,5 +1,9 @@
 package it.pagopa.pn.ec.cartaceo.service;
 
+import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.attachmentDocumentTypeMap;
+import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.deliveryFailureCausemap;
+import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.productTypeMap;
+import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.statusCodeDescriptionMap;
 import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.COMPLETED_MESSAGE;
 import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.COMPLETED_OK_CODE;
 import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.GENERIC_ERROR_CODE;
@@ -7,11 +11,6 @@ import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.SEMANTIC_ERROR;
 import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.SEMANTIC_ERROR_CODE;
 import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.SYNTAX_ERROR;
 import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.SYNTAX_ERROR_CODE;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.attachmentDocumentTypeMap;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.deliveryFailureCausemap;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.productTypeMap;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.statusCodeDescriptionMap;
-
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -20,7 +19,6 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import it.pagopa.pn.ec.cartaceo.exception.RicezioneEsitiCartaceoException;
-import it.pagopa.pn.ec.cartaceo.utils.PaperElem;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -28,10 +26,11 @@ import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.rest.v1.dto.ConsolidatoreIngressPaperProgressStatusEvent;
+import it.pagopa.pn.ec.rest.v1.dto.ConsolidatoreIngressPaperProgressStatusEventDiscoveredAddress;
 import it.pagopa.pn.ec.rest.v1.dto.GeneratedMessageDto;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;;
+import reactor.core.publisher.Mono;
 
 @Service
 @Slf4j
@@ -95,6 +94,18 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				}
 			});
 		}
+		ConsolidatoreIngressPaperProgressStatusEventDiscoveredAddress discoveredAddress = progressStatusEvent.getDiscoveredAddress();
+		if (discoveredAddress != null) {
+			if (discoveredAddress.getName() == null || discoveredAddress.getName().isBlank()) {
+				errori.add(String.format(errore, "discoveredAddress.name"));
+			}
+			if (discoveredAddress.getAddress() == null || discoveredAddress.getAddress().isBlank()) {
+				errori.add(String.format(errore, "discoveredAddress.address"));
+			}
+			if (discoveredAddress.getCity() == null || discoveredAddress.getCity().isBlank()) {
+				errori.add(String.format(errore, "discoveredAddress.city"));
+			}
+		}
 		return Mono.just(errori);
 	}
 	
@@ -150,9 +161,9 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				     .doOnNext(event -> log.info("RicezioneEsitiCartaceoServiceImpl.ricezioneEsitiDaConsolidatore() : "
 				     							 + "START for requestId {}",
 				     							progressStatusEvent.getRequestId()))
-				     .flatMap(event -> {
+				     .flatMap(event -> 
 				    	 // verificare presenza attributi obbligatori
-				    	 return verificaErroriSintattici(progressStatusEvent)
+				    	 verificaErroriSintattici(progressStatusEvent)
 				    	 		.flatMap(errori -> {
 				    	 			if (errori != null && !errori.isEmpty()) {
 				    	 				return Mono.error(new RicezioneEsitiCartaceoException(
@@ -189,10 +200,8 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 									    	 						"inprogress",        
 									    	 						gmDTO));
 				    	 		})
-				    	 		.flatMap(sendMessageResponse -> {
-				    	 			return getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null);
-				    	 		});
-				     })
+				    	 		.flatMap(sendMessageResponse -> getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null))
+				     )
 				     // *** errore
 				     .onErrorResume(RicezioneEsitiCartaceoException.class, throwable -> {
 				    	 if (throwable.getErrorList() != null && !throwable.getErrorList().isEmpty()) {
