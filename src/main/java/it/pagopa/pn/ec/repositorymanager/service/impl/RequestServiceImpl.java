@@ -1,9 +1,9 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
-import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
+import it.pagopa.pn.ec.repositorymanager.model.pojo.Patch;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
 import it.pagopa.pn.ec.repositorymanager.service.RequestPersonalService;
@@ -23,6 +23,7 @@ public class RequestServiceImpl implements RequestService {
 
     private final RequestPersonalService requestPersonalService;
     private final RequestMetadataService requestMetadataService;
+    private static final String SEPARATORE = "~";
 
     public RequestServiceImpl(RequestPersonalService requestPersonalService, RequestMetadataService requestMetadataService) {
         this.requestPersonalService = requestPersonalService;
@@ -42,8 +43,8 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Mono<Request> insertRequest(Request request) {
 
-        String requestId = request.getRequestId();
         String clientId = request.getXPagopaExtchCxId();
+        String requestId = clientId + SEPARATORE + request.getRequestId();
 
         RequestPersonal requestPersonal = request.getRequestPersonal();
         requestPersonal.setRequestId(requestId);
@@ -71,9 +72,9 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
-    public Mono<Request> updateEvents(String requestIdx, Events events) {
+    public Mono<Request> patchRequest(String requestIdx, Patch patch) {
         return Mono.zip(requestPersonalService.getRequestPersonal(requestIdx),
-                        requestMetadataService.updateEventsMetadata(requestIdx, events)).map(objects -> {
+                        requestMetadataService.patchRequestMetadata(requestIdx, patch)).map(objects -> {
             RequestPersonal retrievedRequestPersonal = objects.getT1();
             RequestMetadata updatedRequestMetadata = objects.getT2();
             return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, updatedRequestMetadata);

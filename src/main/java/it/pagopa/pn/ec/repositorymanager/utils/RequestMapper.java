@@ -8,6 +8,8 @@ import java.time.OffsetDateTime;
 
 public class RequestMapper {
 
+    private static final String SEPARATORE = "~";
+
     private RequestMapper() {
         throw new IllegalStateException("RequestMapper is a utility class");
     }
@@ -17,8 +19,13 @@ public class RequestMapper {
         String currentStatus = requestMetadata.getStatusRequest();
         OffsetDateTime clientRequestTimeStamp = requestMetadata.getClientRequestTimeStamp();
         OffsetDateTime requestTimeStamp = requestMetadata.getRequestTimestamp();
+
+        String requestTableId = requestMetadata.getRequestId();
+        String[] primaryKeys = requestTableId.split(SEPARATORE);
+        String requestOutputId = primaryKeys[1];
+
         return Request.builder()
-                      .requestId(requestPersonal.getRequestId())
+                      .requestId(requestOutputId)
                       .xPagopaExtchCxId(clientId)
                       .messageId(requestMetadata.getMessageId())
                       .statusRequest(currentStatus)
