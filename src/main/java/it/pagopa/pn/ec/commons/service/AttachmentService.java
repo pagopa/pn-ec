@@ -8,5 +8,5 @@ import java.util.List;
 public interface AttachmentService {
 
 
-    Flux<FileDownloadResponse> checkAllegatiPresence(List<String> attachmentUrls, String xPagopaExtchCxId, boolean metadataOnly);
+    Flux<FileDownloadResponse> getAllegatiPresignedUrlOrMetadata(List<String> attachmentUrls, String xPagopaExtchCxId, boolean metadataOnly);
 }

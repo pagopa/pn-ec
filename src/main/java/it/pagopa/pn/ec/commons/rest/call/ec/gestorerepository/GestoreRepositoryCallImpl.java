@@ -99,7 +99,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     @Override
     public Mono<RequestDto> setMessageIdInRequestMetadata(String requestIdx)
             throws RestCallException.ResourceNotFoundException, RestCallException.ISEForMessageIdCreationException {
-        return ecWebClient.get()
+        return ecWebClient.post()
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
                                                        .build(requestIdx))
                           .retrieve()

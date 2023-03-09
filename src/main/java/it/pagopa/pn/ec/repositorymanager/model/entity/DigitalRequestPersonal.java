@@ -14,11 +14,11 @@ import java.util.List;
 @DynamoDbBean
 public class DigitalRequestPersonal {
 
-//	pec, email, sms
-	private String qos;
-	private String receiverDigitalAddress;
-	private String messageText;
-	private String senderDigitalAddress;
-	private String subjectText;
-	private List<String> attachmentsUrls;
+	//	pec, email, sms
+	String qos;
+	String receiverDigitalAddress;
+	String messageText;
+	String senderDigitalAddress;
+	String subjectText;
+	List<String> attachmentsUrls;
 }

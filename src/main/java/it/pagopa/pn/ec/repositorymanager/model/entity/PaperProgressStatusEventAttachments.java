@@ -14,9 +14,9 @@ import java.time.OffsetDateTime;
 @DynamoDbBean
 public class PaperProgressStatusEventAttachments {
 
-    private String id;
-    private String documentType;
-    private String uri;
-    private String sha256;
-    private OffsetDateTime date;
+    String id;
+    String documentType;
+    String uri;
+    String sha256;
+    OffsetDateTime date;
 }

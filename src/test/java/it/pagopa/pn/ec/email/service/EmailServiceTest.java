@@ -1,33 +1,21 @@
 package it.pagopa.pn.ec.email.service;
 
-import static it.pagopa.pn.ec.email.testutils.DigitalCourtesyMailRequestFactory.createMailRequest;
-import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
-import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
+import io.awspring.cloud.messaging.listener.Acknowledgment;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.service.SesService;
+import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
+import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
+import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
+import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
-import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
-import it.pagopa.pn.ec.commons.service.SesService;
-import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
-import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
-import it.pagopa.pn.ec.email.model.pojo.EmailField;
-import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
-import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import reactor.core.publisher.Mono;
-import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
+import static it.pagopa.pn.ec.email.testutils.DigitalCourtesyMailRequestFactory.createMailRequest;
+import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
+import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTestWebEnv
 class EmailServiceTest {
