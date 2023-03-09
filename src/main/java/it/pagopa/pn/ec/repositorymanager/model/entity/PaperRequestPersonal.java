@@ -14,24 +14,24 @@ import java.util.List;
 @DynamoDbBean
 public class PaperRequestPersonal {
 
-	private List<PaperEngageRequestAttachments> attachments;
-	private String receiverName;
-	private String receiverNameRow2;
-	private String receiverAddress;
-	private String receiverAddressRow2;
-	private String receiverCap;
-	private String receiverCity;
-	private String receiverCity2;
-	private String receiverPr;
-	private String receiverCountry;
-	private String receiverFiscalCode;
-	private String senderName;
-	private String senderAddress;
-	private String senderCity;
-	private String senderPr;
-	private String senderDigitalAddress;
-	private String arName;
-	private String arAddress;
-	private String arCap;
-	private String arCity;
+    List<PaperEngageRequestAttachments> attachments;
+    String receiverName;
+    String receiverNameRow2;
+    String receiverAddress;
+    String receiverAddressRow2;
+    String receiverCap;
+    String receiverCity;
+    String receiverCity2;
+    String receiverPr;
+    String receiverCountry;
+    String receiverFiscalCode;
+    String senderName;
+    String senderAddress;
+    String senderCity;
+    String senderPr;
+    String senderDigitalAddress;
+    String arName;
+    String arAddress;
+    String arCap;
+    String arCity;
 }

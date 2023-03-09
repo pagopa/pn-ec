@@ -1,9 +1,7 @@
 package it.pagopa.pn.ec.repositorymanager.model.entity;
 
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import it.pagopa.pn.ec.commons.model.entity.DocumentVersion;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
@@ -15,15 +13,17 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 @DynamoDbBean
-public class RequestMetadata {
+@EqualsAndHashCode(callSuper = true)
+public class RequestMetadata extends DocumentVersion {
 
-	@Getter(onMethod=@__({@DynamoDbPartitionKey}))
-	String requestId;
-	String xPagopaExtchCxId;
-	String statusRequest;
-	OffsetDateTime clientRequestTimeStamp;
-	OffsetDateTime requestTimestamp;
-	DigitalRequestMetadata digitalRequestMetadata;
-	PaperRequestMetadata paperRequestMetadata;
-	List<Events> eventsList;
+    @Getter(onMethod = @__({@DynamoDbPartitionKey}))
+    String requestId;
+    String messageId;
+    String xPagopaExtchCxId;
+    String statusRequest;
+    OffsetDateTime clientRequestTimeStamp;
+    OffsetDateTime requestTimestamp;
+    DigitalRequestMetadata digitalRequestMetadata;
+    PaperRequestMetadata paperRequestMetadata;
+    List<Events> eventsList;
 }

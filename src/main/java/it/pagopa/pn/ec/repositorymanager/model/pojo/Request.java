@@ -9,19 +9,20 @@ import lombok.experimental.FieldDefaults;
 import java.time.OffsetDateTime;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Data
 @Builder
 public class Request {
 
-	@JsonProperty("requestIdx")
-	String requestId;
-	@JsonProperty("xPagopaExtchCxId")
-	String xPagopaExtchCxId;
-	String statusRequest;
-	OffsetDateTime clientRequestTimeStamp;
-	OffsetDateTime requestTimeStamp;
-	RequestPersonal requestPersonal;
-	RequestMetadata requestMetadata;
+    @JsonProperty("requestIdx")
+    String requestId;
+    @JsonProperty("xPagopaExtchCxId")
+    String xPagopaExtchCxId;
+    String messageId;
+    String statusRequest;
+    OffsetDateTime clientRequestTimeStamp;
+    OffsetDateTime requestTimeStamp;
+    RequestPersonal requestPersonal;
+    RequestMetadata requestMetadata;
 }

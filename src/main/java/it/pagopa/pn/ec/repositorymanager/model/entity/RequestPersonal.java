@@ -16,11 +16,11 @@ import java.time.OffsetDateTime;
 @DynamoDbBean
 public class RequestPersonal {
 
-	@Getter(onMethod=@__({@DynamoDbPartitionKey}))
-	String requestId;
-	String xPagopaExtchCxId;
-	OffsetDateTime clientRequestTimeStamp;
-	OffsetDateTime requestTimestamp;
-	DigitalRequestPersonal digitalRequestPersonal;
-	PaperRequestPersonal paperRequestPersonal;
+    @Getter(onMethod = @__({@DynamoDbPartitionKey}))
+    String requestId;
+    String xPagopaExtchCxId;
+    OffsetDateTime clientRequestTimeStamp;
+    OffsetDateTime requestTimestamp;
+    DigitalRequestPersonal digitalRequestPersonal;
+    PaperRequestPersonal paperRequestPersonal;
 }

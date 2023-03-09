@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.commons.configuration;
+package it.pagopa.pn.ec.commons.configuration.aws;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.messaging.config.QueueMessageHandlerFactory;
@@ -17,6 +17,10 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClientBuilder;
 import software.amazon.awssdk.services.eventbridge.EventBridgeAsyncClient;
 import software.amazon.awssdk.services.eventbridge.EventBridgeAsyncClientBuilder;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClientBuilder;
+import software.amazon.awssdk.services.ses.SesAsyncClient;
+import software.amazon.awssdk.services.ses.SesAsyncClientBuilder;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.SnsAsyncClientBuilder;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
@@ -30,26 +34,19 @@ public class AwsConfiguration {
 
     private final AwsConfigurationProperties awsConfigurationProperties;
 
-    /**
-     * Set in LocalStackTestConfig
-     */
+    //  These properties are set in LocalStackTestConfig
     @Value("${test.aws.sqs.endpoint:#{null}}")
     String sqsLocalStackEndpoint;
-
-    /**
-     * Set in LocalStackTestConfig
-     */
     @Value("${test.aws.dynamodb.endpoint:#{null}}")
     String dynamoDbLocalStackEndpoint;
-
-    /**
-     * Set in LocalStackTestConfig
-     */
     @Value("${test.aws.sns.endpoint:#{null}}")
     String snsLocalStackEndpoint;
-
+    @Value("${test.aws.ses.endpoint:#{null}}")
+    String sesLocalStackEndpoint;
     @Value("${test.aws.event:#{null}}")
     String eventLocalStackEndpoint;
+    @Value("${test.aws.secretsmanager.endpoint:#{null}}")
+    String secretsmanagerLocalStackEndpoint;
 
     private static final DefaultCredentialsProvider DEFAULT_CREDENTIALS_PROVIDER = DefaultCredentialsProvider.create();
 
@@ -134,5 +131,31 @@ public class AwsConfiguration {
         }
 
         return snsAsyncClientBuilder.build();
+    }
+
+    @Bean
+    public SesAsyncClient sesClient() {
+        SesAsyncClientBuilder sesAsyncClientBuilder = SesAsyncClient.builder()
+                                                                    .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER)
+                                                                    .region(Region.of(awsConfigurationProperties.regionCode()));
+
+        if (sesLocalStackEndpoint != null) {
+            sesAsyncClientBuilder.endpointOverride(URI.create(sesLocalStackEndpoint));
+        }
+
+        return sesAsyncClientBuilder.build();
+    }
+
+    @Bean
+    public SecretsManagerClient secretsManagerClient() {
+        SecretsManagerClientBuilder secretsManagerClient = SecretsManagerClient.builder()
+                                                                               .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER)
+                                                                               .region(Region.of(awsConfigurationProperties.regionCode()));
+
+        if (sesLocalStackEndpoint != null) {
+            secretsManagerClient.endpointOverride(URI.create(secretsmanagerLocalStackEndpoint));
+        }
+
+        return secretsManagerClient.build();
     }
 }

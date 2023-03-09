@@ -27,7 +27,8 @@ public abstract class PresaInCaricoService {
 //                        Retrieve request
                           .then(gestoreRepositoryCall.getRichiesta(presaInCaricoInfo.getRequestIdx()))
 //                        The request exists
-//                        TODO: Definire la logica di una richiesta già presente. Al momento se una richiesta esiste viene tornato direttamente un 409 come risposta
+//                        TODO: Definire la logica di una richiesta già presente. Al momento se una richiesta esiste viene tornato
+//                         direttamente un 409 come risposta
                           .handle((existingRequest, sink) -> sink.error(new RequestAlreadyInProgressException(existingRequest.getRequestIdx())))
 //                        The request doesn't exist
                           .onErrorResume(RestCallException.ResourceNotFoundException.class, throwable -> {

@@ -70,7 +70,7 @@ class PaperMessagesApiControllerTest {
     @MockBean
     private FileCall uriBuilderCall;
 
-    private static final String SEND_CARTACEO_ENDPOINT = "/external-channel/v1/paper-deliveries-engagements"
+    private static final String SEND_CARTACEO_ENDPOINT = "/external-channels/v1/paper-deliveries-engagements"
             + "/{requestIdx}";
 
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
