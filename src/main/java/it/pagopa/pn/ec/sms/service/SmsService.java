@@ -271,8 +271,29 @@ public class SmsService extends PresaInCaricoService {
                                 return retrySmsSend(acknowledgment,
                                         smsPresaInCaricoInfo,
                                         smsPresaInCaricoInfo.getStatusAfterStart(),
-                                        null);
-                            })
+                                        null)
+                                        .onErrorResume(throwable -> {
+                        return gestoreRepositoryCall.getRichiesta(requestId)
+                                .filter(request -> !Objects.equals(request.getStatusRequest(), "toDelete"))
+                                .flatMap(request -> {
+                                    //check step retry TODO
+                                    return snsService.send(digitalCourtesySmsRequest.getReceiverDigitalAddress(), digitalCourtesySmsRequest.getMessageText())
+                                            .flatMap(publishResponse -> {
+                                                var generatedMessageDto = new GeneratedMessageDto().id(publishResponse.messageId()).system("systemPlaceholder");
+                                                return sqsService.send(notificationTrackerSqsName.statoSmsName(),
+                                                        new NotificationTrackerQueueDto(requestId,
+                                                                clientId,
+                                                                now(),
+                                                                transactionProcessConfigurationProperties.sms(),
+                                                                smsPresaInCaricoInfo.getStatusAfterStart(),
+                                                                "sent",
+                                                                // TODO: SET eventDetails
+                                                                "",
+                                                                generatedMessageDto));
+                                            });
+                                });
+                    });
+                })
                             .doOnSuccess(result -> {
                                 acknowledgment.acknowledge();
                                 log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda: {}", smsSqsQueueName.errorName());
