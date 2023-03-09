@@ -23,7 +23,7 @@ public class ArubaCredentialConf {
         if (arubaPecUsername != null && arubaPecPassword != null) {
             return new ArubaSecretValue(arubaPecUsername, arubaPecPassword);
         } else {
-            String secretStringJson = secretsManagerClient.getSecretValue(builder -> builder.secretId("deploykey/pn-ec")).secretString();
+            String secretStringJson = secretsManagerClient.getSecretValue(builder -> builder.secretId("pn/identity/pec")).secretString();
             return objectMapper.readValue(secretStringJson, ArubaSecretValue.class);
         }
     }
