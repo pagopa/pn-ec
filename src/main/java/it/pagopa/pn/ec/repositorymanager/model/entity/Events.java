@@ -12,6 +12,6 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 @DynamoDbBean
 public class Events {
 
-	DigitalProgressStatus digProgrStatus;
-	PaperProgressStatus paperProgrStatus;
+    DigitalProgressStatus digProgrStatus;
+    PaperProgressStatus paperProgrStatus;
 }

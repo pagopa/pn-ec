@@ -15,12 +15,11 @@ import java.util.List;
 @DynamoDbBean
 public class PaperProgressStatus {
 
-	private String registeredLetterCode;
-	private String statusCode;
-	private String statusDescription;
-	private OffsetDateTime statusDateTime;
-	private String deliveryFailureCause;
-	private List<PaperProgressStatusEventAttachments> attachments;
-	private DiscoveredAddress discoveredAddress;
-
+    String registeredLetterCode;
+    String statusCode;
+    String statusDescription;
+    OffsetDateTime statusDateTime;
+    String deliveryFailureCause;
+    List<PaperProgressStatusEventAttachments> attachments;
+    DiscoveredAddress discoveredAddress;
 }

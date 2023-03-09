@@ -12,7 +12,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 @DynamoDbBean
 public class GeneratedMessage {
 
-	private String system;
-	private String id;
-	private String location;
+    String system;
+    String id;
+    String location;
 }
