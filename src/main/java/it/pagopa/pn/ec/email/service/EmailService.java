@@ -13,10 +13,7 @@ import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.commons.service.AuthService;
-import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
-import it.pagopa.pn.ec.commons.service.SesService;
-import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.commons.service.*;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
@@ -27,6 +24,7 @@ import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static it.pagopa.pn.ec.commons.service.SesService.DEFAULT_RETRY_STRATEGY;
@@ -274,6 +272,43 @@ public class EmailService extends PresaInCaricoService {
         return ret;
     }
 
+    private Mono<SendMessageResponse> retryEmailSend(final Acknowledgment acknowledgment, final EmailPresaInCaricoInfo emailPresaInCaricoInfo,
+                                                     final String currentStatus, final GeneratedMessageDto generateMessageDto) {
+
+        var requestId = emailPresaInCaricoInfo.getRequestIdx();
+        var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
+        var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
+        EmailField mailFld = compilaMail(digitalCourtesyMailRequest);
+//      Try to send SMS
+        return sesService.send(mailFld)
+
+//                       Retry to send SMS
+                .retryWhen(SnsService.DEFAULT_RETRY_STRATEGY)
+
+//                       The SMS in sent, publish to Notification Tracker with next status -> SENT
+                .flatMap(publishResponse -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
+                        new NotificationTrackerQueueDto(requestId,
+                                clientId,
+                                now(),
+                                transactionProcessConfigurationProperties.sms(),
+                                currentStatus,
+                                "sent",
+                                // TODO: SET eventDetails
+                                "",
+                                new GeneratedMessageDto().id(
+                                                publishResponse.messageId())
+                                        .system("systemPlaceholder"))))
+
+//                       Delete from queue
+                .doOnSuccess(result -> acknowledgment.acknowledge())
+
+//                       The maximum number of retries has ended
+                .onErrorResume(SesSendException.SesMaxRetriesExceededException.class,
+                        sesMaxRetriesExceededException -> emailRetriesExceeded(acknowledgment,
+                                emailPresaInCaricoInfo,
+                                currentStatus));
+    }
+
     private Mono<SendMessageResponse> emailRetriesExceeded(final Acknowledgment acknowledgment,
                                                            final EmailPresaInCaricoInfo emailPresaInCaricoInfo, String currentStatus) {
 
@@ -297,5 +332,54 @@ public class EmailService extends PresaInCaricoService {
 
                          // Delete from queue
                          .doOnSuccess(result -> acknowledgment.acknowledge());
+    }
+
+    @SqsListener(value = "${sqs.queue.email.error-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void gestioneRetryEmail(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+
+        log.info("<-- START GESTIONE ERRORI EMAIL -->");
+        logIncomingMessage(emailSqsQueueName.errorName(), emailPresaInCaricoInfo);
+
+        var requestId = emailPresaInCaricoInfo.getRequestIdx();
+        var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
+        var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
+
+        EmailField mailFld = compilaMail(digitalCourtesyMailRequest);
+
+        gestoreRepositoryCall.getRichiesta(requestId)
+                .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), "toDelete"))
+                .flatMap(requestDto -> {
+                    //check step retry TODO
+                    return sesService.send(mailFld)
+                            .flatMap(publishResponse -> {
+                                var generatedMessageDto = new GeneratedMessageDto().id(publishResponse.messageId()).system("systemPlaceholder");
+                                return sqsService.send(notificationTrackerSqsName.statoSmsName(),
+                                        new NotificationTrackerQueueDto(requestId,
+                                                clientId,
+                                                now(),
+                                                transactionProcessConfigurationProperties.sms(),
+                                                emailPresaInCaricoInfo.getStatusAfterStart(),
+                                                "sent",
+                                                // TODO: SET eventDetails
+                                                "",
+                                                generatedMessageDto));
+                            })
+                            .onErrorResume(snsSendException -> {
+                                log.error("Errore durante l'invio dell'SMS: {}", snsSendException.getMessage());
+                                return retryEmailSend(acknowledgment,
+                                        emailPresaInCaricoInfo,
+                                        emailPresaInCaricoInfo.getStatusAfterStart(),
+                                        null);
+                            })
+                            .doOnSuccess(result -> {
+                                acknowledgment.acknowledge();
+                                log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda: {}", emailSqsQueueName.errorName());
+                            });
+
+
+                });
+
+
+
     }
 }
