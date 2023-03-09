@@ -14,10 +14,10 @@ import java.util.Map;
 @DynamoDbBean
 public class DigitalRequestMetadata {
 
-//	pec, email, sms
-	private String correlationId;
-	private String eventType;
-	private Map<String, String> tags;
-	private String channel;
-	private String messageContentType;
+    //	pec, email, sms
+    String correlationId;
+    String eventType;
+    Map<String, String> tags;
+    String channel;
+    String messageContentType;
 }

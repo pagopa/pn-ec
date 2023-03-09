@@ -5,7 +5,6 @@ import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.pec.service.impl.PecService;
 import it.pagopa.pn.ec.rest.v1.api.DigitalLegalMessagesApi;
-import it.pagopa.pn.ec.rest.v1.dto.CourtesyMessageProgressEvent;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.LegalMessageSentDetails;
 import lombok.extern.slf4j.Slf4j;
@@ -15,8 +14,6 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import static org.springframework.http.HttpStatus.OK;
-
-import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
 @RestController
@@ -51,5 +48,4 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
 				.pecPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.pec())
 				.map(ResponseEntity::ok);
 	}
-
 }
