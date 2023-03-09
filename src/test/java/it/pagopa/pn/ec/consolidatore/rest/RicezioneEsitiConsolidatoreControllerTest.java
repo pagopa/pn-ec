@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.reactive.function.BodyInserters;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
@@ -42,8 +43,10 @@ class RicezioneEsitiConsolidatoreControllerTest {
     
     private static final String RICEZIONE_ESITI_ENDPOINT = "/consolidatore-ingress/v1/push-progress-events/";
     
-    private static final String xPagopaExtchServiceId = "IdClientX";
-    private static final String xApiKey = "ApiKeyX";
+    private static final String xPagopaExtchServiceIdHeaderName =  "x-pagopa-extch-service-id";
+    private static final String xApiKeyHeaderaName = "x-api-key";
+    private static final String xPagopaExtchServiceIdHeaderValue = "IdClientX";
+    private static final String xApiKeyHeaderValue = "ApiKeyX";
     private static final String requestId = "RequestIdX";
     private static final OffsetDateTime now = OffsetDateTime.now();
     
@@ -77,6 +80,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	        .uri(RICEZIONE_ESITI_ENDPOINT)
 	        .accept(APPLICATION_JSON)
 	        .contentType(APPLICATION_JSON)
+	        .header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+	        .header(xApiKeyHeaderaName, xApiKeyHeaderValue)
 	        //TODO
 //	        .body(BodyInserters.fromValue(clientConfigurationDto))
 	        .exchange()
