@@ -75,3 +75,13 @@ components:
       $ref: 'consolidatore-v1.yml#/components/schemas/PreLoadResponse'
     OperationResultCodeResponse:
       $ref: 'consolidatore-v1.yml#/components/schemas/OperationResultCodeResponse'
+
+  parameters:
+    clientIdHeader:
+      name: x-pagopa-safestorage-cx-id
+      description: Identificativo del sistema client
+      in: header
+      required: true
+      schema:
+        type: string
+      example: pn-delivery-push

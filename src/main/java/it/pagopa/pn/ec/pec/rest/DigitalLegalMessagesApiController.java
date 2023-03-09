@@ -18,38 +18,43 @@ import static org.springframework.http.HttpStatus.OK;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 @Slf4j
 @RestController
 public class DigitalLegalMessagesApiController implements DigitalLegalMessagesApi {
 
-	private final PecService pecService;
+    private final PecService pecService;
 
-	private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
-	private final StatusPullService statusPullService;
+    private final StatusPullService statusPullService;
 
-	public DigitalLegalMessagesApiController(PecService pecService, StatusPullService statusPullService,
-			TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
-		this.pecService = pecService;
-		this.statusPullService=statusPullService;
-		this.transactionProcessConfigurationProperties=transactionProcessConfigurationProperties;
-	}
+    public DigitalLegalMessagesApiController(PecService pecService, StatusPullService statusPullService,
+                                             TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+        this.pecService = pecService;
+        this.statusPullService = statusPullService;
+        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+    }
 
-	@Override
-	public Mono<ResponseEntity<Void>> sendDigitalLegalMessage(String requestIdx, String xPagopaExtchCxId,
-			Mono<DigitalNotificationRequest> digitalNotificationRequest, final ServerWebExchange exchange) {
-		return digitalNotificationRequest.doOnNext(request -> log.info("<-- Start presa in carico -->")).flatMap(
-				request -> pecService.presaInCarico(new PecPresaInCaricoInfo(requestIdx, xPagopaExtchCxId, request)))
-				.thenReturn(new ResponseEntity<>(OK));
-	}
+    @Override
+    public Mono<ResponseEntity<Void>> sendDigitalLegalMessage(String requestIdx, String xPagopaExtchCxId,
+                                                              Mono<DigitalNotificationRequest> digitalNotificationRequest, final ServerWebExchange exchange) {
+        return digitalNotificationRequest.doOnNext(request -> log.info("<-- Start presa in carico -->")).flatMap(
+                        request -> pecService.presaInCarico(new PecPresaInCaricoInfo(requestIdx, xPagopaExtchCxId, request)))
+                .thenReturn(new ResponseEntity<>(OK));
+    }
 
-	@Override
-	public Mono<ResponseEntity<LegalMessageSentDetails>> getDigitalLegalMessageStatus(String requestIdx,
-			String xPagopaExtchCxId, ServerWebExchange exchange) {
+    @Override
+    public Mono<ResponseEntity<LegalMessageSentDetails>> getDigitalLegalMessageStatus(String requestIdx,
+                                                                                      String xPagopaExtchCxId, ServerWebExchange exchange) {
+        var authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
+        System.out.println(authHeader);
 
-		return statusPullService
-				.pecPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.pec())
-				.map(ResponseEntity::ok);
-	}
+        return statusPullService
+                .pecPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.pec())
+                .map(ResponseEntity::ok);
+    }
 
 }
