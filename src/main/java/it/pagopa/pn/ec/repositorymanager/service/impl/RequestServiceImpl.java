@@ -23,7 +23,6 @@ public class RequestServiceImpl implements RequestService {
 
     private final RequestPersonalService requestPersonalService;
     private final RequestMetadataService requestMetadataService;
-    private static final String SEPARATORE = "~";
 
     public RequestServiceImpl(RequestPersonalService requestPersonalService, RequestMetadataService requestMetadataService) {
         this.requestPersonalService = requestPersonalService;
@@ -43,8 +42,8 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Mono<Request> insertRequest(Request request) {
 
+        String requestId = request.getRequestId();
         String clientId = request.getXPagopaExtchCxId();
-        String requestId = clientId + SEPARATORE + request.getRequestId();
 
         RequestPersonal requestPersonal = request.getRequestPersonal();
         requestPersonal.setRequestId(requestId);
