@@ -590,6 +590,7 @@ Resources:
             Sid: 'AvoidIssues'
             Action:
               - 'sns:*'
+              - 'ses:*'
             Resource:
               - '*'          
 
