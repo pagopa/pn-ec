@@ -264,14 +264,6 @@ Parameters:
     Type: String
     Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] URL della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
 
-  PnEcSNSNameNotificheExt1:
-    Type: String
-    Description: '[Notification Tracker: Piattaforme esterne] Nome dello SNS Topic per smistare le notifiche alle Piattaforme esterne'
-
-  PnEcSNSArnNotificheExt1:
-    Type: String
-    Description: '[Notification Tracker: Piattaforme esterne] ARN dello SNS Topic per smistare le notifiche alle Piattaforme esterne'
-
   PnEcQueueNameBatchSMS:
     Type: String
     Description: '[Canale SMS] Nome della Coda per la modalità SMS-Batch'
@@ -477,16 +469,16 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/ecs-service.yaml"
       Parameters:
         MicroServiceUniqueName: !Sub '${ProjectName}-external-channel'
-        CpuValue: 512
-        MemoryAmount: 2GB
+        CpuValue: 1024
+        MemoryAmount: 8GB
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Sub '${ContainerImageUri}'
         ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
         ContainerEnvEntry2: !Sub 'PnEcTableNameAnagrafica=${PnEcTableNameAnagrafica}'
         ContainerEnvEntry3: !Sub 'PnEcTableNameRichieste=${PnEcTableNameRichieste}'
         ContainerEnvEntry4: !Sub 'PnEcTableNameRichiesteMetadati=${PnEcTableNameRichiesteMetadati}'
-        ContainerEnvEntry5: !Sub 'PnEcSNSNameNotificheExt1=${PnEcSNSNameNotificheExt1}'
-        ContainerEnvEntry6: !Sub 'PnEcSNSArnNotificheExt1=${PnEcSNSArnNotificheExt1}'
+        # ContainerEnvEntry5: !Sub 'PnEcSNSNameNotificheExt1=${PnEcSNSNameNotificheExt1}'
+        # ContainerEnvEntry6: !Sub 'PnEcSNSArnNotificheExt1=${PnEcSNSArnNotificheExt1}'
         ContainerEnvEntry7: !Sub 'PnEcQueueNameNotificheExt1=${PnEcQueueNameNotificheExt1}'
         ContainerEnvEntry8: !Sub 'PnEcEventBusNameTrackerExternalNotification=${PnEcEventBusNameTrackerExternalNotification}'
         ContainerEnvEntry9: !Sub 'PnEcQueueNameTrackerStatoSMS=${PnEcQueueNameTrackerStatoSMS}'
@@ -510,8 +502,9 @@ Resources:
         ContainerEnvEntry27: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
         ContainerEnvEntry30: 'SafeStorageClientId=pn-external-channels'
         ContainerEnvEntry31: 'SafeStorageClientApiKey=pn-external-channels_api_key'
-        ContainerEnvEntry40: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry41: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry40: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry41: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry42: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         MappedPaths: '/external-channels/*,/external-channel/*'
         ECSClusterName: !Ref ECSClusterName
         Subnets: !Ref SubnetsIds
@@ -573,19 +566,9 @@ Resources:
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
-              - 'events:List*'
               - 'events:PutEvents'
             Resource:
               - !Sub '${PnEcEventBusArnTrackerExternalNotification}'
-          - Effect: Allow
-            Sid: 'PublishOnExternalTopic'
-            Action:
-              - 'sns:Get*'
-              - 'sns:List*'
-              - 'sns:Publish'
-              - 'sns:Set*'
-            Resource:
-              - !Sub '${PnEcSNSArnNotificheExt1}'
           - Effect: Allow
             Sid: 'SMS'
             Action:
@@ -599,8 +582,8 @@ Resources:
           - Effect: Allow
             Sid: 'ReadFromSecretsManagerInvioPEC'
             Action:
-              - 'secrets:DescribeSecret'
-              - 'secrets:GetSecretValue'
+              - 'secretsmanager:DescribeSecret'
+              - 'secretsmanager:GetSecretValue'
             Resource:
               - !Join [ '', [ !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:' , !Ref PnEcIdentityPec , '*']]
           - Effect: Allow
@@ -609,67 +592,6 @@ Resources:
               - 'sns:*'
             Resource:
               - '*'          
-
-###########  NOTIFICATION TRACKER EXTERNAL NOTIFICATION  ###########
-  PnEcEventBusPolicyECSTrackerExternalNotification:
-    Type: AWS::Events::EventBusPolicy
-    Properties:
-      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
-      StatementId: 'PnEcCustomEventBusPolicyAllowECS'
-      Statement:
-        Action: 
-          - "events:PutEvents"
-          - 'events:DescribeEventBus'
-          - 'events:List*'
-        Effect: "Allow"
-        Principal: 
-          Service:
-          - 'ecs.amazonaws.com'
-        Resource: !Ref PnEcEventBusArnTrackerExternalNotification
-
-  # ####### DENY POLICY FROM OUTSIDE ACCOUNT ########
-  # PnEcEventBusPolicyDenyTrackerExternalNotification:
-  #   Type: AWS::Events::EventBusPolicy
-  #   Properties:
-  #     EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
-  #     StatementId: 'PnEcCustomEventBusPolicyDenyCrossAccount'
-  #     Statement:
-  #       Action: 
-  #         - "events:*"
-  #       Effect: 'Deny'
-  #       Principal: 
-  #         Service:
-  #           - 'ecs.amazonaws.com'
-  #       Resource: !Ref PnEcEventBusArnTrackerExternalNotification
-  #       Condition:
-  #         StringNotEquals:
-  #           aws:SourceAccount: !Sub '${AWS::AccountId}'
-
-  PnEcEventBusPolicyManageTrackerExternalNotification:
-    Type: AWS::Events::EventBusPolicy
-    Properties:
-      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
-      StatementId: 'PnEcCustomEventBusPolicyManage'
-      Statement:
-        Action: 
-          - 'events:PutRule'
-          - 'events:PutTargets'
-          - 'events:DeleteRule'
-          - 'events:RemoveTargets'
-          - 'events:DisableRule'
-          - 'events:EnableRule'
-          - 'events:TagResource'
-          - 'events:UntagResource'
-          - 'events:DescribeRule'
-          - 'events:ListTargetsByRule'
-          - 'events:ListTagsForResource'
-        Effect: 'Allow'
-        Principal: 
-          AWS: !Sub '${AWS::AccountId}'
-        Resource: !Ref PnEcEventBusArnTrackerExternalNotification
-        Condition:
-          StringEqualsIfExists:
-            events:creatorAccount: !Sub '${AWS::AccountId}'
 
   PnEcQueuePolicyNotificheExt1:
     Type: AWS::SQS::QueuePolicy
