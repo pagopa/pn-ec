@@ -57,6 +57,7 @@ public class EmailUtils {
                     DataSource aAttachment = new ByteArrayDataSource(byteArrayOutputStream.toByteArray(), APPLICATION_OCTET_STREAM_VALUE);
                     try {
                         attachmentPart.setDataHandler(new DataHandler(aAttachment));
+                        attachmentPart.setFileName(attachment.getNameWithExtension());
                         mimeMultipart.addBodyPart(attachmentPart);
                     } catch (MessagingException exception) {
                         log.error(exception.getMessage());

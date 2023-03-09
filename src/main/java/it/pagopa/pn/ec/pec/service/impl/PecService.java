@@ -22,6 +22,7 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
+import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pec.bridgews.SendMail;
@@ -48,13 +49,14 @@ public class PecService extends PresaInCaricoService {
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final AttachmentServiceImpl attachmentService;
     private final DownloadCall downloadCall;
+    private final ArubaSecretValue arubaSecretValue;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final PecSqsQueueName pecSqsQueueName;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
     protected PecService(AuthService authService, ArubaCall arubaCall, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
-            , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, NotificationTrackerSqsName notificationTrackerSqsName,
-                         PecSqsQueueName pecSqsQueueName,
+            , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, ArubaSecretValue arubaSecretValue,
+                         NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName,
                          TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
         super(authService, gestoreRepositoryCall);
         this.arubaCall = arubaCall;
@@ -62,6 +64,7 @@ public class PecService extends PresaInCaricoService {
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.attachmentService = attachmentService;
         this.downloadCall = downloadCall;
+        this.arubaSecretValue = arubaSecretValue;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.pecSqsQueueName = pecSqsQueueName;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
@@ -176,6 +179,7 @@ public class PecService extends PresaInCaricoService {
 //                              Create EmailField object with request info and attachments
                                 .map(fileDownloadResponses -> EmailField.builder()
                                                                         .msgId(encodeMessageId(requestIdx, xPagopaExtchCxId))
+                                                                        .from(arubaSecretValue.getPecUsername())
                                                                         .to(digitalNotificationRequest.getReceiverDigitalAddress())
                                                                         .subject(digitalNotificationRequest.getSubjectText())
                                                                         .text(digitalNotificationRequest.getMessageText())
@@ -209,16 +213,18 @@ public class PecService extends PresaInCaricoService {
 
                                 .map(this::createGeneratedMessageDto)
 
-                                .flatMap(generatedMessageDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
-                                                                                new NotificationTrackerQueueDto(requestIdx,
-                                                                                                                xPagopaExtchCxId,
-                                                                                                                now(),
-                                                                                                                transactionProcessConfigurationProperties.pec(),
-                                                                                                                pecPresaInCaricoInfo.getStatusAfterStart(),
-                                                                                                                "sent",
-                                                                                                                // TODO: SET eventDetails
-                                                                                                                "",
-                                                                                                                generatedMessageDto))
+                                .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(requestIdx))
+
+                                .flatMap(objects -> sqsService.send(notificationTrackerSqsName.statoPecName(),
+                                                                    new NotificationTrackerQueueDto(requestIdx,
+                                                                                                    xPagopaExtchCxId,
+                                                                                                    now(),
+                                                                                                    transactionProcessConfigurationProperties.pec(),
+                                                                                                    pecPresaInCaricoInfo.getStatusAfterStart(),
+                                                                                                    "sent",
+                                                                                                    // TODO: SET eventDetails
+                                                                                                    "",
+                                                                                                    objects.getT1()))
 
 //                                                                An error occurred during SQS publishing to the Notification Tracker ->
 //                                                                Publish to Errori SMS queue and notify to retry update status only

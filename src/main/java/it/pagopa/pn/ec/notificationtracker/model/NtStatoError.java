@@ -1,20 +1,18 @@
 package it.pagopa.pn.ec.notificationtracker.model;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
 
-@Data
-@Getter
-@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+@NoArgsConstructor
 @AllArgsConstructor
+@Data
+@Builder
 public class NtStatoError {
 
-    private String processId;
-    private String clientId;
-    private String currStatus;
-    private String requestIdx;
-
+    String processId;
+    String clientId;
+    String currStatus;
+    String requestIdx;
 }
