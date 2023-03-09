@@ -1,5 +1,7 @@
 package it.pagopa.pn.ec.sms.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
@@ -22,6 +24,10 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -47,7 +53,7 @@ public class SmsService extends PresaInCaricoService {
     protected SmsService(AuthService authService, SqsService sqsService, SnsService snsService,
                          GestoreRepositoryCall gestoreRepositoryCall, NotificationTrackerSqsName notificationTrackerSqsName,
                          SmsSqsQueueName smsSqsQueueName,
-                         TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+                         TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) throws IOException {
         super(authService, gestoreRepositoryCall);
         this.sqsService = sqsService;
         this.snsService = snsService;
@@ -55,6 +61,18 @@ public class SmsService extends PresaInCaricoService {
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.smsSqsQueueName = smsSqsQueueName;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+    }
+
+    File file = new File("src/main/resources/commons/retryPolicy.json");
+    ObjectMapper objectMapper = new ObjectMapper();
+    Map<String, List<Integer>> retryPolicies;
+
+    {
+        try {
+            retryPolicies = objectMapper.readValue(file, new TypeReference<Map<String, List<Integer>>>() {});
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -243,6 +261,8 @@ public class SmsService extends PresaInCaricoService {
 
         log.info("<-- START GESTIONE ERRORI SMS -->");
         logIncomingMessage(smsSqsQueueName.errorName(), smsPresaInCaricoInfo);
+
+        log.info(String.valueOf(retryPolicies.get(0).contains("SMS")));
 
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
         var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
