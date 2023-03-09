@@ -324,6 +324,7 @@ class RequestControllerTest {
     //retry test
     @Test
     void retryTestSuccess() {
+
         var patchDto = new PatchDto();
 
         var retry = new RetryDto();
