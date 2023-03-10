@@ -1,16 +1,16 @@
-package it.pagopa.pn.ec.cartaceo.service;
+package it.pagopa.pn.ec.consolidatore.service;
 
-import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.attachmentDocumentTypeMap;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.deliveryFailureCausemap;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.productTypeMap;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.statusCodeDescriptionMap;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.COMPLETED_MESSAGE;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.COMPLETED_OK_CODE;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.GENERIC_ERROR_CODE;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.SEMANTIC_ERROR;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.SEMANTIC_ERROR_CODE;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.SYNTAX_ERROR;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperResult.SYNTAX_ERROR_CODE;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.attachmentDocumentTypeMap;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.deliveryFailureCausemap;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.productTypeMap;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.statusCodeDescriptionMap;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.SYNTAX_ERROR;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.SYNTAX_ERROR_CODE;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.SEMANTIC_ERROR;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.SEMANTIC_ERROR_CODE;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_MESSAGE;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_OK_CODE;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.GENERIC_ERROR_CODE;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -18,13 +18,13 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import it.pagopa.pn.ec.cartaceo.exception.RicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.consolidatore.exception.RicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.rest.v1.dto.ConsolidatoreIngressPaperProgressStatusEvent;
 import it.pagopa.pn.ec.rest.v1.dto.ConsolidatoreIngressPaperProgressStatusEventDiscoveredAddress;
 import it.pagopa.pn.ec.rest.v1.dto.GeneratedMessageDto;

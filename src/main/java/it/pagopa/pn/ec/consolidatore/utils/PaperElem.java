@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.cartaceo.utils;
+package it.pagopa.pn.ec.consolidatore.utils;
 
 import java.util.List;
 import java.util.Map;

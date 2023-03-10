@@ -1,9 +1,10 @@
 package it.pagopa.pn.ec.consolidatore.rest;
 
-import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.CON010;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.PRODUCT_TYPE_AR;
-import static it.pagopa.pn.ec.cartaceo.utils.PaperElem.statusCodeDescriptionMap;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.CON010;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.PRODUCT_TYPE_AR;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.statusCodeDescriptionMap;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import java.time.OffsetDateTime;
 
@@ -13,8 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.reactive.function.BodyInserters;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
@@ -24,8 +23,6 @@ import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
-
-import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient

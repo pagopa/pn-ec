@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.cartaceo.exception;
+package it.pagopa.pn.ec.consolidatore.exception;
 
 import java.util.List;
 
