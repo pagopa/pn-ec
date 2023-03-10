@@ -16,6 +16,7 @@ import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.SnsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
@@ -70,17 +71,7 @@ public class SmsService extends PresaInCaricoService {
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
-    File file = new File("src/main/resources/commons/retryPolicy.json");
-    ObjectMapper objectMapper = new ObjectMapper();
-    Map<String, List<BigDecimal>> retryPolicies;
 
-    {
-        try {
-            retryPolicies = objectMapper.readValue(file, new TypeReference<Map<String, List<BigDecimal>>>() {});
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
@@ -268,21 +259,38 @@ public class SmsService extends PresaInCaricoService {
 
         log.info("<-- START GESTIONE ERRORI SMS -->");
         logIncomingMessage(smsSqsQueueName.errorName(), smsPresaInCaricoInfo);
+    File file = new File("src/main/resources/commons/retryPolicy.json");
+    ObjectMapper objectMapper = new ObjectMapper();
+    Map<String, List<BigDecimal>> retryPolicies;
 
-        log.info(String.valueOf(retryPolicies.get(0).contains("SMS")));
+    {
+        try {
+            retryPolicies = objectMapper.readValue(file, new TypeReference<Map<String, List<BigDecimal>>>() {});
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+
+//        log.info(String.valueOf(retryPolicies.get(0).contains("SMS")));
 
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
         var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
 
+
         gestoreRepositoryCall.getRichiesta(requestId)
+
                 .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), "toDelete"))
-                .map(requestDto -> {
-                    if(requestDto.getRequestMetadata().getRetry().getRetryStep() == null) {
+                .map(requestDto ->  {
+                    if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
-                        requestDto.getRequestMetadata().getRetry().setRetryStep(BigDecimal.ZERO);
-                        requestDto.getRequestMetadata().getRetry().setRetryPolicy(retryPolicies.get("SMS"));
-                        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
+                        RetryDto retryDto = new RetryDto();
+                        retryDto.setRetryPolicy(retryPolicies.get("SMS"));
+                        retryDto.setRetryStep(BigDecimal.ZERO);
+                        retryDto.setLastRetryTimestamp(OffsetDateTime.now());
+                        requestDto.getRequestMetadata().setRetry(retryDto);
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
                         log.info(retryNumber + " tentativo di Retry");
@@ -291,6 +299,7 @@ public class SmsService extends PresaInCaricoService {
                     return requestDto;
                 })
                 .filterWhen(requestDto -> {
+
                     var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();
                     var dateTime2 = OffsetDateTime.now();
                     Duration duration = Duration.between(dateTime1, dateTime2);
