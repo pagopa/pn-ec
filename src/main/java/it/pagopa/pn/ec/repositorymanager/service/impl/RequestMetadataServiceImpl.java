@@ -5,6 +5,8 @@ import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
+import it.pagopa.pn.ec.repositorymanager.model.entity.Retry;
+import it.pagopa.pn.ec.repositorymanager.model.pojo.Patch;
 import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,11 +38,21 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                                                                          TableSchema.fromBean(RequestMetadata.class));
     }
 
-    private void checkEventsMetadata(RequestMetadata requestMetadata, Events events) {
-        boolean isDigital = requestMetadata.getDigitalRequestMetadata() != null;
-        if ((isDigital && events.getPaperProgrStatus() != null) || (!isDigital && events.getDigProgrStatus() != null)) {
+    private void checkTipoPatchMetadata(RequestMetadata requestMetadata, Patch patch) {
+
+        boolean isRetry = patch.getRetry() != null;
+
+        if((patch.getEvent() != null && isRetry) || (patch.getEvent() == null && !isRetry)) {
             throw new RepositoryManagerException.RequestMalformedException(
-                    "Tipo richiesta metadata e tipo evento metadata non " + "compatibili");
+                    "Valorizzare una e una sola tipologia di aggiornamento richiesta");
+        }
+
+        if(!isRetry) {
+            boolean isDigital = requestMetadata.getDigitalRequestMetadata() != null;
+            if ((isDigital && patch.getEvent().getPaperProgrStatus() != null) || (!isDigital && patch.getEvent().getDigProgrStatus() != null)) {
+                throw new RepositoryManagerException.RequestMalformedException(
+                        "Tipo richiesta metadata e tipo evento metadata non " + "compatibili");
+            }
         }
     }
 
@@ -70,8 +82,8 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     }
 
     @Override
-    public Mono<RequestMetadata> updateEventsMetadata(String requestId, Events events) {
-        return getRequestMetadata(requestId).doOnSuccess(retrievedRequest -> checkEventsMetadata(retrievedRequest, events))
+    public Mono<RequestMetadata> patchRequestMetadata(String requestId, Patch patch) {
+        return getRequestMetadata(requestId).doOnSuccess(retrievedRequest -> checkTipoPatchMetadata(retrievedRequest, patch))
                                              .doOnError(RepositoryManagerException.RequestMalformedException.class,
                                                         throwable -> log.info(throwable.getMessage()))
                                              .flatMap(retrieveRequestMetadata -> {
@@ -85,95 +97,117 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                                                  // process ID (es. PEC, SMS ecc.)
                                                  String processID = null;
 
+                                                 // lista eventi metadata
                                                  List<Events> eventsList = retrieveRequestMetadata.getEventsList();
 
-                                                 // ---> CASO 1: RICHIESTA DIGITALE <---
-                                                 if (events.getDigProgrStatus() != null) {
+                                                 // retry metadata
+                                                 Retry retry = retrieveRequestMetadata.getRetry();
 
-                                                     statusToConvert = events.getDigProgrStatus().getStatus();
+                                                 // ---> CASO: RETRY <---
+                                                 if(patch.getRetry() != null) {
 
-                                                     if (eventsList != null) {
-
-                                                         // Controlla se l'evento che stiamo inserendo viene temporalmente prima degli
-                                                         // eventi già presenti.
-                                                         // In tal caso, non aggiorna lo stato della richiesta.
-                                                         for (Events eve : eventsList) {
-
-                                                             if (events.getDigProgrStatus()
-                                                                       .getEventTimestamp()
-                                                                       .isBefore(eve.getDigProgrStatus().getEventTimestamp()))
-                                                                 generalStatus = null;
-                                                             else generalStatus = events.getDigProgrStatus().getStatus();
-                                                         }
-                                                     }
-                                                     // Se la lista eventi è nulla, viene automaticamente aggiornato lo stato della
-                                                     // richiesta.
-                                                     else {
-                                                         generalStatus = events.getDigProgrStatus().getStatus();
-                                                         retrieveRequestMetadata.setStatusRequest(generalStatus);
-                                                     }
-                                                     processID = retrieveRequestMetadata.getDigitalRequestMetadata().getChannel();
-                                                 }
-
-                                                 // ---> CASO 2: RICHIESTA CARTACEO <---
-                                                 else {
-
-                                                     statusToConvert = events.getPaperProgrStatus().getStatusDescription();
-
-                                                     if (eventsList != null) {
-                                                         // Controlla se l'evento che stiamo inserendo viene temporalmente prima degli
-                                                         // eventi già presenti.
-                                                         // In tal caso, non aggiorna lo stato della richiesta.
-                                                         for (Events eve : eventsList) {
-                                                             if (events.getPaperProgrStatus()
-                                                                       .getStatusDateTime()
-                                                                       .isBefore(eve.getPaperProgrStatus().getStatusDateTime()))
-                                                                 generalStatus = null;
-                                                             else generalStatus = events.getPaperProgrStatus().getStatusDescription();
-                                                         }
-                                                     }
-                                                     // Se la lista eventi è nulla, viene automaticamente aggiornato lo stato della
-                                                     // richiesta.
-                                                     else {
-                                                         generalStatus = events.getPaperProgrStatus().getStatusDescription();
-                                                         retrieveRequestMetadata.setStatusRequest(generalStatus);
+                                                     if(retry == null) {
+                                                         retry = new Retry();
                                                      }
 
-                                                     processID = "PAPER";
+                                                    retry.setLastRetryTimestamp(patch.getRetry().getLastRetryTimestamp());
+                                                    retry.setRetryStep(patch.getRetry().getRetryStep());
+                                                    retry.setRetryPolicy(patch.getRetry().getRetryPolicy());
 
-                                                 }
+                                                    retrieveRequestMetadata.setRetry(retry);
+                                                    return Mono.just(retrieveRequestMetadata);
 
-                                                 if (generalStatus != null) {
-                                                     retrieveRequestMetadata.setStatusRequest(generalStatus);
-                                                 }
+                                                 } else {
 
-                                                 // Conversione da stato tecnico a stato logico.
-                                                 return callMacchinaStati.statusDecode(processID, statusToConvert, clientID)
-                                                                         .map(macchinaStatiDecodeResponseDto -> {
+                                                    // ---> CASO 1: RICHIESTA DIGITALE <---
+                                                    if (patch.getEvent().getDigProgrStatus() != null) {
 
-                                                                                  if (events.getDigProgrStatus() != null) {
-                                                                                      events.getDigProgrStatus()
-                                                                                            .setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
-                                                                                  } else {
-                                                                                      events.getPaperProgrStatus()
-                                                                                            .setStatusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
-                                                                                  }
+                                                        statusToConvert = patch.getEvent().getDigProgrStatus().getStatus();
 
-                                                                                  List<Events> getEventsList =
-                                                                                          retrieveRequestMetadata.getEventsList();
-                                                                                  if (getEventsList == null) {
-                                                                                      getEventsList = new ArrayList<>();
-                                                                                  }
+                                                        if (eventsList != null) {
 
-                                                                                  getEventsList.add(events);
-                                                                                  retrieveRequestMetadata.setEventsList(getEventsList);
-                                                                                  return retrieveRequestMetadata;
-                                                                              }
+                                                            // Controlla se l'evento che stiamo inserendo viene temporalmente prima degli
+                                                            // eventi già presenti.
+                                                            // In tal caso, non aggiorna lo stato della richiesta.
+                                                            for (Events eve : eventsList) {
 
-                                                                             );
+                                                                if (patch.getEvent().getDigProgrStatus()
+                                                                        .getEventTimestamp()
+                                                                        .isBefore(eve.getDigProgrStatus().getEventTimestamp()))
+                                                                    generalStatus = null;
+                                                                else
+                                                                    generalStatus = patch.getEvent().getDigProgrStatus().getStatus();
+                                                            }
+                                                        }
+                                                        // Se la lista eventi è nulla, viene automaticamente aggiornato lo stato della
+                                                        // richiesta.
+                                                        else {
+                                                            generalStatus = patch.getEvent().getDigProgrStatus().getStatus();
+                                                            retrieveRequestMetadata.setStatusRequest(generalStatus);
+                                                        }
+                                                        processID = retrieveRequestMetadata.getDigitalRequestMetadata().getChannel();
+                                                    }
 
-				}).flatMap(requestMetadataWithEventsUpdated -> Mono.fromCompletionStage(
-						requestMetadataDynamoDbTable.updateItem(requestMetadataWithEventsUpdated)))
+                                                    // ---> CASO 2: RICHIESTA CARTACEO <---
+                                                    else {
+
+                                                        statusToConvert = patch.getEvent().getPaperProgrStatus().getStatusDescription();
+
+                                                        if (eventsList != null) {
+                                                            // Controlla se l'evento che stiamo inserendo viene temporalmente prima degli
+                                                            // eventi già presenti.
+                                                            // In tal caso, non aggiorna lo stato della richiesta.
+                                                            for (Events eve : eventsList) {
+                                                                if (patch.getEvent().getPaperProgrStatus()
+                                                                        .getStatusDateTime()
+                                                                        .isBefore(eve.getPaperProgrStatus().getStatusDateTime()))
+                                                                    generalStatus = null;
+                                                                else
+                                                                    generalStatus = patch.getEvent().getPaperProgrStatus().getStatusDescription();
+                                                            }
+                                                        }
+                                                        // Se la lista eventi è nulla, viene automaticamente aggiornato lo stato della
+                                                        // richiesta.
+                                                        else {
+                                                            generalStatus = patch.getEvent().getPaperProgrStatus().getStatusDescription();
+                                                            retrieveRequestMetadata.setStatusRequest(generalStatus);
+                                                        }
+
+                                                        processID = "PAPER";
+
+                                                    }
+
+                                                    if (generalStatus != null) {
+                                                        retrieveRequestMetadata.setStatusRequest(generalStatus);
+                                                    }
+
+                                                    // Conversione da stato tecnico a stato logico.
+                                                    return callMacchinaStati.statusDecode(processID, statusToConvert, clientID)
+                                                            .map(macchinaStatiDecodeResponseDto -> {
+
+                                                                        if (patch.getEvent().getDigProgrStatus() != null) {
+                                                                            patch.getEvent().getDigProgrStatus()
+                                                                                    .setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                                                                        } else {
+                                                                            patch.getEvent().getPaperProgrStatus()
+                                                                                    .setStatusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                                                                        }
+
+                                                                        List<Events> getEventsList =
+                                                                                retrieveRequestMetadata.getEventsList();
+                                                                        if (getEventsList == null) {
+                                                                            getEventsList = new ArrayList<>();
+                                                                        }
+
+                                                                        getEventsList.add(patch.getEvent());
+                                                                        retrieveRequestMetadata.setEventsList(getEventsList);
+                                                                        return retrieveRequestMetadata;
+                                                                    }
+
+                                                            );
+                                                }
+                                             }).flatMap(requestMetadataWithPatchUpdated -> Mono.fromCompletionStage(
+						requestMetadataDynamoDbTable.updateItem(requestMetadataWithPatchUpdated)))
 				  .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
 	}
 

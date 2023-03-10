@@ -1,11 +1,11 @@
 package it.pagopa.pn.ec.repositorymanager.rest;
 
 import it.pagopa.pn.ec.commons.utils.RestUtils;
-import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
+import it.pagopa.pn.ec.repositorymanager.model.pojo.Patch;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.service.RequestService;
 import it.pagopa.pn.ec.rest.v1.api.GestoreRequestApi;
-import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
+import it.pagopa.pn.ec.rest.v1.dto.PatchDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -41,9 +41,9 @@ public class RequestController implements GestoreRequestApi {
     }
 
     @Override
-    public Mono<ResponseEntity<RequestDto>> updateEvents(String requestIdx, Mono<EventsDto> eventsPatchDto, ServerWebExchange exchange) {
-        return eventsPatchDto.map(eventsToUpdate -> restUtils.startUpdateRequest(eventsToUpdate, Events.class))
-                             .flatMap(requestToUpdate -> requestService.updateEvents(requestIdx, requestToUpdate))
+    public Mono<ResponseEntity<RequestDto>> patchRequest(String requestIdx, Mono<PatchDto> patchDto, ServerWebExchange exchange) {
+        return patchDto.map(patchToUpdate -> restUtils.startUpdateRequest(patchToUpdate, Patch.class))
+                             .flatMap(requestToUpdate -> requestService.patchRequest(requestIdx, requestToUpdate))
                              .map(updatedRequest -> restUtils.endCreateOrUpdateRequest(updatedRequest, RequestDto.class));
     }
 

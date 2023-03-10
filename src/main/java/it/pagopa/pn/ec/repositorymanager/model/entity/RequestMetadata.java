@@ -26,4 +26,5 @@ public class RequestMetadata extends DocumentVersion {
     DigitalRequestMetadata digitalRequestMetadata;
     PaperRequestMetadata paperRequestMetadata;
     List<Events> eventsList;
+    Retry retry;
 }

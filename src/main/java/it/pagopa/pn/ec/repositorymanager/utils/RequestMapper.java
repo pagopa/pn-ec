@@ -17,8 +17,9 @@ public class RequestMapper {
         String currentStatus = requestMetadata.getStatusRequest();
         OffsetDateTime clientRequestTimeStamp = requestMetadata.getClientRequestTimeStamp();
         OffsetDateTime requestTimeStamp = requestMetadata.getRequestTimestamp();
+
         return Request.builder()
-                      .requestId(requestPersonal.getRequestId())
+                      .requestId(requestMetadata.getRequestId())
                       .xPagopaExtchCxId(clientId)
                       .messageId(requestMetadata.getMessageId())
                       .statusRequest(currentStatus)
