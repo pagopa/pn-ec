@@ -12,9 +12,11 @@ import java.net.URI;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.http.MediaType.APPLICATION_XML_VALUE;
 
 @Configuration
 @Slf4j
@@ -22,6 +24,7 @@ public class JettyHttpClientConf {
 
     private final CharsetDecoder charsetDecoder = StandardCharsets.UTF_8.newDecoder();
     private final SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
+    private static final List<String> CONTENT_TYPE_OF_RESPONSE_BODY_TO_LOG = List.of(APPLICATION_JSON_VALUE, APPLICATION_XML_VALUE);
 
     @Bean
     public HttpClient getJettyHttpClient() {
@@ -53,7 +56,7 @@ public class JettyHttpClientConf {
         });
 
         request.onResponseContent((theResponse, content) -> {
-            if (theResponse.getHeaders().get(CONTENT_TYPE).equals(APPLICATION_JSON_VALUE)) {
+            if (CONTENT_TYPE_OF_RESPONSE_BODY_TO_LOG.contains(theResponse.getHeaders().get(CONTENT_TYPE))) {
                 try {
                     log.info("Response body --> {}", charsetDecoder.decode(content));
                 } catch (CharacterCodingException e) {
