@@ -36,7 +36,6 @@ import org.springframework.context.annotation.PropertySource;
 // SQS QUEUE
 @PropertySource("classpath:pec/pec-sqs-queue.properties")
 
-
 //  <-- CARTACEO -->
 // SQS QUEUE
 @PropertySource("classpath:cartaceo/cartaceo-sqs-queue.properties")
