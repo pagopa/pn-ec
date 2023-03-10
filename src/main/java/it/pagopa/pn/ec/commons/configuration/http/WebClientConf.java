@@ -30,7 +30,7 @@ public class WebClientConf {
     }
 
     @Bean
-    public WebClient ecWebClient( ExternalChannelEndpointProperties externalChannelEndpointProperties) {
+    public WebClient ecWebClient(ExternalChannelEndpointProperties externalChannelEndpointProperties) {
         return defaultJsonWebClientBuilder().baseUrl(externalChannelEndpointProperties.containerBaseUrl()).build();
     }
 
@@ -53,7 +53,10 @@ public class WebClientConf {
     }
 
     @Bean
-    public WebClient consolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties){
-        return defaultJsonWebClientBuilder().baseUrl(consolidatoreEndpointProperties.baseUrl()).build();
+    public WebClient consolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties) {
+        return defaultJsonWebClientBuilder().baseUrl(consolidatoreEndpointProperties.baseUrl()).defaultHeaders(httpHeaders -> {
+            httpHeaders.set(consolidatoreEndpointProperties.clientHeaderName(), consolidatoreEndpointProperties.clientHeaderValue());
+            httpHeaders.set(consolidatoreEndpointProperties.apiKeyHeaderName(), consolidatoreEndpointProperties.apiKeyHeaderValue());
+        }).build();
     }
 }
