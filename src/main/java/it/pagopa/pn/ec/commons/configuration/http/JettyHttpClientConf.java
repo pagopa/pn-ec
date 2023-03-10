@@ -13,6 +13,9 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+
 @Configuration
 @Slf4j
 public class JettyHttpClientConf {
@@ -50,10 +53,12 @@ public class JettyHttpClientConf {
         });
 
         request.onResponseContent((theResponse, content) -> {
-            try {
-                log.info("Response body --> {}", charsetDecoder.decode(content));
-            } catch (CharacterCodingException e) {
-                log.error(e.getMessage(), e);
+            if (theResponse.getHeaders().get(CONTENT_TYPE).equals(APPLICATION_JSON_VALUE)) {
+                try {
+                    log.info("Response body --> {}", charsetDecoder.decode(content));
+                } catch (CharacterCodingException e) {
+                    log.error(e.getMessage(), e);
+                }
             }
         });
 

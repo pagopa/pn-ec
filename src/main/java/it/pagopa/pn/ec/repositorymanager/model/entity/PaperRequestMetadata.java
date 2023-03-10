@@ -14,9 +14,9 @@ import java.util.Map;
 @DynamoDbBean
 public class PaperRequestMetadata {
 
-	private String iun;
-	private String requestPaid;
-	private String productType;
-	private String printType;
-	private Map<String, String> vas;
+    String iun;
+    String requestPaid;
+    String productType;
+    String printType;
+    Map<String, String> vas;
 }

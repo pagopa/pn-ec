@@ -9,14 +9,14 @@ public class MessageIdException extends RuntimeException{
     public static class EncodeMessageIdException extends MessageIdException{
 
         public EncodeMessageIdException() {
-            super("Error while messageId encoding");
+            super("An error occurred during messageId encoding");
         }
     }
 
     public static class DecodeMessageIdException extends MessageIdException{
 
         public DecodeMessageIdException() {
-            super("Error while messageId decoding");
+            super("An error occurred during messageId decoding");
         }
     }
 }

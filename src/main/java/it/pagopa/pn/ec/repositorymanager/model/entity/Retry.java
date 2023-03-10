@@ -6,17 +6,18 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @Data
 @DynamoDbBean
-public class PaperProgressStatusEventAttachments {
+public class Retry {
 
-    String id;
-    String documentType;
-    String uri;
-    String sha256;
-    OffsetDateTime date;
+    OffsetDateTime lastRetryTimestamp;
+    BigDecimal retryStep;
+    List<BigDecimal> retryPolicy;
+
 }

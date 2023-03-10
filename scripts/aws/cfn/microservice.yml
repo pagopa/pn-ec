@@ -469,8 +469,8 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/ecs-service.yaml"
       Parameters:
         MicroServiceUniqueName: !Sub '${ProjectName}-external-channel'
-        CpuValue: 512
-        MemoryAmount: 2GB
+        CpuValue: 1024
+        MemoryAmount: 8GB
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Sub '${ContainerImageUri}'
         ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
@@ -590,6 +590,7 @@ Resources:
             Sid: 'AvoidIssues'
             Action:
               - 'sns:*'
+              - 'ses:*'
             Resource:
               - '*'          
 

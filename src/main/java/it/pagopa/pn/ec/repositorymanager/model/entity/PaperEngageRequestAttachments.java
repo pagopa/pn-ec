@@ -14,8 +14,8 @@ import java.math.BigDecimal;
 @DynamoDbBean
 public class PaperEngageRequestAttachments {
 
-    private String uri;
-    private BigDecimal order;
-    private String documentType;
-    private String sha256;
+    String uri;
+    BigDecimal order;
+    String documentType;
+    String sha256;
 }

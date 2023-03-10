@@ -32,6 +32,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
@@ -241,6 +242,9 @@ class RequestControllerTest {
 
     private static Stream<Arguments> provideDigitalAndPaperEventToUpdate() {
 
+        var patchDto1 = new PatchDto();
+        var patchDto2 = new PatchDto();
+
         var digitalEventDto = new EventsDto();
         var paperEventDto = new EventsDto();
 
@@ -255,6 +259,8 @@ class RequestControllerTest {
         generateMessageDto.setLocation("location");
         digitalProgressStatusDto.setGeneratedMessage(generateMessageDto);
         digitalEventDto.setDigProgrStatus(digitalProgressStatusDto);
+
+        patchDto1.setEvent(digitalEventDto);
 
         var paperProgressStatusDto = new PaperProgressStatusDto();
         paperProgressStatusDto.setRegisteredLetterCode("");
@@ -284,17 +290,19 @@ class RequestControllerTest {
         paperProgressStatusDto.setDiscoveredAddress(discoveredAddressDto);
         paperEventDto.setPaperProgrStatus(paperProgressStatusDto);
 
-        return Stream.of(Arguments.of(digitalEventDto, DEFAULT_ID_DIGITAL), Arguments.of(paperEventDto, DEFAULT_ID_PAPER));
+        patchDto2.setEvent(paperEventDto);
+
+        return Stream.of(Arguments.of(patchDto1, DEFAULT_ID_DIGITAL), Arguments.of(patchDto2, DEFAULT_ID_PAPER));
     }
 
     // test.102.1
     @ParameterizedTest
     @MethodSource("provideDigitalAndPaperEventToUpdate")
-    void testUpdateSuccess(EventsDto eventsDto, String idRequest) {
+    void testUpdateSuccess(PatchDto patchDto, String idRequest) {
 
         webClient.patch()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(idRequest))
-                 .body(BodyInserters.fromValue(eventsDto))
+                 .body(BodyInserters.fromValue(patchDto))
                  .exchange()
                  .expectStatus()
                  .isOk();
@@ -303,14 +311,39 @@ class RequestControllerTest {
     // test.102.2
     @ParameterizedTest
     @MethodSource("provideDigitalAndPaperEventToUpdate")
-    void testUpdateFailed(EventsDto eventsDto) {
+    void testUpdateFailed(PatchDto patchDto) {
 
         webClient.patch()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build("idCheNonEsiste"))
-                 .body(BodyInserters.fromValue(eventsDto))
+                 .body(BodyInserters.fromValue(patchDto))
                  .exchange()
                  .expectStatus()
                  .isNotFound();
+    }
+
+    //retry test
+    @Test
+    void retryTestSuccess() {
+
+        var patchDto = new PatchDto();
+
+        var retry = new RetryDto();
+        retry.setLastRetryTimestamp(OffsetDateTime.now());
+        retry.setRetryStep(new BigDecimal(1));
+
+        List<BigDecimal> listPolicy = new ArrayList<>();
+        listPolicy.add(new BigDecimal(40));
+
+        retry.setRetryPolicy(listPolicy);
+
+        patchDto.setRetry(retry);
+
+        webClient.patch()
+                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(DEFAULT_ID_DIGITAL))
+                .body(BodyInserters.fromValue(patchDto))
+                .exchange()
+                .expectStatus()
+                .isOk();
     }
 
     private static Stream<Arguments> provideDigitalAndPaperRequestForDelete() {
