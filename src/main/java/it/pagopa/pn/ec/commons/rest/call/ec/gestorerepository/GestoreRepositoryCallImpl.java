@@ -6,7 +6,6 @@ import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -63,7 +62,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     public Mono<RequestDto> insertRichiesta(RequestDto requestDto) throws RestCallException.ResourceAlreadyExistsException {
         return ecWebClient.post()
                           .uri(gestoreRepositoryEndpointProperties.postRequest())
-                          .body(BodyInserters.fromValue(requestDto))
+                          .bodyValue(requestDto)
                           .retrieve()
                           .onStatus(CONFLICT::equals, clientResponse -> Mono.error(new RestCallException.ResourceAlreadyExistsException()))
                           .bodyToMono(RequestDto.class);
@@ -86,26 +85,38 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
     @Override
     public Mono<RequestDto> getRequestByMessageId(String messageId)
-            throws RestCallException.ResourceNotFoundException, RestCallException.BadMessageIdProvidedException {
+            throws RestCallException.ResourceNotFoundException, BadMessageIdProvidedException {
         return ecWebClient.get()
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId()).build(messageId))
                           .retrieve()
                           .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
-                          .onStatus(BAD_REQUEST::equals,
-                                    clientResponse -> Mono.error(new RestCallException.BadMessageIdProvidedException()))
+                          .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new BadMessageIdProvidedException()))
                           .bodyToMono(RequestDto.class);
+    }
+
+    private static class BadMessageIdProvidedException extends RestCallException {
+
+        public BadMessageIdProvidedException() {
+            super("Bad messageId provided");
+        }
     }
 
     @Override
     public Mono<RequestDto> setMessageIdInRequestMetadata(String requestIdx)
-            throws RestCallException.ResourceNotFoundException, RestCallException.ISEForMessageIdCreationException {
+            throws RestCallException.ResourceNotFoundException, ISEForMessageIdCreationException {
         return ecWebClient.post()
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
                                                        .build(requestIdx))
                           .retrieve()
                           .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
-                          .onStatus(INTERNAL_SERVER_ERROR::equals,
-                                    clientResponse -> Mono.error(new RestCallException.ISEForMessageIdCreationException()))
+                          .onStatus(INTERNAL_SERVER_ERROR::equals, clientResponse -> Mono.error(new ISEForMessageIdCreationException()))
                           .bodyToMono(RequestDto.class);
+    }
+
+    private static class ISEForMessageIdCreationException extends RestCallException {
+
+        public ISEForMessageIdCreationException() {
+            super("Internal server error for messageId creation");
+        }
     }
 }
