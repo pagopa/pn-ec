@@ -1,10 +1,9 @@
 package it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.GestoreRepositoryEndpointProperties;
+import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
-import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
-import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
-import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
+import it.pagopa.pn.ec.rest.v1.dto.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -64,18 +63,30 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
                           .uri(gestoreRepositoryEndpointProperties.postRequest())
                           .bodyValue(requestDto)
                           .retrieve()
+                          .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new RepositoryManagerException.RequestMalformedException()))
                           .onStatus(CONFLICT::equals, clientResponse -> Mono.error(new RestCallException.ResourceAlreadyExistsException()))
                           .bodyToMono(RequestDto.class);
     }
 
     @Override
     public Mono<RequestDto> patchRichiestaEvent(String requestIdx, EventsDto eventsDto) throws RestCallException.ResourceNotFoundException {
+        return patchRichiesta(requestIdx, new PatchDto().event(eventsDto));
+    }
+
+    @Override
+    public Mono<RequestDto> patchRichiestaRetry(String requestIdx, RetryDto retryDto) throws RestCallException.ResourceNotFoundException {
+        return patchRichiesta(requestIdx, new PatchDto().retry(retryDto));
+    }
+
+    @Override
+    public Mono<RequestDto> patchRichiesta(String requestIdx, PatchDto patchDto) throws RestCallException.ResourceNotFoundException {
         return ecWebClient.patch()
-                          .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(requestIdx))
-                          .bodyValue(eventsDto)
-                          .retrieve()
-                          .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
-                          .bodyToMono(RequestDto.class);
+                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(requestIdx))
+                .bodyValue(patchDto)
+                .retrieve()
+                .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new RepositoryManagerException.RequestMalformedException()))
+                .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
+                .bodyToMono(RequestDto.class);
     }
 
     @Override
