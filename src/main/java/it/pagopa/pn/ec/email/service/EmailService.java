@@ -68,18 +68,16 @@ public class EmailService extends PresaInCaricoService {
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
         EmailPresaInCaricoInfo emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
         String xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
+        var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
+        digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest()
                                                                                          .getAttachmentsUrls(),
                                                                    presaInCaricoInfo.getXPagopaExtchCxId(),
                                                                    true)
 
-                                .flatMap(fileDownloadResponse -> {
-                                    var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-                                    digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-                                    return insertRequestFromEmail(digitalNotificationRequest,
-                                                                  xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
-                                })
+                                .then(insertRequestFromEmail(digitalNotificationRequest, xPagopaExtchCxId))
+                                .onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()))
 
                                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
                                                                        new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),

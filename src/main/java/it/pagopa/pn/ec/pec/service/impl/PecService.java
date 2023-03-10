@@ -76,19 +76,16 @@ public class PecService extends PresaInCaricoService {
 //      Cast PresaInCaricoInfo to specific PecPresaInCaricoInfo
         var pecPresaInCaricoInfo = (PecPresaInCaricoInfo) presaInCaricoInfo;
         pecPresaInCaricoInfo.setStatusAfterStart("booked");
-        var digitalCourtesySmsRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
-        digitalCourtesySmsRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
+        var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
+        digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
         var xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest()
                                                                                        .getAttachmentsUrls(), xPagopaExtchCxId, true)
-                                .flatMap(fileDownloadResponse -> {
-                                    var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
-                                    digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-//                                 Insert request from PEC request and publish to Notification Tracker with next status -> BOOKED
-                                    return insertRequestFromPec(digitalNotificationRequest,
-                                                                xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
-                                })
+
+                                .then(insertRequestFromPec(digitalNotificationRequest, xPagopaExtchCxId))
+                                .onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()))
+
                                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                                                        new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
                                                                                                        presaInCaricoInfo.getXPagopaExtchCxId(),
