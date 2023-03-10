@@ -298,7 +298,7 @@ public class SmsService extends PresaInCaricoService {
                     }
                     return requestDto;
                 })
-                .filterWhen(requestDto -> {
+                .filter(requestDto -> {
 
                     var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();
                     var dateTime2 = OffsetDateTime.now();
@@ -306,11 +306,9 @@ public class SmsService extends PresaInCaricoService {
                     int step = requestDto.getRequestMetadata().getRetry().getRetryStep().intValueExact();
                     long minutes = duration.toMinutes();
                     long minutesToCheck = requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
-                    if(minutes >= minutesToCheck || minutes > 40) {
-                        return Mono.just(true);
-                    } else {
-                        return Mono.empty();
-                    }
+
+                        return minutes >= minutesToCheck || minutes > 40;
+
                 })
                 .flatMap(requestDto -> {
                     return snsService.send(digitalCourtesySmsRequest.getReceiverDigitalAddress(), digitalCourtesySmsRequest.getMessageText())
@@ -327,8 +325,15 @@ public class SmsService extends PresaInCaricoService {
                                                 "",
                                                 generatedMessageDto));
                             });
-                }).onErrorResume(snsSendException -> {
+                }).doOnSuccess(result -> {
+                    acknowledgment.acknowledge();
+                    log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda: {}", smsSqsQueueName.errorName());
+                })
+
+                .onErrorResume(snsSendException -> {
                     log.error("Errore durante l'invio dell'SMS: {}", snsSendException.getMessage());
+//                    acknowledgment.acknowledge();
+//todo dlq sms errori
                     return retrySmsSend(acknowledgment,
                             smsPresaInCaricoInfo,
                             smsPresaInCaricoInfo.getStatusAfterStart(),
@@ -338,10 +343,7 @@ public class SmsService extends PresaInCaricoService {
                             });
 
                 })
-                .doOnSuccess(result -> {
-                    acknowledgment.acknowledge();
-                    log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda: {}", smsSqsQueueName.errorName());
-                })
+
                 .subscribe();
 
     }
