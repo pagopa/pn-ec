@@ -46,5 +46,8 @@ public class RepositoryManagerException extends RuntimeException {
         public RequestMalformedException(String message) {
             super(message);
         }
+        public RequestMalformedException() {
+            super("Request Body Malformed");
+        }
     }
 }
