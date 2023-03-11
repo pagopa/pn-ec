@@ -76,8 +76,7 @@ public class EmailService extends PresaInCaricoService {
                                                                    presaInCaricoInfo.getXPagopaExtchCxId(),
                                                                    true)
 
-                                .then(insertRequestFromEmail(digitalNotificationRequest, xPagopaExtchCxId))
-                                .onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()))
+                                .then(insertRequestFromEmail(digitalNotificationRequest, xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException())))
 
                                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
                                                                        new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
