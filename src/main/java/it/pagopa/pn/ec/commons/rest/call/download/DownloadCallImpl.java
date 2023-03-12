@@ -8,6 +8,7 @@ import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
+import java.net.URI;
 
 @Component
 public class DownloadCallImpl implements DownloadCall {
@@ -21,7 +22,7 @@ public class DownloadCallImpl implements DownloadCall {
     @Override
     public Mono<OutputStream> downloadFile(String url) {
         OutputStream outputStream = new ByteArrayOutputStream();
-        return DataBufferUtils.write(downloadWebClient.get().uri(url).retrieve().bodyToFlux(DataBuffer.class), outputStream)
+        return DataBufferUtils.write(downloadWebClient.get().uri(URI.create(url)).retrieve().bodyToFlux(DataBuffer.class), outputStream)
                               .map(DataBufferUtils::release)
                               .then(Mono.just(outputStream));
     }
