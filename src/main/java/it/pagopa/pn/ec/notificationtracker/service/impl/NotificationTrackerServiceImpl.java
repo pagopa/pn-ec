@@ -9,6 +9,7 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.notificationtracker.service.NotificationTrackerService;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
+import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -64,20 +65,28 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
             if (macchinaStatiValidateStatoResponseDto.isAllowed()) {
                 var events = new EventsDto();
 
-                if (processId.equals("cartaceoProcess")) {
-                    // TODO: HANDLE CARTACEO CONDITION
+                if (processId.equals("PAPER")) {
+                    var paperProgressStatusDto =
+                            new PaperProgressStatusDto().registeredLetterCode()
+                                                        // TODO: DEFINE statusCode RETRIEVAL FROM TECHNICAL STATUS
+                                                        .statusCode()
+                                                        .statusDescription()
+                                                        .statusDateTime()
+                                                        .deliveryFailureCause()
+                                                        .attachments()
+                                                        .discoveredAddress();
+                    events.setPaperProgrStatus(paperProgressStatusDto);
 
                 } else {
                     var digitalProgressStatusDto =
                             new DigitalProgressStatusDto().eventTimestamp(notificationTrackerQueueDto.getEventTimestamp())
                                                           .status(nextStatus)
                                                           // TODO: DEFINE statusCode RETRIEVAL FROM TECHNICAL STATUS
-//                                                          .statusCode()
+                                                          .statusCode()
                                                           .eventDetails(notificationTrackerQueueDto.getEventDetails())
                                                           .generatedMessage(notificationTrackerQueueDto.getGeneratedMessageDto());
                     events.setDigProgrStatus(digitalProgressStatusDto);
                 }
-
 
                 return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getRequestIdx(), events);
             }
