@@ -7,7 +7,6 @@ import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigu
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
-import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
@@ -30,9 +29,11 @@ import it.pec.bridgews.SendMailResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
-import static it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall.ARUBA_CALL_RETRY_STRATEGY;
+import java.time.Duration;
+
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.BATCH;
@@ -75,19 +76,16 @@ public class PecService extends PresaInCaricoService {
 //      Cast PresaInCaricoInfo to specific PecPresaInCaricoInfo
         var pecPresaInCaricoInfo = (PecPresaInCaricoInfo) presaInCaricoInfo;
         pecPresaInCaricoInfo.setStatusAfterStart("booked");
-        var digitalCourtesySmsRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
-        digitalCourtesySmsRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
+        var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
+        digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
         var xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest()
                                                                                        .getAttachmentsUrls(), xPagopaExtchCxId, true)
-                                .flatMap(fileDownloadResponse -> {
-                                    var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
-                                    digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-//                                 Insert request from PEC request and publish to Notification Tracker with next status -> BOOKED
-                                    return insertRequestFromPec(digitalNotificationRequest,
-                                                                xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
-                                })
+
+                                .then(insertRequestFromPec(digitalNotificationRequest,
+                                                           xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException())))
+
                                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                                                        new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
                                                                                                        presaInCaricoInfo.getXPagopaExtchCxId(),
@@ -108,8 +106,7 @@ public class PecService extends PresaInCaricoService {
                                     } else {
                                         return Mono.empty();
                                     }
-                                })
-                                .then();
+                                }).then();
     }
 
     @SuppressWarnings("Duplicates")
@@ -154,6 +151,8 @@ public class PecService extends PresaInCaricoService {
         lavorazioneRichiesta(pecPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
     }
 
+    private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
+
     Mono<SendMessageResponse> lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
 
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
@@ -162,11 +161,12 @@ public class PecService extends PresaInCaricoService {
 
 //      Get attachment presigned url Flux
         return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalNotificationRequest.getAttachmentsUrls(), xPagopaExtchCxId, false)
+                                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
                                 .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
 
                                 .flatMap(fileDownloadResponse -> downloadCall.downloadFile(fileDownloadResponse.getDownload().getUrl())
-                                                                             .retryWhen(ARUBA_CALL_RETRY_STRATEGY)
+                                                                             .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
                                                                              .map(outputStream -> EmailAttachment.builder()
                                                                                                                  .nameWithExtension(
                                                                                                                          fileDownloadResponse.getKey())
@@ -193,7 +193,7 @@ public class PecService extends PresaInCaricoService {
                                 .flatMap(mimeMessageInCdata -> {
                                     var sendMail = new SendMail();
                                     sendMail.setData(mimeMessageInCdata);
-                                    return arubaCall.sendMail(sendMail).retryWhen(ARUBA_CALL_RETRY_STRATEGY);
+                                    return arubaCall.sendMail(sendMail);
                                 })
 
                                 .handle((sendMailResponse, sink) -> {
@@ -202,11 +202,6 @@ public class PecService extends PresaInCaricoService {
                                     } else {
                                         sink.next(sendMailResponse);
                                     }
-                                })
-
-                                .doOnError(throwable -> {
-                                    log.info("An error occurred during lavorazione PEC");
-                                    log.error(throwable.getMessage(), throwable);
                                 })
 
                                 .cast(SendMailResponse.class)
@@ -225,35 +220,39 @@ public class PecService extends PresaInCaricoService {
                                                                                                     // TODO: SET eventDetails
                                                                                                     "",
                                                                                                     objects.getT1()))
+                                                              .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
-//                                                                An error occurred during SQS publishing to the Notification Tracker ->
-//                                                                Publish to Errori SMS queue and notify to retry update status only
-//                                                                TODO: CHANGE THE PAYLOAD
-                                                                          .onErrorResume(SqsPublishException.class,
-                                                                                         sqsPublishException -> sqsService.send(
-                                                                                                 pecSqsQueueName.errorName(),
-                                                                                                 pecPresaInCaricoInfo)))
+//                                                            An error occurred during SQS publishing to the Notification Tracker ->
+//                                                            Publish to Errori PEC queue and notify to retry update status only
+//                                                            TODO: CHANGE THE PAYLOAD
+                                                              .onErrorResume(SqsPublishException.class,
+                                                                             sqsPublishException -> sqsService.send(pecSqsQueueName.errorName(),
+                                                                                                                    pecPresaInCaricoInfo)))
+                                .doOnError(throwable -> {
+                                    log.info("An error occurred during lavorazione PEC");
+                                    log.error(throwable.getMessage());
+                                })
 
-//                              The maximum number of retries has ended
-                                .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
-                                               snsMaxRetriesExceeded -> sqsService.send(notificationTrackerSqsName.statoPecName(),
-                                                                                        new NotificationTrackerQueueDto(requestIdx,
-                                                                                                                        xPagopaExtchCxId,
-                                                                                                                        now(),
-                                                                                                                        transactionProcessConfigurationProperties.pec(),
-                                                                                                                        pecPresaInCaricoInfo.getStatusAfterStart(),
-                                                                                                                        "retry",
-                                                                                                                        // TODO: SET
-                                                                                                                        //  eventDetails
-                                                                                                                        "",
-                                                                                                                        null))
+                                .onErrorResume(throwable -> sqsService.send(notificationTrackerSqsName.statoPecName(),
+                                                                            new NotificationTrackerQueueDto(requestIdx,
+                                                                                                            xPagopaExtchCxId,
+                                                                                                            now(),
+                                                                                                            transactionProcessConfigurationProperties.pec(),
+                                                                                                            pecPresaInCaricoInfo.getStatusAfterStart(),
+                                                                                                            "retry",
+                                                                                                            // TODO: SET
+                                                                                                            //  eventDetails
+                                                                                                            "",
+                                                                                                            null))
 
-//                                                                                Publish to ERRORI SMS queue
-                                                                                  .then(sqsService.send(pecSqsQueueName.errorName(),
-                                                                                                        pecPresaInCaricoInfo)));
+//                                                                    Publish to ERRORI PEC queue
+                                                                      .then(sqsService.send(pecSqsQueueName.errorName(),
+                                                                                            pecPresaInCaricoInfo)));
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(SendMailResponse sendMailResponse) {
-        return new GeneratedMessageDto().id(sendMailResponse.getErrstr()).system("toBeDefined");
+        var errstr = sendMailResponse.getErrstr();
+//      Remove the last 2 char '\r\n'
+        return new GeneratedMessageDto().id(errstr.substring(0, errstr.length() - 2)).system("toBeDefined");
     }
 }

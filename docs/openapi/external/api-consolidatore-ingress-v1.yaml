@@ -1,0 +1,77 @@
+openapi: 3.0.1
+info:
+  title: Consolidatore ingress API.
+  description: >-
+    NOTIFICHE DI AVANZAMENTO DEL PROCESSO DI POSTALIZZAZIONE. L'API espone dei servizi sul path "/consolidatore-ingress/v1/".
+  version: v1.0
+servers:
+  - url: >-
+      https://api.externalchannel.pagopa.local
+    description: Server url
+tags:
+  - name: Consolidatore
+    description: API del consolidatore.
+
+paths:
+  /consolidatore-ingress/v1/attachement-preload:
+    post:
+      summary: Richiesta di pre-caricamento dei documenti da comunicare a PN
+      description: |-
+        Operazione che richiede a Piattaforma Notifica le informazioni e le autorizzazioni necessarie 
+        a precaricare uno o più file.
+      tags:
+        - Consolidatore
+      operationId: presignedUploadRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              title: PreLoadRequestData
+              type: object
+              required:
+                - preloads
+              properties:
+                preloads:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/PreLoadRequest"
+                  minItems: 1
+                  maxItems: 15
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                title: PreLoadResponseData
+                type: object
+                required:
+                  - preloads
+                properties:
+                  preloads:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PreLoadResponse"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResultCodeResponse'
+              examples:
+                syntaxError:
+                  summary: 'Errore sintattico'
+                  value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required' ], clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
+                semanticError:
+                  summary: 'Errore semantico'
+                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type' ], clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
+
+components:
+  schemas:
+    PreLoadRequest:
+      $ref: 'consolidatore-v1.yml#/components/schemas/PreLoadRequest'
+    PreLoadResponse:
+      $ref: 'consolidatore-v1.yml#/components/schemas/PreLoadResponse'
+    OperationResultCodeResponse:
+      $ref: 'consolidatore-v1.yml#/components/schemas/OperationResultCodeResponse'

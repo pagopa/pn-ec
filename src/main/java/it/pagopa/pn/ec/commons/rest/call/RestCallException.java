@@ -20,17 +20,10 @@ public class RestCallException extends RuntimeException{
         }
     }
 
-    public static class BadMessageIdProvidedException extends RestCallException{
+    public static class ResourceAlreadyInProgressException extends RestCallException{
 
-        public BadMessageIdProvidedException() {
-            super("Bad messageId provided");
-        }
-    }
-
-    public static class ISEForMessageIdCreationException extends RestCallException{
-
-        public ISEForMessageIdCreationException() {
-            super("Internal server error for messageId creation");
+        public ResourceAlreadyInProgressException() {
+            super("Resource already in progress");
         }
     }
 }

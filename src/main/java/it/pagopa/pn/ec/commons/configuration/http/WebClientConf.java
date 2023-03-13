@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.commons.configuration.http;
 
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.ConsolidatoreEndpointProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.ExternalChannelEndpointProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.statemachine.StateMachineEndpointProperties;
@@ -15,17 +16,9 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 public class WebClientConf {
 
     private final JettyHttpClientConf jettyHttpClientConf;
-    private final ExternalChannelEndpointProperties externalChannelEndpointProperties;
-    private final SafeStorageEndpointProperties safeStorageEndpointProperties;
-    private final StateMachineEndpointProperties stateMachineEndpointProperties;
 
-    public WebClientConf(JettyHttpClientConf jettyHttpClientConf, ExternalChannelEndpointProperties externalChannelEndpointProperties,
-                         SafeStorageEndpointProperties safeStorageEndpointProperties,
-                         StateMachineEndpointProperties stateMachineEndpointProperties) {
+    public WebClientConf(JettyHttpClientConf jettyHttpClientConf) {
         this.jettyHttpClientConf = jettyHttpClientConf;
-        this.externalChannelEndpointProperties = externalChannelEndpointProperties;
-        this.safeStorageEndpointProperties = safeStorageEndpointProperties;
-        this.stateMachineEndpointProperties = stateMachineEndpointProperties;
     }
 
     private WebClient.Builder defaultWebClientBuilder() {
@@ -37,12 +30,12 @@ public class WebClientConf {
     }
 
     @Bean
-    public WebClient ecWebClient() {
+    public WebClient ecWebClient(ExternalChannelEndpointProperties externalChannelEndpointProperties) {
         return defaultJsonWebClientBuilder().baseUrl(externalChannelEndpointProperties.containerBaseUrl()).build();
     }
 
     @Bean
-    public WebClient ssWebClient() {
+    public WebClient ssWebClient(SafeStorageEndpointProperties safeStorageEndpointProperties) {
         return defaultJsonWebClientBuilder().baseUrl(safeStorageEndpointProperties.containerBaseUrl()).defaultHeaders(httpHeaders -> {
             httpHeaders.set(safeStorageEndpointProperties.clientHeaderName(), safeStorageEndpointProperties.clientHeaderValue());
             httpHeaders.set(safeStorageEndpointProperties.apiKeyHeaderName(), safeStorageEndpointProperties.apiKeyHeaderValue());
@@ -55,7 +48,15 @@ public class WebClientConf {
     }
 
     @Bean
-    public WebClient stateMachineWebClient() {
+    public WebClient stateMachineWebClient(StateMachineEndpointProperties stateMachineEndpointProperties) {
         return defaultJsonWebClientBuilder().baseUrl(stateMachineEndpointProperties.containerBaseUrl()).build();
+    }
+
+    @Bean
+    public WebClient consolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties) {
+        return defaultJsonWebClientBuilder().baseUrl(consolidatoreEndpointProperties.baseUrl()).defaultHeaders(httpHeaders -> {
+            httpHeaders.set(consolidatoreEndpointProperties.clientHeaderName(), consolidatoreEndpointProperties.clientHeaderValue());
+            httpHeaders.set(consolidatoreEndpointProperties.apiKeyHeaderName(), consolidatoreEndpointProperties.apiKeyHeaderValue());
+        }).build();
     }
 }

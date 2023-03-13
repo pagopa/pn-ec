@@ -12,8 +12,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-
 import static org.springframework.http.HttpStatus.OK;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 
 @Slf4j
 @RestController
@@ -48,4 +51,5 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
 				.pecPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.pec())
 				.map(ResponseEntity::ok);
 	}
+
 }
