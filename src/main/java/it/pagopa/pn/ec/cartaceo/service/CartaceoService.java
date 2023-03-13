@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static java.time.OffsetDateTime.now;
@@ -52,12 +51,14 @@ public class CartaceoService  extends PresaInCaricoService {
     @Override
     protected Mono<Void> specificPresaInCarico(PresaInCaricoInfo presaInCaricoInfo) {
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = (CartaceoPresaInCaricoInfo)presaInCaricoInfo;
-        var paperEngageRequestAttachments =  cartaceoPresaInCaricoInfo.getPaperEngageRequest().getAttachments();
-        String attachmentsUri = paperEngageRequestAttachments.get(0).getUri();
-        return attachmentService.getAllegatiPresignedUrlOrMetadata(Collections.singletonList(attachmentsUri),
+
+        List<String> attachmentsUri = getPaperUri(cartaceoPresaInCaricoInfo.getPaperEngageRequest().getAttachments());
+
+        return attachmentService.getAllegatiPresignedUrlOrMetadata(attachmentsUri,
                                                                    presaInCaricoInfo.getXPagopaExtchCxId(),
                                                                    true)
                 .flatMap(fileDownloadResponse -> {
+                    log.info("fileDownloadResponse" + fileDownloadResponse);
                     var peperNotificationRequest = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
                     peperNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
                     return insertRequestFromCartaceo(peperNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
@@ -81,6 +82,18 @@ public class CartaceoService  extends PresaInCaricoService {
                         }
                 )
                 .then();
+    }
+
+    private ArrayList<String> getPaperUri(List<PaperEngageRequestAttachments> paperEngageRequestAttachments) {
+        ArrayList<String> list = new ArrayList<>();
+        if(!paperEngageRequestAttachments.isEmpty() ){
+            for ( PaperEngageRequestAttachments attachment : paperEngageRequestAttachments ){
+                list.add(attachment.getUri());
+
+            }
+
+        }
+        return list;
     }
 
     private Mono<RequestDto> insertRequestFromCartaceo(PaperEngageRequest peperNotificationRequest) {
