@@ -12,44 +12,46 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+
 import static org.springframework.http.HttpStatus.OK;
-import org.springframework.beans.factory.annotation.Autowired;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 
 @Slf4j
 @RestController
 public class DigitalLegalMessagesApiController implements DigitalLegalMessagesApi {
 
-	private final PecService pecService;
+    private final PecService pecService;
 
-	private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
-	private final StatusPullService statusPullService;
+    private final StatusPullService statusPullService;
 
-	public DigitalLegalMessagesApiController(PecService pecService, StatusPullService statusPullService,
-			TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
-		this.pecService = pecService;
-		this.statusPullService=statusPullService;
-		this.transactionProcessConfigurationProperties=transactionProcessConfigurationProperties;
-	}
+    public DigitalLegalMessagesApiController(PecService pecService, StatusPullService statusPullService,
+                                             TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+        this.pecService = pecService;
+        this.statusPullService = statusPullService;
+        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+    }
 
-	@Override
-	public Mono<ResponseEntity<Void>> sendDigitalLegalMessage(String requestIdx, String xPagopaExtchCxId,
-			Mono<DigitalNotificationRequest> digitalNotificationRequest, final ServerWebExchange exchange) {
-		return digitalNotificationRequest.doOnNext(request -> log.info("<-- Start presa in carico -->")).flatMap(
-				request -> pecService.presaInCarico(new PecPresaInCaricoInfo(requestIdx, xPagopaExtchCxId, request)))
-				.thenReturn(new ResponseEntity<>(OK));
-	}
+    @Override
+    public Mono<ResponseEntity<Void>> sendDigitalLegalMessage(String requestIdx, String xPagopaExtchCxId,
+                                                              Mono<DigitalNotificationRequest> digitalNotificationRequest,
+                                                              final ServerWebExchange exchange) {
+        return digitalNotificationRequest.doOnNext(request -> log.info("<-- Start presa in carico -->"))
+                                         .flatMap(request -> pecService.presaInCarico(PecPresaInCaricoInfo.builder()
+                                                                                                          .requestIdx(requestIdx)
+                                                                                                          .xPagopaExtchCxId(xPagopaExtchCxId)
+                                                                                                          .digitalNotificationRequest(
+                                                                                                                  request)
+                                                                                                          .build()))
+                                         .thenReturn(new ResponseEntity<>(OK));
+    }
 
-	@Override
-	public Mono<ResponseEntity<LegalMessageSentDetails>> getDigitalLegalMessageStatus(String requestIdx,
-			String xPagopaExtchCxId, ServerWebExchange exchange) {
+    @Override
+    public Mono<ResponseEntity<LegalMessageSentDetails>> getDigitalLegalMessageStatus(String requestIdx, String xPagopaExtchCxId,
+                                                                                      ServerWebExchange exchange) {
 
-		return statusPullService
-				.pecPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.pec())
-				.map(ResponseEntity::ok);
-	}
+        return statusPullService.pecPullService(requestIdx, xPagopaExtchCxId).map(ResponseEntity::ok);
+    }
 
 }

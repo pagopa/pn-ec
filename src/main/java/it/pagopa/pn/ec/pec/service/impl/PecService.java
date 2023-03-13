@@ -74,11 +74,10 @@ public class PecService extends PresaInCaricoService {
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
 //      Cast PresaInCaricoInfo to specific PecPresaInCaricoInfo
         var pecPresaInCaricoInfo = (PecPresaInCaricoInfo) presaInCaricoInfo;
-        var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
 
         var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
-        digitalNotificationRequest.setRequestId(requestIdx);
+        digitalNotificationRequest.setRequestId(pecPresaInCaricoInfo.getRequestIdx());
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest()
                                                                                        .getAttachmentsUrls(), xPagopaExtchCxId, true)
@@ -87,7 +86,7 @@ public class PecService extends PresaInCaricoService {
                                                            xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException())))
 
                                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
-                                                                       createNotificationTrackerQueueDtoDigital(presaInCaricoInfo,
+                                                                       createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
                                                                                                                 transactionProcessConfigurationProperties.pecStartStatus(),
                                                                                                                 "booked",
                                                                                                                 new DigitalProgressStatusDto()))
