@@ -130,6 +130,7 @@
             <artifactId>secretsmanager</artifactId>
         </dependency>
 
+        <!-- MAIL DEPENDENCIES-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
@@ -380,7 +381,7 @@
                                 <configPackage>${project.groupId}.rest.v1.config</configPackage>
                             </configOptions>
                         </configuration>
-                    </execution>                    
+                    </execution>
                 </executions>
             </plugin>
 

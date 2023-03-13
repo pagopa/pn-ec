@@ -1,15 +1,8 @@
 package it.pagopa.pn.ec.commons.exception.httpstatuscode;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
+public class Generic500ErrorException extends GenericHttpStatusException {
 
-@FieldDefaults(level = AccessLevel.PRIVATE)
-@RequiredArgsConstructor
-@Getter
-public class Generic500ErrorException extends RuntimeException{
-
-    final String title;
-    final String details;
+    public Generic500ErrorException(String title, String details) {
+        super(title, details);
+    }
 }
