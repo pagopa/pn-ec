@@ -96,6 +96,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: 'alias/aws/sqs'
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -108,6 +109,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: 'alias/aws/sqs'
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -117,6 +119,8 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: 'alias/aws/sqs'
+      FifoQueue: True
+      DelaySeconds: 300
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -129,6 +133,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: 'alias/aws/sqs'
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -140,6 +145,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -152,6 +158,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -161,6 +168,8 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
+      DelaySeconds: 300
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -173,6 +182,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -184,6 +194,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -196,6 +207,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -205,6 +217,8 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
+      DelaySeconds: 300
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -217,6 +231,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -228,6 +243,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -240,6 +256,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -249,6 +266,8 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
+      DelaySeconds: 300
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -261,6 +280,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -284,6 +304,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: 'alias/aws/sqs'
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -410,6 +431,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: 'alias/aws/sqs'
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -422,6 +444,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: 'alias/aws/sqs'
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -431,6 +454,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: 'alias/aws/sqs'
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -443,6 +467,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: 'alias/aws/sqs'
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -452,6 +477,8 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: 'alias/aws/sqs'
+      FifoQueue: True
+      DelaySeconds: 300
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -464,6 +491,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: 'alias/aws/sqs'
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -475,6 +503,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -487,6 +516,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -496,6 +526,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -508,6 +539,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -517,6 +549,8 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
+      DelaySeconds: 300
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -529,6 +563,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -538,7 +573,8 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: "alias/aws/sqs" 
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -551,6 +587,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -560,6 +597,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -572,6 +610,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -581,6 +620,8 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
+      DelaySeconds: 300
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -593,6 +634,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -605,6 +647,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -617,6 +660,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -626,6 +670,8 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
+      DelaySeconds: 300
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -638,6 +684,7 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: "alias/aws/sqs"
+      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
