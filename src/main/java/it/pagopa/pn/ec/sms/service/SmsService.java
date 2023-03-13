@@ -295,8 +295,6 @@ public class SmsService extends PresaInCaricoService {
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
                         log.info(retryNumber + " tentativo di Retry");
-                        requestDto.getRequestMetadata().getRetry().setRetryStep(retryNumber.add(BigDecimal.ONE));
-                        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
                     }
 
                     PatchDto patchDto = new PatchDto();
@@ -316,6 +314,9 @@ public class SmsService extends PresaInCaricoService {
                         return minutes >= minutesToCheck || minutes > 40;
 
                 })
+                .doOnError(throwable -> {
+                    log.error("Errore nel filtro dei minuti: {}", throwable.getMessage());
+                        })
                 .flatMap(requestDto -> {
                     log.info("requestDto Value:", requestDto.getRequestMetadata().getRetry());
                     return snsService.send(digitalCourtesySmsRequest.getReceiverDigitalAddress(), digitalCourtesySmsRequest.getMessageText())
@@ -331,29 +332,12 @@ public class SmsService extends PresaInCaricoService {
                                                 // TODO: SET eventDetails
                                                 "",
                                                 generatedMessageDto));
+                            })
+                            .doOnSuccess(result -> {
+                                acknowledgment.acknowledge();
+                                log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}", smsSqsQueueName.errorName());
                             });
                 })
-                .doOnSuccess(result -> {
-                    acknowledgment.acknowledge();
-                    log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}", smsSqsQueueName.errorName());
-                })
-
-                .onErrorResume(snsSendException -> {
-                    log.error("Errore durante l'invio dell'SMS: {}", snsSendException.getMessage());
-                    //acknowledgment.acknowledge();
-                    //todo dlq sms errori
-                    return retrySmsSend(acknowledgment,
-                            smsPresaInCaricoInfo,
-                            smsPresaInCaricoInfo.getStatusAfterStart(),
-                            null)
-                            .onErrorResume(throwable -> {
-                                return null;
-                            });
-
-                })
-
-
                 .subscribe();
-
     }
 }
