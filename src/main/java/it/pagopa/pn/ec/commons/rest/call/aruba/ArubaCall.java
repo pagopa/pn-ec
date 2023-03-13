@@ -5,7 +5,7 @@ import it.pec.bridgews.*;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
-import java.time.Duration;
+import static it.pagopa.pn.ec.commons.configuration.retry.RetryStrategy.DEFAULT_BACKOFF_RETRY_STRATEGY;
 
 public interface ArubaCall {
 
@@ -14,7 +14,7 @@ public interface ArubaCall {
     Mono<SendMailResponse> sendMail(SendMail sendMail);
     Mono<GetAttachResponse> getAttach(GetAttach getAttach);
 
-    Retry ARUBA_CALL_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2)).onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
+    Retry ARUBA_CALL_RETRY_STRATEGY = DEFAULT_BACKOFF_RETRY_STRATEGY.onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
         throw new ArubaCallMaxRetriesExceededException();
     });
 }

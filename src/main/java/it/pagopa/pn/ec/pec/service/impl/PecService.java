@@ -29,11 +29,9 @@ import it.pec.bridgews.SendMailResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
-import java.time.Duration;
-
+import static it.pagopa.pn.ec.commons.configuration.retry.RetryStrategy.DEFAULT_BACKOFF_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.BATCH;
@@ -148,10 +146,8 @@ public class PecService extends PresaInCaricoService {
         log.info("<-- START LAVORAZIONE RICHIESTA PEC -->");
         logIncomingMessage(pecSqsQueueName.interactiveName(), pecPresaInCaricoInfo);
 
-        lavorazioneRichiesta(pecPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
+        lavorazioneRichiesta(pecPresaInCaricoInfo).thenReturn(acknowledgment.acknowledge()).subscribe();
     }
-
-    private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
 
     Mono<SendMessageResponse> lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
 
@@ -161,22 +157,32 @@ public class PecService extends PresaInCaricoService {
 
 //      Get attachment presigned url Flux
         return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalNotificationRequest.getAttachmentsUrls(), xPagopaExtchCxId, false)
-                                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                                .retryWhen(DEFAULT_BACKOFF_RETRY_STRATEGY.onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
+                                    throw new RuntimeException("Retry exhausted for retrieving the presigned url");
+                                }))
 
                                 .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
 
-                                .flatMap(fileDownloadResponse -> downloadCall.downloadFile(fileDownloadResponse.getDownload().getUrl())
-                                                                             .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
-                                                                             .map(outputStream -> EmailAttachment.builder()
-                                                                                                                 .nameWithExtension(
-                                                                                                                         fileDownloadResponse.getKey())
-                                                                                                                 .content(outputStream)
-                                                                                                                 .build()))
+//                              Download the attachment and create the EmailAttachment object
+                                .flatMap(fileDownloadResponse -> {
+                                    var url = fileDownloadResponse.getDownload().getUrl();
+                                    return downloadCall.downloadFile(url)
+                                                       .retryWhen(DEFAULT_BACKOFF_RETRY_STRATEGY.onRetryExhaustedThrow((retryBackoffSpec,
+                                                                                                                        retrySignal) -> {
+                                                           throw new RuntimeException(String.format(
+                                                                   "Exhausted retries for attachment download at %s",
+                                                                   url));
+                                                       }))
+                                                       .map(outputStream -> EmailAttachment.builder()
+                                                                                           .nameWithExtension(fileDownloadResponse.getKey())
+                                                                                           .content(outputStream)
+                                                                                           .build());
+                                })
 
 //                              Convert to Mono<List>
                                 .collectList()
 
-//                              Create EmailField object with request info and attachments
+//                              Create EmailField object with request info and attachments. If there are no attachments fileDownloadResponses is empty
                                 .map(fileDownloadResponses -> EmailField.builder()
                                                                         .msgId(encodeMessageId(requestIdx, xPagopaExtchCxId))
                                                                         .from(arubaSecretValue.getPecUsername())
@@ -188,14 +194,17 @@ public class PecService extends PresaInCaricoService {
                                                                         .emailAttachments(fileDownloadResponses)
                                                                         .build())
 
+//                              Convert EmailField to mime message wrapped in <![CDATA[...]]>
                                 .map(EmailUtils::getMimeMessageInCDATATag)
 
+//                              Send PEC. Aruba call retries are handled in their implementations
                                 .flatMap(mimeMessageInCdata -> {
                                     var sendMail = new SendMail();
                                     sendMail.setData(mimeMessageInCdata);
                                     return arubaCall.sendMail(sendMail);
                                 })
 
+//                              If the errcode is different from 0 it means that the sending was not successful, throw ArubaSendException
                                 .handle((sendMailResponse, sink) -> {
                                     if (sendMailResponse.getErrcode() != 0) {
                                         sink.error(new ArubaSendException());
@@ -204,11 +213,13 @@ public class PecService extends PresaInCaricoService {
                                     }
                                 })
 
+//                              Cast the emitted value from the handle operator
                                 .cast(SendMailResponse.class)
 
+//                              Create the GeneratedMessageDto object and set the id as the returned messageId from the SendMailResponse
                                 .map(this::createGeneratedMessageDto)
 
-                                .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(requestIdx))
+                                .zipWith(gestoreRepositoryCall.setMessageIdInRequestMetadata(requestIdx))
 
                                 .flatMap(objects -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                                                     new NotificationTrackerQueueDto(requestIdx,
@@ -220,7 +231,7 @@ public class PecService extends PresaInCaricoService {
                                                                                                     // TODO: SET eventDetails
                                                                                                     "",
                                                                                                     objects.getT1()))
-                                                              .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                                                              .retryWhen(DEFAULT_BACKOFF_RETRY_STRATEGY)
 
 //                                                            An error occurred during SQS publishing to the Notification Tracker ->
 //                                                            Publish to Errori PEC queue and notify to retry update status only

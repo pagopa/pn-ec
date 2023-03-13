@@ -11,13 +11,13 @@ import it.pagopa.pn.ec.notificationtracker.service.PutEvents;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.eventbridge.EventBridgeAsyncClient;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsRequest;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
 
-import java.time.Duration;
 import java.util.Date;
+
+import static it.pagopa.pn.ec.commons.configuration.retry.RetryStrategy.DEFAULT_BACKOFF_RETRY_STRATEGY;
 
 @Service
 @Slf4j
@@ -39,7 +39,7 @@ public class PutEventsImpl implements PutEvents {
         PutEventsRequestEntry reqEntry = PutEventsRequestEntry.builder()
                                                               .time(new Date().toInstant())
                                                               .source("NOTIFICATION TRACKER")
-                                                              .detailType(eventInfo.getProcessId().toString())
+                                                              .detailType(eventInfo.getProcessId())
                                                               .detail(toJson(eventInfo))
                                                               .eventBusName(notificationTrackerEventBridgeEventName.notificationsBusName())
                                                               .build();
@@ -50,7 +50,7 @@ public class PutEventsImpl implements PutEvents {
         log.info(">>> PutEventsRequestEntry to EventBridge: " + eventsRequest);
 
         return Mono.fromCompletionStage(eventBrClient.putEvents(builder -> builder.entries(reqEntry)))
-                   .retryWhen(Retry.backoff(3, Duration.ofSeconds(2)))
+                   .retryWhen(DEFAULT_BACKOFF_RETRY_STRATEGY)
                    .then();
     }
 

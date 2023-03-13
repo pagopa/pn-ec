@@ -6,17 +6,13 @@ import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
 
-import java.time.Duration;
+import static it.pagopa.pn.ec.commons.configuration.retry.RetryStrategy.DEFAULT_BACKOFF_RETRY_STRATEGY;
 
 public interface SesService {
 
-	//  Spiegazione per jitter https://www.baeldung.com/resilience4j-backoff-jitter#jitter
-	Retry DEFAULT_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))//
-										// .jitter(0.75)
-										.onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
-											throw new SesSendException.SesMaxRetriesExceededException();
-										});
+    Retry DEFAULT_RETRY_STRATEGY = DEFAULT_BACKOFF_RETRY_STRATEGY.onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
+        throw new SesSendException.SesMaxRetriesExceededException();
+    });
 
-	Mono<SendRawEmailResponse> send(EmailField field);
-
+    Mono<SendRawEmailResponse> send(EmailField field);
 }
