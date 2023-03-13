@@ -74,14 +74,11 @@ class NotificationTrackerServiceImplTest {
 		req.setCurrentStatus("BOOKED");
 		req.setNextStatus("VALIDATE");
 		req.setRequestIdx("123_test");
-		String processId = req.getProcessId().toString();
 
 		when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
 		when(putEventsImpl.putEventExternal(notificationTrackerQueueDto)).thenReturn(Mono.empty());
-		when(callMachinaStati.statusValidation(processId, req.getCurrentStatus(), req.getXPagopaExtchCxId(),
-				req.getNextStatus())).thenReturn(Mono.just(STATE_MACHINE_DTO));
+		when(callMachinaStati.statusValidation(req).thenReturn(Mono.just(STATE_MACHINE_DTO)));
 		notificationtrackerMessageReceiver.receiveSMSObjectMessage(req);
-
 	}
 
 	@Test

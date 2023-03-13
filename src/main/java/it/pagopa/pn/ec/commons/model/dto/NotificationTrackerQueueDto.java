@@ -1,48 +1,51 @@
 package it.pagopa.pn.ec.commons.model.dto;
 
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
-import it.pagopa.pn.ec.rest.v1.dto.GeneratedMessageDto;
+import it.pagopa.pn.ec.commons.model.pojo.RequestStatusChange;
+import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
+import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 
-import java.time.OffsetDateTime;
+import static java.time.OffsetDateTime.now;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @Data
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
-public class NotificationTrackerQueueDto extends PresaInCaricoInfo {
+@SuperBuilder
+public class NotificationTrackerQueueDto extends RequestStatusChange {
 
-    /**
-     * Identificativo del processo richiesto dal Notification Tracker
-     */
-    OffsetDateTime eventTimestamp;
-    String processId;
-    String currentStatus;
-    String nextStatus;
-    String eventDetails;
-    GeneratedMessageDto generatedMessageDto;
+    DigitalProgressStatusDto digitalProgressStatusDto;
+    PaperProgressStatusDto paperProgressStatusDto;
 
-    public NotificationTrackerQueueDto(String requestIdx, String xPagopaExtchCxId, OffsetDateTime eventTimestamp, String processId,
-                                       String currentStatus, String nextStatus, GeneratedMessageDto generatedMessageDto) {
-        super(requestIdx, xPagopaExtchCxId);
-        this.eventTimestamp = eventTimestamp;
-        this.processId = processId;
-        this.currentStatus = currentStatus;
-        this.nextStatus = nextStatus;
-        this.generatedMessageDto = generatedMessageDto;
+    private static NotificationTrackerQueueDto createNotificationTrackerQueueDto(PresaInCaricoInfo presaInCaricoInfo,
+                                                                                 String currentStatus, String nextStatus) {
+        return (NotificationTrackerQueueDto) RequestStatusChange.builder()
+                                                                .requestIdx(presaInCaricoInfo.getRequestIdx())
+                                                                .xPagopaExtchCxId(presaInCaricoInfo.getXPagopaExtchCxId())
+                                                                .currentStatus(currentStatus)
+                                                                .nextStatus(nextStatus)
+                                                                .build();
     }
 
-    public NotificationTrackerQueueDto(String requestIdx, String xPagopaExtchCxId, OffsetDateTime eventTimestamp, String processId,
-                                       String currentStatus, String nextStatus, String eventDetails,
-                                       GeneratedMessageDto generatedMessageDto) {
-        super(requestIdx, xPagopaExtchCxId);
-        this.eventTimestamp = eventTimestamp;
-        this.processId = processId;
-        this.currentStatus = currentStatus;
-        this.nextStatus = nextStatus;
-        this.eventDetails = eventDetails;
-        this.generatedMessageDto = generatedMessageDto;
+    public static NotificationTrackerQueueDto createNotificationTrackerQueueDtoDigital(PresaInCaricoInfo presaInCaricoInfo,
+                                                                                       String currentStatus, String nextStatus,
+                                                                                       DigitalProgressStatusDto digitalProgressStatusDto) {
+        var notificationTrackerQueueDto = createNotificationTrackerQueueDto(presaInCaricoInfo, currentStatus, nextStatus);
+        digitalProgressStatusDto.setEventTimestamp(now());
+        notificationTrackerQueueDto.setDigitalProgressStatusDto(digitalProgressStatusDto);
+        return notificationTrackerQueueDto;
+    }
+
+    public static NotificationTrackerQueueDto createNotificationTrackerQueueDtoPaper(PresaInCaricoInfo presaInCaricoInfo,
+                                                                                     String currentStatus, String nextStatus,
+                                                                                     PaperProgressStatusDto paperProgressStatusDto) {
+        var notificationTrackerQueueDto = createNotificationTrackerQueueDto(presaInCaricoInfo, currentStatus, nextStatus);
+        paperProgressStatusDto.setStatusDateTime(now());
+        notificationTrackerQueueDto.setPaperProgressStatusDto(paperProgressStatusDto);
+        return notificationTrackerQueueDto;
     }
 }

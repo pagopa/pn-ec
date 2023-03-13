@@ -66,8 +66,11 @@ public class EmailService extends PresaInCaricoService {
 
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
-        EmailPresaInCaricoInfo emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
-        String xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
+
+        var emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
+        var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
+        var xPagopaExtchCxId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
+
         var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
 
@@ -79,13 +82,15 @@ public class EmailService extends PresaInCaricoService {
                                 .then(insertRequestFromEmail(digitalNotificationRequest, xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException())))
 
                                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                                       new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
-                                                                                                       presaInCaricoInfo.getXPagopaExtchCxId(),
-                                                                                                       now(),
-                                                                                                       transactionProcessConfigurationProperties.email(),
-                                                                                                       transactionProcessConfigurationProperties.emailStartStatus(),
-                                                                                                       "booked",
-                                                                                                       null)))
+                                                                       NotificationTrackerQueueDto.builder()
+                                                                                                  .requestIdx(requestIdx)
+                                                                                                  .xPagopaExtchCxId(xPagopaExtchCxId)
+                                                                                                  .currentStatus(
+                                                                                                          transactionProcessConfigurationProperties.emailStartStatus())
+                                                                                                  .nextStatus("booked")
+                                                                                                  .digitalProgressStatusDto(new DigitalProgressStatusDto().eventTimestamp(
+                                                                                                          now()))
+                                                                                                  .build()))
 
                                 .flatMap(sendMessageResponse -> {
                                     DigitalCourtesyMailRequest.QosEnum qos =

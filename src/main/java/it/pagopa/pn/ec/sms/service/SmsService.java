@@ -60,28 +60,28 @@ public class SmsService extends PresaInCaricoService {
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
 
         var smsPresaInCaricoInfo = (SmsPresaInCaricoInfo) presaInCaricoInfo;
+        var requestIdx = smsPresaInCaricoInfo.getRequestIdx();
+        var xPagopaExtchCxId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
+
         var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
         digitalCourtesySmsRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-        String xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
 
 //      Insert request from SMS request and publish to Notification Tracker with next status -> BOOKED
         return insertRequestFromSms(digitalCourtesySmsRequest,
                                     xPagopaExtchCxId).then(sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                                                                           new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
-                                                                                                           presaInCaricoInfo.getXPagopaExtchCxId(),
-                                                                                                           now(),
-                                                                                                           transactionProcessConfigurationProperties.sms(),
-                                                                                                           transactionProcessConfigurationProperties.smsStartStatus(),
-                                                                                                           "booked",
-                                                                                                           // TODO: SET
-                                                                                                           // eventDetails
-                                                                                                           "",
-                                                                                                           null)))
+                                                                           NotificationTrackerQueueDto.builder()
+                                                                                                      .requestIdx(requestIdx)
+                                                                                                      .xPagopaExtchCxId(xPagopaExtchCxId)
+                                                                                                      .currentStatus(
+                                                                                                              transactionProcessConfigurationProperties.smsStartStatus())
+                                                                                                      .nextStatus("booked")
+                                                                                                      .digitalProgressStatusDto(new DigitalProgressStatusDto().eventTimestamp(
+                                                                                                              now()))
+                                                                                                      .build()))
 //                                                            Publish to SMS INTERACTIVE or SMS BATCH
                                                      .flatMap(sendMessageResponse -> {
                                                          DigitalCourtesySmsRequest.QosEnum qos =
                                                                  smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getQos();
-                                                         smsPresaInCaricoInfo.setStatusAfterStart("booked");
                                                          if (qos == INTERACTIVE) {
                                                              return sqsService.send(smsSqsQueueName.interactiveName(),
                                                                                     smsPresaInCaricoInfo);
@@ -132,8 +132,8 @@ public class SmsService extends PresaInCaricoService {
         log.info("<-- START LAVORAZIONE RICHIESTA SMS -->");
         logIncomingMessage(smsSqsQueueName.interactiveName(), smsPresaInCaricoInfo);
 
-        var requestId = smsPresaInCaricoInfo.getRequestIdx();
-        var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
+        var requestIdx = smsPresaInCaricoInfo.getRequestIdx();
+        var xPagopaExtchCxId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
 
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
@@ -145,15 +145,14 @@ public class SmsService extends PresaInCaricoService {
                   .flatMap(publishResponse -> {
                       generatedMessageDto.set(new GeneratedMessageDto().id(publishResponse.messageId()).system("systemPlaceholder"));
                       return sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                                             new NotificationTrackerQueueDto(requestId,
-                                                                             clientId,
-                                                                             now(),
-                                                                             transactionProcessConfigurationProperties.sms(),
-                                                                             smsPresaInCaricoInfo.getStatusAfterStart(),
-                                                                             "sent",
-                                                                             // TODO: SET eventDetails
-                                                                             "",
-                                                                             generatedMessageDto.get()));
+                                             NotificationTrackerQueueDto.builder()
+                                                                        .requestIdx(requestIdx)
+                                                                        .xPagopaExtchCxId(xPagopaExtchCxId)
+                                                                        .currentStatus("booked")
+                                                                        .nextStatus("sent")
+                                                                        .digitalProgressStatusDto(new DigitalProgressStatusDto().eventTimestamp(
+                                                                                now()).generatedMessage(generatedMessageDto.get()))
+                                                                        .build());
                   })
 
 //                Delete from queue
@@ -161,10 +160,7 @@ public class SmsService extends PresaInCaricoService {
 
 //                 An error occurred during SMS send, start retries
                   .onErrorResume(SnsSendException.class,
-                                 snsSendException -> retrySmsSend(acknowledgment,
-                                                                  smsPresaInCaricoInfo,
-                                                                  smsPresaInCaricoInfo.getStatusAfterStart(),
-                                                                  generatedMessageDto.get()))
+                                 snsSendException -> retrySmsSend(acknowledgment, smsPresaInCaricoInfo, generatedMessageDto.get()))
 
 //                An error occurred during SQS publishing to the Notification Tracker -> Publish to Errori SMS queue and
 //                notify to retry update status only
@@ -174,10 +170,10 @@ public class SmsService extends PresaInCaricoService {
     }
 
     private Mono<SendMessageResponse> retrySmsSend(final Acknowledgment acknowledgment, final SmsPresaInCaricoInfo smsPresaInCaricoInfo,
-                                                   final String currentStatus, final GeneratedMessageDto generateMessageDto) {
+                                                   final GeneratedMessageDto generateMessageDto) {
 
-        var requestId = smsPresaInCaricoInfo.getRequestIdx();
-        var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
+        var requestIdx = smsPresaInCaricoInfo.getRequestIdx();
+        var xPagopaExtchCxId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
 
 //      Try to send SMS
@@ -188,47 +184,40 @@ public class SmsService extends PresaInCaricoService {
 
 //                       The SMS in sent, publish to Notification Tracker with next status -> SENT
                          .flatMap(publishResponse -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                                                                     new NotificationTrackerQueueDto(requestId,
-                                                                                                     clientId,
-                                                                                                     now(),
-                                                                                                     transactionProcessConfigurationProperties.sms(),
-                                                                                                     currentStatus,
-                                                                                                     "sent",
-                                                                                                     // TODO: SET eventDetails
-                                                                                                     "",
-                                                                                                     new GeneratedMessageDto().id(
-                                                                                                                                      publishResponse.messageId())
-                                                                                                                              .system("systemPlaceholder"))))
+                                                                     NotificationTrackerQueueDto.builder()
+                                                                                                .requestIdx(requestIdx)
+                                                                                                .xPagopaExtchCxId(xPagopaExtchCxId)
+                                                                                                .currentStatus("booked")
+                                                                                                .nextStatus("sent")
+                                                                                                .digitalProgressStatusDto(new DigitalProgressStatusDto().eventTimestamp(
+                                                                                                                                                                now())
+                                                                                                                                                        .generatedMessage(
+                                                                                                                                                                generateMessageDto))
+                                                                                                .build()))
 
 //                       Delete from queue
                          .doOnSuccess(result -> acknowledgment.acknowledge())
 
 //                       The maximum number of retries has ended
                          .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
-                                        snsMaxRetriesExceeded -> smsRetriesExceeded(acknowledgment,
-                                                                                    smsPresaInCaricoInfo,
-                                                                                    generateMessageDto,
-                                                                                    currentStatus));
+                                        snsMaxRetriesExceeded -> smsRetriesExceeded(acknowledgment, smsPresaInCaricoInfo));
     }
 
     private Mono<SendMessageResponse> smsRetriesExceeded(final Acknowledgment acknowledgment,
-                                                         final SmsPresaInCaricoInfo smsPresaInCaricoInfo,
-                                                         final GeneratedMessageDto generatedMessageDto, String currentStatus) {
+                                                         final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
 
-        var requestId = smsPresaInCaricoInfo.getRequestIdx();
-        var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
+        var requestIdx = smsPresaInCaricoInfo.getRequestIdx();
+        var xPagopaExtchCxId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
 
 //      Publish to Notification Tracker with next status -> RETRY
         return sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                               new NotificationTrackerQueueDto(requestId,
-                                                               clientId,
-                                                               now(),
-                                                               transactionProcessConfigurationProperties.sms(),
-                                                               currentStatus,
-                                                               "retry",
-                                                               // TODO: SET eventDetails
-                                                               "",
-                                                               generatedMessageDto))
+                               NotificationTrackerQueueDto.builder()
+                                                          .requestIdx(requestIdx)
+                                                          .xPagopaExtchCxId(xPagopaExtchCxId)
+                                                          .currentStatus("booked")
+                                                          .nextStatus("retry")
+                                                          .digitalProgressStatusDto(new DigitalProgressStatusDto().eventTimestamp(now()))
+                                                          .build())
 
                          // Publish to ERRORI SMS queue
                          .then(sqsService.send(smsSqsQueueName.errorName(), smsPresaInCaricoInfo))
