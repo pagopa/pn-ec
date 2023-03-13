@@ -120,6 +120,7 @@ public class CartaceoService  extends PresaInCaricoService {
 
             digitalRequestPersonalDto.setAttachments(attachmentsEngageRequestDtos);
 
+            digitalRequestPersonalDto.setReceiverName(peperNotificationRequest.getReceiverName());
             digitalRequestPersonalDto.setReceiverNameRow2(peperNotificationRequest.getReceiverNameRow2());
             digitalRequestPersonalDto.setReceiverAddress(peperNotificationRequest.getReceiverAddress());
             digitalRequestPersonalDto.setReceiverAddressRow2(peperNotificationRequest.getReceiverAddressRow2());
