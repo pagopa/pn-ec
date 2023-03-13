@@ -17,9 +17,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper;
 
@@ -57,10 +55,11 @@ public class CartaceoService extends PresaInCaricoService {
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(paperEngageRequestAttachments.stream()
                                                                                                 .map(PaperEngageRequestAttachments::getUri)
-                                                                                                .collect(Collectors.toList()),
+                                                                                                .toList(),
                                                                    presaInCaricoInfo.getXPagopaExtchCxId(),
                                                                    true)
                                 .flatMap(fileDownloadResponse -> {
+                                    log.info("fileDownloadResponse" + fileDownloadResponse);
                                     var paperEngageRequest = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
                                     paperEngageRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
                                     return insertRequestFromCartaceo(paperEngageRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
@@ -69,7 +68,8 @@ public class CartaceoService extends PresaInCaricoService {
                                                                        createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
                                                                                                               transactionProcessConfigurationProperties.paperStarterStatus(),
                                                                                                               "booked",
-                                                                                                              // TODO: SET MISSING PROPERTIES
+                                                                                                              // TODO: SET MISSING
+                                                                                                              //  PROPERTIES
                                                                                                               new PaperProgressStatusDto())))
                                 .flatMap(sendMessageResponse -> {
                                     PaperEngageRequest req = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
@@ -83,58 +83,58 @@ public class CartaceoService extends PresaInCaricoService {
                                 .then();
     }
 
-    private Mono<RequestDto> insertRequestFromCartaceo(PaperEngageRequest peperNotificationRequest) {
+    private Mono<RequestDto> insertRequestFromCartaceo(PaperEngageRequest paperEngageRequest) {
 
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
-            requestDto.setRequestIdx(peperNotificationRequest.getRequestId());
-            requestDto.setClientRequestTimeStamp(peperNotificationRequest.getClientRequestTimeStamp());
+            requestDto.setRequestIdx(paperEngageRequest.getRequestId());
+            requestDto.setClientRequestTimeStamp(paperEngageRequest.getClientRequestTimeStamp());
             var requestPersonalDto = new RequestPersonalDto();
             var digitalRequestPersonalDto = new PaperRequestPersonalDto();
 
-            List<AttachmentsEngageRequestDto> attachmentsEngageRequestDtos = new ArrayList<>();
-            if (!peperNotificationRequest.getAttachments().isEmpty()) {
-                for (PaperEngageRequestAttachments attachment : peperNotificationRequest.getAttachments()) {
+            List<AttachmentsEngageRequestDto> engageRequestDto = new ArrayList<>();
+            if (!paperEngageRequest.getAttachments().isEmpty()) {
+                for (PaperEngageRequestAttachments attachment : paperEngageRequest.getAttachments()) {
                     AttachmentsEngageRequestDto attachments = new AttachmentsEngageRequestDto();
                     attachments.setUri(attachment.getUri());
                     attachments.setOrder(attachment.getOrder());
                     attachments.setDocumentType(attachment.getDocumentType());
                     attachments.setSha256(attachment.getSha256());
-                    attachmentsEngageRequestDtos.add(attachments);
+                    engageRequestDto.add(attachments);
 
                 }
             }
 
-            digitalRequestPersonalDto.setAttachments(attachmentsEngageRequestDtos);
+            digitalRequestPersonalDto.setAttachments(engageRequestDto);
 
-            digitalRequestPersonalDto.setReceiverName(peperNotificationRequest.getReceiverName());
-            digitalRequestPersonalDto.setReceiverNameRow2(peperNotificationRequest.getReceiverNameRow2());
-            digitalRequestPersonalDto.setReceiverAddress(peperNotificationRequest.getReceiverAddress());
-            digitalRequestPersonalDto.setReceiverAddressRow2(peperNotificationRequest.getReceiverAddressRow2());
-            digitalRequestPersonalDto.setReceiverCap(peperNotificationRequest.getReceiverCap());
-            digitalRequestPersonalDto.setReceiverCity(peperNotificationRequest.getReceiverCity());
-            digitalRequestPersonalDto.setReceiverCity2(peperNotificationRequest.getReceiverCity2());
-            digitalRequestPersonalDto.setReceiverPr(peperNotificationRequest.getReceiverPr());
-            digitalRequestPersonalDto.setReceiverCountry(peperNotificationRequest.getReceiverCountry());
-            digitalRequestPersonalDto.setReceiverFiscalCode(peperNotificationRequest.getReceiverFiscalCode());
-            digitalRequestPersonalDto.setSenderName(peperNotificationRequest.getSenderName());
-            digitalRequestPersonalDto.setSenderAddress(peperNotificationRequest.getSenderAddress());
-            digitalRequestPersonalDto.setSenderCity(peperNotificationRequest.getSenderCity());
-            digitalRequestPersonalDto.setSenderPr(peperNotificationRequest.getSenderPr());
-            digitalRequestPersonalDto.setSenderDigitalAddress(peperNotificationRequest.getSenderDigitalAddress());
-            digitalRequestPersonalDto.setArName(peperNotificationRequest.getArName());
-            digitalRequestPersonalDto.setArAddress(peperNotificationRequest.getArAddress());
-            digitalRequestPersonalDto.setArCap(peperNotificationRequest.getArCap());
-            digitalRequestPersonalDto.setArCity(peperNotificationRequest.getArCity());
+            digitalRequestPersonalDto.setReceiverName(paperEngageRequest.getReceiverName());
+            digitalRequestPersonalDto.setReceiverNameRow2(paperEngageRequest.getReceiverNameRow2());
+            digitalRequestPersonalDto.setReceiverAddress(paperEngageRequest.getReceiverAddress());
+            digitalRequestPersonalDto.setReceiverAddressRow2(paperEngageRequest.getReceiverAddressRow2());
+            digitalRequestPersonalDto.setReceiverCap(paperEngageRequest.getReceiverCap());
+            digitalRequestPersonalDto.setReceiverCity(paperEngageRequest.getReceiverCity());
+            digitalRequestPersonalDto.setReceiverCity2(paperEngageRequest.getReceiverCity2());
+            digitalRequestPersonalDto.setReceiverPr(paperEngageRequest.getReceiverPr());
+            digitalRequestPersonalDto.setReceiverCountry(paperEngageRequest.getReceiverCountry());
+            digitalRequestPersonalDto.setReceiverFiscalCode(paperEngageRequest.getReceiverFiscalCode());
+            digitalRequestPersonalDto.setSenderName(paperEngageRequest.getSenderName());
+            digitalRequestPersonalDto.setSenderAddress(paperEngageRequest.getSenderAddress());
+            digitalRequestPersonalDto.setSenderCity(paperEngageRequest.getSenderCity());
+            digitalRequestPersonalDto.setSenderPr(paperEngageRequest.getSenderPr());
+            digitalRequestPersonalDto.setSenderDigitalAddress(paperEngageRequest.getSenderDigitalAddress());
+            digitalRequestPersonalDto.setArName(paperEngageRequest.getArName());
+            digitalRequestPersonalDto.setArAddress(paperEngageRequest.getArAddress());
+            digitalRequestPersonalDto.setArCap(paperEngageRequest.getArCap());
+            digitalRequestPersonalDto.setArCity(paperEngageRequest.getArCity());
             requestPersonalDto.setPaperRequestPersonal(digitalRequestPersonalDto);
 
             var requestMetadataDto = new RequestMetadataDto();
             var digitalRequestMetadataDto = new PaperRequestMetadataDto();
-            digitalRequestMetadataDto.setRequestPaId(peperNotificationRequest.getRequestPaId());
-            digitalRequestMetadataDto.setIun(peperNotificationRequest.getIun());
-            digitalRequestMetadataDto.setVas(peperNotificationRequest.getVas());
-            digitalRequestMetadataDto.setPrintType(peperNotificationRequest.getPrintType());
-            digitalRequestMetadataDto.setProductType(peperNotificationRequest.getProductType());
+            digitalRequestMetadataDto.setRequestPaId(paperEngageRequest.getRequestPaId());
+            digitalRequestMetadataDto.setIun(paperEngageRequest.getIun());
+            digitalRequestMetadataDto.setVas(paperEngageRequest.getVas());
+            digitalRequestMetadataDto.setPrintType(paperEngageRequest.getPrintType());
+            digitalRequestMetadataDto.setProductType(paperEngageRequest.getProductType());
             requestMetadataDto.setPaperRequestMetadata(digitalRequestMetadataDto);
 
             requestDto.setRequestPersonal(requestPersonalDto);
