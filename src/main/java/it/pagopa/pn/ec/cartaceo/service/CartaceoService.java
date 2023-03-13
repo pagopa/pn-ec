@@ -52,8 +52,11 @@ public class CartaceoService  extends PresaInCaricoService {
     @Override
     protected Mono<Void> specificPresaInCarico(PresaInCaricoInfo presaInCaricoInfo) {
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = (CartaceoPresaInCaricoInfo)presaInCaricoInfo;
-        var paperEngageRequestAttachments =  cartaceoPresaInCaricoInfo.getPaperEngageRequest().getAttachments();
-        String attachmentsUri = paperEngageRequestAttachments.get(0).getUri();
+//        var paperEngageRequestAttachments =  ;
+
+//        String attachmentsUri = paperEngageRequestAttachments.get(0).getUri();
+        String attachmentsUri =  getPaperUri(cartaceoPresaInCaricoInfo.getPaperEngageRequest().getAttachments());
+
         return attachmentService.getAllegatiPresignedUrlOrMetadata(Collections.singletonList(attachmentsUri),
                                                                    presaInCaricoInfo.getXPagopaExtchCxId(),
                                                                    true)
@@ -81,6 +84,17 @@ public class CartaceoService  extends PresaInCaricoService {
                         }
                 )
                 .then();
+    }
+
+    private String getPaperUri(List<PaperEngageRequestAttachments> paperEngageRequestAttachments) {
+        AttachmentsEngageRequestDto attachments =  new AttachmentsEngageRequestDto();
+        if(!paperEngageRequestAttachments.isEmpty() ){
+            for ( PaperEngageRequestAttachments attachment : paperEngageRequestAttachments){
+                attachments.setUri(attachment.getUri());
+            }
+        }
+
+        return attachments.getUri();
     }
 
     private Mono<RequestDto> insertRequestFromCartaceo(PaperEngageRequest peperNotificationRequest) {
