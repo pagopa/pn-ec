@@ -283,7 +283,7 @@ public class SmsService extends PresaInCaricoService {
         gestoreRepositoryCall.getRichiesta(requestId)
 
                 .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), "toDelete"))
-                .map(requestDto ->  {
+                .flatMap(requestDto ->  {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
@@ -291,12 +291,18 @@ public class SmsService extends PresaInCaricoService {
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         retryDto.setLastRetryTimestamp(OffsetDateTime.now());
                         requestDto.getRequestMetadata().setRetry(retryDto);
+
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
                         log.info(retryNumber + " tentativo di Retry");
                         requestDto.getRequestMetadata().getRetry().setRetryStep(retryNumber.add(BigDecimal.ONE));
+                        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
                     }
-                    return requestDto;
+
+                    PatchDto patchDto = new PatchDto();
+                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+                    return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
                 })
                 .filter(requestDto -> {
 
@@ -311,6 +317,7 @@ public class SmsService extends PresaInCaricoService {
 
                 })
                 .flatMap(requestDto -> {
+                    log.info("requestDto Value:", requestDto.getRequestMetadata().getRetry());
                     return snsService.send(digitalCourtesySmsRequest.getReceiverDigitalAddress(), digitalCourtesySmsRequest.getMessageText())
                             .flatMap(publishResponse -> {
                                 var generatedMessageDto = new GeneratedMessageDto().id(publishResponse.messageId()).system("systemPlaceholder");
@@ -325,15 +332,16 @@ public class SmsService extends PresaInCaricoService {
                                                 "",
                                                 generatedMessageDto));
                             });
-                }).doOnSuccess(result -> {
+                })
+                .doOnSuccess(result -> {
                     acknowledgment.acknowledge();
-                    log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda: {}", smsSqsQueueName.errorName());
+                    log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}", smsSqsQueueName.errorName());
                 })
 
                 .onErrorResume(snsSendException -> {
                     log.error("Errore durante l'invio dell'SMS: {}", snsSendException.getMessage());
-//                    acknowledgment.acknowledge();
-//todo dlq sms errori
+                    //acknowledgment.acknowledge();
+                    //todo dlq sms errori
                     return retrySmsSend(acknowledgment,
                             smsPresaInCaricoInfo,
                             smsPresaInCaricoInfo.getStatusAfterStart(),
@@ -343,6 +351,7 @@ public class SmsService extends PresaInCaricoService {
                             });
 
                 })
+
 
                 .subscribe();
 
