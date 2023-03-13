@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -106,6 +107,7 @@ public class CartaceoService extends PresaInCaricoService {
 
             digitalRequestPersonalDto.setAttachments(attachmentsEngageRequestDtos);
 
+            digitalRequestPersonalDto.setReceiverName(peperNotificationRequest.getReceiverName());
             digitalRequestPersonalDto.setReceiverNameRow2(peperNotificationRequest.getReceiverNameRow2());
             digitalRequestPersonalDto.setReceiverAddress(peperNotificationRequest.getReceiverAddress());
             digitalRequestPersonalDto.setReceiverAddressRow2(peperNotificationRequest.getReceiverAddressRow2());
