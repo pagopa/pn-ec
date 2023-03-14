@@ -15,9 +15,11 @@ import lombok.experimental.FieldDefaults;
 public class CartaceoPresaInCaricoInfo  extends PresaInCaricoInfo {
 
     PaperEngageRequest paperEngageRequest;
+    String statusAfterStart;
 
     public CartaceoPresaInCaricoInfo(String requestIdx, String xPagopaExtchCxId, PaperEngageRequest paperEngageRequest) {
         super(requestIdx, xPagopaExtchCxId );
         this.paperEngageRequest = paperEngageRequest;
     }
+
 }
