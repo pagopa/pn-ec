@@ -51,44 +51,56 @@ public class CartaceoService extends PresaInCaricoService {
     protected Mono<Void> specificPresaInCarico(PresaInCaricoInfo presaInCaricoInfo) {
         var cartaceoPresaInCaricoInfo = (CartaceoPresaInCaricoInfo) presaInCaricoInfo;
 
-        var paperEngageRequestAttachments = cartaceoPresaInCaricoInfo.getPaperEngageRequest().getAttachments();
+        List<String> attachmentsUri = getPaperUri(cartaceoPresaInCaricoInfo.getPaperEngageRequest().getAttachments());
 
-        return attachmentService.getAllegatiPresignedUrlOrMetadata(paperEngageRequestAttachments.stream()
-                                                                                                .map(PaperEngageRequestAttachments::getUri)
-                                                                                                .toList(),
+        return attachmentService.getAllegatiPresignedUrlOrMetadata(attachmentsUri,
                                                                    presaInCaricoInfo.getXPagopaExtchCxId(),
                                                                    true)
-                                .flatMap(fileDownloadResponse -> {
-                                    log.info("fileDownloadResponse" + fileDownloadResponse);
-                                    var paperEngageRequest = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
-                                    paperEngageRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-                                    return insertRequestFromCartaceo(paperEngageRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
-                                })
-                                .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
-                                                                       createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
-                                                                                                              transactionProcessConfigurationProperties.paperStarterStatus(),
-                                                                                                              "booked",
-                                                                                                              // TODO: SET MISSING
-                                                                                                              //  PROPERTIES
-                                                                                                              new PaperProgressStatusDto())))
-                                .flatMap(sendMessageResponse -> {
-                                    PaperEngageRequest req = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
-                                    if (req != null) {
-                                        return sqsService.send(cartaceoSqsQueueName.batchName(),
-                                                               cartaceoPresaInCaricoInfo.getPaperEngageRequest());
-                                    } else {
-                                        return Mono.empty();
-                                    }
-                                })
-                                .then();
+                .flatMap(fileDownloadResponse -> {
+                    log.info("fileDownloadResponse" + fileDownloadResponse);
+                    var peperNotificationRequest = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
+                    peperNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
+                    return insertRequestFromCartaceo(peperNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
+                })
+                .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+                        new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
+                                presaInCaricoInfo.getXPagopaExtchCxId(),
+                                now(),
+                                transactionProcessConfigurationProperties.paper(),
+                                transactionProcessConfigurationProperties.paperStarterStatus(),
+                                "booked",
+                                null)))
+                .flatMap(sendMessageResponse -> {
+                    PaperEngageRequest req = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
+                    if (req !=null) {
+                        return sqsService.send(cartaceoSqsQueueName.batchName(),
+                                cartaceoPresaInCaricoInfo.getPaperEngageRequest());
+                    } else {
+                        return Mono.empty();
+                    }
+                        }
+                )
+                .then();
     }
 
-    private Mono<RequestDto> insertRequestFromCartaceo(PaperEngageRequest paperEngageRequest) {
+    private ArrayList<String> getPaperUri(List<PaperEngageRequestAttachments> paperEngageRequestAttachments) {
+        ArrayList<String> list = new ArrayList<>();
+        if(!paperEngageRequestAttachments.isEmpty() ){
+            for ( PaperEngageRequestAttachments attachment : paperEngageRequestAttachments ){
+                list.add(attachment.getUri());
+
+            }
+
+        }
+        return list;
+    }
+
+    private Mono<RequestDto> insertRequestFromCartaceo(PaperEngageRequest peperNotificationRequest) {
 
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
-            requestDto.setRequestIdx(paperEngageRequest.getRequestId());
-            requestDto.setClientRequestTimeStamp(paperEngageRequest.getClientRequestTimeStamp());
+            requestDto.setRequestIdx(peperNotificationRequest.getRequestId());
+            requestDto.setClientRequestTimeStamp(peperNotificationRequest.getClientRequestTimeStamp());
             var requestPersonalDto = new RequestPersonalDto();
             var digitalRequestPersonalDto = new PaperRequestPersonalDto();
 
