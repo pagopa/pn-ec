@@ -57,6 +57,7 @@ public class SmsService extends PresaInCaricoService {
     private final SmsSqsQueueName smsSqsQueueName;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private String idSaved;
 
     protected SmsService(AuthService authService, SqsService sqsService, SnsService snsService,
                          GestoreRepositoryCall gestoreRepositoryCall, NotificationTrackerSqsName notificationTrackerSqsName,
@@ -283,6 +284,8 @@ public class SmsService extends PresaInCaricoService {
         gestoreRepositoryCall.getRichiesta(requestId)
 
                 .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), "toDelete"))
+                .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
+                .onErrorStop()
                 .flatMap(requestDto ->  {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
@@ -336,6 +339,11 @@ public class SmsService extends PresaInCaricoService {
                             .doOnSuccess(result -> {
                                 acknowledgment.acknowledge();
                                 log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}", smsSqsQueueName.errorName());
+                            })
+                            .doOnError(throwable -> {
+                                if(idSaved == null){
+                                    idSaved = requestDto.getRequestIdx();
+                                }
                             });
                 })
                 .subscribe();
