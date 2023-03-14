@@ -1,32 +1,28 @@
 package it.pagopa.pn.ec.cartaceo.service;
 
-import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
-import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.openapitools.client.model.OperationResultCodeResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.exception.cartaceo.CartaceoSendException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.openapitools.client.model.OperationResultCodeResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+
+import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
+import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
 class CartaceoServiceTest {
@@ -49,10 +45,10 @@ class CartaceoServiceTest {
 	@Mock
 	private Acknowledgment acknowledgment;
 
-	private static final CartaceoPresaInCaricoInfo CARTACEO_PRESA_IN_CARICO_INFO = new CartaceoPresaInCaricoInfo(DEFAULT_REQUEST_IDX//
-			, DEFAULT_ID_CLIENT_HEADER_VALUE//
-			, PaperEngageRequestFactory.createDtoPaperRequest(2)//
-	);
+	private static final CartaceoPresaInCaricoInfo CARTACEO_PRESA_IN_CARICO_INFO = CartaceoPresaInCaricoInfo.builder().requestIdx(DEFAULT_REQUEST_IDX)
+			.xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
+			.paperEngageRequest(PaperEngageRequestFactory.createDtoPaperRequest(2)).build();
+
 
 	/**
 	 * <h3>CRCLR.100.1</h3>

@@ -8,7 +8,6 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
@@ -34,12 +33,12 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.time.Duration;
 
+import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
-import static java.time.OffsetDateTime.now;
 
 @Service
 @Slf4j
@@ -75,10 +74,10 @@ public class PecService extends PresaInCaricoService {
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
 //      Cast PresaInCaricoInfo to specific PecPresaInCaricoInfo
         var pecPresaInCaricoInfo = (PecPresaInCaricoInfo) presaInCaricoInfo;
-        pecPresaInCaricoInfo.setStatusAfterStart("booked");
+        var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
+
         var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
-        digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-        var xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
+        digitalNotificationRequest.setRequestId(pecPresaInCaricoInfo.getRequestIdx());
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest()
                                                                                        .getAttachmentsUrls(), xPagopaExtchCxId, true)
@@ -87,26 +86,25 @@ public class PecService extends PresaInCaricoService {
                                                            xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException())))
 
                                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
-                                                                       new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
-                                                                                                       presaInCaricoInfo.getXPagopaExtchCxId(),
-                                                                                                       now(),
-                                                                                                       transactionProcessConfigurationProperties.pec(),
-                                                                                                       transactionProcessConfigurationProperties.pecStartStatus(),
-                                                                                                       pecPresaInCaricoInfo.getStatusAfterStart(),
-                                                                                                       // TODO: SET eventDetails
-                                                                                                       "",
-                                                                                                       null)))
-//                              Publish to PEC INTERACTIVE or PEC BATCH
-                                .flatMap(sendMessageResponse -> {
-                                    DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
-                                    if (qos == INTERACTIVE) {
-                                        return sqsService.send(pecSqsQueueName.interactiveName(), pecPresaInCaricoInfo);
-                                    } else if (qos == BATCH) {
-                                        return sqsService.send(pecSqsQueueName.batchName(), pecPresaInCaricoInfo);
-                                    } else {
-                                        return Mono.empty();
-                                    }
-                                }).then();
+                                                                       createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
+                                                                                                                transactionProcessConfigurationProperties.pecStartStatus(),
+                                                                                                                "booked",
+                                                                                                                new DigitalProgressStatusDto()))
+
+//                                                               Publish to PEC INTERACTIVE or PEC BATCH
+                                                                 .flatMap(sendMessageResponse -> {
+                                                                     DigitalNotificationRequest.QosEnum qos =
+                                                                             pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
+                                                                     if (qos == INTERACTIVE) {
+                                                                         return sqsService.send(pecSqsQueueName.interactiveName(),
+                                                                                                pecPresaInCaricoInfo);
+                                                                     } else if (qos == BATCH) {
+                                                                         return sqsService.send(pecSqsQueueName.batchName(),
+                                                                                                pecPresaInCaricoInfo);
+                                                                     } else {
+                                                                         return Mono.empty();
+                                                                     }
+                                                                 })).then();
     }
 
     @SuppressWarnings("Duplicates")
@@ -211,15 +209,11 @@ public class PecService extends PresaInCaricoService {
                                 .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(requestIdx))
 
                                 .flatMap(objects -> sqsService.send(notificationTrackerSqsName.statoPecName(),
-                                                                    new NotificationTrackerQueueDto(requestIdx,
-                                                                                                    xPagopaExtchCxId,
-                                                                                                    now(),
-                                                                                                    transactionProcessConfigurationProperties.pec(),
-                                                                                                    pecPresaInCaricoInfo.getStatusAfterStart(),
-                                                                                                    "sent",
-                                                                                                    // TODO: SET eventDetails
-                                                                                                    "",
-                                                                                                    objects.getT1()))
+                                                                    createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
+                                                                                                             "booked",
+                                                                                                             "sent",
+                                                                                                             new DigitalProgressStatusDto().generatedMessage(
+                                                                                                                     objects.getT1())))
                                                               .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
 //                                                            An error occurred during SQS publishing to the Notification Tracker ->
@@ -234,16 +228,10 @@ public class PecService extends PresaInCaricoService {
                                 })
 
                                 .onErrorResume(throwable -> sqsService.send(notificationTrackerSqsName.statoPecName(),
-                                                                            new NotificationTrackerQueueDto(requestIdx,
-                                                                                                            xPagopaExtchCxId,
-                                                                                                            now(),
-                                                                                                            transactionProcessConfigurationProperties.pec(),
-                                                                                                            pecPresaInCaricoInfo.getStatusAfterStart(),
-                                                                                                            "retry",
-                                                                                                            // TODO: SET
-                                                                                                            //  eventDetails
-                                                                                                            "",
-                                                                                                            null))
+                                                                            createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
+                                                                                                                     "booked",
+                                                                                                                     "retry",
+                                                                                                                     new DigitalProgressStatusDto()))
 
 //                                                                    Publish to ERRORI PEC queue
                                                                       .then(sqsService.send(pecSqsQueueName.errorName(),
