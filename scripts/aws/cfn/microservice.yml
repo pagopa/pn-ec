@@ -476,6 +476,9 @@ Parameters:
     Type: String
     Description: 'VPC Subnet ID 3 out of 3'
 
+  ApplicationLoadBalancerArn:
+    Type: String
+    Description: 'Arn of the load balancer where the service is going to be reachable'
 Resources:
 
   # PN-TemplateBeMs microservice
@@ -985,7 +988,7 @@ Resources:
         # TargetGroupAttributes
       TargetType: alb
       Targets:
-        - Id: !Ref ApplicationLoadBalancerDomain
+        - Id: !Ref ApplicationLoadBalancerArn
       # UnhealthyThresholdCount: Number
       VpcId: !Ref VpcId
 
