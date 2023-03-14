@@ -964,30 +964,30 @@ Resources:
   #         ToPort: 8080
   #     VpcId: !Ref VpcId
 
-PnEcNLBToALBTargetGroup:
-  Type: AWS::ElasticLoadBalancingV2::TargetGroup
-  Properties:
-    # HealthCheckEnabled: false
-    # HealthCheckIntervalSeconds: Number
-    # HealthCheckPath: "String"
-    # HealthCheckPort: "String"
-    # HealthCheckProtocol: "String"
-    # HealthCheckTimeoutSeconds: Number
-    # HealthyThresholdCount: Number
-    IpAddressType: ipv4
-    # Matcher:
-    #   GrpcCode: "String"
-    #   HttpCode: "String"
-    # Name: "String"
-    Port: 8080
-    Protocol: TCP
-    # TargetGroupAttributes:
-      # TargetGroupAttributes
-    TargetType: alb
-    Targets:
-      - Id: !Ref ApplicationLoadBalancerDomain
-    # UnhealthyThresholdCount: Number
-    VpcId: !Ref VpcId
+  PnEcNLBToALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      # HealthCheckEnabled: false
+      # HealthCheckIntervalSeconds: Number
+      # HealthCheckPath: "String"
+      # HealthCheckPort: "String"
+      # HealthCheckProtocol: "String"
+      # HealthCheckTimeoutSeconds: Number
+      # HealthyThresholdCount: Number
+      IpAddressType: ipv4
+      # Matcher:
+      #   GrpcCode: "String"
+      #   HttpCode: "String"
+      # Name: "String"
+      Port: 8080
+      Protocol: TCP
+      # TargetGroupAttributes:
+        # TargetGroupAttributes
+      TargetType: alb
+      Targets:
+        - Id: !Ref ApplicationLoadBalancerDomain
+      # UnhealthyThresholdCount: Number
+      VpcId: !Ref VpcId
 
   PnEcNLBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
