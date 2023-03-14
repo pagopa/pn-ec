@@ -5,6 +5,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.statema
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
@@ -13,12 +14,14 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.notificationtracker.model.NtStatoError;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import org.junit.jupiter.api.*;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
@@ -30,36 +33,26 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NotificationTrackerServiceImplTest {
 
-    @Mock
-    PutEventsImpl putEventsImpl;
-    @Mock
-    SqsService sqsService;
+    @SpyBean
+    private PutEventsImpl putEventsImpl;
+    @SpyBean
+    private SqsService sqsService;
 
     @Autowired
-    NotificationTrackerMessageReceiver notificationtrackerMessageReceiver;
-
+    private NotificationTrackerMessageReceiver notificationtrackerMessageReceiver;
     @Autowired
     private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
-
     @Autowired
     private StateMachineEndpointProperties stateMachineEndpoint;
-
-    @MockBean
-    private GestoreRepositoryCallImpl gestoreRepositoryCall;
-
-    @MockBean
-    private CallMacchinaStatiImpl callMachinaStati;
-
     @Autowired
     private WebTestClient webClient;
-
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
+    @MockBean
+    private GestoreRepositoryCallImpl gestoreRepositoryCall;
+    @MockBean
+    private CallMacchinaStatiImpl callMachinaStati;
 
     public static final MacchinaStatiValidateStatoResponseDto STATE_MACHINE_DTO = new MacchinaStatiValidateStatoResponseDto();
     public static final NotificationTrackerQueueDto notificationTrackerQueueDto = new NotificationTrackerQueueDto();
@@ -69,15 +62,19 @@ class NotificationTrackerServiceImplTest {
     void testGetValidateStatoSmSOKExternalEvent() {
 
         NotificationTrackerQueueDto req = new NotificationTrackerQueueDto();
-        req.setXPagopaExtchCxId("C050");
         req.setProcessId(transactionProcessConfigurationProperties.sms());
         req.setCurrentStatus("BOOKED");
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
+        req.setXPagopaExtchCxId("C050");
 
+        when(callMachinaStati.statusValidation(req)).thenReturn(Mono.just(MacchinaStatiValidateStatoResponseDto.builder()
+                                                                                                               .allowed(true)
+                                                                                                               .build()));
+        when(callMachinaStati.statusDecode(req)).thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto()));
         when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
         when(putEventsImpl.putEventExternal(notificationTrackerQueueDto)).thenReturn(Mono.empty());
-        when(callMachinaStati.statusValidation(req).thenReturn(Mono.just(STATE_MACHINE_DTO)));
+
         notificationtrackerMessageReceiver.receiveSMSObjectMessage(req);
     }
 
@@ -501,6 +498,7 @@ class NotificationTrackerServiceImplTest {
         req.setCurrentStatus("BOOKED");
         req.setNextStatus("VALIDATE");
         req.setRequestIdx("123_test");
+
         when(callMachinaStati.statusValidation(req)).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());

@@ -18,45 +18,45 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
     private final PutEvents putEvents;
     private final GestoreRepositoryCall gestoreRepositoryCall;
-    private final CallMacchinaStati callMachinaStatiImpl;
+    private final CallMacchinaStati callMachinaStati;
     private final SqsService sqsService;
 
     public NotificationTrackerServiceImpl(PutEvents putEvents, GestoreRepositoryCall gestoreRepositoryCall,
-                                          CallMacchinaStati callMachinaStatiImpl, SqsService sqsService) {
+                                          CallMacchinaStati callMachinaStati, SqsService sqsService) {
         this.putEvents = putEvents;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
-        this.callMachinaStatiImpl = callMachinaStatiImpl;
+        this.callMachinaStati = callMachinaStati;
         this.sqsService = sqsService;
     }
 
     @Override
     public Mono<Void> handleRequestStatusChange(NotificationTrackerQueueDto notificationTrackerQueueDto, String ntStatoErratoQueueName) {
         String nextStatus = notificationTrackerQueueDto.getNextStatus();
+        return callMachinaStati.statusValidation(notificationTrackerQueueDto)
+                               .flatMap(unused -> {
+                                   notificationTrackerQueueDto.setCurrentStatus(nextStatus);
+                                   return callMachinaStati.statusDecode(notificationTrackerQueueDto);
+                               })
+                               .zipWhen(macchinaStatiDecodeResponseDto -> {
+                                   var logicStatus = macchinaStatiDecodeResponseDto.getLogicStatus();
+                                   var paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
+                                   var digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
 
-        return callMachinaStatiImpl.statusValidation(notificationTrackerQueueDto)
-                                   .then(callMachinaStatiImpl.statusDecode(notificationTrackerQueueDto))
-                                   .zipWhen(macchinaStatiDecodeResponseDto -> {
-                                       var logicStatus = macchinaStatiDecodeResponseDto.getLogicStatus();
-                                       var paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
-                                       var digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
+                                   if (digitalProgressStatusDto != null) {
+                                       digitalProgressStatusDto.status(nextStatus).statusCode(logicStatus);
+                                   } else if (paperProgressStatusDto != null) {
+                                       paperProgressStatusDto.statusDescription(nextStatus)
+                                                             .statusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                                   }
 
-                                       if (digitalProgressStatusDto != null) {
-                                           digitalProgressStatusDto.status(nextStatus).statusCode(logicStatus);
-                                       } else if (paperProgressStatusDto != null) {
-                                           paperProgressStatusDto.statusDescription(nextStatus)
-                                                                 .statusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
-                                       }
-
-                                       return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getRequestIdx(),
-                                                                                        new EventsDto().digProgrStatus(
-                                                                                                               digitalProgressStatusDto)
-                                                                                                       .paperProgrStatus(
-                                                                                                               paperProgressStatusDto));
-                                   })
-                                   .filter(objects -> objects.getT1().getLogicStatus() != null)
-                                   .then(putEvents.putEventExternal(notificationTrackerQueueDto))
-                                   .then()
-                                   .onErrorResume(InvalidNextStatusException.class,
-                                                  throwable -> sqsService.send(ntStatoErratoQueueName, notificationTrackerQueueDto).then());
+                                   return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getRequestIdx(),
+                                                                                    new EventsDto().digProgrStatus(digitalProgressStatusDto)
+                                                                                                   .paperProgrStatus(paperProgressStatusDto));
+                               })
+                               .filter(objects -> objects.getT1().getLogicStatus() != null)
+                               .flatMap(unused -> putEvents.putEventExternal(notificationTrackerQueueDto))
+                               .then()
+                               .onErrorResume(InvalidNextStatusException.class,
+                                              throwable -> sqsService.send(ntStatoErratoQueueName, notificationTrackerQueueDto).then());
     }
 }

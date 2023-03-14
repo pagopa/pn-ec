@@ -21,14 +21,14 @@ public class NotificationTrackerQueueDto extends RequestStatusChange {
     DigitalProgressStatusDto digitalProgressStatusDto;
     PaperProgressStatusDto paperProgressStatusDto;
 
-    private static NotificationTrackerQueueDto createNotificationTrackerQueueDto(PresaInCaricoInfo presaInCaricoInfo,
-                                                                                 String currentStatus, String nextStatus) {
-        return (NotificationTrackerQueueDto) RequestStatusChange.builder()
-                                                                .requestIdx(presaInCaricoInfo.getRequestIdx())
-                                                                .xPagopaExtchCxId(presaInCaricoInfo.getXPagopaExtchCxId())
-                                                                .currentStatus(currentStatus)
-                                                                .nextStatus(nextStatus)
-                                                                .build();
+    @SuppressWarnings("all")
+    private static NotificationTrackerQueueDto createNotificationTrackerQueueDto(PresaInCaricoInfo presaInCaricoInfo, String currentStatus, String nextStatus) {
+        return NotificationTrackerQueueDto.builder()
+                                          .requestIdx(presaInCaricoInfo.getRequestIdx())
+                                          .xPagopaExtchCxId(presaInCaricoInfo.getXPagopaExtchCxId())
+                                          .currentStatus(currentStatus)
+                                          .nextStatus(nextStatus)
+                                          .build();
     }
 
     public static NotificationTrackerQueueDto createNotificationTrackerQueueDtoDigital(PresaInCaricoInfo presaInCaricoInfo,

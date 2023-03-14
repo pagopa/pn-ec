@@ -33,7 +33,6 @@ public class CartaceoService extends PresaInCaricoService {
     private final CartaceoSqsQueueName cartaceoSqsQueueName;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
-
     protected CartaceoService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
                               GestoreRepositoryCall gestoreRepositoryCall1, AttachmentServiceImpl attachmentService,
                               NotificationTrackerSqsName notificationTrackerSqsName, CartaceoSqsQueueName cartaceoSqsQueueName,
@@ -49,104 +48,97 @@ public class CartaceoService extends PresaInCaricoService {
 
     @Override
     protected Mono<Void> specificPresaInCarico(PresaInCaricoInfo presaInCaricoInfo) {
-        var cartaceoPresaInCaricoInfo = (CartaceoPresaInCaricoInfo) presaInCaricoInfo;
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = (CartaceoPresaInCaricoInfo) presaInCaricoInfo;
 
         List<String> attachmentsUri = getPaperUri(cartaceoPresaInCaricoInfo.getPaperEngageRequest().getAttachments());
+        var paperNotificationRequest = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
+        var xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
+        return attachmentService.getAllegatiPresignedUrlOrMetadata(attachmentsUri, presaInCaricoInfo.getXPagopaExtchCxId(), true)
+                                .then(insertRequestFromCartaceo(paperNotificationRequest,
+                                                                xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException())))
 
-        return attachmentService.getAllegatiPresignedUrlOrMetadata(attachmentsUri,
-                                                                   presaInCaricoInfo.getXPagopaExtchCxId(),
-                                                                   true)
-                .flatMap(fileDownloadResponse -> {
-                    log.info("fileDownloadResponse" + fileDownloadResponse);
-                    var peperNotificationRequest = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
-                    peperNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-                    return insertRequestFromCartaceo(peperNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
-                })
-                .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
-                        new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
-                                presaInCaricoInfo.getXPagopaExtchCxId(),
-                                now(),
-                                transactionProcessConfigurationProperties.paper(),
-                                transactionProcessConfigurationProperties.paperStarterStatus(),
-                                "booked",
-                                null)))
-                .flatMap(sendMessageResponse -> {
-                    PaperEngageRequest req = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
-                    if (req !=null) {
-                        return sqsService.send(cartaceoSqsQueueName.batchName(),
-                                cartaceoPresaInCaricoInfo.getPaperEngageRequest());
-                    } else {
-                        return Mono.empty();
-                    }
-                        }
-                )
-                .then();
+                                .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+                                                                       createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
+                                                                                                              transactionProcessConfigurationProperties.paperStarterStatus(),
+                                                                                                              "booked",
+                                                                                                              // TODO: SET MISSING
+                                                                                                              //  PROPERTIES
+                                                                                                              new PaperProgressStatusDto())))
+                                .flatMap(sendMessageResponse -> {
+                                    PaperEngageRequest req = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
+                                    if (req != null) {
+                                        return sqsService.send(cartaceoSqsQueueName.batchName(),
+                                                               cartaceoPresaInCaricoInfo.getPaperEngageRequest());
+                                    } else {
+                                        return Mono.empty();
+                                    }
+                                })
+                                .then();
     }
 
     private ArrayList<String> getPaperUri(List<PaperEngageRequestAttachments> paperEngageRequestAttachments) {
         ArrayList<String> list = new ArrayList<>();
-        if(!paperEngageRequestAttachments.isEmpty() ){
-            for ( PaperEngageRequestAttachments attachment : paperEngageRequestAttachments ){
+        if (!paperEngageRequestAttachments.isEmpty()) {
+            for (PaperEngageRequestAttachments attachment : paperEngageRequestAttachments) {
                 list.add(attachment.getUri());
-
             }
-
         }
         return list;
     }
 
-    private Mono<RequestDto> insertRequestFromCartaceo(PaperEngageRequest peperNotificationRequest) {
+    private Mono<RequestDto> insertRequestFromCartaceo(PaperEngageRequest paperNotificationRequest, String xPagopaExtchCxId) {
 
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
-            requestDto.setRequestIdx(peperNotificationRequest.getRequestId());
-            requestDto.setClientRequestTimeStamp(peperNotificationRequest.getClientRequestTimeStamp());
+            requestDto.setRequestIdx(paperNotificationRequest.getRequestId());
+            requestDto.setClientRequestTimeStamp(paperNotificationRequest.getClientRequestTimeStamp());
+            requestDto.setxPagopaExtchCxId(xPagopaExtchCxId);
             var requestPersonalDto = new RequestPersonalDto();
             var digitalRequestPersonalDto = new PaperRequestPersonalDto();
 
-            List<AttachmentsEngageRequestDto> engageRequestDto = new ArrayList<>();
-            if (!paperEngageRequest.getAttachments().isEmpty()) {
-                for (PaperEngageRequestAttachments attachment : paperEngageRequest.getAttachments()) {
+            List<AttachmentsEngageRequestDto> attachmentsEngageRequestDto = new ArrayList<>();
+            if (!paperNotificationRequest.getAttachments().isEmpty()) {
+                for (PaperEngageRequestAttachments attachment : paperNotificationRequest.getAttachments()) {
                     AttachmentsEngageRequestDto attachments = new AttachmentsEngageRequestDto();
                     attachments.setUri(attachment.getUri());
                     attachments.setOrder(attachment.getOrder());
                     attachments.setDocumentType(attachment.getDocumentType());
                     attachments.setSha256(attachment.getSha256());
-                    engageRequestDto.add(attachments);
+                    attachmentsEngageRequestDto.add(attachments);
 
                 }
             }
 
-            digitalRequestPersonalDto.setAttachments(engageRequestDto);
+            digitalRequestPersonalDto.setAttachments(attachmentsEngageRequestDto);
 
-            digitalRequestPersonalDto.setReceiverName(paperEngageRequest.getReceiverName());
-            digitalRequestPersonalDto.setReceiverNameRow2(paperEngageRequest.getReceiverNameRow2());
-            digitalRequestPersonalDto.setReceiverAddress(paperEngageRequest.getReceiverAddress());
-            digitalRequestPersonalDto.setReceiverAddressRow2(paperEngageRequest.getReceiverAddressRow2());
-            digitalRequestPersonalDto.setReceiverCap(paperEngageRequest.getReceiverCap());
-            digitalRequestPersonalDto.setReceiverCity(paperEngageRequest.getReceiverCity());
-            digitalRequestPersonalDto.setReceiverCity2(paperEngageRequest.getReceiverCity2());
-            digitalRequestPersonalDto.setReceiverPr(paperEngageRequest.getReceiverPr());
-            digitalRequestPersonalDto.setReceiverCountry(paperEngageRequest.getReceiverCountry());
-            digitalRequestPersonalDto.setReceiverFiscalCode(paperEngageRequest.getReceiverFiscalCode());
-            digitalRequestPersonalDto.setSenderName(paperEngageRequest.getSenderName());
-            digitalRequestPersonalDto.setSenderAddress(paperEngageRequest.getSenderAddress());
-            digitalRequestPersonalDto.setSenderCity(paperEngageRequest.getSenderCity());
-            digitalRequestPersonalDto.setSenderPr(paperEngageRequest.getSenderPr());
-            digitalRequestPersonalDto.setSenderDigitalAddress(paperEngageRequest.getSenderDigitalAddress());
-            digitalRequestPersonalDto.setArName(paperEngageRequest.getArName());
-            digitalRequestPersonalDto.setArAddress(paperEngageRequest.getArAddress());
-            digitalRequestPersonalDto.setArCap(paperEngageRequest.getArCap());
-            digitalRequestPersonalDto.setArCity(paperEngageRequest.getArCity());
+            digitalRequestPersonalDto.setReceiverName(paperNotificationRequest.getReceiverName());
+            digitalRequestPersonalDto.setReceiverNameRow2(paperNotificationRequest.getReceiverNameRow2());
+            digitalRequestPersonalDto.setReceiverAddress(paperNotificationRequest.getReceiverAddress());
+            digitalRequestPersonalDto.setReceiverAddressRow2(paperNotificationRequest.getReceiverAddressRow2());
+            digitalRequestPersonalDto.setReceiverCap(paperNotificationRequest.getReceiverCap());
+            digitalRequestPersonalDto.setReceiverCity(paperNotificationRequest.getReceiverCity());
+            digitalRequestPersonalDto.setReceiverCity2(paperNotificationRequest.getReceiverCity2());
+            digitalRequestPersonalDto.setReceiverPr(paperNotificationRequest.getReceiverPr());
+            digitalRequestPersonalDto.setReceiverCountry(paperNotificationRequest.getReceiverCountry());
+            digitalRequestPersonalDto.setReceiverFiscalCode(paperNotificationRequest.getReceiverFiscalCode());
+            digitalRequestPersonalDto.setSenderName(paperNotificationRequest.getSenderName());
+            digitalRequestPersonalDto.setSenderAddress(paperNotificationRequest.getSenderAddress());
+            digitalRequestPersonalDto.setSenderCity(paperNotificationRequest.getSenderCity());
+            digitalRequestPersonalDto.setSenderPr(paperNotificationRequest.getSenderPr());
+            digitalRequestPersonalDto.setSenderDigitalAddress(paperNotificationRequest.getSenderDigitalAddress());
+            digitalRequestPersonalDto.setArName(paperNotificationRequest.getArName());
+            digitalRequestPersonalDto.setArAddress(paperNotificationRequest.getArAddress());
+            digitalRequestPersonalDto.setArCap(paperNotificationRequest.getArCap());
+            digitalRequestPersonalDto.setArCity(paperNotificationRequest.getArCity());
             requestPersonalDto.setPaperRequestPersonal(digitalRequestPersonalDto);
 
             var requestMetadataDto = new RequestMetadataDto();
             var digitalRequestMetadataDto = new PaperRequestMetadataDto();
-            digitalRequestMetadataDto.setRequestPaId(paperEngageRequest.getRequestPaId());
-            digitalRequestMetadataDto.setIun(paperEngageRequest.getIun());
-            digitalRequestMetadataDto.setVas(paperEngageRequest.getVas());
-            digitalRequestMetadataDto.setPrintType(paperEngageRequest.getPrintType());
-            digitalRequestMetadataDto.setProductType(paperEngageRequest.getProductType());
+            digitalRequestMetadataDto.setRequestPaId(paperNotificationRequest.getRequestPaId());
+            digitalRequestMetadataDto.setIun(paperNotificationRequest.getIun());
+            digitalRequestMetadataDto.setVas(paperNotificationRequest.getVas());
+            digitalRequestMetadataDto.setPrintType(paperNotificationRequest.getPrintType());
+            digitalRequestMetadataDto.setProductType(paperNotificationRequest.getProductType());
             requestMetadataDto.setPaperRequestMetadata(digitalRequestMetadataDto);
 
             requestDto.setRequestPersonal(requestPersonalDto);
@@ -154,5 +146,4 @@ public class CartaceoService extends PresaInCaricoService {
             return requestDto;
         }).flatMap(gestoreRepositoryCall::insertRichiesta);
     }
-
 }

@@ -18,24 +18,29 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
     private final WebClient stateMachineWebClient;
     private final StateMachineEndpointProperties stateMachineEndpointProperties;
 
+    private static final String CLIENT_ID_QUERY_PARAM = "clientId";
+
     public CallMacchinaStatiImpl(WebClient stateMachineWebClient, StateMachineEndpointProperties stateMachineEndpointProperties) {
         this.stateMachineWebClient = stateMachineWebClient;
         this.stateMachineEndpointProperties = stateMachineEndpointProperties;
     }
 
     @Override
-    public Mono<MacchinaStatiValidateStatoResponseDto> statusValidation(RequestStatusChange requestStatusChange) throws InvalidNextStatusException{
+    public Mono<MacchinaStatiValidateStatoResponseDto> statusValidation(RequestStatusChange requestStatusChange)
+            throws InvalidNextStatusException {
         return stateMachineWebClient.get()
                                     .uri(uriBuilder -> uriBuilder.path(stateMachineEndpointProperties.validate())
-                                                                 .queryParam("clientId", requestStatusChange.getXPagopaExtchCxId())
+                                                                 .queryParam(CLIENT_ID_QUERY_PARAM,
+                                                                             requestStatusChange.getXPagopaExtchCxId())
                                                                  .queryParam("nextStatus", requestStatusChange.getNextStatus())
-                                                                 .build(requestStatusChange.getProcessId(), requestStatusChange.getCurrentStatus()))
+                                                                 .build(requestStatusChange.getProcessId(),
+                                                                        requestStatusChange.getCurrentStatus()))
                                     .retrieve()
                                     .bodyToMono(MacchinaStatiValidateStatoResponseDto.class)
                                     .handle((macchinaStatiValidateStatoResponseDto, sink) -> {
-                                        if (macchinaStatiValidateStatoResponseDto.isAllowed()) {
+                                        if (!macchinaStatiValidateStatoResponseDto.isAllowed()) {
                                             sink.error(new InvalidNextStatusException(requestStatusChange));
-                                        }else {
+                                        } else {
                                             sink.next(macchinaStatiValidateStatoResponseDto);
                                         }
                                     });
@@ -47,7 +52,8 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
 
         return stateMachineWebClient.get()
                                     .uri(uriBuilder -> uriBuilder.path(stateMachineEndpointProperties.decode())
-                                                                 .queryParam("clientId", requestStatusChange.getXPagopaExtchCxId())
+                                                                 .queryParam(CLIENT_ID_QUERY_PARAM,
+                                                                             requestStatusChange.getXPagopaExtchCxId())
                                                                  .build(requestStatusChange.getProcessId(), currentStatus))
                                     .retrieve()
                                     .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new StatusNotFoundException(currentStatus)))
