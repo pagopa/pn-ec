@@ -17,6 +17,7 @@ import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.SnsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
+import it.pagopa.pn.ec.repositorymanager.model.pojo.Patch;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
@@ -283,9 +284,30 @@ public class SmsService extends PresaInCaricoService {
 
         gestoreRepositoryCall.getRichiesta(requestId)
 
-                .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), "toDelete"))
+                /*.filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), "toDelete"))
+                .doOnError(throwable -> {
+
+                })*/
+                .map(requestDto -> {
+                    if(Objects.equals(requestDto.getStatusRequest(), "toDelete")){
+                        requestDto.setStatusRequest("Deleted");
+                        PatchDto patchDto = new PatchDto();
+                        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                        gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
+                        acknowledgment.acknowledge();
+                        log.info("Il messaggio è stato rimosso dalla coda d'errore per stato toDelete: {}", smsSqsQueueName.errorName());
+                    }
+                    return requestDto;
+                })
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
-                .onErrorStop()
+                .doOnError(throwable -> {
+                    log.error("Id corrispondente, terminare: {}", throwable.getMessage());
+                })
+                .filter(requestDto -> !Objects.equals(requestDto.getRequestMetadata().getRetry().getRetryStep(), BigDecimal.valueOf(4)))
+                .doOnError(throwable -> {
+                    acknowledgment.acknowledge();
+                    log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", smsSqsQueueName.errorName());
+                })
                 .flatMap(requestDto ->  {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
@@ -313,13 +335,18 @@ public class SmsService extends PresaInCaricoService {
                     int step = requestDto.getRequestMetadata().getRetry().getRetryStep().intValueExact();
                     long minutes = duration.toMinutes();
                     long minutesToCheck = requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
-
-                        return minutes >= minutesToCheck || minutes > 40;
-
+                    return minutes >= minutesToCheck;
                 })
                 .doOnError(throwable -> {
                     log.error("Errore nel filtro dei minuti: {}", throwable.getMessage());
                         })
+                .flatMap(requestDto -> {
+                    requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
+                    requestDto.getRequestMetadata().getRetry().setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
+                    PatchDto patchDto = new PatchDto();
+                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                    return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
+                })
                 .flatMap(requestDto -> {
                     log.info("requestDto Value:", requestDto.getRequestMetadata().getRetry());
                     return snsService.send(digitalCourtesySmsRequest.getReceiverDigitalAddress(), digitalCourtesySmsRequest.getMessageText())
@@ -344,6 +371,11 @@ public class SmsService extends PresaInCaricoService {
                                 if(idSaved == null){
                                     idSaved = requestDto.getRequestIdx();
                                 }
+                                /*requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
+                                requestDto.getRequestMetadata().getRetry().setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
+                                PatchDto patchDto = new PatchDto();
+                                patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                                gestoreRepositoryCall.patchRichiesta(requestId, patchDto);*/
                             });
                 })
                 .subscribe();
