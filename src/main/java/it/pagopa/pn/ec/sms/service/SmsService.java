@@ -22,6 +22,7 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -38,6 +39,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static it.pagopa.pn.ec.commons.service.SnsService.DEFAULT_RETRY_STRATEGY;
@@ -256,11 +258,18 @@ public class SmsService extends PresaInCaricoService {
                          .doOnSuccess(result -> acknowledgment.acknowledge());
     }
 
+    //@Scheduled(cron = "0 */1 * * * *")
+    /*public void test(){
+        log.info("test scheduled");
+    }*/
+
+
     @SqsListener(value = "${sqs.queue.sms.error-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgment acknowledgment) {
 
         log.info("<-- START GESTIONE ERRORI SMS -->");
         logIncomingMessage(smsSqsQueueName.errorName(), smsPresaInCaricoInfo);
+
     File file = new File("src/main/resources/commons/retryPolicy.json");
     ObjectMapper objectMapper = new ObjectMapper();
     Map<String, List<BigDecimal>> retryPolicies;
@@ -299,15 +308,16 @@ public class SmsService extends PresaInCaricoService {
                     }
                     return requestDto;
                 })
+                .filter(requestDto -> {
+                    if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
+                        // operazioni per la rimozione del messaggio
+                        acknowledgment.acknowledge();
+                        log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", smsSqsQueueName.errorName());
+                        return false; // il messaggio è stato rimosso, quindi si deve terminare il flusso
+                    }
+                    return true;
+                })
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
-                .doOnError(throwable -> {
-                    log.error("Id corrispondente, terminare: {}", throwable.getMessage());
-                })
-                .filter(requestDto -> !Objects.equals(requestDto.getRequestMetadata().getRetry().getRetryStep(), BigDecimal.valueOf(4)))
-                .doOnError(throwable -> {
-                    acknowledgment.acknowledge();
-                    log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", smsSqsQueueName.errorName());
-                })
                 .flatMap(requestDto ->  {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
