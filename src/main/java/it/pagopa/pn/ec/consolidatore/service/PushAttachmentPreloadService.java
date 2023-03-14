@@ -22,7 +22,9 @@ public class PushAttachmentPreloadService {
                 .flatMapMany(Flux::fromIterable)
                 .flatMap(preLoadRequest ->
                 {
+
                     var fileCreationRequest = new FileCreationRequest();
+                    fileCreationRequest.setChecksumValue(preLoadRequest.getSha256());
                     fileCreationRequest.setContentType(preLoadRequest.getContentType());
                     fileCreationRequest.setStatus("");
                     fileCreationRequest.setDocumentType(DOC_TYPE);
