@@ -18,8 +18,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-import java.util.concurrent.TimeUnit;
-
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.decodePecStatusToMachineStateStatus;
@@ -47,7 +45,7 @@ public class ScaricamentoEsitiPecScheduler {
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
-    @Scheduled(fixedDelay = 5, initialDelay = 5, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(cron = "${cron.value.scaricamento-esiti-pec}")
     void scaricamentoEsitiPec() {
 
         log.info("<-- SCARICAMENTO ESITI PEC SCHEDULER -->");
