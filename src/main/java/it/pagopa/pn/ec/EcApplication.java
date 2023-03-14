@@ -17,6 +17,8 @@ import org.springframework.context.annotation.PropertySource;
 @PropertySource("classpath:commons/notification-tracker-sqs-queue.properties")
 // TRANSACTION PROCESS
 @PropertySource("classpath:commons/transaction-process.properties")
+// SCHEDULED CRON VALUES
+@PropertySource("classpath:commons/scheduled-cron.properties")
 
 //  <-- REPOSITORY MANAGER -->
 // DYNAMO TABLES
