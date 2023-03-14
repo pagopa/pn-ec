@@ -53,16 +53,14 @@ public class CartaceoService  extends PresaInCaricoService {
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = (CartaceoPresaInCaricoInfo)presaInCaricoInfo;
 
         List<String> attachmentsUri = getPaperUri(cartaceoPresaInCaricoInfo.getPaperEngageRequest().getAttachments());
-
+        var peperNotificationRequest = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
+        var xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
         return attachmentService.getAllegatiPresignedUrlOrMetadata(attachmentsUri,
                                                                    presaInCaricoInfo.getXPagopaExtchCxId(),
                                                                    true)
-                .flatMap(fileDownloadResponse -> {
-                    log.info("fileDownloadResponse" + fileDownloadResponse);
-                    var peperNotificationRequest = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
-                    peperNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-                    return insertRequestFromCartaceo(peperNotificationRequest).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
-                })
+                .then(insertRequestFromCartaceo(peperNotificationRequest,
+                xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException())))
+
                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
                         new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
                                 presaInCaricoInfo.getXPagopaExtchCxId(),
@@ -96,12 +94,13 @@ public class CartaceoService  extends PresaInCaricoService {
         return list;
     }
 
-    private Mono<RequestDto> insertRequestFromCartaceo(PaperEngageRequest peperNotificationRequest) {
+    private Mono<RequestDto> insertRequestFromCartaceo(PaperEngageRequest peperNotificationRequest, String xPagopaExtchCxId) {
 
         return Mono.fromCallable(() ->{
             var requestDto = new RequestDto();
             requestDto.setRequestIdx(peperNotificationRequest.getRequestId());
             requestDto.setClientRequestTimeStamp(peperNotificationRequest.getClientRequestTimeStamp());
+            requestDto.setxPagopaExtchCxId(xPagopaExtchCxId);
             var requestPersonalDto = new RequestPersonalDto();
             var digitalRequestPersonalDto = new PaperRequestPersonalDto();
 
