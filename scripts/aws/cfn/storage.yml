@@ -304,7 +304,6 @@ Resources:
     Properties:
       KmsDataKeyReusePeriodSeconds: 300
       KmsMasterKeyId: 'alias/aws/sqs'
-      FifoQueue: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
