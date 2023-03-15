@@ -168,7 +168,7 @@ public class SmsService extends PresaInCaricoService {
                   .subscribe();
     }
 
-    Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
+    public Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
 
 //      Try to send SMS
         return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
@@ -222,6 +222,17 @@ public class SmsService extends PresaInCaricoService {
     @Scheduled(cron = "${cron.value.gestione-retry-sms}")
     void gestioneRetrySmsScheduler() {
         log.info("<-- START GESTIONE RETRY SMS-->");
+        sqsService.getAllQueueMessage(smsSqsQueueName.errorName(), SmsPresaInCaricoInfo.class)
+                .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
+                        smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
+                .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(smsPresaInCaricoInfoSqsMessageWrapper.getMessage()),
+                        gestioneRetrySms(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent(), smsPresaInCaricoInfoSqsMessageWrapper.getMessage())))
+                /*.flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
+                        smsSqsQueueName.batchName()))*/
+                .subscribe();
+    }
+    /*void gestioneRetrySmsScheduler() {
+        log.info("<-- START GESTIONE RETRY SMS-->");
         sqsService.getAllQueueMessage(smsSqsQueueName.errorName(), 5).flatMap(message -> {
             try {
                 return Mono.just(objectMapper.readValue(message.body(), SmsPresaInCaricoInfo.class))
@@ -231,8 +242,8 @@ public class SmsService extends PresaInCaricoService {
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-        });//.flatMap(message -> sqsService.deleteMessageFromQueue(message, smsSqsQueueName.batchName())).subscribe();
-    }
+        });*///.flatMap(message -> sqsService.deleteMessageFromQueue(message, smsSqsQueueName.batchName())).subscribe();
+
     public Mono<SendMessageResponse> gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message) {
 
         log.info("<-- START GESTIONE ERRORI SMS -->");
