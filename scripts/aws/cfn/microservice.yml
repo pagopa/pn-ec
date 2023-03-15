@@ -460,6 +460,25 @@ Parameters:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriCARTACEO'
     Type: String
 
+  PnVPCSubnetId1:
+    Type: String
+    Description: 'VPC Subnet ID 1 out of 3'
+
+  PnVPCSubnetId2:
+    Type: String
+    Description: 'VPC Subnet ID 2 out of 3'
+
+  PnVPCSubnetId3:
+    Type: String
+    Description: 'VPC Subnet ID 3 out of 3'
+
+  PnVPCDefaultSecurityGroup:
+    Type: String
+    Description: 'VPC Subnet ID 3 out of 3'
+
+  ApplicationLoadBalancerArn:
+    Type: String
+    Description: 'Arn of the load balancer where the service is going to be reachable'
 Resources:
 
   # PN-TemplateBeMs microservice
@@ -505,7 +524,7 @@ Resources:
         ContainerEnvEntry40: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry41: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry42: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        MappedPaths: '/external-channels/*,/external-channel/*'
+        MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
         ECSClusterName: !Ref ECSClusterName
         Subnets: !Ref SubnetsIds
         VpcId: !Ref VpcId
@@ -608,6 +627,8 @@ Resources:
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+
+###########  NOTIFICATION TRACKER - QUEUE POLICIES  ###########
 
   PnEcQueuePolicyTrackerStatoSMS:
     Type: AWS::SQS::QueuePolicy
@@ -916,3 +937,68 @@ Resources:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
 
+###########  NETWORK LOAD BALANCER  ###########
+
+  PnEcNetworkLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      IpAddressType: ipv4
+      # LoadBalancerAttributes:
+        # LoadBalancerAttributes
+      Type: network
+      Scheme: internal
+      SubnetMappings:
+        - SubnetId: !Ref PnVPCSubnetId1
+          # PrivateIPv4Address: NULL
+        - SubnetId: !Ref PnVPCSubnetId2
+          # PrivateIPv4Address: NULL
+        - SubnetId: !Ref PnVPCSubnetId3
+          # PrivateIPv4Address: NULL
+
+  # PnECNLBSecGroup:
+  #   Type: AWS::EC2::SecurityGroup
+  #   Properties:
+  #     GroupDescription: 'Sec Group'
+  #     GroupName: "String"
+  #     SecurityGroupIngress:
+  #       - IpProtocol: tcp
+  #         CidrIp: 0.0.0.0/0
+  #         FromPort: 8080
+  #         ToPort: 8080
+  #     VpcId: !Ref VpcId
+
+  PnEcNLBToALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      # HealthCheckEnabled: false
+      # HealthCheckIntervalSeconds: Number
+      # HealthCheckPath: "String"
+      # HealthCheckPort: "String"
+      # HealthCheckProtocol: "String"
+      # HealthCheckTimeoutSeconds: Number
+      # HealthyThresholdCount: Number
+      IpAddressType: ipv4
+      # Matcher:
+      #   GrpcCode: "String"
+      #   HttpCode: "String"
+      # Name: "String"
+      Port: 8080
+      Protocol: TCP
+      # TargetGroupAttributes:
+        # TargetGroupAttributes
+      TargetType: alb
+      Targets:
+        - Id: !Ref ApplicationLoadBalancerArn
+      # UnhealthyThresholdCount: Number
+      VpcId: !Ref VpcId
+
+  PnEcNLBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref PnEcNetworkLoadBalancer
+      Protocol: TCP
+      Port: 8080
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref PnEcNLBToALBTargetGroup
+          Order: 1

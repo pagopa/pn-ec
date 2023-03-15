@@ -7,17 +7,14 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
 @ToString(callSuper = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CartaceoPresaInCaricoInfo  extends PresaInCaricoInfo {
+@SuperBuilder
+public class CartaceoPresaInCaricoInfo extends PresaInCaricoInfo {
 
     PaperEngageRequest paperEngageRequest;
-
-    public CartaceoPresaInCaricoInfo(String requestIdx, String xPagopaExtchCxId, PaperEngageRequest paperEngageRequest) {
-        super(requestIdx, xPagopaExtchCxId );
-        this.paperEngageRequest = paperEngageRequest;
-    }
 }
