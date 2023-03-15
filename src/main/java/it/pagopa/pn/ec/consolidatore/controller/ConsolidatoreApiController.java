@@ -79,18 +79,32 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 			final ServerWebExchange exchange)
 	{ 
 		return consolidatoreIngressPaperProgressStatusEvent
-				.flatMapSequential(statusEvent -> {
+				.flatMap(statusEvent -> {
 					log.info(LOG_LABEL + "START for requestId {}", statusEvent.getRequestId());
 					return ricezioneEsitiCartaceoService.verificaEsitoDaConsolidatore(xPagopaExtchServiceId, statusEvent);
 				})
 				.collectList()
-				.flatMap(listResponse -> {
-					log.info(LOG_LABEL + "listResponse = {}", listResponse);
-					var listErrorResponse = listResponse.stream().filter(response -> response.getResultCode() != null && !response.getResultCode().equals(COMPLETED_OK_CODE)).toList();
+				.flatMap(listRicezioneEsitiDto -> {
+					// ricerco errori
+					var listErrorResponse = listRicezioneEsitiDto.stream()
+																.filter(ricezioneEsito -> ricezioneEsito.getOperationResultCodeResponse() != null &&
+																						  ricezioneEsito.getOperationResultCodeResponse().getResultCode() != null && 
+																						  !ricezioneEsito.getOperationResultCodeResponse().getResultCode().equals(COMPLETED_OK_CODE))
+																.toList();
+					
 					if (listErrorResponse.isEmpty()) 
 					{
 						log.info(LOG_LABEL + "Non ci sono errori sintattici/semantici");
-						return consolidatoreIngressPaperProgressStatusEvent
+						
+						// eventi
+						var listEvents = new ArrayList<ConsolidatoreIngressPaperProgressStatusEvent>();
+						listRicezioneEsitiDto.forEach(dto -> {
+							if (dto.getPaperProgressStatusEvent() != null) {
+								listEvents.add(dto.getPaperProgressStatusEvent());
+							}
+						});
+						
+						return Flux.fromIterable(listEvents)
 							// pubblicazione sulla coda
 							.flatMap(statusEvent -> ricezioneEsitiCartaceoService.pubblicaEsitoCodaNotificationTracker(xPagopaExtchServiceId, statusEvent))
 							.collectList()
@@ -99,7 +113,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 								var listSendErrorResponse = listSendResponse.stream().filter(response -> response.getResultCode() != null && !response.getResultCode().equals(COMPLETED_OK_CODE)).toList();
 								if (listSendErrorResponse.isEmpty()) {
 									log.info(LOG_LABEL + "OK END");
-							    	return Mono.just(ResponseEntity.internalServerError()
+							    	return Mono.just(ResponseEntity.ok()
 		    								   .body(getOperationResultCodeResponse(COMPLETED_OK_CODE, 
 		    										   								COMPLETED_MESSAGE, 
 		    										                                null)));
@@ -112,16 +126,37 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 		    										   								errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE), 
 		    										   								sendErrors)));
 								}
+							})
+							.onErrorResume(RuntimeException.class, throwable -> {
+								log.error(LOG_LABEL	+ "errore generico interno = {}", throwable.getMessage(), throwable);
+								return Mono.error(throwable);
 							});
 					}
 					else 
 					{
-						var errors = getAllErrors(listErrorResponse);
-						log.error(LOG_LABEL + "errori sintattici/semantici : errori individuati = {}", errors);
-				    	return Mono.just(ResponseEntity.internalServerError()
-								   .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE, 
-										   								errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE), 
-										   								errors)));
+						log.info(LOG_LABEL + "errori sintattici/semantici : Sono stati individuati {} macro errori", listErrorResponse.size());
+						
+						// errori 
+						var listErrors = new ArrayList<OperationResultCodeResponse>();
+						listErrorResponse.forEach(dto -> {
+							if (dto.getOperationResultCodeResponse() != null) {
+								listErrors.add(dto.getOperationResultCodeResponse());
+							}
+						});
+						
+						var errors = getAllErrors(listErrors);
+						log.error(LOG_LABEL + "errori sintattici/semantici : "
+								+ "result code = \"{}\" : "
+								+ "result description = \"{}\" : "
+								+ "specifici errori individuati = {}", 
+								listErrors.get(0).getResultCode(),
+								listErrors.get(0).getResultDescription(),
+								errors);
+				    	return Mono.just(ResponseEntity
+				    						.badRequest()
+				    						.body(getOperationResultCodeResponse(listErrors.get(0).getResultCode(), 
+				    															 listErrors.get(0).getResultDescription(), 
+												   								 errors)));
 					}
 				})
 			    .onErrorResume(RuntimeException.class, throwable -> {

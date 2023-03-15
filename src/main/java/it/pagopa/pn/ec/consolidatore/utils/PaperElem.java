@@ -250,7 +250,22 @@ public class PaperElem {
 		return deliveryFailureCauseMap;
 	}
 	
-	private static final List<String> attachmentDocumentTypeMap = List.of("23L", "ARCAD","CAD","CAN","Plico","Indagine","AR");
+	public static final String ATTACHMENT_DOCUMENT_TYPE_23L = "23L";
+	public static final String ATTACHMENT_DOCUMENT_TYPE_ARCAD = "ARCAD";
+	public static final String ATTACHMENT_DOCUMENT_TYPE_CAD = "CAD";
+	public static final String ATTACHMENT_DOCUMENT_TYPE_CAN = "CAN";
+	public static final String ATTACHMENT_DOCUMENT_TYPE_Plico = "Plico";
+	public static final String ATTACHMENT_DOCUMENT_TYPE_Indagine = "Indagine";
+	public static final String ATTACHMENT_DOCUMENT_TYPE_AR = "AR";
+	
+	private static final List<String> attachmentDocumentTypeMap = List.of(
+			ATTACHMENT_DOCUMENT_TYPE_23L, 
+			ATTACHMENT_DOCUMENT_TYPE_ARCAD,
+			ATTACHMENT_DOCUMENT_TYPE_CAD,
+			ATTACHMENT_DOCUMENT_TYPE_CAN,
+			ATTACHMENT_DOCUMENT_TYPE_Plico,
+			ATTACHMENT_DOCUMENT_TYPE_Indagine,
+			ATTACHMENT_DOCUMENT_TYPE_AR);
 
 	public static List<String> attachmentDocumentTypeMap() {
 		return attachmentDocumentTypeMap;

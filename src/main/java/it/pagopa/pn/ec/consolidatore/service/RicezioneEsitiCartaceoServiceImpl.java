@@ -19,13 +19,16 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.consolidatore.dto.RicezioneEsitiDto;
 import it.pagopa.pn.ec.consolidatore.exception.AttachmentsEmptyRicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.consolidatore.exception.RicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.rest.v1.dto.AttachmentsProgressEventDto;
@@ -43,7 +46,11 @@ import reactor.core.publisher.Mono;
 public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceoService {
 	
 	private static final String SS_IN_URI = "safestorage://";
-	private static final String UNRECOGNIZED_ERROR = "%s unrecognized = %s";
+	private static final String UNRECOGNIZED_ERROR = "%s unrecognized : value = \"%s\"";
+	private static final String UNRECOGNIZED_ERROR_NO_VALUE = "%s unrecognized";
+	
+	private static final String LOG_VERIF_LABEL = "RicezioneEsitiCartaceoServiceImpl.verificaEsitoDaConsolidatore() : ";
+	private static final String LOG_PUB_LABEL = "RicezioneEsitiCartaceoServiceImpl.pubblicaEsitoCodaNotificationTracker() : ";
 	
 	private final GestoreRepositoryCall gestoreRepositoryCall;
 	private final FileCall fileCall;
@@ -138,17 +145,17 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			.switchIfEmpty(Mono.error(new AttachmentsEmptyRicezioneEsitiCartaceoException()))
 			.flatMap(attachment -> {
 				if (attachment.getUri().contains(SS_IN_URI)) {
-					String documentKey = attachment.getUri().replace(SS_IN_URI, "");
-					log.info(LOG_LABEL + "attachment.uri = {} -> documentKey = {}", attachment.getUri(), documentKey);
+					String documentAttachmentKey = attachment.getUri().replace(SS_IN_URI, "");
+					log.info(LOG_LABEL + "attachment.uri = {} -> documentKey = {}", attachment.getUri(), documentAttachmentKey);
 					// se ok (httpstatus 200), continuo (verifica andata a buon fine)
-					return Mono.just(documentKey);
+					return Mono.just(documentAttachmentKey);
 				}
 				return Mono.error(new RicezioneEsitiCartaceoException(
-								  SEMANTIC_ERROR_CODE, 
-								  errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-								  List.of(String.format(UNRECOGNIZED_ERROR, "attachment.uri", attachment.getUri()))));
+										  SEMANTIC_ERROR_CODE, 
+										  errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
+										  List.of(String.format(UNRECOGNIZED_ERROR, "attachment.uri", attachment.getUri()))));
 			})
-			.flatMap(documentKey -> fileCall.getFile(documentKey, xPagopaExtchServiceId, true))
+			.flatMap(documentAttachmentKey -> fileCall.getFile(documentAttachmentKey, xPagopaExtchServiceId, true))
 			// se non si verificano errori, procedo e non mi interssa il risultato
 			.collectList()
 			.flatMap(unused -> {
@@ -167,6 +174,24 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 									   requestId, throwable.getErrorList().get(0), throwable);
 							 return Mono.error(throwable);
 			})
+			.onErrorResume(Generic400ErrorException.class, 
+					   throwable -> {
+							 log.error(LOG_LABEL + "requestId = {}, errore attachment -> title = {}, details {}",
+									   requestId, throwable.getTitle(), throwable.getDetails(), throwable);
+							 return Mono.error(new RicezioneEsitiCartaceoException(
+												  SEMANTIC_ERROR_CODE, 
+												  errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
+												  List.of(String.format(UNRECOGNIZED_ERROR_NO_VALUE, "attachment.uri"))));
+			})
+			.onErrorResume(AttachmentNotAvailableException.class, 
+					   throwable -> {
+							 log.error(LOG_LABEL + "requestId = {}, errore attachment = {}",
+									   requestId, throwable.getMessage(), throwable);
+							 return Mono.error(new RicezioneEsitiCartaceoException(
+												  SEMANTIC_ERROR_CODE, 
+												  errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
+												  List.of(String.format(UNRECOGNIZED_ERROR_NO_VALUE, "attachment.uri"))));
+			})
 			.onErrorResume(RuntimeException.class, 
 					   throwable -> {
 							 log.error(LOG_LABEL + "requestId = {} : errore generico = {}",
@@ -176,43 +201,49 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	}
 
 	@Override
-	public Mono<OperationResultCodeResponse> verificaEsitoDaConsolidatore(
+	public Mono<RicezioneEsitiDto> verificaEsitoDaConsolidatore(
 			String xPagopaExtchServiceId, ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent) 
 	{
-		 return Mono.just(progressStatusEvent)
+		  return Mono.just(progressStatusEvent)
 			     .doOnNext(unused -> {
-			    	 log.info("RicezioneEsitiCartaceoServiceImpl.verificaEsitoDaConsolidatore() : START for requestId \"{}\"",
-			    			 progressStatusEvent.getRequestId());
-			    	 log.info("RicezioneEsitiCartaceoServiceImpl.verificaEsitoDaConsolidatore() : xPagopaExtchServiceId = {} : progressStatusEvent = {}",
+			    	 log.info(LOG_VERIF_LABEL + "START for requestId \"{}\"", progressStatusEvent.getRequestId());
+			    	 log.info(LOG_VERIF_LABEL + "xPagopaExtchServiceId = {} : progressStatusEvent = {}",
 			    			 xPagopaExtchServiceId, progressStatusEvent);
 			     })
 			     .flatMap(unused -> gestoreRepositoryCall.getRichiesta(progressStatusEvent.getRequestId()))
 			     .flatMap(unused -> verificaErroriSemantici(progressStatusEvent))
 			     .flatMap(unused -> verificaAttachments(xPagopaExtchServiceId, progressStatusEvent.getRequestId(), progressStatusEvent.getAttachments()))
-			     .flatMap(unused -> Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null)))
+			     .flatMap(unused -> Mono.just(new RicezioneEsitiDto(progressStatusEvent,
+											 			 		    getOperationResultCodeResponse(COMPLETED_OK_CODE, 
+											 			 		    							   COMPLETED_MESSAGE, 
+											 			 		    							   null)))
+			     )
 			     // *** errore Request Id non trovata
 			     .onErrorResume(RestCallException.ResourceNotFoundException.class, throwable -> {
-		    		 log.error("RicezioneEsitiCartaceoServiceImpl.verificaEsitoDaConsolidatore() : request id = {} : errore  = {} ",
+		    		 log.error(LOG_VERIF_LABEL + "request id = {} : errore  = {} ",
 		    				   progressStatusEvent.getRequestId(), throwable.getMessage(), throwable);
-			    	 return Mono.just(getOperationResultCodeResponse(REQUEST_ID_ERROR_CODE, 
-		    			 										     errorCodeDescriptionMap().get(REQUEST_ID_ERROR_CODE), 
-		    			 										     List.of("requestId unrecognized")));
+			    	 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
+			    			 								getOperationResultCodeResponse(REQUEST_ID_ERROR_CODE, 
+																					       errorCodeDescriptionMap().get(REQUEST_ID_ERROR_CODE), 
+																					       List.of("requestId unrecognized"))));
 			     })
 			     // *** errore semantico
 			     .onErrorResume(RicezioneEsitiCartaceoException.class, throwable -> {
 		    		 log.error("RicezioneEsitiCartaceoServiceImpl.verificaEsitoDaConsolidatore() : errore ResultCode = {} : errore ResultDescription = {} :",
 		    				   throwable.getResultCode(), throwable.getResultDescription(), throwable);
-			    	 return Mono.just(getOperationResultCodeResponse(throwable.getResultCode(), 
-	 															     throwable.getResultDescription(), 
-	 															     throwable.getErrorList()));
+			    	 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
+								    			 		    getOperationResultCodeResponse(throwable.getResultCode(), 
+																						   throwable.getResultDescription(), 
+																						   throwable.getErrorList())));
 			     })
 			     // *** errore generico
 			     .onErrorResume(RuntimeException.class, throwable -> {
 		    		 log.error("RicezioneEsitiCartaceoServiceImpl.verificaEsitoDaConsolidatore() : errore generico : message = {} :",
 		    				   throwable.getMessage(), throwable);
-			    	 return Mono.just(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE, 
-	 															     errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
-	 															     List.of(throwable.getMessage())));
+			    	 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
+							    			 		       getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE, 
+							    			 		    		   						  errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE), 
+							    			 		    		   						  List.of(throwable.getMessage()))));
 			     });
 	}
 	
@@ -223,7 +254,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	{
 		return Mono.just(statusEvent)
 			.flatMap(progressStatusEvent -> {
-				log.info("RicezioneEsitiCartaceoServiceImpl.pubblicaEsitoCodaNotificationTracker() : START : xPagopaExtchServiceId = {} : statusEvent = {}",
+				log.info(LOG_PUB_LABEL + "START : xPagopaExtchServiceId = {} : statusEvent = {}",
 						xPagopaExtchServiceId, statusEvent);
 				
 				PresaInCaricoInfo presaInCaricoInfo = new PresaInCaricoInfo();
@@ -252,6 +283,8 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	 			paperProgressStatusDto.setRegisteredLetterCode(statusEvent.getRegisteredLetterCode());
 	 			paperProgressStatusDto.setDiscoveredAddress(discoveredAddressDto);
 	 			paperProgressStatusDto.setAttachments(attachmentsDto);
+	 			
+				log.info(LOG_PUB_LABEL + "paperProgressStatusDto = {}", paperProgressStatusDto);
 	 			
 	 			return sqsService.send(notificationTrackerSqsName.statoCartaceoName(), 
 	 								   NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(

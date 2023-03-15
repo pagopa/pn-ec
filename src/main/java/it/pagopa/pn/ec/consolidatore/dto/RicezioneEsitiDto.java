@@ -18,7 +18,17 @@ public class RicezioneEsitiDto implements Serializable {
 
 	private static final long serialVersionUID = -2206916494825569451L;
 	
-	ConsolidatoreIngressPaperProgressStatusEvent event;
-	OperationResultCodeResponse response;
+	ConsolidatoreIngressPaperProgressStatusEvent paperProgressStatusEvent;
+	OperationResultCodeResponse operationResultCodeResponse;
+	
+	public RicezioneEsitiDto paperProgressStatusEvent(ConsolidatoreIngressPaperProgressStatusEvent paperProgressStatusEvent) {
+		this.paperProgressStatusEvent = paperProgressStatusEvent;
+		return this;
+	}
+	
+	public RicezioneEsitiDto operationResultCodeResponse(OperationResultCodeResponse operationResultCodeResponse) {
+		this.operationResultCodeResponse = operationResultCodeResponse;
+		return this;
+	}
 
 }
