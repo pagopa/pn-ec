@@ -132,7 +132,7 @@ public class SmsService extends PresaInCaricoService {
 
     @Scheduled(cron = "${cron.value.lavorazione-batch-sms}")
     void lavorazioneRichiestaBatch() {
-        log.info("<-- START LAVORAZIONE RICHIESTA SMS INTERACTIVE-->");
+        log.info("<-- START LAVORAZIONE RICHIESTA SMS BATCH -->");
         sqsService.getAllQueueMessage(smsSqsQueueName.batchName(), SmsPresaInCaricoInfo.class)
                   .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
                                                                                         smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))

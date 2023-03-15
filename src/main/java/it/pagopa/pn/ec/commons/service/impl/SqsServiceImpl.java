@@ -68,8 +68,11 @@ public class SqsServiceImpl implements SqsService {
 
     @Override
     public Mono<DeleteMessageResponse> deleteMessageFromQueue(final Message message, final String queueName) {
-        return getQueueUrlFromName(queueName).flatMap(queueUrl -> Mono.fromCompletionStage(sqsAsyncClient.deleteMessage(builder -> builder.queueUrl(
-                queueUrl).receiptHandle(message.receiptHandle()))));
+        return getQueueUrlFromName(queueName).doOnNext(queueUrl -> log.info("Delete message with id {} from {} queue",
+                                                                            message.messageId(),
+                                                                            queueName))
+                                             .flatMap(queueUrl -> Mono.fromCompletionStage(sqsAsyncClient.deleteMessage(builder -> builder.queueUrl(
+                                                     queueUrl).receiptHandle(message.receiptHandle()))));
     }
 
     @Override
