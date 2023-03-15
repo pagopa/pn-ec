@@ -1,7 +1,5 @@
 package it.pagopa.pn.ec.sms.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
@@ -9,7 +7,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigu
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
@@ -43,12 +41,11 @@ public class SmsService extends PresaInCaricoService {
     private final SmsSqsQueueName smsSqsQueueName;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
-    private final ObjectMapper objectMapper;
 
     protected SmsService(AuthService authService, SqsService sqsService, SnsService snsService,
                          GestoreRepositoryCall gestoreRepositoryCall, NotificationTrackerSqsName notificationTrackerSqsName,
                          SmsSqsQueueName smsSqsQueueName,
-                         TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, ObjectMapper objectMapper) {
+                         TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
         super(authService, gestoreRepositoryCall);
         this.sqsService = sqsService;
         this.snsService = snsService;
@@ -56,7 +53,6 @@ public class SmsService extends PresaInCaricoService {
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.smsSqsQueueName = smsSqsQueueName;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
-        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -137,16 +133,14 @@ public class SmsService extends PresaInCaricoService {
     @Scheduled(cron = "${cron.value.lavorazione-batch-sms}")
     void lavorazioneRichiestaBatch() {
         log.info("<-- START LAVORAZIONE RICHIESTA SMS INTERACTIVE-->");
-        sqsService.getAllQueueMessage(smsSqsQueueName.batchName(), 5).flatMap(message -> {
-            try {
-                return Mono.just(objectMapper.readValue(message.body(), SmsPresaInCaricoInfo.class))
-                           .doOnNext(smsPresaInCaricoInfo -> log.info(smsPresaInCaricoInfo.toString()))
-                           .flatMap(this::lavorazioneRichiesta)
-                           .thenReturn(message);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }).flatMap(message -> sqsService.deleteMessageFromQueue(message, smsSqsQueueName.batchName())).subscribe();
+        sqsService.getAllQueueMessage(smsSqsQueueName.batchName(), SmsPresaInCaricoInfo.class)
+                  .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
+                                                                                        smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
+                  .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(smsPresaInCaricoInfoSqsMessageWrapper.getMessage()),
+                                                                             lavorazioneRichiesta(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
+                  .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
+                                                                                                      smsSqsQueueName.batchName()))
+                  .subscribe();
     }
 
     Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
