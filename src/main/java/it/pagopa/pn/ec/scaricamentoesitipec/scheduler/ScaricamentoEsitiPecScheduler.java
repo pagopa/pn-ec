@@ -13,6 +13,7 @@ import it.pec.bridgews.GetAttach;
 import it.pec.bridgews.GetMessageID;
 import it.pec.bridgews.GetMessages;
 import it.pec.bridgews.MesArrayOfMessages;
+import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -70,7 +71,9 @@ public class ScaricamentoEsitiPecScheduler {
                      var getAttach = new GetAttach();
                      getAttach.setMailid(pecId);
                      getAttach.setNameattach("daticert.xml");
+
                      log.info("Try to download PEC {} daticert.xml", pecId);
+
                      return arubaCall.getAttach(getAttach).flatMap(getAttachResponse -> {
                          var attachBytes = getAttachResponse.getAttach();
 
@@ -83,12 +86,15 @@ public class ScaricamentoEsitiPecScheduler {
 
 //                                      Escludere questi daticert
                                         .filter(postacert -> !postacert.getTipo().equals(POSTA_CERTIFICATA))
+                                        .doOnDiscard(Postacert.class,
+                                                     postacert -> log.info("PEC {} discarded, is {}", pecId, POSTA_CERTIFICATA))
 
 //                                      msgid arriva all'interno di due angolari <msgid>. Eliminare il primo e l'ultimo carattere
                                         .map(postacert -> {
                                             var dati = postacert.getDati();
                                             var msgId = dati.getMsgid();
                                             dati.setMsgid(msgId.substring(1, msgId.length() - 1));
+                                            log.info("PEC {} has {} msgId}", pecId, msgId);
                                             return postacert;
                                         })
 
