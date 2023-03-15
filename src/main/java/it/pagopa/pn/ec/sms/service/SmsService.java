@@ -11,6 +11,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigu
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
@@ -51,6 +52,7 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.BATC
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.SMS;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
+import static java.time.LocalTime.now;
 
 @Service
 @Slf4j
@@ -314,34 +316,52 @@ public class SmsService extends PresaInCaricoService {
                 })
                 .flatMap(requestDto -> {
                     log.info("requestDto Value:", requestDto.getRequestMetadata().getRetry());
-                    return snsService.send(digitalCourtesySmsRequest.getReceiverDigitalAddress(), digitalCourtesySmsRequest.getMessageText())
-                            .flatMap(publishResponse -> {
-                                var generatedMessageDto = new GeneratedMessageDto().id(publishResponse.messageId()).system("systemPlaceholder");
-                                return sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                                        new NotificationTrackerQueueDto(requestId,
-                                                clientId,
-                                                now(),
-                                                transactionProcessConfigurationProperties.sms(),
-                                                smsPresaInCaricoInfo.getStatusAfterStart(),
-                                                "sent",
-                                                // TODO: SET eventDetails
-                                                "",
-                                                generatedMessageDto));
-                            })
-                            .doOnSuccess(result -> {
-                                acknowledgment.acknowledge();
-                                log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}", smsSqsQueueName.errorName());
-                            })
-                            .doOnError(throwable -> {
-                                if(idSaved == null){
-                                    idSaved = requestDto.getRequestIdx();
-                                }
-                                /*requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
-                                requestDto.getRequestMetadata().getRetry().setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
-                                PatchDto patchDto = new PatchDto();
-                                patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                                gestoreRepositoryCall.patchRichiesta(requestId, patchDto);*/
-                            });
+                    
+                    return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
+                                    smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
+
+//                       Retry to send SMS if fails
+                            .retryWhen(DEFAULT_RETRY_STRATEGY)
+
+//                        Set message id after send
+                            .map(this::createGeneratedMessageDto)
+
+//                       The SMS in sent, publish to Notification Tracker with next status -> SENT
+                            .flatMap(generatedMessageDto -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
+                                            createNotificationTrackerQueueDtoDigital(smsPresaInCaricoInfo,
+                                                    "booked",
+                                                    "sent",
+                                                    new DigitalProgressStatusDto().generatedMessage(
+                                                            generatedMessageDto)))
+
+//                                                                An error occurred during SQS publishing to the Notification Tracker ->
+//                                                                Publish to Errori SMS queue and notify to retry update status only
+//                                                                TODO: CHANGE THE PAYLOAD
+                                    .onErrorResume(SqsPublishException.class,
+                                            sqsPublishException -> sqsService.send(smsSqsQueueName.errorName(),
+                                                    smsPresaInCaricoInfo)))
+
+//                       The maximum number of retries has ended
+                            .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
+                                    snsMaxRetriesExceeded -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
+                                                    createNotificationTrackerQueueDtoDigital(
+                                                            smsPresaInCaricoInfo,
+                                                            "booked",
+                                                            "retry",
+                                                            new DigitalProgressStatusDto()))
+
+//                                          In case of success, message removed from error queue
+                                            .doOnSuccess(result -> {
+                                                acknowledgment.acknowledge();
+                                                log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}", smsSqsQueueName.errorName());
+                                            })
+
+//                                          In case of error the id of the first message is saved
+                                            .doOnError(throwable -> {
+                                                if(idSaved == null){
+                                                    idSaved = requestDto.getRequestIdx();
+                                                }
+                                            }));
                 })
                 .subscribe();
     }
