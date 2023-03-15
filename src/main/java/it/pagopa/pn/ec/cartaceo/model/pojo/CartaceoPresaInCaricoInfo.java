@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.cartaceo.model.pojo;
 
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest;
 import lombok.AccessLevel;
 import lombok.Data;

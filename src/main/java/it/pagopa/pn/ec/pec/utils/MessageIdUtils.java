@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.pec.utils;
 
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.pec.exception.MessageIdException;
 import org.springframework.util.Base64Utils;
 

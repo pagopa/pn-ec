@@ -11,8 +11,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigu
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
@@ -66,12 +65,12 @@ public class SmsService extends PresaInCaricoService {
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
     private String idSaved;
-    private final ObjectMapper objectMapper;
+
 
     protected SmsService(AuthService authService, SqsService sqsService, SnsService snsService,
                          GestoreRepositoryCall gestoreRepositoryCall, NotificationTrackerSqsName notificationTrackerSqsName,
                          SmsSqsQueueName smsSqsQueueName,
-                         TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, ObjectMapper objectMapper) {
+                         TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
         super(authService, gestoreRepositoryCall);
         this.sqsService = sqsService;
         this.snsService = snsService;
@@ -79,7 +78,6 @@ public class SmsService extends PresaInCaricoService {
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.smsSqsQueueName = smsSqsQueueName;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
-        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -97,7 +95,8 @@ public class SmsService extends PresaInCaricoService {
                                                                                                                                                            transactionProcessConfigurationProperties.smsStartStatus(),
                                                                                                                                                            "booked",
                                                                                                                                                            new DigitalProgressStatusDto())))
-//                                                                                                        Publish to SMS INTERACTIVE or SMS BATCH
+//                                                                                                        Publish to SMS INTERACTIVE or
+//                                                                                                        SMS BATCH
                                                                                                           .flatMap(sendMessageResponse -> {
                                                                                                               DigitalCourtesySmsRequest.QosEnum
                                                                                                                       qos =
@@ -158,20 +157,18 @@ public class SmsService extends PresaInCaricoService {
 
     @Scheduled(cron = "${cron.value.lavorazione-batch-sms}")
     void lavorazioneRichiestaBatch() {
-        log.info("<-- START LAVORAZIONE RICHIESTA SMS INTERACTIVE-->");
-        sqsService.getAllQueueMessage(smsSqsQueueName.batchName(), 5).flatMap(message -> {
-            try {
-                return Mono.just(objectMapper.readValue(message.body(), SmsPresaInCaricoInfo.class))
-                           .doOnNext(smsPresaInCaricoInfo -> log.info(smsPresaInCaricoInfo.toString()))
-                           .flatMap(this::lavorazioneRichiesta)
-                           .thenReturn(message);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }).flatMap(message -> sqsService.deleteMessageFromQueue(message, smsSqsQueueName.batchName())).subscribe();
+        log.info("<-- START LAVORAZIONE RICHIESTA SMS BATCH -->");
+        sqsService.getAllQueueMessage(smsSqsQueueName.batchName(), SmsPresaInCaricoInfo.class)
+                  .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
+                                                                                        smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
+                  .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(smsPresaInCaricoInfoSqsMessageWrapper.getMessage()),
+                                                                             lavorazioneRichiesta(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
+                  .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
+                                                                                                      smsSqsQueueName.batchName()))
+                  .subscribe();
     }
 
-    public Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
+    Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
 
 //      Try to send SMS
         return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
@@ -325,7 +322,7 @@ public class SmsService extends PresaInCaricoService {
                 })
                 .flatMap(requestDto -> {
                     log.info("requestDto Value:", requestDto.getRequestMetadata().getRetry());
-                    
+
                     return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
                                     smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
 
