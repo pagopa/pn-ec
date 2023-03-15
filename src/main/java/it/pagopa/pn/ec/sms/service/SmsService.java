@@ -30,6 +30,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sns.model.PublishResponse;
 import reactor.util.retry.Retry;
+import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.io.File;
@@ -221,8 +222,21 @@ public class SmsService extends PresaInCaricoService {
     }*/
 
 
-    @SqsListener(value = "${sqs.queue.sms.error-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+    @Scheduled(cron = "${cron.value.gestione-retry-sms}")
+    void gestioneRetrySmsScheduler() {
+        log.info("<-- START GESTIONE RETRY SMS-->");
+        sqsService.getAllQueueMessage(smsSqsQueueName.errorName(), 5).flatMap(message -> {
+            try {
+                return Mono.just(objectMapper.readValue(message.body(), SmsPresaInCaricoInfo.class))
+                        .doOnNext(smsPresaInCaricoInfo -> log.info(smsPresaInCaricoInfo.toString()))
+                        .flatMap(smsPresaInCaricoInfo -> gestioneRetrySms(smsPresaInCaricoInfo, message))
+                        .thenReturn(message);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        });//.flatMap(message -> sqsService.deleteMessageFromQueue(message, smsSqsQueueName.batchName())).subscribe();
+    }
+    public Mono<SendMessageResponse> gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message) {
 
         log.info("<-- START GESTIONE ERRORI SMS -->");
         logIncomingMessage(smsSqsQueueName.errorName(), smsPresaInCaricoInfo);
@@ -247,12 +261,9 @@ public class SmsService extends PresaInCaricoService {
         var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
 
-
-        gestoreRepositoryCall.getRichiesta(requestId)
-
+        return gestoreRepositoryCall.getRichiesta(requestId)
                 /*.filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), "toDelete"))
                 .doOnError(throwable -> {
-
                 })*/
                 .map(requestDto -> {
                     if(Objects.equals(requestDto.getStatusRequest(), "toDelete")){
@@ -260,7 +271,6 @@ public class SmsService extends PresaInCaricoService {
                         PatchDto patchDto = new PatchDto();
                         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
                         gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
-                        acknowledgment.acknowledge();
                         log.info("Il messaggio è stato rimosso dalla coda d'errore per stato toDelete: {}", smsSqsQueueName.errorName());
                     }
                     return requestDto;
@@ -269,8 +279,8 @@ public class SmsService extends PresaInCaricoService {
                     if(requestDto.getRequestMetadata().getRetry() != null) {
                         if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
                             // operazioni per la rimozione del messaggio
-                            acknowledgment.acknowledge();
                             log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", smsSqsQueueName.errorName());
+                            sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
                             return false; // il messaggio è stato rimosso, quindi si deve terminare il flusso
                         }
                     }
@@ -336,9 +346,14 @@ public class SmsService extends PresaInCaricoService {
 //                                                                An error occurred during SQS publishing to the Notification Tracker ->
 //                                                                Publish to Errori SMS queue and notify to retry update status only
 //                                                                TODO: CHANGE THE PAYLOAD
-                                    .onErrorResume(SqsPublishException.class,
-                                            sqsPublishException -> sqsService.send(smsSqsQueueName.errorName(),
-                                                    smsPresaInCaricoInfo)))
+                                    .onErrorResume(sqsPublishException -> {
+                                        if(idSaved == null){
+                                            idSaved = requestId;
+                                        }
+                                        return sqsService.send(smsSqsQueueName.errorName(), smsPresaInCaricoInfo);
+                                            }
+                                    )
+                            )
 
 //                       The maximum number of retries has ended
                             .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
@@ -351,16 +366,9 @@ public class SmsService extends PresaInCaricoService {
                             )
 //                          In case of success, message removed from error queue
                             .doOnSuccess(result -> {
-                                acknowledgment.acknowledge();
                                 log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}", smsSqsQueueName.errorName());
+                                sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
                             });
-                })
-//              In case of error the id of the first message is saved
-                .doOnError(throwable -> {
-                    if(idSaved == null){
-                        idSaved = requestId;
-                    }
-                })
-                .subscribe();
+                });
     }
 }
