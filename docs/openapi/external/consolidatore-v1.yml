@@ -18,7 +18,7 @@ servers:
     description: Server url
 paths:  
   /piattaforma-notifiche-ingress/v1/paper-deliveries-engagement:
-    put:
+    post:
       operationId: sendPaperEngageRequest
       summary: PN richiede l'invio di corrispondenza cartacea
       description: >- 
@@ -121,7 +121,7 @@ paths:
                 $ref: '#/components/schemas/OperationResultCodeResponse'
         
   /piattaforma-notifiche-ingress/v1/paper-replicas-engagement:
-    put:
+    post:
       operationId: sendPaperReplicasEngagementRequest
       summary: PN richiede la generazione di un duplicato
       description: >- 
@@ -228,7 +228,7 @@ webhooks:
 
   # Path /consolidatore-ingress/v1/push-progress-events/
   push-progress-events-to-notification-platform:
-    post:
+    put:
       operationId: sendPaperProgressStatusRequest
       summary: Webhook con cui PN riceve progressi postalizzazioni
       parameters:
@@ -278,7 +278,7 @@ webhooks:
   
   # Path /consolidatore-ingress/v1/replicas-push-progress-events/
   push-replicas-progress-events-to-notification-platform:
-    post:
+    put:
       operationId: sendPaperReplicasProgressStatusRequest
       summary: Webhook con cui PN riceve progressi di richiesta duplicato
       parameters:
@@ -326,13 +326,16 @@ webhooks:
               schema:
                 $ref: '#/components/schemas/OperationResultCodeResponse'
 
-  # Path /consolidatore-ingress/v1/attachement-preload/
+  # Path /consolidatore-ingress/v1/attachments-preload/
   push-attachments-preload:
-    post:
+    put:
       summary: Richiesta di pre-caricamento dei documenti da comunicare a PN
       description: |-
         Operazione che richiede a Piattaforma Notifica le informazioni e le autorizzazioni necessarie 
         a precaricare uno o più file.
+      parameters:
+        - $ref: '#/components/parameters/xPagopaExtchServiceId'
+        - $ref: '#/components/parameters/xPagopaExtchApiKey'
       operationId: presignedUploadRequest
       requestBody:
         content:
@@ -376,10 +379,83 @@ webhooks:
                 semanticError: 
                   summary: 'Errore semantico'
                   value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}  
-      
+
+  # Path /consolidatore-ingress/v1/get-attachment/{fileKey}    
+  get-attachment:
+    get:
+      summary: ottieni metadati e contenuto di un file.
+      description: |-
+        Con questa API è possibile ottenere le informazioni necessarie al download del contenuto del file;
+        tali informazioni sono contenute nel campo _download_. <br/>
+          - _url_: se il contenuto del file è immediatamente disponibile questo campo viene 
+            valorizzato con un URL da invocare in GET per ottenere il contenuto del file. <br/>
+          - _retryAfter_: valorizzato se il contenuto del file è stato archiviato in glacier. 
+            Indica una stima del tempo necessario per recuperare il file. <br/>
+        
+        Se il file non è pronto al momento dell'invocazione il campo _download.url_ della risposta
+        verrà valorizzato ```null```; in un secondo momento, quando il contenuto del file sarà 
+        pronto verrà comunicato un evento al client che ha invocato la chiamata. Molteplici 
+        invocazioni di questa API generano un solo evento per client. <br/>
+        Il file rimane hot per ```stayHotTime````.
+      parameters:
+        - $ref: '#/components/parameters/fileKey'
+        - $ref: '#/components/parameters/xPagopaExtchServiceId'
+        - $ref: '#/components/parameters/xPagopaExtchApiKey'
+      operationId: getFile
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileDownloadResponse'
+              examples:
+                hotFile:
+                  summary: File pronto per il download
+                  value:
+                    key: 'random/path/of/the/file'
+                    versionId: '3Z9SdhZ50PBeIj617KEMrztNKDMJj8FZ'
+                    contentType: 'application/pdf'
+                    contentLength: 30438
+                    checksum: '91375e9e5a9510087606894437a6a382fa5bc74950f932e2b85a788303cf5ba0'
+                    retentionUntil: '2032-04-12T12:32:04.000Z'
+                    documentType: PN_LEGALFACT
+                    documentStatus: SAVED
+                    download:
+                      url: 'https://presignedurldemo.s3.eu-west-2.amazonaws.com/...'
+                coldFile:
+                  summary: File su glacier.
+                  description: Il file è stato archiviato. Verrà recuperato in 24 ore.
+                  value:
+                    key: 'random/path/of/the/file'
+                    versionId: '3Z9SdhZ50PBeIj617KEMrztNKDMJj8FZ'
+                    contentType: 'application/pdf'
+                    contentLength: 30438
+                    checksum: '91375e9e5a9510087606894437a6a382fa5bc74950f932e2b85a788303cf5ba0'
+                    retentionUntil: '2032-04-12T12:32:04.000Z'
+                    documentType: PN_LEGALFACT
+                    documentStatus: SAVED
+                    download:
+                      retryAfter: 86400
+        '404':
+          description: >-
+            Non trovato. Restituito se: <br/>
+            - il parametro clientId è diverso dal client autenticato; <br/>
+            - se il file identificato da fileKey non è ancora stato salvato; <br/>
+
+
+  
 components:
 
   parameters:
+    fileKey: 
+      name: fileKey
+      description: La chiave definita per il file di cui si sta richiedendo il download
+      in: path
+      required: true
+      schema:
+        type: string
+      example: '8F7E/9A3B/1234/AB87'
     xPagopaExtchServiceId:
       name: x-pagopa-extch-service-id
       description: Identificativo con cui Piattaforma Notifiche si identifica
@@ -425,7 +501,7 @@ components:
       properties:
         iun: 
           type: string
-          minLength: 30 
+          minLength: 10 
           maxLength: 50
           example: 'ABCD-HILM-YKWX-202202-1'
           description: >-
@@ -698,7 +774,7 @@ components:
           type: string
         iun: 
           type: string
-          minLength: 30 
+          minLength: 10 
           maxLength: 50
           description: >-
             Identificativo Unico della Notifica. Proviene dalla richiesta originaria di PN.
@@ -1206,3 +1282,76 @@ components:
           type: string
           minLength: 30
           maxLength: 250
+
+    FileDownloadResponse:
+      description: Informazioni necessarie al download del contenuto di un file
+      allOf:
+        - $ref: '#/components/schemas/FileCreatedDto'
+        - type: object
+          properties:
+            download: 
+              $ref: '#/components/schemas/FileDownloadInfo'
+  
+    FileCreatedDto:
+      description: >-
+        Evento generato quando il contenuto di un file è stato caricato, elaborato da 
+        _SafeStorage_, ed è pronto all'uso.
+      type: object 
+      required:
+        - key
+        - versionId
+        - contentType
+        - contentLength
+        - checksum
+        - documentType
+        - documentStatus
+        - retentionUntil
+      properties:  
+        key:
+          type: string
+          description: la chiave da utilizzare per il recupero del file
+          example: '8F7E/9A3B/1234/AB87'
+        versionId:
+          type: string
+          description: __discutibile__. La versione del file su S3
+          example: '3Z9SdhZ50PBeIj617KEMrztNKDMJj8FZ'
+        documentType:
+          type: string
+          description: Il tipo del documento
+          example: PN_NOTIFICATION_ATTACHMENTS
+        documentStatus:
+          type: string
+          description: Lo stato del documento
+          example: ATTACHED
+        contentType:
+          type: string
+          example: 'application/pdf'
+        contentLength:
+          type: number
+          example: 54092
+          description: dmensione, in byte, del contenuto.
+        checksum:
+          type: string
+          description: >- 
+            SHA256 o MD5 del contenuto del file. Il tipo di checksum cambia a seconda del 
+            documentType.
+        retentionUntil:
+          type: string
+          format: date-time
+          description: >-
+            data e ora fino a cui il documento sarà garantito all'interno di _SafeStorage_. <br/>
+            Può essere ritardata nel tempo, mai anticipata. Formattata con timezone secondo l'rfc 3339
+                            
+    FileDownloadInfo:
+      type: object
+      properties: 
+        url:
+          type: string
+          description: >-
+            URL preautorizzato a cui effettuare una richiesta GET per ottenere il 
+            contenuto del documento. Presente solo se il documento è pronto per il download.
+        retryAfter:
+          type: number
+          description: >-
+            Stima del numero di secondi da aspettare prima che il contenuto del 
+            documento sia scaricabile.
