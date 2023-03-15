@@ -49,7 +49,7 @@ class RetrySmsTest {
     private Acknowledgment acknowledgment;
 
     private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO =
-            new SmsPresaInCaricoInfo(DEFAULT_REQUEST_IDX, DEFAULT_ID_CLIENT_HEADER_VALUE, createSmsRequest());
+            new SmsPresaInCaricoInfo();
 
     @Test
     void ErrorQueueRetrieveMessageOk() {
@@ -61,7 +61,7 @@ class RetrySmsTest {
         when(sqsService.send(eq(smsSqsQueueName.errorName()), any(SmsPresaInCaricoInfo.class))).thenReturn(Mono.error(
                 new SqsPublishException(smsSqsQueueName.errorName())));
 
-        smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO, acknowledgment);
+        smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO);
 
         // Verifica della ricezione del messaggio nella coda di errore
         verify(sqsService, times(1)).send(eq(smsSqsQueueName.errorName()), any(SmsPresaInCaricoInfo.class));
@@ -77,7 +77,7 @@ class RetrySmsTest {
         when(snsService.send(anyString(), anyString())).thenReturn(Mono.error(new SnsSendException()))
                 .thenReturn(Mono.just(PublishResponse.builder().build()));
 
-        smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO, acknowledgment);
+        smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO);
 
         verify(snsService, times(2)).send(anyString(), anyString());
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class));
@@ -92,7 +92,7 @@ class RetrySmsTest {
         when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
                 new SqsPublishException(notificationTrackerSqsName.statoSmsName())));
 
-        smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO, acknowledgment);
+        smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO);
 
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class));
         verify(sqsService, times(1)).send(eq(smsSqsQueueName.errorName()), any(SmsPresaInCaricoInfo.class));

@@ -170,7 +170,7 @@ public class SmsService extends PresaInCaricoService {
         }).flatMap(message -> sqsService.deleteMessageFromQueue(message, smsSqsQueueName.batchName())).subscribe();
     }
 
-    Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
+    public Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
 
 //      Try to send SMS
         return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
@@ -266,11 +266,13 @@ public class SmsService extends PresaInCaricoService {
                     return requestDto;
                 })
                 .filter(requestDto -> {
-                    if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
-                        // operazioni per la rimozione del messaggio
-                        acknowledgment.acknowledge();
-                        log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", smsSqsQueueName.errorName());
-                        return false; // il messaggio è stato rimosso, quindi si deve terminare il flusso
+                    if(requestDto.getRequestMetadata().getRetry() != null) {
+                        if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
+                            // operazioni per la rimozione del messaggio
+                            acknowledgment.acknowledge();
+                            log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", smsSqsQueueName.errorName());
+                            return false; // il messaggio è stato rimosso, quindi si deve terminare il flusso
+                        }
                     }
                     return true;
                 })
@@ -304,9 +306,6 @@ public class SmsService extends PresaInCaricoService {
                     long minutesToCheck = requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
                     return minutes >= minutesToCheck;
                 })
-                .doOnError(throwable -> {
-                    log.error("Errore nel filtro dei minuti: {}", throwable.getMessage());
-                        })
                 .flatMap(requestDto -> {
                     requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
                     requestDto.getRequestMetadata().getRetry().setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
@@ -349,19 +348,18 @@ public class SmsService extends PresaInCaricoService {
                                                             "booked",
                                                             "retry",
                                                             new DigitalProgressStatusDto()))
-
-//                                          In case of success, message removed from error queue
-                                            .doOnSuccess(result -> {
-                                                acknowledgment.acknowledge();
-                                                log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}", smsSqsQueueName.errorName());
-                                            })
-
-//                                          In case of error the id of the first message is saved
-                                            .doOnError(throwable -> {
-                                                if(idSaved == null){
-                                                    idSaved = requestDto.getRequestIdx();
-                                                }
-                                            }));
+                            )
+//                          In case of success, message removed from error queue
+                            .doOnSuccess(result -> {
+                                acknowledgment.acknowledge();
+                                log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}", smsSqsQueueName.errorName());
+                            });
+                })
+//              In case of error the id of the first message is saved
+                .doOnError(throwable -> {
+                    if(idSaved == null){
+                        idSaved = requestId;
+                    }
                 })
                 .subscribe();
     }
