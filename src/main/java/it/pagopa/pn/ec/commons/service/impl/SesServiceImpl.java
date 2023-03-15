@@ -1,32 +1,35 @@
 package it.pagopa.pn.ec.commons.service.impl;
 
-import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
-import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
-import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
-import it.pagopa.pn.ec.commons.service.SesService;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
-import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.services.ses.SesAsyncClient;
-import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
-import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
+import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Properties;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
-import javax.activation.URLDataSource;
 import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.URL;
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Properties;
+import javax.mail.util.ByteArrayDataSource;
+
+import org.springframework.stereotype.Service;
+
+import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
+import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
+import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
+import it.pagopa.pn.ec.commons.service.SesService;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.ses.SesAsyncClient;
+import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
 
 @Service
 @Slf4j
@@ -73,12 +76,13 @@ public class SesServiceImpl implements SesService {
         MimeMultipart msg = new MimeMultipart("mixed");
         msg.addBodyPart(wrap);
 
-//		Add multiple files to attachment
+        // Add multiple files to attachment
         List<EmailAttachment> files = field.getEmailAttachments();
         for (EmailAttachment file : files) {
             MimeBodyPart messageBodyPart = new MimeBodyPart();
 
-            DataSource source = new URLDataSource(new URL(file.getUrl()));
+            var byteArrayOutputStream = (ByteArrayOutputStream) file.getContent();
+            DataSource source = new ByteArrayDataSource(byteArrayOutputStream.toByteArray(), APPLICATION_OCTET_STREAM_VALUE);
             messageBodyPart.setDataHandler(new DataHandler(source));
             messageBodyPart.setFileName(file.getNameWithExtension());
 
@@ -94,4 +98,5 @@ public class SesServiceImpl implements SesService {
 
         return SendRawEmailRequest.builder().rawMessage(builder -> builder.data(data)).build();
     }
+
 }

@@ -1,24 +1,32 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
+import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
+import it.pagopa.pn.ec.commons.model.pojo.RequestStatusChange;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
+import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.GeneratedMessageDto;
 import it.pec.bridgews.GetAttach;
 import it.pec.bridgews.GetMessageID;
 import it.pec.bridgews.GetMessages;
 import it.pec.bridgews.MesArrayOfMessages;
+import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
+import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.decodePecStatusToMachineStateStatus;
 
@@ -29,17 +37,25 @@ public class ScaricamentoEsitiPecScheduler {
     private final ArubaCall arubaCall;
     private final DaticertService daticertService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
+    private final CallMacchinaStati callMacchinaStati;
     private final SqsService sqsService;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
+    private final ArubaSecretValue arubaSecretValue;
+    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
     public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService,
-                                         GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
-                                         NotificationTrackerSqsName notificationTrackerSqsName) {
+                                         GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati,
+                                         SqsService sqsService, NotificationTrackerSqsName notificationTrackerSqsName,
+                                         ArubaSecretValue arubaSecretValue,
+                                         TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
         this.arubaCall = arubaCall;
         this.daticertService = daticertService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
+        this.callMacchinaStati = callMacchinaStati;
         this.sqsService = sqsService;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
+        this.arubaSecretValue = arubaSecretValue;
+        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
     @Scheduled(cron = "${cron.value.scaricamento-esiti-pec}")
@@ -70,7 +86,9 @@ public class ScaricamentoEsitiPecScheduler {
                      var getAttach = new GetAttach();
                      getAttach.setMailid(pecId);
                      getAttach.setNameattach("daticert.xml");
+
                      log.info("Try to download PEC {} daticert.xml", pecId);
+
                      return arubaCall.getAttach(getAttach).flatMap(getAttachResponse -> {
                          var attachBytes = getAttachResponse.getAttach();
 
@@ -83,31 +101,68 @@ public class ScaricamentoEsitiPecScheduler {
 
 //                                      Escludere questi daticert
                                         .filter(postacert -> !postacert.getTipo().equals(POSTA_CERTIFICATA))
+                                        .doOnDiscard(Postacert.class,
+                                                     postacert -> log.info("PEC {} discarded, is {}", pecId, POSTA_CERTIFICATA))
 
 //                                      msgid arriva all'interno di due angolari <msgid>. Eliminare il primo e l'ultimo carattere
                                         .map(postacert -> {
                                             var dati = postacert.getDati();
                                             var msgId = dati.getMsgid();
                                             dati.setMsgid(msgId.substring(1, msgId.length() - 1));
+                                            log.info("PEC {} has {} msgId", pecId, msgId);
                                             return postacert;
                                         })
+
+                                        .filter(postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN))
 
 //                                      Chiamata al gestore repository di EC tramite un messageId PEC. Zip the result with the previous Mono
                                         .zipWhen(postacert -> gestoreRepositoryCall.getRequestByMessageId(postacert.getDati().getMsgid()))
 
+//                                      Validate status
+                                        .flatMap(objects -> {
+                                            var postacert = objects.getT1();
+                                            var requestDto = objects.getT2();
+                                            var requestStatusChange = RequestStatusChange.builder()
+                                                                                         .xPagopaExtchCxId(requestDto.getxPagopaExtchCxId())
+                                                                                         .processId(
+                                                                                                 transactionProcessConfigurationProperties.pec())
+                                                                                         .nextStatus(decodePecStatusToMachineStateStatus(
+                                                                                                 postacert.getTipo()))
+                                                                                         .currentStatus(requestDto.getStatusRequest())
+                                                                                         .build();
+                                            return callMacchinaStati.statusValidation(requestStatusChange)
+                                                                    .thenReturn(Tuples.of(postacert, requestStatusChange))
+                                                                    .doOnError(InvalidNextStatusException.class,
+                                                                               throwable -> log.error(
+                                                                                       "La PEC {} associata alla richiesta {} ha " +
+                                                                                       "comunicato i propri" +
+                                                                                       " esiti in " +
+                                                                                       "un ordine non corretto al notification tracker",
+                                                                                       pecId,
+                                                                                       requestDto.getRequestIdx()));
+                                        })
+
 //                                      Preparazione payload per la coda stati PEC
                                         .map(objects -> {
                                             var postacert = objects.getT1();
-                                            var requestDto = objects.getT2();
+                                            var requestStatusChange = objects.getT2();
+                                            var requestIdx = requestStatusChange.getRequestIdx();
+                                            var xPagopaExtchCxId = requestStatusChange.getXPagopaExtchCxId();
+                                            var currentStatus = requestStatusChange.getCurrentStatus();
+                                            var nextStatus = requestStatusChange.getNextStatus();
                                             var eventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
-                                            var currentStatus = requestDto.getStatusRequest();
-                                            var nextStatus = decodePecStatusToMachineStateStatus(postacert.getTipo());
                                             var eventDetails = postacert.getErrore();
-                                            // TODO: COME RECUPERARE SYSTEM E LOCATION ?
-                                            var generatedMessageDto = new GeneratedMessageDto().id(postacert.getDati().getMsgid());
+                                            var sender = arubaSecretValue.getPecUsername();
+                                            var senderDomain = sender.substring(sender.indexOf("@") + 1);
+                                            // TODO: COME RECUPERARE LOCATION ?
+                                            var generatedMessageDto =
+                                                    new GeneratedMessageDto().system(senderDomain).id(postacert.getDati().getMsgid());
+
+                                            log.info("PEC {} has {} requestId", pecId, requestIdx);
+
                                             return NotificationTrackerQueueDto.builder()
-                                                                              .requestIdx(requestDto.getRequestIdx())
-                                                                              .xPagopaExtchCxId(requestDto.getxPagopaExtchCxId())
+                                                                              .requestIdx(requestIdx)
+                                                                              .xPagopaExtchCxId(xPagopaExtchCxId)
                                                                               .currentStatus(currentStatus)
                                                                               .nextStatus(nextStatus)
                                                                               .digitalProgressStatusDto(new DigitalProgressStatusDto().eventTimestamp(
@@ -147,6 +202,7 @@ public class ScaricamentoEsitiPecScheduler {
 
 //               Se avviene qualche errore per una particolare PEC non bloccare il Flux
                  .onErrorContinue((throwable, object) -> log.error(throwable.getMessage(), throwable))
+                 .onErrorContinue(InvalidNextStatusException.class, (throwable, o) -> log.error(throwable.getMessage()))
 
                  // TODO: LA STRATEGIA DI SOTTOSCRIZIONE POTREBBE ESSERE PIÙ PERFORMANTE
                  .subscribe();

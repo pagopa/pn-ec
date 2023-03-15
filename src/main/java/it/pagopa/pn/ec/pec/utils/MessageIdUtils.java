@@ -7,7 +7,7 @@ import org.springframework.util.Base64Utils;
 public class MessageIdUtils {
 
     private static final String SEPARATORE = "~";
-    private static final String DOMAIN = "@pagopa.it";
+    public static final String DOMAIN = "@pagopa.it";
 
     private MessageIdUtils() {
         throw new IllegalStateException("MessageIdUtils is a utility class");
