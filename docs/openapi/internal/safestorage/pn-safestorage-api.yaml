@@ -57,7 +57,7 @@ info:
             di download.
       4. L'url di download può essere utilizzato, entro la sua scadenza, per recuperare il contenuto 
          del file.
-    
+
 servers:
   - url: >-
       https://api.pn.pagopa.it
@@ -66,11 +66,11 @@ tags:
   - name: cfg
     description: Configurazioni
   - name: fileUpload
-    description: Caricamento file 
+    description: Caricamento file
   - name: fileDownload
-    description: Lettura file 
+    description: Lettura file
   - name: fileMetadataUpdate
-    description: Aggiornamento metadati file 
+    description: Aggiornamento metadati file
 paths:
   /status:
     get:
@@ -83,7 +83,7 @@ paths:
         '200':
           description: Ok
         '404':
-            description: Non Found
+          description: Non Found
         '500':
           description: Internal Server Error
 
@@ -126,7 +126,7 @@ paths:
         - cfg
       responses:
         '404':
-            description: Not configured
+          description: Not configured
         '200':
           description: OK
           content:
@@ -138,8 +138,8 @@ paths:
                   - name: PN_NOTIFICATION_ATTACHMENTS
                     informationClassification: 'HC'
                     initialStatus: 'PRELOADED'
-                    transformations: ['SIGN_AND_TIMEMARK']
-                    validations: []
+                    transformations: [ 'SIGN_AND_TIMEMARK' ]
+                    validations: [ ]
                     timestamped: NONE
                     checksum: SHA256
                     statuses:
@@ -149,40 +149,40 @@ paths:
                           - ATTACHED
                       ATTACHED:
                         storage: PN_NOTIFIED_DOCUMENTS
-                        allowedStatusTransitions: []
+                        allowedStatusTransitions: [ ]
                   - name: PN_AAR
                     informationClassification: 'HC'
                     initialStatus: 'SAVED'
-                    transformations: []
-                    validations: []
+                    transformations: [ ]
+                    validations: [ ]
                     timestamped: NONE
                     checksum: SHA256
                     statuses:
                       SAVED:
                         storage: PN_AAR
-                        allowedStatusTransitions: []
+                        allowedStatusTransitions: [ ]
                   - name: PN_LEGAL_FACTS
                     informationClassification: 'HC'
                     initialStatus: 'SAVED'
-                    transformations: []
-                    validations: []
+                    transformations: [ ]
+                    validations: [ ]
                     timestamped: 'STANDARD'
                     checksum: SHA256
                     statuses:
                       SAVED:
                         storage: PN_LEGAL_FACTS
-                        allowedStatusTransitions: []
+                        allowedStatusTransitions: [ ]
                   - name: PN_EXTERNAL_LEGAL_FACTS
                     informationClassification: 'HC'
                     initialStatus: 'SAVED'
-                    transformations: []
-                    validations: []
+                    transformations: [ ]
+                    validations: [ ]
                     timestamped: NONE
                     checksum: SHA256
                     statuses:
                       SAVED:
                         storage: PN_LEGAL_FACTS
-                        allowedStatusTransitions: []
+                        allowedStatusTransitions: [ ]
                 storageConfigurations:
                   - name: PN_TEMPORARY_DOCUMENT
                     retentionPeriod: '1d'
@@ -228,7 +228,7 @@ paths:
                     name: 'pn-delivery'
                     canCreate: [ 'PN_NOTIFICATION_ATTACHMENTS' ]
                     canRead: [ 'PN_NOTIFICATION_ATTACHMENTS' ]
-                    signatureInfo: {}
+                    signatureInfo: { }
                     destination:
                       sqsUrl: https://sqs.eu-central-1.amazonaws.com/558518206506/pn-delivery-document-saved
                 pnDeliveryPush:
@@ -237,7 +237,7 @@ paths:
                     name: 'pn-delivery-push'
                     canCreate: [ 'PN_AAR', 'PN_LEGAL_FACTS' ]
                     canRead: [ 'PN_NOTIFICATION_ATTACHMENTS', 'PN_AAR', 'PN_LEGAL_FACTS', 'PN_EXTERNAL_LEGAL_FACTS' ]
-                    signatureInfo: {}
+                    signatureInfo: { }
                     destination:
                       sqsUrl: https://sqs.eu-central-1.amazonaws.com/558518206506/pn-delivery-push-document-saved
                 pnExternalChannels:
@@ -246,16 +246,16 @@ paths:
                     name: 'pn-external-channels'
                     canCreate: [ 'PN_EXTERNAL_LEGAL_FACTS' ]
                     canRead: [ 'PN_AAR', 'PN_EXTERNAL_LEGAL_FACTS' ]
-                    signatureInfo: {}
+                    signatureInfo: { }
                     destination:
                       sqsUrl: https://sqs.eu-central-1.amazonaws.com/558518206506/pn-external-channels-document-saved
         '404':
           description: Non trovato. Restituito se il parametro clientId è diverso dal client autenticato
         
-  ################################################################################################
-  ###                                     CARICAMENTO FILE                                     ###
-  ################################################################################################
-        
+        ################################################################################################
+        ###                                     CARICAMENTO FILE                                     ###
+        ################################################################################################
+
   '/safe-storage/v1/files':
     post:
       operationId: createFile
@@ -283,63 +283,63 @@ paths:
         '404':
           description: Non trovato. Restituito se il parametro clientId è diverso dal client autenticato
 
-#  '/sage-storage/v1/upload-with-presigned-url':
-#    put:
-#      operationId: uploadFileContent
-#      tags:
-#        - fileUpload
-#      summary: Carica contenuto file
-#      description: >-
-#        #### UTILIZZO DEL URL DI UPLOAD, NON VA IMPLEMENTATA COME API. SERVE PER DOCUMENTAZIONE
-#          PUT o POST necessaria a caricare il contentuto del file tramite presigned URL.
-#          Il presigned url deve essere utilizzabile una volta sola. <br />
-#
-#          Al termine di questa invocazione _SafeStorage_ avvierà, se necessario, i processi
-#          di firma digitale e marcatura temporale. In ogni caso, quando il file e i suoi metadati
-#          saranno completi e disponibili sullo storage, verrà notificato un evento al client che
-#          ha prenotato il presigned URL utilizzato.
-#      parameters:
-#        - name: Content-Type
-#          in: header
-#          schema:
-#            type: string
-#        - name: x-amz-meta-secret
-#          in: header
-#          schema:
-#            type: string
-#          description: >-
-#            __discutibile__ Token aggiuntivo per far si che sia necessario intercettare anche gli
-#            header e non solo l'URL.
-#      requestBody:
-#        content:
-#          '*/*':
-#            schema:
-#              type: string
-#              format: binary
-#      responses:
-#        '200':
-#          description: OK
-#          headers:
-#            x-amz-version-id:
-#              schema:
-#                type: string
-#        '403':
-#          description: presigned URL scaduto
-#      callbacks:
-#        putIntoSqs:
-#          'configuredSqsPath':
-#            put:
-#              summary: Send 'file ready' event to SQS
-#              requestBody:
-#                content:
-#                  application/json:
-#                    schema:
-#                      $ref: '#/components/schemas/FileCreatedDto'
-#              responses:
-#                '204':
-#                  description: OK
-#                '404':
-#                  description: SQS queue not found
+  #  '/sage-storage/v1/upload-with-presigned-url':
+  #    put:
+  #      operationId: uploadFileContent
+  #      tags:
+  #        - fileUpload
+  #      summary: Carica contenuto file
+  #      description: >-
+  #        #### UTILIZZO DEL URL DI UPLOAD, NON VA IMPLEMENTATA COME API. SERVE PER DOCUMENTAZIONE
+  #          PUT o POST necessaria a caricare il contentuto del file tramite presigned URL.
+  #          Il presigned url deve essere utilizzabile una volta sola. <br />
+  #
+  #          Al termine di questa invocazione _SafeStorage_ avvierà, se necessario, i processi
+  #          di firma digitale e marcatura temporale. In ogni caso, quando il file e i suoi metadati
+  #          saranno completi e disponibili sullo storage, verrà notificato un evento al client che
+  #          ha prenotato il presigned URL utilizzato.
+  #      parameters:
+  #        - name: Content-Type
+  #          in: header
+  #          schema:
+  #            type: string
+  #        - name: x-amz-meta-secret
+  #          in: header
+  #          schema:
+  #            type: string
+  #          description: >-
+  #            __discutibile__ Token aggiuntivo per far si che sia necessario intercettare anche gli
+  #            header e non solo l'URL.
+  #      requestBody:
+  #        content:
+  #          '*/*':
+  #            schema:
+  #              type: string
+  #              format: binary
+  #      responses:
+  #        '200':
+  #          description: OK
+  #          headers:
+  #            x-amz-version-id:
+  #              schema:
+  #                type: string
+  #        '403':
+  #          description: presigned URL scaduto
+  #      callbacks:
+  #        putIntoSqs:
+  #          'configuredSqsPath':
+  #            put:
+  #              summary: Send 'file ready' event to SQS
+  #              requestBody:
+  #                content:
+  #                  application/json:
+  #                    schema:
+  #                      $ref: '#/components/schemas/FileCreatedDto'
+  #              responses:
+  #                '204':
+  #                  description: OK
+  #                '404':
+  #                  description: SQS queue not found
 
 
   ################################################################################################
@@ -434,13 +434,13 @@ paths:
                   description: OK
                 '404':
                   description: SQS queue not found
-  
-  
-  
-  ################################################################################################
-  ###                                   AGGIORNA METADATI FILE                                 ###
-  ################################################################################################
-  
+
+
+
+    ################################################################################################
+    ###                                   AGGIORNA METADATI FILE                                 ###
+    ################################################################################################
+
     post:
       operationId: updateFileMetadata
       tags:
@@ -465,19 +465,19 @@ paths:
           description: OK
           content:
             application/json:
-              schema: 
+              schema:
                 $ref: '#/components/schemas/UpdateFileMetadataResponse'
         '404':
           description: >-
             Non trovato. Restituito se: <br/>
             - il parametro clientId è diverso dal client autenticato; <br/>
             - se il file identificato da fileKey non è ancora stato salvato; <br/>
-            
-      
+
+
 
 components:
   parameters:
-    clientIdPath: 
+    clientIdPath:
       name: clientId
       description: Identificativo del sistema client
       in: path
@@ -485,7 +485,7 @@ components:
       schema:
         type: string
       example: pn-delivery-push
-    clientIdHeader: 
+    clientIdHeader:
       name: x-pagopa-safestorage-cx-id
       description: Identificativo del sistema client
       in: header
@@ -493,7 +493,7 @@ components:
       schema:
         type: string
       example: pn-delivery-push
-    fileKey: 
+    fileKey:
       name: fileKey
       description: La chiave definita per il file al momento della richiesta di prenotazione di un upload
       in: path
@@ -501,17 +501,17 @@ components:
       schema:
         type: string
       example: '8F7E/9A3B/1234/AB87'
-      
+
   schemas:
     FileCreationRequest:
       description: Richiesta di autorizzazione a caricare un nuovo file
-      type: object 
+      type: object
       required:
         - contentType
         - documentType
         - status
       properties:
-        contentType: 
+        contentType:
           type: string
           description: Il MIME format del contenuto del file che si intende caricare
           example: 'application/pdf'
@@ -527,10 +527,15 @@ components:
             lo stato del documento, ne definisce il tempo di permanenza all'interno 
             di _SafeStorage_.
           example: PRELOADED
+        checksumValue:
+          type: string
+          description: >-
+            Contiene il valore hash del file che verrà upload-ato
+                
 
     FileCreationResponse:
       description: Informazioni necessarie a caricare il contenuto di un file
-      type: object 
+      type: object
       required:
         - uploadMethod
         - uploadUrl
@@ -567,7 +572,7 @@ components:
         - $ref: '#/components/schemas/FileCreatedDto'
         - type: object
           properties:
-            download: 
+            download:
               $ref: '#/components/schemas/FileDownloadInfo'
     
 
@@ -575,7 +580,7 @@ components:
       description: >-
         Evento generato quando il contenuto di un file è stato caricato, elaborato da 
         _SafeStorage_, ed è pronto all'uso.
-      type: object 
+      type: object
       required:
         - key
         - versionId
@@ -585,7 +590,7 @@ components:
         - documentType
         - documentStatus
         - retentionUntil
-      properties:  
+      properties:
         key:
           type: string
           description: la chiave da utilizzare per il recupero del file
@@ -612,7 +617,7 @@ components:
           description: dmensione, in byte, del contenuto.
         checksum:
           type: string
-          description: >- 
+          description: >-
             SHA256 o MD5 del contenuto del file. Il tipo di checksum cambia a seconda del 
             documentType.
         retentionUntil:
@@ -621,11 +626,11 @@ components:
           description: >-
             data e ora fino a cui il documento sarà garantito all'interno di _SafeStorage_. <br/>
             Può essere ritardata nel tempo, mai anticipata. Formattata con timezone secondo l'rfc 3339
-            
-                  
+    
+
     FileDownloadInfo:
       type: object
-      properties: 
+      properties:
         url:
           type: string
           description: >-
@@ -637,13 +642,13 @@ components:
           description: >-
             Stima del numero di secondi da aspettare prima che il contenuto del 
             documento sia scaricabile.
-
-        
-
+    
+    
+    
 
     UpdateFileMetadataRequest:
-      type: object 
-      properties:  
+      type: object
+      properties:
         status:
           type: string
           description: Lo stato del documento
@@ -651,10 +656,10 @@ components:
         retentionUntil:
           type: string
           format: date-time
-          description: >- 
+          description: >-
             data e ora fino a cui il documento sarà garantito all'interno di _SafeStorage_. <br/>
             Può essere ritardata nel tempo, mai anticipata. Formattata con timezone secondo l'rfc 3339
-            
+    
     
     UpdateFileMetadataResponse:
       $ref: '#/components/schemas/OperationResultCodeResponse'
@@ -675,12 +680,12 @@ components:
           example: pn-delivery-push
         canCreate:
           type: array
-          items: 
+          items:
             type: string
           description: Elenco dei tipi di documenti che il client è autorizzato a creare.
         canRead:
           type: array
-          items: 
+          items:
             type: string
           description: Elenco dei tipi di documenti che il client è autorizzato a creare.
         signatureInfo:
@@ -694,10 +699,10 @@ components:
               type: string
               description: URL della coda SQS a cui contattare il client
 
-    DocumentTypesConfigurations: 
+    DocumentTypesConfigurations:
       type: object
       description: Configurazione delle tipologie di documenti
-      required: 
+      required:
         - documentsTypes
         - storageConfigurations
       properties:
@@ -730,13 +735,13 @@ components:
           type: string
         retentionPeriod:
           #description: >- 
-           # Quanto tempo _SafeStorage_ deve mantenere il documento, è possibile allungare tale 
-           # periodo, mai diminuirlo.
+          # Quanto tempo _SafeStorage_ deve mantenere il documento, è possibile allungare tale
+          # periodo, mai diminuirlo.
           $ref: '#/components/schemas/TimePeriod'
         hotPeriod:
           #description: Per quanto tempo mantenere il file pronto al download.
           $ref: '#/components/schemas/TimePeriod'
-        
+
     DocumentTypeConfiguration:
       type: object
       properties:
@@ -746,18 +751,18 @@ components:
         informationClassification:
           $ref: '#/components/schemas/ConfidentialityLevel'
         transformations:
-          description: lista di trasformazioni da applicare al documento 
+          description: lista di trasformazioni da applicare al documento
           type: array
           items:
             type: string
-            enum: ['NONE', 'SIGN_AND_TIMEMARK']
+            enum: [ 'NONE', 'SIGN_AND_TIMEMARK' ]
         validations:
-          description: lista di validazioni da applicare al documento 
+          description: lista di validazioni da applicare al documento
           type: array
           items:
             type: string
             enum: [ 'NONE' ]
-        timestamped: 
+        timestamped:
           type: string
           enum: [ 'NONE', 'STANDARD' ]
         checksum:
@@ -765,9 +770,9 @@ components:
             codice di verifica del corretto caricamento del file
             https://aws.amazon.com/it/blogs/aws/new-additional-checksum-algorithms-for-amazon-s3/
           type: string
-          enum: [ 'MD5', 'SHA256']
+          enum: [ 'MD5', 'SHA256' ]
         statuses:
-          description: >- 
+          description: >-
             Elenco degli stati che un documento può assumere. Usato solo per gli allegati 
             della notifica.
           type: object
@@ -790,18 +795,18 @@ components:
 
     ConfidentialityLevel:
       type: string
-      enum: ['C', 'HC']
+      enum: [ 'C', 'HC' ]
       description: >
-          * `C` - Confidential
-          * `HC`- Highly Confidential
-          See [information classification](https://pagopa.atlassian.net/wiki/spaces/EN/pages/357204284/Data+Classification+Handling#Classificazione)
+        * `C` - Confidential
+        * `HC`- Highly Confidential
+        See [information classification](https://pagopa.atlassian.net/wiki/spaces/EN/pages/357204284/Data+Classification+Handling#Classificazione)
     
     
     OperationResultCodeResponse:
       required:
         - resultCode
-        - resultDescription  
-        - clientResponseTimeStamp 
+        - resultDescription
+        - clientResponseTimeStamp
       type: object
       properties:
         resultCode:
@@ -824,7 +829,7 @@ components:
             Descrizione dell’Esito dell’operazione, sempre valorizzato, anche in caso di esito positivo. <br />
             In caso di errore dovrà contenere info utili al chiamante per indirizzare le azioni correttive necessarie. <br />
             In nessun caso conterrà dettagli tecnici e/o stack trace. <br />
-        errorList: 
+        errorList:
           type: array
           items:
             type: string
@@ -841,7 +846,7 @@ components:
       name: x-api-key
 
 security:
-  - ApiKeyAuth: [] # use the same name as under securitySchemes
+  - ApiKeyAuth: [ ] # use the same name as under securitySchemes
 
 
 

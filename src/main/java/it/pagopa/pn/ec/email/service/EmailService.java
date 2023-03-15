@@ -8,7 +8,6 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
@@ -27,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.service.SesService.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.HTML;
@@ -34,7 +34,6 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageCont
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.EMAIL;
-import static java.time.OffsetDateTime.now;
 
 @Service
 @Slf4j
@@ -64,34 +63,30 @@ public class EmailService extends PresaInCaricoService {
 
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
-        EmailPresaInCaricoInfo emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
-        String xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
+
+        var emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
+
+        var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
+        digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest()
                                                                                          .getAttachmentsUrls(),
                                                                    presaInCaricoInfo.getXPagopaExtchCxId(),
                                                                    true)
 
-                                .flatMap(fileDownloadResponse -> {
-                                    var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-                                    digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
-                                    return insertRequestFromEmail(digitalNotificationRequest,
-                                                                  xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException()));
-                                })
+                                .then(insertRequestFromEmail(digitalNotificationRequest,
+                                                             emailPresaInCaricoInfo.getXPagopaExtchCxId()).onErrorResume(throwable -> Mono.error(
+                                        new EcInternalEndpointHttpException())))
 
                                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                                       new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
-                                                                                                       presaInCaricoInfo.getXPagopaExtchCxId(),
-                                                                                                       now(),
-                                                                                                       transactionProcessConfigurationProperties.email(),
-                                                                                                       transactionProcessConfigurationProperties.emailStartStatus(),
-                                                                                                       "booked",
-                                                                                                       null)))
+                                                                       createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
+                                                                                                                transactionProcessConfigurationProperties.emailStartStatus(),
+                                                                                                                "booked",
+                                                                                                                new DigitalProgressStatusDto())))
 
                                 .flatMap(sendMessageResponse -> {
                                     DigitalCourtesyMailRequest.QosEnum qos =
                                             emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getQos();
-                                    emailPresaInCaricoInfo.setStatusAfterStart("booked");
                                     if (qos == INTERACTIVE) {
                                         return sqsService.send(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
                                     } else if (qos == BATCH) {
@@ -151,17 +146,14 @@ public class EmailService extends PresaInCaricoService {
 
     private void processWithAttach(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgment acknowledgment) {
 
-        var requestId = emailPresaInCaricoInfo.getRequestIdx();
-        var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
 
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
         // Try to send EMAIL
-        attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), clientId, false)
-                         .map(this::convertiUrl)
-                         .collectList()
-                         .flatMap(attList -> {
+        attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(),
+                                                            emailPresaInCaricoInfo.getXPagopaExtchCxId(),
+                                                            false).map(this::convertiUrl).collectList().flatMap(attList -> {
                              EmailField mailFld = compilaMail(digitalCourtesyMailRequest);
                              mailFld.setEmailAttachments(attList);
                              return sesService.send(mailFld);
@@ -171,15 +163,11 @@ public class EmailService extends PresaInCaricoService {
                          .flatMap(publishResponse -> {
                              generatedMessageDto.set(new GeneratedMessageDto().id(publishResponse.messageId()).system("systemPlaceholder"));
                              return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                    new NotificationTrackerQueueDto(requestId,
-                                                                                    clientId,
-                                                                                    now(),
-                                                                                    transactionProcessConfigurationProperties.email(),
-                                                                                    emailPresaInCaricoInfo.getStatusAfterStart(),
-                                                                                    "sent",
-                                                                                    // TODO: SET eventDetails
-                                                                                    "",
-                                                                                    generatedMessageDto.get()));
+                                                    createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
+                                                                                             "booked",
+                                                                                             "sent",
+                                                                                             new DigitalProgressStatusDto().generatedMessage(
+                                                                                                     generatedMessageDto.get())));
                          })
 
                          // Delete from queue
@@ -190,9 +178,7 @@ public class EmailService extends PresaInCaricoService {
 
                          // The maximum number of retries has ended
                          .onErrorResume(SesSendException.SesMaxRetriesExceededException.class,
-                                        sesMaxRetriesExceeded -> emailRetriesExceeded(acknowledgment,
-                                                                                      emailPresaInCaricoInfo,
-                                                                                      emailPresaInCaricoInfo.getStatusAfterStart()))
+                                        sesMaxRetriesExceeded -> emailRetriesExceeded(acknowledgment, emailPresaInCaricoInfo))
 
                          // An error occurred during SQS publishing to the Notification Tracker -> Publish to Errori EMAIL queue and
                          // notify to retry update status only
@@ -205,8 +191,6 @@ public class EmailService extends PresaInCaricoService {
 
     private void processOnlyBody(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgment acknowledgment) {
 
-        var requestId = emailPresaInCaricoInfo.getRequestIdx();
-        var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
 
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
@@ -220,15 +204,11 @@ public class EmailService extends PresaInCaricoService {
                   .flatMap(publishResponse -> {
                       generatedMessageDto.set(new GeneratedMessageDto().id(publishResponse.messageId()).system("systemPlaceholder"));
                       return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                             new NotificationTrackerQueueDto(requestId,
-                                                                             clientId,
-                                                                             now(),
-                                                                             transactionProcessConfigurationProperties.email(),
-                                                                             emailPresaInCaricoInfo.getStatusAfterStart(),
-                                                                             "sent",
-                                                                             // TODO: SET eventDetails
-                                                                             "",
-                                                                             generatedMessageDto.get()));
+                                             createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
+                                                                                      "booked",
+                                                                                      "sent",
+                                                                                      new DigitalProgressStatusDto().generatedMessage(
+                                                                                              generatedMessageDto.get())));
                   })
 
                   // Delete from queue
@@ -239,15 +219,13 @@ public class EmailService extends PresaInCaricoService {
 
                   // The maximum number of retries has ended
                   .onErrorResume(SesSendException.SesMaxRetriesExceededException.class,
-                                 sesMaxRetriesExceeded -> emailRetriesExceeded(acknowledgment,
-                                                                               emailPresaInCaricoInfo,
-                                                                               emailPresaInCaricoInfo.getStatusAfterStart()))
+                                 sesMaxRetriesExceeded -> emailRetriesExceeded(acknowledgment, emailPresaInCaricoInfo))
 
                   // An error occurred during SQS publishing to the Notification Tracker -> Publish to Errori EMAIL queue and
                   // notify to retry update status only
                   // TODO: CHANGE THE PAYLOAD
                   .onErrorResume(SqsPublishException.class,
-                                 sqsPublishException -> sqsService.send(emailSqsQueueName.errorName(), emailPresaInCaricoInfo))//
+                                 sqsPublishException -> sqsService.send(emailSqsQueueName.errorName(), emailPresaInCaricoInfo))
 
                   .subscribe();
     }
@@ -310,22 +288,14 @@ public class EmailService extends PresaInCaricoService {
     }
 
     private Mono<SendMessageResponse> emailRetriesExceeded(final Acknowledgment acknowledgment,
-                                                           final EmailPresaInCaricoInfo emailPresaInCaricoInfo, String currentStatus) {
-
-        var requestId = emailPresaInCaricoInfo.getRequestIdx();
-        var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
+                                                           final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
 
         // Publish to Notification Tracker with next status -> RETRY
         return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                               new NotificationTrackerQueueDto(requestId,
-                                                               clientId,
-                                                               now(),
-                                                               transactionProcessConfigurationProperties.email(),
-                                                               currentStatus,
-                                                               "retry",
-                                                               // TODO: SET eventDetails
-                                                               "",
-                                                               null))
+                               createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
+                                                                        "booked",
+                                                                        "retry",
+                                                                        new DigitalProgressStatusDto()))
 
                          // Publish to ERRORI EMAIL queue
                          .then(sqsService.send(emailSqsQueueName.errorName(), emailPresaInCaricoInfo))
