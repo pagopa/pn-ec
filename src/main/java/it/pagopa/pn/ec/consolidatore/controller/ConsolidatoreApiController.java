@@ -1,6 +1,12 @@
 package it.pagopa.pn.ec.consolidatore.controller;
 
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_MESSAGE;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_OK_CODE;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.INTERNAL_SERVER_ERROR_CODE;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.errorCodeDescriptionMap;
+
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
@@ -21,9 +27,11 @@ import reactor.core.publisher.Mono;
 @RestController
 @Slf4j
 public class ConsolidatoreApiController implements ConsolidatoreApi {
+	
+	private static final Integer NRO_MAX_ERRORS = 50;
+	private static final String LOG_LABEL = "ConsolidatoreApiController.sendPaperProgressStatusRequest() : ";
 
     private final PushAttachmentPreloadService pushAttachmentPreloadService;
-    
     private final RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService;
     
 	public ConsolidatoreApiController(PushAttachmentPreloadService pushAttachmentPreloadService,
@@ -33,14 +41,32 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 		this.ricezioneEsitiCartaceoService = ricezioneEsitiCartaceoService;
 	}
 	
-	private Mono<OperationResultCodeResponse> getOperationResultCodeResponse(
-			String resultCode, String resultDescription, List<String> errorList) {
+	private List<String> getAllErrors(List<OperationResultCodeResponse> responses) {
+		var errors = new ArrayList<String>();
+		if (responses == null) {
+			return errors;
+		}
+		responses.forEach(response -> {
+			if (!response.getResultCode().equals(COMPLETED_OK_CODE)) {
+				errors.addAll(response.getErrorList());
+			}
+		});
+		return errors;
+	}
+	
+	private OperationResultCodeResponse getOperationResultCodeResponse(
+			String resultCode, String resultDescription, List<String> errors) {
+		
+		if (errors != null && errors.size() > NRO_MAX_ERRORS) {
+			errors = errors.subList(0, NRO_MAX_ERRORS-1);
+		}
+		
 		OperationResultCodeResponse response = new OperationResultCodeResponse();
 		response.setResultCode(resultCode);
 		response.setResultDescription(resultDescription);
-		response.setErrorList(errorList);
+		response.setErrorList(errors);
 		response.setClientResponseTimeStamp(OffsetDateTime.now());
-		return Mono.just(response);
+		return response;
 	}
 
     @Override
@@ -54,17 +80,56 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 			Flux<ConsolidatoreIngressPaperProgressStatusEvent> consolidatoreIngressPaperProgressStatusEvent,  
 			final ServerWebExchange exchange)
 	{ 
-		consolidatoreIngressPaperProgressStatusEvent
-				.doOnNext(event -> log.info("PushProgressEventsToNotificationPlatformApiController.sendPaperProgressStatusRequest() : "
-											+ "START for requestId {}",
-											event.getRequestId()))
-				.flatMap(statusEvent -> ricezioneEsitiCartaceoService.ricezioneEsitiDaConsolidatore(xPagopaExtchServiceId, statusEvent))
+		return consolidatoreIngressPaperProgressStatusEvent
+				.flatMapSequential(statusEvent -> {
+					log.info(LOG_LABEL + "START for requestId {}", statusEvent.getRequestId());
+					return ricezioneEsitiCartaceoService.verificaEsitoDaConsolidatore(xPagopaExtchServiceId, statusEvent);
+				})
+				.collectList()
+				.flatMap(listResponse -> {
+					var listErrorResponse = listResponse.stream().filter(response -> response.getResultCode() != null && !response.getResultCode().equals(COMPLETED_OK_CODE)).toList();
+					if (listErrorResponse.isEmpty()) {
+						
+						return consolidatoreIngressPaperProgressStatusEvent
+							// pubblicazione sulla coda
+							.flatMap(statusEvent -> ricezioneEsitiCartaceoService.pubblicaEsitoCodaNotificationTracker(xPagopaExtchServiceId, statusEvent))
+							.collectList()
+							// gestione errori oppure response ok
+							.flatMap(listSendResponse -> {
+								var listSendErrorResponse = listSendResponse.stream().filter(response -> response.getResultCode() != null && !response.getResultCode().equals(COMPLETED_OK_CODE)).toList();
+								if (listSendErrorResponse.isEmpty()) {
+									log.info(LOG_LABEL + "OK END");
+							    	return Mono.just(ResponseEntity.internalServerError()
+		    								   .body(getOperationResultCodeResponse(COMPLETED_OK_CODE, 
+		    										   								COMPLETED_MESSAGE, 
+		    										                                null)));
+								}
+								else {
+									var sendErrors = getAllErrors(listSendErrorResponse);
+									log.error(LOG_LABEL + "pubblicazione coda : errori individuati = {}", sendErrors);
+							    	return Mono.just(ResponseEntity.internalServerError()
+		    								   .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE, 
+		    										   								errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE), 
+		    										   								sendErrors)));
+								}
+							});
+					}
+					else {
+						var errors = getAllErrors(listErrorResponse);
+						log.error(LOG_LABEL + "errori sintattici/semantici : errori individuati = {}", errors);
+				    	return Mono.just(ResponseEntity.internalServerError()
+								   .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE, 
+										   								errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE), 
+										   								errors)));
+					}
+				})
 			    .onErrorResume(RuntimeException.class, throwable -> {
-			    	 
-			    	 return null;
-			     });
-		 
-		 return null;
+					log.error(LOG_LABEL	+ "errori generico = {}", throwable.getMessage(), throwable);
+			    	return Mono.just(ResponseEntity.internalServerError()
+			    								   .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE, 
+			    										   								errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE), 
+			    										                                List.of(throwable.getMessage()))));
+			    });
 	}
 
 }
