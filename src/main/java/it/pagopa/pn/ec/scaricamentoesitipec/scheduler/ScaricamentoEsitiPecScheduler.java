@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -8,6 +7,7 @@ import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.GeneratedMessageDto;
 import it.pec.bridgews.GetAttach;
 import it.pec.bridgews.GetMessageID;
@@ -17,8 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-
-import java.util.concurrent.TimeUnit;
 
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
@@ -33,21 +31,18 @@ public class ScaricamentoEsitiPecScheduler {
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final SqsService sqsService;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
-    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
     public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService,
                                          GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
-                                         NotificationTrackerSqsName notificationTrackerSqsName,
-                                         TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+                                         NotificationTrackerSqsName notificationTrackerSqsName) {
         this.arubaCall = arubaCall;
         this.daticertService = daticertService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.sqsService = sqsService;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
-        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
-    @Scheduled(fixedDelay = 5, initialDelay = 5, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(cron = "${cron.value.scaricamento-esiti-pec}")
     void scaricamentoEsitiPec() {
 
         log.info("<-- SCARICAMENTO ESITI PEC SCHEDULER -->");
@@ -110,14 +105,18 @@ public class ScaricamentoEsitiPecScheduler {
                                             var eventDetails = postacert.getErrore();
                                             // TODO: COME RECUPERARE SYSTEM E LOCATION ?
                                             var generatedMessageDto = new GeneratedMessageDto().id(postacert.getDati().getMsgid());
-                                            return new NotificationTrackerQueueDto(requestDto.getRequestIdx(),
-                                                                                   requestDto.getxPagopaExtchCxId(),
-                                                                                   eventTimestamp,
-                                                                                   transactionProcessConfigurationProperties.pec(),
-                                                                                   currentStatus,
-                                                                                   nextStatus,
-                                                                                   eventDetails,
-                                                                                   generatedMessageDto);
+                                            return NotificationTrackerQueueDto.builder()
+                                                                              .requestIdx(requestDto.getRequestIdx())
+                                                                              .xPagopaExtchCxId(requestDto.getxPagopaExtchCxId())
+                                                                              .currentStatus(currentStatus)
+                                                                              .nextStatus(nextStatus)
+                                                                              .digitalProgressStatusDto(new DigitalProgressStatusDto().eventTimestamp(
+                                                                                                                                              eventTimestamp)
+                                                                                                                                      .eventDetails(
+                                                                                                                                              eventDetails)
+                                                                                                                                      .generatedMessage(
+                                                                                                                                              generatedMessageDto))
+                                                                              .build();
                                         })
 
 //                                      Pubblicazione sulla coda degli stati PEC

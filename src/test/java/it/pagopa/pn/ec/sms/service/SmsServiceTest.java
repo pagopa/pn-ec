@@ -45,9 +45,12 @@ class SmsServiceTest {
     @Mock
     private Acknowledgment acknowledgment;
 
-    private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO =
-            new SmsPresaInCaricoInfo(DEFAULT_REQUEST_IDX, DEFAULT_ID_CLIENT_HEADER_VALUE, createSmsRequest());
-
+    private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO = SmsPresaInCaricoInfo.builder()
+                                                                                             .requestIdx(DEFAULT_REQUEST_IDX)
+                                                                                             .xPagopaExtchCxId(
+                                                                                                     DEFAULT_ID_CLIENT_HEADER_VALUE)
+                                                                                             .digitalCourtesySmsRequest(createSmsRequest())
+                                                                                             .build();
 
     /**
      * <h3>SMSLR.107.1</h3>

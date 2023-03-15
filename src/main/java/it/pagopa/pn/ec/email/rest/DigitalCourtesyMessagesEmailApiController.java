@@ -45,9 +45,11 @@ public class DigitalCourtesyMessagesEmailApiController implements DigitalCourtes
                                                                  final ServerWebExchange exchange) {
 
         return digitalCourtesyMailRequest.doOnNext(request -> log.info("<-- Start presa in email -->"))
-                                         .flatMap(request -> service.presaInCarico(new EmailPresaInCaricoInfo(requestIdx,
-                                                                                                              xPagopaExtchCxId,
-                                                                                                              request)))
+                                         .flatMap(request -> service.presaInCarico(EmailPresaInCaricoInfo.builder()
+                                                                                                         .requestIdx(requestIdx)
+                                                                                                         .xPagopaExtchCxId(xPagopaExtchCxId)
+                                                                                                         .digitalCourtesyMailRequest(request)
+                                                                                                         .build()))
                                          .then(Mono.just(new ResponseEntity<>(OK)));
     }
 
