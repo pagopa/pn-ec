@@ -10,11 +10,11 @@ import java.time.OffsetDateTime;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.BodyInserters;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
@@ -53,7 +53,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
     
     private static final String SS_IN_URI = "safestorage://";
     
-    private static final String requestId = "RequestIdX";
+    // minLength: 30 maxLength: 250
+    private static final String requestId = "123456789012345678901234567890";
     private static final OffsetDateTime now = OffsetDateTime.now();
     private static final String attachmentId = "AttachmentIdX";
     private static final String APPLICATION_PDF = "application/pdf";
@@ -81,12 +82,6 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	return progressStatusEvent;
     }
     
-    private FileDownloadResponse getFileDownloadResponse() {
-    	FileDownloadResponse response = new FileDownloadResponse();
-    	response.setKey(documentKey);
-    	return response;
-    }
-    
     private RequestDto getRequestDto() {
     	RequestDto requestDto = new RequestDto();
     	requestDto.setRequestIdx(requestId);
@@ -100,19 +95,21 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	
     	when(gestoreRepositoryCall.getRichiesta(requestId)).thenReturn(Mono.just(getRequestDto()));
     	
+    	FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
+    	fileDownloadResponse.setKey(documentKey);
+    	
+    	when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true)).thenReturn(Mono.just(fileDownloadResponse));
+    	
         webClient.post()
 	        .uri(RICEZIONE_ESITI_ENDPOINT)
 	        .accept(APPLICATION_JSON)
 	        .contentType(APPLICATION_JSON)
 	        .header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
 	        .header(xApiKeyHeaderaName, xApiKeyHeaderValue)
-	        //TODO
-//	        .body(BodyInserters.fromValue(clientConfigurationDto))
+	        .body(BodyInserters.fromValue(getProgressStatusEvent()))
 	        .exchange()
 	        .expectStatus()
 	        .isOk();
-    	
-    	Assertions.assertTrue(true);
     }
     
     @Test

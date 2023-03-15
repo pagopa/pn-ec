@@ -5,7 +5,6 @@ import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_OK_CODE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.INTERNAL_SERVER_ERROR_CODE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.errorCodeDescriptionMap;
 
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -65,7 +64,6 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 		response.setResultCode(resultCode);
 		response.setResultDescription(resultDescription);
 		response.setErrorList(errors);
-		response.setClientResponseTimeStamp(OffsetDateTime.now());
 		return response;
 	}
 
@@ -87,9 +85,11 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 				})
 				.collectList()
 				.flatMap(listResponse -> {
+					log.info(LOG_LABEL + "listResponse = {}", listResponse);
 					var listErrorResponse = listResponse.stream().filter(response -> response.getResultCode() != null && !response.getResultCode().equals(COMPLETED_OK_CODE)).toList();
-					if (listErrorResponse.isEmpty()) {
-						
+					if (listErrorResponse.isEmpty()) 
+					{
+						log.info(LOG_LABEL + "Non ci sono errori sintattici/semantici");
 						return consolidatoreIngressPaperProgressStatusEvent
 							// pubblicazione sulla coda
 							.flatMap(statusEvent -> ricezioneEsitiCartaceoService.pubblicaEsitoCodaNotificationTracker(xPagopaExtchServiceId, statusEvent))
@@ -114,7 +114,8 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 								}
 							});
 					}
-					else {
+					else 
+					{
 						var errors = getAllErrors(listErrorResponse);
 						log.error(LOG_LABEL + "errori sintattici/semantici : errori individuati = {}", errors);
 				    	return Mono.just(ResponseEntity.internalServerError()
@@ -124,7 +125,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 					}
 				})
 			    .onErrorResume(RuntimeException.class, throwable -> {
-					log.error(LOG_LABEL	+ "errori generico = {}", throwable.getMessage(), throwable);
+					log.error(LOG_LABEL	+ "errore generico = {}", throwable.getMessage(), throwable);
 			    	return Mono.just(ResponseEntity.internalServerError()
 			    								   .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE, 
 			    										   								errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE), 
