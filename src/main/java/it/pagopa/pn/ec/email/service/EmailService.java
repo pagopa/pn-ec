@@ -8,9 +8,10 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
-import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
@@ -23,8 +24,10 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -48,11 +51,19 @@ public class EmailService extends PresaInCaricoService {
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final EmailSqsQueueName emailSqsQueueName;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private final DownloadCall downloadCall;
 
-    protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
-                           SesService sesService, GestoreRepositoryCall gestoreRepositoryCall1, AttachmentServiceImpl attachmentService,
-                           NotificationTrackerSqsName notificationTrackerSqsName, EmailSqsQueueName emailSqsQueueName,
-                           TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+    protected EmailService(AuthService authService//
+            , GestoreRepositoryCall gestoreRepositoryCall//
+            , SqsService sqsService//
+            , SesService sesService//
+            , GestoreRepositoryCall gestoreRepositoryCall1//
+            , AttachmentServiceImpl attachmentService//
+            , NotificationTrackerSqsName notificationTrackerSqsName//
+            , EmailSqsQueueName emailSqsQueueName//
+            , TransactionProcessConfigurationProperties transactionProcessConfigurationProperties//
+            , DownloadCall downloadCall//
+    ) {
         super(authService, gestoreRepositoryCall);
         this.sqsService = sqsService;
         this.sesService = sesService;
@@ -61,6 +72,7 @@ public class EmailService extends PresaInCaricoService {
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.emailSqsQueueName = emailSqsQueueName;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+        this.downloadCall = downloadCall;
     }
 
     @Override
@@ -146,6 +158,8 @@ public class EmailService extends PresaInCaricoService {
         }
     }
 
+    private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
+
     private void processWithAttach(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgment acknowledgment) {
 
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
@@ -153,9 +167,21 @@ public class EmailService extends PresaInCaricoService {
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
         // Try to send EMAIL
-        attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(),
-                                                            emailPresaInCaricoInfo.getXPagopaExtchCxId(),
-                                                            false).map(this::convertiUrl).collectList().flatMap(attList -> {
+        attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), emailPresaInCaricoInfo.getXPagopaExtchCxId(), false)
+
+                        .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+
+                        .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
+
+                        .flatMap(fileDownloadResponse -> downloadCall.downloadFile(fileDownloadResponse.getDownload().getUrl()).retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                                .map(outputStream -> EmailAttachment.builder()
+                                        .nameWithExtension(fileDownloadResponse.getKey())
+                                        .content(outputStream)
+                                        .build()))
+
+                         .collectList()
+
+                        .flatMap(attList -> {
                              EmailField mailFld = compilaMail(digitalCourtesyMailRequest);
                              mailFld.setEmailAttachments(attList);
                              return sesService.send(mailFld);
@@ -230,10 +256,6 @@ public class EmailService extends PresaInCaricoService {
                                  sqsPublishException -> sqsService.send(emailSqsQueueName.errorName(), emailPresaInCaricoInfo))
 
                   .subscribe();
-    }
-
-    private EmailAttachment convertiUrl(FileDownloadResponse resp) {
-        return EmailAttachment.builder().nameWithExtension(resp.getKey()).url(resp.getDownload().getUrl()).build();
     }
 
     private EmailField compilaMail(DigitalCourtesyMailRequest req) {
