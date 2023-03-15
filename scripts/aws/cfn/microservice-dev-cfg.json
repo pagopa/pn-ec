@@ -1,10 +1,5 @@
 {
   "Parameters": {
-    "PnEcIdentityPec":"pn/identity/pec",
-    "PnVPCSubnetId1" : "subnet-05bb15fb4f78a5e49",
-    "PnVPCSubnetId2" : "subnet-00eb9a29254a214fd",
-    "PnVPCSubnetId3" : "subnet-05dbde9b7be198788",
-    "PnVPCDefaultSecurityGroup": "sg-0f77fb87c5cf71631",
-    "ApplicationLoadBalancerArn":  "arn:aws:elasticloadbalancing:eu-central-1:063295570123:loadbalancer/app/pn-in-Appli-W4JQG2LOHGXX/6cdd44abc4f96054"
+    "PnEcIdentityPec":"pn/identity/pec"
   }
 }
