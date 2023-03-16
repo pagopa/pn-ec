@@ -3,7 +3,6 @@ package it.pagopa.pn.ec.sms.service;
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.service.SnsService;
@@ -66,34 +65,8 @@ class SmsServiceTest {
         // TODO: Eliminare il mock una volta sistemato l'ambiente Localstack
         when(snsService.send(anyString(), anyString())).thenReturn(Mono.just(PublishResponse.builder().build()));
 
-        smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO, acknowledgment);
+        smsService.lavorazioneRichiestaInteractive(SMS_PRESA_IN_CARICO_INFO, acknowledgment);
 
-        verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class));
-    }
-
-    /**
-     * <h3>SMSLR.107.2</h3>
-     * <ul>
-     *   <li><b>Precondizione:</b> Pull di un payload dalla coda "SMS"</li>
-     *   <li><b>Passi aggiuntivi:</b>
-     *     <ol>
-     *       <li>Invio SMS con SNS -> KO</li>
-     *       <li>Numero di retry minore dei max retry</li>
-     *     </ol>
-     *   </li>
-     *   <li><b>Risultato atteso:</b> Pubblicazione sulla coda Notification Tracker -> OK</li>
-     * </ul>
-     */
-    @Test
-    void lavorazioneRichiestaOkWithRetry() {
-
-        // TODO: Eliminare il mock una volta sistemato l'ambiente Localstack
-        when(snsService.send(anyString(), anyString())).thenReturn(Mono.error(new SnsSendException()))
-                                                       .thenReturn(Mono.just(PublishResponse.builder().build()));
-
-        smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO, acknowledgment);
-
-        verify(snsService, times(2)).send(anyString(), anyString());
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class));
     }
 
@@ -122,7 +95,7 @@ class SmsServiceTest {
         when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
                 new SqsPublishException(notificationTrackerSqsName.statoSmsName())));
 
-        smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO, acknowledgment);
+        smsService.lavorazioneRichiestaInteractive(SMS_PRESA_IN_CARICO_INFO, acknowledgment);
 
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class));
         verify(sqsService, times(1)).send(eq(smsSqsQueueName.errorName()), any(SmsPresaInCaricoInfo.class));

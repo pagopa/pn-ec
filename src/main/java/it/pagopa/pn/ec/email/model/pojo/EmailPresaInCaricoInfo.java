@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.email.model.pojo;
 
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest;
 import lombok.*;
 import lombok.experimental.FieldDefaults;

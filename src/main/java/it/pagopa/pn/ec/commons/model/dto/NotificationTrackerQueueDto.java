@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.commons.model.dto;
 
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
-import it.pagopa.pn.ec.commons.model.pojo.RequestStatusChange;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.model.pojo.request.RequestStatusChange;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
 import lombok.*;

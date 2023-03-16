@@ -8,9 +8,9 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
@@ -170,15 +170,15 @@ public class EmailService extends PresaInCaricoService {
         attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), emailPresaInCaricoInfo.getXPagopaExtchCxId(), false)
 
                         .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
-                        
+
                         .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
-                
+
                         .flatMap(fileDownloadResponse -> downloadCall.downloadFile(fileDownloadResponse.getDownload().getUrl()).retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
                                 .map(outputStream -> EmailAttachment.builder()
                                         .nameWithExtension(fileDownloadResponse.getKey())
                                         .content(outputStream)
                                         .build()))
-                
+
                          .collectList()
 
                         .flatMap(attList -> {

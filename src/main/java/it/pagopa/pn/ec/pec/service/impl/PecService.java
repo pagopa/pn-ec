@@ -8,9 +8,9 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -34,6 +34,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 import java.time.Duration;
 
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
+import static it.pagopa.pn.ec.commons.utils.EmailUtils.getDomainFromAddress;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.BATCH;
@@ -241,6 +242,7 @@ public class PecService extends PresaInCaricoService {
     private GeneratedMessageDto createGeneratedMessageDto(SendMailResponse sendMailResponse) {
         var errstr = sendMailResponse.getErrstr();
 //      Remove the last 2 char '\r\n'
-        return new GeneratedMessageDto().id(errstr.substring(0, errstr.length() - 2)).system("toBeDefined");
+        return new GeneratedMessageDto().id(errstr.substring(0, errstr.length() - 2))
+                                        .system(getDomainFromAddress(arubaSecretValue.getPecUsername()));
     }
 }
