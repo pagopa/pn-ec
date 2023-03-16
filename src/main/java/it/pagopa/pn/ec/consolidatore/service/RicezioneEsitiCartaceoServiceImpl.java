@@ -14,6 +14,7 @@ import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.errorCodeDescripti
 import java.util.ArrayList;
 import java.util.List;
 
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,7 +24,7 @@ import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
+
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
