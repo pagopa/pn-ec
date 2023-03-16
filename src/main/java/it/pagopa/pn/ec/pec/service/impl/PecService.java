@@ -302,8 +302,7 @@ public class PecService extends PresaInCaricoService {
                     if (requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        log.info("policyyyy" + retryPolicies.getPolyicy().get("SMS"));
-                        retryDto.setRetryPolicy(retryPolicies.getPolyicy().get("SMS"));
+                        retryDto.setRetryPolicy(retryPolicies.getPolyicy().get("PEC"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         retryDto.setLastRetryTimestamp(OffsetDateTime.now());
                         requestDto.getRequestMetadata().setRetry(retryDto);
