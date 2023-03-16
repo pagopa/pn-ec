@@ -1,29 +1,12 @@
 package it.pagopa.pn.ec.consolidatore.service;
 
-import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.attachmentDocumentTypeMap;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.deliveryFailureCausemap;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.productTypeMap;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.statusCodeDescriptionMap;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_MESSAGE;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_OK_CODE;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.INTERNAL_SERVER_ERROR_CODE;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.REQUEST_ID_ERROR_CODE;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.SEMANTIC_ERROR_CODE;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.errorCodeDescriptionMap;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
-import org.springframework.stereotype.Service;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
@@ -31,15 +14,17 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.consolidatore.dto.RicezioneEsitiDto;
 import it.pagopa.pn.ec.consolidatore.exception.AttachmentsEmptyRicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.consolidatore.exception.RicezioneEsitiCartaceoException;
-import it.pagopa.pn.ec.rest.v1.dto.AttachmentsProgressEventDto;
-import it.pagopa.pn.ec.rest.v1.dto.ConsolidatoreIngressPaperProgressStatusEvent;
-import it.pagopa.pn.ec.rest.v1.dto.ConsolidatoreIngressPaperProgressStatusEventAttachments;
-import it.pagopa.pn.ec.rest.v1.dto.DiscoveredAddressDto;
-import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
-import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
+import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.*;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.*;
 
 @Service
 @Slf4j
