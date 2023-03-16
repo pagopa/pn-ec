@@ -26,6 +26,7 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
+import static it.pagopa.pn.ec.commons.utils.EmailUtils.getDomainFromAddress;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.decodePecStatusToMachineStateStatus;
@@ -123,6 +124,7 @@ public class ScaricamentoEsitiPecScheduler {
                                             var postacert = objects.getT1();
                                             var requestDto = objects.getT2();
                                             var requestStatusChange = RequestStatusChange.builder()
+                                                                                         .requestIdx(requestDto.getRequestIdx())
                                                                                          .xPagopaExtchCxId(requestDto.getxPagopaExtchCxId())
                                                                                          .processId(
                                                                                                  transactionProcessConfigurationProperties.pec())
@@ -132,14 +134,12 @@ public class ScaricamentoEsitiPecScheduler {
                                                                                          .build();
                                             return callMacchinaStati.statusValidation(requestStatusChange)
                                                                     .thenReturn(Tuples.of(postacert, requestStatusChange))
-                                                                    .doOnError(InvalidNextStatusException.class,
-                                                                               throwable -> log.error(
-                                                                                       "La PEC {} associata alla richiesta {} ha " +
-                                                                                       "comunicato i propri" +
-                                                                                       " esiti in " +
-                                                                                       "un ordine non corretto al notification tracker",
-                                                                                       pecId,
-                                                                                       requestDto.getRequestIdx()));
+                                                                    .doOnError(throwable -> log.debug(
+                                                                            "La PEC {} associata alla richiesta {} ha " +
+                                                                            "comunicato i propri" + " esiti in " +
+                                                                            "un ordine non corretto al notification tracker",
+                                                                            pecId,
+                                                                            requestDto.getRequestIdx()));
                                         })
 
 //                                      Preparazione payload per la coda stati PEC
@@ -153,7 +153,7 @@ public class ScaricamentoEsitiPecScheduler {
                                             var eventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
                                             var eventDetails = postacert.getErrore();
                                             var sender = arubaSecretValue.getPecUsername();
-                                            var senderDomain = sender.substring(sender.indexOf("@") + 1);
+                                            var senderDomain = getDomainFromAddress(sender);
                                             // TODO: COME RECUPERARE LOCATION ?
                                             var generatedMessageDto =
                                                     new GeneratedMessageDto().system(senderDomain).id(postacert.getDati().getMsgid());
@@ -201,8 +201,8 @@ public class ScaricamentoEsitiPecScheduler {
                  })
 
 //               Se avviene qualche errore per una particolare PEC non bloccare il Flux
+                 .onErrorContinue(InvalidNextStatusException.class, (throwable, o) -> log.debug(throwable.getMessage()))
                  .onErrorContinue((throwable, object) -> log.error(throwable.getMessage(), throwable))
-                 .onErrorContinue(InvalidNextStatusException.class, (throwable, o) -> log.error(throwable.getMessage()))
 
                  // TODO: LA STRATEGIA DI SOTTOSCRIZIONE POTREBBE ESSERE PIÙ PERFORMANTE
                  .subscribe();
