@@ -13,6 +13,7 @@ import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.policy.Policy;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
@@ -268,18 +269,18 @@ public class SmsService extends PresaInCaricoService {
         log.info("<-- START GESTIONE ERRORI SMS -->");
         logIncomingMessage(smsSqsQueueName.errorName(), smsPresaInCaricoInfo);
 
-    File file = new File("src/main/resources/commons/retryPolicy.json");
-    ObjectMapper objectMapper = new ObjectMapper();
-    Map<String, List<BigDecimal>> retryPolicies;
-
-    {
-        try {
-            retryPolicies = objectMapper.readValue(file, new TypeReference<Map<String, List<BigDecimal>>>() {});
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
+//    File file = new File("src/main/resources/commons/retryPolicy.json");
+//    ObjectMapper objectMapper = new ObjectMapper();
+//    Map<String, List<BigDecimal>> retryPolicies;
+//
+//    {
+//        try {
+//            retryPolicies = objectMapper.readValue(file, new TypeReference<Map<String, List<BigDecimal>>>() {});
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
+        Policy retryPolicies = new Policy();
 //        log.info(String.valueOf(retryPolicies.get(0).contains("SMS")));
 
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
@@ -316,7 +317,8 @@ public class SmsService extends PresaInCaricoService {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        retryDto.setRetryPolicy(retryPolicies.get("SMS"));
+                        log.info("policyyyy" + retryPolicies.getPolyicy().get("SMS"));
+                        retryDto.setRetryPolicy(retryPolicies.getPolyicy().get("SMS"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         retryDto.setLastRetryTimestamp(OffsetDateTime.now());
                         requestDto.getRequestMetadata().setRetry(retryDto);
