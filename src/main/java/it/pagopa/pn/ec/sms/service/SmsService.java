@@ -11,6 +11,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigu
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
@@ -64,6 +65,7 @@ public class SmsService extends PresaInCaricoService {
     private final SmsSqsQueueName smsSqsQueueName;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+
     private String idSaved;
 
 
@@ -158,13 +160,17 @@ public class SmsService extends PresaInCaricoService {
     @Scheduled(cron = "${cron.value.lavorazione-batch-sms}")
     void lavorazioneRichiestaBatch() {
         log.info("<-- START LAVORAZIONE RICHIESTA SMS BATCH -->");
-        sqsService.getAllQueueMessage(smsSqsQueueName.batchName(), SmsPresaInCaricoInfo.class)
+        sqsService.getOneMessage(smsSqsQueueName.batchName(), SmsPresaInCaricoInfo.class)
                   .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
                                                                                         smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                   .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(smsPresaInCaricoInfoSqsMessageWrapper.getMessage()),
                                                                              lavorazioneRichiesta(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
                   .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
                                                                                                       smsSqsQueueName.batchName()))
+                  .map(MonoResultWrapper::new)
+                  .defaultIfEmpty(new MonoResultWrapper<>(null))
+                  .repeat()
+                  .takeWhile(MonoResultWrapper::isNotEmpty)
                   .subscribe();
     }
 
@@ -222,14 +228,27 @@ public class SmsService extends PresaInCaricoService {
     @Scheduled(cron = "${cron.value.gestione-retry-sms}")
     void gestioneRetrySmsScheduler() {
         log.info("<-- START GESTIONE RETRY SMS-->");
-        sqsService.getAllQueueMessage(smsSqsQueueName.errorName(), SmsPresaInCaricoInfo.class)
-                .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
+        idSaved = null;
+        sqsService.getOneMessage(smsSqsQueueName.errorName(), SmsPresaInCaricoInfo.class)
+                .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.errorName(),
                         smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                 .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(smsPresaInCaricoInfoSqsMessageWrapper.getMessage()),
                         gestioneRetrySms(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent(), smsPresaInCaricoInfoSqsMessageWrapper.getMessage())))
                 /*.flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
-                        smsSqsQueueName.batchName()))*/
+                        smsSqsQueueName.errorName()))*/
+                .map(MonoResultWrapper::new)
+                .defaultIfEmpty(new MonoResultWrapper<>(null))
+                .repeat()
+                .takeWhile(MonoResultWrapper::isNotEmpty)
                 .subscribe();
+        /*sqsService.getAllQueueMessage(smsSqsQueueName.errorName(), SmsPresaInCaricoInfo.class)
+                .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
+                        smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
+                .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(smsPresaInCaricoInfoSqsMessageWrapper.getMessage()),
+                        gestioneRetrySms(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent(), smsPresaInCaricoInfoSqsMessageWrapper.getMessage())))
+                *//*.flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
+                        smsSqsQueueName.batchName()))*//*
+                .subscribe();*/
     }
     /*void gestioneRetrySmsScheduler() {
         log.info("<-- START GESTIONE RETRY SMS-->");
@@ -260,8 +279,6 @@ public class SmsService extends PresaInCaricoService {
             throw new RuntimeException(e);
         }
     }
-
-
 
 //        log.info(String.valueOf(retryPolicies.get(0).contains("SMS")));
 
@@ -374,7 +391,7 @@ public class SmsService extends PresaInCaricoService {
                             )
 //                          In case of success, message removed from error queue
                             .doOnSuccess(result -> {
-                                log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}", smsSqsQueueName.errorName());
+                                log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore", smsSqsQueueName.errorName());
                                 sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
                             });
                 });

@@ -7,12 +7,14 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
-import software.amazon.awssdk.services.sqs.model.*;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
-import java.util.function.Consumer;
+import static it.pagopa.pn.ec.commons.utils.OptionalUtils.getFirstListElement;
 
 @Service
 @Slf4j
@@ -42,28 +44,13 @@ public class SqsServiceImpl implements SqsService {
     }
 
     @Override
-    public <T> Flux<SqsMessageWrapper<T>> getAllQueueMessage(String queueName, Class<T> messageContentClass) {
-        return getQueueUrlFromName(queueName).flux()
-                                             .flatMap(queueUrl -> getAllQueueMessage(messageContentClass,
-                                                                                     builder -> builder.queueUrl(queueUrl)));
-    }
-
-    @Override
-    public <T> Flux<SqsMessageWrapper<T>> getAllQueueMessage(String queueName, Class<T> messageContentClass, int maxNumberOfMessages) {
-        return getQueueUrlFromName(queueName).flux()
-                                             .flatMap(queueUrl -> getAllQueueMessage(messageContentClass,
-                                                                                     builder -> builder.queueUrl(queueUrl)
-                                                                                                       .maxNumberOfMessages(
-                                                                                                               maxNumberOfMessages)));
-    }
-
-    private <T> Flux<SqsMessageWrapper<T>> getAllQueueMessage(Class<T> messageContentClass,
-                                                              Consumer<ReceiveMessageRequest.Builder> receiveMessageRequest) {
-        return Mono.fromCompletionStage(sqsAsyncClient.receiveMessage(receiveMessageRequest))
-                   .map(ReceiveMessageResponse::messages)
-                   .flatMapIterable(messages -> messages)
-                   .map(message -> new SqsMessageWrapper<>(message,
-                                                           jsonUtils.convertJsonStringToObject(message.body(), messageContentClass)));
+    public <T> Mono<SqsMessageWrapper<T>> getOneMessage(String queueName, Class<T> messageContentClass) {
+        return getQueueUrlFromName(queueName).flatMap(queueUrl -> Mono.fromCompletionStage(sqsAsyncClient.receiveMessage(builder -> builder.queueUrl(
+                                                     queueUrl))))
+                                             .flatMap(receiveMessageResponse -> Mono.justOrEmpty(getFirstListElement(receiveMessageResponse.messages())))
+                                             .map(message -> new SqsMessageWrapper<>(message,
+                                                                                     jsonUtils.convertJsonStringToObject(message.body(),
+                                                                                                                         messageContentClass)));
     }
 
     @Override
