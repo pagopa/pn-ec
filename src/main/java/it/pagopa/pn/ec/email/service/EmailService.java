@@ -21,11 +21,13 @@ import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pec.bridgews.SendMailResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
+import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
 import software.amazon.awssdk.services.sns.model.PublishResponse;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
@@ -388,6 +390,7 @@ public class EmailService extends PresaInCaricoService {
 
                         .flatMap(requestDto -> {
                             // Try to send EMAIL
+                            log.info("requestDto Value:", requestDto.getRequestMetadata().getRetry());
                             return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), emailPresaInCaricoInfo.getXPagopaExtchCxId(), false)
 
                                     .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
@@ -407,6 +410,10 @@ public class EmailService extends PresaInCaricoService {
                                         mailFld.setEmailAttachments(attList);
                                         return sesService.send(mailFld);
                                     })
+
+                                    .retryWhen(DEFAULT_RETRY_STRATEGY)
+
+                                    .map(this::createGeneratedMessageDto)
 
                                     // The EMAIL in sent, publish to Notification Tracker with next status -> SENT
                                     .flatMap(publishResponse ->
@@ -506,12 +513,13 @@ public class EmailService extends PresaInCaricoService {
                 })
 
                 .flatMap(requestDto -> {
-
+                    log.info("requestDto Value:", requestDto.getRequestMetadata().getRetry());
                    return   sesService.send(mailFld)
+                           .retryWhen(DEFAULT_RETRY_STRATEGY)
 
+                           .map(this::createGeneratedMessageDto)
                             // The EMAIL in sent, publish to Notification Tracker with next status -> SENT
-                            .flatMap(publishResponse ->
-                                 sqsService.send(notificationTrackerSqsName.statoEmailName(),
+                            .flatMap(publishResponse -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
                                         createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
                                                 "booked",
                                                 "sent",
@@ -540,6 +548,10 @@ public class EmailService extends PresaInCaricoService {
                            .onErrorResume(RetryAttemptsExceededExeption.class, throwable -> sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
 
                 });
+    }
+
+    private GeneratedMessageDto createGeneratedMessageDto(SendRawEmailResponse publishResponse) {
+        return new GeneratedMessageDto().id(publishResponse.messageId()).system("toBeDefined");
     }
 
 
