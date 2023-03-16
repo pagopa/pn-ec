@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.repositorymanager.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.GestoreRepositoryEndpointProperties;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
-import it.pagopa.pn.ec.commons.model.pojo.RequestStatusChange;
+import it.pagopa.pn.ec.commons.model.pojo.request.RequestStatusChange;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
