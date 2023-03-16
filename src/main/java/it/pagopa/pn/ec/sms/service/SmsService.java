@@ -222,10 +222,6 @@ public class SmsService extends PresaInCaricoService {
         return new GeneratedMessageDto().id(publishResponse.messageId()).system("toBeDefined");
     }
 
-    //@Scheduled(cron = "0 */1 * * * *")
-    /*public void test(){
-        log.info("test scheduled");
-    }*/
 
 
     @Scheduled(cron = "${cron.value.gestione-retry-sms}")
@@ -235,64 +231,27 @@ public class SmsService extends PresaInCaricoService {
         sqsService.getOneMessage(smsSqsQueueName.errorName(), SmsPresaInCaricoInfo.class)
                 .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.errorName(),
                         smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
-                .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> /*Mono.zip(Mono.just(smsPresaInCaricoInfoSqsMessageWrapper.getMessage()),*/
+                .flatMap(smsPresaInCaricoInfoSqsMessageWrapper ->
                         gestioneRetrySms(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent(), smsPresaInCaricoInfoSqsMessageWrapper.getMessage()))
-                /*.flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
-                        smsSqsQueueName.errorName()))*/
                 .map(MonoResultWrapper::new)
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)
                 .subscribe();
-        /*sqsService.getAllQueueMessage(smsSqsQueueName.errorName(), SmsPresaInCaricoInfo.class)
-                .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
-                        smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
-                .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(smsPresaInCaricoInfoSqsMessageWrapper.getMessage()),
-                        gestioneRetrySms(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent(), smsPresaInCaricoInfoSqsMessageWrapper.getMessage())))
-                *//*.flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
-                        smsSqsQueueName.batchName()))*//*
-                .subscribe();*/
     }
-    /*void gestioneRetrySmsScheduler() {
-        log.info("<-- START GESTIONE RETRY SMS-->");
-        sqsService.getAllQueueMessage(smsSqsQueueName.errorName(), 5).flatMap(message -> {
-            try {
-                return Mono.just(objectMapper.readValue(message.body(), SmsPresaInCaricoInfo.class))
-                        .doOnNext(smsPresaInCaricoInfo -> log.info(smsPresaInCaricoInfo.toString()))
-                        .flatMap(smsPresaInCaricoInfo -> gestioneRetrySms(smsPresaInCaricoInfo, message))
-                        .thenReturn(message);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        });*///.flatMap(message -> sqsService.deleteMessageFromQueue(message, smsSqsQueueName.batchName())).subscribe();
 
     public Mono<DeleteMessageResponse> gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message) {
 
         log.info("<-- START GESTIONE ERRORI SMS -->");
         logIncomingMessage(smsSqsQueueName.errorName(), smsPresaInCaricoInfo);
-
-//    File file = new File("src/main/resources/commons/retryPolicy.json");
-//    ObjectMapper objectMapper = new ObjectMapper();
-//    Map<String, List<BigDecimal>> retryPolicies;
-//
-//    {
-//        try {
-//            retryPolicies = objectMapper.readValue(file, new TypeReference<Map<String, List<BigDecimal>>>() {});
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
         Policy retryPolicies = new Policy();
-//        log.info(String.valueOf(retryPolicies.get(0).contains("SMS")));
 
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
         var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
 
         return gestoreRepositoryCall.getRichiesta(requestId)
-                /*.filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), "toDelete"))
-                .doOnError(throwable -> {
-                })*/
+
                 .map(requestDto -> {
                     if(Objects.equals(requestDto.getStatusRequest(), "toDelete")){
                         requestDto.setStatusRequest("Deleted");
@@ -361,17 +320,17 @@ public class SmsService extends PresaInCaricoService {
 
 //                       The SMS in sent, publish to Notification Tracker with next status -> SENT
                             .flatMap(generatedMessageDto -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                                            createNotificationTrackerQueueDtoDigital(smsPresaInCaricoInfo,
-                                                    "booked",
-                                                    "sent",
-                                                    new DigitalProgressStatusDto().generatedMessage(
-                                                            generatedMessageDto)))
+                                                    createNotificationTrackerQueueDtoDigital(smsPresaInCaricoInfo,
+                                                            "booked",
+                                                            "sent",
+                                                            new DigitalProgressStatusDto().generatedMessage(
+                                                                    generatedMessageDto)))
 
 //                                                                An error occurred during SQS publishing to the Notification Tracker ->
 //                                                                Publish to Errori SMS queue and notify to retry update status only
 //                                                                TODO: CHANGE THE PAYLOAD
                                             .onErrorResume(sqsPublishException -> {
-                                                if(idSaved == null) {
+                                                if (idSaved == null) {
                                                     idSaved = requestId;
                                                 }
                                                 if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
@@ -390,18 +349,6 @@ public class SmsService extends PresaInCaricoService {
                             })
                             //inserire come primo argomento l'eccezione custom
                             .onErrorResume(RetryAttemptsExceededExeption.class, throwable -> sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName()));
-
-/*//                       The maximum number of retries has ended
-                            .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
-                                    snsMaxRetriesExceeded -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                                                    createNotificationTrackerQueueDtoDigital(
-                                                            smsPresaInCaricoInfo,
-                                                            "booked",
-                                                            "retry",
-                                                            new DigitalProgressStatusDto()))
-                            );*/
-//                          In case of success, message removed from error queue
-
                 });
     }
 }
