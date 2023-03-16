@@ -304,7 +304,7 @@ public class EmailService extends PresaInCaricoService {
 
 
     @Scheduled(cron = "${cron.value.gestione-retry-email}")
-    void gestioneRetrySmsScheduler() {
+    void gestioneRetryEmailScheduler() {
         log.info("<-- START GESTIONE RETRY EMAIL-->");
         idSaved = null;
         sqsService.getOneMessage(emailSqsQueueName.errorName(), EmailPresaInCaricoInfo.class)
