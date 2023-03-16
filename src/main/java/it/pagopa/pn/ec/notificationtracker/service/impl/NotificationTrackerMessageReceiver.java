@@ -52,7 +52,7 @@ public class NotificationTrackerMessageReceiver {
 
     @SqsListener(value = "${sqs.queue.notification-tracker.stato-cartaceo-name}", deletionPolicy = SqsMessageDeletionPolicy.ON_SUCCESS)
     public void receiveCartaceoObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto) {
-        logIncomingMessage(notificationTrackerSqsName.statoPecName(), notificationTrackerQueueDto);
+        logIncomingMessage(notificationTrackerSqsName.statoCartaceoName(), notificationTrackerQueueDto);
         notificationTrackerQueueDto.setProcessId(transactionProcessConfigurationProperties.paper());
         notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
                                                              notificationTrackerSqsName.statoCartaceoErratoName()).subscribe();

@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.commons.exception;
 
-import it.pagopa.pn.ec.commons.model.pojo.RequestStatusChange;
+import it.pagopa.pn.ec.commons.model.pojo.request.RequestStatusChange;
 
 public class InvalidNextStatusException extends RuntimeException {
 
