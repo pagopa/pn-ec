@@ -8,6 +8,9 @@ import reactor.core.publisher.Mono;
 
 public interface CallMacchinaStati {
 
+    /**
+     * Set xPagopaExtchCxId, processId, currentStatus and nextStatus in the object argument
+     */
     Mono<MacchinaStatiValidateStatoResponseDto> statusValidation(RequestStatusChange requestStatusChange) throws InvalidNextStatusException;
 
     Mono<MacchinaStatiDecodeResponseDto> statusDecode(RequestStatusChange requestStatusChange);
