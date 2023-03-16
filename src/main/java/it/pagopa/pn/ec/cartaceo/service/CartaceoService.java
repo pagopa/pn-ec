@@ -9,9 +9,12 @@ import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
+import it.pagopa.pn.ec.commons.exception.RetryAttemptsExceededExeption;
 import it.pagopa.pn.ec.commons.exception.cartaceo.CartaceoSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.policy.Policy;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
@@ -19,14 +22,23 @@ import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
+import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
+import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper;
 import static it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
@@ -44,6 +56,8 @@ public class CartaceoService extends PresaInCaricoService {
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
     private final PaperMessageCall paperMessageCall;
     private final CartaceoMapper cartaceoMapper;
+
+    private String idSaved;
 
     protected CartaceoService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
                               GestoreRepositoryCall gestoreRepositoryCall1, AttachmentServiceImpl attachmentService,
@@ -226,6 +240,125 @@ public class CartaceoService extends PresaInCaricoService {
 
                 // Delete from queue
                 .doOnSuccess(result -> acknowledgment.acknowledge());
+    }
+
+    @Scheduled(cron = "${cron.value.gestione-retry-cartaceo}")
+    void gestioneRetrySmsScheduler() {
+        log.info("<-- START GESTIONE RETRY SMS-->");
+        idSaved = null;
+        sqsService.getOneMessage(cartaceoSqsQueueName.errorName(), CartaceoPresaInCaricoInfo.class)
+                .doOnNext(cartaceoPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(cartaceoSqsQueueName.errorName(),
+                        cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
+                .flatMap(cartaceoPresaInCaricoInfoSqsMessageWrapper ->
+                        gestioneRetryCartaceo(cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent(), cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessage()))
+                .map(MonoResultWrapper::new)
+                .defaultIfEmpty(new MonoResultWrapper<>(null))
+                .repeat()
+                .takeWhile(MonoResultWrapper::isNotEmpty)
+                .subscribe();
+    }
+
+    public Mono<DeleteMessageResponse> gestioneRetryCartaceo(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo//
+            , Message message) {
+
+        log.info("<-- START GESTIONE ERRORI CARTACEO -->");
+        logIncomingMessage(cartaceoSqsQueueName.batchName(), cartaceoPresaInCaricoInfo);
+        var paperEngageRequestSrc = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
+        var paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
+        var requestId = cartaceoPresaInCaricoInfo.getRequestIdx();
+        Policy retryPolicies = new Policy();
+//        AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
+
+        return gestoreRepositoryCall.getRichiesta(requestId)
+
+                .map(requestDto -> {
+                    if(Objects.equals(requestDto.getStatusRequest(), "toDelete")){
+                        sqsService.send(notificationTrackerSqsName.statoSmsName(),
+                                createNotificationTrackerQueueDtoDigital(cartaceoPresaInCaricoInfo,
+                                        "retry",
+                                        "deleted",
+                                        new DigitalProgressStatusDto()));
+
+
+                        log.info("Il messaggio è stato rimosso dalla coda d'errore per stato toDelete: {}", cartaceoSqsQueueName.errorName());
+                    }
+                    return requestDto;
+                })
+
+                .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
+                .flatMap(requestDto ->  {
+                    if(requestDto.getRequestMetadata().getRetry() == null) {
+                        log.info("Primo tentativo di Retry");
+                        RetryDto retryDto = new RetryDto();
+                        retryDto.setRetryPolicy(retryPolicies.getPolyicy().get("PAPER"));
+                        retryDto.setRetryStep(BigDecimal.ZERO);
+                        retryDto.setLastRetryTimestamp(OffsetDateTime.now());
+                        requestDto.getRequestMetadata().setRetry(retryDto);
+
+                    } else {
+                        var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
+                        log.info(retryNumber + " tentativo di Retry");
+                    }
+
+                    PatchDto patchDto = new PatchDto();
+                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+                    return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
+                })
+                .filter(requestDto -> {
+
+                    var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();
+                    var dateTime2 = OffsetDateTime.now();
+                    Duration duration = Duration.between(dateTime1, dateTime2);
+                    int step = requestDto.getRequestMetadata().getRetry().getRetryStep().intValueExact();
+                    long minutes = duration.toMinutes();
+                    long minutesToCheck = requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
+                    return minutes >= minutesToCheck;
+                })
+                .flatMap(requestDto -> {
+                    requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
+                    requestDto.getRequestMetadata().getRetry().setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
+                    PatchDto patchDto = new PatchDto();
+                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                    return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
+                })
+                .flatMap(requestDto -> {
+                    log.info("requestDto Value:", requestDto.getRequestMetadata().getRetry());
+
+
+                    // Try to send PAPER
+     return    paperMessageCall.putRequest(paperEngageRequestDst)
+
+                // The PAPER in sent, publish to Notification Tracker with next status -> SENT
+                .flatMap(operationResultCodeResponse ->
+                     sqsService.send(notificationTrackerSqsName.statoCartaceoName()
+                            , createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
+                                    "booked",
+                                    "sent",
+                                    //TODO object paper
+                                    new PaperProgressStatusDto()))
+
+                .onErrorResume(sqsPublishException -> {
+                    if (idSaved == null) {
+                        idSaved = requestId;
+                    }
+                    if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
+                        // operazioni per la rimozione del messaggio
+                        log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", cartaceoSqsQueueName.errorName());
+                        return Mono.error(new RetryAttemptsExceededExeption(message.messageId())); //creare eccezione
+                        //sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
+                    }
+                    return Mono.empty();
+                })
+               )
+                    //.filter(response -> response != null) // Filtra solo i messaggi che non hanno generato errori*/
+                    .flatMap(sendMessageResponse -> {
+                        log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore", cartaceoSqsQueueName.errorName());
+                        return sqsService.deleteMessageFromQueue(message, cartaceoSqsQueueName.errorName());
+                    })
+                            //inserire come primo argomento l'eccezione custom
+                            .onErrorResume(RetryAttemptsExceededExeption.class, throwable -> sqsService.deleteMessageFromQueue(message, cartaceoSqsQueueName.errorName()));
+                });
     }
 
 }
