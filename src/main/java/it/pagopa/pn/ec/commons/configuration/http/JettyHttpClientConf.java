@@ -43,7 +43,7 @@ public class JettyHttpClientConf {
 
         request.onRequestHeaders(theRequest -> {
             for (HttpField header : theRequest.getHeaders()) {
-                log.info("Header {} --> {}", header.getName(), header.getValue());
+                log.debug("Header {} --> {}", header.getName(), header.getValue());
             }
         });
 
