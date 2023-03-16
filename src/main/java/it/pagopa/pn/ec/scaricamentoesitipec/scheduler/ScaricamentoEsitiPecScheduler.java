@@ -193,11 +193,11 @@ public class ScaricamentoEsitiPecScheduler {
 
 //              Chiamare getMessageID con markseen a uno per marcare il messaggio come letto e terminare il processo.
                  .flatMap(pecId -> {
-                     log.info("PEC {} marked as seen", pecId);
                      var getMessageID = new GetMessageID();
                      getMessageID.setMailid(pecId);
                      getMessageID.setMarkseen(1);
-                     return arubaCall.getMessageId(getMessageID);
+                     return arubaCall.getMessageId(getMessageID)
+                                     .doOnSuccess(getMessageIDResponse -> log.info("PEC {} marked as seen", pecId));
                  })
 
 //               Se avviene qualche errore per una particolare PEC non bloccare il Flux
