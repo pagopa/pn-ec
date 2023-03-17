@@ -12,7 +12,9 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStatiImpl;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.notificationtracker.model.NtStatoError;
+import it.pagopa.pn.ec.rest.v1.dto.BaseMessageProgressEvent;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
+import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusEvent;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -55,7 +57,8 @@ class NotificationTrackerServiceImplTest {
     private CallMacchinaStatiImpl callMachinaStati;
 
     public static final MacchinaStatiValidateStatoResponseDto STATE_MACHINE_DTO = new MacchinaStatiValidateStatoResponseDto();
-    public static final NotificationTrackerQueueDto notificationTrackerQueueDto = new NotificationTrackerQueueDto();
+    public static final BaseMessageProgressEvent baseMessageProgressEvent = new BaseMessageProgressEvent();
+    public static final PaperProgressStatusEvent paperProgressEvent = new PaperProgressStatusEvent();
 
     @Test
     @Order(1)
@@ -73,7 +76,7 @@ class NotificationTrackerServiceImplTest {
                                                                                                                .build()));
         when(callMachinaStati.statusDecode(req)).thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto()));
         when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
-        when(putEventsImpl.putEventExternal(notificationTrackerQueueDto)).thenReturn(Mono.empty());
+        when(putEventsImpl.putEventExternal(baseMessageProgressEvent, req.getProcessId())).thenReturn(Mono.empty());
 
         notificationtrackerMessageReceiver.receiveSMSObjectMessage(req);
     }
@@ -151,7 +154,7 @@ class NotificationTrackerServiceImplTest {
 
         when(callMachinaStati.statusValidation(req)).thenReturn(Mono.just(STATE_MACHINE_DTO));
         when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
-        when(putEventsImpl.putEventExternal(req)).thenThrow(EcInternalEndpointHttpException.class);
+        when(putEventsImpl.putEventExternal(baseMessageProgressEvent, req.getProcessId())).thenThrow(EcInternalEndpointHttpException.class);
 
         notificationtrackerMessageReceiver.receiveSMSObjectMessage(req);
     }
@@ -187,7 +190,7 @@ class NotificationTrackerServiceImplTest {
 
         when(callMachinaStati.statusValidation(req)).thenReturn(Mono.just(STATE_MACHINE_DTO));
         when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
-        when(putEventsImpl.putEventExternal(req)).thenReturn(Mono.empty());
+        when(putEventsImpl.putEventExternal(baseMessageProgressEvent, req.getProcessId())).thenReturn(Mono.empty());
 
         notificationtrackerMessageReceiver.receiveEmailObjectMessage(req);
     }
@@ -264,7 +267,7 @@ class NotificationTrackerServiceImplTest {
         when(callMachinaStati.statusValidation(req)).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
-        when(putEventsImpl.putEventExternal(req)).thenThrow(EcInternalEndpointHttpException.class);
+        when(putEventsImpl.putEventExternal(baseMessageProgressEvent, req.getProcessId())).thenThrow(EcInternalEndpointHttpException.class);
 
         notificationtrackerMessageReceiver.receiveEmailObjectMessage(req);
     }
@@ -305,7 +308,7 @@ class NotificationTrackerServiceImplTest {
         when(callMachinaStati.statusValidation(req)).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
-        when(putEventsImpl.putEventExternal(req)).thenReturn(Mono.empty());
+        when(putEventsImpl.putEventExternal(baseMessageProgressEvent, req.getProcessId())).thenReturn(Mono.empty());
 
         notificationtrackerMessageReceiver.receivePecObjectMessage(req);
     }
@@ -381,7 +384,7 @@ class NotificationTrackerServiceImplTest {
         req.setRequestIdx("123_test");
         when(callMachinaStati.statusValidation(req)).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
-        when(putEventsImpl.putEventExternal(req)).thenThrow(EcInternalEndpointHttpException.class);
+        when(putEventsImpl.putEventExternal(baseMessageProgressEvent, req.getProcessId())).thenThrow(EcInternalEndpointHttpException.class);
         when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
 
         notificationtrackerMessageReceiver.receivePecObjectMessage(req);
@@ -424,7 +427,7 @@ class NotificationTrackerServiceImplTest {
         when(callMachinaStati.statusValidation(req)).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
-        when(putEventsImpl.putEventExternal(req)).thenReturn(Mono.empty());
+        when(putEventsImpl.putEventExternal(paperProgressEvent, req.getProcessId())).thenReturn(Mono.empty());
 
         notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req);
     }
@@ -502,7 +505,7 @@ class NotificationTrackerServiceImplTest {
         when(callMachinaStati.statusValidation(req)).thenReturn(Mono.just(STATE_MACHINE_DTO));
 
         when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
-        when(putEventsImpl.putEventExternal(req)).thenThrow(EcInternalEndpointHttpException.class);
+        when(putEventsImpl.putEventExternal(paperProgressEvent, req.getProcessId())).thenThrow(EcInternalEndpointHttpException.class);
 
         notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req);
     }

@@ -1,17 +1,23 @@
 package it.pagopa.pn.ec.commons.configuration.aws;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.awspring.cloud.messaging.config.QueueMessageHandlerFactory;
-import io.awspring.cloud.messaging.listener.support.AcknowledgmentHandlerMethodArgumentResolver;
-import it.pagopa.pn.ec.commons.configurationproperties.AwsConfigurationProperties;
+import java.net.URI;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.handler.annotation.support.PayloadMethodArgumentResolver;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.awspring.cloud.messaging.config.QueueMessageHandlerFactory;
+import io.awspring.cloud.messaging.listener.support.AcknowledgmentHandlerMethodArgumentResolver;
+import it.pagopa.pn.ec.commons.configurationproperties.AwsConfigurationProperties;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
+import software.amazon.awssdk.metrics.publishers.cloudwatch.CloudWatchMetricPublisher;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClientBuilder;
@@ -25,9 +31,6 @@ import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.SnsAsyncClientBuilder;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.SqsAsyncClientBuilder;
-
-import java.net.URI;
-import java.util.List;
 
 @Configuration
 public class AwsConfiguration {
@@ -124,7 +127,8 @@ public class AwsConfiguration {
     public SnsAsyncClient snsClient() {
         SnsAsyncClientBuilder snsAsyncClientBuilder = SnsAsyncClient.builder()
                                                                     .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER)
-                                                                    .region(Region.of(awsConfigurationProperties.regionCode()));
+                                                                    .region(Region.of(awsConfigurationProperties.regionCode()))
+                                                                    .overrideConfiguration(c -> c.addMetricPublisher(CloudWatchMetricPublisher.create()));
 
         if (snsLocalStackEndpoint != null) {
             snsAsyncClientBuilder.endpointOverride(URI.create(snsLocalStackEndpoint));
@@ -137,7 +141,8 @@ public class AwsConfiguration {
     public SesAsyncClient sesClient() {
         SesAsyncClientBuilder sesAsyncClientBuilder = SesAsyncClient.builder()
                                                                     .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER)
-                                                                    .region(Region.of(awsConfigurationProperties.regionCode()));
+                                                                    .region(Region.of(awsConfigurationProperties.regionCode()))
+                                                                    .overrideConfiguration(c -> c.addMetricPublisher(CloudWatchMetricPublisher.create()));
 
         if (sesLocalStackEndpoint != null) {
             sesAsyncClientBuilder.endpointOverride(URI.create(sesLocalStackEndpoint));
