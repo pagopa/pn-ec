@@ -174,11 +174,11 @@ public class EmailService extends PresaInCaricoService {
     private void processWithAttach(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgment acknowledgment) {
 
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-
+        var requestId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
         // Try to send EMAIL
-        attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), emailPresaInCaricoInfo.getXPagopaExtchCxId(), false)
+        attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), requestId, false)
 
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
@@ -321,7 +321,7 @@ public class EmailService extends PresaInCaricoService {
 
 
     public Mono<DeleteMessageResponse> gestioneRetryEmail(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message) {
-        log.info("<-- START LAVORAZIONE RICHIESTA ERRORI EMAIL -->");
+
         logIncomingMessage(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         if (!digitalCourtesyMailRequest.getAttachmentsUrls().isEmpty()) {
@@ -390,7 +390,6 @@ public class EmailService extends PresaInCaricoService {
 
                         .flatMap(requestDto -> {
                             // Try to send EMAIL
-                            log.info("requestDto Value:", requestDto.getRequestMetadata().getRetry());
                             return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), emailPresaInCaricoInfo.getXPagopaExtchCxId(), false)
 
                                     .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
