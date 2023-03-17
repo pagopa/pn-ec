@@ -9,7 +9,9 @@ import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.RetryAttemptsExceededExeption;
+import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
@@ -242,8 +244,8 @@ public class SmsService extends PresaInCaricoService {
 
     public Mono<DeleteMessageResponse> gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message) {
 
-        log.info("<-- START GESTIONE ERRORI SMS -->");
-        logIncomingMessage(smsSqsQueueName.errorName(), smsPresaInCaricoInfo);
+        //log.info("<-- START GESTIONE ERRORI SMS -->");
+        //logIncomingMessage(smsSqsQueueName.errorName(), smsPresaInCaricoInfo);
         Policy retryPolicies = new Policy();
 
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
@@ -278,16 +280,15 @@ public class SmsService extends PresaInCaricoService {
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         retryDto.setLastRetryTimestamp(OffsetDateTime.now());
                         requestDto.getRequestMetadata().setRetry(retryDto);
+                        PatchDto patchDto = new PatchDto();
+                        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                        return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
                         log.info(retryNumber + " tentativo di Retry");
+                        return  Mono.just(requestDto);
                     }
-
-                    PatchDto patchDto = new PatchDto();
-                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-
-                    return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
                 })
                 .filter(requestDto -> {
 
@@ -326,29 +327,31 @@ public class SmsService extends PresaInCaricoService {
                                                             new DigitalProgressStatusDto().generatedMessage(
                                                                     generatedMessageDto)))
 
-//                                                                An error occurred during SQS publishing to the Notification Tracker ->
-//                                                                Publish to Errori SMS queue and notify to retry update status only
-//                                                                TODO: CHANGE THE PAYLOAD
-                                            .onErrorResume(sqsPublishException -> {
-                                                if (idSaved == null) {
-                                                    idSaved = requestId;
-                                                }
-                                                if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
-                                                    // operazioni per la rimozione del messaggio
-                                                    log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", smsSqsQueueName.errorName());
-                                                    return Mono.error(new RetryAttemptsExceededExeption(message.messageId())); //creare eccezione
-                                                    //sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
-                                                }
-                                                return Mono.empty();
-                                            })
                             )
-                            //.filter(response -> response != null) // Filtra solo i messaggi che non hanno generato errori*/
                             .flatMap(sendMessageResponse -> {
                                 log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore", smsSqsQueueName.errorName());
                                 return sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
                             })
-                            //inserire come primo argomento l'eccezione custom
-                            .onErrorResume(RetryAttemptsExceededExeption.class, throwable -> sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName()));
+                            .onErrorResume(sqsPublishException -> {
+                                if (idSaved == null) {
+                                    idSaved = requestId;
+                                }
+                                if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
+                                    // operazioni per la rimozione del messaggio
+                                    log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", smsSqsQueueName.errorName());
+                                    return sqsService.send(notificationTrackerSqsName.statoSmsName()
+                                            ,createNotificationTrackerQueueDtoDigital
+                                                    (smsPresaInCaricoInfo
+                                                            ,"retry"
+                                                            ,"error"
+                                                            ,new DigitalProgressStatusDto().generatedMessage(
+                                                                    new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName()));
+
+                                }
+                                return Mono.empty();
+                            })
+                            ;
+
                 });
     }
 }
