@@ -546,6 +546,7 @@ Resources:
               - 'sqs:DeleteMessage'
               - 'sqs:PurgeQueue'
               - 'sqs:SendMessage'
+              - 'sqs:GetQueueUrl'
             Resource:
               - !Sub '${PnEcQueueArnTrackerStatoSMS}'
               - !Sub '${PnEcQueueArnTrackerErroriSMS}'
