@@ -145,7 +145,7 @@ public class ScaricamentoEsitiPecScheduler {
                                                                                          .currentStatus(requestDto.getStatusRequest())
                                                                                          .build();
                                             return callMacchinaStati.statusValidation(requestStatusChange)
-                                                                    .thenReturn(Tuples.of(postacert, requestStatusChange))
+                                                                    .map(unused ->  Tuples.of(postacert, requestStatusChange))
                                                                     .doOnError(throwable -> log.debug(
                                                                             "La PEC {} associata alla richiesta {} ha " +
                                                                             "comunicato i propri" + " esiti in " +
