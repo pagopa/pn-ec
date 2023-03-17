@@ -74,6 +74,8 @@ public class ScaricamentoEsitiPecScheduler {
 //               Lista di byte array. Ognuno di loro rappresenta l'id di un messaggio PEC
                  .flatMap(optionalGetMessagesResponse -> Mono.justOrEmpty(optionalGetMessagesResponse.getArrayOfMessages()))
 
+                 .doOnNext(mesArrayOfMessages -> log.info("Retrieved {} unseen PEC", mesArrayOfMessages.getItem().size()))
+
 //               Conversione a Flux di byte[]
                  .flatMapIterable(MesArrayOfMessages::getItem)
 
