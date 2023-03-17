@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.commons.model.pojo;
+package it.pagopa.pn.ec.commons.model.pojo.request;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
