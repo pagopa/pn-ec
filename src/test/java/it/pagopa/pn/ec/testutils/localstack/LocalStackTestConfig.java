@@ -154,6 +154,7 @@ public class LocalStackTestConfig {
                 log.info("Queue {} not found on first sqs init. Proceed to create", queueName);
                 Map<QueueAttributeName, String> fifoAttribute = new HashMap<>();
                 fifoAttribute.put(QueueAttributeName.FIFO_QUEUE, Boolean.TRUE.toString());
+                fifoAttribute.put(QueueAttributeName.CONTENT_BASED_DEDUPLICATION, Boolean.TRUE.toString());
                 sqsClient.createQueue(builder -> builder.queueName(queueName).attributes(fifoAttribute));
             }
         });
