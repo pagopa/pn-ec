@@ -1,13 +1,13 @@
 package it.pagopa.pn.ec.pec.utils;
 
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.pec.exception.MessageIdException;
 import org.springframework.util.Base64Utils;
 
 public class MessageIdUtils {
 
     private static final String SEPARATORE = "~";
-    private static final String DOMAIN = "@pagopa.it";
+    public static final String DOMAIN = "@pagopa.it";
 
     private MessageIdUtils() {
         throw new IllegalStateException("MessageIdUtils is a utility class");

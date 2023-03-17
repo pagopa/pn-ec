@@ -79,14 +79,17 @@ public class PushAttachmentsPreloadServiceTest {
     void testContentTypeBadRequest() {
         PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
 
-        var preLoadRequest1 = preLoadRequest;
+        PreLoadRequest preLoadRequest1 = new PreLoadRequest();
+        preLoadRequest1.setSha256("");
         preLoadRequest1.setContentType("BAD_CONTENT_TYPE");
+        preLoadRequest1.setPreloadIdx(preLoadRequest.getPreloadIdx());
         preLoadRequestSchema.getPreloads().add(preLoadRequest1);
 
         FileCreationRequest fileCreationRequest = new FileCreationRequest();
         fileCreationRequest.setContentType(BAD_CONTENT_TYPE);
         fileCreationRequest.setDocumentType(DOC_TYPE);
         fileCreationRequest.setStatus("");
+        fileCreationRequest.setChecksumValue(preLoadRequest1.getSha256());
 
         when(fileCall.postFile(fileCreationRequest)).thenReturn(Mono.error(new Generic400ErrorException("Bad Request", "Bad Request")));
 
@@ -94,4 +97,28 @@ public class PushAttachmentsPreloadServiceTest {
                 .expectStatus()
                 .isBadRequest();
     }
+
+    @Test
+    void testChecksumBadRequest() {
+        PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
+
+        PreLoadRequest preLoadRequest1 = new PreLoadRequest();
+        preLoadRequest1.setSha256("");
+        preLoadRequest1.setContentType(preLoadRequest.getContentType());
+        preLoadRequest1.setPreloadIdx(preLoadRequest.getPreloadIdx());
+        preLoadRequestSchema.getPreloads().add(preLoadRequest1);
+
+        FileCreationRequest fileCreationRequest = new FileCreationRequest();
+        fileCreationRequest.setContentType(preLoadRequest1.getContentType());
+        fileCreationRequest.setDocumentType(DOC_TYPE);
+        fileCreationRequest.setStatus("");
+        fileCreationRequest.setChecksumValue("");
+
+        when(fileCall.postFile(fileCreationRequest)).thenReturn(Mono.error(new Generic400ErrorException("Bad Request", "Bad Request")));
+
+        pushAttachmentsPreloadTestCall(BodyInserters.fromValue(preLoadRequestSchema))
+                .expectStatus()
+                .isBadRequest();
+    }
+
 }

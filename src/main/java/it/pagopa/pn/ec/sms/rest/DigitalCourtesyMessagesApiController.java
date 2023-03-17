@@ -49,9 +49,11 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                Mono<DigitalCourtesySmsRequest> digitalCourtesySmsRequest,
                                                                final ServerWebExchange exchange) {
         return digitalCourtesySmsRequest.doOnNext(request -> log.info("<-- START PRESA IN CARICO SMS -->"))
-                                        .flatMap(request -> smsService.presaInCarico(new SmsPresaInCaricoInfo(requestIdx,
-                                                                                                              xPagopaExtchCxId,
-                                                                                                              request)))
+                                        .flatMap(request -> smsService.presaInCarico(SmsPresaInCaricoInfo.builder()
+                                                                                                         .requestIdx(requestIdx)
+                                                                                                         .xPagopaExtchCxId(xPagopaExtchCxId)
+                                                                                                         .digitalCourtesySmsRequest(request)
+                                                                                                         .build()))
                                         .thenReturn(new ResponseEntity<>(OK));
 
     }
@@ -70,9 +72,13 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                  final ServerWebExchange exchange) {
 
         return digitalCourtesyMailRequest.doOnNext(request -> log.info("<-- START PRESA IN CARICO EMAIL -->"))
-                                         .flatMap(request -> emailService.presaInCarico(new EmailPresaInCaricoInfo(requestIdx,
-                                                                                                                   xPagopaExtchCxId,
-                                                                                                                   request)))
+                                         .flatMap(request -> emailService.presaInCarico(EmailPresaInCaricoInfo.builder()
+                                                                                                              .requestIdx(requestIdx)
+                                                                                                              .xPagopaExtchCxId(
+                                                                                                                      xPagopaExtchCxId)
+                                                                                                              .digitalCourtesyMailRequest(
+                                                                                                                      request)
+                                                                                                              .build()))
                                          .thenReturn(new ResponseEntity<>(OK));
     }
 

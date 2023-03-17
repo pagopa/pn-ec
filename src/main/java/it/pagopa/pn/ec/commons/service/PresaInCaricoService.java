@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.commons.service;
 
 import it.pagopa.pn.ec.commons.exception.RequestAlreadyInProgressException;
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import lombok.extern.slf4j.Slf4j;

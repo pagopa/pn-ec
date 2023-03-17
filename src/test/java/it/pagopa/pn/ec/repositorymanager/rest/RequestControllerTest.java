@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.repositorymanager.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.GestoreRepositoryEndpointProperties;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
+import it.pagopa.pn.ec.commons.model.pojo.request.RequestStatusChange;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
@@ -39,7 +40,7 @@ import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestPersonalDto.QosEnum.INTERACTIVE;
-import static org.mockito.Mockito.anyString;
+import static org.mockito.ArgumentMatchers.any;
 
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
@@ -184,7 +185,7 @@ class RequestControllerTest {
     @BeforeEach
     public void createDefaultRequestDto() {
         initializeRequestDto();
-        Mockito.when(callMacchinaStati.statusDecode(anyString(), anyString(), anyString()))
+        Mockito.when(callMacchinaStati.statusDecode(any(RequestStatusChange.class)))
                .thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto()));
     }
 
@@ -339,11 +340,11 @@ class RequestControllerTest {
         patchDto.setRetry(retry);
 
         webClient.patch()
-                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(DEFAULT_ID_DIGITAL))
-                .body(BodyInserters.fromValue(patchDto))
-                .exchange()
-                .expectStatus()
-                .isOk();
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(DEFAULT_ID_DIGITAL))
+                 .body(BodyInserters.fromValue(patchDto))
+                 .exchange()
+                 .expectStatus()
+                 .isOk();
     }
 
     private static Stream<Arguments> provideDigitalAndPaperRequestForDelete() {
@@ -409,8 +410,7 @@ class RequestControllerTest {
     @ValueSource(strings = {DEFAULT_ID_DIGITAL, DEFAULT_ID_PAPER})
     void updateMessageIdInRequestMetadataOk(String idRequest) {
         webClient.post()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
-                                              .build(idRequest))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata()).build(idRequest))
                  .exchange()
                  .expectStatus()
                  .isOk();

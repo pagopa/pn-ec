@@ -110,6 +110,11 @@
         </dependency>
         <!-- Finish EC WebClient dependencies -->
 
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>cloudwatch-metric-publisher</artifactId>
+		</dependency>
+
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>sns</artifactId>

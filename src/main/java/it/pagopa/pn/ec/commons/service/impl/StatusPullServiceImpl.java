@@ -1,9 +1,11 @@
 package it.pagopa.pn.ec.commons.service.impl;
 
+import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
+import it.pagopa.pn.ec.commons.model.pojo.request.RequestStatusChange;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -22,20 +25,21 @@ public class StatusPullServiceImpl implements StatusPullService {
     private final AuthService authService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final CallMacchinaStati callMacchinaStati;
+    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
     public StatusPullServiceImpl(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall,
-                                 CallMacchinaStati callMacchinaStati) {
+                                 CallMacchinaStati callMacchinaStati,
+                                 TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
         this.authService = authService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.callMacchinaStati = callMacchinaStati;
+        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
     @Override
-    public Mono<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId,
-                                                                 String processId) {
-        return getRequest(xPagopaExtchCxId, requestIdx).flatMap(object -> {
-            var requestDTO = (RequestDto) object;
-            var eventsList = requestDTO.getRequestMetadata().getEventsList();
+    public Mono<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId, String processId) {
+        return getRequest(xPagopaExtchCxId, requestIdx).flatMap(requestDto -> {
+            var eventsList = requestDto.getRequestMetadata().getEventsList();
             return checkEmptyList(eventsList);
         }).flatMap(eventDTO -> {
             var event = new CourtesyMessageProgressEvent();
@@ -55,24 +59,23 @@ public class StatusPullServiceImpl implements StatusPullService {
 
                 event.setGeneratedMessage(digitalMessageReference);
             }
-            return statusDecode(processId, digProgrStatus.getStatus().toLowerCase(), xPagopaExtchCxId)
-                    .map(object -> {
-                        var macchinaStatiDecodeResponseDto = (MacchinaStatiDecodeResponseDto) object;
-                        event.setStatus(ProgressEventCategory
-                                .valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
-                        event.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
-                        return event;
-                    });
-        }).switchIfEmpty(
-                Mono.just(new CourtesyMessageProgressEvent().eventCode("").eventDetails("").requestId("")));
+            return statusDecode(RequestStatusChange.builder()
+                                                   .xPagopaExtchCxId(xPagopaExtchCxId)
+                                                   .currentStatus(digProgrStatus.getStatus().toLowerCase())
+                                                   .processId(processId)
+                                                   .build()).map(macchinaStatiDecodeResponseDto -> {
+                event.setStatus(ProgressEventCategory.valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
+                event.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                return event;
+            });
+        }).switchIfEmpty(Mono.just(new CourtesyMessageProgressEvent().eventCode("").eventDetails("").requestId("")));
 
     }
 
     @Override
-    public Mono<LegalMessageSentDetails> pecPullService(String requestIdx, String xPagopaExtchCxId, String processId) {
-        return getRequest(xPagopaExtchCxId, requestIdx).flatMap(object -> {
-            var requestDTO = (RequestDto) object;
-            var eventsList = requestDTO.getRequestMetadata().getEventsList();
+    public Mono<LegalMessageSentDetails> pecPullService(String requestIdx, String xPagopaExtchCxId) {
+        return getRequest(xPagopaExtchCxId, requestIdx).flatMap(requestDto -> {
+            var eventsList = requestDto.getRequestMetadata().getEventsList();
             return checkEmptyList(eventsList);
         }).flatMap(eventDTO -> {
             var event = new LegalMessageSentDetails();
@@ -92,140 +95,148 @@ public class StatusPullServiceImpl implements StatusPullService {
 
                 event.setGeneratedMessage(digitalMessageReference);
             }
-            return statusDecode(processId, digProgrStatus.getStatus().toLowerCase(), xPagopaExtchCxId)
-                    .map(object -> {
-                        var macchinaStatiDecodeResponseDto = (MacchinaStatiDecodeResponseDto) object;
-                        if (macchinaStatiDecodeResponseDto.getExternalStatus() != null) {
-                            event.setStatus(ProgressEventCategory
-                                    .valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
-                            event.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
-                        }
-                        return event;
-                    });
+            return statusDecode(RequestStatusChange.builder()
+                                                   .xPagopaExtchCxId(xPagopaExtchCxId)
+                                                   .currentStatus(digProgrStatus.getStatus().toLowerCase())
+                                                   .processId(transactionProcessConfigurationProperties.pec())
+                                                   .build()).map(statiDecodeResponseDto -> {
+                if (statiDecodeResponseDto.getExternalStatus() != null) {
+                    event.setStatus(ProgressEventCategory.valueOf(statiDecodeResponseDto.getExternalStatus()));
+                    event.setEventCode(statiDecodeResponseDto.getLogicStatus());
+                }
+                return event;
+            });
         }).switchIfEmpty(Mono.just(new LegalMessageSentDetails().eventCode("").eventDetails("").requestId("")));
     }
 
     @Override
     public Mono<PaperProgressStatusEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
-        return getRequest(xPagopaExtchCxId, requestIdx).flatMap(object -> {
-                    var requestDTO = (RequestDto) object;
-                    var event = new PaperProgressStatusEvent();
-                    var eventsList = requestDTO.getRequestMetadata().getEventsList();
+        return getRequest(xPagopaExtchCxId, requestIdx).flatMap(requestDto -> {
+                                                           var event = new PaperProgressStatusEvent();
+                                                           var eventsList = requestDto.getRequestMetadata().getEventsList();
 
-                    // Se l'ultimo evento della lista esiste, viene costruito il suo DTO. Altrimenti
-                    // viene restituito un Mono.empty().
-                    if (eventsList != null && !eventsList.isEmpty()) {
-                        var eventDTO = eventsList.stream()
-                                .sorted((e1, e2) -> e1.getPaperProgrStatus().getStatusDateTime()
-                                        .compareTo(e2.getPaperProgrStatus().getStatusDateTime()))
-                                .skip(eventsList.size() - 1).findFirst().get();
+                                                           // Se l'ultimo evento della lista esiste, viene costruito il suo DTO. Altrimenti
+                                                           // viene restituito un Mono.empty().
+                                                           if (eventsList != null && !eventsList.isEmpty()) {
+                                                               var eventDTO = eventsList.stream()
+                                                                                        .sorted((e1, e2) -> e1.getPaperProgrStatus()
+                                                                                                              .getStatusDateTime()
+                                                                                                              .compareTo(e2.getPaperProgrStatus().getStatusDateTime()))
+                                                                                        .skip(eventsList.size() - 1)
+                                                                                        .findFirst()
+                                                                                        .get();
 
-                        var paperProgrStatus = eventDTO.getPaperProgrStatus();
+                                                               var paperProgrStatus = eventDTO.getPaperProgrStatus();
 
-                        event.setRequestId(requestIdx);
+                                                               event.setRequestId(requestIdx);
 
-                        event.setStatusDateTime(paperProgrStatus.getStatusDateTime());
-                        event.setDeliveryFailureCause(paperProgrStatus.getDeliveryFailureCause());
-                        event.setRegisteredLetterCode(paperProgrStatus.getRegisteredLetterCode());
+                                                               event.setStatusDateTime(paperProgrStatus.getStatusDateTime());
+                                                               event.setDeliveryFailureCause(paperProgrStatus.getDeliveryFailureCause());
+                                                               event.setRegisteredLetterCode(paperProgrStatus.getRegisteredLetterCode());
 
-                        var discoveredAddress = new DiscoveredAddress();
-                        var discoveredAddressDTO = paperProgrStatus.getDiscoveredAddress();
+                                                               var discoveredAddress = new DiscoveredAddress();
+                                                               var discoveredAddressDTO = paperProgrStatus.getDiscoveredAddress();
 
-                        if (discoveredAddressDTO != null) {
-                            discoveredAddress.setAddress(discoveredAddressDTO.getAddress());
-                            discoveredAddress.setAddressRow2(discoveredAddressDTO.getAddressRow2());
-                            discoveredAddress.setCap(discoveredAddressDTO.getCap());
-                            discoveredAddress.setCity(discoveredAddressDTO.getCity());
-                            discoveredAddress.setCity2(discoveredAddressDTO.getCity2());
-                            discoveredAddress.setCountry(discoveredAddressDTO.getCountry());
-                            discoveredAddress.setName(discoveredAddressDTO.getName());
-                            discoveredAddress.setNameRow2(discoveredAddressDTO.getNameRow2());
-                            discoveredAddress.setPr(discoveredAddressDTO.getPr());
-                        }
-                        event.setDiscoveredAddress(discoveredAddress);
+                                                               if (discoveredAddressDTO != null) {
+                                                                   discoveredAddress.setAddress(discoveredAddressDTO.getAddress());
+                                                                   discoveredAddress.setAddressRow2(discoveredAddressDTO.getAddressRow2());
+                                                                   discoveredAddress.setCap(discoveredAddressDTO.getCap());
+                                                                   discoveredAddress.setCity(discoveredAddressDTO.getCity());
+                                                                   discoveredAddress.setCity2(discoveredAddressDTO.getCity2());
+                                                                   discoveredAddress.setCountry(discoveredAddressDTO.getCountry());
+                                                                   discoveredAddress.setName(discoveredAddressDTO.getName());
+                                                                   discoveredAddress.setNameRow2(discoveredAddressDTO.getNameRow2());
+                                                                   discoveredAddress.setPr(discoveredAddressDTO.getPr());
+                                                               }
+                                                               event.setDiscoveredAddress(discoveredAddress);
 
-                        // Settiamo all'evento lo status NON ANCORA decodificato. La decodifica avverrà
-                        // successivamente.
-                        event.setStatusDescription(paperProgrStatus.getStatusDescription());
+                                                               // Settiamo all'evento lo status NON ANCORA decodificato. La decodifica
+                                                               // avverrà
+                                                               // successivamente.
+                                                               event.setStatusDescription(paperProgrStatus.getStatusDescription());
 
-                        var attachmentsListDTO = paperProgrStatus.getAttachments();
-                        var attachmentList = new ArrayList<AttachmentDetails>();
+                                                               var attachmentsListDTO = paperProgrStatus.getAttachments();
+                                                               var attachmentList = new ArrayList<AttachmentDetails>();
 
-                        if (attachmentsListDTO != null) {
-                            for (AttachmentsProgressEventDto attachmentDTO : attachmentsListDTO) {
+                                                               if (attachmentsListDTO != null) {
+                                                                   for (AttachmentsProgressEventDto attachmentDTO : attachmentsListDTO) {
 
-                                var attachment = new AttachmentDetails();
+                                                                       var attachment = new AttachmentDetails();
 
-                                attachment.setDate(attachmentDTO.getDate());
-                                attachment.setDocumentType(attachmentDTO.getDocumentType());
-                                attachment.setId(attachmentDTO.getId());
-                                attachment.setUrl(attachmentDTO.getUri());
+                                                                       attachment.setDate(attachmentDTO.getDate());
+                                                                       attachment.setDocumentType(attachmentDTO.getDocumentType());
+                                                                       attachment.setId(attachmentDTO.getId());
+                                                                       attachment.setUrl(attachmentDTO.getUri());
 
-                                attachmentList.add(attachment);
-                            }
-                        }
-                        event.setAttachments(attachmentList);
+                                                                       attachmentList.add(attachment);
+                                                                   }
+                                                               }
+                                                               event.setAttachments(attachmentList);
 
-                        event.setClientRequestTimeStamp(requestDTO.getClientRequestTimeStamp());
-                        event.setIun(requestDTO.getRequestMetadata().getPaperRequestMetadata().getIun());
-                        event.setProductType(
-                                requestDTO.getRequestMetadata().getPaperRequestMetadata().getProductType());
+                                                               event.setClientRequestTimeStamp(requestDto.getClientRequestTimeStamp());
+                                                               event.setIun(requestDto.getRequestMetadata().getPaperRequestMetadata().getIun());
+                                                               event.setProductType(requestDto.getRequestMetadata().getPaperRequestMetadata().getProductType());
 
-                        return Mono.just(event);
-                    } else {
-                        return Mono.empty();
-                    }
-                }).flatMap(event -> {
+                                                               return Mono.just(event);
+                                                           } else {
+                                                               return Mono.empty();
+                                                           }
+                                                       }).flatMap(event -> {
 
-                    // Decodifica dello stato della richiesta.
-                    return statusDecode("PAPER", event.getStatusDescription(), xPagopaExtchCxId)
-                            .map(object -> {
-                                var macchinaStatiDecodeResponseDto = (MacchinaStatiDecodeResponseDto) object;
-                                event.setStatusDescription(macchinaStatiDecodeResponseDto.getExternalStatus());
-                                event.setStatusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
-                                return event;
-                            });
-                })
+                                                           // Decodifica dello stato della richiesta.
+                                                           return statusDecode(RequestStatusChange.builder()
+                                                                                                  .xPagopaExtchCxId(xPagopaExtchCxId)
+                                                                                                  .currentStatus(event.getStatusDescription())
+                                                                                                  .processId(transactionProcessConfigurationProperties.paper())
+                                                                                                  .build()).map(macchinaStatiDecodeResponseDto -> {
+                                                               event.setStatusDescription(macchinaStatiDecodeResponseDto.getExternalStatus());
+                                                               event.setStatusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                                                               return event;
+                                                           });
+                                                       })
 
-                .switchIfEmpty(Mono.just(new PaperProgressStatusEvent().requestId(requestIdx).statusDescription("")
-                        .deliveryFailureCause("").productType("").statusCode("").statusDescription("").iun("")
-                        .registeredLetterCode("")));
+                                                       .switchIfEmpty(Mono.just(new PaperProgressStatusEvent().requestId(requestIdx)
+                                                                                                              .statusDescription("")
+                                                                                                              .deliveryFailureCause("")
+                                                                                                              .productType("")
+                                                                                                              .statusCode("")
+                                                                                                              .statusDescription("")
+                                                                                                              .iun("")
+                                                                                                              .registeredLetterCode("")));
 
     }
 
-    private Mono<MacchinaStatiDecodeResponseDto> statusDecode(String processId, String currStatus, String clientId) {
-        return callMacchinaStati
-                .statusDecode(processId, currStatus, clientId)
-                .handle((macchinaStatiDecodeResponseDto, sink) ->
-                        {
-                            if (macchinaStatiDecodeResponseDto.getExternalStatus() == null)
-                                sink.error(new StatusNotFoundException(currStatus));
-                            else sink.next(macchinaStatiDecodeResponseDto);
-                        }
-                );
+    private Mono<MacchinaStatiDecodeResponseDto> statusDecode(RequestStatusChange requestStatusChange) {
+        return callMacchinaStati.statusDecode(requestStatusChange).handle((macchinaStatiDecodeResponseDto, sink) -> {
+            if (macchinaStatiDecodeResponseDto.getExternalStatus() == null)
+                sink.error(new StatusNotFoundException(requestStatusChange.getCurrentStatus()));
+            else sink.next(macchinaStatiDecodeResponseDto);
+        });
     }
 
     private Mono<RequestDto> getRequest(String xPagopaExtchCxId, String requestIdx) {
-        return authService.clientAuth(xPagopaExtchCxId).then(gestoreRepositoryCall.getRichiesta(requestIdx))
-                .onErrorResume(RestCallException.ResourceNotFoundException.class,
-                        e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
-                .handle((requestDto, synchronousSink) -> {
-                    String requestClientID = requestDto.getxPagopaExtchCxId();
-                    if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId)) {
-                        synchronousSink.error(new ClientNotAuthorizedException(xPagopaExtchCxId));
-                    } else {
-                        synchronousSink.next(requestDto);
-                    }
+        return authService.clientAuth(xPagopaExtchCxId)
+                          .then(gestoreRepositoryCall.getRichiesta(requestIdx))
+                          .onErrorResume(RestCallException.ResourceNotFoundException.class,
+                                         e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
+                          .handle((requestDto, synchronousSink) -> {
+                              String requestClientID = requestDto.getxPagopaExtchCxId();
+                              if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId)) {
+                                  synchronousSink.error(new ClientNotAuthorizedException(xPagopaExtchCxId));
+                              } else {
+                                  synchronousSink.next(requestDto);
+                              }
 
-                });
+                          });
     }
 
     private Mono<EventsDto> checkEmptyList(List<EventsDto> eventsList) {
         if (eventsList != null && !eventsList.isEmpty()) {
             var eventDTO = eventsList.stream()
-                    .sorted((e1, e2) -> e1.getDigProgrStatus().getEventTimestamp()
-                            .compareTo(e2.getDigProgrStatus().getEventTimestamp()))
-                    .skip(eventsList.size() - 1).findFirst().get();
+                                     .sorted(Comparator.comparing(e -> e.getDigProgrStatus().getEventTimestamp()))
+                                     .skip(eventsList.size() - 1)
+                                     .findFirst()
+                                     .get();
             return Mono.just(eventDTO);
         } else {
             return Mono.empty();

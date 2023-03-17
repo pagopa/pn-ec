@@ -8,10 +8,10 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
@@ -24,11 +24,14 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.service.SesService.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.HTML;
@@ -36,7 +39,6 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageCont
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.EMAIL;
-import static java.time.OffsetDateTime.now;
 
 @Service
 @Slf4j
@@ -49,11 +51,19 @@ public class EmailService extends PresaInCaricoService {
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final EmailSqsQueueName emailSqsQueueName;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private final DownloadCall downloadCall;
 
-    protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
-                           SesService sesService, GestoreRepositoryCall gestoreRepositoryCall1, AttachmentServiceImpl attachmentService,
-                           NotificationTrackerSqsName notificationTrackerSqsName, EmailSqsQueueName emailSqsQueueName,
-                           TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+    protected EmailService(AuthService authService//
+            , GestoreRepositoryCall gestoreRepositoryCall//
+            , SqsService sqsService//
+            , SesService sesService//
+            , GestoreRepositoryCall gestoreRepositoryCall1//
+            , AttachmentServiceImpl attachmentService//
+            , NotificationTrackerSqsName notificationTrackerSqsName//
+            , EmailSqsQueueName emailSqsQueueName//
+            , TransactionProcessConfigurationProperties transactionProcessConfigurationProperties//
+            , DownloadCall downloadCall//
+    ) {
         super(authService, gestoreRepositoryCall);
         this.sqsService = sqsService;
         this.sesService = sesService;
@@ -62,12 +72,14 @@ public class EmailService extends PresaInCaricoService {
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.emailSqsQueueName = emailSqsQueueName;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+        this.downloadCall = downloadCall;
     }
 
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
-        EmailPresaInCaricoInfo emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
-        String xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
+
+        var emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
+
         var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         digitalNotificationRequest.setRequestId(presaInCaricoInfo.getRequestIdx());
 
@@ -76,21 +88,19 @@ public class EmailService extends PresaInCaricoService {
                                                                    presaInCaricoInfo.getXPagopaExtchCxId(),
                                                                    true)
 
-                                .then(insertRequestFromEmail(digitalNotificationRequest, xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException())))
+                                .then(insertRequestFromEmail(digitalNotificationRequest,
+                                                             emailPresaInCaricoInfo.getXPagopaExtchCxId()).onErrorResume(throwable -> Mono.error(
+                                        new EcInternalEndpointHttpException())))
 
                                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                                       new NotificationTrackerQueueDto(presaInCaricoInfo.getRequestIdx(),
-                                                                                                       presaInCaricoInfo.getXPagopaExtchCxId(),
-                                                                                                       now(),
-                                                                                                       transactionProcessConfigurationProperties.email(),
-                                                                                                       transactionProcessConfigurationProperties.emailStartStatus(),
-                                                                                                       "booked",
-                                                                                                       null)))
+                                                                       createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
+                                                                                                                transactionProcessConfigurationProperties.emailStartStatus(),
+                                                                                                                "booked",
+                                                                                                                new DigitalProgressStatusDto())))
 
                                 .flatMap(sendMessageResponse -> {
                                     DigitalCourtesyMailRequest.QosEnum qos =
                                             emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getQos();
-                                    emailPresaInCaricoInfo.setStatusAfterStart("booked");
                                     if (qos == INTERACTIVE) {
                                         return sqsService.send(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
                                     } else if (qos == BATCH) {
@@ -148,19 +158,30 @@ public class EmailService extends PresaInCaricoService {
         }
     }
 
+    private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
+
     private void processWithAttach(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgment acknowledgment) {
 
-        var requestId = emailPresaInCaricoInfo.getRequestIdx();
-        var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
 
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
         // Try to send EMAIL
-        attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), clientId, false)
-                         .map(this::convertiUrl)
+        attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), emailPresaInCaricoInfo.getXPagopaExtchCxId(), false)
+
+                        .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+
+                        .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
+
+                        .flatMap(fileDownloadResponse -> downloadCall.downloadFile(fileDownloadResponse.getDownload().getUrl()).retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                                .map(outputStream -> EmailAttachment.builder()
+                                        .nameWithExtension(fileDownloadResponse.getKey())
+                                        .content(outputStream)
+                                        .build()))
+
                          .collectList()
-                         .flatMap(attList -> {
+
+                        .flatMap(attList -> {
                              EmailField mailFld = compilaMail(digitalCourtesyMailRequest);
                              mailFld.setEmailAttachments(attList);
                              return sesService.send(mailFld);
@@ -170,15 +191,11 @@ public class EmailService extends PresaInCaricoService {
                          .flatMap(publishResponse -> {
                              generatedMessageDto.set(new GeneratedMessageDto().id(publishResponse.messageId()).system("systemPlaceholder"));
                              return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                    new NotificationTrackerQueueDto(requestId,
-                                                                                    clientId,
-                                                                                    now(),
-                                                                                    transactionProcessConfigurationProperties.email(),
-                                                                                    emailPresaInCaricoInfo.getStatusAfterStart(),
-                                                                                    "sent",
-                                                                                    // TODO: SET eventDetails
-                                                                                    "",
-                                                                                    generatedMessageDto.get()));
+                                                    createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
+                                                                                             "booked",
+                                                                                             "sent",
+                                                                                             new DigitalProgressStatusDto().generatedMessage(
+                                                                                                     generatedMessageDto.get())));
                          })
 
                          // Delete from queue
@@ -189,9 +206,7 @@ public class EmailService extends PresaInCaricoService {
 
                          // The maximum number of retries has ended
                          .onErrorResume(SesSendException.SesMaxRetriesExceededException.class,
-                                        sesMaxRetriesExceeded -> emailRetriesExceeded(acknowledgment,
-                                                                                      emailPresaInCaricoInfo,
-                                                                                      emailPresaInCaricoInfo.getStatusAfterStart()))
+                                        sesMaxRetriesExceeded -> emailRetriesExceeded(acknowledgment, emailPresaInCaricoInfo))
 
                          // An error occurred during SQS publishing to the Notification Tracker -> Publish to Errori EMAIL queue and
                          // notify to retry update status only
@@ -204,8 +219,6 @@ public class EmailService extends PresaInCaricoService {
 
     private void processOnlyBody(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgment acknowledgment) {
 
-        var requestId = emailPresaInCaricoInfo.getRequestIdx();
-        var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
 
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
@@ -219,15 +232,11 @@ public class EmailService extends PresaInCaricoService {
                   .flatMap(publishResponse -> {
                       generatedMessageDto.set(new GeneratedMessageDto().id(publishResponse.messageId()).system("systemPlaceholder"));
                       return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                             new NotificationTrackerQueueDto(requestId,
-                                                                             clientId,
-                                                                             now(),
-                                                                             transactionProcessConfigurationProperties.email(),
-                                                                             emailPresaInCaricoInfo.getStatusAfterStart(),
-                                                                             "sent",
-                                                                             // TODO: SET eventDetails
-                                                                             "",
-                                                                             generatedMessageDto.get()));
+                                             createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
+                                                                                      "booked",
+                                                                                      "sent",
+                                                                                      new DigitalProgressStatusDto().generatedMessage(
+                                                                                              generatedMessageDto.get())));
                   })
 
                   // Delete from queue
@@ -238,21 +247,15 @@ public class EmailService extends PresaInCaricoService {
 
                   // The maximum number of retries has ended
                   .onErrorResume(SesSendException.SesMaxRetriesExceededException.class,
-                                 sesMaxRetriesExceeded -> emailRetriesExceeded(acknowledgment,
-                                                                               emailPresaInCaricoInfo,
-                                                                               emailPresaInCaricoInfo.getStatusAfterStart()))
+                                 sesMaxRetriesExceeded -> emailRetriesExceeded(acknowledgment, emailPresaInCaricoInfo))
 
                   // An error occurred during SQS publishing to the Notification Tracker -> Publish to Errori EMAIL queue and
                   // notify to retry update status only
                   // TODO: CHANGE THE PAYLOAD
                   .onErrorResume(SqsPublishException.class,
-                                 sqsPublishException -> sqsService.send(emailSqsQueueName.errorName(), emailPresaInCaricoInfo))//
+                                 sqsPublishException -> sqsService.send(emailSqsQueueName.errorName(), emailPresaInCaricoInfo))
 
                   .subscribe();
-    }
-
-    private EmailAttachment convertiUrl(FileDownloadResponse resp) {
-        return EmailAttachment.builder().nameWithExtension(resp.getKey()).url(resp.getDownload().getUrl()).build();
     }
 
     private EmailField compilaMail(DigitalCourtesyMailRequest req) {
@@ -272,22 +275,14 @@ public class EmailService extends PresaInCaricoService {
     }
 
     private Mono<SendMessageResponse> emailRetriesExceeded(final Acknowledgment acknowledgment,
-                                                           final EmailPresaInCaricoInfo emailPresaInCaricoInfo, String currentStatus) {
-
-        var requestId = emailPresaInCaricoInfo.getRequestIdx();
-        var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
+                                                           final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
 
         // Publish to Notification Tracker with next status -> RETRY
         return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                               new NotificationTrackerQueueDto(requestId,
-                                                               clientId,
-                                                               now(),
-                                                               transactionProcessConfigurationProperties.email(),
-                                                               currentStatus,
-                                                               "retry",
-                                                               // TODO: SET eventDetails
-                                                               "",
-                                                               null))
+                               createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
+                                                                        "booked",
+                                                                        "retry",
+                                                                        new DigitalProgressStatusDto()))
 
                          // Publish to ERRORI EMAIL queue
                          .then(sqsService.send(emailSqsQueueName.errorName(), emailPresaInCaricoInfo))
