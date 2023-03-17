@@ -147,15 +147,14 @@ public class LocalStackTestConfig {
 
 
         allQueueName.forEach(queueName -> {
-            String fifoQueueName = queueName + ".fifo";
             try {
-                sqsClient.getQueueUrl(builder -> builder.queueName(fifoQueueName));
-                log.info("Queue {} already created on local stack sqs", fifoQueueName);
+                sqsClient.getQueueUrl(builder -> builder.queueName(queueName));
+                log.info("Queue {} already created on local stack sqs", queueName);
             } catch (QueueDoesNotExistException queueDoesNotExistException) {
-                log.info("Queue {} not found on first sqs init. Proceed to create", fifoQueueName);
+                log.info("Queue {} not found on first sqs init. Proceed to create", queueName);
                 Map<QueueAttributeName, String> fifoAttribute = new HashMap<>();
                 fifoAttribute.put(QueueAttributeName.FIFO_QUEUE, Boolean.TRUE.toString());
-                sqsClient.createQueue(builder -> builder.queueName(fifoQueueName).attributes(fifoAttribute));
+                sqsClient.createQueue(builder -> builder.queueName(queueName).attributes(fifoAttribute));
             }
         });
     }
