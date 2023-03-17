@@ -224,8 +224,6 @@ public class SmsService extends PresaInCaricoService {
         return new GeneratedMessageDto().id(publishResponse.messageId()).system("toBeDefined");
     }
 
-
-
     @Scheduled(cron = "${cron.value.gestione-retry-sms}")
     void gestioneRetrySmsScheduler() {
         log.info("<-- START GESTIONE RETRY SMS-->");
@@ -244,37 +242,22 @@ public class SmsService extends PresaInCaricoService {
 
     public Mono<DeleteMessageResponse> gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message) {
 
-        //log.info("<-- START GESTIONE ERRORI SMS -->");
-        //logIncomingMessage(smsSqsQueueName.errorName(), smsPresaInCaricoInfo);
         Policy retryPolicies = new Policy();
+
+        String toDelete = "toDelete";
 
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
         var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
 
         return gestoreRepositoryCall.getRichiesta(requestId)
-
-                .map(requestDto -> {
-                    if(Objects.equals(requestDto.getStatusRequest(), "toDelete")){
-                        sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                                createNotificationTrackerQueueDtoDigital(smsPresaInCaricoInfo,
-                                        "retry",
-                                        "deleted",
-                                        new DigitalProgressStatusDto()));
-
-
-//                        gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
-                        log.info("Il messaggio è stato rimosso dalla coda d'errore per stato toDelete: {}", smsSqsQueueName.errorName());
-                    }
-                    return requestDto;
-                })
-                .filter(requestDto -> {
-                    if(requestDto.getRequestMetadata().getRetry() != null) {
-
-                    }
-                    return true;
-                })
+//              check status toDelete
+                .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
+//              se status toDelete throw Error
+                .switchIfEmpty(Mono.error(new RetryAttemptsExceededExeption("La lunghezza del valore non è maggiore di 5")))
+//              check Id per evitare loop
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
+//              se il primo step, inizializza l'attributo retry
                 .flatMap(requestDto ->  {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
@@ -294,6 +277,7 @@ public class SmsService extends PresaInCaricoService {
                         return  Mono.just(requestDto);
                     }
                 })
+//              check retry policies
                 .filter(requestDto -> {
 
                     var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();
@@ -304,6 +288,7 @@ public class SmsService extends PresaInCaricoService {
                     long minutesToCheck = requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
                     return minutes >= minutesToCheck;
                 })
+//              patch con orario attuale e dello step retry
                 .flatMap(requestDto -> {
                     requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
                     requestDto.getRequestMetadata().getRetry().setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
@@ -311,6 +296,7 @@ public class SmsService extends PresaInCaricoService {
                     patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
                     return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
                 })
+//              Tentativo invio sms
                 .flatMap(requestDto -> {
                     log.info("requestDto Value:", requestDto.getRequestMetadata().getRetry());
 
@@ -353,8 +339,19 @@ public class SmsService extends PresaInCaricoService {
 
                                 }
                                 return Mono.empty();
-                            })
-                            ;
+                            });
+                })
+//              Catch errore tirato per lo stato toDelete
+                .onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
+                    log.info("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", smsSqsQueueName.errorName());
+                    return sqsService.send(notificationTrackerSqsName.statoSmsName()
+                            ,createNotificationTrackerQueueDtoDigital
+                                    (smsPresaInCaricoInfo
+                                            ,"retry"
+                                            ,"deleted"
+                                            ,new DigitalProgressStatusDto().generatedMessage(
+                                                    new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName()));
+
 
                 });
     }
