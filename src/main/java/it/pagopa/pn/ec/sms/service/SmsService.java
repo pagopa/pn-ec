@@ -256,10 +256,14 @@ public class SmsService extends PresaInCaricoService {
 
                 .map(requestDto -> {
                     if(Objects.equals(requestDto.getStatusRequest(), "toDelete")){
-                        requestDto.setStatusRequest("Deleted");
-                        PatchDto patchDto = new PatchDto();
-                        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                        gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
+                        sqsService.send(notificationTrackerSqsName.statoSmsName(),
+                                createNotificationTrackerQueueDtoDigital(smsPresaInCaricoInfo,
+                                        "retry",
+                                        "deleted",
+                                        new DigitalProgressStatusDto()));
+
+
+//                        gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
                         log.info("Il messaggio è stato rimosso dalla coda d'errore per stato toDelete: {}", smsSqsQueueName.errorName());
                     }
                     return requestDto;
