@@ -5,7 +5,7 @@ import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
-import it.pagopa.pn.ec.commons.model.pojo.RequestStatusChange;
+import it.pagopa.pn.ec.commons.model.pojo.request.RequestStatusChange;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -37,11 +37,11 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
                                                                         requestStatusChange.getCurrentStatus()))
                                     .retrieve()
                                     .bodyToMono(MacchinaStatiValidateStatoResponseDto.class)
-                                    .handle((macchinaStatiValidateStatoResponseDto, sink) -> {
+                                    .flatMap(macchinaStatiValidateStatoResponseDto -> {
                                         if (!macchinaStatiValidateStatoResponseDto.isAllowed()) {
-                                            sink.error(new InvalidNextStatusException(requestStatusChange));
+                                            return Mono.error(new InvalidNextStatusException(requestStatusChange));
                                         } else {
-                                            sink.next(macchinaStatiValidateStatoResponseDto);
+                                            return Mono.just(macchinaStatiValidateStatoResponseDto);
                                         }
                                     });
     }
