@@ -337,20 +337,17 @@ public class EmailService extends PresaInCaricoService {
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         var requestId = emailPresaInCaricoInfo.getRequestIdx();
         Policy retryPolicies = new Policy();
+        String toDelete = "toDelete";
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
         return gestoreRepositoryCall.getRichiesta(requestId)
-                .map(requestDto -> {
-                    if(Objects.equals(requestDto.getStatusRequest(), "toDelete")){
-                        sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                                createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
-                                        "retry",
-                                        "deleted",
-                                        new DigitalProgressStatusDto()));
-                    }
-                    return requestDto;
-                })
+//              check status toDelete
+                .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
+//              se status toDelete throw Error
+                .switchIfEmpty(Mono.error(new RetryAttemptsExceededExeption("La lunghezza del valore non è maggiore di 5")))
+//              check Id per evitare loop
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
+//              se il primo step, inizializza l'attributo retry
                 .flatMap(requestDto ->  {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
@@ -447,7 +444,19 @@ public class EmailService extends PresaInCaricoService {
                                     })
                                     ;
 
-                        });
+                        })//              Catch errore tirato per lo stato toDelete
+                .onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
+                    log.info("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", emailSqsQueueName.errorName());
+                    return sqsService.send(notificationTrackerSqsName.statoEmailName()
+                            ,createNotificationTrackerQueueDtoDigital
+                                    (emailPresaInCaricoInfo
+                                            ,"retry"
+                                            ,"deleted"
+                                            ,new DigitalProgressStatusDto().generatedMessage(
+                                                    new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
+
+
+                });
     }
 
     private Mono<DeleteMessageResponse> processOnlyBodyRerty(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message) {
@@ -456,7 +465,7 @@ public class EmailService extends PresaInCaricoService {
         var requestId = emailPresaInCaricoInfo.getRequestIdx();
         Policy retryPolicies = new Policy();
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
-
+        String toDelete = "toDelete";
         // Try to send EMAIL
         EmailField mailFld = compilaMail(digitalCourtesyMailRequest);
 
@@ -464,21 +473,13 @@ public class EmailService extends PresaInCaricoService {
 
         return gestoreRepositoryCall.getRichiesta(requestId)
 
-                .map(requestDto -> {
-                    if(Objects.equals(requestDto.getStatusRequest(), "toDelete")){
-                        sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                                createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
-                                        "retry",
-                                        "deleted",
-                                        new DigitalProgressStatusDto()));
-
-
-//                        gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
-                        log.info("Il messaggio è stato rimosso dalla coda d'errore per stato toDelete: {}", emailSqsQueueName.errorName());
-                    }
-                    return requestDto;
-                })
+//              check status toDelete
+                .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
+//              se status toDelete throw Error
+                .switchIfEmpty(Mono.error(new RetryAttemptsExceededExeption("La lunghezza del valore non è maggiore di 5")))
+//              check Id per evitare loop
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
+//              se il primo step, inizializza l'attributo retry
                 .flatMap(requestDto ->  {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
@@ -551,6 +552,17 @@ public class EmailService extends PresaInCaricoService {
                                return Mono.empty();
                            })
                            ;
+
+                })            .onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
+                    log.info("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", emailSqsQueueName.errorName());
+                    return sqsService.send(notificationTrackerSqsName.statoEmailName()
+                            ,createNotificationTrackerQueueDtoDigital
+                                    (emailPresaInCaricoInfo
+                                            ,"retry"
+                                            ,"deleted"
+                                            ,new DigitalProgressStatusDto().generatedMessage(
+                                                    new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
+
 
                 });
 
