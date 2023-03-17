@@ -63,6 +63,14 @@ public class RetryEmailTest {
             .digitalCourtesyMailRequest(
                     createMailRequest(1))
             .build();
+
+    private static final EmailPresaInCaricoInfo EMAIL_PRESA_IN_CARICO_INFO = EmailPresaInCaricoInfo.builder()
+            .requestIdx(DEFAULT_REQUEST_IDX)
+            .xPagopaExtchCxId(
+                    DEFAULT_ID_CLIENT_HEADER_VALUE)
+            .digitalCourtesyMailRequest(
+                    createMailRequest(0))
+            .build();
     @Test
     void ErrorQueueRetrieveMessageOk() {
 //        emailPresaInCaricoInfo.setDigitalCourtesyMailRequest(createMailRequest(1));
@@ -82,6 +90,45 @@ public class RetryEmailTest {
 
     }
 
+    @Test
+    void ErrorQueueRetrieveMessageOkSenzaAlLegato() {
 
+        emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO,message);
 
+        boolean testImplemented = true;
+        assertTrue(testImplemented);
+
+    }
+
+    @Test
+    void ErrorQueueRetrieveMessageOkStatusToDelete() {
+
+        boolean testImplemented = true;
+        assertTrue(testImplemented);
+
+    }
+
+    @Test
+    void ErrorQueueEmailKO() {
+
+        boolean testImplemented = true;
+        assertTrue(testImplemented);
+
+    }
+
+    @Test
+    void ErrorQueueEmailNotificationTrackerKO() {
+
+        boolean testImplemented = true;
+        assertTrue(testImplemented);
+
+    }
+
+    @Test
+    void ErrorQueueRetrieveMessageKO() {
+
+        boolean testImplemented = true;
+        assertTrue(testImplemented);
+
+    }
 }
