@@ -422,29 +422,31 @@ public class EmailService extends PresaInCaricoService {
                                                                 "booked",
                                                                 "sent",
                                                                 new DigitalProgressStatusDto().generatedMessage(
-                                                                        generatedMessageDto.get())))
-                                                .onErrorResume(sqsPublishException -> {
-                                                            if (idSaved == null) {
-                                                                idSaved = requestId;
-                                                            }
-                                                    if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
-                                                        // operazioni per la rimozione del messaggio
-                                                        log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", emailSqsQueueName.errorName());
-                                                        return Mono.error(new RetryAttemptsExceededExeption(message.messageId())); //creare eccezione
-                                                        //sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
-                                                    }
-                                                    return Mono.empty();
-                                                })
-                                    )
-
-
-                                    //.filter(response -> response != null) // Filtra solo i messaggi che non hanno generato errori*/
+                                                                        generatedMessageDto.get()))))
                                     .flatMap(sendMessageResponse -> {
                                         log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore", emailSqsQueueName.errorName());
                                         return sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName());
                                     })
-                                    //inserire come primo argomento l'eccezione custom
-                                    .onErrorResume(RetryAttemptsExceededExeption.class, throwable -> sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
+                                    .onErrorResume(sqsPublishException -> {
+                                        if (idSaved == null) {
+                                            idSaved = requestId;
+                                        }
+                                        if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
+                                            // operazioni per la rimozione del messaggio
+                                            log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", emailSqsQueueName.errorName());
+                                            return sqsService.send(notificationTrackerSqsName.statoEmailName()
+                                                    ,createNotificationTrackerQueueDtoDigital
+                                                            (emailPresaInCaricoInfo
+                                                                    ,"retry"
+                                                                    ,"error"
+                                                                    ,new DigitalProgressStatusDto().generatedMessage(
+                                                                            new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
+
+                                        }
+                                        return Mono.empty();
+                                    })
+                                    ;
+
                         });
     }
 
@@ -461,6 +463,7 @@ public class EmailService extends PresaInCaricoService {
 
 
         return gestoreRepositoryCall.getRichiesta(requestId)
+
                 .map(requestDto -> {
                     if(Objects.equals(requestDto.getStatusRequest(), "toDelete")){
                         sqsService.send(notificationTrackerSqsName.statoSmsName(),
@@ -469,11 +472,12 @@ public class EmailService extends PresaInCaricoService {
                                         "deleted",
                                         new DigitalProgressStatusDto()));
 
+
+//                        gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
                         log.info("Il messaggio è stato rimosso dalla coda d'errore per stato toDelete: {}", emailSqsQueueName.errorName());
                     }
                     return requestDto;
                 })
-
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
                 .flatMap(requestDto ->  {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
@@ -483,16 +487,15 @@ public class EmailService extends PresaInCaricoService {
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         retryDto.setLastRetryTimestamp(OffsetDateTime.now());
                         requestDto.getRequestMetadata().setRetry(retryDto);
+                        PatchDto patchDto = new PatchDto();
+                        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                        return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
                         log.info(retryNumber + " tentativo di Retry");
+                        return  Mono.just(requestDto);
                     }
-
-                    PatchDto patchDto = new PatchDto();
-                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-
-                    return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
                 })
                 .filter(requestDto -> {
 
@@ -511,7 +514,6 @@ public class EmailService extends PresaInCaricoService {
                     patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
                     return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
                 })
-
                 .flatMap(requestDto -> {
                     log.info("requestDto Value:", requestDto.getRequestMetadata().getRetry());
                    return   sesService.send(mailFld)
@@ -524,30 +526,34 @@ public class EmailService extends PresaInCaricoService {
                                                 "booked",
                                                 "sent",
                                                 new DigitalProgressStatusDto().generatedMessage(
-                                                        generatedMessageDto.get())))
+                                                        generatedMessageDto.get()))))
 
-                                                .onErrorResume(sqsPublishException -> {
-                                                    if (idSaved == null) {
-                                                        idSaved = requestId;
-                                                    }
-                                                    if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
-                                                        // operazioni per la rimozione del messaggio
-                                                        log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", emailSqsQueueName.errorName());
-                                                        return Mono.error(new RetryAttemptsExceededExeption(message.messageId())); //creare eccezione
-                                                        //sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
-                                                    }
-                                                    return Mono.empty();
-                                                })
-                            )
                            .flatMap(sendMessageResponse -> {
                                log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore", emailSqsQueueName.errorName());
                                return sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName());
                            })
+                           .onErrorResume(sqsPublishException -> {
+                               if (idSaved == null) {
+                                   idSaved = requestId;
+                               }
+                               if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
+                                   // operazioni per la rimozione del messaggio
+                                   log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", emailSqsQueueName.errorName());
+                                   return sqsService.send(notificationTrackerSqsName.statoEmailName()
+                                           ,createNotificationTrackerQueueDtoDigital
+                                                   (emailPresaInCaricoInfo
+                                                           ,"retry"
+                                                           ,"error"
+                                                           ,new DigitalProgressStatusDto().generatedMessage(
+                                                                   new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
 
-
-                           .onErrorResume(RetryAttemptsExceededExeption.class, throwable -> sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
+                               }
+                               return Mono.empty();
+                           })
+                           ;
 
                 });
+
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(SendRawEmailResponse publishResponse) {
