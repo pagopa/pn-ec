@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.notificationtracker.service.impl;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -24,15 +23,13 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final CallMacchinaStati callMachinaStati;
     private final SqsService sqsService;
-    private final ObjectMapper objectMapper;
 
     public NotificationTrackerServiceImpl(PutEvents putEvents, GestoreRepositoryCall gestoreRepositoryCall,
-                                          CallMacchinaStati callMachinaStati, SqsService sqsService, ObjectMapper objectMapper) {
+                                          CallMacchinaStati callMachinaStati, SqsService sqsService) {
         this.putEvents = putEvents;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.callMachinaStati = callMachinaStati;
         this.sqsService = sqsService;
-        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -61,21 +58,25 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                })
                                .filter(objects -> objects.getT1().getLogicStatus() != null)
                                .flatMap(objects -> {
+
+                                   var lastEventIndex = objects.getT2().getRequestMetadata().getEventsList().size()-1;
+
                                    if(notificationTrackerQueueDto.getDigitalProgressStatusDto()!= null) {
 
                                        var digitalMessageProgressEvent = new BaseMessageProgressEvent();
                                        digitalMessageProgressEvent.setRequestId(objects.getT2().getRequestIdx());
-                                       var lastDigitalIndex = objects.getT2().getRequestMetadata().getEventsList().size()-1;
-                                       var lastEventUpdatedDigital = objects.getT2().getRequestMetadata().getEventsList().get(lastDigitalIndex).getDigProgrStatus();
+                                       var lastEventUpdatedDigital = objects.getT2().getRequestMetadata().getEventsList().get(lastEventIndex).getDigProgrStatus();
                                        digitalMessageProgressEvent.setEventTimestamp(lastEventUpdatedDigital.getEventTimestamp());
                                        var status = Enum.valueOf(ProgressEventCategory.class, objects.getT1().getExternalStatus());
                                        digitalMessageProgressEvent.setStatus(status);
                                        digitalMessageProgressEvent.setEventCode(objects.getT1().getLogicStatus());
                                        digitalMessageProgressEvent.setEventDetails(lastEventUpdatedDigital.getEventDetails());
+
+                                       var generatedMessage = lastEventUpdatedDigital.getGeneratedMessage();
                                        var digitalMessageReference = new DigitalMessageReference();
-                                       digitalMessageReference.setId(lastEventUpdatedDigital.getGeneratedMessage().getId());
-                                       digitalMessageReference.setSystem(lastEventUpdatedDigital.getGeneratedMessage().getSystem());
-                                       digitalMessageReference.setLocation(lastEventUpdatedDigital.getGeneratedMessage().getLocation());
+                                       digitalMessageReference.setId(generatedMessage.getId());
+                                       digitalMessageReference.setSystem(generatedMessage.getSystem());
+                                       digitalMessageReference.setLocation(generatedMessage.getLocation());
                                        digitalMessageProgressEvent.setGeneratedMessage(digitalMessageReference);
 
                                        return putEvents.putEventExternal(digitalMessageProgressEvent, notificationTrackerQueueDto.getProcessId());
@@ -84,8 +85,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                        var paperProgressEvent = new PaperProgressStatusEvent();
                                        paperProgressEvent.setRequestId(objects.getT2().getRequestIdx());
-                                       var lastPaperIndex = objects.getT2().getRequestMetadata().getEventsList().size()-1;
-                                       var lastEventUpdatedPaper = objects.getT2().getRequestMetadata().getEventsList().get(lastPaperIndex).getPaperProgrStatus();
+                                       var lastEventUpdatedPaper = objects.getT2().getRequestMetadata().getEventsList().get(lastEventIndex).getPaperProgrStatus();
                                        paperProgressEvent.setRegisteredLetterCode(lastEventUpdatedPaper.getRegisteredLetterCode());
                                        var paperRequest = objects.getT2().getRequestMetadata().getPaperRequestMetadata();
                                        paperProgressEvent.setProductType(paperRequest.getProductType());
