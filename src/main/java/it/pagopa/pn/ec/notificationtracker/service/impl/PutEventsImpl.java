@@ -32,12 +32,12 @@ public class PutEventsImpl implements PutEvents {
     }
 
     @Override
-    public Mono<PutEventsResponse> putEventExternal(final NotificationTrackerQueueDto notificationTrackerQueueDto) {
+    public <T>Mono<PutEventsResponse> putEventExternal(final T objectToNotify, String processId) {
         return Mono.fromCallable(() -> PutEventsRequestEntry.builder()
                                                             .time(new Date().toInstant())
                                                             .source("NOTIFICATION TRACKER")
-                                                            .detailType(notificationTrackerQueueDto.getProcessId())
-                                                            .detail(objectMapper.writeValueAsString(notificationTrackerQueueDto))
+                                                            .detailType(processId)
+                                                            .detail(objectMapper.writeValueAsString(objectToNotify))
                                                             .eventBusName(notificationTrackerEventBridgeEventName.notificationsBusName())
                                                             .build()).flatMap(putEventsRequestEntry -> {
             log.info("Publish to event bridge with PutEventsRequestEntry ↓\n{}", putEventsRequestEntry);
