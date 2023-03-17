@@ -96,12 +96,12 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
                     // Id del client
                     String clientID = retrieveRequestMetadata.getXPagopaExtchCxId();
-                    // Stato generale della richiesta
-                    String generalStatus = null;
                     // Stato dell'evento da convertire
                     String statusToConvert;
                     // process ID (es. PEC, SMS ecc.)
                     String processID;
+                    // Indica se lo stato generale può essere aggiornato o meno.
+                    boolean canUpdateStatus = true;
 
                     // lista eventi metadata
                     List<Events> eventsList = retrieveRequestMetadata.getEventsList();
@@ -140,20 +140,14 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                                     if (eve.getDigProgrStatus().getEventTimestamp().isAfter(patch.getEvent()
                                             .getDigProgrStatus()
                                             .getEventTimestamp())) {
-                                        generalStatus = null;
+                                        canUpdateStatus = false;
                                         break;
-                                    } else if (eve.getDigProgrStatus().getEventTimestamp().isBefore(patch.getEvent()
-                                            .getDigProgrStatus()
-                                            .getEventTimestamp()))
-                                        generalStatus = patch.getEvent().getDigProgrStatus().getStatus();
+                                    }
                                 }
                             }
-                            // Se la lista eventi è nulla, viene automaticamente aggiornato lo stato della
-                            // richiesta.
-                            else {
-                                generalStatus = patch.getEvent().getDigProgrStatus().getStatus();
-                                retrieveRequestMetadata.setStatusRequest(generalStatus);
-                            }
+                            if (canUpdateStatus)
+                                retrieveRequestMetadata.setStatusRequest(patch.getEvent().getDigProgrStatus().getStatus());
+
                             processID = retrieveRequestMetadata.getDigitalRequestMetadata().getChannel();
                         }
 
@@ -163,6 +157,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                             statusToConvert = patch.getEvent().getPaperProgrStatus().getStatusDescription();
 
                             if (eventsList != null) {
+
                                 // Controlla se l'evento che stiamo inserendo viene temporalmente prima degli
                                 // eventi già presenti.
                                 // In tal caso, non aggiorna lo stato della richiesta.
@@ -171,27 +166,16 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                                     if (eve.getPaperProgrStatus().getStatusDateTime().isAfter(patch.getEvent()
                                             .getPaperProgrStatus()
                                             .getStatusDateTime())) {
-                                        generalStatus = null;
+                                        canUpdateStatus = false;
                                         break;
-                                    } else if (eve.getPaperProgrStatus().getStatusDateTime().isBefore(patch.getEvent()
-                                            .getPaperProgrStatus()
-                                            .getStatusDateTime()))
-                                        generalStatus = patch.getEvent().getPaperProgrStatus().getStatusDescription();
+                                    }
                                 }
                             }
-                            // Se la lista eventi è nulla, viene automaticamente aggiornato lo stato della
-                            // richiesta.
-                            else {
-                                generalStatus = patch.getEvent().getPaperProgrStatus().getStatusDescription();
-                                retrieveRequestMetadata.setStatusRequest(generalStatus);
-                            }
+                            if (canUpdateStatus)
+                                retrieveRequestMetadata.setStatusRequest(patch.getEvent().getPaperProgrStatus().getStatusDescription());
 
                             processID = transactionProcessConfigurationProperties.paper();
 
-                        }
-
-                        if (generalStatus != null) {
-                            retrieveRequestMetadata.setStatusRequest(generalStatus);
                         }
 
                         // Conversione da stato tecnico a stato logico.
