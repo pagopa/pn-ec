@@ -20,10 +20,13 @@ import it.pec.bridgews.GetMessages;
 import it.pec.bridgews.MesArrayOfMessages;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
+
+import java.time.Duration;
 
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.getDomainFromAddress;
@@ -43,6 +46,9 @@ public class ScaricamentoEsitiPecScheduler {
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final ArubaSecretValue arubaSecretValue;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+
+    @Value("${scaricamento-esiti-pec.processing-rate}")
+    private String processingRate;
 
     public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService,
                                          GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati,
@@ -82,6 +88,9 @@ public class ScaricamentoEsitiPecScheduler {
 //               Conversione a stringa
                  .map(String::new)
 
+//               Emit a PEC every x milliseconds. Slow down the time between one PEC processing and another
+                 .delayElements(Duration.ofMillis(Long.parseLong(processingRate)))
+
                  .doOnNext(pecId -> log.info("Processing PEC with id {}", pecId))
 
 //               Per ogni messaggio trovato, chiamata a getAttach per il download di daticert.xml
@@ -102,7 +111,7 @@ public class ScaricamentoEsitiPecScheduler {
 //                           Deserialize daticert.xml. Start a new Mono inside the flatMap
                              return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(getAttachResponse.getAttach()))
 
-//                                      Escludere questi daticert
+//                                      Escludere queste PEC. Non sono delle 'comunicazione esiti'
                                         .filter(postacert -> !postacert.getTipo().equals(POSTA_CERTIFICATA))
                                         .doOnDiscard(Postacert.class,
                                                      postacert -> log.info("PEC {} discarded, is {}", pecId, POSTA_CERTIFICATA))
@@ -116,6 +125,7 @@ public class ScaricamentoEsitiPecScheduler {
                                             return postacert;
                                         })
 
+//                                      Escludere queste PEC. Non avendo il msgid terminante con il dominio pago non sono state inviate da noi
                                         .filter(postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN))
 
 //                                      Chiamata al gestore repository di EC tramite un messageId PEC. Zip the result with the previous Mono
@@ -206,7 +216,6 @@ public class ScaricamentoEsitiPecScheduler {
                  .onErrorContinue(InvalidNextStatusException.class, (throwable, o) -> log.debug(throwable.getMessage()))
                  .onErrorContinue((throwable, object) -> log.error(throwable.getMessage(), throwable))
 
-                 // TODO: LA STRATEGIA DI SOTTOSCRIZIONE POTREBBE ESSERE PIÙ PERFORMANTE
                  .subscribe();
     }
 }
