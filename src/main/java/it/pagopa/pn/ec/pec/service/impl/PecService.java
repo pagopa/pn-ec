@@ -8,10 +8,9 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
-import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
-import it.pagopa.pn.ec.commons.model.pojo.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -29,18 +28,16 @@ import it.pec.bridgews.SendMailResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
-import java.time.Duration;
-
 import static it.pagopa.pn.ec.commons.configuration.retry.RetryStrategy.DEFAULT_BACKOFF_RETRY_STRATEGY;
+import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
+import static it.pagopa.pn.ec.commons.utils.EmailUtils.getDomainFromAddress;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
-import static java.time.OffsetDateTime.now;
 
 @Service
 @Slf4j
@@ -184,7 +181,8 @@ public class PecService extends PresaInCaricoService {
 //                              Convert to Mono<List>
                                 .collectList()
 
-//                              Create EmailField object with request info and attachments. If there are no attachments fileDownloadResponses is empty
+//                              Create EmailField object with request info and attachments. If there are no attachments
+//                              fileDownloadResponses is empty
                                 .map(fileDownloadResponses -> EmailField.builder()
                                                                         .msgId(encodeMessageId(requestIdx, xPagopaExtchCxId))
                                                                         .from(arubaSecretValue.getPecUsername())
