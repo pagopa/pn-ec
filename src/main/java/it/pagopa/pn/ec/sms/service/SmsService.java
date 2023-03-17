@@ -14,6 +14,7 @@ import it.pagopa.pn.ec.commons.exception.RetryAttemptsExceededExeption;
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
 import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.policy.Policy;
@@ -254,7 +255,7 @@ public class SmsService extends PresaInCaricoService {
 //              check status toDelete
                 .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
 //              se status toDelete throw Error
-                .switchIfEmpty(Mono.error(new RetryAttemptsExceededExeption("La lunghezza del valore non è maggiore di 5")))
+                .switchIfEmpty(Mono.error(new StatusToDeleteException(requestId)))
 //              check Id per evitare loop
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
 //              se il primo step, inizializza l'attributo retry
@@ -342,7 +343,7 @@ public class SmsService extends PresaInCaricoService {
                             });
                 })
 //              Catch errore tirato per lo stato toDelete
-                .onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
+                .onErrorResume(StatusToDeleteException.class, exeption -> {
                     log.info("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", smsSqsQueueName.errorName());
                     return sqsService.send(notificationTrackerSqsName.statoSmsName()
                             ,createNotificationTrackerQueueDtoDigital
