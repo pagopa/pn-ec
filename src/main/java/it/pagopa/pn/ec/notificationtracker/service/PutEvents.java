@@ -6,5 +6,5 @@ import software.amazon.awssdk.services.eventbridge.model.PutEventsResponse;
 
 public interface PutEvents {
 
-    Mono<PutEventsResponse> putEventExternal(NotificationTrackerQueueDto notificationTrackerQueueDto);
+    <T>Mono<PutEventsResponse> putEventExternal(T objectToNotify, String processId);
 }
