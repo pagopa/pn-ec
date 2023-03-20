@@ -26,8 +26,6 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
-import java.time.Duration;
-
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.getDomainFromAddress;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
@@ -87,9 +85,6 @@ public class ScaricamentoEsitiPecScheduler {
 
 //               Conversione a stringa
                  .map(String::new)
-
-//               Emit a PEC every x milliseconds. Slow down the time between one PEC processing and another
-                 .delayElements(Duration.ofMillis(Long.parseLong(processingRate)))
 
                  .doOnNext(pecId -> log.info("Processing PEC with id {}", pecId))
 
