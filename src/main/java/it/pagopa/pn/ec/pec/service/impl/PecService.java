@@ -277,32 +277,25 @@ public class PecService extends PresaInCaricoService {
 
     Mono<DeleteMessageResponse> gestioneRetryPec(final PecPresaInCaricoInfo pecPresaInCaricoInfo, Message message) {
 
-        log.info("<-- START GESTIONE ERRORI PEC -->");
         logIncomingMessage(pecSqsQueueName.errorName(), pecPresaInCaricoInfo);
         Policy retryPolicies = new Policy();
 
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
+        String toDelete = "toDelete";
         return gestoreRepositoryCall.getRichiesta(requestIdx)
-
-                .map(requestDto -> {
-                    if (Objects.equals(requestDto.getStatusRequest(), "toDelete")) {
-                        sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                                createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
-                                        "retry",
-                                        "deleted",
-                                        new DigitalProgressStatusDto()));
-
-                        log.info("Il messaggio è stato rimosso dalla coda d'errore per stato toDelete: {}", pecSqsQueueName.errorName());
-                    }
-                    return requestDto;
-                })
+//              check status toDelete
+                .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
+//              se status toDelete throw Error
+                .switchIfEmpty(Mono.error(new RetryAttemptsExceededExeption("La lunghezza del valore non è maggiore di 5")))
+//              check Id per evitare loop
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
-                .flatMap(requestDto -> {
-                    if (requestDto.getRequestMetadata().getRetry() == null) {
+//              se il primo step, inizializza l'attributo retry
+                .flatMap(requestDto ->  {
+                    if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        retryDto.setRetryPolicy(retryPolicies.getPolyicy().get("PEC"));
+                        retryDto.setRetryPolicy(retryPolicies.getPolyicy().get("EMAIL"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         retryDto.setLastRetryTimestamp(OffsetDateTime.now());
                         requestDto.getRequestMetadata().setRetry(retryDto);
@@ -393,7 +386,11 @@ public class PecService extends PresaInCaricoService {
                                                     "booked",
                                                     "sent",
                                                     new DigitalProgressStatusDto().generatedMessage(
-                                                            objects.getT1())))
+                                                            objects.getT1()))))
+                                    .flatMap(sendMessageResponse -> {
+                                        log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore", pecSqsQueueName.errorName());
+                                        return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName());
+                                    })
                                     .onErrorResume(sqsPublishException -> {
                                         if (idSaved == null) {
                                             idSaved = requestIdx;
@@ -401,19 +398,31 @@ public class PecService extends PresaInCaricoService {
                                         if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
                                             // operazioni per la rimozione del messaggio
                                             log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", pecSqsQueueName.errorName());
-                                            return Mono.error(new RetryAttemptsExceededExeption(message.messageId())); //creare eccezione
-                                            //sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
+                                            return sqsService.send(notificationTrackerSqsName.statoEmailName()
+                                                    ,createNotificationTrackerQueueDtoDigital
+                                                            (pecPresaInCaricoInfo
+                                                                    ,"retry"
+                                                                    ,"error"
+                                                                    ,new DigitalProgressStatusDto().generatedMessage(
+                                                                            new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName()));
+
                                         }
                                         return Mono.empty();
                                     })
-                            )
-                            //.filter(response -> response != null) // Filtra solo i messaggi che non hanno generato errori*/
-                            .flatMap(sendMessageResponse -> {
-                                log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore", pecSqsQueueName.errorName());
-                                return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName());
-                            })
-                            //inserire come primo argomento l'eccezione custom
-                            .onErrorResume(RetryAttemptsExceededExeption.class, throwable -> sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName()));
+                            ;
+
+                })//              Catch errore tirato per lo stato toDelete
+                .onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
+                    log.info("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", pecSqsQueueName.errorName());
+                    return sqsService.send(notificationTrackerSqsName.statoEmailName()
+                            ,createNotificationTrackerQueueDtoDigital
+                                    (pecPresaInCaricoInfo
+                                            ,"retry"
+                                            ,"deleted"
+                                            ,new DigitalProgressStatusDto().generatedMessage(
+                                                    new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName()));
+
+
                 });
     }
 }
