@@ -120,8 +120,80 @@ paths:
               schema:
                 $ref: '#/components/schemas/OperationResultCodeResponse' 
 
+  /consolidatore-ingress/v1/get-attachment/{fileKey}:
+    get:
+      summary: ottieni metadati e contenuto di un file.
+      description: |-
+        Con questa API è possibile ottenere le informazioni necessarie al download del contenuto del file;
+        tali informazioni sono contenute nel campo _download_. <br/>
+          - _url_: se il contenuto del file è immediatamente disponibile questo campo viene 
+            valorizzato con un URL da invocare in GET per ottenere il contenuto del file. <br/>
+          - _retryAfter_: valorizzato se il contenuto del file è stato archiviato in glacier. 
+            Indica una stima del tempo necessario per recuperare il file. <br/>
+        
+        Se il file non è pronto al momento dell'invocazione il campo _download.url_ della risposta
+        verrà valorizzato ```null```; in un secondo momento, quando il contenuto del file sarà 
+        pronto verrà comunicato un evento al client che ha invocato la chiamata. Molteplici 
+        invocazioni di questa API generano un solo evento per client. <br/>
+        Il file rimane hot per ```stayHotTime````.
+      parameters:
+        - $ref: '#/components/parameters/fileKey'
+        - $ref: '#/components/parameters/xPagopaExtchServiceId'
+        - $ref: '#/components/parameters/xPagopaExtchApiKey'
+      tags:
+        - Consolidatore
+      operationId: getFile
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileDownloadResponse'
+              examples:
+                hotFile:
+                  summary: File pronto per il download
+                  value:
+                    key: 'random/path/of/the/file'
+                    versionId: '3Z9SdhZ50PBeIj617KEMrztNKDMJj8FZ'
+                    contentType: 'application/pdf'
+                    contentLength: 30438
+                    checksum: '91375e9e5a9510087606894437a6a382fa5bc74950f932e2b85a788303cf5ba0'
+                    retentionUntil: '2032-04-12T12:32:04.000Z'
+                    documentType: PN_LEGALFACT
+                    documentStatus: SAVED
+                    download:
+                      url: 'https://presignedurldemo.s3.eu-west-2.amazonaws.com/...'
+                coldFile:
+                  summary: File su glacier.
+                  description: Il file è stato archiviato. Verrà recuperato in 24 ore.
+                  value:
+                    key: 'random/path/of/the/file'
+                    versionId: '3Z9SdhZ50PBeIj617KEMrztNKDMJj8FZ'
+                    contentType: 'application/pdf'
+                    contentLength: 30438
+                    checksum: '91375e9e5a9510087606894437a6a382fa5bc74950f932e2b85a788303cf5ba0'
+                    retentionUntil: '2032-04-12T12:32:04.000Z'
+                    documentType: PN_LEGALFACT
+                    documentStatus: SAVED
+                    download:
+                      retryAfter: 86400
+        '404':
+          description: >-
+            Non trovato. Restituito se: <br/>
+            - il parametro clientId è diverso dal client autenticato; <br/>
+            - se il file identificato da fileKey non è ancora stato salvato; <br/>
+
 components:
   parameters:
+    fileKey: 
+      name: fileKey
+      description: La chiave definita per il file di cui si sta richiedendo il download
+      in: path
+      required: true
+      schema:
+        type: string
+      example: '8F7E/9A3B/1234/AB87'
     xPagopaExtchServiceId:
       name: x-pagopa-extch-service-id
       description: Identificativo con cui Piattaforma Notifiche si identifica
@@ -143,6 +215,8 @@ components:
       $ref: 'consolidatore-v1.yml#/components/schemas/PreLoadResponse'
     OperationResultCodeResponse:
       $ref: 'consolidatore-v1.yml#/components/schemas/OperationResultCodeResponse'
+    FileDownloadResponse:
+      $ref: 'consolidatore-v1.yml#/components/schemas/FileDownloadResponse'
     ConsolidatoreIngressPaperProgressStatusEvent: 
       required:
         - requestId

@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.testutils.localstack;
 
+
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
@@ -27,12 +28,14 @@ import software.amazon.awssdk.services.dynamodb.model.DescribeTableResponse;
 import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbWaiter;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -48,7 +51,7 @@ public class LocalStackTestConfig {
     static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4");
     static LocalStackContainer localStackContainer =
             new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS, SES, SECRETSMANAGER)
-                                                    .withStartupTimeout(Duration.ofMinutes(2));
+                    .withStartupTimeout(Duration.ofMinutes(2));
 
     static {
         localStackContainer.start();
@@ -64,17 +67,17 @@ public class LocalStackTestConfig {
         System.setProperty("test.aws.sns.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SNS)));
 
         System.setProperty("test.aws.ses.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SES)));
-        
+
         System.setProperty("test.aws.secretsmanager.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SECRETSMANAGER)));
 
         try {
             localStackContainer.execInContainer("awslocal",
-                                                "secretsmanager",
-                                                "create-secret",
-                                                "--name",
-                                                "pn/identity/pec",
-                                                "--secret-string",
-                                                "{\"user\":\"aruba_username\",\"pass\":\"aruba_password\"}");
+                    "secretsmanager",
+                    "create-secret",
+                    "--name",
+                    "pn/identity/pec",
+                    "--secret-string",
+                    "{\"user\":\"aruba_username\",\"pass\":\"aruba_password\"}");
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -118,13 +121,13 @@ public class LocalStackTestConfig {
         log.info("<-- START initLocalStack.initSqs -->");
 
         List<String> notificationTrackerQueueNames = List.of(notificationTrackerSqsName.statoSmsName(),
-                                                             notificationTrackerSqsName.statoSmsErratoName(),
-                                                             notificationTrackerSqsName.statoEmailName(),
-                                                             notificationTrackerSqsName.statoEmailErratoName(),
-                                                             notificationTrackerSqsName.statoPecName(),
-                                                             notificationTrackerSqsName.statoPecErratoName(),
-                                                             notificationTrackerSqsName.statoCartaceoName(),
-                                                             notificationTrackerSqsName.statoCartaceoErratoName());
+                notificationTrackerSqsName.statoSmsErratoName(),
+                notificationTrackerSqsName.statoEmailName(),
+                notificationTrackerSqsName.statoEmailErratoName(),
+                notificationTrackerSqsName.statoPecName(),
+                notificationTrackerSqsName.statoPecErratoName(),
+                notificationTrackerSqsName.statoCartaceoName(),
+                notificationTrackerSqsName.statoCartaceoErratoName());
 
         List<String> smsQueueNames = List.of(smsSqsQueueName.interactiveName(), smsSqsQueueName.batchName(), smsSqsQueueName.errorName());
 
@@ -142,13 +145,17 @@ public class LocalStackTestConfig {
         allQueueName.addAll(pecQueueNames);
         allQueueName.addAll(cartceoQueueNames);
 
+
         allQueueName.forEach(queueName -> {
             try {
                 sqsClient.getQueueUrl(builder -> builder.queueName(queueName));
                 log.info("Queue {} already created on local stack sqs", queueName);
             } catch (QueueDoesNotExistException queueDoesNotExistException) {
                 log.info("Queue {} not found on first sqs init. Proceed to create", queueName);
-                sqsClient.createQueue(builder -> builder.queueName(queueName));
+                Map<QueueAttributeName, String> fifoAttribute = new HashMap<>();
+                fifoAttribute.put(QueueAttributeName.FIFO_QUEUE, Boolean.TRUE.toString());
+                fifoAttribute.put(QueueAttributeName.CONTENT_BASED_DEDUPLICATION, Boolean.TRUE.toString());
+                sqsClient.createQueue(builder -> builder.queueName(queueName).attributes(fifoAttribute));
             }
         });
     }
@@ -171,8 +178,8 @@ public class LocalStackTestConfig {
 
         Map<String, Class<?>> tableNameWithEntityClass =
                 Map.ofEntries(entry(repositoryManagerDynamoTableName.anagraficaClientName(), ClientConfiguration.class),
-                              entry(repositoryManagerDynamoTableName.richiestePersonalName(), RequestPersonal.class),
-                              entry(repositoryManagerDynamoTableName.richiesteMetadataName(), RequestMetadata.class));
+                        entry(repositoryManagerDynamoTableName.richiestePersonalName(), RequestPersonal.class),
+                        entry(repositoryManagerDynamoTableName.richiesteMetadataName(), RequestMetadata.class));
 
         tableNameWithEntityClass.forEach((tableName, entityClass) -> {
             try {
