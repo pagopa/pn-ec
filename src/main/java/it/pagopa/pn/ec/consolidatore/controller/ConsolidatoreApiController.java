@@ -6,16 +6,19 @@ import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.INTERNAL_SERVER_ER
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.errorCodeDescriptionMap;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 
+import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.consolidatore.service.PushAttachmentPreloadService;
 import it.pagopa.pn.ec.consolidatore.service.RicezioneEsitiCartaceoService;
 import it.pagopa.pn.ec.rest.v1.api.ConsolidatoreApi;
 import it.pagopa.pn.ec.rest.v1.dto.ConsolidatoreIngressPaperProgressStatusEvent;
+import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import it.pagopa.pn.ec.rest.v1.dto.PreLoadRequestData;
 import it.pagopa.pn.ec.rest.v1.dto.PreLoadResponseData;
@@ -32,12 +35,15 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 
     private final PushAttachmentPreloadService pushAttachmentPreloadService;
     private final RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService;
+    private final AttachmentServiceImpl attachmentService;
     
-	public ConsolidatoreApiController(PushAttachmentPreloadService pushAttachmentPreloadService,
-			RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService) 
-	{
+	public ConsolidatoreApiController(PushAttachmentPreloadService pushAttachmentPreloadService
+	        , RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService
+	        , AttachmentServiceImpl attachmentService
+	        ) {
 		this.pushAttachmentPreloadService = pushAttachmentPreloadService;
 		this.ricezioneEsitiCartaceoService = ricezioneEsitiCartaceoService;
+        this.attachmentService = attachmentService;
 	}
 	
 	private List<String> getAllErrors(List<OperationResultCodeResponse> responses) {
@@ -53,8 +59,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 		return errors;
 	}
 	
-	private OperationResultCodeResponse getOperationResultCodeResponse(
-			String resultCode, String resultDescription, List<String> errors) {
+	private OperationResultCodeResponse getOperationResultCodeResponse(String resultCode, String resultDescription, List<String> errors) {
 		
 		if (errors != null && errors.size() > NRO_MAX_ERRORS) {
 			errors = errors.subList(0, NRO_MAX_ERRORS-1);
@@ -68,16 +73,24 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 	}
 
     @Override
-    public Mono<ResponseEntity<PreLoadResponseData>> presignedUploadRequest(Mono<PreLoadRequestData> preLoadRequestData, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<FileDownloadResponse>> getFile(String fileKey
+            , String xPagopaExtchServiceId
+            , String xApiKey
+            , final ServerWebExchange exchange) {
+        return attachmentService.getAllegatiPresignedUrlOrMetadata(fileKey, xPagopaExtchServiceId, false).map(ResponseEntity::ok);
+    }
+
+    @Override
+    public Mono<ResponseEntity<PreLoadResponseData>> presignedUploadRequest(Mono<PreLoadRequestData> preLoadRequestData
+            , ServerWebExchange exchange) {
         return pushAttachmentPreloadService.presignedUploadRequest(preLoadRequestData).map(ResponseEntity::ok);
     }
     
 	@Override
-	public Mono<ResponseEntity<OperationResultCodeResponse>> sendPaperProgressStatusRequest(
-			String xPagopaExtchServiceId, String xApiKey, 
-			Flux<ConsolidatoreIngressPaperProgressStatusEvent> consolidatoreIngressPaperProgressStatusEvent,  
-			final ServerWebExchange exchange)
-	{ 
+	public Mono<ResponseEntity<OperationResultCodeResponse>> sendPaperProgressStatusRequest(String xPagopaExtchServiceId
+	        , String xApiKey
+	        , Flux<ConsolidatoreIngressPaperProgressStatusEvent> consolidatoreIngressPaperProgressStatusEvent
+	        , final ServerWebExchange exchange) {
 		return consolidatoreIngressPaperProgressStatusEvent
 				.flatMap(statusEvent -> {
 					log.info(LOG_LABEL + "START for requestId {}", statusEvent.getRequestId());
