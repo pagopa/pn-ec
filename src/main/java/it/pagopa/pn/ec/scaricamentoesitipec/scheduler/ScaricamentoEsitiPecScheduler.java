@@ -21,6 +21,8 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
+import java.util.function.Predicate;
+
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
@@ -44,8 +46,7 @@ public class ScaricamentoEsitiPecScheduler {
     public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService,
                                          GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati,
                                          SqsService sqsService, NotificationTrackerSqsName notificationTrackerSqsName,
-                                         ArubaSecretValue arubaSecretValue,
-                                         TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+                                         ArubaSecretValue arubaSecretValue, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
         this.arubaCall = arubaCall;
         this.daticertService = daticertService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
@@ -55,6 +56,9 @@ public class ScaricamentoEsitiPecScheduler {
         this.arubaSecretValue = arubaSecretValue;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
+
+    private final Predicate<Postacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
+    private final Predicate<Postacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
 
     @Scheduled(cron = "${cron.value.scaricamento-esiti-pec}")
     void scaricamentoEsitiPec() {
@@ -100,9 +104,7 @@ public class ScaricamentoEsitiPecScheduler {
                              return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(getAttachResponse.getAttach()))
 
 //                                      Escludere queste PEC. Non sono delle 'comunicazione esiti'
-                                        .filter(postacert -> !postacert.getTipo().equals(POSTA_CERTIFICATA))
-                                        .doOnDiscard(Postacert.class,
-                                                     postacert -> log.info("PEC {} discarded, is {}", pecId, POSTA_CERTIFICATA))
+                                        .filter(isPostaCertificataPredicate.negate())
 
 //                                      msgid arriva all'interno di due angolari <msgid>. Eliminare il primo e l'ultimo carattere
                                         .map(postacert -> {
@@ -115,7 +117,15 @@ public class ScaricamentoEsitiPecScheduler {
 
 //                                      Escludere queste PEC. Non avendo il msgid terminante con il dominio pago non sono state inviate
 //                                      da noi
-                                        .filter(postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN))
+                                        .filter(endsWithDomainPredicate)
+
+                                        .doOnDiscard(Postacert.class, postacert -> {
+                                            if (isPostaCertificataPredicate.test(postacert)) {
+                                                log.info("PEC {} discarded, is {}", pecId, POSTA_CERTIFICATA);
+                                            } else if (!endsWithDomainPredicate.test(postacert)) {
+                                                log.info("PEC {} discarded, it doesn't end with PagoPa domain", pecId);
+                                            }
+                                        })
 
 //                                      Chiamata al gestore repository di EC tramite un messageId PEC. Zip the result with the previous
 //                                      Mono<Postacert>
