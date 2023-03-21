@@ -238,14 +238,13 @@ public class PecService extends PresaInCaricoService {
                                                                                                              "sent",
                                                                                                              new DigitalProgressStatusDto().generatedMessage(objects.getT1())))
                                         
+//                                                            An error occurred during PEC send, start retries
                                                               .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
 //                                                            An error occurred during SQS publishing to the Notification Tracker ->
 //                                                            Publish to Errori PEC queue and notify to retry update status only
 //                                                            TODO: CHANGE THE PAYLOAD
-                                                              .onErrorResume(SqsPublishException.class,
-                                                                             sqsPublishException -> sqsService.send(pecSqsQueueName.errorName(),
-                                                                                                                    pecPresaInCaricoInfo)))
+                                                              .onErrorResume(throwable -> sqsService.send(pecSqsQueueName.errorName(), pecPresaInCaricoInfo)))
                                 
                                 .doOnError(throwable -> {
                                     log.info("An error occurred during lavorazione PEC");

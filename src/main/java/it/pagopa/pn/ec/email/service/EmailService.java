@@ -223,8 +223,7 @@ public class EmailService extends PresaInCaricoService {
                             // An error occurred during SQS publishing to the Notification Tracker -> Publish to Errori EMAIL queue and
                             // notify to retry update status only
                             // TODO: CHANGE THE PAYLOAD
-                            .onErrorResume(SqsPublishException.class,
-                                    sqsPublishException -> sqsService.send(emailSqsQueueName.errorName(), emailPresaInCaricoInfo));
+                            .onErrorResume(throwable -> sqsService.send(emailSqsQueueName.errorName(), emailPresaInCaricoInfo));
                 })
 
                 .doOnError(throwable -> {

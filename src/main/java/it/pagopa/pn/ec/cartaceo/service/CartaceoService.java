@@ -204,8 +204,6 @@ public class CartaceoService extends PresaInCaricoService {
 
         // Try to send PAPER
         return paperMessageCall.putRequest(paperEngageRequestDst)
-
-                // An error occurred during PAPER send, start retries
                 .retryWhen(DEFAULT_RETRY_STRATEGY)
 
                 // The PAPER in sent, publish to Notification Tracker with next status -> SENT
@@ -215,13 +213,13 @@ public class CartaceoService extends PresaInCaricoService {
                         //TODO object paper
                         , new PaperProgressStatusDto()))
 
+                        // An error occurred during PAPER send, start retries
+                        .retryWhen(DEFAULT_RETRY_STRATEGY)
+
                         // An error occurred during SQS publishing to the Notification Tracker -> Publish to ERRORI PAPER queue and
                         // notify to retry update status only
                         // TODO: CHANGE THE PAYLOAD
-                        .onErrorResume(SqsPublishException.class//
-                                , sqsPublishException -> sqsService.send(cartaceoSqsQueueName.errorName()//
-                                        , cartaceoPresaInCaricoInfo//
-                                ))
+                        .onErrorResume(throwable  -> sqsService.send(cartaceoSqsQueueName.errorName(), cartaceoPresaInCaricoInfo))
 
                 )
 
