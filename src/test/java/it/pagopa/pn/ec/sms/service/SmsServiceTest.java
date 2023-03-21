@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.sms.service;
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.service.SnsService;
@@ -45,11 +46,11 @@ class SmsServiceTest {
     private Acknowledgment acknowledgment;
 
     private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO = SmsPresaInCaricoInfo.builder()
-                                                                                             .requestIdx(DEFAULT_REQUEST_IDX)
-                                                                                             .xPagopaExtchCxId(
-                                                                                                     DEFAULT_ID_CLIENT_HEADER_VALUE)
-                                                                                             .digitalCourtesySmsRequest(createSmsRequest())
-                                                                                             .build();
+            .requestIdx(DEFAULT_REQUEST_IDX)
+            .xPagopaExtchCxId(
+                    DEFAULT_ID_CLIENT_HEADER_VALUE)
+            .digitalCourtesySmsRequest(createSmsRequest())
+            .build();
 
     /**
      * <h3>SMSLR.107.1</h3>

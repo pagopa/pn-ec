@@ -30,8 +30,8 @@ public class EmailUtils {
         throw new IllegalStateException("EmailUtils is a utility class");
     }
 
-    public static String getDomainFromAddress(String address) {
-        return address.substring(address.indexOf("@"));
+    public static String getDomainFromAddress(String address){
+        return address.substring(address.indexOf("@") + 1);
     }
 
     public static MimeMessage getMimeMessage(byte[] bytes) {
