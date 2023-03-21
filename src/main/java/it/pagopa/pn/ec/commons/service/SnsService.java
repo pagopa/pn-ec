@@ -17,4 +17,5 @@ public interface SnsService {
                                         });
 
     Mono<PublishResponse> send(String phoneNumber, String message);
+
 }

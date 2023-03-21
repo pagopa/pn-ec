@@ -37,11 +37,11 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
                                                                         requestStatusChange.getCurrentStatus()))
                                     .retrieve()
                                     .bodyToMono(MacchinaStatiValidateStatoResponseDto.class)
-                                    .flatMap(macchinaStatiValidateStatoResponseDto -> {
+                                    .handle((macchinaStatiValidateStatoResponseDto, sink) -> {
                                         if (!macchinaStatiValidateStatoResponseDto.isAllowed()) {
-                                            return Mono.error(new InvalidNextStatusException(requestStatusChange));
+                                            sink.error(new InvalidNextStatusException(requestStatusChange));
                                         } else {
-                                            return Mono.just(macchinaStatiValidateStatoResponseDto);
+                                            sink.next(macchinaStatiValidateStatoResponseDto);
                                         }
                                     });
     }
