@@ -54,6 +54,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.service.SnsService.DEFAULT_RETRY_STRATEGY;
+import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromMonoUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
@@ -159,6 +160,7 @@ public class SmsService extends PresaInCaricoService {
 
     @SqsListener(value = "${sqs.queue.sms.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     void lavorazioneRichiestaInteractive(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+        log.info("<-- START LAVORAZIONE RICHIESTA SMS INTERACTIVE -->");
         logIncomingMessage(smsSqsQueueName.interactiveName(), smsPresaInCaricoInfo);
         lavorazioneRichiesta(smsPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
     }
@@ -173,14 +175,11 @@ public class SmsService extends PresaInCaricoService {
                                                                              lavorazioneRichiesta(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
                   .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
                                                                                                       smsSqsQueueName.batchName()))
-                  .map(MonoResultWrapper::new)
-                  .defaultIfEmpty(new MonoResultWrapper<>(null))
-                  .repeat()
-                  .takeWhile(MonoResultWrapper::isNotEmpty)
+                  .transform(pullFromMonoUntilIsEmpty())
                   .subscribe();
     }
 
-    public Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
+    private Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
 
 //      Try to send SMS
         return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
