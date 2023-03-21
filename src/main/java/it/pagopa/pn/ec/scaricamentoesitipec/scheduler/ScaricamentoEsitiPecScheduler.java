@@ -13,10 +13,7 @@ import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
-import it.pec.bridgews.GetAttach;
-import it.pec.bridgews.GetMessageID;
-import it.pec.bridgews.GetMessages;
-import it.pec.bridgews.MesArrayOfMessages;
+import it.pec.bridgews.*;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,7 +22,7 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
-import static it.pagopa.pn.ec.commons.utils.EmailUtils.getDomainFromAddress;
+import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.createGeneratedMessageByStatus;
@@ -120,13 +117,21 @@ public class ScaricamentoEsitiPecScheduler {
 //                                      da noi
                                         .filter(postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN))
 
-//                                      Chiamata al gestore repository di EC tramite un messageId PEC. Zip the result with the previous Mono
-                                        .zipWhen(postacert -> gestoreRepositoryCall.getRequestByMessageId(postacert.getDati().getMsgid()))
+//                                      Chiamata al gestore repository di EC tramite un messageId PEC. Zip the result with the previous
+//                                      Mono<Postacert>
+                                        .flatMap(postacert -> {
+                                            var getMessageID = new GetMessageID();
+                                            getMessageID.setMailid(pecId);
+                                            return Mono.zip(Mono.just(postacert),
+                                                            arubaCall.getMessageId(getMessageID),
+                                                            gestoreRepositoryCall.getRequestByMessageId(postacert.getDati().getMsgid()));
+                                        })
 
 //                                      Validate status
                                         .flatMap(objects -> {
                                             var postacert = objects.getT1();
-                                            var requestDto = objects.getT2();
+                                            var getMessageIDResponse = objects.getT2();
+                                            var requestDto = objects.getT3();
                                             var requestStatusChange = RequestStatusChange.builder()
                                                                                          .requestIdx(requestDto.getRequestIdx())
                                                                                          .xPagopaExtchCxId(requestDto.getxPagopaExtchCxId())
@@ -138,6 +143,7 @@ public class ScaricamentoEsitiPecScheduler {
                                                                                          .build();
                                             return callMacchinaStati.statusValidation(requestStatusChange)
                                                                     .map(unused -> Tuples.of(postacert,
+                                                                                             getMessageIDResponse,
                                                                                              requestStatusChange,
                                                                                              requestDto.getRequestPersonal()
                                                                                                        .getDigitalRequestPersonal()
@@ -152,14 +158,17 @@ public class ScaricamentoEsitiPecScheduler {
 
 //                                      Preparazione payload per la coda stati PEC
                                         .map(objects -> {
-                                            var postacert = objects.getT1();
-                                            var postacertDati = postacert.getDati();
-                                            var requestStatusChange = objects.getT2();
-                                            var receiverDigitalAddress = objects.getT3();
+                                            Postacert postacert = objects.getT1();
+                                            GetMessageIDResponse getMessageIDResponse = objects.getT2();
+                                            RequestStatusChange requestStatusChange = objects.getT3();
+                                            String receiverDigitalAddress = objects.getT4();
+                                            var pecIdMessageId =
+                                                    getMessageIdFromMimeMessage(getMimeMessage(getMessageIDResponse.getMessage()));
                                             var requestIdx = requestStatusChange.getRequestIdx();
                                             var xPagopaExtchCxId = requestStatusChange.getXPagopaExtchCxId();
                                             var currentStatus = requestStatusChange.getCurrentStatus();
                                             var nextStatus = requestStatusChange.getNextStatus();
+                                            var postacertDati = postacert.getDati();
                                             var eventTimestamp = createTimestampFromDaticertDate(postacertDati.getData());
                                             var eventDetails = postacert.getErrore();
                                             var senderDigitalAddress = arubaSecretValue.getPecUsername();
@@ -167,7 +176,7 @@ public class ScaricamentoEsitiPecScheduler {
                                             var receiverDomain = getDomainFromAddress(receiverDigitalAddress);
                                             var generatedMessageDto = createGeneratedMessageByStatus(receiverDomain,
                                                                                                      senderDomain,
-                                                                                                     postacertDati.getMsgid(),
+                                                                                                     pecIdMessageId,
                                                                                                      postacert.getTipo(),
                                                                                                      // TODO: COME RECUPERARE LOCATION ?
                                                                                                      null);
@@ -189,7 +198,8 @@ public class ScaricamentoEsitiPecScheduler {
                                         })
 
 //                                      Pubblicazione sulla coda degli stati PEC
-                                        .flatMap(dto -> sqsService.send(notificationTrackerSqsName.statoPecName(), dto))
+                                        .flatMap(notificationTrackerQueueDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
+                                                                                                notificationTrackerQueueDto))
 
 //                                      Return un Mono contenente il pecId
                                         .thenReturn(pecId)

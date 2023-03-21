@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.commons.utils;
 
 import it.pagopa.pn.ec.commons.exception.email.ComposeMimeMessageException;
+import it.pagopa.pn.ec.commons.exception.email.RetrieveMessageIdException;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.pec.model.pojo.PagopaMimeMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -30,6 +32,22 @@ public class EmailUtils {
 
     public static String getDomainFromAddress(String address) {
         return address.substring(address.indexOf("@"));
+    }
+
+    public static MimeMessage getMimeMessage(byte[] bytes) {
+        try {
+            return new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(bytes));
+        } catch (MessagingException e) {
+            throw new ComposeMimeMessageException();
+        }
+    }
+
+    public static String getMessageIdFromMimeMessage(MimeMessage mimeMessage) throws RetrieveMessageIdException {
+        try {
+            return mimeMessage.getMessageID();
+        } catch (MessagingException e) {
+            throw new RetrieveMessageIdException();
+        }
     }
 
     public static MimeMessage getMimeMessage(EmailField emailField) {

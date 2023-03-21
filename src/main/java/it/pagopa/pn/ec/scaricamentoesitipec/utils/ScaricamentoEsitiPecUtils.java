@@ -15,13 +15,13 @@ public class ScaricamentoEsitiPecUtils {
 
     public static Status decodePecStatusToMachineStateStatus(String tipoPostacert) {
         return switch (tipoPostacert) {
-            case PRESA_IN_CARICO -> BOOKED;
             case ACCETTAZIONE -> ACCEPTED;
             case NON_ACCETTAZIONE -> NOT_ACCEPTED;
             case AVVENUTA_CONSEGNA -> DELIVERED;
             case RILEVAZIONE_VIRUS -> INFECTED;
             case ERRORE_CONSEGNA -> NOT_DELIVERED;
             case PREAVVISO_ERRORE_CONSEGNA -> DELIVERY_WARNING;
+            default -> null;
         };
     }
 
@@ -29,9 +29,10 @@ public class ScaricamentoEsitiPecUtils {
                                                                      String tipoPostacert, String ssLocation) {
         var generatedMessageDto = new GeneratedMessageDto().id(msgId);
         return switch (tipoPostacert) {
-            case PRESA_IN_CARICO, ACCETTAZIONE, NON_ACCETTAZIONE, AVVENUTA_CONSEGNA, RILEVAZIONE_VIRUS, ERRORE_CONSEGNA ->
+            case ACCETTAZIONE, NON_ACCETTAZIONE, AVVENUTA_CONSEGNA, RILEVAZIONE_VIRUS, ERRORE_CONSEGNA ->
                     generatedMessageDto.system(getDomainFromAddress(receiverAddress)).location(ssLocation);
             case PREAVVISO_ERRORE_CONSEGNA -> generatedMessageDto.system(getDomainFromAddress(senderAddress));
+            default -> null;
         };
     }
 }
