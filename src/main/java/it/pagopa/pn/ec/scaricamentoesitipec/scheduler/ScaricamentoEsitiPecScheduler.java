@@ -123,7 +123,7 @@ public class ScaricamentoEsitiPecScheduler {
                                             if (isPostaCertificataPredicate.test(postacert)) {
                                                 log.info("PEC {} discarded, is {}", pecId, POSTA_CERTIFICATA);
                                             } else if (!endsWithDomainPredicate.test(postacert)) {
-                                                log.info("PEC {} discarded, it doesn't end with PagoPa domain", pecId);
+                                                log.info("PEC {} discarded, it was not sent by us", pecId);
                                             }
                                         })
 
