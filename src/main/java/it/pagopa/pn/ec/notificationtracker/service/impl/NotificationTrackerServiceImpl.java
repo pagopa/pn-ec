@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.notificationtracker.service.impl;
 
 
+import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -33,7 +34,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
     }
 
     @Override
-    public Mono<Void> handleRequestStatusChange(NotificationTrackerQueueDto notificationTrackerQueueDto, String ntStatoErratoQueueName) {
+    public Mono<Void> handleRequestStatusChange(NotificationTrackerQueueDto notificationTrackerQueueDto, String ntStatoErratoQueueName, Acknowledgment acknowledgment) {
         String nextStatus = notificationTrackerQueueDto.getNextStatus();
         return callMachinaStati.statusValidation(notificationTrackerQueueDto)
                                .flatMap(unused -> {
@@ -128,7 +129,9 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                        return putEvents.putEventExternal(paperProgressEvent, notificationTrackerQueueDto.getProcessId());
                                    }
                                })
+                               .doOnSuccess(result -> acknowledgment.acknowledge())
                                .then()
+                               //TODO: segnalazione 398 gestire il caso di max retry prima di spostare il messaggio nella dlq (non coda di errori) e cancellare il messaggio dalla coda del tracker
                                .onErrorResume(InvalidNextStatusException.class,
                                               throwable -> sqsService.send(ntStatoErratoQueueName, notificationTrackerQueueDto).then());
     }
