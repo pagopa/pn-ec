@@ -49,7 +49,7 @@ public class RepositoryManagerErrorHandler {
     public final ResponseEntity<Problem> handleEventAlreadyExists(RepositoryManagerException.EventAlreadyExistsException exception) {
         var problem = new Problem();
         problem.setStatus(FORBIDDEN.value());
-        problem.setTitle("The new event is already present");
+        problem.setTitle("Event already present");
         problem.setDetail(exception.getMessage());
         problem.setTraceId(UUID.randomUUID().toString());
         return new ResponseEntity<>(problem, FORBIDDEN);

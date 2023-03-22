@@ -93,15 +93,6 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                                             .doOnError(RepositoryManagerException.RequestMalformedException.class,
                                                        throwable -> log.info(throwable.getMessage()))
 
-                                            .handle((requestMetadata, sink) -> {
-                                                if (requestMetadata.getEventsList().contains(patch.getEvent())) {
-                                                    sink.error(new RepositoryManagerException.EventAlreadyExistsException(requestId, patch.getEvent()));
-                                                } else {
-                                                    sink.next(requestMetadata);
-                                                }
-                                            })
-                                            .cast(RequestMetadata.class)
-
                                             .flatMap(retrieveRequestMetadata -> {
 
                                                 // Id del client
@@ -147,13 +138,18 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                                                             // Controlla se l'evento che stiamo inserendo viene temporalmente prima degli
                                                             // eventi già presenti.
                                                             // In tal caso, non aggiorna lo stato della richiesta.
-                                                            for (Events eve : eventsList) {
+                                                            for (Events currentCycledEvent : eventsList) {
 
-                                                                if (eve.getDigProgrStatus()
-                                                                       .getEventTimestamp()
-                                                                       .isAfter(event.getDigProgrStatus().getEventTimestamp())) {
+                                                                if (currentCycledEvent.getDigProgrStatus()
+                                                                                      .getEventTimestamp()
+                                                                                      .isAfter(event.getDigProgrStatus()
+                                                                                                    .getEventTimestamp())) {
                                                                     canUpdateStatus = false;
                                                                     break;
+                                                                } else if (currentCycledEvent.equals(event)) {
+                                                                    return Mono.error(new RepositoryManagerException.EventAlreadyExistsException(
+                                                                            requestId,
+                                                                            event.getDigProgrStatus()));
                                                                 }
                                                             }
                                                         }
@@ -173,13 +169,18 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                                                             // Controlla se l'evento che stiamo inserendo viene temporalmente prima degli
                                                             // eventi già presenti.
                                                             // In tal caso, non aggiorna lo stato della richiesta.
-                                                            for (Events eve : eventsList) {
+                                                            for (Events currentCycledEvent : eventsList) {
 
-                                                                if (eve.getPaperProgrStatus()
-                                                                       .getStatusDateTime()
-                                                                       .isAfter(event.getPaperProgrStatus().getStatusDateTime())) {
+                                                                if (currentCycledEvent.getPaperProgrStatus()
+                                                                                      .getStatusDateTime()
+                                                                                      .isAfter(event.getPaperProgrStatus()
+                                                                                                    .getStatusDateTime())) {
                                                                     canUpdateStatus = false;
                                                                     break;
+                                                                } else if (currentCycledEvent.equals(event)) {
+                                                                    return Mono.error(new RepositoryManagerException.EventAlreadyExistsException(
+                                                                            requestId,
+                                                                            event.getPaperProgrStatus()));
                                                                 }
                                                             }
                                                         }

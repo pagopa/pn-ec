@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.commons.exception;
 
-import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
+import it.pagopa.pn.ec.repositorymanager.model.entity.DigitalProgressStatus;
+import it.pagopa.pn.ec.repositorymanager.model.entity.PaperProgressStatus;
 
 public class RepositoryManagerException extends RuntimeException {
 
@@ -59,9 +60,18 @@ public class RepositoryManagerException extends RuntimeException {
     }
 
     public static class EventAlreadyExistsException extends RepositoryManagerException {
-        public EventAlreadyExistsException(String requestId, Events events) {
-            super(String.format("%s is already present in in the event list of request %s",
-                                events.toString(),
+
+        public EventAlreadyExistsException(String requestId, DigitalProgressStatus digitalProgressStatus) {
+            super(String.format("The %s event registered at %s is already present in the list of events of digital request %s",
+                                digitalProgressStatus.getStatus(),
+                                digitalProgressStatus.getEventTimestamp(),
+                                requestId));
+        }
+
+        public EventAlreadyExistsException(String requestId, PaperProgressStatus paperProgressStatus) {
+            super(String.format("The %s event registered at %s is already present in the list of events of paper request %s",
+                                paperProgressStatus.getStatusDescription(),
+                                paperProgressStatus.getStatusDateTime(),
                                 requestId));
         }
     }
