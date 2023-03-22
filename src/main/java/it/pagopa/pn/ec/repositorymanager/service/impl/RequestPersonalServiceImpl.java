@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
-import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
+import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.repositorymanager.service.RequestPersonalService;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +28,7 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
     @Override
     public Mono<RequestPersonal> getRequestPersonal(String requestIdx) {
         return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(requestIdx)))
-                   .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
+                   .defaultIfEmpty(RequestPersonal.builder().requestId(null).build())
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()));
     }
 
