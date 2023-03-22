@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.notificationtracker.rest;
 
+import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -45,6 +46,8 @@ class NotificationTrackerControllerTest {
 
     @MockBean
     private CallMacchinaStatiImpl callMachinaStati;
+    @Mock
+    private Acknowledgment acknowledgment;
 
     public static final MacchinaStatiValidateStatoResponseDto STATE_MACHINE_DTO = new MacchinaStatiValidateStatoResponseDto();
 //    public static final BaseMessageProgressEvent baseMessageProgressEvent = new BaseMessageProgressEvent();
@@ -85,7 +88,7 @@ class NotificationTrackerControllerTest {
         when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
         when(putEventsImpl.putEventExternal(baseMessageProgressEvent, req.getProcessId())).thenReturn(Mono.empty());
 
-        notificationtrackerMessageReceiver.receiveSMSObjectMessage(req);
+        notificationtrackerMessageReceiver.receiveSMSObjectMessage(req, acknowledgment);
 
     }
 
@@ -134,6 +137,6 @@ class NotificationTrackerControllerTest {
         when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
         when(putEventsImpl.putEventExternal(paperProgressEvent, req.getProcessId())).thenReturn(Mono.empty());
 
-        notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req);
+        notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req, acknowledgment);
     }
 }
