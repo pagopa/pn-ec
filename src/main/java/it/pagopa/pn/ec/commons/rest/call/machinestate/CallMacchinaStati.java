@@ -8,6 +8,13 @@ import reactor.core.publisher.Mono;
 
 public interface CallMacchinaStati {
 
+    class StatusValidationBadRequestException extends RuntimeException{
+
+        public StatusValidationBadRequestException() {
+            super("Check if all paths and query params are present");
+        }
+    }
+
     /**
      * Set xPagopaExtchCxId, processId, currentStatus and nextStatus in the object argument
      */

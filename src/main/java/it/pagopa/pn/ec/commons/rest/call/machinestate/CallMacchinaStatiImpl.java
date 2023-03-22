@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Component
@@ -36,6 +37,7 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
                                                                  .build(requestStatusChange.getProcessId(),
                                                                         requestStatusChange.getCurrentStatus()))
                                     .retrieve()
+                                    .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new StatusValidationBadRequestException()))
                                     .bodyToMono(MacchinaStatiValidateStatoResponseDto.class)
                                     .handle((macchinaStatiValidateStatoResponseDto, sink) -> {
                                         if (!macchinaStatiValidateStatoResponseDto.isAllowed()) {

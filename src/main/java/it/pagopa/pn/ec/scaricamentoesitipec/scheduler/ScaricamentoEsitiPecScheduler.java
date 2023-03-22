@@ -46,7 +46,8 @@ public class ScaricamentoEsitiPecScheduler {
     public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService,
                                          GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati,
                                          SqsService sqsService, NotificationTrackerSqsName notificationTrackerSqsName,
-                                         ArubaSecretValue arubaSecretValue, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+                                         ArubaSecretValue arubaSecretValue,
+                                         TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
         this.arubaCall = arubaCall;
         this.daticertService = daticertService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
@@ -158,12 +159,19 @@ public class ScaricamentoEsitiPecScheduler {
                                                                                              requestDto.getRequestPersonal()
                                                                                                        .getDigitalRequestPersonal()
                                                                                                        .getReceiverDigitalAddress()))
-                                                                    .doOnError(throwable -> log.debug(
-                                                                            "La PEC {} associata alla richiesta {} ha " +
-                                                                            "comunicato i propri" + " esiti in " +
-                                                                            "un ordine non corretto al notification tracker",
-                                                                            pecId,
-                                                                            requestDto.getRequestIdx()));
+                                                                    .doOnError(CallMacchinaStati.StatusValidationBadRequestException.class,
+                                                                               throwable -> log.debug(
+                                                                                       "La chiamata al notification tracker della PEC {} " +
+                                                                                       "associata alla richiesta {} ha tornato 400 come status",
+                                                                                       pecId,
+                                                                                       requestDto.getRequestIdx()))
+                                                                    .doOnError(InvalidNextStatusException.class,
+                                                                               throwable -> log.debug(
+                                                                                       "La PEC {} associata alla richiesta {} ha " +
+                                                                                       "comunicato i propri" + " esiti in " +
+                                                                                       "un ordine non corretto al notification tracker",
+                                                                                       pecId,
+                                                                                       requestDto.getRequestIdx()));
                                         })
 
 //                                      Preparazione payload per la coda stati PEC
