@@ -44,4 +44,14 @@ public class RepositoryManagerErrorHandler {
         problem.setTraceId(UUID.randomUUID().toString());
         return new ResponseEntity<>(problem, BAD_REQUEST);
     }
+
+    @ExceptionHandler(RepositoryManagerException.EventAlreadyExistsException.class)
+    public final ResponseEntity<Problem> handleEventAlreadyExists(RepositoryManagerException.EventAlreadyExistsException exception) {
+        var problem = new Problem();
+        problem.setStatus(FORBIDDEN.value());
+        problem.setTitle("Event already present");
+        problem.setDetail(exception.getMessage());
+        problem.setTraceId(UUID.randomUUID().toString());
+        return new ResponseEntity<>(problem, FORBIDDEN);
+    }
 }

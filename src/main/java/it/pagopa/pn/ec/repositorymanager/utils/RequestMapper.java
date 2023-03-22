@@ -25,7 +25,7 @@ public class RequestMapper {
                       .statusRequest(currentStatus)
                       .clientRequestTimeStamp(clientRequestTimeStamp)
                       .requestTimeStamp(requestTimeStamp)
-                      .requestPersonal(requestPersonal)
+                      .requestPersonal(requestPersonal.getRequestId() != null ? requestPersonal : null)
                       .requestMetadata(requestMetadata)
                       .build();
     }
