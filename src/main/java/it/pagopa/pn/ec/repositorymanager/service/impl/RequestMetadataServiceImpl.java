@@ -92,43 +92,55 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
         return getRequestMetadata(requestId).doOnSuccess(retrievedRequest -> checkTipoPatchMetadata(retrievedRequest, patch))
                                             .doOnError(RepositoryManagerException.RequestMalformedException.class,
                                                        throwable -> log.info(throwable.getMessage()))
+
+                                            .handle((requestMetadata, sink) -> {
+                                                if (requestMetadata.getEventsList().contains(patch.getEvent())) {
+                                                    sink.error(new RepositoryManagerException.EventAlreadyExistsException(requestId, patch.getEvent()));
+                                                } else {
+                                                    sink.next(requestMetadata);
+                                                }
+                                            })
+                                            .cast(RequestMetadata.class)
+
                                             .flatMap(retrieveRequestMetadata -> {
 
                                                 // Id del client
-                                                String clientID = retrieveRequestMetadata.getXPagopaExtchCxId();
+                                                var clientID = retrieveRequestMetadata.getXPagopaExtchCxId();
                                                 // Stato dell'evento da convertire
                                                 String statusToConvert;
                                                 // process ID (es. PEC, SMS ecc.)
                                                 String processID;
                                                 // Indica se lo stato generale può essere aggiornato o meno.
-                                                boolean canUpdateStatus = true;
+                                                var canUpdateStatus = true;
 
                                                 // lista eventi metadata
-                                                List<Events> eventsList = retrieveRequestMetadata.getEventsList();
+                                                var eventsList = retrieveRequestMetadata.getEventsList();
 
-                                                // retry metadata
-                                                Retry retry = retrieveRequestMetadata.getRetry();
+                                                var retry = patch.getRetry();
+                                                var retrievedRetry = retrieveRequestMetadata.getRetry();
 
                                                 // ---> CASO: RETRY <---
-                                                if (patch.getRetry() != null) {
+                                                if (retry != null) {
 
-                                                    if (retry == null) {
-                                                        retry = new Retry();
+                                                    if (retrievedRetry == null) {
+                                                        retrievedRetry = new Retry();
                                                     }
 
-                                                    retry.setLastRetryTimestamp(patch.getRetry().getLastRetryTimestamp());
-                                                    retry.setRetryStep(patch.getRetry().getRetryStep());
-                                                    retry.setRetryPolicy(patch.getRetry().getRetryPolicy());
+                                                    retrievedRetry.setLastRetryTimestamp(retry.getLastRetryTimestamp());
+                                                    retrievedRetry.setRetryStep(retry.getRetryStep());
+                                                    retrievedRetry.setRetryPolicy(retry.getRetryPolicy());
 
-                                                    retrieveRequestMetadata.setRetry(retry);
+                                                    retrieveRequestMetadata.setRetry(retrievedRetry);
                                                     return Mono.just(retrieveRequestMetadata);
 
                                                 } else {
 
-                                                    // ---> CASO 1: RICHIESTA DIGITALE <---
-                                                    if (patch.getEvent().getDigProgrStatus() != null) {
+                                                    var event = patch.getEvent();
 
-                                                        statusToConvert = patch.getEvent().getDigProgrStatus().getStatus();
+                                                    // ---> CASO 1: RICHIESTA DIGITALE <---
+                                                    if (event.getDigProgrStatus() != null) {
+
+                                                        statusToConvert = event.getDigProgrStatus().getStatus();
 
                                                         if (eventsList != null) {
 
@@ -139,15 +151,14 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
                                                                 if (eve.getDigProgrStatus()
                                                                        .getEventTimestamp()
-                                                                       .isAfter(patch.getEvent().getDigProgrStatus().getEventTimestamp())) {
+                                                                       .isAfter(event.getDigProgrStatus().getEventTimestamp())) {
                                                                     canUpdateStatus = false;
                                                                     break;
                                                                 }
                                                             }
                                                         }
-                                                        if (canUpdateStatus) retrieveRequestMetadata.setStatusRequest(patch.getEvent()
-                                                                                                                           .getDigProgrStatus()
-                                                                                                                           .getStatus());
+                                                        if (canUpdateStatus)
+                                                            retrieveRequestMetadata.setStatusRequest(event.getDigProgrStatus().getStatus());
 
                                                         processID = retrieveRequestMetadata.getDigitalRequestMetadata().getChannel();
                                                     }
@@ -155,7 +166,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                                                     // ---> CASO 2: RICHIESTA CARTACEO <---
                                                     else {
 
-                                                        statusToConvert = patch.getEvent().getPaperProgrStatus().getStatusDescription();
+                                                        statusToConvert = event.getPaperProgrStatus().getStatusDescription();
 
                                                         if (eventsList != null) {
 
@@ -166,17 +177,15 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
                                                                 if (eve.getPaperProgrStatus()
                                                                        .getStatusDateTime()
-                                                                       .isAfter(patch.getEvent()
-                                                                                     .getPaperProgrStatus()
-                                                                                     .getStatusDateTime())) {
+                                                                       .isAfter(event.getPaperProgrStatus().getStatusDateTime())) {
                                                                     canUpdateStatus = false;
                                                                     break;
                                                                 }
                                                             }
                                                         }
-                                                        if (canUpdateStatus) retrieveRequestMetadata.setStatusRequest(patch.getEvent()
-                                                                                                                           .getPaperProgrStatus()
-                                                                                                                           .getStatusDescription());
+                                                        if (canUpdateStatus)
+                                                            retrieveRequestMetadata.setStatusRequest(event.getPaperProgrStatus()
+                                                                                                          .getStatusDescription());
 
                                                         processID = transactionProcessConfigurationProperties.paper();
 
@@ -190,13 +199,11 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                                                                                                              .build())
                                                                             .map(macchinaStatiDecodeResponseDto -> {
 
-                                                                                     if (patch.getEvent().getDigProgrStatus() != null) {
-                                                                                         patch.getEvent()
-                                                                                              .getDigProgrStatus()
+                                                                                     if (event.getDigProgrStatus() != null) {
+                                                                                         event.getDigProgrStatus()
                                                                                               .setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
                                                                                      } else {
-                                                                                         patch.getEvent()
-                                                                                              .getPaperProgrStatus()
+                                                                                         event.getPaperProgrStatus()
                                                                                               .setStatusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
                                                                                      }
 
@@ -206,7 +213,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                                                                                          getEventsList = new ArrayList<>();
                                                                                      }
 
-                                                                                     getEventsList.add(patch.getEvent());
+                                                                                     getEventsList.add(event);
                                                                                      retrieveRequestMetadata.setEventsList(getEventsList);
                                                                                      return retrieveRequestMetadata;
                                                                                  }
