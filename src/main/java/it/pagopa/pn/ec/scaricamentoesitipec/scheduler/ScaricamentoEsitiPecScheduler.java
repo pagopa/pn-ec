@@ -243,6 +243,7 @@ public class ScaricamentoEsitiPecScheduler {
                  })
 
 //               Se avviene qualche errore per una particolare PEC non bloccare il Flux
+                 .onErrorContinue(CallMacchinaStati.StatusValidationBadRequestException.class, (throwable, o) -> log.debug(throwable.getMessage()))
                  .onErrorContinue(InvalidNextStatusException.class, (throwable, o) -> log.debug(throwable.getMessage()))
                  .onErrorContinue((throwable, object) -> log.error(throwable.getMessage(), throwable))
 
