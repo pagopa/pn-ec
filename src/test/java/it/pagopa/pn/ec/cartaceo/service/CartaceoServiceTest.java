@@ -74,7 +74,7 @@ class CartaceoServiceTest {
 		when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class)))//
 				.thenReturn(Mono.just(SendMessageResponse.builder().build()));
 
-		cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO, acknowledgment);
+		cartaceoService.lavorazioneRichiestaInteractive(CARTACEO_PRESA_IN_CARICO_INFO, acknowledgment);
 
 		verify(paperMessageCall, times(1)).putRequest(any());
 
