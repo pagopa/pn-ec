@@ -123,7 +123,6 @@ Resources:
       KmsMasterKeyId: 'alias/aws/sqs'
       FifoQueue: True
       ContentBasedDeduplication: True
-      DelaySeconds: 300
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -176,7 +175,6 @@ Resources:
       KmsMasterKeyId: "alias/aws/sqs"
       FifoQueue: True
       ContentBasedDeduplication: True
-      DelaySeconds: 300
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -229,7 +227,6 @@ Resources:
       KmsMasterKeyId: "alias/aws/sqs"
       FifoQueue: True
       ContentBasedDeduplication: True
-      DelaySeconds: 300
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
@@ -282,7 +279,6 @@ Resources:
       KmsMasterKeyId: "alias/aws/sqs"
       FifoQueue: True
       ContentBasedDeduplication: True
-      DelaySeconds: 300
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1      
       RedrivePolicy:
