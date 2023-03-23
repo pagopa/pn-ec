@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.commons.utils;
 
 import it.pagopa.pn.ec.commons.exception.email.ComposeMimeMessageException;
+import it.pagopa.pn.ec.commons.exception.email.RetrieveFromException;
 import it.pagopa.pn.ec.commons.exception.email.RetrieveMessageIdException;
-import it.pagopa.pn.ec.commons.exception.email.RetrieveSenderException;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.pec.model.pojo.PagopaMimeMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +57,7 @@ public class EmailUtils {
         try {
             return Arrays.stream(mimeMessage.getFrom()).map(Address::toString).toArray(String[]::new);
         } catch (MessagingException e) {
-            throw new RetrieveSenderException();
+            throw new RetrieveFromException();
         }
     }
 
