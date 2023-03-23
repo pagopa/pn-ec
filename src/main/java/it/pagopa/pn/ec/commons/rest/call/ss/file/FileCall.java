@@ -10,5 +10,7 @@ public interface FileCall {
 
     Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchCxId, boolean metadataOnly);
 
-    Mono<FileCreationResponse> postFile(FileCreationRequest fileCreationRequest);
+    Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey);
+
+    Mono<FileCreationResponse> postFile(String xPagopaExtchServiceId, String xApiKey, FileCreationRequest fileCreationRequest);
 }
