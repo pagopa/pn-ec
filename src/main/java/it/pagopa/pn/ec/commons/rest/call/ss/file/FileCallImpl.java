@@ -1,8 +1,11 @@
 package it.pagopa.pn.ec.commons.rest.call.ss.file;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.FilesEndpointProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
+import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
+import it.pagopa.pn.ec.consolidatore.exception.ClientNotAuthorizedOrFoundException;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationResponse;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
@@ -10,6 +13,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -18,12 +24,15 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 public class FileCallImpl implements FileCall {
 
     private final WebClient ssWebClient;
+    private final SafeStorageEndpointProperties safeStorageEndpointProperties;
+
     private final FilesEndpointProperties filesEndpointProperties;
 
     private static final String GET_FILE_ERROR_TITLE = "Chiamata a SafeStorage non valida";
 
-    public FileCallImpl(WebClient ssWebClient, FilesEndpointProperties filesEndpointProperties) {
+    public FileCallImpl(WebClient ssWebClient, SafeStorageEndpointProperties safeStorageEndpointProperties, FilesEndpointProperties filesEndpointProperties) {
         this.ssWebClient = ssWebClient;
+        this.safeStorageEndpointProperties = safeStorageEndpointProperties;
         this.filesEndpointProperties = filesEndpointProperties;
     }
 
@@ -47,12 +56,28 @@ public class FileCallImpl implements FileCall {
                 .bodyToMono(FileDownloadResponse.class);
     }
 
+
     @Override
-    public Mono<FileCreationResponse> postFile(FileCreationRequest fileCreationRequest) {
-        return ssWebClient.post().uri(filesEndpointProperties.postFile())
-                .body(BodyInserters.fromValue(fileCreationRequest))
-                .retrieve().onStatus(NOT_FOUND::equals,
-                        clientResponse -> Mono.error(new Generic400ErrorException(GET_FILE_ERROR_TITLE,
-                                "Client ID not found."))).bodyToMono(FileCreationResponse.class);
+    public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey) {
+        return ssWebClient.get()
+                .uri(uriBuilder -> uriBuilder.path(filesEndpointProperties.getFile())
+                        .build(fileKey))
+                .header(safeStorageEndpointProperties.clientHeaderName(), xPagopaExtchServiceId)
+                .header(safeStorageEndpointProperties.apiKeyHeaderName(), xApiKey)
+                .retrieve()
+                .onStatus(HttpStatus.FORBIDDEN::equals, clientResponse -> Mono.error(new ClientNotAuthorizedOrFoundException(xPagopaExtchServiceId)))
+                .bodyToMono(FileDownloadResponse.class);
     }
+
+    @Override
+    public Mono<FileCreationResponse> postFile(String xPagopaExtchServiceId, String xApiKey, FileCreationRequest fileCreationRequest) {
+        return ssWebClient.post().uri(filesEndpointProperties.postFile())
+                .header(safeStorageEndpointProperties.clientHeaderName(), xPagopaExtchServiceId)
+                .header(safeStorageEndpointProperties.apiKeyHeaderName(), xApiKey)
+                .body(BodyInserters.fromValue(fileCreationRequest))
+                .retrieve()
+                .bodyToMono(FileCreationResponse.class);
+    }
+
+
 }
