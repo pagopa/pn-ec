@@ -100,7 +100,7 @@ class SmsRetryTest {
         verify(mockSqsService, never()).deleteMessageFromQueue(eq(message), anyString());
     }
 
-    @Test
+    /*@Test
     void gestioneRetrySms_RetryOk() {
 
         RequestDto requestDto = new RequestDto();
@@ -120,7 +120,7 @@ class SmsRetryTest {
         verify(gestoreRepositoryCall, times(1)).getRichiesta(requestDto.getRequestIdx());
         verify(snsServiceMock, times(1)).send(SMS_PRESA_IN_CARICO_INFO.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(), SMS_PRESA_IN_CARICO_INFO.getDigitalCourtesySmsRequest().getMessageText());
 
-    }
+    }*/
 
 
     @Test
@@ -151,7 +151,7 @@ class SmsRetryTest {
     }
 
     @Test
-    void gestionreRetrySms_ErrorWithPatch(){
+    void gestionreRetrySms_Retry_Ok(){
 
         String requestId = "idTest";
         List<BigDecimal> retries = new ArrayList<>();
@@ -160,6 +160,12 @@ class SmsRetryTest {
         RequestDto requestDto = new RequestDto();
         requestDto.setStatusRequest("statusTest");
         requestDto.setRequestIdx(requestId);
+        Mono<RequestDto> monoRequest = new Mono<RequestDto>() {
+            @Override
+            public void subscribe(CoreSubscriber<? super RequestDto> actual) {
+
+            }
+        };
 
         PatchDto patchDto = new PatchDto();
 
@@ -175,7 +181,7 @@ class SmsRetryTest {
 
 
         when(gestoreRepositoryCall.getRichiesta(eq(requestId))).thenReturn(Mono.just(requestDto));
-        //when(gestoreRepositoryCall.patchRichiesta(any(), any()).thenReturn(Mono.just(requestDto)));
+        when(gestoreRepositoryCall.patchRichiesta(requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
 
         DeleteMessageResponse response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message).block();
