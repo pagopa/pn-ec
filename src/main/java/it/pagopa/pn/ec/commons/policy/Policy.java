@@ -2,28 +2,27 @@ package it.pagopa.pn.ec.commons.policy;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.pagopa.pn.ec.commons.exception.PolicyFileNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-
+@Slf4j
 public class Policy {
 
-    File file = new File("src/main/resources/commons/retryPolicy.json");
-    ObjectMapper objectMapper = new ObjectMapper();
-    Map<String, List<BigDecimal>> retryPolicies;
 
-    public Map<String, List<BigDecimal>> getPolyicy(){
-    {
-        try {
-            retryPolicies = objectMapper.readValue(file, new TypeReference<Map<String, List<BigDecimal>>>() {});
+    public Map<String, List<BigDecimal>> getPolicy() {
+        try (
+            InputStream inputStream = getClass().getResourceAsStream("/commons/retryPolicy.json")) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.readValue(inputStream, new TypeReference<Map<String, List<BigDecimal>>>() {});
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            // Gestione dell'eccezione IOException
+            throw new PolicyFileNotFoundException("Errore nella lettura del file JSON");
         }
-    }
-    return retryPolicies ;
     }
 
 }

@@ -45,6 +45,7 @@ import java.util.Objects;
 
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.getDomainFromAddress;
+import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromMonoUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.BATCH;
@@ -154,17 +155,29 @@ public class PecService extends PresaInCaricoService {
     }
 
     @SqsListener(value = "${sqs.queue.pec.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void lavorazioneRichiestaListener(final PecPresaInCaricoInfo pecPresaInCaricoInfo, final Acknowledgment acknowledgment) {
-
-        log.info("<-- START LAVORAZIONE RICHIESTA PEC -->");
+    public void lavorazioneRichiestaInteractive(final PecPresaInCaricoInfo pecPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+        log.info("<-- START LAVORAZIONE RICHIESTA PEC INTERACTIVE -->");
         logIncomingMessage(pecSqsQueueName.interactiveName(), pecPresaInCaricoInfo);
-
         lavorazioneRichiesta(pecPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
     }
 
+    @Scheduled(cron = "${cron.value.lavorazione-batch-pec}")
+    public void lavorazioneRichiestaBatch() {
+        log.info("<-- START LAVORAZIONE RICHIESTA PEC BATCH -->");
+        sqsService.getOneMessage(pecSqsQueueName.batchName(), PecPresaInCaricoInfo.class)
+                .doOnNext(pecPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(pecSqsQueueName.batchName(),
+                                                                                      pecPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
+                .flatMap(pecPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(pecPresaInCaricoInfoSqsMessageWrapper.getMessage()),
+                                                                           lavorazioneRichiesta(pecPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
+                .flatMap(pecPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(pecPresaInCaricoInfoSqsMessageWrapper.getT1(),
+                                                                                                    pecSqsQueueName.batchName()))
+                .transform(pullFromMonoUntilIsEmpty())
+                .subscribe();
+    }
+    
     private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
 
-    Mono<SendMessageResponse> lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
+    private Mono<SendMessageResponse> lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
 
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
@@ -179,8 +192,7 @@ public class PecService extends PresaInCaricoService {
                                 .flatMap(fileDownloadResponse -> downloadCall.downloadFile(fileDownloadResponse.getDownload().getUrl())
                                                                              .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
                                                                              .map(outputStream -> EmailAttachment.builder()
-                                                                                                                 .nameWithExtension(
-                                                                                                                         fileDownloadResponse.getKey())
+                                                                                                                 .nameWithExtension(fileDownloadResponse.getKey())
                                                                                                                  .content(outputStream)
                                                                                                                  .build()))
 
@@ -194,8 +206,7 @@ public class PecService extends PresaInCaricoService {
                                                                         .to(digitalNotificationRequest.getReceiverDigitalAddress())
                                                                         .subject(digitalNotificationRequest.getSubjectText())
                                                                         .text(digitalNotificationRequest.getMessageText())
-                                                                        .contentType(digitalNotificationRequest.getMessageContentType()
-                                                                                                               .getValue())
+                                                                        .contentType(digitalNotificationRequest.getMessageContentType().getValue())
                                                                         .emailAttachments(fileDownloadResponses)
                                                                         .build())
 
@@ -225,16 +236,16 @@ public class PecService extends PresaInCaricoService {
                                                                     createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
                                                                                                              "booked",
                                                                                                              "sent",
-                                                                                                             new DigitalProgressStatusDto().generatedMessage(
-                                                                                                                     objects.getT1())))
+                                                                                                             new DigitalProgressStatusDto().generatedMessage(objects.getT1())))
+                                        
+//                                                            An error occurred during PEC send, start retries
                                                               .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
 //                                                            An error occurred during SQS publishing to the Notification Tracker ->
 //                                                            Publish to Errori PEC queue and notify to retry update status only
 //                                                            TODO: CHANGE THE PAYLOAD
-                                                              .onErrorResume(SqsPublishException.class,
-                                                                             sqsPublishException -> sqsService.send(pecSqsQueueName.errorName(),
-                                                                                                                    pecPresaInCaricoInfo)))
+                                                              .onErrorResume(throwable -> sqsService.send(pecSqsQueueName.errorName(), pecPresaInCaricoInfo)))
+                                
                                 .doOnError(throwable -> {
                                     log.info("An error occurred during lavorazione PEC");
                                     log.error(throwable.getMessage());
@@ -257,7 +268,6 @@ public class PecService extends PresaInCaricoService {
         return new GeneratedMessageDto().id(errstr.substring(0, errstr.length() - 2))
                                         .system(getDomainFromAddress(arubaSecretValue.getPecUsername()));
     }
-
 
     @Scheduled(cron = "${cron.value.gestione-retry-pec}")
     void gestioneRetryPecScheduler() {
@@ -295,7 +305,7 @@ public class PecService extends PresaInCaricoService {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        retryDto.setRetryPolicy(retryPolicies.getPolyicy().get("EMAIL"));
+                        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("EMAIL"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         retryDto.setLastRetryTimestamp(OffsetDateTime.now());
                         requestDto.getRequestMetadata().setRetry(retryDto);
@@ -425,4 +435,5 @@ public class PecService extends PresaInCaricoService {
 
                 });
     }
+
 }

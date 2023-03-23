@@ -2,7 +2,6 @@ package it.pagopa.pn.ec.notificationtracker.service.impl;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.notificationtracker.configurationproperties.NotificationTrackerEventBridgeEventName;
 import it.pagopa.pn.ec.notificationtracker.service.PutEvents;
 import lombok.extern.slf4j.Slf4j;

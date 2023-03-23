@@ -76,7 +76,7 @@ class EmailServiceTest {
 //		when(sesService.send(any(EmailField.class)))//
 //				.thenReturn(Mono.just(SendRawEmailResponse.builder().build()));
 
-        emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO, acknowledgment);
+        emailService.lavorazioneRichiestaInteractive(EMAIL_PRESA_IN_CARICO_INFO, acknowledgment);
 
 //		// Risultato atteso: pubblicato dto sulla coda per "notification tracker"
 //		// verifica che sulla coda sqs, sia stata pubblicata un mess per "notification tracker" 
@@ -110,7 +110,7 @@ class EmailServiceTest {
 //		when(sesService.send(any(EmailField.class)))//
 //				.thenReturn(Mono.just(SendRawEmailResponse.builder().build()));
 
-        emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, acknowledgment);
+        emailService.lavorazioneRichiestaInteractive(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, acknowledgment);
 
 //		// Risultato atteso: pubblicato dto sulla coda per "notification tracker"
 //		// verifica che sulla coda sqs, sia stata pubblicata un mess per "notification tracker" 
