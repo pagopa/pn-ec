@@ -45,7 +45,7 @@ public class PushAttachmentsPreloadTest {
     @BeforeAll
     public static void buildPreLoadRequest() {
         preLoadRequest.setPreloadIdx("ID_TEST");
-        preLoadRequest.setContentType("CONTENT_TEST");
+        preLoadRequest.setContentType("application/pdf");
         preLoadRequest.setSha256("BD94760347BABBB0B12ADFEB41FF01B90DD7F4C16F9B6");
     }
 
@@ -53,7 +53,7 @@ public class PushAttachmentsPreloadTest {
 
         return this.webTestClient.post()
                 .uri(uriBuilder -> uriBuilder.path(URI).build())
-                .header(safeStorageEndpointProperties.clientHeaderName(), CLIENT_ID)
+                .header("x-pagopa-extch-service-id", CLIENT_ID)
                 .header(safeStorageEndpointProperties.apiKeyHeaderName(), X_API_KEY)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
