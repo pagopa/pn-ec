@@ -309,7 +309,7 @@ public class EmailService extends PresaInCaricoService {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        retryDto.setRetryPolicy(retryPolicies.getPolyicy().get("EMAIL"));
+                        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("EMAIL"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         retryDto.setLastRetryTimestamp(OffsetDateTime.now());
                         requestDto.getRequestMetadata().setRetry(retryDto);
@@ -440,7 +440,7 @@ public class EmailService extends PresaInCaricoService {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        retryDto.setRetryPolicy(retryPolicies.getPolyicy().get("EMAIL"));
+                        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("EMAIL"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         retryDto.setLastRetryTimestamp(OffsetDateTime.now());
                         requestDto.getRequestMetadata().setRetry(retryDto);

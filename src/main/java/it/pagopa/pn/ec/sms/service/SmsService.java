@@ -262,8 +262,8 @@ public class SmsService extends PresaInCaricoService {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        log.info("policy" + retryPolicies.getPolyicy().get("SMS"));
-                        retryDto.setRetryPolicy(retryPolicies.getPolyicy().get("SMS"));
+                        log.info("policy" + retryPolicies.getPolicy().get("SMS"));
+                        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("SMS"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         retryDto.setLastRetryTimestamp(OffsetDateTime.now());
                         requestDto.getRequestMetadata().setRetry(retryDto);
