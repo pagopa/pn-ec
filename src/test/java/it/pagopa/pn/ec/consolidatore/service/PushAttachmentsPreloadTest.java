@@ -46,7 +46,7 @@ public class PushAttachmentsPreloadTest {
     public static void buildPreLoadRequest() {
         preLoadRequest.setPreloadIdx("ID_TEST");
         preLoadRequest.setContentType("application/pdf");
-        preLoadRequest.setSha256("BD94760347BABBB0B12ADFEB41FF01B90DD7F4C16F9B6");
+        preLoadRequest.setSha256("BD94760347BABBB0B12ADFEB41FF01B90DD7F4C16F9B5");
     }
 
     private WebTestClient.ResponseSpec pushAttachmentsPreloadTestCall(BodyInserter<PreLoadRequestData, ReactiveHttpOutputMessage> bodyInserter) {
