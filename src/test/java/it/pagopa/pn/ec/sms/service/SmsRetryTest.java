@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.sms.retry;
+package it.pagopa.pn.ec.sms.service;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.StatusToDeleteException;
@@ -8,15 +8,17 @@ import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SnsService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
-import it.pagopa.pn.ec.rest.v1.dto.PatchDto;
-import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
+import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
+import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.sms.service.SmsService;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import org.junit.Assert;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Flux;
@@ -27,6 +29,8 @@ import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,17 +67,18 @@ class SmsRetryTest {
     @Autowired
     SmsService smsService;
 
-    SmsService smsServiceMock = mock(SmsService.class);
+    @Autowired
+    SmsService smsServiceMock;
 
-
-    GestoreRepositoryCall gestoreRepositoryCall = mock(GestoreRepositoryCall.class);
+    @SpyBean
+    GestoreRepositoryCall gestoreRepositoryCall;
 
 
 
     Message message = Message.builder().build();
 
     private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO = SmsPresaInCaricoInfo.builder()
-            .requestIdx(DEFAULT_REQUEST_IDX)
+            .requestIdx("idTest")
             .xPagopaExtchCxId(
                     DEFAULT_ID_CLIENT_HEADER_VALUE)
             .digitalCourtesySmsRequest(createSmsRequest())
@@ -117,5 +122,65 @@ class SmsRetryTest {
 
     }
 
+
+    @Test
+    void gestionreRetrySms_GenericError(){
+
+        String requestId = "idTest";
+        RequestDto requestDto = new RequestDto();
+        requestDto.setStatusRequest("statusTest");
+        requestDto.setRequestIdx(requestId);
+        PatchDto patchDto = new PatchDto();
+
+
+
+        RequestMetadataDto requestMetadata = new RequestMetadataDto();
+        requestMetadata.setRetry(new RetryDto());
+        requestMetadata.getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
+        requestDto.setRequestMetadata(requestMetadata);
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+
+        when(gestoreRepositoryCall.getRichiesta(eq(requestId))).thenReturn(Mono.just(requestDto));
+        //when(gestoreRepositoryCall.patchRichiesta(eq(requestId), eq(patchDto)).thenReturn(Mono.just(requestDto)));
+
+
+        DeleteMessageResponse response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message).block();
+
+        Assert.assertNull(response);
+    }
+
+    @Test
+    void gestionreRetrySms_ErrorWithPatch(){
+
+        String requestId = "idTest";
+        List<BigDecimal> retries = new ArrayList<>();
+        retries.add(0, BigDecimal.valueOf(5));
+        retries.add(1, BigDecimal.valueOf(10));
+        RequestDto requestDto = new RequestDto();
+        requestDto.setStatusRequest("statusTest");
+        requestDto.setRequestIdx(requestId);
+
+        PatchDto patchDto = new PatchDto();
+
+
+
+        RequestMetadataDto requestMetadata = new RequestMetadataDto();
+        requestMetadata.setRetry(new RetryDto());
+        requestMetadata.getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
+        requestMetadata.getRetry().setRetryStep(BigDecimal.valueOf(0));
+        requestDto.setRequestMetadata(requestMetadata);
+        requestDto.getRequestMetadata().getRetry().setRetryPolicy(retries);
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+
+        when(gestoreRepositoryCall.getRichiesta(eq(requestId))).thenReturn(Mono.just(requestDto));
+        //when(gestoreRepositoryCall.patchRichiesta(any(), any()).thenReturn(Mono.just(requestDto)));
+
+
+        DeleteMessageResponse response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message).block();
+
+        Assert.assertNull(response);
+    }
 
 }

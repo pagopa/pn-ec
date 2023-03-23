@@ -354,6 +354,10 @@ public class SmsService extends PresaInCaricoService {
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName()));
 
 
+                })
+                .onErrorResume(RuntimeException.class, throwable -> {
+                    log.error("Errore generico", throwable);
+                    return Mono.empty();
                 });
     }
 }
