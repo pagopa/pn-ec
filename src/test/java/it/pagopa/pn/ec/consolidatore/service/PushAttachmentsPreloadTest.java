@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.consolidatore.service;
 
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -22,14 +23,19 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
-public class PushAttachmentsPreloadServiceTest {
+public class PushAttachmentsPreloadTest {
 
     @Autowired
     private WebTestClient webTestClient;
     @MockBean
     private FileCall fileCall;
+    @Autowired
+    private SafeStorageEndpointProperties safeStorageEndpointProperties;
     private static final String BAD_CONTENT_TYPE = "BAD_CONTENT_TYPE";
     private static final String DOC_TYPE = "PN_EXTERNAL_LEGAL_FACTS";
+
+    private static final String CLIENT_ID = "CLIENT_ID";
+    private static final String X_API_KEY = "X_API_KEY";
 
     private static final String URI = "/consolidatore-ingress/v1/attachement-preload";
 
@@ -46,6 +52,8 @@ public class PushAttachmentsPreloadServiceTest {
 
         return this.webTestClient.post()
                 .uri(uriBuilder -> uriBuilder.path(URI).build())
+                .header(safeStorageEndpointProperties.clientHeaderName(), CLIENT_ID)
+                .header(safeStorageEndpointProperties.apiKeyHeaderName(), X_API_KEY)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .body(bodyInserter)
@@ -54,7 +62,7 @@ public class PushAttachmentsPreloadServiceTest {
 
     @Test
     void pushAttachmentsOk() {
-        when(fileCall.postFile(any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
+        when(fileCall.postFile(CLIENT_ID, X_API_KEY, any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
 
         PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
         preLoadRequestSchema.getPreloads().add(preLoadRequest);
@@ -66,7 +74,7 @@ public class PushAttachmentsPreloadServiceTest {
 
     @Test
     void testEmptyPreloadsBadRequest() {
-        when(fileCall.postFile(any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
+        when(fileCall.postFile(CLIENT_ID, X_API_KEY, any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
 
         PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
 
@@ -91,7 +99,7 @@ public class PushAttachmentsPreloadServiceTest {
         fileCreationRequest.setStatus("");
         fileCreationRequest.setChecksumValue(preLoadRequest1.getSha256());
 
-        when(fileCall.postFile(fileCreationRequest)).thenReturn(Mono.error(new Generic400ErrorException("Bad Request", "Bad Request")));
+        when(fileCall.postFile(CLIENT_ID, X_API_KEY, fileCreationRequest)).thenReturn(Mono.error(new Generic400ErrorException("Bad Request", "Bad Request")));
 
         pushAttachmentsPreloadTestCall(BodyInserters.fromValue(preLoadRequestSchema))
                 .expectStatus()
@@ -114,7 +122,7 @@ public class PushAttachmentsPreloadServiceTest {
         fileCreationRequest.setStatus("");
         fileCreationRequest.setChecksumValue("");
 
-        when(fileCall.postFile(fileCreationRequest)).thenReturn(Mono.error(new Generic400ErrorException("Bad Request", "Bad Request")));
+        when(fileCall.postFile(CLIENT_ID, X_API_KEY, fileCreationRequest)).thenReturn(Mono.error(new Generic400ErrorException("Bad Request", "Bad Request")));
 
         pushAttachmentsPreloadTestCall(BodyInserters.fromValue(preLoadRequestSchema))
                 .expectStatus()

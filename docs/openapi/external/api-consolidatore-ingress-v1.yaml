@@ -21,6 +21,9 @@ paths:
         a precaricare uno o più file.
       tags:
         - Consolidatore
+      parameters:
+        - $ref: '#/components/parameters/xPagopaExtchServiceId'
+        - $ref: '#/components/parameters/xPagopaExtchApiKey'
       operationId: presignedUploadRequest
       requestBody:
         content:
@@ -93,32 +96,32 @@ paths:
             OK, l'evento è stato registrato
           content:
             application/json:
-              example: { resultCode: '202.00', resultDescription: 'Accepted', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              example: { resultCode: '202.00', resultDescription: 'Accepted', clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
               schema:
                 $ref: '#/components/schemas/OperationResultCodeResponse'
         '400':
-          description: >- 
+          description: >-
             Il ricevente ha eseguito la validazione sintattica o semantica dei campi e 
             tale validazione è fallita: possiblie mismatch di versione
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/OperationResultCodeResponse'
-              examples: 
-                syntaxError: 
+              examples:
+                syntaxError:
                   summary: 'Errore sintattico'
-                  value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
-                semanticError: 
+                  value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required' ], clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
+                semanticError:
                   summary: 'Errore semantico'
-                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}  
+                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type' ], clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
         '401':
-          description: >- 
+          description: >-
             Il sistema chiamante non è stato identificato, verificare le configurazioni
           content:
             application/json:
-              example: { resultCode: '401.00', resultDescription: 'Authentication Failed', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              example: { resultCode: '401.00', resultDescription: 'Authentication Failed', clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
               schema:
-                $ref: '#/components/schemas/OperationResultCodeResponse' 
+                $ref: '#/components/schemas/OperationResultCodeResponse'
 
   /consolidatore-ingress/v1/get-attachment/{fileKey}:
     get:
@@ -186,7 +189,7 @@ paths:
 
 components:
   parameters:
-    fileKey: 
+    fileKey:
       name: fileKey
       description: La chiave definita per il file di cui si sta richiedendo il download
       in: path
@@ -217,12 +220,12 @@ components:
       $ref: 'consolidatore-v1.yml#/components/schemas/OperationResultCodeResponse'
     FileDownloadResponse:
       $ref: 'consolidatore-v1.yml#/components/schemas/FileDownloadResponse'
-    ConsolidatoreIngressPaperProgressStatusEvent: 
+    ConsolidatoreIngressPaperProgressStatusEvent:
       required:
         - requestId
         - statusCode
         - statusDescription
-        - statusDateTime        
+        - statusDateTime
         - productType
         - clientRequestTimeStamp
       type: object
@@ -233,7 +236,7 @@ components:
           maxLength: 250
           description: >-
             Identificativo della richiesta.
-          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1'  
+          example: 'ABCD-HILM-YKWX-202202-1_rec0_try1'
         registeredLetterCode:
           type: string
           description: >-
@@ -250,16 +253,16 @@ components:
           minLength: 2
           maxLength: 3
           type: string
-        iun: 
+        iun:
           type: string
-          minLength: 30 
+          minLength: 30
           maxLength: 50
           description: >-
             Identificativo Unico della Notifica. Proviene dalla richiesta originaria di PN.
           example: 'ABCD-HILM-YKWX-202202-1'
         statusCode:
           type: string
-          minLength: 3 
+          minLength: 3
           maxLength: 20
           description: >-
             _Codifica sintetica dello stato dell'esito._  <br/>
@@ -363,7 +366,7 @@ components:
             - __RECRSI004C__	- [RIS] - Non Consegnato - fascicolo Chiuso <br/> 
             - __RECRSI005__		- [RIS] - Furto/Smarrimanto/deterioramento <br/> 
             - __REC090__		  - [ALL] - Archiviazione fisica materialità di ritorno
-        statusDescription: 
+        statusDescription:
           type: string
           minLength: 5
           maxLength: 250
@@ -375,7 +378,7 @@ components:
           format: date-time
           description: >-
             Data stato con timezone
-        deliveryFailureCause: 
+        deliveryFailureCause:
           description: >-
             _Motivazione di mancata consegna_ obbligtorie negli stati di mancata consegna  <br/>
             - __M01__ destinatario irreperibile <br/>
@@ -401,18 +404,18 @@ components:
           maxItems: 10
           items:
             type: object
-            required: 
+            required:
               - id
               - documentType
               - uri
               - sha256
               - date
             properties:
-              id: 
+              id:
                 type: string
                 description: >-
                   Identificativo di riga.
-                minLength: 1 
+                minLength: 1
                 maxLength: 10
               documentId:
                 type: string
@@ -438,7 +441,7 @@ components:
                 description: >-
                   Le coordinate del documento correlato allo stato. 
               sha256:
-                type: string 
+                type: string
                 minLength: 40
                 maxLength: 50
                 description: >-
@@ -451,12 +454,12 @@ components:
         discoveredAddress:
           description: >-
             Indirizzo del destinatario desunto dalle indagini del personale postale.
-          type: object            
+          type: object
           required:
             - name
             - address
             - city
-          properties:  
+          properties:
             name:
               type: string
               description: >-
