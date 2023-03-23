@@ -17,6 +17,7 @@ import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Mono;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -62,7 +63,7 @@ public class PushAttachmentsPreloadTest {
 
     @Test
     void pushAttachmentsOk() {
-        when(fileCall.postFile(CLIENT_ID, X_API_KEY, any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
+        when(fileCall.postFile(anyString(), anyString(), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
 
         PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
         preLoadRequestSchema.getPreloads().add(preLoadRequest);
@@ -74,7 +75,7 @@ public class PushAttachmentsPreloadTest {
 
     @Test
     void testEmptyPreloadsBadRequest() {
-        when(fileCall.postFile(CLIENT_ID, X_API_KEY, any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
+        when(fileCall.postFile(anyString(), anyString(), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
 
         PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
 
