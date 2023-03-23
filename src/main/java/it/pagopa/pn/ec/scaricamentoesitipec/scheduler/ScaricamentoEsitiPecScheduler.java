@@ -13,6 +13,8 @@ import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
+import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
+import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.bridgews.*;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +33,6 @@ import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.createGeneratedMessageByStatus;
-import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.decodePecStatusToMachineStateStatus;
 
 @Component
 @Slf4j
@@ -42,6 +43,7 @@ public class ScaricamentoEsitiPecScheduler {
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final CallMacchinaStati callMacchinaStati;
     private final SqsService sqsService;
+    private final CloudWatchPecMetrics cloudWatchPecMetrics;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final ArubaSecretValue arubaSecretValue;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
@@ -55,8 +57,8 @@ public class ScaricamentoEsitiPecScheduler {
 
     public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService,
                                          GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati,
-                                         SqsService sqsService, NotificationTrackerSqsName notificationTrackerSqsName,
-                                         ArubaSecretValue arubaSecretValue,
+                                         SqsService sqsService, CloudWatchPecMetrics cloudWatchPecMetrics,
+                                         NotificationTrackerSqsName notificationTrackerSqsName, ArubaSecretValue arubaSecretValue,
                                          TransactionProcessConfigurationProperties transactionProcessConfigurationProperties,
                                          Random random) {
         this.arubaCall = arubaCall;
@@ -64,6 +66,7 @@ public class ScaricamentoEsitiPecScheduler {
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.callMacchinaStati = callMacchinaStati;
         this.sqsService = sqsService;
+        this.cloudWatchPecMetrics = cloudWatchPecMetrics;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.arubaSecretValue = arubaSecretValue;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
@@ -154,12 +157,18 @@ public class ScaricamentoEsitiPecScheduler {
 
 //                                 Chiamata al gestore repository di EC tramite un messageId PEC. Zip the result with the previous
 //                                 Mono<Postacert>
-                                   .flatMap(postacert -> {
+                                   .zipWhen(postacert -> gestoreRepositoryCall.getRequestByMessageId(postacert.getDati().getMsgid()))
+
+                                   .flatMap(objects -> {
+                                       var postacert = objects.getT1();
+                                       var requestDto = objects.getT2();
                                        var getMessageID = new GetMessageID();
                                        getMessageID.setMailid(pecId);
                                        return Mono.zip(Mono.just(postacert),
                                                        arubaCall.getMessageId(getMessageID),
-                                                       gestoreRepositoryCall.getRequestByMessageId(postacert.getDati().getMsgid()));
+                                                       Mono.just(requestDto),
+                                                       cloudWatchPecMetrics.publishCustomPecMetricsAndReturnNextStatus(
+                                                               CloudWatchPecMetricsInfo.builder().nextStatus().build()));
                                    })
 
 //                                 Validate status
@@ -167,12 +176,12 @@ public class ScaricamentoEsitiPecScheduler {
                                        var postacert = objects.getT1();
                                        var getMessageIDResponse = objects.getT2();
                                        var requestDto = objects.getT3();
+                                       var nextStatus = objects.getT4();
                                        var requestStatusChange = RequestStatusChange.builder()
                                                                                     .requestIdx(requestDto.getRequestIdx())
                                                                                     .xPagopaExtchCxId(requestDto.getxPagopaExtchCxId())
                                                                                     .processId(transactionProcessConfigurationProperties.pec())
-                                                                                    .nextStatus(decodePecStatusToMachineStateStatus(
-                                                                                            postacert.getTipo()).getStatusTransactionTableCompliant())
+                                                                                    .nextStatus(nextStatus.getStatusTransactionTableCompliant())
                                                                                     .currentStatus(requestDto.getStatusRequest())
                                                                                     .build();
                                        return callMacchinaStati.statusValidation(requestStatusChange)
