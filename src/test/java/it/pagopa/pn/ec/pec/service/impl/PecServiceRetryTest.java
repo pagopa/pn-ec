@@ -4,14 +4,13 @@ import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
-import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
@@ -23,7 +22,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -33,6 +32,7 @@ import java.util.List;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
+import static it.pagopa.pn.ec.sms.testutils.DigitalCourtesySmsRequestFactory.createSmsRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,8 +44,7 @@ import static org.mockito.Mockito.never;
 @SpringBootTestWebEnv
 class PecServiceRetryTest {
 
-    @Autowired
-    private WebTestClient webTestClient;
+
 
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
@@ -69,7 +68,7 @@ class PecServiceRetryTest {
    private ArubaCall arubaCall;
 
     @Autowired
-    private PecService pecService;
+     PecService pecService;
 
     @Mock
     private Acknowledgment acknowledgment;
@@ -105,6 +104,13 @@ class PecServiceRetryTest {
             .digitalNotificationRequest(createDigitalNotificationRequest())
             .build();
 
+    private static final PecPresaInCaricoInfo PEC_PRESA_IN_CARICO_INFO_TEST = PecPresaInCaricoInfo.builder()
+            .requestIdx("idTest")
+            .xPagopaExtchCxId(
+                    DEFAULT_ID_CLIENT_HEADER_VALUE)
+            .digitalNotificationRequest(new DigitalNotificationRequest())
+            .build();
+
 
     @Test
     void testGestioneRetryPecScheduler_NoMessages() {
@@ -124,6 +130,32 @@ class PecServiceRetryTest {
 
     @Test
     void gestionreRetryPec_GenericError(){
+
+        String requestId = "idTest";
+        RequestDto requestDto = new RequestDto();
+        requestDto.setStatusRequest("statusTest");
+        requestDto.setRequestIdx(requestId);
+        PatchDto patchDto = new PatchDto();
+
+
+
+        RequestMetadataDto requestMetadata = new RequestMetadataDto();
+        requestMetadata.setRetry(new RetryDto());
+        requestMetadata.getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
+        requestDto.setRequestMetadata(requestMetadata);
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+
+        when(gestoreRepositoryCall.getRichiesta(eq(requestId))).thenReturn(Mono.just(requestDto));
+        //when(gestoreRepositoryCall.patchRichiesta(eq(requestId), eq(patchDto)).thenReturn(Mono.just(requestDto)));
+
+        DeleteMessageResponse response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_TEST, message).block();
+
+        Assert.assertNull(response);
+    }
+
+    @Test
+    void gestionreRetryPec_GenericErrorTest(){
 
         String requestId = "idTest";
         RequestDto requestDto = new RequestDto();

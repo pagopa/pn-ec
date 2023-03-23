@@ -27,7 +27,6 @@ import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
 import lombok.extern.slf4j.Slf4j;
