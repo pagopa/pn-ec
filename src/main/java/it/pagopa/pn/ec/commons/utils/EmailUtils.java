@@ -2,12 +2,14 @@ package it.pagopa.pn.ec.commons.utils;
 
 import it.pagopa.pn.ec.commons.exception.email.ComposeMimeMessageException;
 import it.pagopa.pn.ec.commons.exception.email.RetrieveMessageIdException;
+import it.pagopa.pn.ec.commons.exception.email.RetrieveSenderException;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.pec.model.pojo.PagopaMimeMessage;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
+import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -19,6 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Properties;
 
 import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE;
@@ -30,8 +33,8 @@ public class EmailUtils {
         throw new IllegalStateException("EmailUtils is a utility class");
     }
 
-    public static String getDomainFromAddress(String address){
-        return address.substring(address.indexOf("@") + 1);
+    public static String getDomainFromAddress(String address) {
+        return address.substring(address.indexOf("@"));
     }
 
     public static MimeMessage getMimeMessage(byte[] bytes) {
@@ -47,6 +50,14 @@ public class EmailUtils {
             return mimeMessage.getMessageID();
         } catch (MessagingException e) {
             throw new RetrieveMessageIdException();
+        }
+    }
+
+    public static String[] getFromFromMimeMessage(MimeMessage mimeMessage) throws RetrieveMessageIdException {
+        try {
+            return Arrays.stream(mimeMessage.getFrom()).map(Address::toString).toArray(String[]::new);
+        } catch (MessagingException e) {
+            throw new RetrieveSenderException();
         }
     }
 
