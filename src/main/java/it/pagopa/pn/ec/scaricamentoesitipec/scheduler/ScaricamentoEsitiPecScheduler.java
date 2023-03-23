@@ -22,6 +22,8 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
+import java.time.Duration;
+import java.util.Random;
 import java.util.function.Predicate;
 
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
@@ -43,15 +45,20 @@ public class ScaricamentoEsitiPecScheduler {
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final ArubaSecretValue arubaSecretValue;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private final Random random;
 
     @Value("${scaricamento-esiti-pec.get-messages.limit}")
     private String scaricamentoEsitiPecGetMessagesLimit;
+
+    @Value("${scaricamento-esiti-pec.maximum-delay-seconds}")
+    private String maximumDelaySeconds;
 
     public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService,
                                          GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati,
                                          SqsService sqsService, NotificationTrackerSqsName notificationTrackerSqsName,
                                          ArubaSecretValue arubaSecretValue,
-                                         TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+                                         TransactionProcessConfigurationProperties transactionProcessConfigurationProperties,
+                                         Random random) {
         this.arubaCall = arubaCall;
         this.daticertService = daticertService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
@@ -60,6 +67,7 @@ public class ScaricamentoEsitiPecScheduler {
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.arubaSecretValue = arubaSecretValue;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+        this.random = random;
     }
 
     private final Predicate<Postacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
@@ -75,6 +83,10 @@ public class ScaricamentoEsitiPecScheduler {
         Mono.just(isScaricamentoEsitiPecRunning)
             .filter(aBoolean -> !aBoolean)
             .doOnNext(aBoolean -> isScaricamentoEsitiPecRunning = true)
+
+//          Since this scheduled method could be launched simultaneously in multiple instances of the microservice, a random delay was
+//          added to avoid processing the same information multiple times
+            .delayElement(Duration.ofSeconds(random.nextInt(Integer.parseInt(maximumDelaySeconds) + 1)))
 
 //          Chiamata al servizio imap bridge getMessages per il recupero di tutti i messaggi non letti.
             .flatMap(aBoolean -> {
@@ -166,10 +178,7 @@ public class ScaricamentoEsitiPecScheduler {
                                        return callMacchinaStati.statusValidation(requestStatusChange)
                                                                .map(unused -> Tuples.of(postacert,
                                                                                         getMessageIDResponse,
-                                                                                        requestStatusChange,
-                                                                                        requestDto.getRequestPersonal()
-                                                                                                  .getDigitalRequestPersonal()
-                                                                                                  .getReceiverDigitalAddress()))
+                                                                                        requestStatusChange))
                                                                .doOnError(CallMacchinaStati.StatusValidationBadRequestException.class,
                                                                           throwable -> log.debug(
                                                                                   "La chiamata al notification tracker della PEC {} " +
@@ -191,8 +200,8 @@ public class ScaricamentoEsitiPecScheduler {
                                        Postacert postacert = objects.getT1();
                                        GetMessageIDResponse getMessageIDResponse = objects.getT2();
                                        RequestStatusChange requestStatusChange = objects.getT3();
-                                       String receiverDigitalAddress = objects.getT4();
-                                       var pecIdMessageId = getMessageIdFromMimeMessage(getMimeMessage(getMessageIDResponse.getMessage()));
+                                       var mimeMessage = getMimeMessage(getMessageIDResponse.getMessage());
+                                       var pecIdMessageId = getMessageIdFromMimeMessage(mimeMessage);
                                        var requestIdx = requestStatusChange.getRequestIdx();
                                        var xPagopaExtchCxId = requestStatusChange.getXPagopaExtchCxId();
                                        var currentStatus = requestStatusChange.getCurrentStatus();
@@ -202,8 +211,8 @@ public class ScaricamentoEsitiPecScheduler {
                                        var eventDetails = postacert.getErrore();
                                        var senderDigitalAddress = arubaSecretValue.getPecUsername();
                                        var senderDomain = getDomainFromAddress(senderDigitalAddress);
-                                       var receiverDomain = getDomainFromAddress(receiverDigitalAddress);
-                                       var generatedMessageDto = createGeneratedMessageByStatus(receiverDomain,
+                                       var receiversDomain = getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]);
+                                       var generatedMessageDto = createGeneratedMessageByStatus(receiversDomain,
                                                                                                 senderDomain,
                                                                                                 pecIdMessageId,
                                                                                                 postacert.getTipo(),
