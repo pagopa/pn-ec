@@ -240,8 +240,8 @@ public class CartaceoService extends PresaInCaricoService {
     }
 
     @Scheduled(cron = "${cron.value.gestione-retry-cartaceo}")
-    void gestioneRetrySmsScheduler() {
-        log.info("<-- START GESTIONE RETRY SMS-->");
+    void gestioneRetryCartaceoScheduler() {
+        log.info("<-- START GESTIONE RETRY CARTACEO-->");
         idSaved = null;
         sqsService.getOneMessage(cartaceoSqsQueueName.errorName(), CartaceoPresaInCaricoInfo.class)
                 .doOnNext(cartaceoPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(cartaceoSqsQueueName.errorName(),
@@ -310,12 +310,12 @@ public class CartaceoService extends PresaInCaricoService {
                     patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
                     return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
                 })
-//              Tentativo invio sms
+//              Tentativo invio cartaceo
                 .flatMap(requestDto -> {
                     log.info("requestDto Value:", requestDto.getRequestMetadata().getRetry());
 
 
-                    // Try to send PAPER
+                    // Tentativo invio
                     return paperMessageCall.putRequest(paperEngageRequestDst)
 
                             // The PAPER in sent, publish to Notification Tracker with next status -> SENT
@@ -362,6 +362,10 @@ public class CartaceoService extends PresaInCaricoService {
                             .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message, cartaceoSqsQueueName.errorName()));
 
 
+                })
+                .onErrorResume(RuntimeException.class, throwable -> {
+                    log.error("Errore generico", throwable);
+                    return Mono.empty();
                 });
 
     }

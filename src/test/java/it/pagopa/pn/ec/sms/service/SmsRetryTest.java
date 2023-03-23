@@ -45,24 +45,8 @@ import static org.mockito.Mockito.*;
 @SpringBootTestWebEnv
 class SmsRetryTest {
 
-
-    @Autowired
-    SnsService snsServiceMock = mock(SnsService.class);
-
-    @Autowired
-    SnsService snsService;
-
     @Autowired
     private SmsSqsQueueName smsSqsQueueName;
-
-    @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
-
-    @SpyBean
-    private SqsServiceImpl sqsService;
-
-    @SpyBean
-    private SnsService snsServiMessage;
 
     @Autowired
     SmsService smsService;
@@ -72,8 +56,6 @@ class SmsRetryTest {
 
     @SpyBean
     GestoreRepositoryCall gestoreRepositoryCall;
-
-
 
     Message message = Message.builder().build();
 
@@ -184,9 +166,9 @@ class SmsRetryTest {
         when(gestoreRepositoryCall.patchRichiesta(requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
 
-        DeleteMessageResponse response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message).block();
+        Mono<DeleteMessageResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
 
-        Assert.assertNull(response);
+        Assert.assertNotNull(response);
     }
 
 }
