@@ -95,13 +95,13 @@ public class ScaricamentoEsitiPecScheduler {
                 getMessages.setLimit(Integer.valueOf(scaricamentoEsitiPecGetMessagesLimit));
                 return arubaCall.getMessages(getMessages);
             })
-            .doOnError(ArubaCallMaxRetriesExceededException.class, e -> log.error("Aruba non risponde. Circuit breaker"))
+            .doOnError(ArubaCallMaxRetriesExceededException.class, e -> log.debug("Aruba non risponde. Circuit breaker"))
             .onErrorComplete(ArubaCallMaxRetriesExceededException.class)
 
 //          Lista di byte array. Ognuno di loro rappresenta l'id di un messaggio PEC
             .flatMap(optionalGetMessagesResponse -> Mono.justOrEmpty(optionalGetMessagesResponse.getArrayOfMessages()))
 
-            .doOnNext(mesArrayOfMessages -> log.info("Retrieved {} unseen PEC", mesArrayOfMessages.getItem().size()))
+            .doOnNext(mesArrayOfMessages -> log.debug("Retrieved {} unseen PEC", mesArrayOfMessages.getItem().size()))
 
 //          Conversione a Flux di byte[]
             .flatMapIterable(MesArrayOfMessages::getItem)
@@ -109,7 +109,7 @@ public class ScaricamentoEsitiPecScheduler {
 //          Conversione a stringa
             .map(String::new)
 
-            .doOnNext(pecId -> log.info("Processing PEC with id {}", pecId))
+            .doOnNext(pecId -> log.debug("Processing PEC with id {}", pecId))
 
 //          Per ogni messaggio trovato, chiamata a getAttach per il download di daticert.xml
             .flatMap(pecId -> {
@@ -117,14 +117,14 @@ public class ScaricamentoEsitiPecScheduler {
                 getAttach.setMailid(pecId);
                 getAttach.setNameattach("daticert.xml");
 
-                log.info("Try to download PEC {} daticert.xml", pecId);
+                log.debug("Try to download PEC {} daticert.xml", pecId);
 
                 return arubaCall.getAttach(getAttach).flatMap(getAttachResponse -> {
                     var attachBytes = getAttachResponse.getAttach();
 
 //                  Check se daticert.xml è presente controllando la lunghezza del byte[]
                     if (attachBytes != null && attachBytes.length > 0) {
-                        log.info("PEC {} has daticert.xml", pecId);
+                        log.debug("PEC {} has daticert.xml", pecId);
 
 //                      Deserialize daticert.xml. Start a new Mono inside the flatMap
                         return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(getAttachResponse.getAttach()))
@@ -137,7 +137,7 @@ public class ScaricamentoEsitiPecScheduler {
                                        var dati = postacert.getDati();
                                        var msgId = dati.getMsgid();
                                        dati.setMsgid(msgId.substring(1, msgId.length() - 1));
-                                       log.info("PEC {} has {} msgId", pecId, msgId);
+                                       log.debug("PEC {} has {} msgId", pecId, msgId);
                                        return postacert;
                                    })
 
@@ -146,9 +146,9 @@ public class ScaricamentoEsitiPecScheduler {
 
                                    .doOnDiscard(Postacert.class, postacert -> {
                                        if (isPostaCertificataPredicate.test(postacert)) {
-                                           log.info("PEC {} discarded, is {}", pecId, POSTA_CERTIFICATA);
+                                           log.debug("PEC {} discarded, is {}", pecId, POSTA_CERTIFICATA);
                                        } else if (!endsWithDomainPredicate.test(postacert)) {
-                                           log.info("PEC {} discarded, it was not sent by us", pecId);
+                                           log.debug("PEC {} discarded, it was not sent by us", pecId);
                                        }
                                    })
 
@@ -219,7 +219,8 @@ public class ScaricamentoEsitiPecScheduler {
                                                                                                 // TODO: COME RECUPERARE LOCATION ?
                                                                                                 null);
 
-                                       log.info("PEC {} has {} requestId", pecId, requestIdx);
+                                       log.debug("PEC {} has {} requestId", pecId, requestIdx);
+
 
                                        return NotificationTrackerQueueDto.builder()
                                                                          .requestIdx(requestIdx)
@@ -245,7 +246,7 @@ public class ScaricamentoEsitiPecScheduler {
 //                                 Se per qualche motivo questo daticert è da escludere tornare comunque il pecId
                                    .switchIfEmpty(Mono.just(pecId));
                     } else {
-                        log.info("PEC {} doesn't have daticert.xml", pecId);
+                        log.debug("PEC {} doesn't have daticert.xml", pecId);
 
 //                      Return un Mono contenente il pecId
                         return Mono.just(pecId);
@@ -258,7 +259,7 @@ public class ScaricamentoEsitiPecScheduler {
                 var getMessageID = new GetMessageID();
                 getMessageID.setMailid(pecId);
                 getMessageID.setMarkseen(1);
-                return arubaCall.getMessageId(getMessageID).doOnSuccess(getMessageIDResponse -> log.info("PEC {} marked as seen", pecId));
+                return arubaCall.getMessageId(getMessageID).doOnSuccess(getMessageIDResponse -> log.debug("PEC {} marked as seen", pecId));
             })
 
 //          Se avviene qualche errore per una particolare PEC non bloccare il Flux
