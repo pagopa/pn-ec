@@ -11,6 +11,7 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
@@ -31,8 +32,10 @@ import java.util.function.Predicate;
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
+import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.createGeneratedMessageByStatus;
+import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.decodePecStatusToMachineStateStatus;
 
 @Component
 @Slf4j
@@ -40,8 +43,9 @@ public class ScaricamentoEsitiPecScheduler {
 
     private final ArubaCall arubaCall;
     private final DaticertService daticertService;
-    private final GestoreRepositoryCall gestoreRepositoryCall;
     private final CallMacchinaStati callMacchinaStati;
+    private final GestoreRepositoryCall gestoreRepositoryCall;
+    private final StatusPullService statusPullService;
     private final SqsService sqsService;
     private final CloudWatchPecMetrics cloudWatchPecMetrics;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
@@ -55,16 +59,17 @@ public class ScaricamentoEsitiPecScheduler {
     @Value("${scaricamento-esiti-pec.maximum-delay-seconds}")
     private String maximumDelaySeconds;
 
-    public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService,
-                                         GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati,
+    public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, CallMacchinaStati callMacchinaStati,
+                                         GestoreRepositoryCall gestoreRepositoryCall, StatusPullService statusPullService,
                                          SqsService sqsService, CloudWatchPecMetrics cloudWatchPecMetrics,
                                          NotificationTrackerSqsName notificationTrackerSqsName, ArubaSecretValue arubaSecretValue,
                                          TransactionProcessConfigurationProperties transactionProcessConfigurationProperties,
                                          Random random) {
         this.arubaCall = arubaCall;
         this.daticertService = daticertService;
-        this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.callMacchinaStati = callMacchinaStati;
+        this.gestoreRepositoryCall = gestoreRepositoryCall;
+        this.statusPullService = statusPullService;
         this.sqsService = sqsService;
         this.cloudWatchPecMetrics = cloudWatchPecMetrics;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
@@ -155,20 +160,39 @@ public class ScaricamentoEsitiPecScheduler {
                                        }
                                    })
 
-//                                 Chiamata al gestore repository di EC tramite un messageId PEC. Zip the result with the previous
-//                                 Mono<Postacert>
-                                   .zipWhen(postacert -> gestoreRepositoryCall.getRequestByMessageId(postacert.getDati().getMsgid()))
+                                   .flatMap(postacert -> {
+                                       var presaInCaricoInfo = decodeMessageId(postacert.getDati().getMsgid());
+                                       var requestIdx = presaInCaricoInfo.getRequestIdx();
+
+                                       var getMessageID = new GetMessageID();
+                                       getMessageID.setMailid(pecId);
+
+                                       return Mono.zip(Mono.just(postacert),
+                                                       gestoreRepositoryCall.getRichiesta(requestIdx),
+                                                       statusPullService.pecPullService(requestIdx,
+                                                                                        presaInCaricoInfo.getXPagopaExtchCxId()),
+                                                       arubaCall.getMessageId(getMessageID));
+                                   })
 
                                    .flatMap(objects -> {
                                        var postacert = objects.getT1();
                                        var requestDto = objects.getT2();
-                                       var getMessageID = new GetMessageID();
-                                       getMessageID.setMailid(pecId);
-                                       return Mono.zip(Mono.just(postacert),
-                                                       arubaCall.getMessageId(getMessageID),
-                                                       Mono.just(requestDto),
-                                                       cloudWatchPecMetrics.publishCustomPecMetricsAndReturnNextStatus(
-                                                               CloudWatchPecMetricsInfo.builder().nextStatus().build()));
+                                       var legalMessageSentDetails = objects.getT3();
+                                       var getMessageIDResponse = objects.getT4();
+
+                                       var nextStatus =
+                                               decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
+                                       var nextEventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
+                                       var cloudWatchPecMetricsInfo = CloudWatchPecMetricsInfo.builder()
+                                                                                              .previousStatus(requestDto.getStatusRequest())
+                                                                                              .previousEventTimestamp(
+                                                                                                      legalMessageSentDetails.getEventTimestamp())
+                                                                                              .nextStatus(nextStatus)
+                                                                                              .nextEventTimestamp(nextEventTimestamp)
+                                                                                              .build();
+
+                                       return cloudWatchPecMetrics.publishCustomPecMetrics(cloudWatchPecMetricsInfo)
+                                                                  .thenReturn(Tuples.of(postacert, getMessageIDResponse, requestDto, cloudWatchPecMetricsInfo));
                                    })
 
 //                                 Validate status
@@ -176,18 +200,18 @@ public class ScaricamentoEsitiPecScheduler {
                                        var postacert = objects.getT1();
                                        var getMessageIDResponse = objects.getT2();
                                        var requestDto = objects.getT3();
-                                       var nextStatus = objects.getT4();
+                                       var cloudWatchPecMetricsInfo = objects.getT4();
                                        var requestStatusChange = RequestStatusChange.builder()
                                                                                     .requestIdx(requestDto.getRequestIdx())
                                                                                     .xPagopaExtchCxId(requestDto.getxPagopaExtchCxId())
                                                                                     .processId(transactionProcessConfigurationProperties.pec())
-                                                                                    .nextStatus(nextStatus.getStatusTransactionTableCompliant())
+                                                                                    .nextStatus(cloudWatchPecMetricsInfo.getNextStatus())
                                                                                     .currentStatus(requestDto.getStatusRequest())
                                                                                     .build();
                                        return callMacchinaStati.statusValidation(requestStatusChange)
                                                                .map(unused -> Tuples.of(postacert,
                                                                                         getMessageIDResponse,
-                                                                                        requestStatusChange))
+                                                                                        requestStatusChange,cloudWatchPecMetricsInfo))
                                                                .doOnError(CallMacchinaStati.StatusValidationBadRequestException.class,
                                                                           throwable -> log.debug(
                                                                                   "La chiamata al notification tracker della PEC {} " +
@@ -209,6 +233,7 @@ public class ScaricamentoEsitiPecScheduler {
                                        Postacert postacert = objects.getT1();
                                        GetMessageIDResponse getMessageIDResponse = objects.getT2();
                                        RequestStatusChange requestStatusChange = objects.getT3();
+                                       CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT4();
                                        var mimeMessage = getMimeMessage(getMessageIDResponse.getMessage());
                                        var pecIdMessageId = getMessageIdFromMimeMessage(mimeMessage);
                                        var requestIdx = requestStatusChange.getRequestIdx();
@@ -216,7 +241,6 @@ public class ScaricamentoEsitiPecScheduler {
                                        var currentStatus = requestStatusChange.getCurrentStatus();
                                        var nextStatus = requestStatusChange.getNextStatus();
                                        var postacertDati = postacert.getDati();
-                                       var eventTimestamp = createTimestampFromDaticertDate(postacertDati.getData());
                                        var eventDetails = postacert.getErrore();
                                        var senderDigitalAddress = arubaSecretValue.getPecUsername();
                                        var senderDomain = getDomainFromAddress(senderDigitalAddress);
@@ -236,7 +260,7 @@ public class ScaricamentoEsitiPecScheduler {
                                                                          .currentStatus(currentStatus)
                                                                          .nextStatus(nextStatus)
                                                                          .digitalProgressStatusDto(new DigitalProgressStatusDto().eventTimestamp(
-                                                                                                                                         eventTimestamp)
+                                                                                                                                         cloudWatchPecMetricsInfo.getNextEventTimestamp())
                                                                                                                                  .eventDetails(
                                                                                                                                          eventDetails)
                                                                                                                                  .generatedMessage(

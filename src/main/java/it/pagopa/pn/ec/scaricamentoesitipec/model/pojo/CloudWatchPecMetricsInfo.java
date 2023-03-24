@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.model.pojo;
 
-import it.pagopa.pn.ec.commons.constant.Status;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
@@ -13,8 +12,8 @@ import java.time.OffsetDateTime;
 @Builder
 public class CloudWatchPecMetricsInfo {
 
-    Status previousStatus;
+    String previousStatus;
     OffsetDateTime previousEventTimestamp;
-    Status nextStatus;
+    String nextStatus;
     OffsetDateTime nextEventTimestamp;
 }
