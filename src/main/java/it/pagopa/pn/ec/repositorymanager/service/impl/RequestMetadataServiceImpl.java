@@ -128,68 +128,37 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
                                                     var event = patch.getEvent();
 
-                                                    // ---> CASO 1: RICHIESTA DIGITALE <---
                                                     if (event.getDigProgrStatus() != null) {
-
+                                                        // ---> CASO 1: RICHIESTA DIGITALE <---
                                                         statusToConvert = event.getDigProgrStatus().getStatus();
 
                                                         if (eventsList != null) {
-
-                                                            // Controlla se l'evento che stiamo inserendo viene temporalmente prima degli
-                                                            // eventi già presenti.
-                                                            // In tal caso, non aggiorna lo stato della richiesta.
+                                                            // Controlla se l'evento che stiamo inserendo sia già presente
                                                             for (Events currentCycledEvent : eventsList) {
-
-                                                                if (currentCycledEvent.getDigProgrStatus()
-                                                                                      .getEventTimestamp()
-                                                                                      .isAfter(event.getDigProgrStatus()
-                                                                                                    .getEventTimestamp())) {
-                                                                    canUpdateStatus = false;
-                                                                    break;
-                                                                } else if (currentCycledEvent.equals(event)) {
-                                                                    return Mono.error(new RepositoryManagerException.EventAlreadyExistsException(
-                                                                            requestId,
-                                                                            event.getDigProgrStatus()));
+                                                                if (currentCycledEvent.equals(event)) {
+                                                                    return Mono.error(new RepositoryManagerException.EventAlreadyExistsException(requestId, event.getDigProgrStatus()));
                                                                 }
                                                             }
                                                         }
-                                                        if (canUpdateStatus)
-                                                            retrieveRequestMetadata.setStatusRequest(event.getDigProgrStatus().getStatus());
-
+                                                        
+                                                        retrieveRequestMetadata.setStatusRequest(event.getDigProgrStatus().getStatus());
                                                         processID = retrieveRequestMetadata.getDigitalRequestMetadata().getChannel();
-                                                    }
 
-                                                    // ---> CASO 2: RICHIESTA CARTACEO <---
-                                                    else {
-
+                                                    } else {
+                                                        // ---> CASO 2: RICHIESTA CARTACEO <---
                                                         statusToConvert = event.getPaperProgrStatus().getStatusDescription();
 
                                                         if (eventsList != null) {
-
-                                                            // Controlla se l'evento che stiamo inserendo viene temporalmente prima degli
-                                                            // eventi già presenti.
-                                                            // In tal caso, non aggiorna lo stato della richiesta.
+                                                            // Controlla se l'evento che stiamo inserendo sia già presente
                                                             for (Events currentCycledEvent : eventsList) {
-
-                                                                if (currentCycledEvent.getPaperProgrStatus()
-                                                                                      .getStatusDateTime()
-                                                                                      .isAfter(event.getPaperProgrStatus()
-                                                                                                    .getStatusDateTime())) {
-                                                                    canUpdateStatus = false;
-                                                                    break;
-                                                                } else if (currentCycledEvent.equals(event)) {
-                                                                    return Mono.error(new RepositoryManagerException.EventAlreadyExistsException(
-                                                                            requestId,
-                                                                            event.getPaperProgrStatus()));
+                                                                if (currentCycledEvent.equals(event)) {
+                                                                    return Mono.error(new RepositoryManagerException.EventAlreadyExistsException(requestId, event.getPaperProgrStatus()));
                                                                 }
                                                             }
                                                         }
-                                                        if (canUpdateStatus)
-                                                            retrieveRequestMetadata.setStatusRequest(event.getPaperProgrStatus()
-                                                                                                          .getStatusDescription());
-
+                                                        
+                                                        retrieveRequestMetadata.setStatusRequest(event.getPaperProgrStatus().getStatusDescription());
                                                         processID = transactionProcessConfigurationProperties.paper();
-
                                                     }
 
                                                     // Conversione da stato tecnico a stato logico.
