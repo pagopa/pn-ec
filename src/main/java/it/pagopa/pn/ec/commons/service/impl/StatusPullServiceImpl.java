@@ -12,12 +12,14 @@ import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 
 @Service
+@Slf4j
 public class StatusPullServiceImpl implements StatusPullService {
 
     private final AuthService authService;
@@ -36,6 +38,8 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     @Override
     public Mono<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId, String processId) {
+        log.info("<-- START digitalPullService --> info: {}", requestIdx, processId);
+
         return getRequest(xPagopaExtchCxId, requestIdx)
                 .flatMap(requestDto -> getLastEvent(requestDto))
                 .flatMap(eventDTO -> {
@@ -71,6 +75,7 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     @Override
     public Mono<LegalMessageSentDetails> pecPullService(String requestIdx, String xPagopaExtchCxId) {
+        log.info("<-- START pecPullService --> info: {}", requestIdx);
         return getRequest(xPagopaExtchCxId, requestIdx)
                 .flatMap(requestDto -> getLastEvent(requestDto))
                 .flatMap(eventDTO -> {
@@ -107,6 +112,7 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     @Override
     public Mono<PaperProgressStatusEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
+        log.info("<-- START paperPullService --> info: {}", requestIdx);
         return getRequest(xPagopaExtchCxId, requestIdx).flatMap(requestDto -> {
 
                     var eventsList = requestDto.getRequestMetadata().getEventsList();

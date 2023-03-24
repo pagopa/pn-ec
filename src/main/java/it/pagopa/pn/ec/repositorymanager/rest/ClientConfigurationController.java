@@ -31,7 +31,7 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
 
     @Override
     public Mono<ResponseEntity<Flux<ClientConfigurationDto>>> getConfigurations(ServerWebExchange exchange) {
-        log.info("Try to retrieve all clients");
+
         return clientConfigurationService.getAllClient()
                                          .map(retrievedClient -> restUtils.dtoToEntity(retrievedClient, ClientConfigurationDto.class))
                                          .collectList()
@@ -41,7 +41,7 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
 
     @Override
     public Mono<ResponseEntity<ClientConfigurationDto>> getClient(String xPagopaExtchCxId, ServerWebExchange exchange) {
-        log.info("Try to retrieve client with id -> {}", xPagopaExtchCxId);
+
         return clientConfigurationService.getClient(xPagopaExtchCxId)
                                          .map(retrievedClient -> restUtils.endReadRequest(retrievedClient, ClientConfigurationDto.class));
     }
@@ -49,7 +49,12 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
     @Override
     public Mono<ResponseEntity<ClientConfigurationDto>> insertClient(Mono<ClientConfigurationDto> clientConfigurationDto,
                                                                      ServerWebExchange exchange) {
-        return clientConfigurationDto.map(clientDtoToInsert -> restUtils.startCreateRequest(clientDtoToInsert, ClientConfiguration.class))
+
+        return clientConfigurationDto
+                .map(clientDtoToInsert -> {
+
+            return restUtils.startCreateRequest(clientDtoToInsert, ClientConfiguration.class);
+                })
                                      .flatMap(clientConfigurationService::insertClient)
                                      .map(insertedClient -> restUtils.endCreateOrUpdateRequest(insertedClient,
                                                                                                ClientConfigurationDto.class));
@@ -59,7 +64,9 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
     public Mono<ResponseEntity<ClientConfigurationDto>> updateClient(String xPagopaExtchCxId,
                                                                      Mono<ClientConfigurationDto> clientConfigurationPutDto,
                                                                      ServerWebExchange exchange) {
-        return clientConfigurationPutDto.map(clientDtoToUpdate -> restUtils.startUpdateRequest(clientDtoToUpdate,
+        return clientConfigurationPutDto
+                                        .doOnNext(clientConfigurationDto -> log.info("Try to update client: {}", clientConfigurationDto.getxPagopaExtchCxId()))
+                                        .map(clientDtoToUpdate -> restUtils.startUpdateRequest(clientDtoToUpdate,
                                                                                                ClientConfiguration.class))
                                         .flatMap(clientToUpdate -> clientConfigurationService.updateClient(xPagopaExtchCxId,
                                                                                                            clientToUpdate))
@@ -69,7 +76,7 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
 
     @Override
     public Mono<ResponseEntity<Void>> deleteClient(String xPagopaExtchCxId, ServerWebExchange exchange) {
-        log.info("Try to delete client with id -> {}", xPagopaExtchCxId);
+
         return clientConfigurationService.deleteClient(xPagopaExtchCxId)
                                          .map(retrievedClient -> restUtils.endDeleteRequest(retrievedClient, ClientConfigurationDto.class))
                                          .thenReturn(new ResponseEntity<>(NO_CONTENT));

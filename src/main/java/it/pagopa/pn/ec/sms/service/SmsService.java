@@ -92,6 +92,7 @@ public class SmsService extends PresaInCaricoService {
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
 
+        log.info("<-- Start presa in carico SMS --> richiesta: {}", presaInCaricoInfo.getRequestIdx());
         var smsPresaInCaricoInfo = (SmsPresaInCaricoInfo) presaInCaricoInfo;
 
         var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
@@ -160,7 +161,7 @@ public class SmsService extends PresaInCaricoService {
 
     @SqsListener(value = "${sqs.queue.sms.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     void lavorazioneRichiestaInteractive(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgment acknowledgment) {
-        log.info("<-- START LAVORAZIONE RICHIESTA SMS INTERACTIVE -->");
+
         logIncomingMessage(smsSqsQueueName.interactiveName(), smsPresaInCaricoInfo);
         lavorazioneRichiesta(smsPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
     }
@@ -180,7 +181,7 @@ public class SmsService extends PresaInCaricoService {
     }
 
     private Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
-        log.info("<-- START LAVORAZIONE RICHIESTA SMS BATCH --> richiesta :", smsPresaInCaricoInfo.getRequestIdx());
+        log.info("<-- START LAVORAZIONE RICHIESTA SMS --> richiesta : {}", smsPresaInCaricoInfo.getRequestIdx());
 //      Try to send SMS
         return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
                                smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
@@ -356,7 +357,7 @@ public class SmsService extends PresaInCaricoService {
 
                 })
                 .onErrorResume(RuntimeException.class, throwable -> {
-                    log.error("Errore generico", throwable);
+                    log.error("Errore generico, messaggio: {}", throwable.getMessage());
                     return Mono.empty();
                 });
     }

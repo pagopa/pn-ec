@@ -164,6 +164,7 @@ public class PecService extends PresaInCaricoService {
 
     @Scheduled(cron = "${cron.value.lavorazione-batch-pec}")
     public void lavorazioneRichiestaBatch() {
+
         sqsService.getOneMessage(pecSqsQueueName.batchName(), PecPresaInCaricoInfo.class)
                 .doOnNext(pecPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(pecSqsQueueName.batchName(),
                                                                                       pecPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
@@ -178,8 +179,8 @@ public class PecService extends PresaInCaricoService {
     private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
 
     private Mono<SendMessageResponse> lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
+        log.info("<-- START LAVORAZIONE RICHIESTA PEC --> richiesta: {}", pecPresaInCaricoInfo.getRequestIdx());
 
-        log.info("<-- START LAVORAZIONE RICHIESTA PEC INTERACTIVE --> richiesta: {}", pecPresaInCaricoInfo.getRequestIdx());
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
@@ -306,7 +307,7 @@ public class PecService extends PresaInCaricoService {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.debug("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        log.info("policy" + retryPolicies.getPolicy().get("PEC"));
+                        log.debug("policy" + retryPolicies.getPolicy().get("PEC"));
                         retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PEC"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         retryDto.setLastRetryTimestamp(OffsetDateTime.now());
@@ -318,7 +319,6 @@ public class PecService extends PresaInCaricoService {
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
                         log.debug(retryNumber + " tentativo di Retry");
-                        log.info(retryNumber + " tentativo di Retry");
                         return  Mono.just(requestDto);
                     }
                 })

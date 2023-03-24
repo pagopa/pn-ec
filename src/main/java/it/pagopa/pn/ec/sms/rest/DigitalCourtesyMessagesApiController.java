@@ -39,7 +39,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
     @Override
     public Mono<ResponseEntity<CourtesyMessageProgressEvent>> getCourtesyShortMessageStatus(String requestIdx, String xPagopaExtchCxId,
                                                                                             ServerWebExchange exchange) {
-        log.info("<-- START getCourtesyShortMessageStatus -->");
+
         return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.sms())
                                 .map(ResponseEntity::ok);
 
@@ -49,8 +49,8 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
     public Mono<ResponseEntity<Void>> sendCourtesyShortMessage(String requestIdx, String xPagopaExtchCxId,
                                                                Mono<DigitalCourtesySmsRequest> digitalCourtesySmsRequest,
                                                                final ServerWebExchange exchange) {
-        log.info("<-- START sendCourtesyShortMessage -->");
-        return digitalCourtesySmsRequest.doOnNext(request -> log.info("<-- START PRESA IN CARICO SMS -->"))
+
+        return digitalCourtesySmsRequest
                                         .flatMap(request -> smsService.presaInCarico(SmsPresaInCaricoInfo.builder()
                                                                                                          .requestIdx(requestIdx)
                                                                                                          .xPagopaExtchCxId(xPagopaExtchCxId)
@@ -72,8 +72,8 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
     public Mono<ResponseEntity<Void>> sendDigitalCourtesyMessage(String requestIdx, String xPagopaExtchCxId,
                                                                  Mono<DigitalCourtesyMailRequest> digitalCourtesyMailRequest,
                                                                  final ServerWebExchange exchange) {
-        log.info("<-- START sendDigitalCourtesyMessage -->");
-        return digitalCourtesyMailRequest.doOnNext(request -> log.info("<-- START PRESA IN CARICO EMAIL -->"))
+
+        return digitalCourtesyMailRequest
                                          .flatMap(request -> emailService.presaInCarico(EmailPresaInCaricoInfo.builder()
                                                                                                               .requestIdx(requestIdx)
                                                                                                               .xPagopaExtchCxId(
@@ -87,7 +87,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
     @Override
     public Mono<ResponseEntity<CourtesyMessageProgressEvent>> getDigitalCourtesyMessageStatus(String requestIdx, String xPagopaExtchCxId,
                                                                                               ServerWebExchange exchange) {
-        log.info("<-- START getDigitalCourtesyMessageStatus -->");
+
         return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.email())
                                 .map(ResponseEntity::ok);
     }
