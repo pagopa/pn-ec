@@ -167,7 +167,7 @@ public class SmsService extends PresaInCaricoService {
 
     @Scheduled(cron = "${cron.value.lavorazione-batch-sms}")
     void lavorazioneRichiestaBatch() {
-        log.info("<-- START LAVORAZIONE RICHIESTA SMS BATCH -->");
+
         sqsService.getOneMessage(smsSqsQueueName.batchName(), SmsPresaInCaricoInfo.class)
                   .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
                                                                                         smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
@@ -180,7 +180,7 @@ public class SmsService extends PresaInCaricoService {
     }
 
     private Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
-
+        log.info("<-- START LAVORAZIONE RICHIESTA SMS BATCH --> richiesta :", smsPresaInCaricoInfo.getRequestIdx());
 //      Try to send SMS
         return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
                                smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
@@ -226,7 +226,7 @@ public class SmsService extends PresaInCaricoService {
 
     @Scheduled(cron = "${cron.value.gestione-retry-sms}")
     public void gestioneRetrySmsScheduler() {
-        log.info("<-- START GESTIONE RETRY SMS-->");
+
         idSaved = null;
         sqsService.getOneMessage(smsSqsQueueName.errorName(), SmsPresaInCaricoInfo.class)
                 .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.errorName(),
@@ -242,6 +242,7 @@ public class SmsService extends PresaInCaricoService {
 
     public Mono<DeleteMessageResponse> gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message) {
 
+        log.info("<-- START GESTIONE RETRY SMS--> richiesta :", smsPresaInCaricoInfo.getRequestIdx());
         Policy retryPolicies = new Policy();
 
         String toDelete = "toDelete";
@@ -260,9 +261,9 @@ public class SmsService extends PresaInCaricoService {
 //              se il primo step, inizializza l'attributo retry
                 .flatMap(requestDto ->  {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
-                        log.info("Primo tentativo di Retry");
+                        log.debug("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        log.info("policy" + retryPolicies.getPolicy().get("SMS"));
+                        log.debug("policy" + retryPolicies.getPolicy().get("SMS"));
                         retryDto.setRetryPolicy(retryPolicies.getPolicy().get("SMS"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         retryDto.setLastRetryTimestamp(OffsetDateTime.now());
@@ -273,7 +274,7 @@ public class SmsService extends PresaInCaricoService {
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
-                        log.info(retryNumber + " tentativo di Retry");
+                        log.debug(retryNumber + " tentativo di Retry");
                         return  Mono.just(requestDto);
                     }
                 })
@@ -298,7 +299,7 @@ public class SmsService extends PresaInCaricoService {
                 })
 //              Tentativo invio sms
                 .flatMap(requestDto -> {
-                    log.info("requestDto Value:", requestDto.getRequestMetadata().getRetry());
+                    log.debug("requestDto Value:", requestDto.getRequestMetadata().getRetry());
 
                     return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
                                     smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
@@ -319,7 +320,7 @@ public class SmsService extends PresaInCaricoService {
 
                             )
                             .flatMap(sendMessageResponse -> {
-                                log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore", smsSqsQueueName.errorName());
+                                log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore", smsSqsQueueName.errorName());
                                 return sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
                             })
                             .onErrorResume(sqsPublishException -> {
@@ -328,7 +329,7 @@ public class SmsService extends PresaInCaricoService {
                                 }
                                 if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
                                     // operazioni per la rimozione del messaggio
-                                    log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", smsSqsQueueName.errorName());
+                                    log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", smsSqsQueueName.errorName());
                                     return sqsService.send(notificationTrackerSqsName.statoSmsName()
                                             ,createNotificationTrackerQueueDtoDigital
                                                     (smsPresaInCaricoInfo
@@ -343,7 +344,7 @@ public class SmsService extends PresaInCaricoService {
                 })
 //              Catch errore tirato per lo stato toDelete
                 .onErrorResume(StatusToDeleteException.class, exeption -> {
-                    log.info("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", smsSqsQueueName.errorName());
+                    log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", smsSqsQueueName.errorName());
                     return sqsService.send(notificationTrackerSqsName.statoSmsName()
                             ,createNotificationTrackerQueueDtoDigital
                                     (smsPresaInCaricoInfo

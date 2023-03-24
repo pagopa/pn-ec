@@ -37,6 +37,7 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
     public Mono<ResponseEntity<Void>> sendDigitalLegalMessage(String requestIdx, String xPagopaExtchCxId,
                                                               Mono<DigitalNotificationRequest> digitalNotificationRequest,
                                                               final ServerWebExchange exchange) {
+        log.info("<-- START sendDigitalLegalMessage --> ");
         return digitalNotificationRequest.doOnNext(request -> log.info("<-- Start presa in carico -->"))
                                          .flatMap(request -> pecService.presaInCarico(PecPresaInCaricoInfo.builder()
                                                                                                           .requestIdx(requestIdx)
@@ -51,6 +52,7 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
     public Mono<ResponseEntity<LegalMessageSentDetails>> getDigitalLegalMessageStatus(String requestIdx, String xPagopaExtchCxId,
                                                                                       ServerWebExchange exchange) {
 
+        log.info("<-- START getDigitalLegalMessageStatus --> ");
         return statusPullService.pecPullService(requestIdx, xPagopaExtchCxId).map(ResponseEntity::ok);
     }
 
