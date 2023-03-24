@@ -7,8 +7,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigu
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.RetryAttemptsExceededExeption;
-import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
-import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
 import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
@@ -21,14 +20,12 @@ import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import it.pec.bridgews.SendMailResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
-import software.amazon.awssdk.services.sns.model.PublishResponse;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
@@ -301,7 +298,7 @@ public class EmailService extends PresaInCaricoService {
 //              check status toDelete
                 .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
 //              se status toDelete throw Error
-                .switchIfEmpty(Mono.error(new RetryAttemptsExceededExeption("La lunghezza del valore non è maggiore di 5")))
+                .switchIfEmpty(Mono.error(new StatusToDeleteException(requestId)))
 //              check Id per evitare loop
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
 //              se il primo step, inizializza l'attributo retry
@@ -309,21 +306,16 @@ public class EmailService extends PresaInCaricoService {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("EMAIL"));
-                        retryDto.setRetryStep(BigDecimal.ZERO);
-                        retryDto.setLastRetryTimestamp(OffsetDateTime.now());
-                        requestDto.getRequestMetadata().setRetry(retryDto);
+                        log.info("policy" + retryPolicies.getPolicy().get("EMAIL"));
+                        return getMono(requestId, retryPolicies, requestDto, retryDto);
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
                         log.info(retryNumber + " tentativo di Retry");
+                        return  Mono.just(requestDto);
                     }
-
-                    PatchDto patchDto = new PatchDto();
-                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-
-                    return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
                 })
+//              check retry policies
                 .filter(requestDto -> {
 
                     var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();
@@ -334,6 +326,7 @@ public class EmailService extends PresaInCaricoService {
                     long minutesToCheck = requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
                     return minutes >= minutesToCheck;
                 })
+//              patch con orario attuale e dello step retry
                 .flatMap(requestDto -> {
                     requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
                     requestDto.getRequestMetadata().getRetry().setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
@@ -341,7 +334,6 @@ public class EmailService extends PresaInCaricoService {
                     patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
                     return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
                 })
-
                         .flatMap(requestDto -> {
                             // Try to send EMAIL
                             return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), emailPresaInCaricoInfo.getXPagopaExtchCxId(), false)
@@ -412,7 +404,20 @@ public class EmailService extends PresaInCaricoService {
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
 
 
+                }).onErrorResume(RuntimeException.class, throwable -> {
+                    log.error("Errore generico", throwable);
+                    return Mono.empty();
                 });
+    }
+
+    private Mono<? extends RequestDto> getMono(String requestId, Policy retryPolicies, RequestDto requestDto, RetryDto retryDto) {
+        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("EMAIL"));
+        retryDto.setRetryStep(BigDecimal.ZERO);
+        retryDto.setLastRetryTimestamp(OffsetDateTime.now());
+        requestDto.getRequestMetadata().setRetry(retryDto);
+        PatchDto patchDto = new PatchDto();
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+        return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
     }
 
     private Mono<DeleteMessageResponse> processOnlyBodyRerty(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message) {
@@ -440,13 +445,7 @@ public class EmailService extends PresaInCaricoService {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.info("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("EMAIL"));
-                        retryDto.setRetryStep(BigDecimal.ZERO);
-                        retryDto.setLastRetryTimestamp(OffsetDateTime.now());
-                        requestDto.getRequestMetadata().setRetry(retryDto);
-                        PatchDto patchDto = new PatchDto();
-                        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                        return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
+                        return getMono(requestId, retryPolicies, requestDto, retryDto);
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
@@ -520,6 +519,9 @@ public class EmailService extends PresaInCaricoService {
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
 
 
+                }).onErrorResume(RuntimeException.class, throwable -> {
+                    log.error("Errore generico", throwable);
+                    return Mono.empty();
                 });
 
     }

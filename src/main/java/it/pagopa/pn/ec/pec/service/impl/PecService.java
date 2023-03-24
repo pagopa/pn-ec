@@ -9,6 +9,7 @@ import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.RetryAttemptsExceededExeption;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
 import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
@@ -26,7 +27,6 @@ import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -285,7 +285,7 @@ public class PecService extends PresaInCaricoService {
                 .subscribe();
     }
 
-    Mono<DeleteMessageResponse> gestioneRetryPec(final PecPresaInCaricoInfo pecPresaInCaricoInfo, Message message) {
+    public  Mono<DeleteMessageResponse> gestioneRetryPec(final PecPresaInCaricoInfo pecPresaInCaricoInfo, Message message) {
 
         log.info("<-- START GESTIONE RETRY PEC--> richiesta: {}", pecPresaInCaricoInfo.getRequestIdx());
         logIncomingMessage(pecSqsQueueName.errorName(), pecPresaInCaricoInfo);
@@ -298,7 +298,7 @@ public class PecService extends PresaInCaricoService {
 //              check status toDelete
                 .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
 //              se status toDelete throw Error
-                .switchIfEmpty(Mono.error(new RetryAttemptsExceededExeption("La lunghezza del valore non è maggiore di 5")))
+                .switchIfEmpty(Mono.error(new StatusToDeleteException(requestIdx)))
 //              check Id per evitare loop
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
 //              se il primo step, inizializza l'attributo retry
@@ -306,21 +306,23 @@ public class PecService extends PresaInCaricoService {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
                         log.debug("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("EMAIL"));
+                        log.info("policy" + retryPolicies.getPolicy().get("PEC"));
+                        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PEC"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         retryDto.setLastRetryTimestamp(OffsetDateTime.now());
                         requestDto.getRequestMetadata().setRetry(retryDto);
+                        PatchDto patchDto = new PatchDto();
+                        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                        return gestoreRepositoryCall.patchRichiesta(requestIdx, patchDto);
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
                         log.debug(retryNumber + " tentativo di Retry");
+                        log.info(retryNumber + " tentativo di Retry");
+                        return  Mono.just(requestDto);
                     }
-
-                    PatchDto patchDto = new PatchDto();
-                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-
-                    return gestoreRepositoryCall.patchRichiesta(requestIdx, patchDto);
                 })
+//              check retry policies
                 .filter(requestDto -> {
 
                     var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();
@@ -331,6 +333,7 @@ public class PecService extends PresaInCaricoService {
                     long minutesToCheck = requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
                     return minutes >= minutesToCheck;
                 })
+//              patch con orario attuale e dello step retry
                 .flatMap(requestDto -> {
                     requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
                     requestDto.getRequestMetadata().getRetry().setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
@@ -434,8 +437,7 @@ public class PecService extends PresaInCaricoService {
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName()));
 
 
-                })
-                .onErrorResume(RuntimeException.class, throwable -> {
+                }).onErrorResume(RuntimeException.class, throwable -> {
                     log.error("Errore generico", throwable);
                     return Mono.empty();
                 });
