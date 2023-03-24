@@ -117,7 +117,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     void sendEmailOk() {
 
         when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
@@ -160,7 +160,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(authService.clientAuth(anyString())).thenReturn(Mono.error(new ClientNotAuthorizedException(DEFAULT_ID_CLIENT_HEADER_VALUE)));
 
 //      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                    .isForbidden()
@@ -175,7 +175,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
 //      Retrieve request -> KO
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenThrow(EcInternalEndpointHttpException.class);
+        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenThrow(EcInternalEndpointHttpException.class);
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                    .isEqualTo(SERVICE_UNAVAILABLE)
@@ -190,7 +190,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
 
 //      Retrieve request -> Return an existent request, return 409 status
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.just(requestDto));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                    .isEqualTo(CONFLICT)
@@ -205,7 +205,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
 //      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
@@ -225,7 +225,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
 //      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         when(sqsService.send(eq(emailSqsQueueName.interactiveName()),
@@ -241,7 +241,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     void sendEmailWithoutValidAttachment() {
         when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
 
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(defaultAttachmentUrl)));
 

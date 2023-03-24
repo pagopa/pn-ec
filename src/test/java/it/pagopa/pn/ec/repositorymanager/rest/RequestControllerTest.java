@@ -61,6 +61,8 @@ class RequestControllerTest {
     private static final String DEFAULT_ID_DIGITAL = "DIGITAL";
     private static final String DEFAULT_ID_PAPER = "PAPER";
     private static final String X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE = "CLIENT1";
+    private static final String DEFAULT_CONCATE_ID_DIGITAL = "CLIENT1~DIGITAL";
+    private static final String DEFAULT_CONCATE_ID_PAPER = "CLIENT1~PAPER";
     private static final RequestDto digitalRequest = new RequestDto();
     private static final RequestDto paperRequest = new RequestDto();
 
@@ -158,7 +160,7 @@ class RequestControllerTest {
     private static void insertRequestMetadata(String idRequest, RequestMetadata requestMetadata) {
         requestMetadata.setRequestId(idRequest);
         requestMetadata.setXPagopaExtchCxId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE);
-        requestMetadata.setMessageId(encodeMessageId(idRequest, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE));
+        requestMetadata.setMessageId(encodeMessageId(idRequest));
         dynamoDbTableMetadata.putItem(builder -> builder.item(requestMetadata));
     }
 
@@ -172,13 +174,13 @@ class RequestControllerTest {
                                                              TableSchema.fromBean(RequestMetadata.class));
 
         initializeRequestDto();
-        insertRequestPersonal(digitalRequest.getRequestIdx(),
+        insertRequestPersonal(DEFAULT_CONCATE_ID_DIGITAL,
                               objectMapper.convertValue(digitalRequest.getRequestPersonal(), RequestPersonal.class));
-        insertRequestMetadata(digitalRequest.getRequestIdx(),
+        insertRequestMetadata(DEFAULT_CONCATE_ID_DIGITAL,
                               objectMapper.convertValue(digitalRequest.getRequestMetadata(), RequestMetadata.class));
-        insertRequestPersonal(paperRequest.getRequestIdx(),
+        insertRequestPersonal(DEFAULT_CONCATE_ID_PAPER,
                               objectMapper.convertValue(paperRequest.getRequestPersonal(), RequestPersonal.class));
-        insertRequestMetadata(paperRequest.getRequestIdx(),
+        insertRequestMetadata(DEFAULT_CONCATE_ID_PAPER,
                               objectMapper.convertValue(paperRequest.getRequestMetadata(), RequestMetadata.class));
     }
 
@@ -381,7 +383,7 @@ class RequestControllerTest {
     void getRequestByMessageIdOk(String idRequest) {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId())
-                                              .build(encodeMessageId(idRequest, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)))
+                                              .build(encodeMessageId(idRequest)))
                  .exchange()
                  .expectStatus()
                  .isOk();
@@ -391,7 +393,7 @@ class RequestControllerTest {
     void getRequestByMessageNotFound() {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId())
-                                              .build(encodeMessageId("idRequestCheNonEsiste", "idClientCheNonEsiste")))
+                                              .build(encodeMessageId("idRequestCheNonEsiste")))
                  .exchange()
                  .expectStatus()
                  .isNotFound();
