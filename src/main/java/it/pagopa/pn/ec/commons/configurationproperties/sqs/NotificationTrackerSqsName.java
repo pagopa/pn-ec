@@ -4,15 +4,16 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "sqs.queue.notification-tracker")
 public record NotificationTrackerSqsName(
+        //TODO: check se togliere le code errori
 
 //      SMS
-        String statoSmsName, String statoSmsErratoName,
+        String statoSmsName, String statoSmsErratoName, String statoSmsDlqName,
 
 //      EMAIL
-        String statoEmailName, String statoEmailErratoName,
+        String statoEmailName, String statoEmailErratoName, String statoEmailDlqName,
 
 //      PEC
-        String statoPecName, String statoPecErratoName,
+        String statoPecName, String statoPecErratoName, String statoPecDlqName,
 
 //      CARTACEO
-        String statoCartaceoName, String statoCartaceoErratoName) {}
+        String statoCartaceoName, String statoCartaceoErratoName, String statoCartaceoDlqName) {}

@@ -20,6 +20,7 @@ public class NotificationTrackerQueueDto extends RequestStatusChange {
 
     DigitalProgressStatusDto digitalProgressStatusDto;
     PaperProgressStatusDto paperProgressStatusDto;
+    int retry;
 
     @SuppressWarnings("all")
     private static NotificationTrackerQueueDto createNotificationTrackerQueueDto(PresaInCaricoInfo presaInCaricoInfo, String currentStatus, String nextStatus) {
