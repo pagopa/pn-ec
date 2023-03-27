@@ -32,19 +32,19 @@ public class PaperMessagesApiController implements PaperMessagesApi {
     @Override
     public Mono<ResponseEntity<Void>> sendPaperEngageRequest(String requestIdx, String xPagopaExtchCxId,
                                                              Mono<PaperEngageRequest> paperEngageRequest, ServerWebExchange exchange) {
-        return paperEngageRequest.doOnNext(request -> log.info("<-- Start presa in Cartaceo -->"))
-                                 .flatMap(request -> cartaceoService.presaInCarico(CartaceoPresaInCaricoInfo.builder()
+        return paperEngageRequest.flatMap(request -> cartaceoService.presaInCarico(CartaceoPresaInCaricoInfo.builder()
                                                                                                             .requestIdx(requestIdx)
                                                                                                             .xPagopaExtchCxId(
                                                                                                                     xPagopaExtchCxId)
                                                                                                             .paperEngageRequest(request)
                                                                                                             .build()))
-                                 .thenReturn(new ResponseEntity<>(OK));
+                .thenReturn(new ResponseEntity<>(OK));
     }
 
     @Override
     public Mono<ResponseEntity<PaperProgressStatusEvent>> getPaperEngageProgresses(String requestIdx, String xPagopaExtchCxId,
                                                                                    ServerWebExchange exchange) {
-        return paperService.paperPullService(requestIdx, xPagopaExtchCxId).map(ResponseEntity::ok);
+        return paperService.paperPullService(requestIdx, xPagopaExtchCxId)
+                .map(ResponseEntity::ok);
     }
 }

@@ -21,7 +21,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
 
 
     public Mono<PreLoadResponseData> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> attachments) {
-
+        log.info("<-- START PRESIGNED UPLOAD REQUEST --> Client ID : {}", xPagopaExtchServiceId);
         return attachments.map(PreLoadRequestData::getPreloads)
                 .flatMapMany(Flux::fromIterable)
                 .handle(((preLoadRequest, synchronousSink) -> {
@@ -70,6 +70,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
 
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId
             , String xApiKey) {
+        log.info("<-- START GET FILE --> Client ID : {}", xPagopaExtchServiceId);
         return fileCall.getFile(fileKey, xPagopaExtchServiceId, xApiKey);
     }
 

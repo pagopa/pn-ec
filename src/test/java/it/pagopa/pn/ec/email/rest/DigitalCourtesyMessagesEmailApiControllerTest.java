@@ -4,7 +4,7 @@ package it.pagopa.pn.ec.email.rest;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
-import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
@@ -209,7 +209,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
-                new SqsPublishException(notificationTrackerSqsName.statoSmsName())));
+                new SqsClientException(notificationTrackerSqsName.statoSmsName())));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                    .isEqualTo(SERVICE_UNAVAILABLE)
@@ -229,7 +229,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         when(sqsService.send(eq(emailSqsQueueName.interactiveName()),
-                             any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsPublishException(emailSqsQueueName.interactiveName())));
+                             any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsClientException(emailSqsQueueName.interactiveName())));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                    .isEqualTo(SERVICE_UNAVAILABLE)

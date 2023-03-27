@@ -86,6 +86,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
     public Mono<ResponseEntity<CourtesyMessageProgressEvent>> getDigitalCourtesyMessageStatus(String requestIdx, String xPagopaExtchCxId,
                                                                                               ServerWebExchange exchange) {
         return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.email())
+                .doOnError(throwable -> log.error(throwable.getMessage(), throwable.getStackTrace()))
                                 .map(ResponseEntity::ok);
     }
 }

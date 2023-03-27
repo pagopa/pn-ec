@@ -22,7 +22,6 @@ public abstract class PresaInCaricoService {
     }
 
     public Mono<Void> presaInCarico(PresaInCaricoInfo presaInCaricoInfo) throws RequestAlreadyInProgressException {
-//      Client auth
         return authService.clientAuth(presaInCaricoInfo.getXPagopaExtchCxId())
 //                        Retrieve request
                           .then(gestoreRepositoryCall.getRichiesta(presaInCaricoInfo.getRequestIdx()))
@@ -32,7 +31,7 @@ public abstract class PresaInCaricoService {
                           .handle((existingRequest, sink) -> sink.error(new RequestAlreadyInProgressException(existingRequest.getRequestIdx())))
 //                        The request doesn't exist
                           .onErrorResume(RestCallException.ResourceNotFoundException.class, throwable -> {
-                              log.info("The request with id {} doesn't exist", presaInCaricoInfo.getRequestIdx());
+                              log.debug("The request with id {} doesn't exist", presaInCaricoInfo.getRequestIdx());
                               return specificPresaInCarico(presaInCaricoInfo);
                           }).then();
     }

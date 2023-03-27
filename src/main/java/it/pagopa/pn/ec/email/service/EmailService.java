@@ -86,6 +86,7 @@ public class EmailService extends PresaInCaricoService {
 
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
+        log.info("<-- START PRESA IN CARICO EMAIL --> Request ID: {}, Client ID: {}", presaInCaricoInfo.getRequestIdx(), presaInCaricoInfo.getXPagopaExtchCxId());
 
         var emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
 
@@ -118,12 +119,13 @@ public class EmailService extends PresaInCaricoService {
                         return Mono.empty();
                     }
                 })
-
                 .then();
     }
 
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromEmail(final DigitalCourtesyMailRequest digitalCourtesyMailRequest, String xPagopaExtchCxId) {
+        log.info("<-- START INSERT REQUEST FROM EMAIL --> Request ID: {}, Client ID: {}", digitalCourtesyMailRequest.getRequestId(), xPagopaExtchCxId);
+
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
             requestDto.setRequestIdx(digitalCourtesyMailRequest.getRequestId());
@@ -157,14 +159,12 @@ public class EmailService extends PresaInCaricoService {
 
     @SqsListener(value = "${sqs.queue.email.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void lavorazioneRichiestaInteractive(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgment acknowledgment) {
-        log.info("<-- START LAVORAZIONE RICHIESTA EMAIL INTERACTIVE -->");
         logIncomingMessage(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
         lavorazioneRichiesta(emailPresaInCaricoInfo).doOnSuccess(result -> acknowledgment.acknowledge()).subscribe();
     }
 
     @Scheduled(cron = "${cron.value.lavorazione-batch-email}")
     public void lavorazioneRichiestaBatch() {
-        log.info("<-- START LAVORAZIONE RICHIESTA EMAIL BATCH -->");
         sqsService.getOneMessage(emailSqsQueueName.batchName(), EmailPresaInCaricoInfo.class)
                   .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(emailSqsQueueName.batchName(),
                                                                                         emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
@@ -179,6 +179,7 @@ public class EmailService extends PresaInCaricoService {
     private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
 
     private Mono<SendMessageResponse> lavorazioneRichiesta(final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
+        log.info("<-- START LAVORAZIONE RICHIESTA EMAIL --> Request ID : {}, Client ID : {}, QOS : {}", emailPresaInCaricoInfo.getRequestIdx(), emailPresaInCaricoInfo.getXPagopaExtchCxId(), emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getQos());
 
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         var requestId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
@@ -222,11 +223,11 @@ public class EmailService extends PresaInCaricoService {
                             // TODO: CHANGE THE PAYLOAD
                             .onErrorResume(throwable -> sqsService.send(emailSqsQueueName.errorName(), emailPresaInCaricoInfo));
                 })
-
-                .doOnError(throwable -> {
-                    log.info("An error occurred during lavorazione PEC");
-                    log.error(throwable.getMessage());
-                })
+//
+//                .doOnError(throwable -> {
+//                    log.debug("An error occurred during lavorazione PEC");
+//                  //  log.error(throwable.getMessage());
+//                })
 
                 // The maximum number of retries has ended
                 .onErrorResume(throwable -> 
@@ -259,7 +260,6 @@ public class EmailService extends PresaInCaricoService {
 
     @Scheduled(cron = "${cron.value.gestione-retry-email}")
     void gestioneRetryEmailScheduler() {
-        log.info("<-- START GESTIONE RETRY EMAIL-->");
         idSaved = null;
         sqsService.getOneMessage(emailSqsQueueName.errorName(), EmailPresaInCaricoInfo.class)
                 .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(emailSqsQueueName.errorName(),
@@ -267,6 +267,7 @@ public class EmailService extends PresaInCaricoService {
                 .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(emailPresaInCaricoInfoSqsMessageWrapper.getMessage()),
                         gestioneRetryEmail(emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent(), emailPresaInCaricoInfoSqsMessageWrapper.getMessage())))
                 .map(MonoResultWrapper::new)
+                .doOnError(throwable -> log.error("Errore generico", throwable))
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)
@@ -275,7 +276,7 @@ public class EmailService extends PresaInCaricoService {
 
 
     public Mono<DeleteMessageResponse> gestioneRetryEmail(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message) {
-
+        log.info("<-- START GESTIONE RETRY EMAIL --> Request ID : {}, Client ID : {}", emailPresaInCaricoInfo.getRequestIdx(), emailPresaInCaricoInfo.getXPagopaExtchCxId());
         logIncomingMessage(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         if (!digitalCourtesyMailRequest.getAttachmentsUrls().isEmpty()) {
@@ -287,7 +288,7 @@ public class EmailService extends PresaInCaricoService {
 
 
     private Mono<DeleteMessageResponse> processWithAttachRetry(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message) {
-
+        log.info("<-- START PROCESS WITH ATTACH RETRY--> Request ID : {}, Client ID : {}", emailPresaInCaricoInfo.getRequestIdx(), emailPresaInCaricoInfo.getXPagopaExtchCxId());
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         var requestId = emailPresaInCaricoInfo.getRequestIdx();
         Policy retryPolicies = new Policy();
@@ -304,14 +305,14 @@ public class EmailService extends PresaInCaricoService {
 //              se il primo step, inizializza l'attributo retry
                 .flatMap(requestDto ->  {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
-                        log.info("Primo tentativo di Retry");
+                        log.debug("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        log.info("policy" + retryPolicies.getPolicy().get("EMAIL"));
+                        log.debug("policy" + retryPolicies.getPolicy().get("EMAIL"));
                         return getMono(requestId, retryPolicies, requestDto, retryDto);
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
-                        log.info(retryNumber + " tentativo di Retry");
+                        log.debug(retryNumber + " tentativo di Retry");
                         return  Mono.just(requestDto);
                     }
                 })
@@ -369,7 +370,7 @@ public class EmailService extends PresaInCaricoService {
                                                                 new DigitalProgressStatusDto().generatedMessage(
                                                                         generatedMessageDto.get()))))
                                     .flatMap(sendMessageResponse -> {
-                                        log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore", emailSqsQueueName.errorName());
+                                        log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore", emailSqsQueueName.errorName());
                                         return sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName());
                                     })
                                     .onErrorResume(sqsPublishException -> {
@@ -378,7 +379,7 @@ public class EmailService extends PresaInCaricoService {
                                         }
                                         if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
                                             // operazioni per la rimozione del messaggio
-                                            log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", emailSqsQueueName.errorName());
+                                            log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", emailSqsQueueName.errorName());
                                             return sqsService.send(notificationTrackerSqsName.statoEmailName()
                                                     ,createNotificationTrackerQueueDtoDigital
                                                             (emailPresaInCaricoInfo
@@ -394,7 +395,7 @@ public class EmailService extends PresaInCaricoService {
 
                         })//              Catch errore tirato per lo stato toDelete
                 .onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
-                    log.info("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", emailSqsQueueName.errorName());
+                    log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", emailSqsQueueName.errorName());
                     return sqsService.send(notificationTrackerSqsName.statoEmailName()
                             ,createNotificationTrackerQueueDtoDigital
                                     (emailPresaInCaricoInfo
@@ -404,9 +405,6 @@ public class EmailService extends PresaInCaricoService {
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
 
 
-                }).onErrorResume(RuntimeException.class, throwable -> {
-                    log.error("Errore generico", throwable);
-                    return Mono.empty();
                 });
     }
 
@@ -443,13 +441,13 @@ public class EmailService extends PresaInCaricoService {
 //              se il primo step, inizializza l'attributo retry
                 .flatMap(requestDto ->  {
                     if(requestDto.getRequestMetadata().getRetry() == null) {
-                        log.info("Primo tentativo di Retry");
+                        log.debug("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
                         return getMono(requestId, retryPolicies, requestDto, retryDto);
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
-                        log.info(retryNumber + " tentativo di Retry");
+                        log.debug(retryNumber + " tentativo di Retry");
                         return  Mono.just(requestDto);
                     }
                 })
@@ -471,7 +469,7 @@ public class EmailService extends PresaInCaricoService {
                     return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
                 })
                 .flatMap(requestDto -> {
-                    log.info("requestDto Value:", requestDto.getRequestMetadata().getRetry());
+                    log.debug("requestDto Value:", requestDto.getRequestMetadata().getRetry());
                    return   sesService.send(mailFld)
                            .retryWhen(DEFAULT_RETRY_STRATEGY)
 
@@ -485,7 +483,7 @@ public class EmailService extends PresaInCaricoService {
                                                         generatedMessageDto.get()))))
 
                            .flatMap(sendMessageResponse -> {
-                               log.info("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore", emailSqsQueueName.errorName());
+                               log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore", emailSqsQueueName.errorName());
                                return sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName());
                            })
                            .onErrorResume(sqsPublishException -> {
@@ -494,7 +492,7 @@ public class EmailService extends PresaInCaricoService {
                                }
                                if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
                                    // operazioni per la rimozione del messaggio
-                                   log.info("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", emailSqsQueueName.errorName());
+                                   log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", emailSqsQueueName.errorName());
                                    return sqsService.send(notificationTrackerSqsName.statoEmailName()
                                            ,createNotificationTrackerQueueDtoDigital
                                                    (emailPresaInCaricoInfo
@@ -509,7 +507,7 @@ public class EmailService extends PresaInCaricoService {
                            ;
 
                 })            .onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
-                    log.info("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", emailSqsQueueName.errorName());
+                    log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", emailSqsQueueName.errorName());
                     return sqsService.send(notificationTrackerSqsName.statoEmailName()
                             ,createNotificationTrackerQueueDtoDigital
                                     (emailPresaInCaricoInfo
@@ -519,9 +517,6 @@ public class EmailService extends PresaInCaricoService {
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
 
 
-                }).onErrorResume(RuntimeException.class, throwable -> {
-                    log.error("Errore generico", throwable);
-                    return Mono.empty();
                 });
 
     }

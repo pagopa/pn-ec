@@ -6,6 +6,7 @@ import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
 import it.pagopa.pn.ec.commons.model.pojo.request.RequestStatusChange;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -14,6 +15,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Component
+@Slf4j
 public class CallMacchinaStatiImpl implements CallMacchinaStati {
 
     private final WebClient stateMachineWebClient;
@@ -29,6 +31,7 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
     @Override
     public Mono<MacchinaStatiValidateStatoResponseDto> statusValidation(RequestStatusChange requestStatusChange)
             throws InvalidNextStatusException {
+        log.info("<-- START STATUS VALIDATION --> Current status : {}, Next status: {}, Request ID: {}, Client ID: {}", requestStatusChange.getCurrentStatus(), requestStatusChange.getNextStatus(),requestStatusChange.getRequestIdx() , requestStatusChange.getXPagopaExtchCxId());
         return stateMachineWebClient.get()
                                     .uri(uriBuilder -> uriBuilder.path(stateMachineEndpointProperties.validate())
                                                                  .queryParam(CLIENT_ID_QUERY_PARAM,
@@ -51,6 +54,7 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
     @Override
     public Mono<MacchinaStatiDecodeResponseDto> statusDecode(RequestStatusChange requestStatusChange) {
         var currentStatus = requestStatusChange.getCurrentStatus();
+        log.info("<-- START STATUS DECODE --> Current status : {}, Request ID: {}, Client ID: {}", currentStatus, requestStatusChange.getRequestIdx() , requestStatusChange.getXPagopaExtchCxId());
 
         return stateMachineWebClient.get()
                                     .uri(uriBuilder -> uriBuilder.path(stateMachineEndpointProperties.decode())
