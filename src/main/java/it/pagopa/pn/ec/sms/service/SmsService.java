@@ -235,6 +235,7 @@ public class SmsService extends PresaInCaricoService {
                 .flatMap(smsPresaInCaricoInfoSqsMessageWrapper ->
                         gestioneRetrySms(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent(), smsPresaInCaricoInfoSqsMessageWrapper.getMessage()))
                 .map(MonoResultWrapper::new)
+                .doOnError(throwable -> log.error(throwable.getMessage()))
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)
@@ -355,10 +356,6 @@ public class SmsService extends PresaInCaricoService {
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName()));
 
 
-                })
-                .onErrorResume(RuntimeException.class, throwable -> {
-                    log.error("Errore generico, messaggio: {}", throwable.getMessage());
-                    return Mono.empty();
                 });
     }
 }

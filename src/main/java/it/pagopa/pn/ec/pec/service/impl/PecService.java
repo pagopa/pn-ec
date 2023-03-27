@@ -247,7 +247,7 @@ public class PecService extends PresaInCaricoService {
 //                                                            Publish to Errori PEC queue and notify to retry update status only
 //                                                            TODO: CHANGE THE PAYLOAD
                                                               .onErrorResume(throwable -> sqsService.send(pecSqsQueueName.errorName(), pecPresaInCaricoInfo)))
-                                
+
                                 .doOnError(throwable -> {
                                     log.error("An error occurred during lavorazione PEC", throwable.getMessage());
                                 })
@@ -280,6 +280,7 @@ public class PecService extends PresaInCaricoService {
                 .flatMap(pecPresaInCaricoInfoSqsMessageWrapper ->
                         gestioneRetryPec(pecPresaInCaricoInfoSqsMessageWrapper.getMessageContent(), pecPresaInCaricoInfoSqsMessageWrapper.getMessage()))
                 .map(MonoResultWrapper::new)
+                .doOnError(throwable -> log.error(throwable.getMessage()))
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)
@@ -437,9 +438,6 @@ public class PecService extends PresaInCaricoService {
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName()));
 
 
-                }).onErrorResume(RuntimeException.class, throwable -> {
-                    log.error("Errore generico", throwable);
-                    return Mono.empty();
                 });
     }
 

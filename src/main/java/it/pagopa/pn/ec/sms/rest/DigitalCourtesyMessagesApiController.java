@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.OK;
 
 @RestController
@@ -41,7 +42,8 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                                             ServerWebExchange exchange) {
 
         return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.sms())
-                                .map(ResponseEntity::ok);
+                                .map(ResponseEntity::ok)
+                                .doOnError(throwable -> log.error(throwable.getMessage()));
 
     }
 
@@ -56,6 +58,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                                                          .xPagopaExtchCxId(xPagopaExtchCxId)
                                                                                                          .digitalCourtesySmsRequest(request)
                                                                                                          .build()))
+                                        .doOnError(throwable -> log.error(throwable.getMessage()))
                                         .thenReturn(new ResponseEntity<>(OK));
 
     }
@@ -81,7 +84,9 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                                                               .digitalCourtesyMailRequest(
                                                                                                                       request)
                                                                                                               .build()))
+                                         .doOnError(throwable -> log.error(throwable.getMessage()))
                                          .thenReturn(new ResponseEntity<>(OK));
+
     }
 
     @Override
@@ -89,6 +94,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                                               ServerWebExchange exchange) {
 
         return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.email())
-                                .map(ResponseEntity::ok);
+                                .map(ResponseEntity::ok)
+                                .doOnError(throwable -> log.error(throwable.getMessage()));
     }
 }
