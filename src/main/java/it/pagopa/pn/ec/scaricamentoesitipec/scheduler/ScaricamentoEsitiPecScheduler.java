@@ -14,6 +14,8 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
+import it.pagopa.pn.ec.rest.v1.dto.LegalMessageSentDetails;
+import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.bridgews.*;
@@ -175,10 +177,10 @@ public class ScaricamentoEsitiPecScheduler {
                                    })
 
                                    .flatMap(objects -> {
-                                       var postacert = objects.getT1();
-                                       var requestDto = objects.getT2();
-                                       var legalMessageSentDetails = objects.getT3();
-                                       var getMessageIDResponse = objects.getT4();
+                                       Postacert postacert = objects.getT1();
+                                       RequestDto requestDto = objects.getT2();
+                                       LegalMessageSentDetails legalMessageSentDetails = objects.getT3();
+                                       GetMessageIDResponse getMessageIDResponse = objects.getT4();
 
                                        var nextStatus =
                                                decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
@@ -192,7 +194,10 @@ public class ScaricamentoEsitiPecScheduler {
                                                                                               .build();
 
                                        return cloudWatchPecMetrics.publishCustomPecMetrics(cloudWatchPecMetricsInfo)
-                                                                  .thenReturn(Tuples.of(postacert, getMessageIDResponse, requestDto, cloudWatchPecMetricsInfo));
+                                                                  .thenReturn(Tuples.of(postacert,
+                                                                                        getMessageIDResponse,
+                                                                                        requestDto,
+                                                                                        cloudWatchPecMetricsInfo));
                                    })
 
 //                                 Validate status
@@ -201,6 +206,7 @@ public class ScaricamentoEsitiPecScheduler {
                                        var getMessageIDResponse = objects.getT2();
                                        var requestDto = objects.getT3();
                                        var cloudWatchPecMetricsInfo = objects.getT4();
+
                                        var requestStatusChange = RequestStatusChange.builder()
                                                                                     .requestIdx(requestDto.getRequestIdx())
                                                                                     .xPagopaExtchCxId(requestDto.getxPagopaExtchCxId())
@@ -208,10 +214,12 @@ public class ScaricamentoEsitiPecScheduler {
                                                                                     .nextStatus(cloudWatchPecMetricsInfo.getNextStatus())
                                                                                     .currentStatus(requestDto.getStatusRequest())
                                                                                     .build();
+
                                        return callMacchinaStati.statusValidation(requestStatusChange)
                                                                .map(unused -> Tuples.of(postacert,
                                                                                         getMessageIDResponse,
-                                                                                        requestStatusChange,cloudWatchPecMetricsInfo))
+                                                                                        requestStatusChange,
+                                                                                        cloudWatchPecMetricsInfo))
                                                                .doOnError(CallMacchinaStati.StatusValidationBadRequestException.class,
                                                                           throwable -> log.debug(
                                                                                   "La chiamata al notification tracker della PEC {} " +
@@ -234,13 +242,13 @@ public class ScaricamentoEsitiPecScheduler {
                                        GetMessageIDResponse getMessageIDResponse = objects.getT2();
                                        RequestStatusChange requestStatusChange = objects.getT3();
                                        CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT4();
+
                                        var mimeMessage = getMimeMessage(getMessageIDResponse.getMessage());
                                        var pecIdMessageId = getMessageIdFromMimeMessage(mimeMessage);
                                        var requestIdx = requestStatusChange.getRequestIdx();
                                        var xPagopaExtchCxId = requestStatusChange.getXPagopaExtchCxId();
                                        var currentStatus = requestStatusChange.getCurrentStatus();
                                        var nextStatus = requestStatusChange.getNextStatus();
-                                       var postacertDati = postacert.getDati();
                                        var eventDetails = postacert.getErrore();
                                        var senderDigitalAddress = arubaSecretValue.getPecUsername();
                                        var senderDomain = getDomainFromAddress(senderDigitalAddress);
@@ -254,17 +262,17 @@ public class ScaricamentoEsitiPecScheduler {
 
                                        log.info("PEC {} has {} requestId", pecId, requestIdx);
 
+                                       var digitalProgressStatusDto =
+                                               new DigitalProgressStatusDto().eventTimestamp(cloudWatchPecMetricsInfo.getNextEventTimestamp())
+                                                                             .eventDetails(eventDetails)
+                                                                             .generatedMessage(generatedMessageDto);
+
                                        return NotificationTrackerQueueDto.builder()
                                                                          .requestIdx(requestIdx)
                                                                          .xPagopaExtchCxId(xPagopaExtchCxId)
                                                                          .currentStatus(currentStatus)
                                                                          .nextStatus(nextStatus)
-                                                                         .digitalProgressStatusDto(new DigitalProgressStatusDto().eventTimestamp(
-                                                                                                                                         cloudWatchPecMetricsInfo.getNextEventTimestamp())
-                                                                                                                                 .eventDetails(
-                                                                                                                                         eventDetails)
-                                                                                                                                 .generatedMessage(
-                                                                                                                                         generatedMessageDto))
+                                                                         .digitalProgressStatusDto(digitalProgressStatusDto)
                                                                          .build();
                                    })
 
