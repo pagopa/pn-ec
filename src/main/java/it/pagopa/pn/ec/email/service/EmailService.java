@@ -405,6 +405,10 @@ public class EmailService extends PresaInCaricoService {
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
 
 
+                })
+                .onErrorResume(RuntimeException.class, throwable -> {
+                    log.error("Errore generico", throwable);
+                    return Mono.empty();
                 });
     }
 
@@ -517,7 +521,7 @@ public class EmailService extends PresaInCaricoService {
 
 
                 })
-                .onErrorResume(throwable -> {
+                .onErrorResume(RuntimeException.class, throwable -> {
                     log.error("Errore generico", throwable);
                     return Mono.empty();
                 });
