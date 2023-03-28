@@ -406,7 +406,7 @@ public class EmailService extends PresaInCaricoService {
 
 
                 })
-                .onErrorResume(RuntimeException.class, throwable -> {
+                .onErrorResume(throwable -> {
                     log.error("Errore generico", throwable);
                     return Mono.empty();
                 });
@@ -521,7 +521,7 @@ public class EmailService extends PresaInCaricoService {
 
 
                 })
-                .onErrorResume(RuntimeException.class, throwable -> {
+                .onErrorResume(throwable -> {
                     log.error("Errore generico", throwable);
                     return Mono.empty();
                 });
