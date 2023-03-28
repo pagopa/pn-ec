@@ -48,7 +48,8 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
     public Mono<ResponseEntity<Void>> sendCourtesyShortMessage(String requestIdx, String xPagopaExtchCxId,
                                                                Mono<DigitalCourtesySmsRequest> digitalCourtesySmsRequest,
                                                                final ServerWebExchange exchange) {
-        return digitalCourtesySmsRequest.doOnNext(request -> log.info("<-- START PRESA IN CARICO SMS -->"))
+
+        return digitalCourtesySmsRequest
                                         .flatMap(request -> smsService.presaInCarico(SmsPresaInCaricoInfo.builder()
                                                                                                          .requestIdx(requestIdx)
                                                                                                          .xPagopaExtchCxId(xPagopaExtchCxId)
@@ -71,7 +72,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                  Mono<DigitalCourtesyMailRequest> digitalCourtesyMailRequest,
                                                                  final ServerWebExchange exchange) {
 
-        return digitalCourtesyMailRequest.doOnNext(request -> log.info("<-- START PRESA IN CARICO EMAIL -->"))
+        return digitalCourtesyMailRequest
                                          .flatMap(request -> emailService.presaInCarico(EmailPresaInCaricoInfo.builder()
                                                                                                               .requestIdx(requestIdx)
                                                                                                               .xPagopaExtchCxId(
@@ -85,8 +86,8 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
     @Override
     public Mono<ResponseEntity<CourtesyMessageProgressEvent>> getDigitalCourtesyMessageStatus(String requestIdx, String xPagopaExtchCxId,
                                                                                               ServerWebExchange exchange) {
+
         return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.email())
-                .doOnError(throwable -> log.error(throwable.getMessage(), throwable.getStackTrace()))
                                 .map(ResponseEntity::ok);
     }
 }

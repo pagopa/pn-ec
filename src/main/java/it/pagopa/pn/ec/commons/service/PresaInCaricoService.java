@@ -22,6 +22,7 @@ public abstract class PresaInCaricoService {
     }
 
     public Mono<Void> presaInCarico(PresaInCaricoInfo presaInCaricoInfo) throws RequestAlreadyInProgressException {
+//      Client auth
         return authService.clientAuth(presaInCaricoInfo.getXPagopaExtchCxId())
 //                        Retrieve request
                           .then(gestoreRepositoryCall.getRichiesta(presaInCaricoInfo.getRequestIdx()))

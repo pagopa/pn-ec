@@ -37,13 +37,15 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
     public Mono<ResponseEntity<Void>> sendDigitalLegalMessage(String requestIdx, String xPagopaExtchCxId,
                                                               Mono<DigitalNotificationRequest> digitalNotificationRequest,
                                                               final ServerWebExchange exchange) {
-        return digitalNotificationRequest.doOnNext(request -> log.info("<-- Start presa in carico -->"))
+
+        return digitalNotificationRequest
                                          .flatMap(request -> pecService.presaInCarico(PecPresaInCaricoInfo.builder()
                                                                                                           .requestIdx(requestIdx)
                                                                                                           .xPagopaExtchCxId(xPagopaExtchCxId)
                                                                                                           .digitalNotificationRequest(
                                                                                                                   request)
                                                                                                           .build()))
+                                         .doOnError(throwable -> log.error(throwable.getMessage()))
                                          .thenReturn(new ResponseEntity<>(OK));
     }
 
@@ -51,7 +53,11 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
     public Mono<ResponseEntity<LegalMessageSentDetails>> getDigitalLegalMessageStatus(String requestIdx, String xPagopaExtchCxId,
                                                                                       ServerWebExchange exchange) {
 
-        return statusPullService.pecPullService(requestIdx, xPagopaExtchCxId).map(ResponseEntity::ok);
+
+        return statusPullService.pecPullService(requestIdx, xPagopaExtchCxId)
+                .doOnNext(legalMessageSentDetails -> log.info("<-- Start getDigitalLegalMessageStatus --> richiesta: {}", requestIdx))
+                .map(ResponseEntity::ok)
+                .doOnError(throwable -> log.error(throwable.getMessage()));
     }
 
 }

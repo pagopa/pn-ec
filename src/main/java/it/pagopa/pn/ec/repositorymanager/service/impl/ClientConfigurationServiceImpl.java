@@ -29,11 +29,13 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
 
     @Override
     public Flux<ClientConfiguration> getAllClient() {
+        log.info("Try to retrieve all clients");
         return Flux.from(clientConfigurationDynamoDbTable.scan().items());
     }
 
     @Override
     public Mono<ClientConfiguration> getClient(String cxId) {
+        log.info("Try to retrieve client with id -> {}", cxId);
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.getItem(getKey(cxId)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(cxId)))
                    .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()));
@@ -41,6 +43,7 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
 
     @Override
     public Mono<ClientConfiguration> insertClient(ClientConfiguration clientConfiguration) {
+        log.info("Try to insert client: {}", clientConfiguration.getCxId());
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.getItem(getKey(clientConfiguration.getCxId())))
                    .flatMap(foundedClientConfiguration -> Mono.error(new RepositoryManagerException.IdClientAlreadyPresent(
                            clientConfiguration.getCxId())))
@@ -53,6 +56,7 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
 
     @Override
     public Mono<ClientConfiguration> updateClient(String cxId, ClientConfiguration clientConfiguration) {
+        log.info("Try to update client: {}", clientConfiguration.getCxId());
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.getItem(getKey(cxId)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(cxId)))
                    .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
@@ -65,6 +69,7 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
 
     @Override
     public Mono<ClientConfiguration> deleteClient(String cxId) {
+        log.info("Try to delete client with id -> {}", cxId);
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTable.getItem(getKey(cxId)))
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(cxId)))
                    .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))

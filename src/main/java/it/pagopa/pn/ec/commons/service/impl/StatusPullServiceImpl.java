@@ -70,6 +70,7 @@ public class StatusPullServiceImpl implements StatusPullService {
                         return event;
                     });
                 }).switchIfEmpty(Mono.just(new CourtesyMessageProgressEvent().eventCode("").eventDetails("").requestId("")));
+
     }
 
     @Override
@@ -114,6 +115,7 @@ public class StatusPullServiceImpl implements StatusPullService {
     public Mono<PaperProgressStatusEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
         log.info("<-- START PULL OF PAPER REQUEST --> Request ID: {}, Client ID: {}", requestIdx, xPagopaExtchCxId);
         return getRequest(xPagopaExtchCxId, requestIdx).flatMap(requestDto -> {
+
                     var eventsList = requestDto.getRequestMetadata().getEventsList();
 
                     if (eventsList != null && !eventsList.isEmpty()) {
@@ -199,14 +201,15 @@ public class StatusPullServiceImpl implements StatusPullService {
                         .statusDescription("")
                         .iun("")
                         .registeredLetterCode("")));
+
     }
 
     private Mono<MacchinaStatiDecodeResponseDto> statusDecode(RequestStatusChange requestStatusChange) {
         return callMacchinaStati.statusDecode(requestStatusChange).handle((macchinaStatiDecodeResponseDto, sink) -> {
-                    if (macchinaStatiDecodeResponseDto.getExternalStatus() == null)
-                        sink.error(new StatusNotFoundException(requestStatusChange.getCurrentStatus()));
-                    else sink.next(macchinaStatiDecodeResponseDto);
-                });
+            if (macchinaStatiDecodeResponseDto.getExternalStatus() == null)
+                sink.error(new StatusNotFoundException(requestStatusChange.getCurrentStatus()));
+            else sink.next(macchinaStatiDecodeResponseDto);
+        });
     }
 
     private Mono<RequestDto> getRequest(String xPagopaExtchCxId, String requestIdx) {
