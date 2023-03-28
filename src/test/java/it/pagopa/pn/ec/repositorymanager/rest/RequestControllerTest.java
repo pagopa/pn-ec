@@ -60,6 +60,7 @@ class RequestControllerTest {
 
     private static final String DEFAULT_ID_DIGITAL = "DIGITAL";
     private static final String DEFAULT_ID_PAPER = "PAPER";
+    public static final String ID_CLIENT_HEADER_NAME = "x-pagopa-extch-cx-id";
     private static final String X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE = "CLIENT1";
     private static final String DEFAULT_CONCATE_ID_DIGITAL = "CLIENT1~DIGITAL";
     private static final String DEFAULT_CONCATE_ID_PAPER = "CLIENT1~PAPER";
@@ -227,6 +228,7 @@ class RequestControllerTest {
     void readRequestTestSuccess(String id) {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(id))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isOk()
@@ -238,6 +240,7 @@ class RequestControllerTest {
     void readRequestTestFailed() {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build("idNotExist"))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isNotFound();
@@ -305,6 +308,7 @@ class RequestControllerTest {
 
         webClient.patch()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(idRequest))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .body(BodyInserters.fromValue(patchDto))
                  .exchange()
                  .expectStatus()
@@ -318,6 +322,7 @@ class RequestControllerTest {
 
         webClient.patch()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build("idCheNonEsiste"))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .body(BodyInserters.fromValue(patchDto))
                  .exchange()
                  .expectStatus()
@@ -343,6 +348,7 @@ class RequestControllerTest {
 
         webClient.patch()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(DEFAULT_ID_DIGITAL))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .body(BodyInserters.fromValue(patchDto))
                  .exchange()
                  .expectStatus()
@@ -358,11 +364,12 @@ class RequestControllerTest {
     @MethodSource("provideDigitalAndPaperRequestForDelete")
     void deleteRequestTestSuccess(RequestDto requestDto, String idToDelete) {
 
-        insertRequestPersonal(idToDelete, objectMapper.convertValue(requestDto.getRequestPersonal(), RequestPersonal.class));
-        insertRequestMetadata(idToDelete, objectMapper.convertValue(requestDto.getRequestMetadata(), RequestMetadata.class));
+        insertRequestPersonal("CLIENT1~" + idToDelete, objectMapper.convertValue(requestDto.getRequestPersonal(), RequestPersonal.class));
+        insertRequestMetadata("CLIENT1~" + idToDelete, objectMapper.convertValue(requestDto.getRequestMetadata(), RequestMetadata.class));
 
         webClient.delete()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest()).build(idToDelete))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isOk();
@@ -373,17 +380,19 @@ class RequestControllerTest {
     void deleteRequestTestFailed() {
         webClient.delete()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest()).build("idCheNonEsiste"))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isNotFound();
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {DEFAULT_ID_DIGITAL, DEFAULT_ID_PAPER})
+    @ValueSource(strings = {DEFAULT_CONCATE_ID_DIGITAL, DEFAULT_CONCATE_ID_PAPER})
     void getRequestByMessageIdOk(String idRequest) {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId())
                                               .build(encodeMessageId(idRequest)))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isOk();
@@ -393,7 +402,8 @@ class RequestControllerTest {
     void getRequestByMessageNotFound() {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId())
-                                              .build(encodeMessageId("idRequestCheNonEsiste")))
+                                              .build(encodeMessageId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE + "~idRequestCheNonEsiste")))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isNotFound();
@@ -413,6 +423,7 @@ class RequestControllerTest {
     void updateMessageIdInRequestMetadataOk(String idRequest) {
         webClient.post()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata()).build(idRequest))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isOk();
@@ -423,6 +434,7 @@ class RequestControllerTest {
         webClient.post()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
                                               .build("idRequestCheNonEsiste"))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isNotFound();
