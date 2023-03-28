@@ -175,9 +175,6 @@ public class CartaceoService extends PresaInCaricoService {
             requestDto.setRequestMetadata(requestMetadataDto);
             return requestDto;
         }).flatMap(gestoreRepositoryCall::insertRichiesta);
-//                .doOnError(RuntimeException.class, throwable -> {
-//                    log.error("Errore generico", throwable.getMessage());
-//                });
     }
 
     @SqsListener(value = "${sqs.queue.cartaceo.batch-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
@@ -241,9 +238,6 @@ public class CartaceoService extends PresaInCaricoService {
                                 .then(sqsService.send(cartaceoSqsQueueName.errorName(), cartaceoPresaInCaricoInfo))
 
                 );
-//                .doOnError(RuntimeException.class, throwable -> {
-//                    log.error("Errore generico", throwable.getMessage());
-//                });
     }
 
     @Scheduled(cron = "${cron.value.gestione-retry-cartaceo}")
@@ -366,10 +360,5 @@ public class CartaceoService extends PresaInCaricoService {
                                             new PaperProgressStatusDto()))
                             .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message, cartaceoSqsQueueName.errorName()));
                 });
-//                .onErrorResume(RuntimeException.class, throwable -> {
-//                    log.error("Errore generico", throwable.getMessage());
-//                    return Mono.empty();
-//                });
-
     }
 }
