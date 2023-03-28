@@ -45,7 +45,6 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
                                                                                                           .digitalNotificationRequest(
                                                                                                                   request)
                                                                                                           .build()))
-                                         .doOnError(throwable -> log.error(throwable.getMessage()))
                                          .thenReturn(new ResponseEntity<>(OK));
     }
 
@@ -56,8 +55,7 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
 
         return statusPullService.pecPullService(requestIdx, xPagopaExtchCxId)
                 .doOnNext(legalMessageSentDetails -> log.info("<-- Start getDigitalLegalMessageStatus --> richiesta: {}", requestIdx))
-                .map(ResponseEntity::ok)
-                .doOnError(throwable -> log.error(throwable.getMessage()));
+                .map(ResponseEntity::ok);
     }
 
 }

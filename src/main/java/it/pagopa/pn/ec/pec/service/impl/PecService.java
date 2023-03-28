@@ -280,7 +280,6 @@ public class PecService extends PresaInCaricoService {
                 .flatMap(pecPresaInCaricoInfoSqsMessageWrapper ->
                         gestioneRetryPec(pecPresaInCaricoInfoSqsMessageWrapper.getMessageContent(), pecPresaInCaricoInfoSqsMessageWrapper.getMessage()))
                 .map(MonoResultWrapper::new)
-                .doOnError(throwable -> log.error(throwable.getMessage()))
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)
@@ -438,6 +437,10 @@ public class PecService extends PresaInCaricoService {
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName()));
 
 
+                })
+                .onErrorResume(throwable -> {
+                    log.error(throwable.getMessage());
+                    return Mono.empty();
                 });
     }
 
