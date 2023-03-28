@@ -503,8 +503,7 @@ public class EmailService extends PresaInCaricoService {
 
                                }
                                return Mono.empty();
-                           })
-                           ;
+                           });
 
                 })            .onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", emailSqsQueueName.errorName());
@@ -517,8 +516,11 @@ public class EmailService extends PresaInCaricoService {
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
 
 
+                })
+                .onErrorResume(throwable -> {
+                    log.error("Errore generico", throwable);
+                    return Mono.empty();
                 });
-
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(SendRawEmailResponse publishResponse) {
