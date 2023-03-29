@@ -49,7 +49,7 @@ public class JettyHttpClientConf {
 
         request.onRequestContent((theRequest, content) -> {
             try {
-                log.info("Request body --> {}", charsetDecoder.decode(content));
+                log.debug("Request body --> {}", charsetDecoder.decode(content));
             } catch (CharacterCodingException e) {
                 log.error(e.getMessage(), e);
             }
@@ -58,7 +58,7 @@ public class JettyHttpClientConf {
         request.onResponseContent((theResponse, content) -> {
             if (CONTENT_TYPE_OF_RESPONSE_BODY_TO_LOG.contains(theResponse.getHeaders().get(CONTENT_TYPE))) {
                 try {
-                    log.info("Response body --> {}", charsetDecoder.decode(content));
+                    log.debug("Response body --> {}", charsetDecoder.decode(content));
                 } catch (CharacterCodingException e) {
                     log.error(e.getMessage(), e);
                 }

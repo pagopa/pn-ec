@@ -21,6 +21,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public Mono<Void> clientAuth(final String xPagopaExtchCxId) throws IdClientNotFoundException {
+        log.info("<-- START CLIENT AUTHORIZATION --> Client ID: {}", xPagopaExtchCxId);
         return gestoreRepositoryCall.getClientConfiguration(xPagopaExtchCxId)
                                     .onErrorResume(RestCallException.ResourceNotFoundException.class,
                                                    throwable -> Mono.error(new ClientNotFoundException(xPagopaExtchCxId)))

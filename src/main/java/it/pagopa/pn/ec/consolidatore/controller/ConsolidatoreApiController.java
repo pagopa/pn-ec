@@ -75,13 +75,17 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     public Mono<ResponseEntity<FileDownloadResponse>> getFile(String fileKey, String xPagopaExtchServiceId
             , String xApiKey
             , final ServerWebExchange exchange) {
-        return consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey).map(ResponseEntity::ok);
+        return consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
+                .doOnError(throwable -> log.error(throwable.getMessage(),throwable.getStackTrace()))
+                .map(ResponseEntity::ok);
     }
 
 
     @Override
     public Mono<ResponseEntity<PreLoadResponseData>> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> preLoadRequestData, ServerWebExchange exchange) {
-        return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData).map(ResponseEntity::ok);
+        return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
+                .doOnError(throwable -> log.error(throwable.getMessage(),throwable.getStackTrace()))
+                .map(ResponseEntity::ok);
     }
 
     @Override
@@ -104,7 +108,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                             .toList();
 
                     if (listErrorResponse.isEmpty()) {
-                        log.info(LOG_LABEL + "Non ci sono errori sintattici/semantici");
+                        log.debug(LOG_LABEL + "Non ci sono errori sintattici/semantici");
 
                         // eventi
                         var listEvents = new ArrayList<ConsolidatoreIngressPaperProgressStatusEvent>();
@@ -122,14 +126,14 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                 .flatMap(listSendResponse -> {
                                     var listSendErrorResponse = listSendResponse.stream().filter(response -> response.getResultCode() != null && !response.getResultCode().equals(COMPLETED_OK_CODE)).toList();
                                     if (listSendErrorResponse.isEmpty()) {
-                                        log.info(LOG_LABEL + "OK END");
+                                        log.debug(LOG_LABEL + "OK END");
                                         return Mono.just(ResponseEntity.ok()
                                                 .body(getOperationResultCodeResponse(COMPLETED_OK_CODE,
                                                         COMPLETED_MESSAGE,
                                                         null)));
                                     } else {
                                         var sendErrors = getAllErrors(listSendErrorResponse);
-                                        log.error(LOG_LABEL + "pubblicazione coda : errori individuati = {}", sendErrors);
+                                        log.debug(LOG_LABEL + "pubblicazione coda : errori individuati = {}", sendErrors);
                                         return Mono.just(ResponseEntity.internalServerError()
                                                 .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
                                                         errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
@@ -141,8 +145,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                     return Mono.error(throwable);
                                 });
                     } else {
-                        log.info(LOG_LABEL + "errori sintattici/semantici : Sono stati individuati {} macro errori", listErrorResponse.size());
-
+                        log.debug(LOG_LABEL + "errori sintattici/semantici : Sono stati individuati {} macro errori", listErrorResponse.size());
                         // errori
                         var listErrors = new ArrayList<OperationResultCodeResponse>();
                         listErrorResponse.forEach(dto -> {
@@ -152,7 +155,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                         });
 
                         var errors = getAllErrors(listErrors);
-                        log.error(LOG_LABEL + "errori sintattici/semantici : "
+                        log.debug(LOG_LABEL + "errori sintattici/semantici : "
                                         + "result code = \"{}\" : "
                                         + "result description = \"{}\" : "
                                         + "specifici errori individuati = {}",

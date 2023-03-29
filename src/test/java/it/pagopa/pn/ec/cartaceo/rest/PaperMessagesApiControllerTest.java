@@ -1,11 +1,10 @@
 package it.pagopa.pn.ec.cartaceo.rest;
 
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
-import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
-import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
@@ -232,7 +231,7 @@ class PaperMessagesApiControllerTest {
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
-                new SqsPublishException(notificationTrackerSqsName.statoCartaceoName())));
+                new SqsClientException(notificationTrackerSqsName.statoCartaceoName())));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
                 .isEqualTo(SERVICE_UNAVAILABLE)
@@ -253,7 +252,7 @@ class PaperMessagesApiControllerTest {
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         when(sqsService.send(eq(cartaceoSqsQueueName.batchName()),
-                any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsPublishException(cartaceoSqsQueueName.batchName())));
+                any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsClientException(cartaceoSqsQueueName.batchName())));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
                 .isEqualTo(SERVICE_UNAVAILABLE)

@@ -23,7 +23,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
@@ -227,7 +227,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	
     	// errore pubblicazione su coda cartaceo
 		when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class)))
-			.thenReturn(Mono.error(new SqsPublishException(notificationTrackerSqsName.statoCartaceoName())));
+			.thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName.statoCartaceoName())));
     	
     	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
     	events.add(getProgressStatusEventWithoutAttachments());

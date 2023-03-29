@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.sms.rest;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
-import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
@@ -183,7 +183,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
 		when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class)))
-				.thenReturn(Mono.error(new SqsPublishException(notificationTrackerSqsName.statoSmsName())));
+				.thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName.statoSmsName())));
 
 		sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
 				.isEqualTo(SERVICE_UNAVAILABLE).expectBody(Problem.class);
@@ -204,7 +204,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
 		when(sqsService.send(eq(smsSqsQueueName.interactiveName()), any(SmsPresaInCaricoInfo.class)))
-				.thenReturn(Mono.error(new SqsPublishException(smsSqsQueueName.interactiveName())));
+				.thenReturn(Mono.error(new SqsClientException(smsSqsQueueName.interactiveName())));
 
 		sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
 				.isEqualTo(SERVICE_UNAVAILABLE).expectBody(Problem.class);

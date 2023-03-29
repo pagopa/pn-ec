@@ -1,9 +1,9 @@
-package it.pagopa.pn.ec.consolidatore.service;
+package it.pagopa.pn.ec.consolidatore.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
-import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
@@ -14,6 +14,7 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.consolidatore.dto.RicezioneEsitiDto;
 import it.pagopa.pn.ec.consolidatore.exception.AttachmentsEmptyRicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.consolidatore.exception.RicezioneEsitiCartaceoException;
+import it.pagopa.pn.ec.consolidatore.service.RicezioneEsitiCartaceoService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -73,7 +74,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 		// StatusCode
 		if (!statusCodeDescriptionMap().containsKey(progressStatusEvent.getStatusCode())) {
-				log.error(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, "statusCode", progressStatusEvent.getStatusCode()));
+				log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, "statusCode", progressStatusEvent.getStatusCode()));
 				return Mono.error(new RicezioneEsitiCartaceoException(
 		    	 						SEMANTIC_ERROR_CODE, 
 		    	 						errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
@@ -81,7 +82,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		}
 		// ProductTypeMap
 		if (!productTypeMap().containsKey(progressStatusEvent.getProductType())) {
-				log.error(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, "productType", progressStatusEvent.getProductType()));
+				log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, "productType", progressStatusEvent.getProductType()));
 				return Mono.error(new RicezioneEsitiCartaceoException(
 		    	 						SEMANTIC_ERROR_CODE, 
 		    	 						errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
@@ -91,7 +92,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		if (progressStatusEvent.getDeliveryFailureCause() != null 
 				&& !progressStatusEvent.getDeliveryFailureCause().isBlank()
 				&& !deliveryFailureCausemap().containsKey(progressStatusEvent.getDeliveryFailureCause())) {
-				log.error(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, "deliveryFailureCause", progressStatusEvent.getDeliveryFailureCause()));
+				log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, "deliveryFailureCause", progressStatusEvent.getDeliveryFailureCause()));
 				return Mono.error(new RicezioneEsitiCartaceoException(
 		    	 						SEMANTIC_ERROR_CODE, 
 		    	 						errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
@@ -101,7 +102,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		if (progressStatusEvent.getAttachments() != null && !progressStatusEvent.getAttachments().isEmpty()) {
 			for (ConsolidatoreIngressPaperProgressStatusEventAttachments attachment: progressStatusEvent.getAttachments()) {
 				if (!attachmentDocumentTypeMap().contains(attachment.getDocumentType())) {
-					log.error(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, "attachment.documentType", attachment.getDocumentType()));
+					log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, "attachment.documentType", attachment.getDocumentType()));
 	 				return Mono.error(new RicezioneEsitiCartaceoException(
 	 						SEMANTIC_ERROR_CODE, 
 	 						errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
@@ -109,7 +110,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				}
 			}
 		}
-		log.info(LOG_LABEL + "END without errors for requestId \"{}\"", progressStatusEvent.getRequestId());
+		log.debug(LOG_LABEL + "END without errors for requestId \"{}\"", progressStatusEvent.getRequestId());
 		return Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null));
 	}
 	
@@ -123,7 +124,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				 requestId, xPagopaExtchServiceId, attachments);
 		
 		if (attachments == null || attachments.isEmpty()) {
-			log.info(LOG_LABEL + "END without attachments");
+			log.debug(LOG_LABEL + "END without attachments");
 			return Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null));
 		}
 		return Flux.fromIterable(attachments)
@@ -131,7 +132,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			.flatMap(attachment -> {
 				if (attachment.getUri().contains(SS_IN_URI)) {
 					String documentAttachmentKey = attachment.getUri().replace(SS_IN_URI, "");
-					log.info(LOG_LABEL + "attachment.uri = {} -> documentKey = {}", attachment.getUri(), documentAttachmentKey);
+					log.debug(LOG_LABEL + "attachment.uri = {} -> documentKey = {}", attachment.getUri(), documentAttachmentKey);
 					// se ok (httpstatus 200), continuo (verifica andata a buon fine)
 					return Mono.just(documentAttachmentKey);
 				}
@@ -144,24 +145,24 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			// se non si verificano errori, procedo e non mi interssa il risultato
 			.collectList()
 			.flatMap(unused -> {
-				log.info(LOG_LABEL + "END without errors");
+				log.debug(LOG_LABEL + "END without errors");
 				return Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null)); 
 			})
 			// ***
 			.onErrorResume(AttachmentsEmptyRicezioneEsitiCartaceoException.class, 
 						   throwable -> {
-								 log.info(LOG_LABEL + "there aren't Attachments for requestId \"{}\"", requestId);
+								 log.debug(LOG_LABEL + "there aren't Attachments for requestId \"{}\"", requestId);
 								 return Mono.just(new OperationResultCodeResponse());
 			})
 			.onErrorResume(RicezioneEsitiCartaceoException.class, 
 					   throwable -> {
-							 log.error(LOG_LABEL + "requestId = {}, errore attachment uri = {}",
+							 log.debug(LOG_LABEL + "requestId = {}, errore attachment uri = {}",
 									   requestId, throwable.getErrorList().get(0), throwable);
 							 return Mono.error(throwable);
 			})
 			.onErrorResume(Generic400ErrorException.class, 
 					   throwable -> {
-							 log.error(LOG_LABEL + "requestId = {}, errore attachment -> title = {}, details {}",
+							 log.debug(LOG_LABEL + "requestId = {}, errore attachment -> title = {}, details {}",
 									   requestId, throwable.getTitle(), throwable.getDetails(), throwable);
 							 return Mono.error(new RicezioneEsitiCartaceoException(
 												  SEMANTIC_ERROR_CODE, 
@@ -170,7 +171,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			})
 			.onErrorResume(AttachmentNotAvailableException.class, 
 					   throwable -> {
-							 log.error(LOG_LABEL + "requestId = {}, errore attachment = {}",
+							 log.debug(LOG_LABEL + "requestId = {}, errore attachment = {}",
 									   requestId, throwable.getMessage(), throwable);
 							 return Mono.error(new RicezioneEsitiCartaceoException(
 												  SEMANTIC_ERROR_CODE, 
@@ -205,7 +206,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			     )
 			     // *** errore Request Id non trovata
 			     .onErrorResume(RestCallException.ResourceNotFoundException.class, throwable -> {
-		    		 log.error(LOG_VERIF_LABEL + "request id = {} : errore  = {} ",
+		    		 log.debug(LOG_VERIF_LABEL + "request id = {} : errore  = {} ",
 		    				   progressStatusEvent.getRequestId(), throwable.getMessage(), throwable);
 			    	 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 			    			 								getOperationResultCodeResponse(REQUEST_ID_ERROR_CODE, 
@@ -214,7 +215,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			     })
 			     // *** errore semantico
 			     .onErrorResume(RicezioneEsitiCartaceoException.class, throwable -> {
-		    		 log.error("RicezioneEsitiCartaceoServiceImpl.verificaEsitoDaConsolidatore() : errore ResultCode = {} : errore ResultDescription = {} :",
+		    		 log.debug("RicezioneEsitiCartaceoServiceImpl.verificaEsitoDaConsolidatore() : errore ResultCode = {} : errore ResultDescription = {} :",
 		    				   throwable.getResultCode(), throwable.getResultDescription(), throwable);
 			    	 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 								    			 		    getOperationResultCodeResponse(throwable.getResultCode(), 
@@ -269,7 +270,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	 			paperProgressStatusDto.setDiscoveredAddress(discoveredAddressDto);
 	 			paperProgressStatusDto.setAttachments(attachmentsDto);
 	 			
-				log.info(LOG_PUB_LABEL + "paperProgressStatusDto = {}", paperProgressStatusDto);
+				log.debug(LOG_PUB_LABEL + "paperProgressStatusDto = {}", paperProgressStatusDto);
 	 			
 	 			return sqsService.send(notificationTrackerSqsName.statoCartaceoName(), 
 	 								   NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(
@@ -279,8 +280,8 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	 										   paperProgressStatusDto));
 			})
 			.flatMap(unused -> Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null)))
-			.onErrorResume(SqsPublishException.class, throwable -> {
-	    		 log.error("RicezioneEsitiCartaceoServiceImpl.pubblicaEsitoCodaNotificationTracker() : errore pubblicazione coda : message = {} :",
+			.onErrorResume(SqsClientException.class, throwable -> {
+	    		 log.debug("RicezioneEsitiCartaceoServiceImpl.pubblicaEsitoCodaNotificationTracker() : errore pubblicazione coda : message = {} :",
 	    				   throwable.getMessage(), throwable);
 	    		 return Mono.just(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE, 
 	    				 										 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE), 

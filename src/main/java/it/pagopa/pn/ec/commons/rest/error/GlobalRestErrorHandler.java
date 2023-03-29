@@ -6,7 +6,7 @@ import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.RequestAlreadyInProgressException;
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
-import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.InvalidAttachmentSchemaException;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
@@ -79,7 +79,7 @@ public class GlobalRestErrorHandler {
 		return new ResponseEntity<>(problem, BAD_REQUEST);
 	}
 
-	@ExceptionHandler({ EcInternalEndpointHttpException.class, SqsPublishException.class, SnsSendException.class })
+	@ExceptionHandler({ EcInternalEndpointHttpException.class, SqsClientException.class, SnsSendException.class })
 	public final ResponseEntity<Problem> handleAnotherServiceError(Exception exception) {
 		var problem = new Problem();
 		problem.setStatus(SERVICE_UNAVAILABLE.value());
@@ -128,4 +128,6 @@ public class GlobalRestErrorHandler {
 		problem.setTraceId(UUID.randomUUID().toString());
 		return new ResponseEntity<>(problem, NOT_FOUND);
 	}
+
+
 }

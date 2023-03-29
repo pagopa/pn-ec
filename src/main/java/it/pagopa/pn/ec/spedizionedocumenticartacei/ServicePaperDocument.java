@@ -160,7 +160,7 @@ public class ServicePaperDocument {
 				downloadUsingStream(s2, "C:\\Users\\fcrisciotti\\Downloads\\Scheda1_GliArticoli.pdf");
 			} catch (IOException e) {
 //				e.printStackTrace();
-				log.info("context",e);
+				log.debug("context",e);
 			}
 			space();
 			System.out.println(atUrl);
