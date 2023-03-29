@@ -4,6 +4,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.Gest
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -11,6 +12,7 @@ import reactor.core.publisher.Mono;
 import static org.springframework.http.HttpStatus.*;
 
 @Component
+@Slf4j
 public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
     private final WebClient ecWebClient;
@@ -70,6 +72,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
     @Override
     public Mono<RequestDto> patchRichiestaEvent(String requestIdx, EventsDto eventsDto) throws RestCallException.ResourceNotFoundException {
+        log.info("<-- START REQUEST EVENT PATCH --> Request ID: {}", requestIdx);
         return patchRichiesta(requestIdx, new PatchDto().event(eventsDto));
     }
 
@@ -80,7 +83,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
     @Override
     public Mono<RequestDto> patchRichiesta(String requestIdx, PatchDto patchDto) throws RestCallException.ResourceNotFoundException {
-        return ecWebClient.patch()
+         return ecWebClient.patch()
                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(requestIdx))
                 .bodyValue(patchDto)
                 .retrieve()

@@ -3,8 +3,7 @@ package it.pagopa.pn.ec.sms.service;
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
-import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.service.SnsService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
@@ -94,7 +93,7 @@ class SmsServiceTest {
         when(snsService.send(anyString(), anyString())).thenReturn(Mono.just(PublishResponse.builder().build()));
 
         when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
-                new SqsPublishException(notificationTrackerSqsName.statoSmsName())));
+                new SqsClientException(notificationTrackerSqsName.statoSmsName())));
 
         smsService.lavorazioneRichiestaInteractive(SMS_PRESA_IN_CARICO_INFO, acknowledgment);
 

@@ -5,7 +5,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigu
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.statemachine.StateMachineEndpointProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
-import it.pagopa.pn.ec.commons.exception.sqs.SqsPublishException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -109,7 +109,7 @@ class NotificationTrackerServiceImplTest {
 
         when(callMachinaStati.statusValidation(req)).thenReturn(Mono.just(STATE_MACHINE_DTO));
         when(sqsService.send(eq(notificationTrackerSqsName.statoSmsErratoName()),
-                             any(NtStatoError.class))).thenReturn(Mono.error(new SqsPublishException(notificationTrackerSqsName.statoSmsErratoName())));
+                             any(NtStatoError.class))).thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName.statoSmsErratoName())));
 
         notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req, acknowledgment);
     }
@@ -223,7 +223,7 @@ class NotificationTrackerServiceImplTest {
 
         when(callMachinaStati.statusValidation(req)).thenReturn(Mono.just(STATE_MACHINE_DTO));
         when(sqsService.send(eq(notificationTrackerSqsName.statoSmsErratoName()),
-                             any(NtStatoError.class))).thenReturn(Mono.error(new SqsPublishException(notificationTrackerSqsName.statoSmsErratoName())));
+                             any(NtStatoError.class))).thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName.statoSmsErratoName())));
 
         notificationtrackerMessageReceiver.receiveEmailObjectMessage(req, acknowledgment);
     }
@@ -343,7 +343,7 @@ class NotificationTrackerServiceImplTest {
 
         notificationtrackerMessageReceiver.receivePecObjectMessage(req, acknowledgment);
         when(sqsService.send(eq(notificationTrackerSqsName.statoSmsErratoName()),
-                             any(NtStatoError.class))).thenReturn(Mono.error(new SqsPublishException(notificationTrackerSqsName.statoSmsErratoName())));
+                             any(NtStatoError.class))).thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName.statoSmsErratoName())));
 
     }
 
@@ -463,7 +463,7 @@ class NotificationTrackerServiceImplTest {
         notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req, acknowledgment);
 
         when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()),
-                             any(NtStatoError.class))).thenReturn(Mono.error(new SqsPublishException(notificationTrackerSqsName.statoCartaceoName())));
+                             any(NtStatoError.class))).thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName.statoCartaceoName())));
     }
 
     @Test

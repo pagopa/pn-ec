@@ -39,9 +39,11 @@ public class PutEventsImpl implements PutEvents {
                                                             .detail(objectMapper.writeValueAsString(objectToNotify))
                                                             .eventBusName(notificationTrackerEventBridgeEventName.notificationsBusName())
                                                             .build()).flatMap(putEventsRequestEntry -> {
-            log.info("Publish to event bridge with PutEventsRequestEntry ↓\n{}", putEventsRequestEntry);
+            log.debug("Publish to event bridge with PutEventsRequestEntry ↓\n{}", putEventsRequestEntry);
             return Mono.fromCompletionStage(eventBrClient.putEvents(builder -> builder.entries(putEventsRequestEntry)))
+                       .doOnError(throwable -> log.error( "EventBridgeClient error ---> {}", throwable.getMessage(), throwable.getCause()))
                        .retryWhen(Retry.backoff(3, Duration.ofSeconds(2)));
+
         });
     }
 }
