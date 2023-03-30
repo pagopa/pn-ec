@@ -16,6 +16,8 @@ public enum Status {
     RETRY("retry"),
     ERROR("error"),
 
+    DELETED("deleted"),
+
     //  <-- ONLY EMAIL AND PEC -->
     COMPOSITION_ERROR("compError"),
 
