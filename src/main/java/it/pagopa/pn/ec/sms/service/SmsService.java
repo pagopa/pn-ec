@@ -33,6 +33,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 
+import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.service.SnsService.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromMonoUntilIsEmpty;
@@ -84,7 +85,7 @@ public class SmsService extends PresaInCaricoService {
                                                                                                                   notificationTrackerSqsName.statoSmsName(),
                                                                                                                   createNotificationTrackerQueueDtoDigital(smsPresaInCaricoInfo,
                                                                                                                                                            transactionProcessConfigurationProperties.smsStartStatus(),
-                                                                                                                                                           "booked",
+                                                                                                                                                           BOOKED.name(),
                                                                                                                                                            new DigitalProgressStatusDto())))
 //                                                                                                        Publish to SMS INTERACTIVE or
 //                                                                                                        SMS BATCH
@@ -176,8 +177,8 @@ public class SmsService extends PresaInCaricoService {
 //                       The SMS in sent, publish to Notification Tracker with next status -> SENT
                          .flatMap(generatedMessageDto -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
                                                                          createNotificationTrackerQueueDtoDigital(smsPresaInCaricoInfo,
-                                                                                                                  "booked",
-                                                                                                                  "sent",
+                                                                                 BOOKED.name(),
+                                                                                 SENT.name(),
                                                                                                                   new DigitalProgressStatusDto().generatedMessage(
                                                                                                                           generatedMessageDto)))
 
@@ -193,8 +194,8 @@ public class SmsService extends PresaInCaricoService {
                                         snsMaxRetriesExceeded -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
                                                                                  createNotificationTrackerQueueDtoDigital(
                                                                                          smsPresaInCaricoInfo,
-                                                                                         "booked",
-                                                                                         "retry",
+                                                                                         BOOKED.name(),
+                                                                                         RETRY.name(),
                                                                                          new DigitalProgressStatusDto()))
 
 //                                                                         Publish to ERRORI SMS queue
@@ -296,8 +297,8 @@ public class SmsService extends PresaInCaricoService {
 //                       The SMS in sent, publish to Notification Tracker with next status -> SENT
                             .flatMap(generatedMessageDto -> sqsService.send(notificationTrackerSqsName.statoSmsName(),
                                                     createNotificationTrackerQueueDtoDigital(smsPresaInCaricoInfo,
-                                                            "booked",
-                                                            "sent",
+                                                            BOOKED.name(),
+                                                            SENT.name(),
                                                             new DigitalProgressStatusDto().generatedMessage(
                                                                     generatedMessageDto)))
 
@@ -316,8 +317,8 @@ public class SmsService extends PresaInCaricoService {
                                     return sqsService.send(notificationTrackerSqsName.statoSmsName()
                                             ,createNotificationTrackerQueueDtoDigital
                                                     (smsPresaInCaricoInfo
-                                                            ,"retry"
-                                                            ,"error"
+                                                            ,RETRY.name()
+                                                            ,ERROR.name()
                                                             ,new DigitalProgressStatusDto().generatedMessage(
                                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName()));
 
@@ -331,8 +332,8 @@ public class SmsService extends PresaInCaricoService {
                     return sqsService.send(notificationTrackerSqsName.statoSmsName()
                             ,createNotificationTrackerQueueDtoDigital
                                     (smsPresaInCaricoInfo
-                                            ,"retry"
-                                            ,"deleted"
+                                            ,RETRY.name()
+                                            , DELETED.name()
                                             ,new DigitalProgressStatusDto().generatedMessage(
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName()));
 
