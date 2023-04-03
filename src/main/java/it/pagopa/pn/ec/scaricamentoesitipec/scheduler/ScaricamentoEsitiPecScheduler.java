@@ -84,6 +84,14 @@ public class ScaricamentoEsitiPecScheduler {
     private final Predicate<Postacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
     private boolean isScaricamentoEsitiPecRunning = false;
 
+    private GetMessageID createGetMessageIdRequest(String pecId, boolean markSeen) {
+        var getMessageID = new GetMessageID();
+        getMessageID.setMailid(pecId);
+        getMessageID.setIsuid(1);
+        getMessageID.setMarkseen(markSeen ? 1 : null);
+        return getMessageID;
+    }
+
     @Scheduled(cron = "${cron.value.scaricamento-esiti-pec}")
     void scaricamentoEsitiPec() {
 
@@ -167,14 +175,11 @@ public class ScaricamentoEsitiPecScheduler {
                                        var requestIdx = presaInCaricoInfo.getRequestIdx();
                                        var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
 
-                                       var getMessageID = new GetMessageID();
-                                       getMessageID.setMailid(pecId);
-
                                        return Mono.zip(Mono.just(postacert),
                                                        gestoreRepositoryCall.getRichiesta(clientId, requestIdx),
                                                        statusPullService.pecPullService(requestIdx,
                                                                                         presaInCaricoInfo.getXPagopaExtchCxId()),
-                                                       arubaCall.getMessageId(getMessageID));
+                                                       arubaCall.getMessageId(createGetMessageIdRequest(pecId, false)));
                                    })
 
                                    .flatMap(objects -> {
@@ -297,12 +302,8 @@ public class ScaricamentoEsitiPecScheduler {
             })
 
 //          Chiamare getMessageID con markseen a uno per marcare il messaggio come letto e terminare il processo.
-            .flatMap(pecId -> {
-                var getMessageID = new GetMessageID();
-                getMessageID.setMailid(pecId);
-                getMessageID.setMarkseen(1);
-                return arubaCall.getMessageId(getMessageID).doOnSuccess(getMessageIDResponse -> log.debug("PEC {} marked as seen", pecId));
-            })
+            .flatMap(pecId -> arubaCall.getMessageId(createGetMessageIdRequest(pecId, true))
+                                       .doOnSuccess(getMessageIDResponse -> log.debug("PEC {} marked as seen", pecId)))
 
 //          Se avviene qualche errore per una particolare PEC non bloccare il Flux
             .onErrorContinue(CallMacchinaStati.StatusValidationBadRequestException.class,
