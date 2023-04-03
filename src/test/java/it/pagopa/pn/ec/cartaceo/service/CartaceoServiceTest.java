@@ -7,7 +7,9 @@ import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
+import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
+import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -17,6 +19,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.SYNTAX_ERROR_CODE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
 import static org.junit.Assert.assertTrue;
@@ -32,6 +35,9 @@ class CartaceoServiceTest {
 
 	@MockBean
 	private PaperMessageCall paperMessageCall;
+
+	@MockBean
+	private GestoreRepositoryCall gestoreRepositoryCall;
 
 	@MockBean
 	private SqsServiceImpl sqsService;
@@ -67,9 +73,10 @@ class CartaceoServiceTest {
 	 */
 	@Test
 	void lavorazioneRichiestaOk() {
+		when(gestoreRepositoryCall.getRichiesta(any())).thenReturn(Mono.just(new RequestDto()));
 
 		when(paperMessageCall.putRequest(any()))//
-				.thenReturn(Mono.just(new OperationResultCodeResponse()));
+				.thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(SYNTAX_ERROR_CODE)));
 
 		when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class)))//
 				.thenReturn(Mono.just(SendMessageResponse.builder().build()));

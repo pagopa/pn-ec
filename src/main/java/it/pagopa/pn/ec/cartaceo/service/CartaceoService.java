@@ -41,6 +41,7 @@ import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.crea
 import static it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromMonoUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.ERROR_TO_STATUS_MAP;
 
 @Service
 @Slf4j
@@ -204,41 +205,44 @@ public class CartaceoService extends PresaInCaricoService {
         var paperEngageRequestSrc = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
         var paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
 
-        // Try to send PAPER
-        return paperMessageCall.putRequest(paperEngageRequestDst)
-                .retryWhen(DEFAULT_RETRY_STRATEGY)
+        return gestoreRepositoryCall.getRichiesta(cartaceoPresaInCaricoInfo.getRequestIdx())
+                .flatMap( requestDto ->
+                {
+                    // Try to send PAPER
+                    return paperMessageCall.putRequest(paperEngageRequestDst)
+                            .retryWhen(DEFAULT_RETRY_STRATEGY)
+                            // The PAPER in sent, publish to Notification Tracker with next status -> SENT
+                            .flatMap(operationResultCodeResponse -> sqsService.send(notificationTrackerSqsName.statoCartaceoName(), createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo//
+                                            , requestDto.getStatusRequest()
+                                            , ERROR_TO_STATUS_MAP.get(operationResultCodeResponse.getResultCode())
+                                            //TODO object paper
+                                            , new PaperProgressStatusDto()))
 
-                // The PAPER in sent, publish to Notification Tracker with next status -> SENT
-                .flatMap(operationResultCodeResponse -> sqsService.send(notificationTrackerSqsName.statoCartaceoName(), createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo//
-                        , BOOKED.name()
-                        , SENT.name()
-                        //TODO object paper
-                        , new PaperProgressStatusDto()))
+                                    // An error occurred during PAPER send, start retries
+                                    .retryWhen(DEFAULT_RETRY_STRATEGY)
 
-                        // An error occurred during PAPER send, start retries
-                        .retryWhen(DEFAULT_RETRY_STRATEGY)
+                                    // An error occurred during SQS publishing to the Notification Tracker -> Publish to ERRORI PAPER queue and
+                                    // notify to retry update status only
+                                    // TODO: CHANGE THE PAYLOAD
+                                    .onErrorResume(throwable -> sqsService.send(cartaceoSqsQueueName.errorName(), cartaceoPresaInCaricoInfo))
 
-                        // An error occurred during SQS publishing to the Notification Tracker -> Publish to ERRORI PAPER queue and
-                        // notify to retry update status only
-                        // TODO: CHANGE THE PAYLOAD
-                        .onErrorResume(throwable  -> sqsService.send(cartaceoSqsQueueName.errorName(), cartaceoPresaInCaricoInfo))
+                            );
+                        })
+                            // The maximum number of retries has ended
+                            .onErrorResume(CartaceoSendException.CartaceoMaxRetriesExceededException.class//
+                                    , cartaceoMaxRetriesExceeded ->
 
-                )
+                                            sqsService.send(notificationTrackerSqsName.statoCartaceoName()//
+                                                            , createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo//
+                                                                    , BOOKED.name()
+                                                                    , RETRY.name()
+                                                                    , new PaperProgressStatusDto()))
 
-                // The maximum number of retries has ended
-                .onErrorResume(CartaceoSendException.CartaceoMaxRetriesExceededException.class//
-                        , cartaceoMaxRetriesExceeded ->
+                                                    // Publish to ERRORI PAPER queue
+                                                    .then(sqsService.send(cartaceoSqsQueueName.errorName(), cartaceoPresaInCaricoInfo))
 
-                        sqsService.send(notificationTrackerSqsName.statoCartaceoName()//
-                                , createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo//
-                                        , BOOKED.name()
-                                        , RETRY.name()
-                                        , new PaperProgressStatusDto()))
+                            );
 
-                                // Publish to ERRORI PAPER queue
-                                .then(sqsService.send(cartaceoSqsQueueName.errorName(), cartaceoPresaInCaricoInfo))
-
-                );
     }
 
     @Scheduled(cron = "${cron.value.gestione-retry-cartaceo}")
@@ -320,10 +324,11 @@ public class CartaceoService extends PresaInCaricoService {
 
                             // The PAPER in sent, publish to Notification Tracker with next status -> SENT
                             .flatMap(operationResultCodeResponse ->
+
                                     sqsService.send(notificationTrackerSqsName.statoCartaceoName()
                                                     , createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
-                                                            RETRY.name(),
-                                                            SENT.name(),
+                                                            requestDto.getStatusRequest(),
+                                                            ERROR_TO_STATUS_MAP.get(operationResultCodeResponse.getResultCode()),
                                                             //TODO object paper
                                                             new PaperProgressStatusDto()))
                                             .flatMap(sendMessageResponse -> {
