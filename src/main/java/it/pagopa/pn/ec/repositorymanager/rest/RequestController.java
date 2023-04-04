@@ -71,4 +71,5 @@ public class RequestController implements GestoreRequestApi {
         return requestService.setMessageIdInRequestMetadata(clientId, requestIdx)
                              .map(retrievedClient -> restUtils.endReadRequest(retrievedClient, RequestDto.class));
     }
+
 }
