@@ -84,6 +84,8 @@ class CartaceoRetryTest {
         RequestDto requestDto = new RequestDto();
         requestDto.setStatusRequest("statusTest");
         requestDto.setRequestIdx(requestId);
+        String clientId = DEFAULT_ID_CLIENT_HEADER_VALUE;
+        requestDto.setxPagopaExtchCxId(clientId);
 
         PatchDto patchDto = new PatchDto();
         RequestMetadataDto requestMetadata = new RequestMetadataDto();
@@ -95,8 +97,8 @@ class CartaceoRetryTest {
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
 
-        when(gestoreRepositoryCall.getRichiesta(eq(requestId))).thenReturn(Mono.just(requestDto));
-        when(gestoreRepositoryCall.patchRichiesta(requestId, patchDto)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
 
         Mono<DeleteMessageResponse> response =  cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO, message);

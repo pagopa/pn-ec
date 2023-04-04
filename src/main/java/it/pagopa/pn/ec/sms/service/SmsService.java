@@ -235,7 +235,7 @@ public class SmsService extends PresaInCaricoService {
         var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
 
-        return gestoreRepositoryCall.getRichiesta(requestId)
+        return gestoreRepositoryCall.getRichiesta(clientId, requestId)
 //              check status toDelete
                 .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
 //              se status toDelete throw Error
@@ -254,7 +254,7 @@ public class SmsService extends PresaInCaricoService {
                         requestDto.getRequestMetadata().setRetry(retryDto);
                         PatchDto patchDto = new PatchDto();
                         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                        return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
+                        return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
@@ -279,7 +279,7 @@ public class SmsService extends PresaInCaricoService {
                     requestDto.getRequestMetadata().getRetry().setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
                     PatchDto patchDto = new PatchDto();
                     patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                    return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
+                    return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
                 })
 //              Tentativo invio sms
                 .flatMap(requestDto -> {

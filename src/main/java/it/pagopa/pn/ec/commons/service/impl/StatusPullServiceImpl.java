@@ -214,17 +214,18 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     private Mono<RequestDto> getRequest(String xPagopaExtchCxId, String requestIdx) {
         return authService.clientAuth(xPagopaExtchCxId)
-                .then(gestoreRepositoryCall.getRichiesta(requestIdx))
-                .onErrorResume(RestCallException.ResourceNotFoundException.class,
-                        e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
-                .handle((requestDto, synchronousSink) -> {
-                    String requestClientID = requestDto.getxPagopaExtchCxId();
-                    if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId)) {
-                        synchronousSink.error(new ClientNotAuthorizedException(xPagopaExtchCxId));
-                    } else {
-                        synchronousSink.next(requestDto);
-                    }
-                });
+                          .then(gestoreRepositoryCall.getRichiesta(xPagopaExtchCxId, requestIdx))
+                          .onErrorResume(RestCallException.ResourceNotFoundException.class,
+                                         e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
+                          .handle((requestDto, synchronousSink) -> {
+                              String requestClientID = requestDto.getxPagopaExtchCxId();
+                              if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId)) {
+                                  synchronousSink.error(new ClientNotAuthorizedException(xPagopaExtchCxId));
+                              } else {
+                                  synchronousSink.next(requestDto);
+                              }
+
+                          });
     }
 
     private Mono<EventsDto> getLastEvent(RequestDto requestDto) {
@@ -237,4 +238,5 @@ public class StatusPullServiceImpl implements StatusPullService {
             return Mono.empty();
         }
     }
+
 }

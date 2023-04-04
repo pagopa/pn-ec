@@ -103,6 +103,8 @@ public class RetryEmailTest {
         RequestDto requestDto = new RequestDto();
         requestDto.setStatusRequest("statusTest");
         requestDto.setRequestIdx(requestId);
+        String clientId = DEFAULT_ID_CLIENT_HEADER_VALUE;
+        requestDto.setxPagopaExtchCxId(clientId);
         PatchDto patchDto = new PatchDto();
 
 
@@ -114,7 +116,7 @@ public class RetryEmailTest {
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
 
-        when(gestoreRepositoryCall.getRichiesta(eq(requestId))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
         //when(gestoreRepositoryCall.patchRichiesta(eq(requestId), eq(patchDto)).thenReturn(Mono.just(requestDto)));
 
         DeleteMessageResponse response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message).block();
@@ -132,7 +134,8 @@ public class RetryEmailTest {
         RequestDto requestDto = new RequestDto();
         requestDto.setStatusRequest("statusTest");
         requestDto.setRequestIdx(requestId);
-
+        String clientId = DEFAULT_ID_CLIENT_HEADER_VALUE;
+        requestDto.setxPagopaExtchCxId(clientId);
 
         PatchDto patchDto = new PatchDto();
 
@@ -147,8 +150,8 @@ public class RetryEmailTest {
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
 
-        when(gestoreRepositoryCall.getRichiesta(eq(requestId))).thenReturn(Mono.just(requestDto));
-        when(gestoreRepositoryCall.patchRichiesta(requestId, patchDto)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
 
         DeleteMessageResponse response =  emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message).block();
@@ -164,6 +167,8 @@ public class RetryEmailTest {
         RequestDto requestDto = new RequestDto();
         requestDto.setStatusRequest("statusTest");
         requestDto.setRequestIdx(requestId);
+        String clientId = DEFAULT_ID_CLIENT_HEADER_VALUE;
+        requestDto.setxPagopaExtchCxId(clientId);
         PatchDto patchDto = new PatchDto();
 
 
@@ -183,7 +188,7 @@ public class RetryEmailTest {
         digitalCourtesyMailRequest.setAttachmentsUrls(attachList);
 
 
-        when(gestoreRepositoryCall.getRichiesta(eq(requestId))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
 
 
         DeleteMessageResponse response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message).block();
@@ -201,7 +206,8 @@ public class RetryEmailTest {
         RequestDto requestDto = new RequestDto();
         requestDto.setStatusRequest("statusTest");
         requestDto.setRequestIdx(requestId);
-
+        String clientId = DEFAULT_ID_CLIENT_HEADER_VALUE;
+        requestDto.setxPagopaExtchCxId(clientId);
 
         PatchDto patchDto = new PatchDto();
 
@@ -216,8 +222,8 @@ public class RetryEmailTest {
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
 
-        when(gestoreRepositoryCall.getRichiesta(eq(requestId))).thenReturn(Mono.just(requestDto));
-        when(gestoreRepositoryCall.patchRichiesta(requestId, patchDto)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(eq(requestId), eq(requestId))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
 
         DeleteMessageResponse response =  emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message).block();
