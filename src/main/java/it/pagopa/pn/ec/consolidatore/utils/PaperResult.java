@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.consolidatore.utils;
 
-import it.pagopa.pn.ec.commons.constant.Status;
-
 import java.util.Map;
+
+import static it.pagopa.pn.ec.commons.constant.Status.SENT;
 
 public class PaperResult {
 
@@ -24,8 +24,8 @@ public class PaperResult {
 	public static final String SEMANTIC_ERROR_DESCRIPTION = "Errore di validazione regole semantiche";
 	public static final String REQUEST_ID_ERROR_DESCRIPTION = "requestId mai ricevuto";
 
-	// ERROR CODES
-
+	// STATUS CODES
+    public static final String OK_CODE= "200.00";
 	public static final String SYNTAX_ERROR_CODE = "400.01";
 	public static final String SEMANTIC_ERROR_CODE = "400.02";
 	public static final String REQUEST_ID_ERROR_CODE = "404.00";
@@ -40,12 +40,13 @@ public class PaperResult {
 			Map.entry(INTERNAL_SERVER_ERROR_CODE, INTERNAL_SERVER_ERROR)
 	);
 
-	public static final Map<String, String> ERROR_TO_STATUS_MAP = Map.ofEntries
+	public static final Map<String, String> CODE_TO_STATUS_MAP = Map.ofEntries
 			(
 					Map.entry(SYNTAX_ERROR_CODE, SYNTAX_ERROR),
 					Map.entry(SEMANTIC_ERROR_CODE, SEMANTIC_ERROR),
 					Map.entry(AUTHENTICATION_ERROR_CODE, AUTHENTICATION_ERROR),
-					Map.entry(DUPLICATED_REQUEST_CODE, DUPLICATED_REQUEST)
+					Map.entry(DUPLICATED_REQUEST_CODE, DUPLICATED_REQUEST),
+					Map.entry(OK_CODE, SENT.name())
 			);
 
 
