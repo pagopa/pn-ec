@@ -104,7 +104,7 @@ public class PecService extends PresaInCaricoService {
                                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                                                        createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
                                                                                                                 transactionProcessConfigurationProperties.pecStartStatus(),
-                                                                                                                BOOKED.name(),
+                                                                                                                BOOKED.getStatusTransactionTableCompliant(),
                                                                                                                 new DigitalProgressStatusDto()))
 
 //                                                               Publish to PEC INTERACTIVE or PEC BATCH
@@ -237,8 +237,8 @@ public class PecService extends PresaInCaricoService {
 
                                 .flatMap(objects -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                                                     createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
-                                                                            BOOKED.name(),
-                                                                            SENT.name(),
+                                                                            BOOKED.getStatusTransactionTableCompliant(),
+                                                                            SENT.getStatusTransactionTableCompliant(),
                                                                                                              new DigitalProgressStatusDto().generatedMessage(objects.getT1())))
                                         
 //                                                            An error occurred during PEC send, start retries
@@ -255,8 +255,8 @@ public class PecService extends PresaInCaricoService {
 
                                 .onErrorResume(throwable -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                                                             createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
-                                                                                    BOOKED.name(),
-                                                                                    RETRY.name(),
+                                                                                    BOOKED.getStatusTransactionTableCompliant(),
+                                                                                    RETRY.getStatusTransactionTableCompliant(),
                                                                                                                      new DigitalProgressStatusDto()))
 
 //                                                                    Publish to ERRORI PEC queue
@@ -398,8 +398,8 @@ public class PecService extends PresaInCaricoService {
 
                             .flatMap(objects -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                             createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
-                                                    BOOKED.name(),
-                                                    SENT.name(),
+                                                    BOOKED.getStatusTransactionTableCompliant(),
+                                                    SENT.getStatusTransactionTableCompliant(),
                                                     new DigitalProgressStatusDto().generatedMessage(
                                                             objects.getT1()))))
                                     .flatMap(sendMessageResponse -> {
@@ -416,8 +416,8 @@ public class PecService extends PresaInCaricoService {
                                             return sqsService.send(notificationTrackerSqsName.statoEmailName()
                                                     ,createNotificationTrackerQueueDtoDigital
                                                             (pecPresaInCaricoInfo
-                                                                    , RETRY.name()
-                                                                    , ERROR.name()
+                                                                    , RETRY.getStatusTransactionTableCompliant()
+                                                                    , ERROR.getStatusTransactionTableCompliant()
                                                                     ,new DigitalProgressStatusDto().generatedMessage(
                                                                             new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName()));
 
@@ -432,8 +432,8 @@ public class PecService extends PresaInCaricoService {
                     return sqsService.send(notificationTrackerSqsName.statoEmailName()
                             ,createNotificationTrackerQueueDtoDigital
                                     (pecPresaInCaricoInfo
-                                            ,RETRY.name()
-                                            ,DELETED.name()
+                                            ,RETRY.getStatusTransactionTableCompliant()
+                                            ,DELETED.getStatusTransactionTableCompliant()
                                             ,new DigitalProgressStatusDto().generatedMessage(
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName()));
 
