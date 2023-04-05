@@ -110,7 +110,6 @@ class RicezioneEsitiConsolidatoreControllerTest {
     private RequestDto getRequestDto() {
     	RequestDto requestDto = new RequestDto();
     	requestDto.setRequestIdx(requestId);
-		requestDto.setxPagopaExtchCxId(xPagopaExtchServiceIdHeaderValue);
     	return requestDto;
     }
     
@@ -119,7 +118,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     void ricezioneEsitiOk() {
     	log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiOk() : START");
     	
-    	when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+    	when(gestoreRepositoryCall.getRichiesta(requestId)).thenReturn(Mono.just(getRequestDto()));
     	
     	FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
     	fileDownloadResponse.setKey(documentKey);
@@ -146,7 +145,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     void ricezioneEsitiErroreValidazioneIdRichiesta() {
     	log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneIdRichiesta() : START");
     	
-    	when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+    	when(gestoreRepositoryCall.getRichiesta(requestId)).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
     	
     	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
     	events.add(getProgressStatusEventWithoutAttachments());
@@ -168,7 +167,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     void ricezioneEsitiErroreValidazioneStatusCode() {
     	log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneStatusCode() : START");
     	
-    	when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+    	when(gestoreRepositoryCall.getRichiesta(requestId)).thenReturn(Mono.just(getRequestDto()));
     	
     	ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();
     	progressStatusEvent.setStatusCode(STATUS_CODE_INESISTENTE);
@@ -193,7 +192,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     void ricezioneEsitiErroreValidazioneAttachments() {
     	log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneAttachments() : START");
     	
-    	when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+    	when(gestoreRepositoryCall.getRichiesta(requestId)).thenReturn(Mono.just(getRequestDto()));
     	
     	when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true))
     		.thenReturn(Mono.error(new AttachmentNotAvailableException(documentKey)));
@@ -218,7 +217,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     void ricezioneEsitiErrorePubblicazioneCodaNotificationTracker() {
     	log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErrorePubblicazioneCodaNotificationTracker() : START");
     	
-    	when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+    	when(gestoreRepositoryCall.getRichiesta(requestId)).thenReturn(Mono.just(getRequestDto()));
     	
     	FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
     	fileDownloadResponse.setKey(documentKey);

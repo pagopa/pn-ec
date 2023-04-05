@@ -6,10 +6,10 @@ import reactor.core.publisher.Mono;
 
 public interface RequestService {
 
-    Mono<Request> getRequest(String clientId, String requestIdx);
+    Mono<Request> getRequest(String requestIdx);
     Mono<Request> insertRequest(Request request);
-    Mono<Request> patchRequest(String clientId, String requestIdx, Patch patch);
-    Mono<Request> deleteRequest(String clientId, String requestIdx);
+    Mono<Request> patchRequest(String requestIdx, Patch patch);
+    Mono<Request> deleteRequest(String requestIdx);
     Mono<Request> getRequestByMessageId(String messageId);
-    Mono<Request> setMessageIdInRequestMetadata(String clientId, String requestIdx);
+    Mono<Request> setMessageIdInRequestMetadata(String requestIdx);
 }

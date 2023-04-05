@@ -204,7 +204,7 @@ public class PecService extends PresaInCaricoService {
 
 //                              Create EmailField object with request info and attachments
                                 .map(fileDownloadResponses -> EmailField.builder()
-                                                                        .msgId(encodeMessageId(requestIdx))
+                                                                        .msgId(encodeMessageId(requestIdx, xPagopaExtchCxId))
                                                                         .from(arubaSecretValue.getPecUsername())
                                                                         .to(digitalNotificationRequest.getReceiverDigitalAddress())
                                                                         .subject(digitalNotificationRequest.getSubjectText())
@@ -233,7 +233,7 @@ public class PecService extends PresaInCaricoService {
 
                                 .map(this::createGeneratedMessageDto)
 
-                                .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId, requestIdx))
+                                .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(requestIdx))
 
                                 .flatMap(objects -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                                                     createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
@@ -296,7 +296,7 @@ public class PecService extends PresaInCaricoService {
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
         String toDelete = "toDelete";
-        return gestoreRepositoryCall.getRichiesta(xPagopaExtchCxId, requestIdx)
+        return gestoreRepositoryCall.getRichiesta(requestIdx)
 //              check status toDelete
                 .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
 //              se status toDelete throw Error
@@ -315,7 +315,7 @@ public class PecService extends PresaInCaricoService {
                         requestDto.getRequestMetadata().setRetry(retryDto);
                         PatchDto patchDto = new PatchDto();
                         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                        return gestoreRepositoryCall.patchRichiesta(xPagopaExtchCxId, requestIdx, patchDto);
+                        return gestoreRepositoryCall.patchRichiesta(requestIdx, patchDto);
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
@@ -340,7 +340,7 @@ public class PecService extends PresaInCaricoService {
                     requestDto.getRequestMetadata().getRetry().setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
                     PatchDto patchDto = new PatchDto();
                     patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                    return gestoreRepositoryCall.patchRichiesta(xPagopaExtchCxId, requestIdx, patchDto);
+                    return gestoreRepositoryCall.patchRichiesta(requestIdx, patchDto);
                 })
                 .flatMap(requestDto -> {
                     log.debug("requestDto Value:", requestDto.getRequestMetadata().getRetry());
@@ -364,7 +364,7 @@ public class PecService extends PresaInCaricoService {
 
 //                              Create EmailField object with request info and attachments
                             .map(fileDownloadResponses -> EmailField.builder()
-                                    .msgId(encodeMessageId(requestIdx))
+                                    .msgId(encodeMessageId(requestIdx, xPagopaExtchCxId))
                                     .from(arubaSecretValue.getPecUsername())
                                     .to(pecPresaInCaricoInfo.getDigitalNotificationRequest().getReceiverDigitalAddress())
                                     .subject(pecPresaInCaricoInfo.getDigitalNotificationRequest().getSubjectText())
@@ -394,7 +394,7 @@ public class PecService extends PresaInCaricoService {
 
                             .map(this::createGeneratedMessageDto)
 
-                            .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId, requestIdx))
+                            .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(requestIdx))
 
                             .flatMap(objects -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                             createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
