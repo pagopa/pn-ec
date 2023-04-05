@@ -263,10 +263,9 @@ public class CartaceoService extends PresaInCaricoService {
         var paperEngageRequestSrc = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
         var paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
         var requestId = cartaceoPresaInCaricoInfo.getRequestIdx();
-        var clientId = cartaceoPresaInCaricoInfo.getXPagopaExtchCxId();
         Policy retryPolicies = new Policy();
 
-        return gestoreRepositoryCall.getRichiesta(clientId, requestId)
+        return gestoreRepositoryCall.getRichiesta(requestId)
 //              check status toDelete
                 .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
 //              se status toDelete throw Error
@@ -284,7 +283,7 @@ public class CartaceoService extends PresaInCaricoService {
                         requestDto.getRequestMetadata().setRetry(retryDto);
                         PatchDto patchDto = new PatchDto();
                         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                        return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
+                        return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
@@ -309,7 +308,7 @@ public class CartaceoService extends PresaInCaricoService {
                     requestDto.getRequestMetadata().getRetry().setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
                     PatchDto patchDto = new PatchDto();
                     patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                    return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
+                    return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
                 })
 //              Tentativo invio cartaceo
                 .flatMap(requestDto -> {

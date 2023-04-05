@@ -173,10 +173,9 @@ public class ScaricamentoEsitiPecScheduler {
                                    .flatMap(postacert -> {
                                        var presaInCaricoInfo = decodeMessageId(postacert.getDati().getMsgid());
                                        var requestIdx = presaInCaricoInfo.getRequestIdx();
-                                       var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
 
                                        return Mono.zip(Mono.just(postacert),
-                                                       gestoreRepositoryCall.getRichiesta(clientId, requestIdx),
+                                                       gestoreRepositoryCall.getRichiesta(requestIdx),
                                                        statusPullService.pecPullService(requestIdx,
                                                                                         presaInCaricoInfo.getXPagopaExtchCxId()),
                                                        arubaCall.getMessageId(createGetMessageIdRequest(pecId, false)));
