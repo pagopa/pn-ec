@@ -58,14 +58,15 @@ public class ScaricamentoEsitiPecScheduler {
     private final ArubaSecretValue arubaSecretValue;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
     private final Random random;
-    private static final Logger LOGGER_CONTEXT = LoggerFactory.getLogger(ROOT_LOGGER_NAME);
-
 
     @Value("${scaricamento-esiti-pec.get-messages.limit}")
     private String scaricamentoEsitiPecGetMessagesLimit;
 
     @Value("${scaricamento-esiti-pec.maximum-delay-seconds}")
     private String maximumDelaySeconds;
+
+    @Value("${logging.level.it.pagopa.pn.ec}")
+    private String ecLoggingLevel;
 
     public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, CallMacchinaStati callMacchinaStati,
                                          GestoreRepositoryCall gestoreRepositoryCall, StatusPullService statusPullService,
@@ -135,7 +136,7 @@ public class ScaricamentoEsitiPecScheduler {
 
 //          Se il livello di debug è abilitato verificare il contenuto della PEC
             .flatMap(pecId -> {
-                if (LOGGER_CONTEXT.isDebugEnabled()) {
+                if (ecLoggingLevel.equals("debug")) {
                     return arubaCall.getMessageId(createGetMessageIdRequest(pecId, false))
                                     .filter(getMessageIDResponse -> Objects.nonNull(getMessageIDResponse.getMessage()))
                                     .map(getMessageIDResponse -> new String(getMessageIDResponse.getMessage()))
