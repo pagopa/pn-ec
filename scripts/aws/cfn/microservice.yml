@@ -58,6 +58,7 @@ Parameters:
   NetworkLoadBalancerLink:
     Type: String
     Description: 'network load balancer link for API-GW'
+    Default: ''
   
   # LogsKinesisSourceStreamArn:
   #   Type: String
@@ -589,9 +590,19 @@ Resources:
             Sid: 'AvoidIssues'
             Action:
               - 'sns:*'
-              - 'ses:*'
+              - 'ses:Describe*'
+              - 'ses:Get*'
+              - 'ses:List*'
+              - 'ses:Send*'
+              - 'ses:Verify*'
             Resource:
-              - '*'          
+              - '*'
+          - Sid: 'CloudWatchPutMetricData'
+            Effect: Allow
+            Action:
+              - 'cloudwatch:PutMetricData'
+            Resource:
+              - '*'
 
   PnEcQueuePolicyNotificheExt1:
     Type: AWS::SQS::QueuePolicy
