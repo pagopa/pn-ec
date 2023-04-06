@@ -21,6 +21,8 @@ import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.bridgews.*;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -28,6 +30,7 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Random;
 import java.util.function.Predicate;
 
@@ -38,6 +41,7 @@ import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.createGeneratedMessageByStatus;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.decodePecStatusToMachineStateStatus;
+import static org.slf4j.Logger.ROOT_LOGGER_NAME;
 
 @Component
 @Slf4j
@@ -54,6 +58,8 @@ public class ScaricamentoEsitiPecScheduler {
     private final ArubaSecretValue arubaSecretValue;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
     private final Random random;
+    private static final Logger LOGGER_CONTEXT = LoggerFactory.getLogger(ROOT_LOGGER_NAME);
+
 
     @Value("${scaricamento-esiti-pec.get-messages.limit}")
     private String scaricamentoEsitiPecGetMessagesLimit;
@@ -126,6 +132,19 @@ public class ScaricamentoEsitiPecScheduler {
 
 //          Conversione a stringa
             .map(String::new)
+
+//          Se il livello di debug è abilitato verificare il contenuto della PEC
+            .flatMap(pecId -> {
+                if (LOGGER_CONTEXT.isDebugEnabled()) {
+                    return arubaCall.getMessageId(createGetMessageIdRequest(pecId, false))
+                                    .filter(getMessageIDResponse -> Objects.nonNull(getMessageIDResponse.getMessage()))
+                                    .map(getMessageIDResponse -> new String(getMessageIDResponse.getMessage()))
+                                    .doOnNext(log::debug)
+                                    .thenReturn(pecId);
+                } else {
+                    return Mono.just(pecId);
+                }
+            })
 
             .doOnNext(pecId -> log.debug("Processing PEC with id {}", pecId))
 
