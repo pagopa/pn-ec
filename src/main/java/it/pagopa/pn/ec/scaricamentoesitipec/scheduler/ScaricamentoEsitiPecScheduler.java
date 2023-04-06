@@ -65,7 +65,7 @@ public class ScaricamentoEsitiPecScheduler {
     @Value("${scaricamento-esiti-pec.maximum-delay-seconds}")
     private String maximumDelaySeconds;
 
-    @Value("${logging.level.it.pagopa.pn.ec}")
+    @Value("${scaricamento-esiti-pec.dump-email}")
     private String ecLoggingLevel;
 
     public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, CallMacchinaStati callMacchinaStati,
