@@ -106,7 +106,7 @@ public class EmailService extends PresaInCaricoService {
                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
                         createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
                                 transactionProcessConfigurationProperties.emailStartStatus(),
-                                BOOKED.name(),
+                                BOOKED.getStatusTransactionTableCompliant(),
                                 new DigitalProgressStatusDto())))
 
                 .flatMap(sendMessageResponse -> {
@@ -212,8 +212,8 @@ public class EmailService extends PresaInCaricoService {
                     generatedMessageDto.set(new GeneratedMessageDto().id(publishResponse.messageId()).system("systemPlaceholder"));
                     return sqsService.send(notificationTrackerSqsName.statoEmailName(),
                             createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
-                                    BOOKED.name(),
-                                    SENT.name(),
+                                    BOOKED.getStatusTransactionTableCompliant(),
+                                    SENT.getStatusTransactionTableCompliant(),
                                     new DigitalProgressStatusDto().generatedMessage(generatedMessageDto.get())))
                             
                             // An error occurred during EMAIL send, start retries
@@ -235,8 +235,8 @@ public class EmailService extends PresaInCaricoService {
 
                                 sqsService.send(notificationTrackerSqsName.statoEmailName(),
                                         createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
-                                                BOOKED.name(),
-                                                RETRY.name(),
+                                                BOOKED.getStatusTransactionTableCompliant(),
+                                                RETRY.getStatusTransactionTableCompliant(),
                                                 new DigitalProgressStatusDto()))
         
                                 // Publish to ERRORI EMAIL queue
@@ -366,8 +366,8 @@ public class EmailService extends PresaInCaricoService {
                                     .flatMap(publishResponse ->
                                          sqsService.send(notificationTrackerSqsName.statoEmailName(),
                                                         createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
-                                                                BOOKED.name(),
-                                                                SENT.name(),
+                                                                BOOKED.getStatusTransactionTableCompliant(),
+                                                                SENT.getStatusTransactionTableCompliant(),
                                                                 new DigitalProgressStatusDto().generatedMessage(
                                                                         generatedMessageDto.get()))))
                                     .flatMap(sendMessageResponse -> {
@@ -384,8 +384,8 @@ public class EmailService extends PresaInCaricoService {
                                             return sqsService.send(notificationTrackerSqsName.statoEmailName()
                                                     ,createNotificationTrackerQueueDtoDigital
                                                             (emailPresaInCaricoInfo
-                                                                    ,RETRY.name()
-                                                                    ,ERROR.name()
+                                                                    ,RETRY.getStatusTransactionTableCompliant()
+                                                                    ,ERROR.getStatusTransactionTableCompliant()
                                                                     ,new DigitalProgressStatusDto().generatedMessage(
                                                                             new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
 
@@ -400,8 +400,8 @@ public class EmailService extends PresaInCaricoService {
                     return sqsService.send(notificationTrackerSqsName.statoEmailName()
                             ,createNotificationTrackerQueueDtoDigital
                                     (emailPresaInCaricoInfo
-                                            ,RETRY.name()
-                                            ,DELETED.name()
+                                            ,RETRY.getStatusTransactionTableCompliant()
+                                            ,DELETED.getStatusTransactionTableCompliant()
                                             ,new DigitalProgressStatusDto().generatedMessage(
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
 
@@ -482,8 +482,8 @@ public class EmailService extends PresaInCaricoService {
                             // The EMAIL in sent, publish to Notification Tracker with next status -> SENT
                             .flatMap(publishResponse -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
                                         createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
-                                                BOOKED.name(),
-                                                SENT.name(),
+                                                BOOKED.getStatusTransactionTableCompliant(),
+                                                SENT.getStatusTransactionTableCompliant(),
                                                 new DigitalProgressStatusDto().generatedMessage(
                                                         generatedMessageDto.get()))))
 
@@ -501,8 +501,8 @@ public class EmailService extends PresaInCaricoService {
                                    return sqsService.send(notificationTrackerSqsName.statoEmailName()
                                            ,createNotificationTrackerQueueDtoDigital
                                                    (emailPresaInCaricoInfo
-                                                           ,RETRY.name()
-                                                           ,ERROR.name()
+                                                           ,RETRY.getStatusTransactionTableCompliant()
+                                                           ,ERROR.getStatusTransactionTableCompliant()
                                                            ,new DigitalProgressStatusDto().generatedMessage(
                                                                    new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
 
@@ -515,8 +515,8 @@ public class EmailService extends PresaInCaricoService {
                     return sqsService.send(notificationTrackerSqsName.statoEmailName()
                             ,createNotificationTrackerQueueDtoDigital
                                     (emailPresaInCaricoInfo
-                                            , RETRY.name()
-                                            ,DELETED.name()
+                                            , RETRY.getStatusTransactionTableCompliant()
+                                            ,DELETED.getStatusTransactionTableCompliant()
                                             ,new DigitalProgressStatusDto().generatedMessage(
                                                     new GeneratedMessageDto() ))).flatMap(sendMessageResponse ->  sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()));
 
