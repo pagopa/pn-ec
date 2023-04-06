@@ -39,7 +39,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
     @Override
     public Mono<Void> handleRequestStatusChange(NotificationTrackerQueueDto notificationTrackerQueueDto, String ntStatoQueueName, String ntStatoDlQueueName, Acknowledgment acknowledgment) {
-        log.info("<-- Start handleRequestStatusChange --> info: {}", notificationTrackerQueueDto.getProcessId(), notificationTrackerQueueDto.getRequestIdx());
+        log.info("<-- Start handleRequestStatusChange --> info: {} request: {}", notificationTrackerQueueDto.getProcessId(), notificationTrackerQueueDto.getRequestIdx());
         String nextStatus = notificationTrackerQueueDto.getNextStatus();
         return callMachinaStati.statusValidation(notificationTrackerQueueDto)
                 .flatMap(unused -> {
