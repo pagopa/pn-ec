@@ -498,7 +498,6 @@ Resources:
         ContainerEnvEntry23: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
         ContainerEnvEntry24: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
         ContainerEnvEntry25: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
-        ContainerEnvEntry26: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
         ContainerEnvEntry30: 'SafeStorageClientId=pn-external-channels'
         ContainerEnvEntry31: 'SafeStorageClientApiKey=pn-external-channels_api_key'
         ContainerEnvEntry40: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
