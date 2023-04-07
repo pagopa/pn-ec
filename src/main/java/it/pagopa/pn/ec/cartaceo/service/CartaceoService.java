@@ -41,6 +41,7 @@ import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.crea
 import static it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromMonoUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.CODE_TO_STATUS_MAP;
 
 @Service
 @Slf4j
@@ -90,7 +91,7 @@ public class CartaceoService extends PresaInCaricoService {
                 .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
                         createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
                                 transactionProcessConfigurationProperties.paperStarterStatus(),
-                                BOOKED.name(),
+                                BOOKED.getStatusTransactionTableCompliant(),
                                 // TODO: SET MISSING
                                 //  PROPERTIES
                                 new PaperProgressStatusDto())))
@@ -178,11 +179,11 @@ public class CartaceoService extends PresaInCaricoService {
         }).flatMap(gestoreRepositoryCall::insertRichiesta);
     }
 
-    @SqsListener(value = "${sqs.queue.cartaceo.batch-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void lavorazioneRichiestaInteractive(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, final Acknowledgment acknowledgment) {
-        logIncomingMessage(cartaceoSqsQueueName.batchName(), cartaceoPresaInCaricoInfo);
-        lavorazioneRichiesta(cartaceoPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
-    }
+//    @SqsListener(value = "${sqs.queue.cartaceo.batch-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+//    public void lavorazioneRichiestaInteractive(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+//        logIncomingMessage(cartaceoSqsQueueName.batchName(), cartaceoPresaInCaricoInfo);
+//        lavorazioneRichiesta(cartaceoPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
+//    }
 
     @Scheduled(cron = "${cron.value.lavorazione-batch-cartaceo}")
     public void lavorazioneRichiestaBatch() {
@@ -197,48 +198,51 @@ public class CartaceoService extends PresaInCaricoService {
                 .subscribe();
     }
 
-    private Mono<SendMessageResponse> lavorazioneRichiesta(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo) {
+    Mono<SendMessageResponse> lavorazioneRichiesta(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo) {
 
         log.info("<-- START LAVORAZIONE RICHIESTA CARTACEO --> Request ID : {}, Client ID : {}", cartaceoPresaInCaricoInfo.getRequestIdx(), cartaceoPresaInCaricoInfo.getXPagopaExtchCxId());
 
         var paperEngageRequestSrc = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
         var paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
 
-        // Try to send PAPER
-        return paperMessageCall.putRequest(paperEngageRequestDst)
-                .retryWhen(DEFAULT_RETRY_STRATEGY)
+        return gestoreRepositoryCall.getRichiesta(cartaceoPresaInCaricoInfo.getRequestIdx())
+                .flatMap( requestDto ->
+                {
+                    // Try to send PAPER
+                    return paperMessageCall.putRequest(paperEngageRequestDst)
+                            .retryWhen(DEFAULT_RETRY_STRATEGY)
+                            // The PAPER in sent, publish to Notification Tracker with next status -> SENT
+                            .flatMap(operationResultCodeResponse -> sqsService.send(notificationTrackerSqsName.statoCartaceoName(), createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo//
+                                            , requestDto.getStatusRequest()
+                                            , CODE_TO_STATUS_MAP.get(operationResultCodeResponse.getResultCode())
+                                            //TODO object paper
+                                            , new PaperProgressStatusDto()))
 
-                // The PAPER in sent, publish to Notification Tracker with next status -> SENT
-                .flatMap(operationResultCodeResponse -> sqsService.send(notificationTrackerSqsName.statoCartaceoName(), createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo//
-                        , BOOKED.name()
-                        , SENT.name()
-                        //TODO object paper
-                        , new PaperProgressStatusDto()))
+                                    // An error occurred during PAPER send, start retries
+                                    .retryWhen(DEFAULT_RETRY_STRATEGY)
 
-                        // An error occurred during PAPER send, start retries
-                        .retryWhen(DEFAULT_RETRY_STRATEGY)
+                                    // An error occurred during SQS publishing to the Notification Tracker -> Publish to ERRORI PAPER queue and
+                                    // notify to retry update status only
+                                    // TODO: CHANGE THE PAYLOAD
+                                    .onErrorResume(throwable -> sqsService.send(cartaceoSqsQueueName.errorName(), cartaceoPresaInCaricoInfo))
 
-                        // An error occurred during SQS publishing to the Notification Tracker -> Publish to ERRORI PAPER queue and
-                        // notify to retry update status only
-                        // TODO: CHANGE THE PAYLOAD
-                        .onErrorResume(throwable  -> sqsService.send(cartaceoSqsQueueName.errorName(), cartaceoPresaInCaricoInfo))
+                            );
+                        })
+                            // The maximum number of retries has ended
+                            .onErrorResume(CartaceoSendException.CartaceoMaxRetriesExceededException.class//
+                                    , cartaceoMaxRetriesExceeded ->
 
-                )
+                                            sqsService.send(notificationTrackerSqsName.statoCartaceoName()
+                                                            , createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo
+                                                                    , BOOKED.getStatusTransactionTableCompliant()
+                                                                    , RETRY.getStatusTransactionTableCompliant()
+                                                                    , new PaperProgressStatusDto()))
 
-                // The maximum number of retries has ended
-                .onErrorResume(CartaceoSendException.CartaceoMaxRetriesExceededException.class//
-                        , cartaceoMaxRetriesExceeded ->
+                                                    // Publish to ERRORI PAPER queue
+                                                    .then(sqsService.send(cartaceoSqsQueueName.errorName(), cartaceoPresaInCaricoInfo))
 
-                        sqsService.send(notificationTrackerSqsName.statoCartaceoName()//
-                                , createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo//
-                                        , BOOKED.name()
-                                        , RETRY.name()
-                                        , new PaperProgressStatusDto()))
+                            );
 
-                                // Publish to ERRORI PAPER queue
-                                .then(sqsService.send(cartaceoSqsQueueName.errorName(), cartaceoPresaInCaricoInfo))
-
-                );
     }
 
     @Scheduled(cron = "${cron.value.gestione-retry-cartaceo}")
@@ -263,10 +267,9 @@ public class CartaceoService extends PresaInCaricoService {
         var paperEngageRequestSrc = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
         var paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
         var requestId = cartaceoPresaInCaricoInfo.getRequestIdx();
-        var clientId = cartaceoPresaInCaricoInfo.getXPagopaExtchCxId();
         Policy retryPolicies = new Policy();
 
-        return gestoreRepositoryCall.getRichiesta(clientId, requestId)
+        return gestoreRepositoryCall.getRichiesta(requestId)
 //              check status toDelete
                 .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
 //              se status toDelete throw Error
@@ -284,7 +287,7 @@ public class CartaceoService extends PresaInCaricoService {
                         requestDto.getRequestMetadata().setRetry(retryDto);
                         PatchDto patchDto = new PatchDto();
                         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                        return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
+                        return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
@@ -309,7 +312,7 @@ public class CartaceoService extends PresaInCaricoService {
                     requestDto.getRequestMetadata().getRetry().setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
                     PatchDto patchDto = new PatchDto();
                     patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                    return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
+                    return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
                 })
 //              Tentativo invio cartaceo
                 .flatMap(requestDto -> {
@@ -321,10 +324,11 @@ public class CartaceoService extends PresaInCaricoService {
 
                             // The PAPER in sent, publish to Notification Tracker with next status -> SENT
                             .flatMap(operationResultCodeResponse ->
+
                                     sqsService.send(notificationTrackerSqsName.statoCartaceoName()
                                                     , createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
-                                                            RETRY.name(),
-                                                            SENT.name(),
+                                                            requestDto.getStatusRequest(),
+                                                            CODE_TO_STATUS_MAP.get(operationResultCodeResponse.getResultCode()),
                                                             //TODO object paper
                                                             new PaperProgressStatusDto()))
                                             .flatMap(sendMessageResponse -> {
@@ -340,8 +344,8 @@ public class CartaceoService extends PresaInCaricoService {
                                                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}", cartaceoSqsQueueName.errorName());
                                                     return sqsService.send(notificationTrackerSqsName.statoCartaceoName()
                                                                     , createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
-                                                                            RETRY.name(),
-                                                                            ERROR.name(),
+                                                                            RETRY.getStatusTransactionTableCompliant(),
+                                                                            ERROR.getStatusTransactionTableCompliant(),
                                                                             //TODO object paper
                                                                             new PaperProgressStatusDto()))
                                                             .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message, cartaceoSqsQueueName.errorName()));
@@ -356,8 +360,8 @@ public class CartaceoService extends PresaInCaricoService {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", cartaceoSqsQueueName.errorName());
                     return sqsService.send(notificationTrackerSqsName.statoCartaceoName()
                                     , createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
-                                            RETRY.name(),
-                                            ERROR.name(),
+                                            RETRY.getStatusTransactionTableCompliant(),
+                                            ERROR.getStatusTransactionTableCompliant(),
                                             //TODO object paper
                                             new PaperProgressStatusDto()))
                             .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message, cartaceoSqsQueueName.errorName()));

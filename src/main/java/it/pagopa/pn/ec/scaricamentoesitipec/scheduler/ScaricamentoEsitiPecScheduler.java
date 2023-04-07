@@ -133,6 +133,7 @@ public class ScaricamentoEsitiPecScheduler {
             .flatMap(pecId -> {
                 var getAttach = new GetAttach();
                 getAttach.setMailid(pecId);
+                getAttach.setIsuid(1);
                 getAttach.setNameattach("daticert.xml");
 
                 log.debug("Try to download PEC {} daticert.xml", pecId);
@@ -173,10 +174,9 @@ public class ScaricamentoEsitiPecScheduler {
                                    .flatMap(postacert -> {
                                        var presaInCaricoInfo = decodeMessageId(postacert.getDati().getMsgid());
                                        var requestIdx = presaInCaricoInfo.getRequestIdx();
-                                       var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
 
                                        return Mono.zip(Mono.just(postacert),
-                                                       gestoreRepositoryCall.getRichiesta(clientId, requestIdx),
+                                                       gestoreRepositoryCall.getRichiesta(requestIdx),
                                                        statusPullService.pecPullService(requestIdx,
                                                                                         presaInCaricoInfo.getXPagopaExtchCxId()),
                                                        arubaCall.getMessageId(createGetMessageIdRequest(pecId, false)));
@@ -306,10 +306,14 @@ public class ScaricamentoEsitiPecScheduler {
                                        .doOnSuccess(getMessageIDResponse -> log.debug("PEC {} marked as seen", pecId)))
 
 //          Se avviene qualche errore per una particolare PEC non bloccare il Flux
-            .onErrorContinue(CallMacchinaStati.StatusValidationBadRequestException.class,
-                             (throwable, o) -> log.debug(throwable.getMessage()))
-            .onErrorContinue(InvalidNextStatusException.class, (throwable, o) -> log.debug(throwable.getMessage()))
-            .onErrorContinue((throwable, object) -> log.error(throwable.getMessage(), throwable))
+            .onErrorContinue((throwable, object) -> {
+                if (throwable instanceof CallMacchinaStati.StatusValidationBadRequestException ||
+                    throwable instanceof InvalidNextStatusException) {
+                    log.debug(throwable.getMessage());
+                } else {
+                    log.error(throwable.getMessage(), throwable);
+                }
+            })
 
             .doOnComplete(() -> isScaricamentoEsitiPecRunning = false)
 

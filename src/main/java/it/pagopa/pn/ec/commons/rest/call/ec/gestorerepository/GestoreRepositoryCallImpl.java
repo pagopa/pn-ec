@@ -51,9 +51,9 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     }
 
     @Override
-    public Mono<RequestDto> getRichiesta(String clientId, String requestIdx) throws RestCallException.ResourceNotFoundException {
+    public Mono<RequestDto> getRichiesta(String requestIdx) throws RestCallException.ResourceNotFoundException {
         return ecWebClient.get()
-                          .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(clientId, requestIdx))
+                          .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(requestIdx))
                           .retrieve()
                           .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
                           .bodyToMono(RequestDto.class);
@@ -71,20 +71,20 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     }
 
     @Override
-    public Mono<RequestDto> patchRichiestaEvent(String clientId, String requestIdx, EventsDto eventsDto) throws RestCallException.ResourceNotFoundException {
+    public Mono<RequestDto> patchRichiestaEvent(String requestIdx, EventsDto eventsDto) throws RestCallException.ResourceNotFoundException {
         log.info("<-- START REQUEST EVENT PATCH --> Request ID: {}", requestIdx);
-        return patchRichiesta(clientId, requestIdx, new PatchDto().event(eventsDto));
+        return patchRichiesta(requestIdx, new PatchDto().event(eventsDto));
     }
 
     @Override
-    public Mono<RequestDto> patchRichiestaRetry(String clientId, String requestIdx, RetryDto retryDto) throws RestCallException.ResourceNotFoundException {
-        return patchRichiesta(clientId, requestIdx, new PatchDto().retry(retryDto));
+    public Mono<RequestDto> patchRichiestaRetry(String requestIdx, RetryDto retryDto) throws RestCallException.ResourceNotFoundException {
+        return patchRichiesta(requestIdx, new PatchDto().retry(retryDto));
     }
 
     @Override
-    public Mono<RequestDto> patchRichiesta(String clientId, String requestIdx, PatchDto patchDto) throws RestCallException.ResourceNotFoundException {
-        return ecWebClient.patch()
-                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(clientId, requestIdx))
+    public Mono<RequestDto> patchRichiesta(String requestIdx, PatchDto patchDto) throws RestCallException.ResourceNotFoundException {
+         return ecWebClient.patch()
+                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(requestIdx))
                 .bodyValue(patchDto)
                 .retrieve()
                 .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new RepositoryManagerException.RequestMalformedException()))
@@ -93,7 +93,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     }
 
     @Override
-    public Mono<Void> deleteRichiesta(String clientId, String requestIdx) {
+    public Mono<Void> deleteRichiesta(String requestIdx) {
         return null;
     }
 
@@ -116,11 +116,11 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     }
 
     @Override
-    public Mono<RequestDto> setMessageIdInRequestMetadata(String clientId, String requestIdx)
+    public Mono<RequestDto> setMessageIdInRequestMetadata(String requestIdx)
             throws RestCallException.ResourceNotFoundException, ISEForMessageIdCreationException {
         return ecWebClient.post()
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
-                                                       .build(clientId, requestIdx))
+                                                       .build(requestIdx))
                           .retrieve()
                           .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
                           .onStatus(INTERNAL_SERVER_ERROR::equals, clientResponse -> Mono.error(new ISEForMessageIdCreationException()))

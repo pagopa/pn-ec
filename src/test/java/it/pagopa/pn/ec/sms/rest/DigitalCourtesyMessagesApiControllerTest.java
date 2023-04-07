@@ -87,7 +87,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 	void sendSmsOk() {
 
 		when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
-		when(gestoreRepositoryCall.getRichiesta(anyString(), anyString()))
+		when(gestoreRepositoryCall.getRichiesta(anyString()))
 				.thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 		when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
@@ -131,7 +131,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 				.thenReturn(Mono.error(new ClientNotAuthorizedException(DEFAULT_ID_CLIENT_HEADER_VALUE)));
 
 //      Retrieve request -> OK (If no request is found a RestCallException.ResourceNotFoundException is thrown)
-		when(gestoreRepositoryCall.getRichiesta(anyString(), anyString()))
+		when(gestoreRepositoryCall.getRichiesta(anyString()))
 				.thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 		sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
@@ -147,7 +147,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 		when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
 
 //      Retrieve request -> KO
-		when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenThrow(EcInternalEndpointHttpException.class);
+		when(gestoreRepositoryCall.getRichiesta(anyString())).thenThrow(EcInternalEndpointHttpException.class);
 
 		sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
 				.isEqualTo(SERVICE_UNAVAILABLE).expectBody(Problem.class);
@@ -161,7 +161,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 		when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
 
 //      Retrieve request -> Return an existent request, return 409 status
-		when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.just(requestDto));
+		when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.just(requestDto));
 
 		sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
 				.isEqualTo(CONFLICT).expectBody(Problem.class);
@@ -176,7 +176,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 		when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
 
 //      Retrieve request -> OK (If no request is found a RestCallException.ResourceNotFoundException is thrown)
-		when(gestoreRepositoryCall.getRichiesta(anyString(), anyString()))
+		when(gestoreRepositoryCall.getRichiesta(anyString()))
 				.thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 		when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
@@ -197,7 +197,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 		when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
 
 //      Retrieve request -> OK (If no request is found a RestCallException.ResourceNotFoundException is thrown)
-		when(gestoreRepositoryCall.getRichiesta(anyString(), anyString()))
+		when(gestoreRepositoryCall.getRichiesta(anyString()))
 				.thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 		when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));

@@ -25,7 +25,7 @@ public abstract class PresaInCaricoService {
 //      Client auth
         return authService.clientAuth(presaInCaricoInfo.getXPagopaExtchCxId())
 //                        Retrieve request
-                          .then(gestoreRepositoryCall.getRichiesta(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx()))
+                          .then(gestoreRepositoryCall.getRichiesta(presaInCaricoInfo.getRequestIdx()))
 //                        The request exists
 //                        TODO: Definire la logica di una richiesta già presente. Al momento se una richiesta esiste viene tornato
 //                         direttamente un 409 come risposta

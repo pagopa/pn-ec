@@ -33,7 +33,7 @@ public class NotificationTrackerMessageReceiver {
         notificationTrackerQueueDto.setProcessId(transactionProcessConfigurationProperties.sms());
         notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
                                                              notificationTrackerSqsName.statoSmsName(),
-                                                             notificationTrackerSqsName.statoSmsDlqName(),
+                                                             notificationTrackerSqsName.statoSmsErratoName(),
                                                              acknowledgment)
                                                              .subscribe();
     }
@@ -44,7 +44,7 @@ public class NotificationTrackerMessageReceiver {
         notificationTrackerQueueDto.setProcessId(transactionProcessConfigurationProperties.email());
         notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
                                                              notificationTrackerSqsName.statoEmailName(),
-                                                             notificationTrackerSqsName.statoEmailDlqName(),
+                                                             notificationTrackerSqsName.statoEmailErratoName(),
                                                              acknowledgment)
                                                              .subscribe();
     }
@@ -55,7 +55,7 @@ public class NotificationTrackerMessageReceiver {
         notificationTrackerQueueDto.setProcessId(transactionProcessConfigurationProperties.pec());
         notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
                                                              notificationTrackerSqsName.statoPecName(),
-                                                             notificationTrackerSqsName.statoPecDlqName(),
+                                                             notificationTrackerSqsName.statoPecErratoName(),
                                                              acknowledgment)
                                                              .subscribe();
     }
@@ -66,7 +66,7 @@ public class NotificationTrackerMessageReceiver {
         notificationTrackerQueueDto.setProcessId(transactionProcessConfigurationProperties.paper());
         notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
                                                              notificationTrackerSqsName.statoCartaceoName(),
-                                                             notificationTrackerSqsName.statoCartaceoDlqName(),
+                                                             notificationTrackerSqsName.statoCartaceoErratoName(),
                                                              acknowledgment)
                                                              .subscribe();
     }

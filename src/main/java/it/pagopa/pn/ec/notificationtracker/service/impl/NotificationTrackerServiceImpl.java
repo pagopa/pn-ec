@@ -39,7 +39,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
     @Override
     public Mono<Void> handleRequestStatusChange(NotificationTrackerQueueDto notificationTrackerQueueDto, String ntStatoQueueName, String ntStatoDlQueueName, Acknowledgment acknowledgment) {
-        log.info("<-- Start handleRequestStatusChange --> info: {}", notificationTrackerQueueDto.getProcessId(), notificationTrackerQueueDto.getRequestIdx());
+        log.info("<-- Start handleRequestStatusChange --> info: {} request: {}", notificationTrackerQueueDto.getProcessId(), notificationTrackerQueueDto.getRequestIdx());
         String nextStatus = notificationTrackerQueueDto.getNextStatus();
         return callMachinaStati.statusValidation(notificationTrackerQueueDto)
                 .flatMap(unused -> {
@@ -60,7 +60,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                 .statusCode(macchinaStatiDecodeResponseDto.getLogicStatus())
                                 .statusDateTime(paperProgressStatusDto.getStatusDateTime().truncatedTo(SECONDS));
                     }
-                    return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx(),
+                    return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getRequestIdx(),
                             new EventsDto().digProgrStatus(digitalProgressStatusDto)
                                     .paperProgrStatus(paperProgressStatusDto));
                 })

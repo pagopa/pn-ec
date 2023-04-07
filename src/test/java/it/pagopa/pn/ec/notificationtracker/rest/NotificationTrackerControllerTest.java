@@ -85,7 +85,7 @@ class NotificationTrackerControllerTest {
 
 
         when(callMachinaStati.statusValidation(req)).thenReturn(Mono.just(STATE_MACHINE_DTO));
-        when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
+        when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
         when(putEventsImpl.putEventExternal(baseMessageProgressEvent, req.getProcessId())).thenReturn(Mono.empty());
 
         notificationtrackerMessageReceiver.receiveSMSObjectMessage(req, acknowledgment);
@@ -134,7 +134,7 @@ class NotificationTrackerControllerTest {
         req.setRequestIdx("123_test");
 
         when(callMachinaStati.statusValidation(req)).thenReturn(Mono.just(STATE_MACHINE_DTO));
-        when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
+        when(gestoreRepositoryCall.patchRichiestaEvent(anyString(), eq(new EventsDto()))).thenReturn(Mono.empty());
         when(putEventsImpl.putEventExternal(paperProgressEvent, req.getProcessId())).thenReturn(Mono.empty());
 
         notificationtrackerMessageReceiver.receiveCartaceoObjectMessage(req, acknowledgment);
