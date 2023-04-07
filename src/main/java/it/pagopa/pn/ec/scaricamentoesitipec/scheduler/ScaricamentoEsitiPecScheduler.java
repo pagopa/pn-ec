@@ -153,6 +153,7 @@ public class ScaricamentoEsitiPecScheduler {
             .flatMap(pecId -> {
                 var getAttach = new GetAttach();
                 getAttach.setMailid(pecId);
+                getAttach.setIsuid(1);
                 getAttach.setNameattach("daticert.xml");
 
                 log.debug("Try to download PEC {} daticert.xml", pecId);
