@@ -14,10 +14,7 @@ import lombok.experimental.FieldDefaults;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RicezioneEsitiDto implements Serializable {
-
-	private static final long serialVersionUID = -2206916494825569451L;
-	
+public class RicezioneEsitiDto {
 	ConsolidatoreIngressPaperProgressStatusEvent paperProgressStatusEvent;
 	OperationResultCodeResponse operationResultCodeResponse;
 	
