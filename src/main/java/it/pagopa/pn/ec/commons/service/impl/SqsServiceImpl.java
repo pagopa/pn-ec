@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.commons.utils.QueueUtils;
 import it.pagopa.pn.ec.commons.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
@@ -24,6 +24,7 @@ public class SqsServiceImpl implements SqsService {
     private final SqsAsyncClient sqsAsyncClient;
     private final ObjectMapper objectMapper;
     private final JsonUtils jsonUtils;
+    private static final int messageGroupIdLength = 64;
 
     public SqsServiceImpl(SqsAsyncClient sqsAsyncClient, ObjectMapper objectMapper, JsonUtils jsonUtils) {
         this.sqsAsyncClient = sqsAsyncClient;
@@ -39,7 +40,7 @@ public class SqsServiceImpl implements SqsService {
                 .zipWith(getQueueUrlFromName(queueName))
                 .flatMap(objects -> Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> builder.queueUrl(objects.getT2())
                         .messageBody(objects.getT1())
-                        .messageGroupId(QueueUtils.generateMessageGroupId()))))
+                        .messageGroupId(RandomStringUtils.randomAlphanumeric(messageGroupIdLength)))))
                 .onErrorResume(throwable -> {
                     log.error(throwable.getMessage(), throwable);
                     return Mono.error(new SqsClientException(queueName));
