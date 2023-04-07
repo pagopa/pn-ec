@@ -21,16 +21,11 @@ import static org.springframework.http.HttpStatus.OK;
 public class DigitalLegalMessagesApiController implements DigitalLegalMessagesApi {
 
     private final PecService pecService;
-
-    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
-
     private final StatusPullService statusPullService;
 
-    public DigitalLegalMessagesApiController(PecService pecService, StatusPullService statusPullService,
-                                             TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+    public DigitalLegalMessagesApiController(PecService pecService, StatusPullService statusPullService) {
         this.pecService = pecService;
         this.statusPullService = statusPullService;
-        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
     @Override

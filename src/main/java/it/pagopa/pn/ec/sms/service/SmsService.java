@@ -232,8 +232,6 @@ public class SmsService extends PresaInCaricoService {
         String toDelete = "toDelete";
 
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
-        var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
-        var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
 
         return gestoreRepositoryCall.getRichiesta(requestId)
 //              check status toDelete

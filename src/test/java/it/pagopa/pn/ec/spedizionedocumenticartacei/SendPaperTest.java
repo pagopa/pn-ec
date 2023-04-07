@@ -28,7 +28,7 @@ class SendPaperTest {
 		
 		AllegatiImpegnoRichiestaCartaceo allImpRichCart1 = new AllegatiImpegnoRichiestaCartaceo();
 		allImpRichCart1.setPapEngReqAtt(new PaperEngageRequestAttachments());
-//		allImpRichCart1.papEngReqAtt.setUri("https://www.eng.it/resources/whitepaper/doc/blockchain/Blockchain_whitepaper_it.pdf");
+		allImpRichCart1.papEngReqAtt.setUri("https://www.eng.it/resources/whitepaper/doc/blockchain/Blockchain_whitepaper_it.pdf");
 		allImpRichCart1.papEngReqAtt.setOrder(new BigDecimal("0"));
 		allImpRichCart1.papEngReqAtt.setDocumentType("AR");
 		allImpRichCart1.papEngReqAtt.setSha256("");
@@ -92,10 +92,11 @@ class SendPaperTest {
 		
 		AllegatiImpegnoRichiestaCartaceo allImpRichCart1 = new AllegatiImpegnoRichiestaCartaceo();
 		allImpRichCart1.setPapEngReqAtt(new PaperEngageRequestAttachments());
+		allImpRichCart1.papEngReqAtt.setUri("");
 		allImpRichCart1.papEngReqAtt.setOrder(new BigDecimal("0"));
 		allImpRichCart1.papEngReqAtt.setDocumentType("AR");
 		allImpRichCart1.papEngReqAtt.setSha256("");
-		List<PaperEngageRequestAttachments> attachments = new ArrayList<PaperEngageRequestAttachments>();
+		List<PaperEngageRequestAttachments> attachments = new ArrayList<>();
 		attachments.add(allImpRichCart1.papEngReqAtt);
 		
 		OffsetDateTime odt = OffsetDateTime.now();

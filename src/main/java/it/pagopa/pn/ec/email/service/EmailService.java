@@ -63,6 +63,8 @@ public class EmailService extends PresaInCaricoService {
 
     private String idSaved;
 
+    private static final String GENERIC_ERROR = "Errore generico";
+
     protected EmailService(AuthService authService//
             , GestoreRepositoryCall gestoreRepositoryCall//
             , SqsService sqsService//
@@ -224,12 +226,6 @@ public class EmailService extends PresaInCaricoService {
                             // TODO: CHANGE THE PAYLOAD
                             .onErrorResume(throwable -> sqsService.send(emailSqsQueueName.errorName(), emailPresaInCaricoInfo));
                 })
-//
-//                .doOnError(throwable -> {
-//                    log.debug("An error occurred during lavorazione PEC");
-//                  //  log.error(throwable.getMessage());
-//                })
-
                 // The maximum number of retries has ended
                 .onErrorResume(throwable -> 
 
@@ -268,7 +264,7 @@ public class EmailService extends PresaInCaricoService {
                 .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(emailPresaInCaricoInfoSqsMessageWrapper.getMessage()),
                         gestioneRetryEmail(emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent(), emailPresaInCaricoInfoSqsMessageWrapper.getMessage())))
                 .map(MonoResultWrapper::new)
-                .doOnError(throwable -> log.error("Errore generico", throwable))
+                .doOnError(throwable -> log.error(GENERIC_ERROR, throwable))
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)
@@ -336,9 +332,9 @@ public class EmailService extends PresaInCaricoService {
                     patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
                     return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
                 })
-                        .flatMap(requestDto -> {
+                        .flatMap(requestDto ->
                             // Try to send EMAIL
-                            return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), emailPresaInCaricoInfo.getXPagopaExtchCxId(), false)
+                             attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), emailPresaInCaricoInfo.getXPagopaExtchCxId(), false)
 
                                     .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
@@ -392,9 +388,9 @@ public class EmailService extends PresaInCaricoService {
                                         }
                                         return Mono.empty();
                                     })
-                                    ;
 
-                        })//              Catch errore tirato per lo stato toDelete
+
+                        )//              Catch errore tirato per lo stato toDelete
                 .onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", emailSqsQueueName.errorName());
                     return sqsService.send(notificationTrackerSqsName.statoEmailName()
@@ -408,7 +404,7 @@ public class EmailService extends PresaInCaricoService {
 
                 })
                 .onErrorResume(throwable -> {
-                    log.error("Errore generico", throwable);
+                    log.error(GENERIC_ERROR, throwable);
                     return Mono.empty();
                 });
     }
@@ -523,7 +519,7 @@ public class EmailService extends PresaInCaricoService {
 
                 })
                 .onErrorResume(throwable -> {
-                    log.error("Errore generico", throwable);
+                    log.error(GENERIC_ERROR, throwable);
                     return Mono.empty();
                 });
     }
