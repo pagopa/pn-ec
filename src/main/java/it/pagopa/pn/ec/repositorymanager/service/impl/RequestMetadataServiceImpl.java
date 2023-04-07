@@ -2,9 +2,7 @@ package it.pagopa.pn.ec.repositorymanager.service.impl;
 
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
-import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
-import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
-import it.pagopa.pn.ec.repositorymanager.model.entity.Retry;
+import it.pagopa.pn.ec.repositorymanager.model.entity.*;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Patch;
 import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +13,7 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.DYNAMO_OPTIMISTIC_LOCKING_RETRY;
@@ -83,58 +82,48 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
         var retry = patch.getRetry();
 
         if (retry != null) {
-            // ---> CASO: RETRY <---
+            // Handle retry patch
             var retrievedRetry = retrieveRequestMetadata.getRetry();
-
             if (retrievedRetry == null) {
                 retrievedRetry = new Retry();
+                retrieveRequestMetadata.setRetry(retrievedRetry);
             }
-
             retrievedRetry.setLastRetryTimestamp(retry.getLastRetryTimestamp());
             retrievedRetry.setRetryStep(retry.getRetryStep());
             retrievedRetry.setRetryPolicy(retry.getRetryPolicy());
-
-            retrieveRequestMetadata.setRetry(retrievedRetry);
-            return Mono.just(retrieveRequestMetadata);
-
         } else {
-
+            // Handle event patch
             var event = patch.getEvent();
-            var eventsList = retrieveRequestMetadata.getEventsList(); // lista eventi metadata
-
+            var eventsList = retrieveRequestMetadata.getEventsList();
+            eventsCheck(event, eventsList, requestId);
+            var newEventsList = new ArrayList<>(eventsList != null ? eventsList : Collections.emptyList());
+            newEventsList.add(event);
+            retrieveRequestMetadata.setEventsList(newEventsList);
             if (event.getDigProgrStatus() != null) {
-                // ---> CASO 1: RICHIESTA DIGITALE <---
-                if (eventsList != null) {
-                    // Controlla se l'evento che stiamo inserendo sia già presente
-                    for (Events currentCycledEvent : eventsList) {
-                        if (currentCycledEvent.equals(event)) {
-                            return Mono.error(new RepositoryManagerException.EventAlreadyExistsException(requestId, event.getDigProgrStatus()));
-                        }
-                    }
-                }
+                // Handle digital request event
                 retrieveRequestMetadata.setStatusRequest(event.getDigProgrStatus().getStatus());
             } else {
-                // ---> CASO 2: RICHIESTA CARTACEO <---
-                if (eventsList != null) {
-                    // Controlla se l'evento che stiamo inserendo sia già presente
-                    for (Events currentCycledEvent : eventsList) {
-                        if (currentCycledEvent.equals(event)) {
-                            return Mono.error(new RepositoryManagerException.EventAlreadyExistsException(requestId, event.getPaperProgrStatus()));
-                        }
-                    }
-                }
+                // Handle paper request event
                 retrieveRequestMetadata.setStatusRequest(event.getPaperProgrStatus().getStatusDescription());
             }
-
-            List<Events> getEventsList = retrieveRequestMetadata.getEventsList();
-            if (getEventsList == null) {
-                getEventsList = new ArrayList<>();
-            }
-
-            getEventsList.add(event);
-            retrieveRequestMetadata.setEventsList(getEventsList);
-            return Mono.just(retrieveRequestMetadata);
         }
+        return Mono.just(retrieveRequestMetadata);
+    }
+
+    private void eventsCheck(Events event, List<Events> eventsList, String requestId) {
+        if (eventsList != null && eventsList.contains(event)) {
+            // Event already exists
+            var status = getStatusFromEvent(event);
+            if (status instanceof DigitalProgressStatus digitalprogressstatus) {
+                throw new RepositoryManagerException.EventAlreadyExistsException(requestId, digitalprogressstatus);
+            } else {
+                throw new RepositoryManagerException.EventAlreadyExistsException(requestId, (PaperProgressStatus) status);
+            }
+        }
+    }
+
+    private Object getStatusFromEvent(Events event) {
+        return event.getDigProgrStatus() != null ? event.getDigProgrStatus() : event.getPaperProgrStatus();
     }
     
     @Override
