@@ -160,7 +160,7 @@ public class ServicePaperDocument {
 				downloadUsingStream(s2, "C:\\Users\\fcrisciotti\\Downloads\\Scheda1_GliArticoli.pdf");
 			} catch (IOException e) {
 //				e.printStackTrace();
-				log.info("context",e);
+				log.debug("context",e);
 			}
 			space();
 			System.out.println(atUrl);
@@ -172,15 +172,13 @@ public class ServicePaperDocument {
 
 	private static void downloadUsingStream(String urlStr, String file) throws IOException {
 		URL url = new URL(urlStr);
-		BufferedInputStream bis = new BufferedInputStream(url.openStream());
-		FileOutputStream fis = new FileOutputStream(file);
-		byte[] buffer = new byte[1024];
-		int count = 0;
-		while ((count = bis.read(buffer, 0, 1024)) != -1) {
-			fis.write(buffer, 0, count);
+		try (BufferedInputStream bis = new BufferedInputStream(url.openStream()); FileOutputStream fis = new FileOutputStream(file)) {
+			byte[] buffer = new byte[1024];
+			int count = 0;
+			while ((count = bis.read(buffer, 0, 1024)) != -1) {
+				fis.write(buffer, 0, count);
+			}
 		}
-		fis.close();
-		bis.close();
 	}
 
 	public RisultatoCodiceRisposta sendDocumentPaper(String serviceId, String apiKey, RichiestaImpegnoCartaceo richImpCart) {
@@ -220,7 +218,7 @@ public class ServicePaperDocument {
 			rcr.opResCodeResp.setErrorList(errorList);
 			rcr.opResCodeResp.setClientResponseTimeStamp(odt);
 		} // verificare caso se richiesta già esiste
-		else if (richImpCart.papEngReq.getRequestId().equals(1)) {
+		else if (richImpCart.papEngReq.getRequestId().equals("1")) {
 			rcr.opResCodeResp.setResultCode("409.00");
 			rcr.opResCodeResp.setResultDescription("duplicated requestId");
 			rcr.opResCodeResp.setClientResponseTimeStamp(odt);

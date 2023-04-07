@@ -12,12 +12,14 @@ import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 
 @Service
+@Slf4j
 public class StatusPullServiceImpl implements StatusPullService {
 
     private final AuthService authService;
@@ -36,6 +38,8 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     @Override
     public Mono<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId, String processId) {
+        log.info("<-- START PULL OF DIGITAL REQUEST --> Request ID: {}, Client ID: {}, Process ID: {}", requestIdx, xPagopaExtchCxId, processId);
+
         return getRequest(xPagopaExtchCxId, requestIdx)
                 .flatMap(requestDto -> getLastEvent(requestDto))
                 .flatMap(eventDTO -> {
@@ -71,6 +75,8 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     @Override
     public Mono<LegalMessageSentDetails> pecPullService(String requestIdx, String xPagopaExtchCxId) {
+        log.info("<-- START PULL OF PEC REQUEST --> Request ID: {}, Client ID: {}", requestIdx, xPagopaExtchCxId);
+
         return getRequest(xPagopaExtchCxId, requestIdx)
                 .flatMap(requestDto -> getLastEvent(requestDto))
                 .flatMap(eventDTO -> {
@@ -107,6 +113,7 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     @Override
     public Mono<PaperProgressStatusEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
+        log.info("<-- START PULL OF PAPER REQUEST --> Request ID: {}, Client ID: {}", requestIdx, xPagopaExtchCxId);
         return getRequest(xPagopaExtchCxId, requestIdx).flatMap(requestDto -> {
 
                     var eventsList = requestDto.getRequestMetadata().getEventsList();
@@ -207,24 +214,23 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     private Mono<RequestDto> getRequest(String xPagopaExtchCxId, String requestIdx) {
         return authService.clientAuth(xPagopaExtchCxId)
-                          .then(gestoreRepositoryCall.getRichiesta(requestIdx))
-                          .onErrorResume(RestCallException.ResourceNotFoundException.class,
-                                         e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
-                          .handle((requestDto, synchronousSink) -> {
-                              String requestClientID = requestDto.getxPagopaExtchCxId();
-                              if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId)) {
-                                  synchronousSink.error(new ClientNotAuthorizedException(xPagopaExtchCxId));
-                              } else {
-                                  synchronousSink.next(requestDto);
-                              }
-
-                          });
+                .then(gestoreRepositoryCall.getRichiesta(requestIdx))
+                .onErrorResume(RestCallException.ResourceNotFoundException.class,
+                        e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
+                .handle((requestDto, synchronousSink) -> {
+                    String requestClientID = requestDto.getxPagopaExtchCxId();
+                    if (requestClientID == null || !requestClientID.equals(xPagopaExtchCxId)) {
+                        synchronousSink.error(new ClientNotAuthorizedException(xPagopaExtchCxId));
+                    } else {
+                        synchronousSink.next(requestDto);
+                    }
+                });
     }
 
     private Mono<EventsDto> getLastEvent(RequestDto requestDto) {
         var eventsList = requestDto.getRequestMetadata().getEventsList();
         if (eventsList != null && !eventsList.isEmpty()) {
-            var lastIndex = requestDto.getRequestMetadata().getEventsList().size()-1;
+            var lastIndex = requestDto.getRequestMetadata().getEventsList().size() - 1;
             var lastEventUpdated = requestDto.getRequestMetadata().getEventsList().get(lastIndex);
             return Mono.just(lastEventUpdated);
         } else {

@@ -20,14 +20,12 @@ public class SnsServiceImpl implements SnsService {
 
     @Override
     public Mono<PublishResponse> send(String phoneNumber, String message) {
+        log.info("<-- START SENDING SMS  -->");
         return Mono.fromFuture(snsAsyncClient.publish(builder -> builder.message(message).phoneNumber(phoneNumber)))
                    .onErrorResume(throwable -> {
                        log.error(throwable.getMessage());
                        return Mono.error(new SnsSendException());
                    })
-                   .doOnSuccess(sendMessageResponse -> log.info("Send SMS '{} 'to '{}' has returned a {} as status",
-                                                                message,
-                                                                phoneNumber,
-                                                                sendMessageResponse.sdkHttpResponse().statusCode()));
+                   .doOnSuccess(sendMessageResponse -> log.debug("Send SMS has returned a {} as status", sendMessageResponse.sdkHttpResponse().statusCode()));
     }
 }

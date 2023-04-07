@@ -43,17 +43,14 @@ public class SesServiceImpl implements SesService {
 
     @Override
     public Mono<SendRawEmailResponse> send(EmailField field) {
-
+        log.info("<-- START SENDING EMAIL  -->");
         return Mono.fromCallable(() -> composeSendRawEmailRequest(field))
                    .flatMap(sendRawEmailRequest -> Mono.fromCompletionStage(sesAsyncClient.sendRawEmail(sendRawEmailRequest)))
                    .onErrorResume(throwable -> {
                        log.error(throwable.getMessage());
                        return Mono.error(new SesSendException());
                    })
-                   .doOnSuccess(sendMessageResponse -> log.info("Send MAIL '{} 'to '{}' has returned a {} as status",
-                                                                field.getSubject(),
-                                                                field.getTo(),
-                                                                sendMessageResponse.sdkHttpResponse().statusCode()));
+                   .doOnSuccess(sendMessageResponse -> log.debug("Send MAIL has returned a {} as status", sendMessageResponse.sdkHttpResponse().statusCode()));
     }
 
     private SendRawEmailRequest composeSendRawEmailRequest(EmailField field) throws IOException, MessagingException {

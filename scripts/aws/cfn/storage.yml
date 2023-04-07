@@ -94,8 +94,7 @@ Resources:
   PnEcQueueTrackerStatoSMS:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: 'alias/aws/sqs'
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -108,8 +107,7 @@ Resources:
   PnEcDLQueueTrackerStatoSMS:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: 'alias/aws/sqs'
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -119,8 +117,7 @@ Resources:
   PnEcQueueTrackerErroriSMS:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: 'alias/aws/sqs'
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -133,8 +130,7 @@ Resources:
   PnEcDLQueueTrackerErroriSMS:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: 'alias/aws/sqs'
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -146,8 +142,7 @@ Resources:
   PnEcQueueTrackerStatoPEC:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -160,8 +155,7 @@ Resources:
   PnEcDLQueueTrackerStatoPEC:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -171,8 +165,7 @@ Resources:
   PnEcQueueTrackerErroriPEC:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -185,8 +178,7 @@ Resources:
   PnEcDLQueueTrackerErroriPEC:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -198,8 +190,7 @@ Resources:
   PnEcQueueTrackerStatoEMAIL:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -212,8 +203,7 @@ Resources:
   PnEcDLQueueTrackerStatoEMAIL:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -223,8 +213,7 @@ Resources:
   PnEcQueueTrackerErroriEMAIL:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -237,8 +226,7 @@ Resources:
   PnEcDLQueueTrackerErroriEMAIL:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -250,8 +238,7 @@ Resources:
   PnEcQueueTrackerStatoCARTACEO:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -264,8 +251,7 @@ Resources:
   PnEcDLQueueTrackerStatoCARTACEO:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -275,8 +261,7 @@ Resources:
   PnEcQueueTrackerErroriCARTACEO:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -289,8 +274,7 @@ Resources:
   PnEcDLQueueTrackerErroriCARTACEO:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -314,8 +298,7 @@ Resources:
   PnEcDLQueueNotificheExt1:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: 'alias/aws/sqs'
+      SqsManagedSseEnabled: True
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
@@ -440,8 +423,7 @@ Resources:
   PnEcQueueBatchSMS:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: 'alias/aws/sqs'
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -454,8 +436,7 @@ Resources:
   PnEcDLQueueBatchSMS:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: 'alias/aws/sqs'
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -465,8 +446,7 @@ Resources:
   PnEcQueueInteractiveSMS:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: 'alias/aws/sqs'
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -479,8 +459,7 @@ Resources:
   PnEcDLQueueInteractiveSMS:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: 'alias/aws/sqs'
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -490,8 +469,7 @@ Resources:
   PnEcQueueErroriSMS:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: 'alias/aws/sqs'
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       DelaySeconds: 300
@@ -505,8 +483,7 @@ Resources:
   PnEcDLQueueErroriSMS:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: 'alias/aws/sqs'
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -518,8 +495,7 @@ Resources:
   PnEcQueueBatchPEC:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -532,8 +508,7 @@ Resources:
   PnEcDLQueueBatchPEC:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -543,8 +518,7 @@ Resources:
   PnEcQueueInteractivePEC:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -557,8 +531,7 @@ Resources:
   PnEcDLQueueInteractivePEC:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -568,8 +541,7 @@ Resources:
   PnEcQueueErroriPEC:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       DelaySeconds: 300
@@ -583,8 +555,7 @@ Resources:
   PnEcDLQueueErroriPEC:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -595,8 +566,7 @@ Resources:
   PnEcQueueBatchEMAIL:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs" 
+      SqsManagedSseEnabled: True 
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -609,8 +579,7 @@ Resources:
   PnEcDLQueueBatchEMAIL:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -620,8 +589,7 @@ Resources:
   PnEcQueueInteractiveEMAIL:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -634,8 +602,7 @@ Resources:
   PnEcDLQueueInteractiveEMAIL:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -645,8 +612,7 @@ Resources:
   PnEcQueueErroriEMAIL:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       DelaySeconds: 300
@@ -660,8 +626,7 @@ Resources:
   PnEcDLQueueErroriEMAIL:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -674,8 +639,7 @@ Resources:
   PnEcQueueBatchCARTACEO:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -688,8 +652,7 @@ Resources:
   PnEcDLQueueBatchCARTACEO:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600
@@ -699,8 +662,7 @@ Resources:
   PnEcQueueErroriCARTACEO:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       DelaySeconds: 300
@@ -714,8 +676,7 @@ Resources:
   PnEcDLQueueErroriCARTACEO:
     Type: AWS::SQS::Queue
     Properties:
-      KmsDataKeyReusePeriodSeconds: 300
-      KmsMasterKeyId: "alias/aws/sqs"
+      SqsManagedSseEnabled: True
       FifoQueue: True
       ContentBasedDeduplication: True
       MessageRetentionPeriod: 1209600

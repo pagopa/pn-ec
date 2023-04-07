@@ -46,6 +46,7 @@ Parameters:
   EcsDefaultSecurityGroup:
     Type: String
     Description: 'Default security group required by infrastructure'
+    Default: ''
 
   ApplicationLoadBalancerListenerArn:
     Type: String
@@ -58,6 +59,7 @@ Parameters:
   NetworkLoadBalancerLink:
     Type: String
     Description: 'network load balancer link for API-GW'
+    Default: ''
   
   # LogsKinesisSourceStreamArn:
   #   Type: String
@@ -477,29 +479,27 @@ Resources:
         ContainerEnvEntry2: !Sub 'PnEcTableNameAnagrafica=${PnEcTableNameAnagrafica}'
         ContainerEnvEntry3: !Sub 'PnEcTableNameRichieste=${PnEcTableNameRichieste}'
         ContainerEnvEntry4: !Sub 'PnEcTableNameRichiesteMetadati=${PnEcTableNameRichiesteMetadati}'
-        # ContainerEnvEntry5: !Sub 'PnEcSNSNameNotificheExt1=${PnEcSNSNameNotificheExt1}'
-        # ContainerEnvEntry6: !Sub 'PnEcSNSArnNotificheExt1=${PnEcSNSArnNotificheExt1}'
-        ContainerEnvEntry7: !Sub 'PnEcQueueNameNotificheExt1=${PnEcQueueNameNotificheExt1}'
-        ContainerEnvEntry8: !Sub 'PnEcEventBusNameTrackerExternalNotification=${PnEcEventBusNameTrackerExternalNotification}'
-        ContainerEnvEntry9: !Sub 'PnEcQueueNameTrackerStatoSMS=${PnEcQueueNameTrackerStatoSMS}'
-        ContainerEnvEntry10: !Sub 'PnEcQueueNameTrackerErroriSMS=${PnEcQueueNameTrackerErroriSMS}'
-        ContainerEnvEntry11: !Sub 'PnEcQueueNameTrackerStatoPEC=${PnEcQueueNameTrackerStatoPEC}'
-        ContainerEnvEntry12: !Sub 'PnEcQueueNameTrackerErroriPEC=${PnEcQueueNameTrackerErroriPEC}'
-        ContainerEnvEntry13: !Sub 'PnEcQueueNameTrackerStatoEMAIL=${PnEcQueueNameTrackerStatoEMAIL}'
-        ContainerEnvEntry14: !Sub 'PnEcQueueNameTrackerErroriEMAIL=${PnEcQueueNameTrackerErroriEMAIL}'
-        ContainerEnvEntry15: !Sub 'PnEcQueueNameTrackerStatoCARTACEO=${PnEcQueueNameTrackerStatoCARTACEO}'
-        ContainerEnvEntry16: !Sub 'PnEcQueueNameTrackerErroriCARTACEO=${PnEcQueueNameTrackerErroriCARTACEO}'
-        ContainerEnvEntry17: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
-        ContainerEnvEntry18: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
-        ContainerEnvEntry19: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
-        ContainerEnvEntry20: !Sub 'PnEcQueueNameBatchPEC=${PnEcQueueNameBatchPEC}'
-        ContainerEnvEntry21: !Sub 'PnEcQueueNameInteractivePEC=${PnEcQueueNameInteractivePEC}'
-        ContainerEnvEntry22: !Sub 'PnEcQueueNameErroriPEC=${PnEcQueueNameErroriPEC}'
-        ContainerEnvEntry23: !Sub 'PnEcQueueNameBatchEMAIL=${PnEcQueueNameBatchEMAIL}'
-        ContainerEnvEntry24: !Sub 'PnEcQueueNameInteractiveEMAIL=${PnEcQueueNameInteractiveEMAIL}'
-        ContainerEnvEntry25: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
-        ContainerEnvEntry26: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
-        ContainerEnvEntry27: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
+        ContainerEnvEntry5: !Sub 'PnEcQueueNameNotificheExt1=${PnEcQueueNameNotificheExt1}'
+        ContainerEnvEntry6: !Sub 'PnEcEventBusNameTrackerExternalNotification=${PnEcEventBusNameTrackerExternalNotification}'
+        ContainerEnvEntry7: !Sub 'PnEcQueueNameTrackerStatoSMS=${PnEcQueueNameTrackerStatoSMS}'
+        ContainerEnvEntry8: !Sub 'PnEcQueueNameTrackerErroriSMS=${PnEcQueueNameTrackerErroriSMS}'
+        ContainerEnvEntry9: !Sub 'PnEcQueueNameTrackerStatoPEC=${PnEcQueueNameTrackerStatoPEC}'
+        ContainerEnvEntry10: !Sub 'PnEcQueueNameTrackerErroriPEC=${PnEcQueueNameTrackerErroriPEC}'
+        ContainerEnvEntry11: !Sub 'PnEcQueueNameTrackerStatoEMAIL=${PnEcQueueNameTrackerStatoEMAIL}'
+        ContainerEnvEntry12: !Sub 'PnEcQueueNameTrackerErroriEMAIL=${PnEcQueueNameTrackerErroriEMAIL}'
+        ContainerEnvEntry13: !Sub 'PnEcQueueNameTrackerStatoCARTACEO=${PnEcQueueNameTrackerStatoCARTACEO}'
+        ContainerEnvEntry14: !Sub 'PnEcQueueNameTrackerErroriCARTACEO=${PnEcQueueNameTrackerErroriCARTACEO}'
+        ContainerEnvEntry15: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
+        ContainerEnvEntry16: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
+        ContainerEnvEntry17: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
+        ContainerEnvEntry18: !Sub 'PnEcQueueNameBatchPEC=${PnEcQueueNameBatchPEC}'
+        ContainerEnvEntry19: !Sub 'PnEcQueueNameInteractivePEC=${PnEcQueueNameInteractivePEC}'
+        ContainerEnvEntry20: !Sub 'PnEcQueueNameErroriPEC=${PnEcQueueNameErroriPEC}'
+        ContainerEnvEntry21: !Sub 'PnEcQueueNameBatchEMAIL=${PnEcQueueNameBatchEMAIL}'
+        ContainerEnvEntry22: !Sub 'PnEcQueueNameInteractiveEMAIL=${PnEcQueueNameInteractiveEMAIL}'
+        ContainerEnvEntry23: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
+        ContainerEnvEntry24: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
+        ContainerEnvEntry25: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
         ContainerEnvEntry30: 'SafeStorageClientId=pn-external-channels'
         ContainerEnvEntry31: 'SafeStorageClientApiKey=pn-external-channels_api_key'
         ContainerEnvEntry40: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
@@ -591,9 +591,19 @@ Resources:
             Sid: 'AvoidIssues'
             Action:
               - 'sns:*'
-              - 'ses:*'
+              - 'ses:Describe*'
+              - 'ses:Get*'
+              - 'ses:List*'
+              - 'ses:Send*'
+              - 'ses:Verify*'
             Resource:
-              - '*'          
+              - '*'
+          - Sid: 'CloudWatchPutMetricData'
+            Effect: Allow
+            Action:
+              - 'cloudwatch:PutMetricData'
+            Resource:
+              - '*'
 
   PnEcQueuePolicyNotificheExt1:
     Type: AWS::SQS::QueuePolicy

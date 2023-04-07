@@ -10,6 +10,7 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.notificationtracker.service.NotificationTrackerService;
 import it.pagopa.pn.ec.notificationtracker.service.PutEvents;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -20,6 +21,7 @@ import static java.time.temporal.ChronoUnit.SECONDS;
 
 
 @Service
+@Slf4j
 public class NotificationTrackerServiceImpl implements NotificationTrackerService {
 
     private final PutEvents putEvents;
@@ -37,6 +39,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
     @Override
     public Mono<Void> handleRequestStatusChange(NotificationTrackerQueueDto notificationTrackerQueueDto, String ntStatoQueueName, String ntStatoDlQueueName, Acknowledgment acknowledgment) {
+        log.info("<-- Start handleRequestStatusChange --> info: {} request: {}", notificationTrackerQueueDto.getProcessId(), notificationTrackerQueueDto.getRequestIdx());
         String nextStatus = notificationTrackerQueueDto.getNextStatus();
         return callMachinaStati.statusValidation(notificationTrackerQueueDto)
                 .flatMap(unused -> {
@@ -135,7 +138,10 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                 })
                 .doOnSuccess(result -> acknowledgment.acknowledge())
                 .then()
-                .doOnError(InvalidNextStatusException.class, throwable -> acknowledgment.acknowledge())
+                .doOnError(InvalidNextStatusException.class, throwable -> {
+                    log.debug("Invalid Next Status Exception: {}", throwable.getMessage());
+                    acknowledgment.acknowledge();
+                })
                 .onErrorResume(InvalidNextStatusException.class, e -> {
                     var retry = notificationTrackerQueueDto.getRetry();
                     notificationTrackerQueueDto.setRetry(retry + 1);

@@ -10,6 +10,6 @@ public class SqsUtils {
     }
 
     public static <T> void logIncomingMessage(String queueName, T incomingPayload) {
-        log.info("Incoming message from '{}' queue with payload ↓\n{}", queueName, incomingPayload);
+        log.debug("Incoming message from '{}' queue with payload ↓\n{}", queueName, incomingPayload);
     }
 }

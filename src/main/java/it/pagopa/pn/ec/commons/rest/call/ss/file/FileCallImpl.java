@@ -9,6 +9,7 @@ import it.pagopa.pn.ec.consolidatore.exception.ClientNotAuthorizedOrFoundExcepti
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationResponse;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -21,6 +22,7 @@ import reactor.core.publisher.Mono;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Component
+@Slf4j
 public class FileCallImpl implements FileCall {
 
     private final WebClient ssWebClient;

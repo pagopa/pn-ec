@@ -15,6 +15,8 @@ public enum Status {
     SENT("sent"),
     RETRY("retry"),
     ERROR("error"),
+    IN_PROGRESS("inprogress"),
+    DELETED("deleted"),
 
     //  <-- ONLY EMAIL AND PEC -->
     COMPOSITION_ERROR("compError"),
