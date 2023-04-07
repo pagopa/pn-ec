@@ -16,14 +16,13 @@ public class CartaceoMapper {
         org.openapitools.client.model.PaperEngageRequest dstPaperEngageRequest = null;
         if (srcPaperEngageRequest != null) {
             java.time.OffsetDateTime srcClientRequestTimeStamp = srcPaperEngageRequest.getClientRequestTimeStamp();
-            org.threeten.bp.OffsetDateTime dstClientRequestTimeStamp = null;
+            org.threeten.bp.OffsetDateTime dstClientRequestTimeStamp;
             srcPaperEngageRequest.setClientRequestTimeStamp(null);
 
             dstPaperEngageRequest = objectMapper.convertValue(srcPaperEngageRequest, org.openapitools.client.model.PaperEngageRequest.class);
 
-            if (srcClientRequestTimeStamp != null) {
-                dstClientRequestTimeStamp = org.threeten.bp.OffsetDateTime.parse(srcClientRequestTimeStamp.toString());
-            }
+            dstClientRequestTimeStamp = org.threeten.bp.OffsetDateTime.parse(srcClientRequestTimeStamp.toString());
+
             dstPaperEngageRequest.setClientRequestTimeStamp(dstClientRequestTimeStamp);
         }
         return dstPaperEngageRequest;
