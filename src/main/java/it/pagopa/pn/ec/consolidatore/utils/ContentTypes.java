@@ -4,6 +4,9 @@ import java.util.List;
 
 public class ContentTypes {
 
+    private ContentTypes() {
+    }
+
     public static final String APPLICATION_PDF = "application/pdf";
     public static final String APPLICATION_ZIP = "application/zip";
     public static final String IMAGE_TIFF = "image/tiff";
