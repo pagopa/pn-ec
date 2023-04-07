@@ -46,6 +46,7 @@ Parameters:
   EcsDefaultSecurityGroup:
     Type: String
     Description: 'Default security group required by infrastructure'
+    Default: ''
 
   ApplicationLoadBalancerListenerArn:
     Type: String
