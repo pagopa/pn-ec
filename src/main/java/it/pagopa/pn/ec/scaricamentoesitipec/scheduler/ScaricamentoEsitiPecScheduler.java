@@ -21,8 +21,6 @@ import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.bridgews.*;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -30,7 +28,6 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
 import java.time.Duration;
-import java.util.Objects;
 import java.util.Random;
 import java.util.function.Predicate;
 
@@ -41,7 +38,6 @@ import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.createGeneratedMessageByStatus;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.decodePecStatusToMachineStateStatus;
-import static org.slf4j.Logger.ROOT_LOGGER_NAME;
 
 @Component
 @Slf4j
@@ -64,9 +60,6 @@ public class ScaricamentoEsitiPecScheduler {
 
     @Value("${scaricamento-esiti-pec.maximum-delay-seconds}")
     private String maximumDelaySeconds;
-
-    @Value("${scaricamento-esiti-pec.dump-email}")
-    private String ecLoggingLevel;
 
     public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, CallMacchinaStati callMacchinaStati,
                                          GestoreRepositoryCall gestoreRepositoryCall, StatusPullService statusPullService,
@@ -133,19 +126,6 @@ public class ScaricamentoEsitiPecScheduler {
 
 //          Conversione a stringa
             .map(String::new)
-
-//          Se il livello di debug è abilitato verificare il contenuto della PEC
-            .flatMap(pecId -> {
-                if (ecLoggingLevel.equals("debug")) {
-                    return arubaCall.getMessageId(createGetMessageIdRequest(pecId, false))
-                                    .filter(getMessageIDResponse -> Objects.nonNull(getMessageIDResponse.getMessage()))
-                                    .map(getMessageIDResponse -> new String(getMessageIDResponse.getMessage()))
-                                    .doOnNext(log::debug)
-                                    .thenReturn(pecId);
-                } else {
-                    return Mono.just(pecId);
-                }
-            })
 
             .doOnNext(pecId -> log.debug("Processing PEC with id {}", pecId))
 
@@ -326,10 +306,14 @@ public class ScaricamentoEsitiPecScheduler {
                                        .doOnSuccess(getMessageIDResponse -> log.debug("PEC {} marked as seen", pecId)))
 
 //          Se avviene qualche errore per una particolare PEC non bloccare il Flux
-            .onErrorContinue(CallMacchinaStati.StatusValidationBadRequestException.class,
-                             (throwable, o) -> log.debug(throwable.getMessage()))
-            .onErrorContinue(InvalidNextStatusException.class, (throwable, o) -> log.debug(throwable.getMessage()))
-            .onErrorContinue((throwable, object) -> log.error(throwable.getMessage(), throwable))
+            .onErrorContinue((throwable, object) -> {
+                if (throwable instanceof CallMacchinaStati.StatusValidationBadRequestException ||
+                    throwable instanceof InvalidNextStatusException) {
+                    log.debug(throwable.getMessage());
+                } else {
+                    log.error(throwable.getMessage(), throwable);
+                }
+            })
 
             .doOnComplete(() -> isScaricamentoEsitiPecRunning = false)
 
