@@ -17,6 +17,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
     private final WebClient ecWebClient;
     private final GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties;
+    private static final String CLIENT_HEADER_NAME = "x-pagopa-extch-cx-id";
 
     public GestoreRepositoryCallImpl(WebClient ecWebClient, GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties) {
         this.ecWebClient = ecWebClient;
@@ -53,7 +54,8 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     @Override
     public Mono<RequestDto> getRichiesta(String clientId, String requestIdx) throws RestCallException.ResourceNotFoundException {
         return ecWebClient.get()
-                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(clientId, requestIdx))
+                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(requestIdx))
+                .header(CLIENT_HEADER_NAME, clientId)
                 .retrieve()
                 .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
                 .bodyToMono(RequestDto.class);
@@ -84,7 +86,8 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     @Override
     public Mono<RequestDto> patchRichiesta(String clientId, String requestIdx, PatchDto patchDto) throws RestCallException.ResourceNotFoundException {
         return ecWebClient.patch()
-                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(clientId, requestIdx))
+                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(requestIdx))
+                .header(CLIENT_HEADER_NAME, clientId)
                 .bodyValue(patchDto)
                 .retrieve()
                 .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new RepositoryManagerException.RequestMalformedException()))
@@ -120,7 +123,8 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
             throws RestCallException.ResourceNotFoundException, ISEForMessageIdCreationException {
         return ecWebClient.post()
                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
-                        .build(clientId, requestIdx))
+                        .build(requestIdx))
+                .header(CLIENT_HEADER_NAME, clientId)
                 .retrieve()
                 .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
                 .onStatus(INTERNAL_SERVER_ERROR::equals, clientResponse -> Mono.error(new ISEForMessageIdCreationException()))
