@@ -148,7 +148,7 @@ public class ScaricamentoEsitiPecScheduler {
 //                      Deserialize daticert.xml. Start a new Mono inside the flatMap
                         return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(getAttachResponse.getAttach()))
 
-//                                 Escludere queste PEC. Non sono delle 'comunicazione esiti'
+//                                 Escludere questi daticert. Non sono delle 'comunicazione esiti'
                                    .filter(isPostaCertificataPredicate.negate())
 
 //                                 msgid arriva all'interno di due angolari <msgid>. Eliminare il primo e l'ultimo carattere
@@ -160,9 +160,11 @@ public class ScaricamentoEsitiPecScheduler {
                                        return postacert;
                                    })
 
-//                                 Escludere queste PEC. Non avendo il msgid terminante con il dominio pago non sono state inviate da noi
+//                                 Escludere questi daticert. Non avendo il msgid terminante con il dominio pago non sono state inviate
+//                                 da noi
                                    .filter(endsWithDomainPredicate)
 
+//                                 Daticert filtrati
                                    .doOnDiscard(Postacert.class, postacert -> {
                                        if (isPostaCertificataPredicate.test(postacert)) {
                                            log.debug("PEC {} discarded, is {}", pecId, POSTA_CERTIFICATA);
@@ -171,6 +173,12 @@ public class ScaricamentoEsitiPecScheduler {
                                        }
                                    })
 
+//                                 Mono.zip contenente:
+//                                 - Il daticert
+//                                 - La chiamata al ms del gestore repository per reperire la richiesta
+//                                 - La chiamata al ms PEC per reperire le info dell'ultimo evento di una richiesta (servirà per le
+//                                 metriche custom)
+//                                 - La chiamata ad Aruba per recuperare il messaggio della PEC
                                    .flatMap(postacert -> {
                                        var presaInCaricoInfo = decodeMessageId(postacert.getDati().getMsgid());
                                        var requestIdx = presaInCaricoInfo.getRequestIdx();
@@ -182,6 +190,7 @@ public class ScaricamentoEsitiPecScheduler {
                                                        arubaCall.getMessageId(createGetMessageIdRequest(pecId, false)));
                                    })
 
+//                                 Pubblicazione metriche custom su CloudWatch
                                    .flatMap(objects -> {
                                        Postacert postacert = objects.getT1();
                                        RequestDto requestDto = objects.getT2();
@@ -291,7 +300,10 @@ public class ScaricamentoEsitiPecScheduler {
                                    .thenReturn(pecId)
 
 //                                 Se per qualche motivo questo daticert è da escludere tornare comunque il pecId
-                                   .switchIfEmpty(Mono.just(pecId));
+                                   .switchIfEmpty(Mono.just(pecId))
+
+//                                 Se avviene un errore all'interno di questa catena tornare un Mono.empty per non bloccare il flux
+                                   .onErrorResume(throwable -> Mono.empty());
                     } else {
                         log.debug("PEC {} doesn't have daticert.xml", pecId);
 
@@ -305,8 +317,8 @@ public class ScaricamentoEsitiPecScheduler {
             .flatMap(pecId -> arubaCall.getMessageId(createGetMessageIdRequest(pecId, true))
                                        .doOnSuccess(getMessageIDResponse -> log.debug("PEC {} marked as seen", pecId)))
 
-//          Se avviene qualche errore per una particolare PEC non bloccare il Flux
-            .onErrorContinue((throwable, object) -> {
+//         Error logging
+            .doOnError(throwable -> {
                 if (throwable instanceof CallMacchinaStati.StatusValidationBadRequestException ||
                     throwable instanceof InvalidNextStatusException) {
                     log.debug(throwable.getMessage());
