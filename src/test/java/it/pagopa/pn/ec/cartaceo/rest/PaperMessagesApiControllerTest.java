@@ -139,7 +139,7 @@ class PaperMessagesApiControllerTest {
     void sendCartaceoOk() {
 
         when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
@@ -180,7 +180,7 @@ class PaperMessagesApiControllerTest {
         when(authService.clientAuth(anyString()))
                 .thenReturn(Mono.error(new ClientNotAuthorizedException(DEFAULT_ID_CLIENT_HEADER_VALUE)));
 
-        when(gestoreRepositoryCall.getRichiesta(anyString()))
+        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString()))
                 .thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
@@ -196,7 +196,7 @@ class PaperMessagesApiControllerTest {
         when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
 
 //      Retrieve request -> KO
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenThrow(EcInternalEndpointHttpException.class);
+        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenThrow(EcInternalEndpointHttpException.class);
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
                 .isEqualTo(SERVICE_UNAVAILABLE).expectBody(Problem.class);
@@ -210,7 +210,7 @@ class PaperMessagesApiControllerTest {
         when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
 
 //      Retrieve request -> Return an existent request, return 409 status
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.just(requestDto));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
                 .isEqualTo(CONFLICT).expectBody(Problem.class);
@@ -227,7 +227,7 @@ class PaperMessagesApiControllerTest {
         when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
 //      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
@@ -248,7 +248,7 @@ class PaperMessagesApiControllerTest {
         when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
 //      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         when(sqsService.send(eq(cartaceoSqsQueueName.batchName()),
@@ -264,7 +264,7 @@ class PaperMessagesApiControllerTest {
     void sendCartaceoWithoutValidAttachment() {
         when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
 
-        when(gestoreRepositoryCall.getRichiesta(anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(defaultAttachmentUrl)));
 

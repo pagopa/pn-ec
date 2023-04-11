@@ -214,7 +214,7 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     private Mono<RequestDto> getRequest(String xPagopaExtchCxId, String requestIdx) {
         return authService.clientAuth(xPagopaExtchCxId)
-                .then(gestoreRepositoryCall.getRichiesta(requestIdx))
+                .then(gestoreRepositoryCall.getRichiesta(xPagopaExtchCxId, requestIdx))
                 .onErrorResume(RestCallException.ResourceNotFoundException.class,
                         e -> Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
                 .handle((requestDto, synchronousSink) -> {
@@ -224,6 +224,7 @@ public class StatusPullServiceImpl implements StatusPullService {
                     } else {
                         synchronousSink.next(requestDto);
                     }
+
                 });
     }
 
@@ -237,4 +238,5 @@ public class StatusPullServiceImpl implements StatusPullService {
             return Mono.empty();
         }
     }
+
 }
