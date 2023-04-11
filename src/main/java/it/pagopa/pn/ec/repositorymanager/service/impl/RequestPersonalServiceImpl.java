@@ -28,7 +28,7 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
     @Override
     public Mono<RequestPersonal> getRequestPersonal(String requestIdx) {
         return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(requestIdx)))
-                   .defaultIfEmpty(RequestPersonal.builder().requestId(null).build())
+                   .defaultIfEmpty(new RequestPersonal())
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()));
     }
 
@@ -53,7 +53,7 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
     @Override
     public Mono<RequestPersonal> deleteRequestPersonal(String requestIdx) {
         return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(requestIdx)))
-                   .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
+                   .defaultIfEmpty(new RequestPersonal())
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
                    .flatMap(requestToDelete -> Mono.fromCompletionStage(requestPersonalDynamoDbTable.deleteItem(getKey(requestIdx))));
     }
