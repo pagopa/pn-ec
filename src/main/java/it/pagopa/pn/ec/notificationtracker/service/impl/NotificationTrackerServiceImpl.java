@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.notificationtracker.service.impl;
 
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
+import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -28,13 +29,16 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final CallMacchinaStati callMachinaStati;
     private final SqsService sqsService;
+    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
     public NotificationTrackerServiceImpl(PutEvents putEvents, GestoreRepositoryCall gestoreRepositoryCall,
-                                          CallMacchinaStati callMachinaStati, SqsService sqsService) {
+                                          CallMacchinaStati callMachinaStati, SqsService sqsService,
+                                          TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
         this.putEvents = putEvents;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.callMachinaStati = callMachinaStati;
         this.sqsService = sqsService;
+        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
     @Override
@@ -47,6 +51,13 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
         return gestoreRepositoryCall.getRichiesta(notificationTrackerQueueDto.getXPagopaExtchCxId(),
                                                   notificationTrackerQueueDto.getRequestIdx())
+//                                  Set status request to start status if is null
+                                    .map(requestDto -> {
+                                        if (requestDto.getStatusRequest() == null) {
+                                            requestDto.setStatusRequest(transactionProcessConfigurationProperties.startStatus());
+                                        }
+                                        return requestDto;
+                                    })
                                     .zipWhen(requestDto -> callMachinaStati.statusValidation(xPagopaExtchCxId,
                                                                                              processId,
                                                                                              requestDto.getStatusRequest(),
