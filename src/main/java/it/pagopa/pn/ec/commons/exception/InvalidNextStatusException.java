@@ -1,14 +1,12 @@
 package it.pagopa.pn.ec.commons.exception;
 
-import it.pagopa.pn.ec.commons.model.pojo.request.RequestStatusChange;
-
 public class InvalidNextStatusException extends RuntimeException {
 
-    public InvalidNextStatusException(RequestStatusChange requestStatusChange) {
+    public InvalidNextStatusException(String currentStatus, String nextStatus, String processId, String xPagopaExtchCxId) {
         super(String.format("Status change from %s to %s is not valid for client %s within the process with id %s",
-                            requestStatusChange.getCurrentStatus(),
-                            requestStatusChange.getNextStatus(),
-                            requestStatusChange.getXPagopaExtchCxId(),
-                            requestStatusChange.getProcessId()));
+                            currentStatus,
+                            nextStatus,
+                            xPagopaExtchCxId,
+                            processId));
     }
 }

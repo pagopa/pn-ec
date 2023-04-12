@@ -3,22 +3,20 @@ package it.pagopa.pn.ec.commons.rest.call.machinestate;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
-import it.pagopa.pn.ec.commons.model.pojo.request.RequestStatusChange;
 import reactor.core.publisher.Mono;
 
 public interface CallMacchinaStati {
 
-    class StatusValidationBadRequestException extends RuntimeException{
+    class StatusValidationBadRequestException extends RuntimeException {
 
         public StatusValidationBadRequestException() {
             super("Check if all paths and query params are present");
         }
     }
 
-    /**
-     * Set xPagopaExtchCxId, processId, currentStatus and nextStatus in the object argument
-     */
-    Mono<MacchinaStatiValidateStatoResponseDto> statusValidation(RequestStatusChange requestStatusChange) throws InvalidNextStatusException;
+    Mono<MacchinaStatiValidateStatoResponseDto> statusValidation(String xPagopaExtchCxId, String processId,
+                                                                 String currentStatus, String nextStatus)
+            throws InvalidNextStatusException;
 
-    Mono<MacchinaStatiDecodeResponseDto> statusDecode(RequestStatusChange requestStatusChange);
+    Mono<MacchinaStatiDecodeResponseDto> statusDecode(String xPagopaExtchCxId, String processId, String statusToDecode);
 }
