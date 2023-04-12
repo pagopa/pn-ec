@@ -302,11 +302,12 @@ public class EmailService extends PresaInCaricoService {
                  emailPresaInCaricoInfo.getXPagopaExtchCxId());
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         var requestId = emailPresaInCaricoInfo.getRequestIdx();
+        var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         Policy retryPolicies = new Policy();
         String toDelete = "toDelete";
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
-        return gestoreRepositoryCall.getRichiesta(requestId)
+        return gestoreRepositoryCall.getRichiesta(clientId, requestId)
 //              check status toDelete
                                     .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
 //              se status toDelete throw Error
@@ -350,7 +351,7 @@ public class EmailService extends PresaInCaricoService {
                                                                           .add(BigDecimal.ONE));
                                         PatchDto patchDto = new PatchDto();
                                         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                                        return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
+                                        return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
                                     }).flatMap(requestDto ->
                                                        // Try to send EMAIL
                                                        attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(),
@@ -455,13 +456,14 @@ public class EmailService extends PresaInCaricoService {
         requestDto.getRequestMetadata().setRetry(retryDto);
         PatchDto patchDto = new PatchDto();
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-        return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
+        return gestoreRepositoryCall.patchRichiesta(requestDto.getxPagopaExtchCxId(), requestId, patchDto);
     }
 
     private Mono<DeleteMessageResponse> processOnlyBodyRerty(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message) {
 
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         var requestId = emailPresaInCaricoInfo.getRequestIdx();
+        var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         Policy retryPolicies = new Policy();
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
         String toDelete = "toDelete";
@@ -469,7 +471,8 @@ public class EmailService extends PresaInCaricoService {
         EmailField mailFld = compilaMail(digitalCourtesyMailRequest);
 
 
-        return gestoreRepositoryCall.getRichiesta(requestId)
+
+        return gestoreRepositoryCall.getRichiesta(clientId, requestId)
 
 //              check status toDelete
                                     .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
@@ -506,8 +509,9 @@ public class EmailService extends PresaInCaricoService {
                               .setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
                     PatchDto patchDto = new PatchDto();
                     patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                    return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
-                }).flatMap(requestDto -> {
+                    return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
+                })
+                .flatMap(requestDto -> {
                     log.debug("requestDto Value:", requestDto.getRequestMetadata().getRetry());
                     return sesService.send(mailFld).retryWhen(DEFAULT_RETRY_STRATEGY)
 

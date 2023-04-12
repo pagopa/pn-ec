@@ -224,8 +224,9 @@ public class SmsService extends PresaInCaricoService {
         String toDelete = "toDelete";
 
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
+        var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
 
-        return gestoreRepositoryCall.getRichiesta(requestId)
+        return gestoreRepositoryCall.getRichiesta(clientId, requestId)
 //              check status toDelete
                                     .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
 //              se status toDelete throw Error
@@ -244,7 +245,7 @@ public class SmsService extends PresaInCaricoService {
                                             requestDto.getRequestMetadata().setRetry(retryDto);
                                             PatchDto patchDto = new PatchDto();
                                             patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                                            return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
+                                            return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
 
                                         } else {
                                             var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
@@ -275,7 +276,7 @@ public class SmsService extends PresaInCaricoService {
                                                                           .add(BigDecimal.ONE));
                                         PatchDto patchDto = new PatchDto();
                                         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                                        return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
+                                        return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
                                     })
 //              Tentativo invio sms
                                     .flatMap(requestDto -> {

@@ -212,7 +212,7 @@ public class CartaceoService extends PresaInCaricoService {
         var paperEngageRequestSrc = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
         var paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
 
-        return gestoreRepositoryCall.getRichiesta(cartaceoPresaInCaricoInfo.getRequestIdx()).flatMap(requestDto -> {
+        return gestoreRepositoryCall.getRichiesta(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(), cartaceoPresaInCaricoInfo.getRequestIdx()).flatMap(requestDto -> {
                                         // Try to send PAPER
                                         return paperMessageCall.putRequest(paperEngageRequestDst).retryWhen(DEFAULT_RETRY_STRATEGY)
                                                                // The PAPER in sent, publish to Notification Tracker with next status ->
@@ -288,9 +288,10 @@ public class CartaceoService extends PresaInCaricoService {
         var paperEngageRequestSrc = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
         var paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
         var requestId = cartaceoPresaInCaricoInfo.getRequestIdx();
+        var clientId = cartaceoPresaInCaricoInfo.getXPagopaExtchCxId();
         Policy retryPolicies = new Policy();
 
-        return gestoreRepositoryCall.getRichiesta(requestId)
+        return gestoreRepositoryCall.getRichiesta(clientId, requestId)
 //              check status toDelete
                                     .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
 //              se status toDelete throw Error
@@ -298,17 +299,17 @@ public class CartaceoService extends PresaInCaricoService {
 //              check Id per evitare loop
                                     .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
 //              se il primo step, inizializza l'attributo retry
-                                    .flatMap(requestDto -> {
-                                        if (requestDto.getRequestMetadata().getRetry() == null) {
-                                            log.debug("Primo tentativo di Retry");
-                                            RetryDto retryDto = new RetryDto();
-                                            retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PAPER"));
-                                            retryDto.setRetryStep(BigDecimal.ZERO);
-                                            retryDto.setLastRetryTimestamp(OffsetDateTime.now());
-                                            requestDto.getRequestMetadata().setRetry(retryDto);
-                                            PatchDto patchDto = new PatchDto();
-                                            patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                                            return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
+                .flatMap(requestDto -> {
+                    if (requestDto.getRequestMetadata().getRetry() == null) {
+                        log.debug("Primo tentativo di Retry");
+                        RetryDto retryDto = new RetryDto();
+                        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PAPER"));
+                        retryDto.setRetryStep(BigDecimal.ZERO);
+                        retryDto.setLastRetryTimestamp(OffsetDateTime.now());
+                        requestDto.getRequestMetadata().setRetry(retryDto);
+                        PatchDto patchDto = new PatchDto();
+                        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                        return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
 
                                         } else {
                                             var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
@@ -329,18 +330,13 @@ public class CartaceoService extends PresaInCaricoService {
                                         return minutes >= minutesToCheck;
                                     })
 //              patch con orario attuale e dello step retry
-                                    .flatMap(requestDto -> {
-                                        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
-                                        requestDto.getRequestMetadata()
-                                                  .getRetry()
-                                                  .setRetryStep(requestDto.getRequestMetadata()
-                                                                          .getRetry()
-                                                                          .getRetryStep()
-                                                                          .add(BigDecimal.ONE));
-                                        PatchDto patchDto = new PatchDto();
-                                        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                                        return gestoreRepositoryCall.patchRichiesta(requestId, patchDto);
-                                    })
+                .flatMap(requestDto -> {
+                    requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
+                    requestDto.getRequestMetadata().getRetry().setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
+                    PatchDto patchDto = new PatchDto();
+                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                    return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
+                })
 //              Tentativo invio cartaceo
                                     .flatMap(requestDto -> {
                                         log.debug("requestDto Value:", requestDto.getRequestMetadata().getRetry());

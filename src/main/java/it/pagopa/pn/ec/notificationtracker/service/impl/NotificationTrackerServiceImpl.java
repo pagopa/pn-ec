@@ -69,7 +69,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                                   .statusDateTime(paperProgressStatusDto.getStatusDateTime()
                                                                                                         .truncatedTo(SECONDS));
                                         }
-                                        return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getRequestIdx(),
+                                        return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx(),
                                                                                          new EventsDto().digProgrStatus(
                                                                                                                 digitalProgressStatusDto)
                                                                                                         .paperProgrStatus(

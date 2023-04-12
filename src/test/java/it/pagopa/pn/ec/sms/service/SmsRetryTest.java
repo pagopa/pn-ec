@@ -97,9 +97,9 @@ class SmsRetryTest {
         RequestDto requestDto = new RequestDto();
         requestDto.setStatusRequest("statusTest");
         requestDto.setRequestIdx(requestId);
+        String clientId = DEFAULT_ID_CLIENT_HEADER_VALUE;
+        requestDto.setxPagopaExtchCxId(clientId);
         PatchDto patchDto = new PatchDto();
-
-
 
         RequestMetadataDto requestMetadata = new RequestMetadataDto();
         requestMetadata.setRetry(new RetryDto());
@@ -108,7 +108,7 @@ class SmsRetryTest {
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
 
-        when(gestoreRepositoryCall.getRichiesta(eq(requestId))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
         //when(gestoreRepositoryCall.patchRichiesta(eq(requestId), eq(patchDto)).thenReturn(Mono.just(requestDto)));
 
 
@@ -133,10 +133,9 @@ class SmsRetryTest {
 
             }
         };
-
+        String clientId = DEFAULT_ID_CLIENT_HEADER_VALUE;
+        requestDto.setxPagopaExtchCxId(clientId);
         PatchDto patchDto = new PatchDto();
-
-
 
         RequestMetadataDto requestMetadata = new RequestMetadataDto();
         requestMetadata.setRetry(new RetryDto());
@@ -147,8 +146,8 @@ class SmsRetryTest {
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
 
-        when(gestoreRepositoryCall.getRichiesta(eq(requestId))).thenReturn(Mono.just(requestDto));
-        when(gestoreRepositoryCall.patchRichiesta(requestId, patchDto)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
 
         Mono<DeleteMessageResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
