@@ -45,7 +45,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
         log.info("<-- Start handleRequestStatusChange --> info: {} request: {}", processId, notificationTrackerQueueDto.getRequestIdx());
 
-        return gestoreRepositoryCall.getRichiesta(notificationTrackerQueueDto.getRequestIdx())
+        return gestoreRepositoryCall.getRichiesta(notificationTrackerQueueDto.getXPagopaExtchCxId(),
+                                                  notificationTrackerQueueDto.getRequestIdx())
                                     .zipWhen(requestDto -> callMachinaStati.statusValidation(xPagopaExtchCxId,
                                                                                              processId,
                                                                                              requestDto.getStatusRequest(),
@@ -69,7 +70,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                                   .statusDateTime(paperProgressStatusDto.getStatusDateTime()
                                                                                                         .truncatedTo(SECONDS));
                                         }
-                                        return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx(),
+                                        return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getXPagopaExtchCxId(),
+                                                                                         notificationTrackerQueueDto.getRequestIdx(),
                                                                                          new EventsDto().digProgrStatus(
                                                                                                                 digitalProgressStatusDto)
                                                                                                         .paperProgrStatus(
