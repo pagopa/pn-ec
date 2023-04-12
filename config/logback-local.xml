@@ -6,7 +6,7 @@
             <pattern>%d [%X{trace_id}] %highlight(%-5level) - %-4relative - [%thread] - %cyan(%logger{20}) - %msg %n</pattern>
         </encoder>
     </appender>
-    <root level="debug">
+    <root level="info">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>

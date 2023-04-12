@@ -6,5 +6,6 @@ import reactor.core.publisher.Mono;
 
 public interface NotificationTrackerService {
 
-    Mono<Void> handleRequestStatusChange(NotificationTrackerQueueDto notificationTrackerQueueDto, String ntStatoQueueName, String ntStatoDlqQueueName, Acknowledgment acknowledgment);
+    Mono<Void> handleRequestStatusChange(NotificationTrackerQueueDto notificationTrackerQueueDto, String processId,
+                                         String ntStatoQueueName, String ntStatoDlqQueueName, Acknowledgment acknowledgment);
 }

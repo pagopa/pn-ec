@@ -2,29 +2,22 @@ package it.pagopa.pn.ec.repositorymanager.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.GestoreRepositoryEndpointProperties;
-import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
-import it.pagopa.pn.ec.commons.model.pojo.request.RequestStatusChange;
-import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
-import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -40,7 +33,6 @@ import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestPersonalDto.QosEnum.INTERACTIVE;
-import static org.mockito.ArgumentMatchers.any;
 
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
@@ -51,9 +43,6 @@ class RequestControllerTest {
 
     @Autowired
     ObjectMapper objectMapper;
-
-    @MockBean
-    private CallMacchinaStati callMacchinaStati;
 
     @Autowired
     private GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties;
@@ -180,13 +169,6 @@ class RequestControllerTest {
                               objectMapper.convertValue(paperRequest.getRequestPersonal(), RequestPersonal.class));
         insertRequestMetadata(paperRequest.getRequestIdx(),
                               objectMapper.convertValue(paperRequest.getRequestMetadata(), RequestMetadata.class));
-    }
-
-    @BeforeEach
-    public void createDefaultRequestDto() {
-        initializeRequestDto();
-        Mockito.when(callMacchinaStati.statusDecode(any(RequestStatusChange.class)))
-               .thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto()));
     }
 
     private static Stream<Arguments> provideDigitalAndPaperRequestToInsert() {

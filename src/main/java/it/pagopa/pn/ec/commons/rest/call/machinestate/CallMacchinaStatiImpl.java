@@ -5,7 +5,6 @@ import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
-import it.pagopa.pn.ec.commons.model.pojo.request.RequestStatusChange;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -29,22 +28,28 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
     }
 
     @Override
-    public Mono<MacchinaStatiValidateStatoResponseDto> statusValidation(RequestStatusChange requestStatusChange)
+    public Mono<MacchinaStatiValidateStatoResponseDto> statusValidation(String xPagopaExtchCxId, String processId, String currentStatus,
+                                                                        String nextStatus)
             throws InvalidNextStatusException {
-        log.info("<-- START STATUS VALIDATION --> Current status : {}, Next status: {}, Request ID: {}, Client ID: {}", requestStatusChange.getCurrentStatus(), requestStatusChange.getNextStatus(),requestStatusChange.getRequestIdx() , requestStatusChange.getXPagopaExtchCxId());
+        log.info("<-- START STATUS VALIDATION --> Client id: {}, Process id: {}, Current status : {}, Next status: {}",
+                 xPagopaExtchCxId,
+                 processId,
+                 currentStatus,
+                 nextStatus);
         return stateMachineWebClient.get()
                                     .uri(uriBuilder -> uriBuilder.path(stateMachineEndpointProperties.validate())
-                                                                 .queryParam(CLIENT_ID_QUERY_PARAM,
-                                                                             requestStatusChange.getXPagopaExtchCxId())
-                                                                 .queryParam("nextStatus", requestStatusChange.getNextStatus())
-                                                                 .build(requestStatusChange.getProcessId(),
-                                                                        requestStatusChange.getCurrentStatus()))
+                                                                 .queryParam(CLIENT_ID_QUERY_PARAM, xPagopaExtchCxId)
+                                                                 .queryParam("nextStatus", nextStatus)
+                                                                 .build(processId, currentStatus))
                                     .retrieve()
                                     .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new StatusValidationBadRequestException()))
                                     .bodyToMono(MacchinaStatiValidateStatoResponseDto.class)
                                     .handle((macchinaStatiValidateStatoResponseDto, sink) -> {
                                         if (!macchinaStatiValidateStatoResponseDto.isAllowed()) {
-                                            sink.error(new InvalidNextStatusException(requestStatusChange));
+                                            sink.error(new InvalidNextStatusException(currentStatus,
+                                                                                      nextStatus,
+                                                                                      xPagopaExtchCxId,
+                                                                                      processId));
                                         } else {
                                             sink.next(macchinaStatiValidateStatoResponseDto);
                                         }
@@ -52,18 +57,25 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
     }
 
     @Override
-    public Mono<MacchinaStatiDecodeResponseDto> statusDecode(RequestStatusChange requestStatusChange) {
-        var currentStatus = requestStatusChange.getCurrentStatus();
-        log.info("<-- START STATUS DECODE --> Current status : {}, Request ID: {}, Client ID: {}", currentStatus, requestStatusChange.getRequestIdx() , requestStatusChange.getXPagopaExtchCxId());
+    public Mono<MacchinaStatiDecodeResponseDto> statusDecode(String xPagopaExtchCxId, String processId, String statusToDecode) {
+        log.info("<-- START STATUS DECODE --> Status to decode : {}, Client id: {}, Process id: {}",
+                 statusToDecode,
+                 xPagopaExtchCxId,
+                 processId);
 
         return stateMachineWebClient.get()
                                     .uri(uriBuilder -> uriBuilder.path(stateMachineEndpointProperties.decode())
-                                                                 .queryParam(CLIENT_ID_QUERY_PARAM,
-                                                                             requestStatusChange.getXPagopaExtchCxId())
-                                                                 .build(requestStatusChange.getProcessId(), currentStatus))
+                                                                 .queryParam(CLIENT_ID_QUERY_PARAM, xPagopaExtchCxId)
+                                                                 .build(processId, statusToDecode))
                                     .retrieve()
-                                    .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new StatusNotFoundException(currentStatus)))
-                                    .bodyToMono(MacchinaStatiDecodeResponseDto.class);
-
+                                    .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new StatusNotFoundException(statusToDecode)))
+                                    .bodyToMono(MacchinaStatiDecodeResponseDto.class)
+                                    .handle((macchinaStatiDecodeResponseDto, sink) -> {
+                                        if (macchinaStatiDecodeResponseDto.getExternalStatus() == null) {
+                                            sink.error(new StatusNotFoundException(statusToDecode));
+                                        } else {
+                                            sink.next(macchinaStatiDecodeResponseDto);
+                                        }
+                                    });
     }
 }

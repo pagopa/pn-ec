@@ -273,7 +273,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	 			return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
 	 								   NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(
 	 										   presaInCaricoInfo,
-                                               SENT.getStatusTransactionTableCompliant(),
 	 										   IN_PROGRESS.getStatusTransactionTableCompliant(),
 	 										   paperProgressStatusDto));
 			})
