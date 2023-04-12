@@ -64,7 +64,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                                                              notificationTrackerQueueDto.getNextStatus()))
                                     .flatMap(objects -> callMachinaStati.statusDecode(xPagopaExtchCxId,
                                                                                       processId,
-                                                                                      objects.getT1().getStatusRequest()))
+                                                                                      notificationTrackerQueueDto.getNextStatus()))
                                     .zipWhen(macchinaStatiDecodeResponseDto -> {
                                         var logicStatus = macchinaStatiDecodeResponseDto.getLogicStatus();
                                         var paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
