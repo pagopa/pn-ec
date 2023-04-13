@@ -11,7 +11,6 @@ import it.pagopa.pn.ec.repositorymanager.service.RequestService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuples;
 
 import java.time.OffsetDateTime;
 
@@ -140,4 +139,5 @@ public class RequestServiceImpl implements RequestService {
                                          return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, retrievedRequestMetadata);
                                      });
     }
+
 }
