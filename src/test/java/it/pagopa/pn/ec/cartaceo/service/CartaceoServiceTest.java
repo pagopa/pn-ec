@@ -131,7 +131,7 @@ class CartaceoServiceTest {
     void lavorazioneRichiestaOk() {
 
         // Mock di una generica getRichiesta.
-        when(gestoreRepositoryCall.getRichiesta(any())).thenReturn(Mono.just(new RequestDto()));
+        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));
 
         // Mock di una generica putRequest.
 
@@ -150,7 +150,7 @@ class CartaceoServiceTest {
 
         // Verifica che sia stata eseguita la chiamata al gestore repository
         verify(gestoreRepositoryCall, times(1))//
-                .getRichiesta(any());
+                .getRichiesta(any(), any());
 
         // Verifica che sia stata eseguita la chiamata a paperMessageCall
         verify(paperMessageCall, times(1))
@@ -176,7 +176,7 @@ class CartaceoServiceTest {
 	void lavorazioneRichiestaMaxRetriesExceeded() {
 
         // Mock di una generica getRichiesta.
-        when(gestoreRepositoryCall.getRichiesta(any())).thenReturn(Mono.just(new RequestDto()));
+        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));
 
         // Mock di una generica putRequest.
         when(paperMessageCall.putRequest(any(PaperEngageRequest.class)))
@@ -196,7 +196,7 @@ class CartaceoServiceTest {
 
         // Verifica che sia stata eseguita la chiamata al gestore repository.
         verify(gestoreRepositoryCall, times(1))
-                .getRichiesta(any());
+                .getRichiesta(any(), any());
 
         // Verifica che sia stata eseguita la chiamata a paperMessageCall.
         verify(paperMessageCall, times(1))

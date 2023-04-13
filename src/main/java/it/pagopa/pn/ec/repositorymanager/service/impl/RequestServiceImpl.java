@@ -23,15 +23,21 @@ public class RequestServiceImpl implements RequestService {
 
     private final RequestPersonalService requestPersonalService;
     private final RequestMetadataService requestMetadataService;
+    private static final String SEPARATORE = "~";
 
     public RequestServiceImpl(RequestPersonalService requestPersonalService, RequestMetadataService requestMetadataService) {
         this.requestPersonalService = requestPersonalService;
         this.requestMetadataService = requestMetadataService;
     }
 
+    private String concatRequestId(String clientId, String requestId) {
+        return (clientId + SEPARATORE + requestId);
+    }
+
     @Override
-    public Mono<Request> getRequest(String requestIdx) {
-        return Mono.zip(requestPersonalService.getRequestPersonal(requestIdx), requestMetadataService.getRequestMetadata(requestIdx))
+    public Mono<Request> getRequest(String clientId, String requestIdx) {
+        var concatRequest = concatRequestId(clientId, requestIdx);
+        return Mono.zip(requestPersonalService.getRequestPersonal(concatRequest), requestMetadataService.getRequestMetadata(concatRequest))
                    .map(objects -> {
                        RequestPersonal retrievedRequestPersonal = objects.getT1();
                        RequestMetadata retrievedRequestMetadata = objects.getT2();
@@ -41,39 +47,59 @@ public class RequestServiceImpl implements RequestService {
 
     @Override
     public Mono<Request> insertRequest(Request request) {
+        return Mono.fromCallable(() -> {
+                       var requestId = concatRequestId(request.getXPagopaExtchCxId(), request.getRequestId());
+                       var clientId = request.getXPagopaExtchCxId();
 
-        String requestId = request.getRequestId();
-        String clientId = request.getXPagopaExtchCxId();
+                       var requestTimestamp = OffsetDateTime.now();
 
-        RequestPersonal requestPersonal = request.getRequestPersonal();
-        requestPersonal.setRequestId(requestId);
-        requestPersonal.setXPagopaExtchCxId(clientId);
-        requestPersonal.setClientRequestTimeStamp(request.getClientRequestTimeStamp());
-        requestPersonal.setRequestTimestamp(OffsetDateTime.now());
+                       var requestPersonal = request.getRequestPersonal();
+                       requestPersonal.setRequestId(requestId);
+                       requestPersonal.setXPagopaExtchCxId(clientId);
+                       requestPersonal.setClientRequestTimeStamp(request.getClientRequestTimeStamp());
+                       requestPersonal.setRequestTimestamp(requestTimestamp);
 
-        RequestMetadata requestMetadata = request.getRequestMetadata();
-        requestMetadata.setRequestId(requestId);
-        requestMetadata.setXPagopaExtchCxId(clientId);
-        requestMetadata.setClientRequestTimeStamp(request.getClientRequestTimeStamp());
-        requestMetadata.setRequestTimestamp(OffsetDateTime.now());
+                       var requestMetadata = request.getRequestMetadata();
+                       requestMetadata.setRequestId(requestId);
+                       requestMetadata.setXPagopaExtchCxId(clientId);
+                       requestMetadata.setClientRequestTimeStamp(request.getClientRequestTimeStamp());
+                       requestMetadata.setRequestTimestamp(requestTimestamp);
 
-        if ((requestPersonal.getDigitalRequestPersonal() != null && requestMetadata.getPaperRequestMetadata() != null) ||
-            (requestPersonal.getPaperRequestPersonal() != null && requestMetadata.getDigitalRequestMetadata() != null)) {
-            throw new RepositoryManagerException.RequestMalformedException("Incompatibilità dati sensibili con metadata");
-        }
+                       return request;
+                   })
+                   .handle((objects, sink) -> {
+                       var requestPersonal = objects.getRequestPersonal();
+                       var requestMetadata = objects.getRequestMetadata();
 
-        return Mono.zip(requestPersonalService.insertRequestPersonal(requestPersonal),
-                        requestMetadataService.insertRequestMetadata(requestMetadata)).map(objects -> {
-            RequestPersonal insertedRequestPersonal = objects.getT1();
-            RequestMetadata insertedRequestMetadata = objects.getT2();
-            return createRequestFromPersonalAndMetadata(insertedRequestPersonal, insertedRequestMetadata);
-        });
+                       if ((requestPersonal.getDigitalRequestPersonal() != null && requestMetadata.getPaperRequestMetadata() != null) ||
+                           (requestPersonal.getPaperRequestPersonal() != null && requestMetadata.getDigitalRequestMetadata() != null)) {
+                           sink.error(new RepositoryManagerException.RequestMalformedException(
+                                   "Incompatibilità dati sensibili con " + "metadata"));
+                       } else {
+                           sink.next(objects);
+                       }
+                   })
+                   .flatMap(objects -> requestPersonalService.insertRequestPersonal(request.getRequestPersonal()))
+                   .zipWhen(requestPersonal -> requestMetadataService.insertRequestMetadata(request.getRequestMetadata())
+                                                                     .onErrorResume(throwable -> {
+                                                                         var requestId = request.getRequestId();
+                                                                         var concatRequestId =
+                                                                                 concatRequestId(request.getXPagopaExtchCxId(), requestId);
+                                                                         return requestPersonalService.deleteRequestPersonal(concatRequestId)
+                                                                                                      .then(Mono.error(throwable));
+                                                                     }))
+                   .map(objects -> {
+                       RequestPersonal insertedRequestPersonal = objects.getT1();
+                       RequestMetadata insertedRequestMetadata = objects.getT2();
+                       return createRequestFromPersonalAndMetadata(insertedRequestPersonal, insertedRequestMetadata);
+                   });
     }
 
     @Override
-    public Mono<Request> patchRequest(String requestIdx, Patch patch) {
-        return Mono.zip(requestPersonalService.getRequestPersonal(requestIdx),
-                        requestMetadataService.patchRequestMetadata(requestIdx, patch)).map(objects -> {
+    public Mono<Request> patchRequest(String clientId, String requestIdx, Patch patch) {
+        var concatRequest = concatRequestId(clientId, requestIdx);
+        return Mono.zip(requestPersonalService.getRequestPersonal(concatRequest),
+                        requestMetadataService.patchRequestMetadata(concatRequest, patch)).map(objects -> {
             RequestPersonal retrievedRequestPersonal = objects.getT1();
             RequestMetadata updatedRequestMetadata = objects.getT2();
             return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, updatedRequestMetadata);
@@ -81,13 +107,14 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
-    public Mono<Request> deleteRequest(String requestIdx) {
-        return Mono.zip(requestPersonalService.deleteRequestPersonal(requestIdx), requestMetadataService.deleteRequestMetadata(requestIdx))
-                   .map(objects -> {
-                       RequestPersonal deletedRequestPersonal = objects.getT1();
-                       RequestMetadata deletedRequestMetadata = objects.getT2();
-                       return createRequestFromPersonalAndMetadata(deletedRequestPersonal, deletedRequestMetadata);
-                   });
+    public Mono<Request> deleteRequest(String clientId, String requestIdx) {
+        var concatRequest = concatRequestId(clientId, requestIdx);
+        return Mono.zip(requestPersonalService.deleteRequestPersonal(concatRequest),
+                        requestMetadataService.deleteRequestMetadata(concatRequest)).map(objects -> {
+            RequestPersonal deletedRequestPersonal = objects.getT1();
+            RequestMetadata deletedRequestMetadata = objects.getT2();
+            return createRequestFromPersonalAndMetadata(deletedRequestPersonal, deletedRequestMetadata);
+        });
     }
 
     @Override
@@ -102,8 +129,9 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
-    public Mono<Request> setMessageIdInRequestMetadata(String requestIdx) {
-        return requestMetadataService.setMessageIdInRequestMetadata(requestIdx)
+    public Mono<Request> setMessageIdInRequestMetadata(String clientId, String requestIdx) {
+        var concatRequest = concatRequestId(clientId, requestIdx);
+        return requestMetadataService.setMessageIdInRequestMetadata(concatRequest)
                                      .zipWhen(requestMetadata -> requestPersonalService.getRequestPersonal(requestMetadata.getRequestId()))
                                      .map(objects -> {
                                          RequestMetadata retrievedRequestMetadata = objects.getT1();
@@ -111,4 +139,5 @@ public class RequestServiceImpl implements RequestService {
                                          return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, retrievedRequestMetadata);
                                      });
     }
+
 }

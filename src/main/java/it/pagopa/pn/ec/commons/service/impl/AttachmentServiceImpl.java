@@ -9,6 +9,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class AttachmentServiceImpl implements AttachmentService {
@@ -37,7 +38,7 @@ public class AttachmentServiceImpl implements AttachmentService {
 
     @Override
     public Flux<FileDownloadResponse> getAllegatiPresignedUrlOrMetadata(List<String> attachmentUrls, String xPagopaExtchCxId, boolean metadataOnly) {
-        return Flux.fromIterable(attachmentUrls)
+        return Flux.fromIterable(Objects.isNull(attachmentUrls) ? List.of() : attachmentUrls)
                    .handle((attachmentUrl, synchronousSink) -> {
                        if (!attachmentUrl.startsWith(ATTACHMENT_PREFIX)) {
                            synchronousSink.error(new InvalidAttachmentSchemaException());

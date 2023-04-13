@@ -194,7 +194,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			    	 log.info(LOG_VERIF_LABEL + "xPagopaExtchServiceId = {} : progressStatusEvent = {}",
 			    			 xPagopaExtchServiceId, progressStatusEvent);
 			     })
-			     .flatMap(unused -> gestoreRepositoryCall.getRichiesta(progressStatusEvent.getRequestId()))
+				 .flatMap(unused -> gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceId, progressStatusEvent.getRequestId()))
 			     .flatMap(unused -> verificaErroriSemantici(progressStatusEvent))
 			     .flatMap(unused -> verificaAttachments(xPagopaExtchServiceId, progressStatusEvent.getRequestId(), progressStatusEvent.getAttachments()))
 			     .flatMap(unused -> Mono.just(new RicezioneEsitiDto(progressStatusEvent,
@@ -273,7 +273,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	 			return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
 	 								   NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(
 	 										   presaInCaricoInfo,
-                                               SENT.getStatusTransactionTableCompliant(),
 	 										   IN_PROGRESS.getStatusTransactionTableCompliant(),
 	 										   paperProgressStatusDto));
 			})
