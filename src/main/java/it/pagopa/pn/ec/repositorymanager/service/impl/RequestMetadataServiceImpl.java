@@ -64,8 +64,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     public Mono<RequestMetadata> insertRequestMetadata(RequestMetadata requestMetadata) {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestMetadata.getRequestId())))
                    .flatMap(foundedRequest -> Mono.error(new RepositoryManagerException.IdRequestAlreadyPresent(requestMetadata.getRequestId())))
-                   .doOnError(RepositoryManagerException.IdRequestAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
-                   .switchIfEmpty(Mono.just(requestMetadata))
+                   .defaultIfEmpty(requestMetadata)
                    .flatMap(unused -> {
                        if ((requestMetadata.getDigitalRequestMetadata() != null && requestMetadata.getPaperRequestMetadata() != null) ||
                            (requestMetadata.getDigitalRequestMetadata() == null && requestMetadata.getPaperRequestMetadata() == null)) {
@@ -74,6 +73,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                        }
                        return Mono.fromCompletionStage(requestMetadataDynamoDbTable.putItem(builder -> builder.item(requestMetadata)));
                    })
+                   .doOnError(RepositoryManagerException.IdRequestAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.error(throwable.getMessage()))
                    .thenReturn(requestMetadata);
     }
