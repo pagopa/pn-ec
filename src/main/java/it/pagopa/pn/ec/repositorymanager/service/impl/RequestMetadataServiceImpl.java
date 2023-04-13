@@ -148,9 +148,9 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     }
 
     @Override
-    public Mono<RequestMetadata> setMessageIdInRequestMetadata(String requestId) {
-        return getRequestMetadata(requestId).flatMap(retrievedRequestMetadata -> {
-            retrievedRequestMetadata.setMessageId(encodeMessageId(requestId));
+    public Mono<RequestMetadata> setMessageIdInRequestMetadata(String concatRequestId) {
+        return getRequestMetadata(concatRequestId).flatMap(retrievedRequestMetadata -> {
+            retrievedRequestMetadata.setMessageId(encodeMessageId(concatRequestId));
             return Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(retrievedRequestMetadata));
         }).retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
     }

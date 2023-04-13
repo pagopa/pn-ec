@@ -13,8 +13,8 @@ public class MessageIdUtils {
         throw new IllegalStateException("MessageIdUtils is a utility class");
     }
 
-    public static String encodeMessageId(String idRequest) {
-        String[] parts = idRequest.split(SEPARATORE);
+    public static String encodeMessageId(String concatRequestId) {
+        String[] parts = concatRequestId.split(SEPARATORE);
         String clientId = parts[0];
         String requestId = parts[1];
         try {
@@ -22,6 +22,18 @@ public class MessageIdUtils {
                     Base64Utils.encodeToString(clientId.getBytes()),
                     SEPARATORE,
                     Base64Utils.encodeToString(requestId.getBytes()),
+                    DOMAIN);
+        } catch (Exception e) {
+            throw new MessageIdException.EncodeMessageIdException();
+        }
+    }
+
+    public static String encodeMessageId(String idClient, String idRequest) {
+        try {
+            return String.format("%s%s%s%s",
+                    Base64Utils.encodeToString(idClient.getBytes()),
+                    SEPARATORE,
+                    Base64Utils.encodeToString(idRequest.getBytes()),
                     DOMAIN);
         } catch (Exception e) {
             throw new MessageIdException.EncodeMessageIdException();
