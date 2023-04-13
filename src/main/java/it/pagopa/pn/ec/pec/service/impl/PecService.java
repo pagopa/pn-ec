@@ -229,7 +229,8 @@ public class PecService extends PresaInCaricoService {
 
                                 .map(this::createGeneratedMessageDto)
 
-                                .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId, requestIdx))
+                                .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId,
+                                                                                                                    requestIdx))
 
                                 .flatMap(objects -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                                                     createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
@@ -246,7 +247,7 @@ public class PecService extends PresaInCaricoService {
                                                               .onErrorResume(throwable -> sqsService.send(pecSqsQueueName.errorName(),
                                                                                                           pecPresaInCaricoInfo)))
 
-                                .doOnError(throwable -> log.error("An error occurred during lavorazione PEC", throwable.getMessage()))
+                                .doOnError(throwable -> log.error("An error occurred during lavorazione PEC {}", throwable.getMessage()))
 
                                 .onErrorResume(throwable -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                                                             createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
@@ -342,7 +343,7 @@ public class PecService extends PresaInCaricoService {
                                         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
                                         return gestoreRepositoryCall.patchRichiesta(xPagopaExtchCxId, requestIdx, patchDto);
                                     }).flatMap(requestDto -> {
-                    log.debug("requestDto Value:", requestDto.getRequestMetadata().getRetry());
+                    log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
 
 //      Get attachment presigned url Flux
                     return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest()
@@ -402,7 +403,9 @@ public class PecService extends PresaInCaricoService {
 
                                             .map(this::createGeneratedMessageDto)
 
-                            .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId, requestIdx))
+                                            .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(
+                                                    xPagopaExtchCxId,
+                                                    requestIdx))
 
                                             .flatMap(objects -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                                                                 createNotificationTrackerQueueDtoDigital(
@@ -411,7 +414,7 @@ public class PecService extends PresaInCaricoService {
                                                                                         new DigitalProgressStatusDto().generatedMessage(
                                                                                                 objects.getT1()))))
                                             .flatMap(sendMessageResponse -> {
-                                                log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore",
+                                                log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore '{}'",
                                                           pecSqsQueueName.errorName());
                                                 return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName());
                                             })
