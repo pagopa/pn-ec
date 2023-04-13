@@ -40,9 +40,7 @@ Resources:
       KeySchema: 
         - AttributeName: 'cxId'
           KeyType: 'HASH'
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      BillingMode: 'PAY_PER_REQUEST'
       SSESpecification:
         SSEEnabled: true
         SSEType: 'KMS'
@@ -60,9 +58,7 @@ Resources:
       KeySchema: 
         - AttributeName: 'requestId'
           KeyType: 'HASH'
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      BillingMode: 'PAY_PER_REQUEST'
       SSESpecification:
         SSEEnabled: true
         SSEType: 'KMS'
@@ -80,9 +76,7 @@ Resources:
       KeySchema: 
         - AttributeName: 'requestId'
           KeyType: 'HASH'
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      BillingMode: 'PAY_PER_REQUEST'
       SSESpecification:
         SSEEnabled: true
         SSEType: 'KMS'
