@@ -20,6 +20,7 @@ import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.DYNAMO_OPTIMISTIC_LOCK
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
+import static it.pagopa.pn.ec.repositorymanager.service.impl.RequestServiceImpl.concatRequestId;
 
 @Service
 @Slf4j
@@ -27,11 +28,10 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     private final DynamoDbAsyncTable<RequestMetadata> requestMetadataDynamoDbTable;
 
-    public RequestMetadataServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient
-            , RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
-        this.requestMetadataDynamoDbTable = dynamoDbEnhancedClient
-                .table(repositoryManagerDynamoTableName.richiesteMetadataName()
-                        , TableSchema.fromBean(RequestMetadata.class));
+    public RequestMetadataServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
+                                      RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
+        this.requestMetadataDynamoDbTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteMetadataName(),
+                                                                         TableSchema.fromBean(RequestMetadata.class));
     }
 
     private void checkTipoPatchMetadata(RequestMetadata requestMetadata, Patch patch) {
@@ -54,9 +54,9 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     }
 
     @Override
-    public Mono<RequestMetadata> getRequestMetadata(String requestId) {
-        return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestId)))
-                   .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestId)))
+    public Mono<RequestMetadata> getRequestMetadata(String concatRequestId) {
+        return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(concatRequestId)))
+                   .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(concatRequestId)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()));
     }
 
@@ -125,15 +125,17 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     private Object getStatusFromEvent(Events event) {
         return event.getDigProgrStatus() != null ? event.getDigProgrStatus() : event.getPaperProgrStatus();
     }
-    
+
     @Override
-    public Mono<RequestMetadata> patchRequestMetadata(String requestId, Patch patch) {
-        return getRequestMetadata(requestId)//
-                .doOnSuccess(retrievedRequest -> checkTipoPatchMetadata(retrievedRequest, patch))
-                .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.info(throwable.getMessage()))
-                .flatMap(retrieveRequestMetadata -> managePatch(requestId, patch, retrieveRequestMetadata))
-                .flatMap(requestMetadataWithPatchUpdated -> Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(requestMetadataWithPatchUpdated)))
-                .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
+    public Mono<RequestMetadata> patchRequestMetadata(String concatRequestId, Patch patch) {
+        return getRequestMetadata(concatRequestId)//
+                                                  .doOnSuccess(retrievedRequest -> checkTipoPatchMetadata(retrievedRequest, patch))
+                                                  .doOnError(RepositoryManagerException.RequestMalformedException.class,
+                                                       throwable -> log.info(throwable.getMessage()))
+                                                  .flatMap(retrieveRequestMetadata -> managePatch(concatRequestId, patch, retrieveRequestMetadata))
+                                                  .flatMap(requestMetadataWithPatchUpdated -> Mono.fromCompletionStage(
+                                                    requestMetadataDynamoDbTable.updateItem(requestMetadataWithPatchUpdated)))
+                                                  .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
     }
 
     @Override
@@ -143,8 +145,9 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     }
 
     @Override
-    public Mono<RequestMetadata> getRequestMetadataByMessageId(String messageId) {
-        return getRequestMetadata(decodeMessageId(messageId).getRequestIdx());
+    public Mono<RequestMetadata> getRequestMetadataByMessageId(String concatRequestId) {
+        var presaInCaricoInfo = decodeMessageId(concatRequestId);
+        return getRequestMetadata(concatRequestId(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx()));
     }
 
     @Override
