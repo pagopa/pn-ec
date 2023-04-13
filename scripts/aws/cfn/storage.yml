@@ -47,7 +47,9 @@ Resources:
         SSEEnabled: true
         SSEType: 'KMS'
       TableClass: 'STANDARD'
+      PointInTimeRecoveryEnabled: true
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
 
   PnEcTableRichieste:
     Type: AWS::DynamoDB::Table
@@ -58,8 +60,6 @@ Resources:
       KeySchema: 
         - AttributeName: 'requestId'
           KeyType: 'HASH'
-      #KinesisStreamSpecification:
-      #  StreamArn: 'String'
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
@@ -67,7 +67,9 @@ Resources:
         SSEEnabled: true
         SSEType: 'KMS'
       TableClass: 'STANDARD'
-    DeletionPolicy: Delete
+      PointInTimeRecoveryEnabled: true
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
 
   PnEcTableRichiesteMetadati:
     Type: AWS::DynamoDB::Table
@@ -78,8 +80,6 @@ Resources:
       KeySchema: 
         - AttributeName: 'requestId'
           KeyType: 'HASH'
-      #KinesisStreamSpecification:
-      #  StreamArn: 'String'
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
@@ -87,7 +87,9 @@ Resources:
         SSEEnabled: true
         SSEType: 'KMS'
       TableClass: 'STANDARD'
-    DeletionPolicy: Delete
+      PointInTimeRecoveryEnabled: true
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
 
 ######### NOTIFICATION TRACKER QUEUES  ############
 ######### TRACKER : SMS  ############
