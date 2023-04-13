@@ -5,7 +5,6 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
-import it.pagopa.pn.ec.commons.model.pojo.request.RequestStatusChange;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
@@ -191,7 +190,7 @@ public class ScaricamentoEsitiPecScheduler {
                                                        arubaCall.getMessageId(createGetMessageIdRequest(pecId, false)));
                                    })
 
-//                                 Pubblicazione metriche custom su CloudWatch
+//                                 Validate status
                                    .flatMap(objects -> {
                                        Postacert postacert = objects.getT1();
                                        RequestDto requestDto = objects.getT2();
@@ -200,42 +199,16 @@ public class ScaricamentoEsitiPecScheduler {
 
                                        var nextStatus =
                                                decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
-                                       var nextEventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
-                                       var cloudWatchPecMetricsInfo = CloudWatchPecMetricsInfo.builder()
-                                                                                              .previousStatus(requestDto.getStatusRequest())
-                                                                                              .previousEventTimestamp(
-                                                                                                      legalMessageSentDetails.getEventTimestamp())
-                                                                                              .nextStatus(nextStatus)
-                                                                                              .nextEventTimestamp(nextEventTimestamp)
-                                                                                              .build();
 
-                                       return cloudWatchPecMetrics.publishCustomPecMetrics(cloudWatchPecMetricsInfo)
-                                                                  .thenReturn(Tuples.of(postacert,
-                                                                                        getMessageIDResponse,
-                                                                                        requestDto,
-                                                                                        cloudWatchPecMetricsInfo));
-                                   })
-
-//                                 Validate status
-                                   .flatMap(objects -> {
-                                       var postacert = objects.getT1();
-                                       var getMessageIDResponse = objects.getT2();
-                                       var requestDto = objects.getT3();
-                                       var cloudWatchPecMetricsInfo = objects.getT4();
-
-                                       var requestStatusChange = RequestStatusChange.builder()
-                                                                                    .requestIdx(requestDto.getRequestIdx())
-                                                                                    .xPagopaExtchCxId(requestDto.getxPagopaExtchCxId())
-                                                                                    .processId(transactionProcessConfigurationProperties.pec())
-                                                                                    .nextStatus(cloudWatchPecMetricsInfo.getNextStatus())
-                                                                                    .currentStatus(requestDto.getStatusRequest())
-                                                                                    .build();
-
-                                       return callMacchinaStati.statusValidation(requestStatusChange)
+                                       return callMacchinaStati.statusValidation(requestDto.getxPagopaExtchCxId(),
+                                                                                 transactionProcessConfigurationProperties.pec(),
+                                                                                 requestDto.getStatusRequest(),
+                                                                                 nextStatus)
                                                                .map(unused -> Tuples.of(postacert,
+                                                                                        requestDto,
+                                                                                        legalMessageSentDetails,
                                                                                         getMessageIDResponse,
-                                                                                        requestStatusChange,
-                                                                                        cloudWatchPecMetricsInfo))
+                                                                                        nextStatus))
                                                                .doOnError(CallMacchinaStati.StatusValidationBadRequestException.class,
                                                                           throwable -> log.debug(
                                                                                   "La chiamata al notification tracker della PEC {} " +
@@ -252,19 +225,43 @@ public class ScaricamentoEsitiPecScheduler {
                                                                                   requestDto.getRequestIdx()));
                                    })
 
+//                                 Pubblicazione metriche custom su CloudWatch
+                                   .flatMap(objects -> {
+                                       Postacert postacert = objects.getT1();
+                                       RequestDto requestDto = objects.getT2();
+                                       LegalMessageSentDetails legalMessageSentDetails = objects.getT3();
+                                       GetMessageIDResponse getMessageIDResponse = objects.getT4();
+                                       String nextStatus = objects.getT5();
+
+                                       var nextEventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
+                                       var cloudWatchPecMetricsInfo = CloudWatchPecMetricsInfo.builder()
+                                                                                              .previousStatus(requestDto.getStatusRequest())
+                                                                                              .previousEventTimestamp(
+                                                                                                      legalMessageSentDetails.getEventTimestamp())
+                                                                                              .nextStatus(nextStatus)
+                                                                                              .nextEventTimestamp(nextEventTimestamp)
+                                                                                              .build();
+
+                                       return cloudWatchPecMetrics.publishCustomPecMetrics(cloudWatchPecMetricsInfo)
+                                                                  .thenReturn(Tuples.of(postacert,
+                                                                                        requestDto,
+                                                                                        getMessageIDResponse,
+                                                                                        cloudWatchPecMetricsInfo,
+                                                                                        nextStatus));
+                                   })
+
 //                                 Preparazione payload per la coda stati PEC
                                    .map(objects -> {
                                        Postacert postacert = objects.getT1();
-                                       GetMessageIDResponse getMessageIDResponse = objects.getT2();
-                                       RequestStatusChange requestStatusChange = objects.getT3();
+                                       RequestDto requestDto = objects.getT2();
+                                       GetMessageIDResponse getMessageIDResponse = objects.getT3();
                                        CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT4();
+                                       String nextStatus = objects.getT5();
 
                                        var mimeMessage = getMimeMessage(getMessageIDResponse.getMessage());
                                        var pecIdMessageId = getMessageIdFromMimeMessage(mimeMessage);
-                                       var requestIdx = requestStatusChange.getRequestIdx();
-                                       var xPagopaExtchCxId = requestStatusChange.getXPagopaExtchCxId();
-                                       var currentStatus = requestStatusChange.getCurrentStatus();
-                                       var nextStatus = requestStatusChange.getNextStatus();
+                                       var requestIdx = requestDto.getRequestIdx();
+                                       var xPagopaExtchCxId = requestDto.getxPagopaExtchCxId();
                                        var eventDetails = postacert.getErrore();
                                        var senderDigitalAddress = arubaSecretValue.getPecUsername();
                                        var senderDomain = getDomainFromAddress(senderDigitalAddress);
@@ -287,7 +284,6 @@ public class ScaricamentoEsitiPecScheduler {
                                        return NotificationTrackerQueueDto.builder()
                                                                          .requestIdx(requestIdx)
                                                                          .xPagopaExtchCxId(xPagopaExtchCxId)
-                                                                         .currentStatus(currentStatus)
                                                                          .nextStatus(nextStatus)
                                                                          .digitalProgressStatusDto(digitalProgressStatusDto)
                                                                          .build();
