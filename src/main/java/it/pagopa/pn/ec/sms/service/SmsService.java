@@ -218,7 +218,7 @@ public class SmsService extends PresaInCaricoService {
 
     public Mono<DeleteMessageResponse> gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message) {
 
-        log.info("<-- START GESTIONE RETRY SMS--> richiesta :", smsPresaInCaricoInfo.getRequestIdx());
+        log.info("<-- START GESTIONE RETRY SMS--> richiesta : {}", smsPresaInCaricoInfo.getRequestIdx());
         Policy retryPolicies = new Policy();
 
         String toDelete = "toDelete";
@@ -280,7 +280,7 @@ public class SmsService extends PresaInCaricoService {
                                     })
 //              Tentativo invio sms
                                     .flatMap(requestDto -> {
-                                        log.debug("requestDto Value:", requestDto.getRequestMetadata().getRetry());
+                                        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
 
                                         return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest()
                                                                                    .getReceiverDigitalAddress(),
@@ -301,7 +301,7 @@ public class SmsService extends PresaInCaricoService {
                                                                                                                          generatedMessageDto)))
 
                                                                  ).flatMap(sendMessageResponse -> {
-                                                    log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore",
+                                                    log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}",
                                                               smsSqsQueueName.errorName());
                                                     return sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
                                                 }).onErrorResume(sqsPublishException -> {

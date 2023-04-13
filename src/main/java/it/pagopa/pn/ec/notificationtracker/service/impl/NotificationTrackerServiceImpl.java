@@ -131,7 +131,6 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                             paperProgressEvent.setProductType(paperRequest.getProductType());
                                             paperProgressEvent.setIun(paperRequest.getIun());
                                             paperProgressEvent.setStatusCode(objects.getT1().getLogicStatus());
-                                            // TODO check se va bene per il cartaceo questo stato esterno
                                             paperProgressEvent.setStatusDescription(objects.getT1().getExternalStatus());
                                             paperProgressEvent.setStatusDateTime(lastEventUpdatedPaper.getStatusDateTime());
                                             paperProgressEvent.setDeliveryFailureCause(lastEventUpdatedPaper.getDeliveryFailureCause());

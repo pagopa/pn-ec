@@ -398,7 +398,7 @@ public class EmailService extends PresaInCaricoService {
                                                                         .flatMap(sendMessageResponse -> {
                                                                             log.debug(
                                                                                     "Il messaggio è stato gestito correttamente e rimosso" +
-                                                                                    " dalla coda d'errore", emailSqsQueueName.errorName());
+                                                                                    " dalla coda d'errore: {}", emailSqsQueueName.errorName());
                                                                             return sqsService.deleteMessageFromQueue(message,
                                                                                                                      emailSqsQueueName.errorName());
                                                                         })
@@ -512,7 +512,7 @@ public class EmailService extends PresaInCaricoService {
                     return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
                 })
                 .flatMap(requestDto -> {
-                    log.debug("requestDto Value:", requestDto.getRequestMetadata().getRetry());
+                    log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
                     return sesService.send(mailFld).retryWhen(DEFAULT_RETRY_STRATEGY)
 
                                      .map(this::createGeneratedMessageDto)
@@ -525,7 +525,7 @@ public class EmailService extends PresaInCaricoService {
                                                                                                  generatedMessageDto.get()))))
 
                                      .flatMap(sendMessageResponse -> {
-                                         log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore",
+                                         log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore {}",
                                                    emailSqsQueueName.errorName());
                                          return sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName());
                                      }).onErrorResume(sqsPublishException -> {

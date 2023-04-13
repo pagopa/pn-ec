@@ -220,7 +220,7 @@ public class CartaceoService extends PresaInCaricoService {
                                                                                                                                                                                               cartaceoPresaInCaricoInfo,
                                                                                                                                                                                               CODE_TO_STATUS_MAP.get(
                                                                                                                                                                                                       operationResultCodeResponse.getResultCode())
-                                                                                                                                                                                              //TODO
+                                                                                                                                                                                              // TODO
                                                                                                                                                                                               // object
                                                                                                                                                                                               // paper
                                                                                                                                                                                               ,
