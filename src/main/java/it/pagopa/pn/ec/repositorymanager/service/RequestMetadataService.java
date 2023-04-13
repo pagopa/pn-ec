@@ -6,10 +6,10 @@ import reactor.core.publisher.Mono;
 
 public interface RequestMetadataService {
 
-    Mono<RequestMetadata> getRequestMetadata(String requestId);
+    Mono<RequestMetadata> getRequestMetadata(String concatRequestId);
     Mono<RequestMetadata> insertRequestMetadata(RequestMetadata requestMetadata);
-    Mono<RequestMetadata> patchRequestMetadata(String requestId, Patch patch);
-    Mono<RequestMetadata> deleteRequestMetadata(String requestId);
-    Mono<RequestMetadata> getRequestMetadataByMessageId(String requestId);
-    Mono<RequestMetadata> setMessageIdInRequestMetadata(String requestId);
+    Mono<RequestMetadata> patchRequestMetadata(String concatRequestId, Patch patch);
+    Mono<RequestMetadata> deleteRequestMetadata(String concatRequestId);
+    Mono<RequestMetadata> getRequestMetadataByMessageId(String concatRequestId);
+    Mono<RequestMetadata> setMessageIdInRequestMetadata(String concatRequestId);
 }
