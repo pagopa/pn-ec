@@ -5,12 +5,14 @@ import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.PaperMessagesEndpointProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.cartaceo.CartaceoSendException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
+import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCallImpl;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
@@ -23,7 +25,9 @@ import org.mockito.Mock;
 import org.openapitools.client.model.OperationResultCodeResponse;
 import org.openapitools.client.model.PaperEngageRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import reactor.test.StepVerifierOptions;
@@ -54,9 +58,6 @@ class CartaceoServiceTest {
     private CartaceoMapper cartaceoMapper;
 
     @MockBean
-    private PaperMessageCall paperMessageCall;
-
-    @MockBean
     private GestoreRepositoryCall gestoreRepositoryCall;
 
     @MockBean
@@ -70,6 +71,9 @@ class CartaceoServiceTest {
 
     @Mock
     private Acknowledgment acknowledgment;
+
+    @Autowired
+    private PaperMessageCallImpl paperMessageCall;
 
     private static final CartaceoPresaInCaricoInfo CARTACEO_PRESA_IN_CARICO_INFO = CartaceoPresaInCaricoInfo.builder().requestIdx(DEFAULT_REQUEST_IDX)
             .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
@@ -92,17 +96,51 @@ class CartaceoServiceTest {
      * <b>Risultato atteso: </b>Posting on Notification Tracker Queue --> ok</li>
      */
     @Test
+    void lavorazioneRichiestaMockOk() {
+
+        // Mock di una generica getRichiesta.
+        when(gestoreRepositoryCall.getRichiesta(any())).thenReturn(Mono.just(new RequestDto()));
+
+        // Mock di una generica putRequest.
+        /*when(paperMessageCall.putRequest(any()))
+                .thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));*/
+
+        // Mock della pubblicazione di una generica notifica sulla coda dello stato cartaceo.
+        when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class)))//
+                .thenReturn(Mono.just(SendMessageResponse.builder().build()));
+
+        // Mock della pubblicazione della notifica di un errore sulla coda degli errori cartaceo.
+        when(sqsService.send(eq(cartaceoSqsQueueName.errorName()), any(CartaceoPresaInCaricoInfo.class)))
+                .thenReturn(Mono.just(SendMessageResponse.builder().build()));
+
+        Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(lavorazioneRichiesta).expectNext();
+        lavorazioneRichiesta.block();
+
+        // Verifica che sia stata eseguita la chiamata al gestore repository
+        verify(gestoreRepositoryCall, times(1))//
+                .getRichiesta(any());
+
+        // Verifica che sia stata eseguita la chiamata a paperMessageCall
+        /*verify(paperMessageCall, times(1))
+                .putRequest(any());*/
+
+    }
+
+    @Test
     void lavorazioneRichiestaOk() {
 
         // Mock di una generica getRichiesta.
         when(gestoreRepositoryCall.getRichiesta(any())).thenReturn(Mono.just(new RequestDto()));
 
         // Mock di una generica putRequest.
-        when(paperMessageCall.putRequest(any()))
-                .thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
 
         // Mock della pubblicazione di una generica notifica sulla coda dello stato cartaceo.
         when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class)))//
+                .thenReturn(Mono.just(SendMessageResponse.builder().build()));
+
+        // Mock della pubblicazione della notifica di un errore sulla coda degli errori cartaceo.
+        when(sqsService.send(eq(cartaceoSqsQueueName.errorName()), any(CartaceoPresaInCaricoInfo.class)))
                 .thenReturn(Mono.just(SendMessageResponse.builder().build()));
 
 

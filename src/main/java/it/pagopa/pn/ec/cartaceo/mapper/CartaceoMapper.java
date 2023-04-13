@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 
+import java.time.OffsetDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class CartaceoMapper {
@@ -15,14 +17,14 @@ public class CartaceoMapper {
     public org.openapitools.client.model.PaperEngageRequest convert(final it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest srcPaperEngageRequest) {
         org.openapitools.client.model.PaperEngageRequest dstPaperEngageRequest = null;
         if (srcPaperEngageRequest != null) {
-            java.time.OffsetDateTime srcClientRequestTimeStamp = srcPaperEngageRequest.getClientRequestTimeStamp();
-            org.threeten.bp.OffsetDateTime dstClientRequestTimeStamp = null;
+            OffsetDateTime srcClientRequestTimeStamp = srcPaperEngageRequest.getClientRequestTimeStamp();
+            OffsetDateTime dstClientRequestTimeStamp = null;
             srcPaperEngageRequest.setClientRequestTimeStamp(null);
 
             dstPaperEngageRequest = objectMapper.convertValue(srcPaperEngageRequest, org.openapitools.client.model.PaperEngageRequest.class);
 
             if (srcClientRequestTimeStamp != null) {
-                dstClientRequestTimeStamp = org.threeten.bp.OffsetDateTime.parse(srcClientRequestTimeStamp.toString());
+                dstClientRequestTimeStamp = OffsetDateTime.parse(srcClientRequestTimeStamp.toString());
             }
             dstPaperEngageRequest.setClientRequestTimeStamp(dstClientRequestTimeStamp);
         }

@@ -4,13 +4,13 @@ import java.io.BufferedInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import org.openapitools.client.model.*;
 import org.springframework.stereotype.Service;
-import org.threeten.bp.OffsetDateTime;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -191,7 +191,7 @@ public class ServicePaperDocument {
 		List<String> errorList = new ArrayList<>();
 		String errList1 = "field requestId is required";
 		String errList2 = "unrecognized product Type";
-		
+
 		OffsetDateTime odt = OffsetDateTime.now();
 
 		List<PaperEngageRequestAttachments> papEngReqAtt = richImpCart.papEngReq.getAttachments();
