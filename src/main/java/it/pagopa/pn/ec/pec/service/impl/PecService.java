@@ -173,7 +173,7 @@ public class PecService extends PresaInCaricoService {
 
     private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
 
-    private Mono<SendMessageResponse> lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
+    public Mono<SendMessageResponse> lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
         log.info("<-- START LAVORAZIONE RICHIESTA PEC --> richiesta: {}", pecPresaInCaricoInfo.getRequestIdx());
 
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
@@ -199,7 +199,7 @@ public class PecService extends PresaInCaricoService {
 
 //                              Create EmailField object with request info and attachments
                                 .map(fileDownloadResponses -> EmailField.builder()
-                                                                        .msgId(encodeMessageId(requestIdx))
+                                                                        .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
                                                                         .from(arubaSecretValue.getPecUsername())
                                                                         .to(digitalNotificationRequest.getReceiverDigitalAddress())
                                                                         .subject(digitalNotificationRequest.getSubjectText())
@@ -369,7 +369,7 @@ public class PecService extends PresaInCaricoService {
 
 //                              Create EmailField object with request info and attachments
                                             .map(fileDownloadResponses -> EmailField.builder()
-                                                                                    .msgId(encodeMessageId(requestIdx))
+                                                                                    .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
                                                                                     .from(arubaSecretValue.getPecUsername())
                                                                                     .to(pecPresaInCaricoInfo.getDigitalNotificationRequest()
                                                                                                             .getReceiverDigitalAddress())
