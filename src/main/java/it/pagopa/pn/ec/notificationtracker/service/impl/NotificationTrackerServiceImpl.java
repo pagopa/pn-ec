@@ -43,7 +43,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
     @Override
     public Mono<Void> handleRequestStatusChange(NotificationTrackerQueueDto notificationTrackerQueueDto, String processId,
-                                                String ntStatoQueueName, String ntStatoDlQueueName, Acknowledgment acknowledgment) {
+                                                String ntStatoQueueName, String ntStatoErroreQueueName, Acknowledgment acknowledgment) {
         var nextStatus = notificationTrackerQueueDto.getNextStatus();
         var xPagopaExtchCxId = notificationTrackerQueueDto.getXPagopaExtchCxId();
 
@@ -181,8 +181,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         if (retry < 5) {
                                             return sqsService.send(ntStatoQueueName, notificationTrackerQueueDto).then();
                                         } else {
-                                            //TODO: DLQ
-                                            return sqsService.send(ntStatoDlQueueName, notificationTrackerQueueDto).then();
+                                            return sqsService.send(ntStatoErroreQueueName, notificationTrackerQueueDto).then();
                                         }
                                     });
     }
