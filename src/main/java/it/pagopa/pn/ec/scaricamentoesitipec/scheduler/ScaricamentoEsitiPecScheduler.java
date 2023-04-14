@@ -87,7 +87,7 @@ public class ScaricamentoEsitiPecScheduler {
         var getMessageID = new GetMessageID();
         getMessageID.setMailid(pecId);
         getMessageID.setIsuid(1);
-        getMessageID.setMarkseen(markSeen ? 1 : null);
+        getMessageID.setMarkseen(markSeen ? 1 : 0);
         return getMessageID;
     }
 
@@ -133,6 +133,7 @@ public class ScaricamentoEsitiPecScheduler {
                 var getAttach = new GetAttach();
                 getAttach.setMailid(pecId);
                 getAttach.setIsuid(1);
+                getAttach.setMarkseen(0);
                 getAttach.setNameattach("daticert.xml");
 
                 log.debug("Try to download PEC {} daticert.xml", pecId);
