@@ -77,6 +77,7 @@ public class CartaceoService extends PresaInCaricoService {
         var xPagopaExtchCxId = presaInCaricoInfo.getXPagopaExtchCxId();
         List<String> attachmentsUri = getPaperUri(cartaceoPresaInCaricoInfo.getPaperEngageRequest().getAttachments());
         var paperNotificationRequest = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
+        paperNotificationRequest.setRequestId(cartaceoPresaInCaricoInfo.getRequestIdx());
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(attachmentsUri, presaInCaricoInfo.getXPagopaExtchCxId(), true)
                                 .then(insertRequestFromCartaceo(paperNotificationRequest,
