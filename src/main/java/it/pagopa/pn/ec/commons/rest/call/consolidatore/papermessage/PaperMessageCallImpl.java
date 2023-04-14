@@ -24,7 +24,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
     @Override
     public Mono<OperationResultCodeResponse> putRequest(PaperEngageRequest paperEngageRequest)
             throws RestCallException.ResourceAlreadyInProgressException {
-        return consolidatoreWebClient.put()
+        return consolidatoreWebClient.post()
                                      .uri(paperMessagesEndpointProperties.putRequest())
                                      .bodyValue(paperEngageRequest)
                                      .retrieve()

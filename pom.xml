@@ -262,6 +262,7 @@
                             <generatorName>java</generatorName>
                             <generateApiTests>false</generateApiTests>
                             <configOptions>
+                                <dateLibrary>java8</dateLibrary>
                                 <sourceFolder>target/generated-sources/</sourceFolder>
                             </configOptions>
                             <skipValidateSpec>true</skipValidateSpec>
