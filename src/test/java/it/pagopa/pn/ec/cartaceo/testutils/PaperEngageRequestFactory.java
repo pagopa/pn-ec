@@ -19,10 +19,10 @@ public class PaperEngageRequestFactory {
 
 		var attachments = new ArrayList<it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequestAttachments>();
 		attachments.add(paperEngageRequestAttachments);
-		for (int idx = 0; idx < attachNum; idx++) {
+		/*for (int idx = 0; idx < attachNum; idx++) {
 			paperEngageRequestAttachments.setOrder(new BigDecimal(idx));
 
-		}
+		}*/
 
 		var vas = new HashMap<String, String>();
 		vas.put("Servizi", "valore aggiunto");
