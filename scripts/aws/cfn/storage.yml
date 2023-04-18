@@ -692,6 +692,20 @@ Resources:
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
 
+  PnEcInteractiveEMAILQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: !Ref PnEcQueueInteractiveEMAIL
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !GetAtt PnEcQueueInteractiveEMAIL.Arn
+            Principal:  
+              AWS: '*'
+
   PnEcQueueErroriEMAIL:
     Type: AWS::SQS::Queue
     Properties:
