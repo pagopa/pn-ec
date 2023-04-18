@@ -255,4 +255,5 @@ public class DigitalNotificationRequestApiControllerTest {
                                                                                                  .isEqualTo(BAD_REQUEST)
                                                                                                  .expectBody(Problem.class);
     }
+
 }
