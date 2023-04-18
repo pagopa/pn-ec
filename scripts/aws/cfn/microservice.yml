@@ -621,7 +621,7 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
-###########  NOTIFICATION TRACKER - QUEUE POLICIES  ###########
+###########  NOTIFICATION TRACKER - QUEUE POLICIES   ###########
 
   PnEcQueuePolicyTrackerStatoSMS:
     Type: AWS::SQS::QueuePolicy
