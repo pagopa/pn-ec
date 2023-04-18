@@ -623,21 +623,21 @@ Resources:
 
 ###########  NOTIFICATION TRACKER - QUEUE POLICIES  ###########
 
-  # PnEcQueuePolicyTrackerStatoSMS:
-  #   Type: AWS::SQS::QueuePolicy
-  #   Properties: 
-  #     Queues: 
-  #       - !Sub '${PnEcQueueUrlTrackerStatoSMS}' 
-  #     PolicyDocument:
-  #       Version: '2012-10-17'
-  #       Statement: 
-  #         - Action: 
-  #             - 'SQS:*'
-  #           Effect: "Allow"
-  #           Resource: !Sub ${PnEcQueueArnTrackerStatoSMS}
-  #           Principal:  
-  #             AWS: 
-  #               - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+  PnEcQueuePolicyTrackerStatoSMS:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlTrackerStatoSMS}' 
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !Sub ${PnEcQueueArnTrackerStatoSMS}
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyTrackerErroriSMS:
     Type: AWS::SQS::QueuePolicy
@@ -655,21 +655,21 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
-  # PnEcQueuePolicyTrackerStatoPEC:
-  #   Type: AWS::SQS::QueuePolicy
-  #   Properties: 
-  #     Queues: 
-  #       - !Sub '${PnEcQueueUrlTrackerStatoPEC}'
-  #     PolicyDocument: 
-  #       Version: '2012-10-17'
-  #       Statement: 
-  #         - Action: 
-  #             - 'SQS:*'
-  #           Effect: "Allow"
-  #           Resource: !Sub '${PnEcQueueArnTrackerStatoPEC}'
-  #           Principal:  
-  #             AWS: 
-  #               - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+  PnEcQueuePolicyTrackerStatoPEC:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlTrackerStatoPEC}'
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnTrackerStatoPEC}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyTrackerErroriPEC:
     Type: AWS::SQS::QueuePolicy
@@ -687,21 +687,21 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
-  # PnEcQueuePolicyTrackerStatoEMAIL:
-  #   Type: AWS::SQS::QueuePolicy
-  #   Properties: 
-  #     Queues: 
-  #       - !Sub '${PnEcQueueUrlTrackerStatoEMAIL}'
-  #     PolicyDocument: 
-  #       Version: '2012-10-17'
-  #       Statement: 
-  #         - Action: 
-  #             - 'SQS:*'
-  #           Effect: "Allow"
-  #           Resource: !Sub '${PnEcQueueArnTrackerStatoEMAIL}'
-  #           Principal:  
-  #             AWS: 
-  #               - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+  PnEcQueuePolicyTrackerStatoEMAIL:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlTrackerStatoEMAIL}'
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnTrackerStatoEMAIL}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyTrackerErroriEMAIL:
     Type: AWS::SQS::QueuePolicy
@@ -719,21 +719,21 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
   
-  # PnEcQueuePolicyTrackerStatoCARTACEO:
-  #   Type: AWS::SQS::QueuePolicy
-  #   Properties: 
-  #     Queues: 
-  #       - !Sub '${PnEcQueueUrlTrackerStatoCARTACEO}'
-  #     PolicyDocument: 
-  #       Version: '2012-10-17'
-  #       Statement: 
-  #         - Action: 
-  #             - 'SQS:*'
-  #           Effect: "Allow"
-  #           Resource: !Sub '${PnEcQueueArnTrackerStatoCARTACEO}'
-  #           Principal:  
-  #             AWS: 
-  #               - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+  PnEcQueuePolicyTrackerStatoCARTACEO:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlTrackerStatoCARTACEO}'
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnTrackerStatoCARTACEO}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyTrackerErroriCARTACEO:
     Type: AWS::SQS::QueuePolicy
@@ -767,21 +767,21 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
-  # PnEcQueuePolicyInteractiveSMS:
-  #   Type: AWS::SQS::QueuePolicy
-  #   Properties: 
-  #     Queues: 
-  #       - !Sub '${PnEcQueueUrlInteractiveSMS}' 
-  #     PolicyDocument: 
-  #       Version: '2012-10-17'
-  #       Statement: 
-  #         - Action: 
-  #             - "SQS:*"
-  #           Effect: "Allow"
-  #           Resource: !Sub ${PnEcQueueArnInteractiveSMS}
-  #           Principal:  
-  #             AWS: 
-  #               - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+  PnEcQueuePolicyInteractiveSMS:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlInteractiveSMS}' 
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - "SQS:*"
+            Effect: "Allow"
+            Resource: !Sub ${PnEcQueueArnInteractiveSMS}
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyErroriSMS:
     Type: AWS::SQS::QueuePolicy
@@ -816,21 +816,21 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
-  # PnEcQueuePolicyInteractivePEC:
-  #   Type: AWS::SQS::QueuePolicy
-  #   Properties: 
-  #     Queues: 
-  #       - !Sub '${PnEcQueueUrlInteractivePEC}'
-  #     PolicyDocument: 
-  #       Version: '2012-10-17'
-  #       Statement: 
-  #         - Action: 
-  #             - 'SQS:*'
-  #           Effect: "Allow"
-  #           Resource: !Sub '${PnEcQueueArnInteractivePEC}'
-  #           Principal:  
-  #             AWS: 
-  #               - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+  PnEcQueuePolicyInteractivePEC:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlInteractivePEC}'
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnInteractivePEC}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
   
   PnEcQueuePolicyErroriPEC:
     Type: AWS::SQS::QueuePolicy
@@ -865,21 +865,21 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
-  # PnEcQueuePolicyInteractiveEMAIL:
-  #   Type: AWS::SQS::QueuePolicy
-  #   Properties: 
-  #     Queues: 
-  #       - !Sub '${PnEcQueueUrlInteractiveEMAIL}'
-  #     PolicyDocument: 
-  #       Version: '2012-10-17'
-  #       Statement: 
-  #         - Action:
-  #             - 'SQS:*'
-  #           Effect: "Allow"
-  #           Resource: !Sub '${PnEcQueueArnInteractiveEMAIL}'
-  #           Principal:  
-  #             AWS: 
-  #               - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+  PnEcQueuePolicyInteractiveEMAIL:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Sub '${PnEcQueueUrlInteractiveEMAIL}'
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Action:
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !Sub '${PnEcQueueArnInteractiveEMAIL}'
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
   
   PnEcQueuePolicyErroriEMAIL:
     Type: AWS::SQS::QueuePolicy
