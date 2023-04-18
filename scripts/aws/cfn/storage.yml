@@ -102,6 +102,20 @@ Resources:
         deadLetterTargetArn : !GetAtt PnEcDLQueueTrackerStatoSMS.Arn
         maxReceiveCount : 10
       VisibilityTimeout: 30
+  
+  PnEcTrackerStatoSMSQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: !Ref PnEcQueueTrackerStatoSMS
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !GetAtt PnEcQueueTrackerStatoSMS.Arn
+            Principal:  
+              AWS: '*'
 
   PnEcDLQueueTrackerStatoSMS:
     Type: AWS::SQS::Queue
@@ -151,6 +165,20 @@ Resources:
         maxReceiveCount : 10
       VisibilityTimeout: 30
 
+  PnEcTrackerStatoPECQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: !Ref PnEcQueueTrackerStatoPEC
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !GetAtt PnEcQueueTrackerStatoPEC.Arn
+            Principal:  
+              AWS: '*'
+
   PnEcDLQueueTrackerStatoPEC:
     Type: AWS::SQS::Queue
     Properties:
@@ -199,6 +227,20 @@ Resources:
         maxReceiveCount : 10
       VisibilityTimeout: 30
 
+  PnEcTrackerStatoEMAILQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: !Ref PnEcQueueTrackerStatoEMAIL
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !GetAtt PnEcQueueTrackerStatoEMAIL.Arn
+            Principal:  
+              AWS: '*'
+
   PnEcDLQueueTrackerStatoEMAIL:
     Type: AWS::SQS::Queue
     Properties:
@@ -246,6 +288,20 @@ Resources:
         deadLetterTargetArn : !GetAtt PnEcDLQueueTrackerStatoCARTACEO.Arn
         maxReceiveCount : 10
       VisibilityTimeout: 30
+
+  PnEcTrackerStatoCARTACEOQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: !Ref PnEcQueueTrackerStatoCARTACEO
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !GetAtt PnEcQueueTrackerStatoCARTACEO.Arn
+            Principal:  
+              AWS: '*'
 
   PnEcDLQueueTrackerStatoCARTACEO:
     Type: AWS::SQS::Queue
@@ -455,6 +511,20 @@ Resources:
         maxReceiveCount : 10
       VisibilityTimeout: 30
 
+  PnEcInteractiveSMSQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: !Ref PnEcQueueInteractiveSMS
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !GetAtt PnEcQueueInteractiveSMS.Arn
+            Principal:  
+              AWS: '*'
+
   PnEcDLQueueInteractiveSMS:
     Type: AWS::SQS::Queue
     Properties:
@@ -526,6 +596,20 @@ Resources:
         deadLetterTargetArn : !GetAtt PnEcDLQueueInteractivePEC.Arn
         maxReceiveCount : 10
       VisibilityTimeout: 30
+
+  PnEcInteractivePECQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: !Ref PnEcQueueInteractivePEC
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !GetAtt PnEcQueueInteractivePEC.Arn
+            Principal:  
+              AWS: '*'
 
   PnEcDLQueueInteractivePEC:
     Type: AWS::SQS::Queue
@@ -607,6 +691,20 @@ Resources:
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 1
       VisibilityTimeout: 30
+
+  PnEcInteractiveEMAILQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: !Ref PnEcQueueInteractiveEMAIL
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !GetAtt PnEcQueueInteractiveEMAIL.Arn
+            Principal:  
+              AWS: '*'
 
   PnEcQueueErroriEMAIL:
     Type: AWS::SQS::Queue
