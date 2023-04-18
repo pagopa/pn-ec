@@ -106,7 +106,8 @@ Resources:
   PnEcTrackerStatoSMSQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties: 
-      Queues: !Ref PnEcQueueTrackerStatoSMS
+      Queues:
+        - !Ref PnEcQueueTrackerStatoSMS
       PolicyDocument:
         Version: '2012-10-17'
         Statement: 
@@ -168,7 +169,8 @@ Resources:
   PnEcTrackerStatoPECQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties: 
-      Queues: !Ref PnEcQueueTrackerStatoPEC
+      Queues:
+        - !Ref PnEcQueueTrackerStatoPEC
       PolicyDocument:
         Version: '2012-10-17'
         Statement: 
@@ -230,7 +232,8 @@ Resources:
   PnEcTrackerStatoEMAILQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties: 
-      Queues: !Ref PnEcQueueTrackerStatoEMAIL
+      Queues:
+        - !Ref PnEcQueueTrackerStatoEMAIL
       PolicyDocument:
         Version: '2012-10-17'
         Statement: 
@@ -292,7 +295,8 @@ Resources:
   PnEcTrackerStatoCARTACEOQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties: 
-      Queues: !Ref PnEcQueueTrackerStatoCARTACEO
+      Queues:
+        - !Ref PnEcQueueTrackerStatoCARTACEO
       PolicyDocument:
         Version: '2012-10-17'
         Statement: 
@@ -424,7 +428,7 @@ Resources:
   PnEcQueuePolicyNotificheExt1:
     Type: AWS::SQS::QueuePolicy
     Properties: 
-      Queues: 
+      Queues:
         - !Ref PnEcQueueNotificheExt1
       PolicyDocument: 
         Statement: 
@@ -514,7 +518,8 @@ Resources:
   PnEcInteractiveSMSQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties: 
-      Queues: !Ref PnEcQueueInteractiveSMS
+      Queues:
+        - !Ref PnEcQueueInteractiveSMS
       PolicyDocument:
         Version: '2012-10-17'
         Statement: 
@@ -600,7 +605,8 @@ Resources:
   PnEcInteractivePECQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties: 
-      Queues: !Ref PnEcQueueInteractivePEC
+      Queues:
+        - !Ref PnEcQueueInteractivePEC
       PolicyDocument:
         Version: '2012-10-17'
         Statement: 
@@ -695,7 +701,8 @@ Resources:
   PnEcInteractiveEMAILQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties: 
-      Queues: !Ref PnEcQueueInteractiveEMAIL
+      Queues:
+        - !Ref PnEcQueueInteractiveEMAIL
       PolicyDocument:
         Version: '2012-10-17'
         Statement: 
