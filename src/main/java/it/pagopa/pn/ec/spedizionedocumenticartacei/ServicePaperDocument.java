@@ -4,15 +4,13 @@ import java.io.BufferedInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-import org.openapitools.client.model.OperationResultCodeResponse;
-import org.openapitools.client.model.PaperDeliveryProgressesResponse;
-import org.openapitools.client.model.PaperProgressStatusEvent;
-import org.openapitools.client.model.PaperProgressStatusEventAttachments;
+import org.openapitools.client.model.*;
 import org.springframework.stereotype.Service;
-import org.threeten.bp.OffsetDateTime;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ServicePaperDocument {
 
 	static void space() {
-		System.out.println("----------------------------");
+		log.info("----------------------------");
 	}
 	
 	public boolean getConnection(HeaderRequest param) {
@@ -29,7 +27,7 @@ public class ServicePaperDocument {
 			return true;
 		} else {
 			space();
-			System.out.println("Connection Refused");
+			log.info("Connection Refused");
 			space();
 			return false;
 		}
@@ -38,13 +36,9 @@ public class ServicePaperDocument {
 	public Object getStatusCode(HeaderRequest param) {
 		if ((param.requestId != null && !param.requestId.equals("")) && (param.xPagopaExtchServiceId != null && !param.xPagopaExtchServiceId.equals(""))
 				&& (param.xApiKey != null && !param.xApiKey.equals(""))) {
-			ProgressiviConsegnaRispostaCartacea pcrc = new ProgressiviConsegnaRispostaCartacea();
-			pcrc = getProgessStatusEvent(param);
-			return pcrc;
+			return getProgessStatusEvent(param);
 		}
-		RisultatoCodiceRisposta rcr = new RisultatoCodiceRisposta();
-		rcr = errorCodeResponse(param);
-		return rcr;
+		return errorCodeResponse(param);
 	}
 
 	private RisultatoCodiceRisposta errorCodeResponse(HeaderRequest param) {
@@ -64,7 +58,7 @@ public class ServicePaperDocument {
 			rcr.opResCodeResp.setClientResponseTimeStamp(odt);
 		}
 		space();
-		System.out.println(rcr.toString());
+		log.info(rcr.toString());
 		space();
 		return rcr;
 	}
@@ -85,7 +79,6 @@ public class ServicePaperDocument {
 		apsrc1.setPapProgStEvAtt(new PaperProgressStatusEventAttachments());
 		
 //		NB: interfaccia con il consolidatore
-//		apsrc1.papProgStEvAtt.setId("1");
 		apsrc1.papProgStEvAtt.getId();
 		apsrc1.papProgStEvAtt.setDocumentType("AR");
 		apsrc1.papProgStEvAtt.setUri("https://www.eng.it/resources/whitepaper/doc/blockchain/Blockchain_whitepaper_it.pdf");
@@ -101,7 +94,7 @@ public class ServicePaperDocument {
 		apsrc2.papProgStEvAtt.setSha256("");
 		apsrc2.papProgStEvAtt.setDate(odt);
 		
-		List<PaperProgressStatusEventAttachments> attachments = new ArrayList<PaperProgressStatusEventAttachments>();
+		List<PaperProgressStatusEventAttachments> attachments = new ArrayList<>();
 		attachments.add(apsrc1.papProgStEvAtt);
 		attachments.add(apsrc2.papProgStEvAtt);
 		
@@ -128,20 +121,20 @@ public class ServicePaperDocument {
 		psec.papProgStEv.setDiscoveredAddress(da);
 		psec.papProgStEv.setClientRequestTimeStamp(odt);
 		
-		List<PaperProgressStatusEvent> listEvents = new ArrayList<PaperProgressStatusEvent>();
+		List<PaperProgressStatusEvent> listEvents = new ArrayList<>();
 		listEvents.add(psec.papProgStEv);
 		
 		pcrc.papDelProgrResp.setEvents(listEvents);
 		
 		space();
-		System.out.println(pcrc.toString());
+		log.info(pcrc.toString());
 		space();
 		return pcrc;
 	}
 
 	public List<String> getAttachment(HeaderRequest hr) {
 		
-		List<String> atUrl = new ArrayList<String>();
+		List<String> atUrl = new ArrayList<>();
 		
 		String s1 = getProgessStatusEvent(hr).papDelProgrResp.getEvents().get(0).getAttachments().get(0).getUri();
 		String s2 = getProgessStatusEvent(hr).papDelProgrResp.getEvents().get(0).getAttachments().get(1).getUri();
@@ -152,22 +145,21 @@ public class ServicePaperDocument {
 		if ((hr.requestId != null && !hr.requestId.equals("")) 
 			&& (hr.xPagopaExtchServiceId != null && !hr.xPagopaExtchServiceId.equals("")) 
 			&& (hr.xApiKey != null && !hr.xApiKey.equals("")) 
-			&& (s1 != null && !s1.equals(""))
-			&& (s2 != null && !s2.equals(""))) {
+			&& (!s1.equals(""))
+			&& (!s2.equals(""))) {
 						
 			try {
 				downloadUsingStream(s1, "C:\\Users\\fcrisciotti\\Downloads\\Blockchain_whitepaper_it.pdf");
 				downloadUsingStream(s2, "C:\\Users\\fcrisciotti\\Downloads\\Scheda1_GliArticoli.pdf");
 			} catch (IOException e) {
-//				e.printStackTrace();
 				log.debug("context",e);
 			}
 			space();
-			System.out.println(atUrl);
+			log.info("{}", atUrl);
 			space();
 			return atUrl;
 		}
-		return null;
+		return Collections.emptyList();
 	}
 
 	private static void downloadUsingStream(String urlStr, String file) throws IOException {
@@ -183,12 +175,10 @@ public class ServicePaperDocument {
 
 	public RisultatoCodiceRisposta sendDocumentPaper(String serviceId, String apiKey, RichiestaImpegnoCartaceo richImpCart) {
 		if (serviceId != null && apiKey != null && richImpCart != null) {
-			RisultatoCodiceRisposta risCodRisp = new RisultatoCodiceRisposta();
-			risCodRisp = callConsolidatore(serviceId, apiKey, richImpCart);
-			return risCodRisp;
+			return callConsolidatore(serviceId, apiKey, richImpCart);
 		}
 		space();
-		System.out.println("Connection Refused");
+		log.info("Connection Refused");
 		space();
 		return null;
 	}
@@ -198,11 +188,13 @@ public class ServicePaperDocument {
 		RisultatoCodiceRisposta rcr = new RisultatoCodiceRisposta();
 		rcr.setOpResCodeResp(new OperationResultCodeResponse());
 		
-		List<String> errorList = new ArrayList<String>();
+		List<String> errorList = new ArrayList<>();
 		String errList1 = "field requestId is required";
 		String errList2 = "unrecognized product Type";
-		
+
 		OffsetDateTime odt = OffsetDateTime.now();
+
+		List<PaperEngageRequestAttachments> papEngReqAtt = richImpCart.papEngReq.getAttachments();
 
 		if (richImpCart.papEngReq.getRequestId().equals("")) {
 			errorList.add(errList1);
@@ -222,13 +214,17 @@ public class ServicePaperDocument {
 			rcr.opResCodeResp.setResultCode("409.00");
 			rcr.opResCodeResp.setResultDescription("duplicated requestId");
 			rcr.opResCodeResp.setClientResponseTimeStamp(odt);
-		} // ciclo for
-		else if (richImpCart.papEngReq.getAttachments().get(0).getUri() == null
-				|| richImpCart.papEngReq.getAttachments().get(1).getUri() == null) {
-			rcr.opResCodeResp.setResultCode("404.00");
-			rcr.opResCodeResp.setResultDescription("bad request");
-			rcr.opResCodeResp.setClientResponseTimeStamp(odt);
-		} else if ((apiKey.equals("") || serviceId.equals(""))) {
+		}
+		else if (!papEngReqAtt.isEmpty()) {
+			for(PaperEngageRequestAttachments p: papEngReqAtt) {
+				if(p.getUri().isEmpty()) {
+					rcr.opResCodeResp.setResultCode("404.00");
+					rcr.opResCodeResp.setResultDescription("bad request");
+					rcr.opResCodeResp.setClientResponseTimeStamp(odt);
+				}
+			}
+		}
+		else if ((apiKey.equals("") || serviceId.equals(""))) {
 			rcr.opResCodeResp.setResultCode("401.00");
 			rcr.opResCodeResp.setResultDescription("Authentication Failed");
 			rcr.opResCodeResp.setClientResponseTimeStamp(odt);
@@ -238,12 +234,12 @@ public class ServicePaperDocument {
 			rcr.opResCodeResp.setClientResponseTimeStamp(odt);
 			
 			space();
-			System.out.println(richImpCart.papEngReq.getAttachments().get(0).getUri());
-			System.out.println(richImpCart.papEngReq.getAttachments().get(1).getUri());
+			log.info(richImpCart.papEngReq.getAttachments().get(0).getUri());
+			log.info(richImpCart.papEngReq.getAttachments().get(1).getUri());
 			space();
 		}
 		space();
-		System.out.println(rcr.toString());
+		log.info(rcr.toString());
 		space();
 		return rcr;
 	}

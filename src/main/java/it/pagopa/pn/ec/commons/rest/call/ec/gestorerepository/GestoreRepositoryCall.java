@@ -14,12 +14,12 @@ public interface GestoreRepositoryCall {
     Mono<Void> deleteClientConfiguration(String xPagopaExtchCxId);
 
 //  <-- REQUEST -->
-    Mono<RequestDto> getRichiesta(String requestIdx) throws RestCallException.ResourceNotFoundException;
+    Mono<RequestDto> getRichiesta(String clientId, String requestIdx) throws RestCallException.ResourceNotFoundException;
     Mono<RequestDto> insertRichiesta(RequestDto requestDto) throws RestCallException.ResourceNotFoundException;
-    Mono<RequestDto> patchRichiestaEvent(String requestIdx, EventsDto eventsDto) throws RestCallException.ResourceNotFoundException;
-    Mono<RequestDto> patchRichiestaRetry(String requestIdx, RetryDto retryDto) throws RestCallException.ResourceNotFoundException;
-    Mono<RequestDto> patchRichiesta(String requestIdx, PatchDto patchDto) throws RestCallException.ResourceNotFoundException;
-    Mono<Void> deleteRichiesta(String requestIdx);
+    Mono<RequestDto> patchRichiestaEvent(String clientId, String requestIdx, EventsDto eventsDto) throws RestCallException.ResourceNotFoundException;
+    Mono<RequestDto> patchRichiestaRetry(String clientId, String requestIdx, RetryDto retryDto) throws RestCallException.ResourceNotFoundException;
+    Mono<RequestDto> patchRichiesta(String clientId, String requestIdx, PatchDto patchDto) throws RestCallException.ResourceNotFoundException;
+    Mono<Void> deleteRichiesta(String clientId, String requestIdx);
     Mono<RequestDto> getRequestByMessageId(String messageId);
-    Mono<RequestDto> setMessageIdInRequestMetadata(String requestIdx);
+    Mono<RequestDto> setMessageIdInRequestMetadata(String clientId, String requestIdx);
 }

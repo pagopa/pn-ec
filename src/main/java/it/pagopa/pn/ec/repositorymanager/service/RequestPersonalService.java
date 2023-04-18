@@ -5,7 +5,7 @@ import reactor.core.publisher.Mono;
 
 public interface RequestPersonalService {
 
-    Mono<RequestPersonal> getRequestPersonal(String requestIdx);
+    Mono<RequestPersonal> getRequestPersonal(String concatRequestId);
     Mono<RequestPersonal> insertRequestPersonal(RequestPersonal requestPersonal);
-    Mono<RequestPersonal> deleteRequestPersonal(String requestIdx);
+    Mono<RequestPersonal> deleteRequestPersonal(String concatRequestId);
 }

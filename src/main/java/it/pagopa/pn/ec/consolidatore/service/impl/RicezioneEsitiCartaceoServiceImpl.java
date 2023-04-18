@@ -2,7 +2,6 @@ package it.pagopa.pn.ec.consolidatore.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -26,8 +25,6 @@ import reactor.core.publisher.Mono;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.pagopa.pn.ec.commons.constant.Status.IN_PROGRESS;
-import static it.pagopa.pn.ec.commons.constant.Status.SENT;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperConstant.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.*;
@@ -194,7 +191,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			    	 log.info(LOG_VERIF_LABEL + "xPagopaExtchServiceId = {} : progressStatusEvent = {}",
 			    			 xPagopaExtchServiceId, progressStatusEvent);
 			     })
-			     .flatMap(unused -> gestoreRepositoryCall.getRichiesta(progressStatusEvent.getRequestId()))
+				 .flatMap(unused -> gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceId, progressStatusEvent.getRequestId()))
 			     .flatMap(unused -> verificaErroriSemantici(progressStatusEvent))
 			     .flatMap(unused -> verificaAttachments(xPagopaExtchServiceId, progressStatusEvent.getRequestId(), progressStatusEvent.getAttachments()))
 			     .flatMap(unused -> Mono.just(new RicezioneEsitiDto(progressStatusEvent,
@@ -273,8 +270,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	 			return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
 	 								   NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(
 	 										   presaInCaricoInfo,
-                                               SENT.getStatusTransactionTableCompliant(),
-	 										   IN_PROGRESS.getStatusTransactionTableCompliant(),
+	 										   paperProgressStatusDto.getStatusCode(),
 	 										   paperProgressStatusDto));
 			})
 			.flatMap(unused -> Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null)))

@@ -2,29 +2,22 @@ package it.pagopa.pn.ec.repositorymanager.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.GestoreRepositoryEndpointProperties;
-import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
-import it.pagopa.pn.ec.commons.model.pojo.request.RequestStatusChange;
-import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
-import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -40,7 +33,6 @@ import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestPersonalDto.QosEnum.INTERACTIVE;
-import static org.mockito.ArgumentMatchers.any;
 
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
@@ -52,15 +44,15 @@ class RequestControllerTest {
     @Autowired
     ObjectMapper objectMapper;
 
-    @MockBean
-    private CallMacchinaStati callMacchinaStati;
-
     @Autowired
     private GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties;
 
     private static final String DEFAULT_ID_DIGITAL = "DIGITAL";
     private static final String DEFAULT_ID_PAPER = "PAPER";
+    public static final String ID_CLIENT_HEADER_NAME = "x-pagopa-extch-cx-id";
     private static final String X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE = "CLIENT1";
+    private static final String DEFAULT_CONCATE_ID_DIGITAL = "CLIENT1~DIGITAL";
+    private static final String DEFAULT_CONCATE_ID_PAPER = "CLIENT1~PAPER";
     private static final RequestDto digitalRequest = new RequestDto();
     private static final RequestDto paperRequest = new RequestDto();
 
@@ -158,7 +150,7 @@ class RequestControllerTest {
     private static void insertRequestMetadata(String idRequest, RequestMetadata requestMetadata) {
         requestMetadata.setRequestId(idRequest);
         requestMetadata.setXPagopaExtchCxId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE);
-        requestMetadata.setMessageId(encodeMessageId(idRequest, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE));
+        requestMetadata.setMessageId(encodeMessageId(idRequest));
         dynamoDbTableMetadata.putItem(builder -> builder.item(requestMetadata));
     }
 
@@ -172,21 +164,14 @@ class RequestControllerTest {
                                                              TableSchema.fromBean(RequestMetadata.class));
 
         initializeRequestDto();
-        insertRequestPersonal(digitalRequest.getRequestIdx(),
-                              objectMapper.convertValue(digitalRequest.getRequestPersonal(), RequestPersonal.class));
-        insertRequestMetadata(digitalRequest.getRequestIdx(),
-                              objectMapper.convertValue(digitalRequest.getRequestMetadata(), RequestMetadata.class));
-        insertRequestPersonal(paperRequest.getRequestIdx(),
-                              objectMapper.convertValue(paperRequest.getRequestPersonal(), RequestPersonal.class));
-        insertRequestMetadata(paperRequest.getRequestIdx(),
-                              objectMapper.convertValue(paperRequest.getRequestMetadata(), RequestMetadata.class));
-    }
-
-    @BeforeEach
-    public void createDefaultRequestDto() {
-        initializeRequestDto();
-        Mockito.when(callMacchinaStati.statusDecode(any(RequestStatusChange.class)))
-               .thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto()));
+        insertRequestPersonal(DEFAULT_CONCATE_ID_DIGITAL,
+                objectMapper.convertValue(digitalRequest.getRequestPersonal(), RequestPersonal.class));
+        insertRequestMetadata(DEFAULT_CONCATE_ID_DIGITAL,
+                objectMapper.convertValue(digitalRequest.getRequestMetadata(), RequestMetadata.class));
+        insertRequestPersonal(DEFAULT_CONCATE_ID_PAPER,
+                objectMapper.convertValue(paperRequest.getRequestPersonal(), RequestPersonal.class));
+        insertRequestMetadata(DEFAULT_CONCATE_ID_PAPER,
+                objectMapper.convertValue(paperRequest.getRequestMetadata(), RequestMetadata.class));
     }
 
     private static Stream<Arguments> provideDigitalAndPaperRequestToInsert() {
@@ -225,6 +210,7 @@ class RequestControllerTest {
     void readRequestTestSuccess(String id) {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(id))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isOk()
@@ -236,6 +222,7 @@ class RequestControllerTest {
     void readRequestTestFailed() {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build("idNotExist"))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isNotFound();
@@ -303,6 +290,7 @@ class RequestControllerTest {
 
         webClient.patch()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(idRequest))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .body(BodyInserters.fromValue(patchDto))
                  .exchange()
                  .expectStatus()
@@ -316,6 +304,7 @@ class RequestControllerTest {
 
         webClient.patch()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build("idCheNonEsiste"))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .body(BodyInserters.fromValue(patchDto))
                  .exchange()
                  .expectStatus()
@@ -341,6 +330,7 @@ class RequestControllerTest {
 
         webClient.patch()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(DEFAULT_ID_DIGITAL))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .body(BodyInserters.fromValue(patchDto))
                  .exchange()
                  .expectStatus()
@@ -356,11 +346,12 @@ class RequestControllerTest {
     @MethodSource("provideDigitalAndPaperRequestForDelete")
     void deleteRequestTestSuccess(RequestDto requestDto, String idToDelete) {
 
-        insertRequestPersonal(idToDelete, objectMapper.convertValue(requestDto.getRequestPersonal(), RequestPersonal.class));
-        insertRequestMetadata(idToDelete, objectMapper.convertValue(requestDto.getRequestMetadata(), RequestMetadata.class));
+        insertRequestPersonal("CLIENT1~" + idToDelete, objectMapper.convertValue(requestDto.getRequestPersonal(), RequestPersonal.class));
+        insertRequestMetadata("CLIENT1~" + idToDelete, objectMapper.convertValue(requestDto.getRequestMetadata(), RequestMetadata.class));
 
         webClient.delete()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest()).build(idToDelete))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isOk();
@@ -371,17 +362,19 @@ class RequestControllerTest {
     void deleteRequestTestFailed() {
         webClient.delete()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest()).build("idCheNonEsiste"))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isNotFound();
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {DEFAULT_ID_DIGITAL, DEFAULT_ID_PAPER})
+    @ValueSource(strings = {DEFAULT_CONCATE_ID_DIGITAL, DEFAULT_CONCATE_ID_PAPER})
     void getRequestByMessageIdOk(String idRequest) {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId())
-                                              .build(encodeMessageId(idRequest, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)))
+                         .build(encodeMessageId(idRequest)))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isOk();
@@ -391,7 +384,8 @@ class RequestControllerTest {
     void getRequestByMessageNotFound() {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId())
-                                              .build(encodeMessageId("idRequestCheNonEsiste", "idClientCheNonEsiste")))
+                         .build(encodeMessageId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE + "~idRequestCheNonEsiste")))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isNotFound();
@@ -411,6 +405,7 @@ class RequestControllerTest {
     void updateMessageIdInRequestMetadataOk(String idRequest) {
         webClient.post()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata()).build(idRequest))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isOk();
@@ -421,6 +416,7 @@ class RequestControllerTest {
         webClient.post()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
                                               .build("idRequestCheNonEsiste"))
+                 .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
                  .isNotFound();

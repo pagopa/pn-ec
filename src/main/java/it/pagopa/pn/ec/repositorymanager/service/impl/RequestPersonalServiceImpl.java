@@ -26,18 +26,15 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
     }
 
     @Override
-    public Mono<RequestPersonal> getRequestPersonal(String requestIdx) {
-        return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(requestIdx)))
-                   .defaultIfEmpty(RequestPersonal.builder().requestId(null).build())
-                   .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()));
+    public Mono<RequestPersonal> getRequestPersonal(String concatRequestId) {
+        return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(concatRequestId))).defaultIfEmpty(new RequestPersonal());
     }
 
     @Override
     public Mono<RequestPersonal> insertRequestPersonal(RequestPersonal requestPersonal) {
         return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(requestPersonal.getRequestId())))
                    .flatMap(foundedRequest -> Mono.error(new RepositoryManagerException.IdRequestAlreadyPresent(requestPersonal.getRequestId())))
-                   .doOnError(RepositoryManagerException.IdRequestAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
-                   .switchIfEmpty(Mono.just(requestPersonal))
+                   .defaultIfEmpty(requestPersonal)
                    .flatMap(unused -> {
                        if ((requestPersonal.getDigitalRequestPersonal() != null && requestPersonal.getPaperRequestPersonal() != null) ||
                            (requestPersonal.getDigitalRequestPersonal() == null && requestPersonal.getPaperRequestPersonal() == null)) {
@@ -46,15 +43,15 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
                        }
                        return Mono.fromCompletionStage(requestPersonalDynamoDbTable.putItem(builder -> builder.item(requestPersonal)));
                    })
+                   .doOnError(RepositoryManagerException.IdRequestAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.error(throwable.getMessage()))
                    .thenReturn(requestPersonal);
     }
 
     @Override
-    public Mono<RequestPersonal> deleteRequestPersonal(String requestIdx) {
-        return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(requestIdx)))
-                   .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(requestIdx)))
-                   .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                   .flatMap(requestToDelete -> Mono.fromCompletionStage(requestPersonalDynamoDbTable.deleteItem(getKey(requestIdx))));
+    public Mono<RequestPersonal> deleteRequestPersonal(String concatRequestId) {
+        return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(concatRequestId)))
+                   .defaultIfEmpty(new RequestPersonal())
+                   .flatMap(requestToDelete -> Mono.fromCompletionStage(requestPersonalDynamoDbTable.deleteItem(getKey(concatRequestId))));
     }
 }

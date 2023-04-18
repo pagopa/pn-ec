@@ -4,9 +4,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.openapitools.client.model.PaperEngageRequest;
 import org.openapitools.client.model.PaperEngageRequestAttachments;
-import org.threeten.bp.OffsetDateTime;
+
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,7 +29,7 @@ class SendPaperTest {
 		
 		AllegatiImpegnoRichiestaCartaceo allImpRichCart1 = new AllegatiImpegnoRichiestaCartaceo();
 		allImpRichCart1.setPapEngReqAtt(new PaperEngageRequestAttachments());
-//		allImpRichCart1.papEngReqAtt.setUri("https://www.eng.it/resources/whitepaper/doc/blockchain/Blockchain_whitepaper_it.pdf");
+		allImpRichCart1.papEngReqAtt.setUri("https://www.eng.it/resources/whitepaper/doc/blockchain/Blockchain_whitepaper_it.pdf");
 		allImpRichCart1.papEngReqAtt.setOrder(new BigDecimal("0"));
 		allImpRichCart1.papEngReqAtt.setDocumentType("AR");
 		allImpRichCart1.papEngReqAtt.setSha256("");
@@ -92,12 +93,13 @@ class SendPaperTest {
 		
 		AllegatiImpegnoRichiestaCartaceo allImpRichCart1 = new AllegatiImpegnoRichiestaCartaceo();
 		allImpRichCart1.setPapEngReqAtt(new PaperEngageRequestAttachments());
+		allImpRichCart1.papEngReqAtt.setUri("");
 		allImpRichCart1.papEngReqAtt.setOrder(new BigDecimal("0"));
 		allImpRichCart1.papEngReqAtt.setDocumentType("AR");
 		allImpRichCart1.papEngReqAtt.setSha256("");
-		List<PaperEngageRequestAttachments> attachments = new ArrayList<PaperEngageRequestAttachments>();
+		List<PaperEngageRequestAttachments> attachments = new ArrayList<>();
 		attachments.add(allImpRichCart1.papEngReqAtt);
-		
+
 		OffsetDateTime odt = OffsetDateTime.now();
 		
 		Map<String, String> vas = new HashMap<String,String>();
@@ -162,7 +164,7 @@ class SendPaperTest {
 		
 		attachments.add(allImpRichCart1.papEngReqAtt);
 		attachments.add(allImpRichCart2.papEngReqAtt);
-		
+
 		OffsetDateTime odt = OffsetDateTime.now();
 		
 		Map<String, String> vas = new HashMap<String,String>();
@@ -227,9 +229,9 @@ class SendPaperTest {
 		
 		attachments.add(allImpRichCart1.papEngReqAtt);
 		attachments.add(allImpRichCart2.papEngReqAtt);
-		
+
 		OffsetDateTime odt = OffsetDateTime.now();
-		
+
 		Map<String, String> vas = new HashMap<String,String>();
 		
 		vas.put("Servizi", "valore aggiunto");

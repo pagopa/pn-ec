@@ -30,44 +30,40 @@ public class NotificationTrackerMessageReceiver {
     @SqsListener(value = "${sqs.queue.notification-tracker.stato-sms-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void receiveSMSObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
         logIncomingMessage(notificationTrackerSqsName.statoSmsName(), notificationTrackerQueueDto);
-        notificationTrackerQueueDto.setProcessId(transactionProcessConfigurationProperties.sms());
         notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
+                                                             transactionProcessConfigurationProperties.sms(),
                                                              notificationTrackerSqsName.statoSmsName(),
                                                              notificationTrackerSqsName.statoSmsErratoName(),
-                                                             acknowledgment)
-                                                             .subscribe();
+                                                             acknowledgment).subscribe();
     }
 
     @SqsListener(value = "${sqs.queue.notification-tracker.stato-email-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void receiveEmailObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
         logIncomingMessage(notificationTrackerSqsName.statoEmailName(), notificationTrackerQueueDto);
-        notificationTrackerQueueDto.setProcessId(transactionProcessConfigurationProperties.email());
         notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
+                                                             transactionProcessConfigurationProperties.email(),
                                                              notificationTrackerSqsName.statoEmailName(),
                                                              notificationTrackerSqsName.statoEmailErratoName(),
-                                                             acknowledgment)
-                                                             .subscribe();
+                                                             acknowledgment).subscribe();
     }
 
     @SqsListener(value = "${sqs.queue.notification-tracker.stato-pec-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void receivePecObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
         logIncomingMessage(notificationTrackerSqsName.statoPecName(), notificationTrackerQueueDto);
-        notificationTrackerQueueDto.setProcessId(transactionProcessConfigurationProperties.pec());
         notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
+                                                             transactionProcessConfigurationProperties.pec(),
                                                              notificationTrackerSqsName.statoPecName(),
                                                              notificationTrackerSqsName.statoPecErratoName(),
-                                                             acknowledgment)
-                                                             .subscribe();
+                                                             acknowledgment).subscribe();
     }
 
     @SqsListener(value = "${sqs.queue.notification-tracker.stato-cartaceo-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void receiveCartaceoObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
         logIncomingMessage(notificationTrackerSqsName.statoCartaceoName(), notificationTrackerQueueDto);
-        notificationTrackerQueueDto.setProcessId(transactionProcessConfigurationProperties.paper());
         notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
+                                                             transactionProcessConfigurationProperties.paper(),
                                                              notificationTrackerSqsName.statoCartaceoName(),
                                                              notificationTrackerSqsName.statoCartaceoErratoName(),
-                                                             acknowledgment)
-                                                             .subscribe();
+                                                             acknowledgment).subscribe();
     }
 }

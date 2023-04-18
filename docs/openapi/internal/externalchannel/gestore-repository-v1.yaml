@@ -76,6 +76,11 @@ paths:
 
   /external-channel/gestoreRepository/requests/{requestIdx}:
     parameters:
+      - name: x-pagopa-extch-cx-id
+        in: header
+        required: true
+        schema:
+          type: string
       - name: requestIdx
         in: path
         required: true
@@ -160,6 +165,12 @@ paths:
 
   /external-channel/gestoreRepository/requests/messageId/{requestIdx}:
     parameters:
+      - name: x-pagopa-extch-cx-id
+        in: header
+        required: true
+        allowEmptyValue: false
+        schema:
+          type: string
       - name: requestIdx
         in: path
         required: true
