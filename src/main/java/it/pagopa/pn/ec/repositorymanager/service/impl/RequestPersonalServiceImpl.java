@@ -26,8 +26,8 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
     }
 
     @Override
-    public Mono<RequestPersonal> getRequestPersonal(String requestIdx) {
-        return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(requestIdx))).defaultIfEmpty(new RequestPersonal());
+    public Mono<RequestPersonal> getRequestPersonal(String concatRequestId) {
+        return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(concatRequestId))).defaultIfEmpty(new RequestPersonal());
     }
 
     @Override
@@ -49,9 +49,9 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
     }
 
     @Override
-    public Mono<RequestPersonal> deleteRequestPersonal(String requestIdx) {
-        return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(requestIdx)))
+    public Mono<RequestPersonal> deleteRequestPersonal(String concatRequestId) {
+        return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(concatRequestId)))
                    .defaultIfEmpty(new RequestPersonal())
-                   .flatMap(requestToDelete -> Mono.fromCompletionStage(requestPersonalDynamoDbTable.deleteItem(getKey(requestIdx))));
+                   .flatMap(requestToDelete -> Mono.fromCompletionStage(requestPersonalDynamoDbTable.deleteItem(getKey(concatRequestId))));
     }
 }

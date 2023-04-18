@@ -30,8 +30,8 @@ public class RequestServiceImpl implements RequestService {
         this.requestMetadataService = requestMetadataService;
     }
 
-    private String concatRequestId(String clientId, String requestId) {
-        return (clientId + SEPARATORE + requestId);
+    static String concatRequestId(String clientId, String requestId) {
+        return (String.format("%s%s%s", clientId, SEPARATORE, requestId));
     }
 
     @Override
@@ -48,19 +48,19 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Mono<Request> insertRequest(Request request) {
         return Mono.fromCallable(() -> {
-                       var requestId = concatRequestId(request.getXPagopaExtchCxId(), request.getRequestId());
+                       var concatRequestId = concatRequestId(request.getXPagopaExtchCxId(), request.getRequestId());
                        var clientId = request.getXPagopaExtchCxId();
 
                        var requestTimestamp = OffsetDateTime.now();
 
                        var requestPersonal = request.getRequestPersonal();
-                       requestPersonal.setRequestId(requestId);
+                       requestPersonal.setRequestId(concatRequestId);
                        requestPersonal.setXPagopaExtchCxId(clientId);
                        requestPersonal.setClientRequestTimeStamp(request.getClientRequestTimeStamp());
                        requestPersonal.setRequestTimestamp(requestTimestamp);
 
                        var requestMetadata = request.getRequestMetadata();
-                       requestMetadata.setRequestId(requestId);
+                       requestMetadata.setRequestId(concatRequestId);
                        requestMetadata.setXPagopaExtchCxId(clientId);
                        requestMetadata.setClientRequestTimeStamp(request.getClientRequestTimeStamp());
                        requestMetadata.setRequestTimestamp(requestTimestamp);
