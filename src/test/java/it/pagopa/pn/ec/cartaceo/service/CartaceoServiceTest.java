@@ -169,9 +169,6 @@ class CartaceoServiceTest {
         when(sqsService.send(eq(cartaceoSqsQueueName.errorName()), any(CartaceoPresaInCaricoInfo.class)))
                 .thenReturn(Mono.error(internalErrorException));
 
-//        // Mock della pubblicazione di una generica notifica sulla coda dello stato cartaceo.
-//        when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName())
-//                , any(NotificationTrackerQueueDto.class))).thenReturn(Mono.just(SendMessageResponse.builder().build()));
 
         Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
         StepVerifier.create(lavorazioneRichiesta).expectNext();
@@ -186,15 +183,13 @@ class CartaceoServiceTest {
                 .putRequest(any());
 
         // Verifica che sia stata eseguita la chiamata all'sqsService per pubblicare sulla coda l'errore.
-//        verify(sqsService, times(1))
-//                .send(eq(cartaceoSqsQueueName.errorName()), any(CartaceoPresaInCaricoInfo.class));
+        verify(sqsService, times(1))
+                .send(eq(cartaceoSqsQueueName.errorName()), any(CartaceoPresaInCaricoInfo.class));
 
         // Verifica che sia stata eseguita DUE VOLTE la chiamata all'sqsService per pubblicare sulla coda dello stato cartaceo.
-        verify(sqsService, times(1))
+        verify(sqsService, times(2))
                 .send(eq(notificationTrackerSqsName.statoCartaceoName())
-                        , eq(createNotificationTrackerQueueDtoPaper(CARTACEO_PRESA_IN_CARICO_INFO,
-                                INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                new PaperProgressStatusDto())));
+                        , any(NotificationTrackerQueueDto.class));
 
     }
 

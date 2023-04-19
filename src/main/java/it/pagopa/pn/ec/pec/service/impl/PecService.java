@@ -4,6 +4,7 @@ import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.RetryAttemptsExceededExeption;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
@@ -117,6 +118,21 @@ public class PecService extends PresaInCaricoService {
                                                                  })).then();
     }
 
+    @Override
+    protected Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, Status status) {
+        return null;
+    }
+
+    @Override
+    protected Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return null;
+    }
+
+    @Override
+    protected Mono<DeleteMessageResponse> deleteFromErrorQueue(Message message) {
+        return null;
+    }
+
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromPec(final DigitalNotificationRequest digitalNotificationRequest, String xPagopaExtchCxId) {
         log.info("<-- START insertRequestFromPec --> richiesta: {}", digitalNotificationRequest.getRequestId());
@@ -173,7 +189,7 @@ public class PecService extends PresaInCaricoService {
 
     private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
 
-    public Mono<SendMessageResponse> lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
+    Mono<SendMessageResponse> lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
         log.info("<-- START LAVORAZIONE RICHIESTA PEC --> richiesta: {}", pecPresaInCaricoInfo.getRequestIdx());
 
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
@@ -464,10 +480,17 @@ public class PecService extends PresaInCaricoService {
                                                                                                                            pecSqsQueueName.errorName()));
 
 
-                                    }).onErrorResume(throwable -> {
-                    log.error(throwable.getMessage());
-                    return Mono.empty();
-                });
+                                    })
+                    .onErrorResume(internalError -> {
+                    log.error(internalError.getMessage());
+                        return sqsService.send(notificationTrackerSqsName.statoEmailName(),
+                                        createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
+                                                INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                                                new DigitalProgressStatusDto().generatedMessage(
+                                                        new GeneratedMessageDto())))
+                                .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
+                                        pecSqsQueueName.errorName()));
+                    });
     }
 
 }

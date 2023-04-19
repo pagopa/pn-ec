@@ -4,6 +4,7 @@ import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.StatusToDeleteException;
 import it.pagopa.pn.ec.commons.exception.cartaceo.CartaceoSendException;
@@ -97,6 +98,21 @@ public class CartaceoService extends PresaInCaricoService {
                                 cartaceoPresaInCaricoInfo)
                 )
                 .then();
+    }
+
+    @Override
+    protected Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, Status status) {
+        return null;
+    }
+
+    @Override
+    protected Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return null;
+    }
+
+    @Override
+    protected Mono<DeleteMessageResponse> deleteFromErrorQueue(Message message) {
+        return null;
     }
 
     private ArrayList<String> getPaperUri(List<PaperEngageRequestAttachments> paperEngageRequestAttachments) {
@@ -257,16 +273,18 @@ public class CartaceoService extends PresaInCaricoService {
 
                                         // Publish to ERRORI PAPER queue
                                         .then(sqsService.send(cartaceoSqsQueueName.errorName(),
-                                                cartaceoPresaInCaricoInfo))
-                                       .onErrorResume(throwable ->
-                                       {
-                                           log.error("INTERNAL ERROR ---> {}", throwable.getMessage());
-                                           return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
-                                                   createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
-                                                           INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                                           new PaperProgressStatusDto()));
-                                       });
-                        });
+                                                cartaceoPresaInCaricoInfo));
+                        })
+                .onErrorResume(throwable ->
+                {
+                    log.error("INTERNAL ERROR ---> {}", throwable.getMessage());
+                    return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+                                    createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
+                                            INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                                            new PaperProgressStatusDto()))
+                            .then(sqsService.send(cartaceoSqsQueueName.errorName(),
+                                    cartaceoPresaInCaricoInfo));
+                });
     }
 
     @Scheduled(cron = "${cron.value.gestione-retry-cartaceo}")
@@ -419,18 +437,19 @@ public class CartaceoService extends PresaInCaricoService {
                                             new PaperProgressStatusDto()))
                             .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
                                     cartaceoSqsQueueName.errorName()));
-                });
-//                .onErrorResume(throwable ->
-//                        {
-//                            log.error("INTERNAL ERROR -> {}", throwable.getMessage());
-//                            return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
-//                                    createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
-//                                            INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-//                                            //TODO object paper
-//                                            new PaperProgressStatusDto()))
-//                                    .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
-//                                    cartaceoSqsQueueName.errorName()));
-//                        }
-//                );
+                })
+                //Catch errore interno, pubblicazione sul notification tracker ed eliminazione dalla coda di errore.
+                .onErrorResume(throwable ->
+                        {
+                            log.error("Internal Error -> {}", throwable.getMessage());
+                            return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+                                    createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
+                                            INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                                            //TODO object paper
+                                            new PaperProgressStatusDto()))
+                                    .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
+                                    cartaceoSqsQueueName.errorName()));
+                        }
+                );
     }
 }

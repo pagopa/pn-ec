@@ -47,7 +47,7 @@ class EmailServiceTest {
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
 
-    @MockBean
+    @SpyBean
     private SqsServiceImpl sqsService;
 
     @MockBean

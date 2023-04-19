@@ -4,6 +4,7 @@ import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.RetryAttemptsExceededExeption;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
@@ -219,11 +220,7 @@ public class EmailService extends PresaInCaricoService {
                                 .flatMap(publishResponse -> {
                                     generatedMessageDto.set(new GeneratedMessageDto().id(publishResponse.messageId())
                                                                                      .system("systemPlaceholder"));
-                                    return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                           createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
-                                                                                                    SENT.getStatusTransactionTableCompliant(),
-                                                                                                    new DigitalProgressStatusDto().generatedMessage(
-                                                                                                            generatedMessageDto.get())))
+                                    return sendNotificationOnStatusQueue(emailPresaInCaricoInfo, SENT, generatedMessageDto.get())
 
                                                      // An error occurred during EMAIL send, start retries
                                                      .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
@@ -232,20 +229,14 @@ public class EmailService extends PresaInCaricoService {
                                                      // Errori EMAIL queue and
                                                      // notify to retry update status only
                                                      // TODO: CHANGE THE PAYLOAD
-                                                     .onErrorResume(throwable -> sqsService.send(emailSqsQueueName.errorName(),
-                                                                                                 emailPresaInCaricoInfo));
+                                                     .onErrorResume(throwable -> sendNotificationOnErrorQueue(emailPresaInCaricoInfo));
                                 })
                                 // The maximum number of retries has ended
                                 .onErrorResume(throwable ->
-
-                                                       sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                                       createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
-                                                                                                                RETRY.getStatusTransactionTableCompliant(),
-                                                                                                                new DigitalProgressStatusDto()))
-
-                                                                 // Publish to ERRORI EMAIL queue
-                                                                 .then(sqsService.send(emailSqsQueueName.errorName(),
-                                                                                       emailPresaInCaricoInfo)));
+                                        sendNotificationOnStatusQueue(emailPresaInCaricoInfo, RETRY)
+                                                               // Publish to ERRORI EMAIL queue
+                                                               .then(sendNotificationOnErrorQueue(emailPresaInCaricoInfo)))
+                                                               .onErrorResume(internalError -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo, INTERNAL_ERROR));
     }
 
     private EmailField compilaMail(DigitalCourtesyMailRequest req) {
@@ -388,19 +379,12 @@ public class EmailService extends PresaInCaricoService {
 
                                                                         // The EMAIL in sent, publish to Notification Tracker with next
                                                                         // status -> SENT
-                                                                        .flatMap(publishResponse -> sqsService.send(
-                                                                                notificationTrackerSqsName.statoEmailName(),
-                                                                                createNotificationTrackerQueueDtoDigital(
-                                                                                        emailPresaInCaricoInfo,
-                                                                                        SENT.getStatusTransactionTableCompliant(),
-                                                                                        new DigitalProgressStatusDto().generatedMessage(
-                                                                                                generatedMessageDto.get()))))
+                                                                        .flatMap(publishResponse -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo, SENT, generatedMessageDto.get()))
                                                                         .flatMap(sendMessageResponse -> {
                                                                             log.debug(
                                                                                     "Il messaggio è stato gestito correttamente e rimosso" +
                                                                                     " dalla coda d'errore", emailSqsQueueName.errorName());
-                                                                            return sqsService.deleteMessageFromQueue(message,
-                                                                                                                     emailSqsQueueName.errorName());
+                                                                            return deleteFromErrorQueue(message);
                                                                         })
                                                                         .onErrorResume(sqsPublishException -> {
                                                                             if (idSaved == null) {
@@ -415,38 +399,23 @@ public class EmailService extends PresaInCaricoService {
                                                                                         "Il messaggio è stato rimosso dalla coda d'errore" +
                                                                                         " per eccessivi tentativi: {}",
                                                                                         emailSqsQueueName.errorName());
-                                                                                return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                                                                       createNotificationTrackerQueueDtoDigital(
-                                                                                                               emailPresaInCaricoInfo,
-                                                                                                               ERROR.getStatusTransactionTableCompliant(),
-                                                                                                               new DigitalProgressStatusDto().generatedMessage(
-                                                                                                                       new GeneratedMessageDto())))
-                                                                                                 .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(
-                                                                                                         message,
-                                                                                                         emailSqsQueueName.errorName()));
-
+                                                                                return sendNotificationOnStatusQueue(emailPresaInCaricoInfo, ERROR)
+                                                                                                 .flatMap(sendMessageResponse -> deleteFromErrorQueue(message));
                                                                             }
                                                                             return Mono.empty();
                                                                         })
-
 
                                               )//              Catch errore tirato per lo stato toDelete
                                     .onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
                                         log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}",
                                                   emailSqsQueueName.errorName());
-                                        return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                               createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
-                                                                                                        DELETED.getStatusTransactionTableCompliant(),
-                                                                                                        new DigitalProgressStatusDto().generatedMessage(
-                                                                                                                new GeneratedMessageDto())))
-                                                         .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
-                                                                                                                           emailSqsQueueName.errorName()));
+                                        return sendNotificationOnStatusQueue(emailPresaInCaricoInfo, DELETED)
+                                                         .flatMap(sendMessageResponse -> deleteFromErrorQueue(message));
 
 
-                                    }).onErrorResume(throwable -> {
-                    log.error(GENERIC_ERROR, throwable);
-                    return Mono.empty();
-                });
+                                    })
+                                      .onErrorResume(internalError -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo, INTERNAL_ERROR)
+                                      .then(deleteFromErrorQueue(message)));
     }
 
     private Mono<? extends RequestDto> getMono(String requestId, Policy retryPolicies, RequestDto requestDto, RetryDto retryDto) {
@@ -517,17 +486,12 @@ public class EmailService extends PresaInCaricoService {
 
                                      .map(this::createGeneratedMessageDto)
                                      // The EMAIL in sent, publish to Notification Tracker with next status -> SENT
-                                     .flatMap(publishResponse -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                                                 createNotificationTrackerQueueDtoDigital(
-                                                                                         emailPresaInCaricoInfo,
-                                                                                         SENT.getStatusTransactionTableCompliant(),
-                                                                                         new DigitalProgressStatusDto().generatedMessage(
-                                                                                                 generatedMessageDto.get()))))
+                                     .flatMap(publishResponse -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo, ERROR, generatedMessageDto.get()))
 
                                      .flatMap(sendMessageResponse -> {
                                          log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore",
                                                    emailSqsQueueName.errorName());
-                                         return sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName());
+                                         return deleteFromErrorQueue(message);
                                      }).onErrorResume(sqsPublishException -> {
                                 if (idSaved == null) {
                                     idSaved = requestId;
@@ -535,38 +499,48 @@ public class EmailService extends PresaInCaricoService {
                                 if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
                                     // operazioni per la rimozione del messaggio
                                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}",
-                                              emailSqsQueueName.errorName());
-                                    return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                           createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
-                                                                                                    ERROR.getStatusTransactionTableCompliant(),
-                                                                                                    new DigitalProgressStatusDto().generatedMessage(
-                                                                                                            new GeneratedMessageDto())))
-                                                     .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
-                                                                                                                       emailSqsQueueName.errorName()));
-
+                                            emailSqsQueueName.errorName());
+                                    return sendNotificationOnStatusQueue(emailPresaInCaricoInfo, ERROR)
+                                            .flatMap(sendMessageResponse -> deleteFromErrorQueue(message));
                                 }
                                 return Mono.empty();
                             });
 
                 }).onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", emailSqsQueueName.errorName());
-                    return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                           createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
-                                                                                    DELETED.getStatusTransactionTableCompliant(),
-                                                                                    new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto())))
-                                     .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
-                                                                                                       emailSqsQueueName.errorName()));
-
-
-                }).onErrorResume(throwable -> {
-                    log.error(GENERIC_ERROR, throwable);
-                    return Mono.empty();
-                });
+                    return sendNotificationOnStatusQueue(emailPresaInCaricoInfo, DELETED).flatMap(sendMessageResponse -> deleteFromErrorQueue(message));
+                }).onErrorResume(internalError -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo, INTERNAL_ERROR)
+                        .then(deleteFromErrorQueue(message)));
     }
+
 
     private GeneratedMessageDto createGeneratedMessageDto(SendRawEmailResponse publishResponse) {
         return new GeneratedMessageDto().id(publishResponse.messageId()).system("toBeDefined");
     }
+    @Override
+    protected Mono<DeleteMessageResponse> deleteFromErrorQueue(Message message) {
+        return sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName());
+    }
+    @Override
+    protected Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, Status status)
+    {
+        return sqsService.send(notificationTrackerSqsName.statoEmailName(),
+                        createNotificationTrackerQueueDtoDigital(presaInCaricoInfo,
+                                status.getStatusTransactionTableCompliant(),
+                                new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto())));
+    }
 
+    @Override
+    protected Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return sqsService.send(emailSqsQueueName.errorName(), presaInCaricoInfo);
+    }
+
+    private Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, Status status, GeneratedMessageDto generatedMessageDto)
+    {
+        return sqsService.send(notificationTrackerSqsName.statoEmailName(),
+                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo,
+                        status.getStatusTransactionTableCompliant(),
+                        new DigitalProgressStatusDto().generatedMessage(generatedMessageDto)));
+    }
 
 }

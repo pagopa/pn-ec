@@ -15,6 +15,7 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
@@ -51,7 +52,7 @@ class CartaceoRetryTest {
     @MockBean
     PaperMessageCall paperMessageCall;
 
-    @MockBean
+    @SpyBean
     SqsService sqsService;
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
@@ -125,8 +126,8 @@ class CartaceoRetryTest {
         // Mock di una generica putRequest.
         when(paperMessageCall.putRequest(any(org.openapitools.client.model.PaperEngageRequest.class))).thenReturn(Mono.just(new org.openapitools.client.model.OperationResultCodeResponse().resultCode("200.00")));
 
-        // Mock della pubblicazione di una generica notifica sulla coda dello stato cartaceo.
-        when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.just(SendMessageResponse.builder().build()));
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO, message);
         StepVerifier.create(response).expectNext();
@@ -137,6 +138,7 @@ class CartaceoRetryTest {
         verify(gestoreRepositoryCall, times(1)).patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class));
         verify(paperMessageCall, times(1)).putRequest(any(org.openapitools.client.model.PaperEngageRequest.class));
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class));
+        verify(sqsService, times(1)).deleteMessageFromQueue(any(Message.class), eq(cartaceoSqsQueueName.errorName()));
 
     }
 
