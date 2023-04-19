@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.commons.model.pojo.request;
 
+import it.pagopa.pn.ec.rest.v1.dto.GeneratedMessageDto;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,9 +13,8 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 @Data
-public class PresaInCaricoInfo {
+public class StepError {
 
-    String requestIdx;
-    String xPagopaExtchCxId;
-    StepError stepError;
+    String notificationTrackerError;
+    GeneratedMessageDto generatedMessageDto;
 }
