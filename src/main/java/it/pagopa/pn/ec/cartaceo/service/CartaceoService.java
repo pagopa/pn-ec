@@ -12,6 +12,7 @@ import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.policy.Policy;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
+import it.pagopa.pn.ec.commons.service.AttachmentService;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.SqsService;
@@ -46,7 +47,7 @@ public class CartaceoService extends PresaInCaricoService {
 
     private final SqsService sqsService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
-    private final AttachmentServiceImpl attachmentService;
+    private final AttachmentService attachmentService;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final CartaceoSqsQueueName cartaceoSqsQueueName;
     private final PaperMessageCall paperMessageCall;
@@ -246,8 +247,10 @@ public class CartaceoService extends PresaInCaricoService {
                 // The maximum number of retries has ended
                 .onErrorResume(CartaceoSendException.CartaceoMaxRetriesExceededException.class//
                         , cartaceoMaxRetriesExceeded ->
+                        {
+                            log.info("---> CartaceMaxRetriesExceededException <---");
 
-                                sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+                               return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
                                                 createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
                                                         RETRY.getStatusTransactionTableCompliant(),
                                                         new PaperProgressStatusDto()))
@@ -255,9 +258,15 @@ public class CartaceoService extends PresaInCaricoService {
                                         // Publish to ERRORI PAPER queue
                                         .then(sqsService.send(cartaceoSqsQueueName.errorName(),
                                                 cartaceoPresaInCaricoInfo))
-
-                );
-
+                                       .onErrorResume(throwable ->
+                                       {
+                                           log.error("INTERNAL ERROR ---> {}", throwable.getMessage());
+                                           return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+                                                   createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
+                                                           INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                                                           new PaperProgressStatusDto()));
+                                       });
+                        });
     }
 
     @Scheduled(cron = "${cron.value.gestione-retry-cartaceo}")
@@ -411,5 +420,17 @@ public class CartaceoService extends PresaInCaricoService {
                             .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
                                     cartaceoSqsQueueName.errorName()));
                 });
+//                .onErrorResume(throwable ->
+//                        {
+//                            log.error("INTERNAL ERROR -> {}", throwable.getMessage());
+//                            return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+//                                    createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
+//                                            INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+//                                            //TODO object paper
+//                                            new PaperProgressStatusDto()))
+//                                    .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
+//                                    cartaceoSqsQueueName.errorName()));
+//                        }
+//                );
     }
 }

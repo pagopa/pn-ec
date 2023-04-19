@@ -192,7 +192,15 @@ public class SmsService extends PresaInCaricoService {
 
 //                                                                         Publish to ERRORI SMS queue
                                                                            .then(sqsService.send(smsSqsQueueName.errorName(),
-                                                                                                 smsPresaInCaricoInfo)));
+                                                                                                 smsPresaInCaricoInfo)))
+                .onErrorResume(throwable ->
+                {
+                    log.error("Internal Error ---> {}", throwable.getMessage());
+                    return sqsService.send(notificationTrackerSqsName.statoSmsName(),
+                            createNotificationTrackerQueueDtoDigital(smsPresaInCaricoInfo,
+                                    INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                                    new DigitalProgressStatusDto()));
+                });
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(PublishResponse publishResponse) {
@@ -343,6 +351,11 @@ public class SmsService extends PresaInCaricoService {
 
                                     }).onErrorResume(throwable -> {
                     log.error(throwable.getMessage());
+                    sqsService.send(notificationTrackerSqsName.statoSmsName(),
+                            createNotificationTrackerQueueDtoDigital(smsPresaInCaricoInfo,
+                            INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                            new DigitalProgressStatusDto().generatedMessage(
+                                    new GeneratedMessageDto())));
                     return Mono.empty();
                 });
     }

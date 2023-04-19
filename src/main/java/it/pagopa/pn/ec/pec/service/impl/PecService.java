@@ -256,7 +256,16 @@ public class PecService extends PresaInCaricoService {
 
 //                                                                    Publish to ERRORI PEC queue
                                                                       .then(sqsService.send(pecSqsQueueName.errorName(),
-                                                                                            pecPresaInCaricoInfo)));
+                                                                                            pecPresaInCaricoInfo))
+                                                .onErrorResume(internalError -> {
+                                                    log.error("Internal Error ---> {}", internalError.getMessage());
+                                                    return sqsService.send(notificationTrackerSqsName.statoPecName(),
+                                                            createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
+                                                                    RETRY.getStatusTransactionTableCompliant(),
+                                                                    new DigitalProgressStatusDto()));
+
+                                                })
+                                );
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(SendMailResponse sendMailResponse) {

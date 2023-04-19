@@ -24,6 +24,7 @@ import org.openapitools.client.model.OperationResultCodeResponse;
 import org.openapitools.client.model.PaperEngageRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import reactor.test.StepVerifierOptions;
@@ -32,8 +33,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.util.Objects;
 
-import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
-import static it.pagopa.pn.ec.commons.constant.Status.RETRY;
+import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.OK_CODE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.SYNTAX_ERROR_CODE;
@@ -52,16 +52,12 @@ class CartaceoServiceTest {
     private CartaceoService cartaceoService;
     @Autowired
     private CartaceoMapper cartaceoMapper;
-
     @MockBean
     private PaperMessageCall paperMessageCall;
-
     @MockBean
     private GestoreRepositoryCall gestoreRepositoryCall;
-
-    @MockBean
+    @SpyBean
     private SqsService sqsService;
-
     @Autowired
     private CartaceoSqsQueueName cartaceoSqsQueueName;
 
@@ -101,11 +97,6 @@ class CartaceoServiceTest {
         when(paperMessageCall.putRequest(any()))
                 .thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
 
-        // Mock della pubblicazione di una generica notifica sulla coda dello stato cartaceo.
-        when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class)))//
-                .thenReturn(Mono.just(SendMessageResponse.builder().build()));
-
-
         Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
         StepVerifier.create(lavorazioneRichiesta).expectNext();
         lavorazioneRichiesta.block();
@@ -144,14 +135,6 @@ class CartaceoServiceTest {
         when(paperMessageCall.putRequest(any(PaperEngageRequest.class)))
                 .thenReturn(Mono.error(new RestCallException.ResourceAlreadyInProgressException()));
 
-        // Mock della pubblicazione della notifica di un errore sulla coda degli errori cartaceo.
-        when(sqsService.send(eq(cartaceoSqsQueueName.errorName()), any(CartaceoPresaInCaricoInfo.class)))
-                .thenReturn(Mono.just(SendMessageResponse.builder().build()));
-
-        // Mock della pubblicazione di una generica notifica sulla coda dello stato cartaceo.
-        when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName())
-                , any(NotificationTrackerQueueDto.class))).thenReturn(Mono.just(SendMessageResponse.builder().build()));
-
         Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
         StepVerifier.create(lavorazioneRichiesta).expectNext();
         lavorazioneRichiesta.block();
@@ -169,6 +152,51 @@ class CartaceoServiceTest {
                 .send(eq(cartaceoSqsQueueName.errorName()), any(CartaceoPresaInCaricoInfo.class));
 
 	}
+
+    @Test
+    void lavorazioneRichiestaInternalError() {
+
+        var internalErrorException = new RuntimeException("INTERNAL ERROR!");
+
+        // Mock di una generica getRichiesta.
+        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));
+
+        // Mock di una generica putRequest.
+        when(paperMessageCall.putRequest(any(PaperEngageRequest.class)))
+                .thenReturn(Mono.error(new RestCallException.ResourceAlreadyInProgressException()));
+
+        // Mock della pubblicazione della notifica di un errore sulla coda degli errori cartaceo.
+        when(sqsService.send(eq(cartaceoSqsQueueName.errorName()), any(CartaceoPresaInCaricoInfo.class)))
+                .thenReturn(Mono.error(internalErrorException));
+
+//        // Mock della pubblicazione di una generica notifica sulla coda dello stato cartaceo.
+//        when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName())
+//                , any(NotificationTrackerQueueDto.class))).thenReturn(Mono.just(SendMessageResponse.builder().build()));
+
+        Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(lavorazioneRichiesta).expectNext();
+        lavorazioneRichiesta.block();
+
+        // Verifica che sia stata eseguita la chiamata al gestore repository.
+        verify(gestoreRepositoryCall, times(1))
+                .getRichiesta(any(), any());
+
+        // Verifica che sia stata eseguita la chiamata a paperMessageCall.
+        verify(paperMessageCall, times(1))
+                .putRequest(any());
+
+        // Verifica che sia stata eseguita la chiamata all'sqsService per pubblicare sulla coda l'errore.
+//        verify(sqsService, times(1))
+//                .send(eq(cartaceoSqsQueueName.errorName()), any(CartaceoPresaInCaricoInfo.class));
+
+        // Verifica che sia stata eseguita DUE VOLTE la chiamata all'sqsService per pubblicare sulla coda dello stato cartaceo.
+        verify(sqsService, times(1))
+                .send(eq(notificationTrackerSqsName.statoCartaceoName())
+                        , eq(createNotificationTrackerQueueDtoPaper(CARTACEO_PRESA_IN_CARICO_INFO,
+                                INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                                new PaperProgressStatusDto())));
+
+    }
 
     /**
      * <h3>CRCLR.100.3</h3>
