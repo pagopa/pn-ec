@@ -462,6 +462,10 @@ Parameters:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriCARTACEO'
     Type: String
 
+  PnEcConsolidatoreBaseURL:
+    Description: 'Base URL per accesso ai servizi del consolidatore'
+    Type: String
+    
 Resources:
 
   # PN-TemplateBeMs microservice
@@ -505,7 +509,7 @@ Resources:
         ContainerEnvEntry35: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry36: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry37: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry38: !Sub 'ConsolidatoreBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry38: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
         ECSClusterName: !Ref ECSClusterName
         Subnets: !Ref SubnetsIds

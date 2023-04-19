@@ -1,5 +1,6 @@
 {
   "Parameters": {
-    "PnEcIdentityPec":"pn/identity/pec"
+    "PnEcIdentityPec":"pn/identity/pec",
+    "PnEcConsolidatoreBaseURL":"http://internal-pn-in-Appli-W4JQG2LOHGXX-1267308714.eu-central-1.elb.amazonaws.com:8080"
   }
 }
