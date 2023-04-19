@@ -26,6 +26,7 @@ class SendPaperTest {
 		
 		RichiestaImpegnoCartaceo richImpCart = new RichiestaImpegnoCartaceo();
 		richImpCart.setPapEngReq(new PaperEngageRequest());
+
 		AllegatiImpegnoRichiestaCartaceo allImpRichCart1 = new AllegatiImpegnoRichiestaCartaceo();
 		allImpRichCart1.setPapEngReqAtt(new PaperEngageRequestAttachments());
 		allImpRichCart1.papEngReqAtt.setUri("https://www.eng.it/resources/whitepaper/doc/blockchain/Blockchain_whitepaper_it.pdf");
