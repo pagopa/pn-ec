@@ -35,6 +35,7 @@ import java.util.Objects;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
+import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.commons.service.SnsService.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromMonoUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
@@ -54,8 +55,6 @@ public class SmsService extends PresaInCaricoService {
     private final NotificationTrackerSqsName notificationTrackerSqsName;
 
     private String idSaved;
-    private static final String STEP_ERROR = "step_error";
-
 
     protected SmsService(AuthService authService, SqsService sqsService, SnsService snsService,
                          GestoreRepositoryCall gestoreRepositoryCall, NotificationTrackerSqsName notificationTrackerSqsName,
@@ -183,7 +182,7 @@ public class SmsService extends PresaInCaricoService {
                                                                                   sqsPublishException -> {
                                                                        var stepError = new StepError();
                                                                        smsPresaInCaricoInfo.setStepError(stepError);
-                                                                       smsPresaInCaricoInfo.getStepError().setNotificationTrackerError(STEP_ERROR);
+                                                                       smsPresaInCaricoInfo.getStepError().setNotificationTrackerError(NOTIFICATION_TRACKER_STEP);
                                                                        smsPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
                                                                        return sqsService.send(smsSqsQueueName.errorName(),
                                                                                               smsPresaInCaricoInfo);
@@ -322,7 +321,7 @@ public class SmsService extends PresaInCaricoService {
                                         }
 //              check step error per evitare nuova chiamata verso sns
 //              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The SMS in sent, publish to Notification Tracker with next status -> SENT
-                                        if(Objects.equals(smsPresaInCaricoInfo.getStepError().getNotificationTrackerError(), STEP_ERROR)) {
+                                        if(Objects.equals(smsPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
                                             log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
                                             return sqsService.send(notificationTrackerSqsName.statoSmsName(),
                                                     createNotificationTrackerQueueDtoDigital(
@@ -334,7 +333,7 @@ public class SmsService extends PresaInCaricoService {
                                                         smsSqsQueueName.errorName());
                                                 return sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
                                             }).onErrorResume(sqsPublishException -> checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message));
-                                        }
+                                        } else {
 //                gestisco il caso retry a partire dall'invio a sns
                                         log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
                                         return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest()
@@ -359,6 +358,7 @@ public class SmsService extends PresaInCaricoService {
                                                             smsSqsQueueName.errorName());
                                                     return sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
                                                 }).onErrorResume(sqsPublishException -> checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message));
+                                        }
                                     })
 //              Catch errore tirato per lo stato toDelete
                                     .onErrorResume(StatusToDeleteException.class, exception -> {
