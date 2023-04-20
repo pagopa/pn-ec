@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.PaperMessagesEndpointProperties;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
-import org.openapitools.client.model.*;
+import it.pagopa.pn.ec.rest.v1.dto.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;

@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.cartaceo.service;
 
+import com.google.gson.stream.MalformedJsonException;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
@@ -78,6 +79,10 @@ public class CartaceoService extends PresaInCaricoService {
         List<String> attachmentsUri = getPaperUri(cartaceoPresaInCaricoInfo.getPaperEngageRequest().getAttachments());
         var paperNotificationRequest = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
         paperNotificationRequest.setRequestId(cartaceoPresaInCaricoInfo.getRequestIdx());
+
+        if(presaInCaricoInfo.getRequestIdx().length() < 30 || presaInCaricoInfo.getRequestIdx().length() > 250){
+
+        }
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(attachmentsUri, presaInCaricoInfo.getXPagopaExtchCxId(), true)
                 .then(insertRequestFromCartaceo(paperNotificationRequest,
@@ -195,7 +200,7 @@ public class CartaceoService extends PresaInCaricoService {
                 cartaceoPresaInCaricoInfo.getXPagopaExtchCxId());
 
         var paperEngageRequestSrc = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
-        var paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
+        PaperEngageRequest paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
 
         return gestoreRepositoryCall.getRichiesta(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(),
                         cartaceoPresaInCaricoInfo.getRequestIdx()).flatMap(requestDto ->

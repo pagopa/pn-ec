@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.spedizionedocumenticartacei;
 
-import org.openapitools.client.model.PaperProgressStatusEventAttachments;
+
+import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusEventAttachments;
 
 public class AllegatiProgressivoStatoRichiestaCartacea {
 
