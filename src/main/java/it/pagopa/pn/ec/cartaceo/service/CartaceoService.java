@@ -201,65 +201,65 @@ public class CartaceoService extends PresaInCaricoService {
         var paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
 
         return gestoreRepositoryCall.getRichiesta(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(),
-                                                  cartaceoPresaInCaricoInfo.getRequestIdx()).flatMap(requestDto ->
-                                                                                                             // Try to send PAPER
-                                                                                                             paperMessageCall.putRequest(
-                                                                                                                                     paperEngageRequestDst)
-                                                                                                                             .retryWhen(
-                                                                                                                                     DEFAULT_RETRY_STRATEGY)
-                                                                                                                             // The PAPER
-                                                                                                                             // in sent,
-                                                                                                                             // publish
-                                                                                                                             // to
-                                                                                                                             // Notification Tracker with next status ->
-                                                                                                                             // SENT
-                                                                                                                             .flatMap(
-                                                                                                                                     operationResultCodeResponse -> sqsService.send(
-                                                                                                                                                                                      notificationTrackerSqsName.statoCartaceoName(),
-                                                                                                                                                                                      createNotificationTrackerQueueDtoPaper(
-                                                                                                                                                                                              cartaceoPresaInCaricoInfo,
-                                                                                                                                                                                              CODE_TO_STATUS_MAP.get(
-                                                                                                                                                                                                      operationResultCodeResponse.getResultCode())
-                                                                                                                                                                                              //TODO
-                                                                                                                                                                                              // object
-                                                                                                                                                                                              // paper
-                                                                                                                                                                                              ,
-                                                                                                                                                                                              new PaperProgressStatusDto()))
+                        cartaceoPresaInCaricoInfo.getRequestIdx()).flatMap(requestDto ->
+                        // Try to send PAPER
+                        paperMessageCall.putRequest(
+                                        paperEngageRequestDst)
+                                .retryWhen(
+                                        DEFAULT_RETRY_STRATEGY)
+                                // The PAPER
+                                // in sent,
+                                // publish
+                                // to
+                                // Notification Tracker with next status ->
+                                // SENT
+                                .flatMap(
+                                        operationResultCodeResponse -> sqsService.send(
+                                                        notificationTrackerSqsName.statoCartaceoName(),
+                                                        createNotificationTrackerQueueDtoPaper(
+                                                                cartaceoPresaInCaricoInfo,
+                                                                CODE_TO_STATUS_MAP.get(
+                                                                        operationResultCodeResponse.getResultCode())
+                                                                //TODO
+                                                                // object
+                                                                // paper
+                                                                ,
+                                                                new PaperProgressStatusDto()))
 
-                                                                                                                                                                              // An error occurred
-                                                                                                                                                                              // during PAPER send,
-                                                                                                                                                                              // start retries
-                                                                                                                                                                              .retryWhen(
-                                                                                                                                                                                      DEFAULT_RETRY_STRATEGY)
+                                                // An error occurred
+                                                // during PAPER send,
+                                                // start retries
+                                                .retryWhen(
+                                                        DEFAULT_RETRY_STRATEGY)
 
-                                                                                                                                                                              // An error occurred
-                                                                                                                                                                              // during SQS publishing
-                                                                                                                                                                              // to the Notification
-                                                                                                                                                                              // Tracker -> Publish to
-                                                                                                                                                                              // ERRORI PAPER queue and
-                                                                                                                                                                              // notify to retry
-                                                                                                                                                                              // update status only
-                                                                                                                                                                              // TODO: CHANGE THE PAYLOAD
-                                                                                                                                                                              .onErrorResume(
-                                                                                                                                                                                      throwable -> sqsService.send(
-                                                                                                                                                                                              cartaceoSqsQueueName.errorName(),
-                                                                                                                                                                                              cartaceoPresaInCaricoInfo))
+                                                // An error occurred
+                                                // during SQS publishing
+                                                // to the Notification
+                                                // Tracker -> Publish to
+                                                // ERRORI PAPER queue and
+                                                // notify to retry
+                                                // update status only
+                                                // TODO: CHANGE THE PAYLOAD
+                                                .onErrorResume(
+                                                        throwable -> sqsService.send(
+                                                                cartaceoSqsQueueName.errorName(),
+                                                                cartaceoPresaInCaricoInfo))
 
-                                                                                                                                     ))
-                                    // The maximum number of retries has ended
-                                    .onErrorResume(CartaceoSendException.CartaceoMaxRetriesExceededException.class//
-                                            , cartaceoMaxRetriesExceeded ->
+                                ))
+                // The maximum number of retries has ended
+                .onErrorResume(CartaceoSendException.CartaceoMaxRetriesExceededException.class//
+                        , cartaceoMaxRetriesExceeded ->
 
-                                                           sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
-                                                                           createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
-                                                                                                                  RETRY.getStatusTransactionTableCompliant(),
-                                                                                                                  new PaperProgressStatusDto()))
+                                sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+                                                createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
+                                                        RETRY.getStatusTransactionTableCompliant(),
+                                                        new PaperProgressStatusDto()))
 
-                                                                     // Publish to ERRORI PAPER queue
-                                                                     .then(sqsService.send(cartaceoSqsQueueName.errorName(),
-                                                                                           cartaceoPresaInCaricoInfo))
+                                        // Publish to ERRORI PAPER queue
+                                        .then(sqsService.send(cartaceoSqsQueueName.errorName(),
+                                                cartaceoPresaInCaricoInfo))
 
-                                                  );
+                );
 
     }
 

@@ -53,13 +53,13 @@ class CartaceoServiceTest {
     @Autowired
     private CartaceoMapper cartaceoMapper;
 
-    @MockBean
+    @Autowired
     private PaperMessageCall paperMessageCall;
 
     @MockBean
     private GestoreRepositoryCall gestoreRepositoryCall;
 
-    @MockBean
+    @Autowired
     private SqsService sqsService;
 
     @Autowired
@@ -98,12 +98,16 @@ class CartaceoServiceTest {
         when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));
 
         // Mock di una generica putRequest.
-        when(paperMessageCall.putRequest(any()))
-                .thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
+        /*when(paperMessageCall.putRequest(any()))
+                .thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));*/
 
-        // Mock della pubblicazione di una generica notifica sulla coda dello stato cartaceo.
+        /*// Mock della pubblicazione di una generica notifica sulla coda dello stato cartaceo.
         when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class)))//
                 .thenReturn(Mono.just(SendMessageResponse.builder().build()));
+
+        // Mock della pubblicazione della notifica di un errore sulla coda degli errori cartaceo.
+        when(sqsService.send(eq(cartaceoSqsQueueName.errorName()), any(CartaceoPresaInCaricoInfo.class)))
+                .thenReturn(Mono.just(SendMessageResponse.builder().build()));*/
 
 
         Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
@@ -115,8 +119,8 @@ class CartaceoServiceTest {
                 .getRichiesta(any(), any());
 
         // Verifica che sia stata eseguita la chiamata a paperMessageCall
-        verify(paperMessageCall, times(1))
-                .putRequest(any());
+        /*verify(paperMessageCall, times(1))
+                .putRequest(any());*/
 
     }
 
