@@ -279,6 +279,8 @@ components:
     RequestMetadataDto:
       type: object
       properties:
+        requestHash:
+          type: string
         digitalRequestMetadata:
           $ref: './schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestMetadataDto'
         paperRequestMetadata:
