@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Objects;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
+import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper;
 import static it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromMonoUntilIsEmpty;
@@ -97,22 +98,15 @@ public class CartaceoService extends PresaInCaricoService {
                         sqsService.send(cartaceoSqsQueueName.batchName(),
                                 cartaceoPresaInCaricoInfo)
                 )
+                .onErrorResume(internalError->
+                {
+                    log.error("Internal Error ---> {}", internalError.getMessage());
+                    return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+                            createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
+                                    INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                                    new PaperProgressStatusDto()));
+                })
                 .then();
-    }
-
-    @Override
-    protected Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, Status status) {
-        return null;
-    }
-
-    @Override
-    protected Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return null;
-    }
-
-    @Override
-    protected Mono<DeleteMessageResponse> deleteFromErrorQueue(Message message) {
-        return null;
     }
 
     private ArrayList<String> getPaperUri(List<PaperEngageRequestAttachments> paperEngageRequestAttachments) {
@@ -274,17 +268,7 @@ public class CartaceoService extends PresaInCaricoService {
                                         // Publish to ERRORI PAPER queue
                                         .then(sqsService.send(cartaceoSqsQueueName.errorName(),
                                                 cartaceoPresaInCaricoInfo));
-                        })
-                .onErrorResume(throwable ->
-                {
-                    log.error("INTERNAL ERROR ---> {}", throwable.getMessage());
-                    return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
-                                    createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
-                                            INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                            new PaperProgressStatusDto()))
-                            .then(sqsService.send(cartaceoSqsQueueName.errorName(),
-                                    cartaceoPresaInCaricoInfo));
-                });
+                        });
     }
 
     @Scheduled(cron = "${cron.value.gestione-retry-cartaceo}")
@@ -430,26 +414,33 @@ public class CartaceoService extends PresaInCaricoService {
                 .onErrorResume(StatusToDeleteException.class, exception -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}",
                             cartaceoSqsQueueName.errorName());
-                    return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
-                                    createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
-                                            ERROR.getStatusTransactionTableCompliant(),
-                                            //TODO object paper
-                                            new PaperProgressStatusDto()))
-                            .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
-                                    cartaceoSqsQueueName.errorName()));
+                    return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, ERROR, new DigitalProgressStatusDto())
+                            .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 })
                 //Catch errore interno, pubblicazione sul notification tracker ed eliminazione dalla coda di errore.
                 .onErrorResume(throwable ->
                         {
                             log.error("Internal Error -> {}", throwable.getMessage());
-                            return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
-                                    createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
-                                            INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                            //TODO object paper
-                                            new PaperProgressStatusDto()))
-                                    .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
-                                    cartaceoSqsQueueName.errorName()));
-                        }
-                );
+                            return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, INTERNAL_ERROR, new DigitalProgressStatusDto())
+                                    .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
+                        });
     }
+
+    @Override
+    protected Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return sqsService.send(cartaceoSqsQueueName.errorName(), presaInCaricoInfo);
+    }
+
+    @Override
+    protected Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, Status status, DigitalProgressStatusDto digitalProgressStatusDto) {
+        return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo,
+                        status.getStatusTransactionTableCompliant(),
+                        digitalProgressStatusDto));
+    }
+    @Override
+    protected Mono<DeleteMessageResponse> deleteMessageFromErrorQueue(Message message) {
+        return sqsService.deleteMessageFromQueue(message, cartaceoSqsQueueName.errorName());
+    }
+
 }

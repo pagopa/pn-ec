@@ -267,7 +267,9 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 				log.debug(LOG_PUB_LABEL + "paperProgressStatusDto = {}", paperProgressStatusDto);
 
-	 			return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+				//TODO
+				// NOTIFICA INTERNAL ERROR GIA' GESTITA?
+				return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
 	 								   NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(
 	 										   presaInCaricoInfo,
 	 										   paperProgressStatusDto.getStatusCode(),
@@ -277,6 +279,8 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			.onErrorResume(SqsClientException.class, throwable -> {
 	    		 log.debug("RicezioneEsitiCartaceoServiceImpl.pubblicaEsitoCodaNotificationTracker() : errore pubblicazione coda : message = {} :",
 	    				   throwable.getMessage(), throwable);
+				//TODO
+				// NOTIFICA INTERNAL ERROR?
 	    		 return Mono.just(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
 	    				 										 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
 	    				 										 List.of(throwable.getMessage())));
@@ -284,6 +288,8 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			.onErrorResume(RuntimeException.class, throwable -> {
 	    		 log.error("RicezioneEsitiCartaceoServiceImpl.pubblicaEsitoCodaNotificationTracker() : errore generico : message = {} :",
 	    				   throwable.getMessage(), throwable);
+				 //TODO
+				 // NOTIFICA INTERNAL ERROR?
 	    		 return Mono.just(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
 	    				 										 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
 	    				 										 List.of(throwable.getMessage())));

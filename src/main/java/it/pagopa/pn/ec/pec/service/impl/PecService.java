@@ -118,21 +118,6 @@ public class PecService extends PresaInCaricoService {
                                                                  })).then();
     }
 
-    @Override
-    protected Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, Status status) {
-        return null;
-    }
-
-    @Override
-    protected Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return null;
-    }
-
-    @Override
-    protected Mono<DeleteMessageResponse> deleteFromErrorQueue(Message message) {
-        return null;
-    }
-
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromPec(final DigitalNotificationRequest digitalNotificationRequest, String xPagopaExtchCxId) {
         log.info("<-- START insertRequestFromPec --> richiesta: {}", digitalNotificationRequest.getRequestId());
@@ -491,6 +476,23 @@ public class PecService extends PresaInCaricoService {
                                 .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
                                         pecSqsQueueName.errorName()));
                     });
+    }
+
+    @Override
+    protected Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, Status status, DigitalProgressStatusDto digitalProgressStatusDto) {
+        return sqsService.send(notificationTrackerSqsName.statoPecName(),
+                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo,
+                        status.getStatusTransactionTableCompliant(),
+                        digitalProgressStatusDto));
+    }
+    @Override
+    protected Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return sqsService.send(pecSqsQueueName.errorName(), presaInCaricoInfo);
+    }
+
+    @Override
+    protected Mono<DeleteMessageResponse> deleteMessageFromErrorQueue(Message message) {
+        return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName());
     }
 
 }
