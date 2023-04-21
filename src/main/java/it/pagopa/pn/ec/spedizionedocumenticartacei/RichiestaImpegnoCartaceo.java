@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.spedizionedocumenticartacei;
 
-import org.openapitools.client.model.PaperEngageRequest;
+
+import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest;
 
 public class RichiestaImpegnoCartaceo {
 	

@@ -1,9 +1,10 @@
 package it.pagopa.pn.ec.spedizionedocumenticartacei;
 
+import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest;
+import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequestAttachments;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.openapitools.client.model.PaperEngageRequest;
-import org.openapitools.client.model.PaperEngageRequestAttachments;
+
 
 
 import java.math.BigDecimal;

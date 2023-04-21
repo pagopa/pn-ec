@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.spedizionedocumenticartacei;
 
-import org.openapitools.client.model.OperationResultCodeResponse;
+
+import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 
 public class RisultatoCodiceRisposta {
 
