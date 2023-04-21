@@ -501,8 +501,6 @@ components:
       properties:
         iun: 
           type: string
-          minLength: 10 
-          maxLength: 50
           example: 'ABCD-HILM-YKWX-202202-1'
           description: >-
             Identificativo Unico della Notifica. Può essere usato per migliorare il servizio 

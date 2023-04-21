@@ -29,7 +29,7 @@ class ClientConfigurationControllerTest {
     @Autowired
     private GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties;
 
-    private static final String DEFAULT_ID = "AAA";
+    private static final String DEFAULT_ID = "AAA12345678";
     private static ClientConfigurationDto clientConfigurationDto;
 
     private static DynamoDbTable<ClientConfiguration> dynamoDbTable;
@@ -59,7 +59,7 @@ class ClientConfigurationControllerTest {
     //test.100.1
     @Test
     void insertClientTestSuccess() {
-        clientConfigurationDto.setxPagopaExtchCxId("newId");
+        clientConfigurationDto.setxPagopaExtchCxId("newId12345678");
         webClient.post()
                  .uri(gestoreRepositoryEndpointProperties.postClientConfiguration())
                  .accept(APPLICATION_JSON)
