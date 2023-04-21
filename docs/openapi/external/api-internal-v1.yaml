@@ -408,8 +408,6 @@ components:
       properties:
         xPagopaExtchCxId:
           type: string
-          minLength: 10
-          maxLength: 50
           pattern: '^(?!\s*$).+'
         sqsArn:
           type: string
