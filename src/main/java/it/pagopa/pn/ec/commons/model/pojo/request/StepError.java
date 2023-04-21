@@ -9,7 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
-import org.openapitools.client.model.OperationResultCodeResponse;
+import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
