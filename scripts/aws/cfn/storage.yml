@@ -34,6 +34,7 @@ Resources:
   PnEcTableAnagrafica:
     Type: AWS::DynamoDB::Table
     Properties:
+      TableName: 'pn-EcAnagrafica'
       AttributeDefinitions:
         - AttributeName: 'cxId'
           AttributeType: 'S'
@@ -53,6 +54,7 @@ Resources:
   PnEcTableRichieste:
     Type: AWS::DynamoDB::Table
     Properties:
+      TableName: 'pn-EcRichieste'
       AttributeDefinitions:
         - AttributeName: 'requestId'
           AttributeType: 'S'
@@ -72,6 +74,7 @@ Resources:
   PnEcTableRichiesteMetadati:
     Type: AWS::DynamoDB::Table
     Properties:
+      TableName: 'pn-EcRichiesteMetadati'
       AttributeDefinitions:
         - AttributeName: 'requestId'
           AttributeType: 'S'
