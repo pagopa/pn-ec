@@ -61,7 +61,7 @@ public class CartaceoService extends PresaInCaricoService {
                               GestoreRepositoryCall gestoreRepositoryCall1, AttachmentServiceImpl attachmentService,
                               NotificationTrackerSqsName notificationTrackerSqsName, CartaceoSqsQueueName cartaceoSqsQueueName,
                               PaperMessageCall paperMessageCall, CartaceoMapper cartaceoMapper) {
-        super(authService, gestoreRepositoryCall);
+        super(authService);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall1;
         this.attachmentService = attachmentService;

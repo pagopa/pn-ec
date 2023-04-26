@@ -72,7 +72,7 @@ public class PecService extends PresaInCaricoService {
     protected PecService(AuthService authService, ArubaCall arubaCall, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
             , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, ArubaSecretValue arubaSecretValue,
                          NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName) {
-        super(authService, gestoreRepositoryCall);
+        super(authService);
         this.arubaCall = arubaCall;
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;

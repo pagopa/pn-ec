@@ -79,7 +79,7 @@ public class EmailService extends PresaInCaricoService {
             , EmailSqsQueueName emailSqsQueueName//
             , DownloadCall downloadCall//
                           ) {
-        super(authService, gestoreRepositoryCall);
+        super(authService);
         this.sqsService = sqsService;
         this.sesService = sesService;
         this.gestoreRepositoryCall = gestoreRepositoryCall1;

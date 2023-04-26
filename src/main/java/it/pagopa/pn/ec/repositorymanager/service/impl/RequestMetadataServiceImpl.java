@@ -63,7 +63,11 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     @Override
     public Mono<RequestMetadata> insertRequestMetadata(RequestMetadata requestMetadata) {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestMetadata.getRequestId())))
-                   .flatMap(foundedRequest -> Mono.error(new RepositoryManagerException.IdRequestAlreadyPresent(requestMetadata.getRequestId())))
+                   .handle((foundedRequest, sink) -> {
+                       if (requestMetadata.getRequestHash().equals(foundedRequest.getRequestHash())) {
+                           sink.error(new RepositoryManagerException.IdRequestAlreadyPresent(requestMetadata.getRequestId()));
+                       }
+                   })
                    .defaultIfEmpty(requestMetadata)
                    .flatMap(unused -> {
                        if ((requestMetadata.getDigitalRequestMetadata() != null && requestMetadata.getPaperRequestMetadata() != null) ||
@@ -131,10 +135,12 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
         return getRequestMetadata(concatRequestId)//
                                                   .doOnSuccess(retrievedRequest -> checkTipoPatchMetadata(retrievedRequest, patch))
                                                   .doOnError(RepositoryManagerException.RequestMalformedException.class,
-                                                       throwable -> log.info(throwable.getMessage()))
-                                                  .flatMap(retrieveRequestMetadata -> managePatch(concatRequestId, patch, retrieveRequestMetadata))
+                                                             throwable -> log.info(throwable.getMessage()))
+                                                  .flatMap(retrieveRequestMetadata -> managePatch(concatRequestId,
+                                                                                                  patch,
+                                                                                                  retrieveRequestMetadata))
                                                   .flatMap(requestMetadataWithPatchUpdated -> Mono.fromCompletionStage(
-                                                    requestMetadataDynamoDbTable.updateItem(requestMetadataWithPatchUpdated)))
+                                                          requestMetadataDynamoDbTable.updateItem(requestMetadataWithPatchUpdated)))
                                                   .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
     }
 
