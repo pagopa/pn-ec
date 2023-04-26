@@ -43,7 +43,4 @@ public abstract class PresaInCaricoService {
     }
     protected abstract Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo);
 
-    protected abstract Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, Status status, DigitalProgressStatusDto digitalProgressStatusDto);
-    protected abstract Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo);
-    protected abstract Mono<DeleteMessageResponse> deleteMessageFromErrorQueue(Message message);
 }
