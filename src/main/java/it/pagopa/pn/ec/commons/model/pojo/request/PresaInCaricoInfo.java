@@ -16,4 +16,5 @@ public class PresaInCaricoInfo {
 
     String requestIdx;
     String xPagopaExtchCxId;
+    StepError stepError;
 }

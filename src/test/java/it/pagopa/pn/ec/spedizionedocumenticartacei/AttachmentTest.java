@@ -24,7 +24,7 @@ class AttachmentTest {
 	}
 	
 //	@Test
-////	SCDA.100.2 download allegato - codice 404 - TODO come gestire url malformed?
+////	SCDA.100.2 download allegato - codice 404
 //	void downloadAttachmentFailed() {
 //		HeaderRequest hr = new HeaderRequest();
 //		hr.setXPagopaExtchServiceId(SERVICE_ID);

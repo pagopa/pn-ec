@@ -43,7 +43,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
     @Override
     public Mono<Void> handleRequestStatusChange(NotificationTrackerQueueDto notificationTrackerQueueDto, String processId,
-                                                String ntStatoQueueName, String ntStatoDlQueueName, Acknowledgment acknowledgment) {
+                                                String ntStatoQueueName, String ntStatoErroreQueueName, Acknowledgment acknowledgment) {
         var nextStatus = notificationTrackerQueueDto.getNextStatus();
         var xPagopaExtchCxId = notificationTrackerQueueDto.getXPagopaExtchCxId();
 
@@ -131,7 +131,6 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                             paperProgressEvent.setProductType(paperRequest.getProductType());
                                             paperProgressEvent.setIun(paperRequest.getIun());
                                             paperProgressEvent.setStatusCode(objects.getT1().getLogicStatus());
-                                            // TODO check se va bene per il cartaceo questo stato esterno
                                             paperProgressEvent.setStatusDescription(objects.getT1().getExternalStatus());
                                             paperProgressEvent.setStatusDateTime(lastEventUpdatedPaper.getStatusDateTime());
                                             paperProgressEvent.setDeliveryFailureCause(lastEventUpdatedPaper.getDeliveryFailureCause());
@@ -182,8 +181,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         if (retry < 5) {
                                             return sqsService.send(ntStatoQueueName, notificationTrackerQueueDto).then();
                                         } else {
-                                            //TODO: DLQ
-                                            return sqsService.send(ntStatoDlQueueName, notificationTrackerQueueDto).then();
+                                            return sqsService.send(ntStatoErroreQueueName, notificationTrackerQueueDto).then();
                                         }
                                     });
     }
