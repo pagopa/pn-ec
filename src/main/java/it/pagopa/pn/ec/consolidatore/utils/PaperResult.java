@@ -46,7 +46,7 @@ public class PaperResult {
 					Map.entry(SEMANTIC_ERROR_CODE, SEMANTIC_ERROR),
 					Map.entry(AUTHENTICATION_ERROR_CODE, AUTHENTICATION_ERROR),
 					Map.entry(DUPLICATED_REQUEST_CODE, DUPLICATED_REQUEST),
-					Map.entry(OK_CODE, SENT.name())
+					Map.entry(OK_CODE, SENT.getStatusTransactionTableCompliant())
 			);
 
 

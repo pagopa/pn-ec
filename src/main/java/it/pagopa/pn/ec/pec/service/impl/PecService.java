@@ -20,6 +20,7 @@ import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
+import it.pagopa.pn.ec.commons.service.QueueOperationsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
@@ -56,7 +57,7 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.
 
 @Service
 @Slf4j
-public class PecService extends PresaInCaricoService {
+public class PecService extends PresaInCaricoService implements QueueOperationsService {
 
     private final SqsService sqsService;
     private final ArubaCall arubaCall;
@@ -99,25 +100,27 @@ public class PecService extends PresaInCaricoService {
                                 .then(insertRequestFromPec(digitalNotificationRequest,
                                                            xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException())))
 
-                                .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
-                                                                       createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
-                                                                                                                BOOKED.getStatusTransactionTableCompliant(),
-                                                                                                                new DigitalProgressStatusDto()))
+                                .flatMap(requestDto -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo, BOOKED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
 
 //                                                               Publish to PEC INTERACTIVE or PEC BATCH
                                                                  .flatMap(sendMessageResponse -> {
                                                                      DigitalNotificationRequest.QosEnum qos =
                                                                              pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
                                                                      if (qos == INTERACTIVE) {
-                                                                         return sqsService.send(pecSqsQueueName.interactiveName(),
-                                                                                                pecPresaInCaricoInfo);
+                                                                         return sendNotificationOnInteractiveQueue(pecPresaInCaricoInfo);
                                                                      } else if (qos == BATCH) {
-                                                                         return sqsService.send(pecSqsQueueName.batchName(),
-                                                                                                pecPresaInCaricoInfo);
+                                                                         return sendNotificationOnBatchQueue(pecPresaInCaricoInfo);
                                                                      } else {
                                                                          return Mono.empty();
                                                                      }
-                                                                 })).then();
+                                                                 }))
+                .onErrorResume(SqsClientException.class, sqsClientException->
+                {
+                    log.error("Internal Error ---> {}", sqsClientException.getMessage());
+                    sendNotificationOnStatusQueue(pecPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new PaperProgressStatusDto());
+                    return Mono.error(sqsClientException);
+                })
+                .then();
     }
 
     @SuppressWarnings("Duplicates")
@@ -176,7 +179,7 @@ public class PecService extends PresaInCaricoService {
 
     private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
 
-    public Mono<SendMessageResponse> lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
+    Mono<SendMessageResponse> lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
         log.info("<-- START LAVORAZIONE RICHIESTA PEC --> richiesta: {}", pecPresaInCaricoInfo.getRequestIdx());
 
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
@@ -235,11 +238,10 @@ public class PecService extends PresaInCaricoService {
                                 .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId,
                                                                                                                     requestIdx))
 
-                                .flatMap(objects -> sqsService.send(notificationTrackerSqsName.statoPecName(),
-                                                                    createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
-                                                                                                             SENT.getStatusTransactionTableCompliant(),
-                                                                                                             new DigitalProgressStatusDto().generatedMessage(
-                                                                                                                     objects.getT1())))
+                                .flatMap(objects ->
+                                        sendNotificationOnStatusQueue(pecPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(),
+                                                new DigitalProgressStatusDto().generatedMessage(
+                                                        objects.getT1()))
 
 //                                                            An error occurred during PEC send, start retries
                                                               .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
@@ -252,19 +254,14 @@ public class PecService extends PresaInCaricoService {
                                                                         pecPresaInCaricoInfo.setStepError(stepError);
                                                                         pecPresaInCaricoInfo.getStepError().setNotificationTrackerError(NOTIFICATION_TRACKER_STEP);
                                                                         pecPresaInCaricoInfo.getStepError().setGeneratedMessageDto(objects.getT1());
-                                                                        return sqsService.send(pecSqsQueueName.errorName(),
-                                                                                pecPresaInCaricoInfo);
+                                                                        return sendNotificationOnErrorQueue(pecPresaInCaricoInfo);
                                                               }))
                                 .doOnError(throwable -> log.error("An error occurred during lavorazione PEC {}", throwable.getMessage()))
 
-                                .onErrorResume(throwable -> sqsService.send(notificationTrackerSqsName.statoPecName(),
-                                                                            createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
-                                                                                                                     RETRY.getStatusTransactionTableCompliant(),
-                                                                                                                     new DigitalProgressStatusDto()))
+                                .onErrorResume(throwable -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo, RETRY.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
 
 //                                                                    Publish to ERRORI PEC queue
-                                                                      .then(sqsService.send(pecSqsQueueName.errorName(),
-                                                                                            pecPresaInCaricoInfo)));
+                                                                      .then(sendNotificationOnErrorQueue(pecPresaInCaricoInfo)));
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(SendMailResponse sendMailResponse) {
@@ -363,14 +360,9 @@ public class PecService extends PresaInCaricoService {
             // operazioni per la rimozione del messaggio
             log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: " +
                     "{}", pecSqsQueueName.errorName());
-            return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                            createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
-                                    ERROR.getStatusTransactionTableCompliant(),
-                                    new DigitalProgressStatusDto().generatedMessage(
-                                            new GeneratedMessageDto())))
-                    .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(
-                            message,
-                            pecSqsQueueName.errorName()));
+            return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, ERROR.getStatusTransactionTableCompliant(),
+                    new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
+                    .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
 
         }
         return Mono.empty();
@@ -390,14 +382,15 @@ public class PecService extends PresaInCaricoService {
 //            check step error per evitare nuova chiamata verso aruba
 //              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The PEC in sent, publish to Notification Tracker with next status -> SENT
                     if (Objects.equals(pecPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
-                        return sqsService.send(notificationTrackerSqsName.statoPecName(), createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto()))).flatMap(sendMessageResponse -> {
+                        return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto()))
+                        .flatMap(sendMessageResponse -> {
                             log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore '{}'", pecSqsQueueName.errorName());
-                            return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName());
+                            return deleteMessageFromErrorQueue(message);
                         }).onErrorResume(sqsPublishException -> checkTentativiEccessiviPec(requestIdx, requestDto, pecPresaInCaricoInfo, message));
                     } else {
-                        //                gestisco il caso retry a partire dalla gestione allegati
+                        //Gestisco il caso retry a partire dalla gestione allegati
                         log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
-//      Get attachment presigned url Flux
+                        //Get attachment presigned url Flux
                         return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls(), xPagopaExtchCxId, false).retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
                                 .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
@@ -432,9 +425,11 @@ public class PecService extends PresaInCaricoService {
 
                                 .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId, requestIdx))
 
-                                .flatMap(objects -> sqsService.send(notificationTrackerSqsName.statoPecName(), createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(objects.getT1())))).flatMap(sendMessageResponse -> {
+                                .flatMap(objects -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(objects.getT1())))
+
+                                .flatMap(sendMessageResponse -> {
                                     log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore '{}'", pecSqsQueueName.errorName());
-                                    return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName());
+                                    return deleteMessageFromErrorQueue(message);
                                 }).onErrorResume(sqsPublishException -> checkTentativiEccessiviPec(requestIdx, requestDto, pecPresaInCaricoInfo, message));
                     }
 
@@ -442,19 +437,48 @@ public class PecService extends PresaInCaricoService {
                 .onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}",
                             pecSqsQueueName.errorName());
-                    return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                    createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo,
-                                            DELETED.getStatusTransactionTableCompliant(),
-                                            new DigitalProgressStatusDto().generatedMessage(
-                                                    new GeneratedMessageDto())))
-                            .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
-                                    pecSqsQueueName.errorName()));
+                    return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
+                            DELETED.getStatusTransactionTableCompliant(),
+                            new DigitalProgressStatusDto().generatedMessage(
+                                    new GeneratedMessageDto()))
+                            .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
 
-
-                }).onErrorResume(throwable -> {
-                    log.error(throwable.getMessage());
-                    return Mono.empty();
+                })
+                .onErrorResume(internalError -> {
+                    log.error(internalError.getMessage());
+                    return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
+                            .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 });
+    }
+
+    @Override
+    public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status, DigitalProgressStatusDto digitalProgressStatusDto) {
+        return sqsService.send(notificationTrackerSqsName.statoPecName(),
+                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo,
+                        status,
+                        digitalProgressStatusDto));
+    }
+
+    @Override
+    public Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return sqsService.send(pecSqsQueueName.errorName(), presaInCaricoInfo);
+    }
+
+    @Override
+    public Mono<SendMessageResponse> sendNotificationOnBatchQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return sqsService.send(pecSqsQueueName.batchName(),
+                presaInCaricoInfo);
+    }
+
+    @Override
+    public Mono<SendMessageResponse> sendNotificationOnInteractiveQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return sqsService.send(pecSqsQueueName.interactiveName(),
+                presaInCaricoInfo);
+    }
+
+    @Override
+    public Mono<DeleteMessageResponse> deleteMessageFromErrorQueue(Message message) {
+        return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName());
     }
 
 }
