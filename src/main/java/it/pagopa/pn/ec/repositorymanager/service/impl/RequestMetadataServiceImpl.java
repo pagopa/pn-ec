@@ -64,8 +64,10 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     public Mono<RequestMetadata> insertRequestMetadata(RequestMetadata requestMetadata) {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestMetadata.getRequestId())))
                    .handle((foundedRequest, sink) -> {
-                       if (requestMetadata.getRequestHash().equals(foundedRequest.getRequestHash())) {
+                       if (!requestMetadata.getRequestHash().equals(foundedRequest.getRequestHash())) {
                            sink.error(new RepositoryManagerException.IdRequestAlreadyPresent(requestMetadata.getRequestId()));
+                       } else {
+                           sink.error(new RepositoryManagerException.RequestWithSameHash());
                        }
                    })
                    .defaultIfEmpty(requestMetadata)
@@ -79,7 +81,9 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                    })
                    .doOnError(RepositoryManagerException.IdRequestAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.error(throwable.getMessage()))
-                   .thenReturn(requestMetadata);
+                   .thenReturn(requestMetadata)
+//                  Request idempotence
+                   .onErrorResume(RepositoryManagerException.RequestWithSameHash.class, throwable -> Mono.just(requestMetadata));
     }
 
     private Mono<RequestMetadata> managePatch(String requestId, Patch patch, RequestMetadata retrieveRequestMetadata) {

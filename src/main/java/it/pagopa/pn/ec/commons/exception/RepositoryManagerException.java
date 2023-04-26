@@ -27,6 +27,8 @@ public class RepositoryManagerException extends RuntimeException {
         }
     }
 
+    public static class RequestWithSameHash extends RepositoryManagerException {}
+
     public static class IdClientNotFoundException extends RepositoryManagerException {
 
         public IdClientNotFoundException(String idClient) {
