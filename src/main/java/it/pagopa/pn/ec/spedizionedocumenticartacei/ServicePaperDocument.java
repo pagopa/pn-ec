@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.rest.v1.dto.DiscoveredAddress;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
@@ -75,28 +76,24 @@ public class ServicePaperDocument {
 		
 		OffsetDateTime odt = OffsetDateTime.now();
 
-		AllegatiProgressivoStatoRichiestaCartacea apsrc1 = new AllegatiProgressivoStatoRichiestaCartacea();
-		apsrc1.setPapProgStEvAtt(new PaperProgressStatusEventAttachments());
+		AttachmentDetails apsrc1 = new AttachmentDetails();
 		
 //		NB: interfaccia con il consolidatore
-		apsrc1.papProgStEvAtt.getId();
-		apsrc1.papProgStEvAtt.setDocumentType("AR");
-		apsrc1.papProgStEvAtt.setUri("https://www.eng.it/resources/whitepaper/doc/blockchain/Blockchain_whitepaper_it.pdf");
-		apsrc1.papProgStEvAtt.setSha256("");
-		apsrc1.papProgStEvAtt.setDate(odt);
+		apsrc1.getId();
+		apsrc1.setDocumentType("AR");
+		apsrc1.setUrl("https://www.eng.it/resources/whitepaper/doc/blockchain/Blockchain_whitepaper_it.pdf");
+		apsrc1.setDate(odt);
 		
-		AllegatiProgressivoStatoRichiestaCartacea apsrc2 = new AllegatiProgressivoStatoRichiestaCartacea();
-		apsrc2.setPapProgStEvAtt(new PaperProgressStatusEventAttachments());
+		AttachmentDetails apsrc2 = new AttachmentDetails();
 		
-		apsrc2.papProgStEvAtt.setId("2");
-		apsrc2.papProgStEvAtt.setDocumentType("AR");
-		apsrc2.papProgStEvAtt.setUri("https://assets.loescher.it/risorse/download/innovando/itastra/Scheda1_GliArticoli.pdf");
-		apsrc2.papProgStEvAtt.setSha256("");
-		apsrc2.papProgStEvAtt.setDate(odt);
+		apsrc2.setId("2");
+		apsrc2.setDocumentType("AR");
+		apsrc2.setUrl("https://assets.loescher.it/risorse/download/innovando/itastra/Scheda1_GliArticoli.pdf");
+		apsrc2.setDate(odt);
 		
-		List<PaperProgressStatusEventAttachments> attachments = new ArrayList<>();
-		attachments.add(apsrc1.papProgStEvAtt);
-		attachments.add(apsrc2.papProgStEvAtt);
+		List<AttachmentDetails> attachments = new ArrayList<>();
+		attachments.add(apsrc1);
+		attachments.add(apsrc2);
 		
 		DiscoveredAddress da = new DiscoveredAddress();
 		da.setName("Mario Rossi");
@@ -136,8 +133,14 @@ public class ServicePaperDocument {
 		
 		List<String> atUrl = new ArrayList<>();
 		
-		String s1 = getProgessStatusEvent(hr).papDelProgrResp.getEvents().get(0).getAttachments().get(0).getUri();
-		String s2 = getProgessStatusEvent(hr).papDelProgrResp.getEvents().get(0).getAttachments().get(1).getUri();
+		String s1 = getProgessStatusEvent(hr).papDelProgrResp.getEvents().get(0).getAttachments().get(0).getUrl();
+		String s2 = getProgessStatusEvent(hr)
+				.papDelProgrResp
+				.getEvents()
+				.get(0)
+				.getAttachments()
+				.get(1)
+				.getUrl();
 		
 		atUrl.add(s1);
 		atUrl.add(s2);

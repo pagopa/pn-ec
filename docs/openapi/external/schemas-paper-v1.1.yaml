@@ -398,101 +398,85 @@ components:
           minItems: 0
           maxItems: 10
           items:
-            type: object
-            required:
-              - id
-              - documentType
-              - uri
-              - sha256
-              - date
-            properties:
-              id:
-                type: string
-                description: >-
-                  Identificativo di riga.
-                minLength: 1
-                maxLength: 10
-              documentId:
-                type: string
-                description: >-
-                  Codice postale dell'oggetto di ritorno
-              documentType:
-                type: string
-                minLength: 2
-                maxLength: 10
-                description: >-
-                  _La descrizione della tipologia di oggetto._
-                  - __23L__ <br/>
-                  - __ARCAD__ <br/>
-                  - __CAD__ <br/>
-                  - __CAN__ <br/>
-                  - __Plico__ <br/>
-                  - __Indagine__ <br/>
-                  - __AR__ <br/>
-              uri:
-                type: string
-                minLength: 5
-                maxLength: 2000
-                description: >-
-                  Le coordinate del documento correlato allo stato.
-              sha256:
-                type: string
-                minLength: 40
-                maxLength: 50
-                description: >-
-                  sha256, codificato in base 64, del contenuto del file riferenziato dal campo uri
-              date:
-                type: string
-                format: date-time
-                description: >-
-                  Data di produzione del documento.
+            $ref: '#/components/schemas/AttachmentDetails'
         discoveredAddress:
-          description: >-
-            Indirizzo del destinatario desunto dalle indagini del personale postale.
-          required:
-            - name
-            - address
-            - city
-          properties:
-            name:
-              type: string
-              description: >-
-                Cognome e nome o ragione sociale del destinatario
-            nameRow2:
-              type: string
-              description: >-
-                Seconda riga sulla busta.
-            address:
-              type: string
-              description: >-
-                Indirizzo del destinatario.
-            addressRow2:
-              type: string
-              description: >-
-                Specifica dell’indirizzo di residenza del destinatario (seconda riga indirizzo sulla busta).
-            cap:
-              type: string
-              description: >-
-                Cap del destinatario; in caso di invio estero diventa facoltativo.
-            city:
-              type: string
-              description: >-
-                Comune del destinatario.
-            city2:
-              type: string
-              description: >-
-                Frazione del destinatario. Potrebbe essere utile se il chiamante non fornisce il cap.
-            pr:
-              type: string
-              description: >-
-                Provincia del destinatario; in caso di invio estero diventa facoltativo.
-            country:
-              type: string
-              description: >-
-                In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 
-                in standard UPU o altro standard condiviso.
+            $ref: '#/components/schemas/DiscoveredAddress'
         clientRequestTimeStamp:
           type: string
           format: date-time
           description: >-
             Timestamp della richiesta in UTC
+
+
+    AttachmentDetails:
+      title: dettagli allegato a un evento del processo postale
+      type: object
+      required:
+        - id
+        - documentType
+        - url
+        - date
+      properties:
+        id:
+          type: string
+          description: >-
+            Identificativo di riga.
+        documentType:
+          type: string
+          description: >-
+            La descrizione della tipologia di oggetto.
+        url:
+          type: string
+          description: >-
+            Le coordinate del documento correlato allo stato.
+        date:
+          type: string
+          format: date-time
+          description: >-
+            Data di produzione del documento.
+
+    DiscoveredAddress:
+      description: >-
+        Indirizzo del destinatario desunto dalle indagini del personale postale.
+      required:
+        - name
+        - address
+        - city
+      properties:
+        name:
+          type: string
+          description: >-
+            Cognome e nome o ragione sociale del destinatario
+        nameRow2:
+          type: string
+          description: >-
+            Seconda riga sulla busta.
+        address:
+          type: string
+          description: >-
+            Indirizzo del destinatario.
+        addressRow2:
+          type: string
+          description: >-
+            Specifica dell’indirizzo di residenza del destinatario (seconda riga indirizzo sulla busta).
+        cap:
+          type: string
+          description: >-
+            Cap del destinatario; in caso di invio estero diventa facoltativo.
+        city:
+          type: string
+          description: >-
+            Comune del destinatario.
+        city2:
+          type: string
+          description: >-
+            Frazione del destinatario. Potrebbe essere utile se il chiamante non fornisce il cap.
+        pr:
+          type: string
+          description: >-
+            Provincia del destinatario; in caso di invio estero diventa facoltativo.
+        country:
+          type: string
+          description: >-
+            In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 
+            in standard UPU o altro standard condiviso.
