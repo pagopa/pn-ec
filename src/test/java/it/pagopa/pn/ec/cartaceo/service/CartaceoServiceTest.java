@@ -35,10 +35,10 @@ import java.util.Objects;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.OK_CODE;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.SYNTAX_ERROR_CODE;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.*;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
+import static org.mockito.AdditionalMatchers.not;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,7 +48,7 @@ import static org.mockito.Mockito.*;
 @SpringBootTestWebEnv
 class CartaceoServiceTest {
 
-    @Autowired
+    @SpyBean
     private CartaceoService cartaceoService;
     @Autowired
     private CartaceoMapper cartaceoMapper;
@@ -72,21 +72,6 @@ class CartaceoServiceTest {
             .paperEngageRequest(PaperEngageRequestFactory.createDtoPaperRequest(2)).build();
 
 
-    /**
-     * <h3>CRCLR.100.1</h3>
-     * <b>Precondizione:</b>
-     *   <ol>
-     *     <li>Pull payload from Cartaceo Queue</li>
-     *     <li>Consolidatore is up</li>
-     *     <li>Notification Tracker is up</li>
-     *   </ol>
-     *
-     * <b>Passi aggiuntivi:</b>
-     *   <ol>
-     *     <li>Send request to Consolidatore</li>
-     *   </ol>
-     * <b>Risultato atteso: </b>Posting on Notification Tracker Queue --> ok</li>
-     */
     @Test
     void lavorazioneRichiestaOk() {
 
@@ -98,100 +83,31 @@ class CartaceoServiceTest {
                 .thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
 
         Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
-        StepVerifier.create(lavorazioneRichiesta).expectNext();
-        lavorazioneRichiesta.block();
+        StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
 
-        // Verifica che sia stata eseguita la chiamata al gestore repository
-        verify(gestoreRepositoryCall, times(1))//
-                .getRichiesta(any(), any());
 
-        // Verifica che sia stata eseguita la chiamata a paperMessageCall
-        verify(paperMessageCall, times(1))
-                .putRequest(any());
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
 
     }
 
-    /**
-     * <h3>CRCLR.100.2</h3>
-     *   <b>Precondizione:</b>
-     *     <ol>
-     *       <li>Pull payload from Cartaceo Queue</li>
-     *       <li>Consolidatore is down</li>
-     *       <li>Notification Tracker is up</li>
-     *     </ol>
-     *   <b>Passi aggiuntivi:</b>
-     *     <ol>
-     *       <li>Send request to Consolidatore (ko) --> n° of retry allowed</li>
-     *     </ol>
-     *   <b>Risultato atteso: </b>Posting on Notification Tracker Queue --> ok</li>
-     */
 	@Test
 	void lavorazioneRichiestaMaxRetriesExceeded() {
 
         // Mock di una generica getRichiesta.
         when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));
 
-        // Mock di una generica putRequest.
+        // Mock di una putRequest che ritorna un'eccezione.
         when(paperMessageCall.putRequest(any(PaperEngageRequest.class)))
                 .thenReturn(Mono.error(new RestCallException.ResourceAlreadyInProgressException()));
 
         Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
-        StepVerifier.create(lavorazioneRichiesta).expectNext();
-        lavorazioneRichiesta.block();
+        StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
 
-        // Verifica che sia stata eseguita la chiamata al gestore repository.
-        verify(gestoreRepositoryCall, times(1))
-                .getRichiesta(any(), any());
-
-        // Verifica che sia stata eseguita la chiamata a paperMessageCall.
-        verify(paperMessageCall, times(1))
-                .putRequest(any());
-
-        // Verifica che sia stata eseguita la chiamata all'sqsService per pubblicare sulla coda l'errore.
-        verify(sqsService, times(1))
-                .send(eq(cartaceoSqsQueueName.errorName()), any(CartaceoPresaInCaricoInfo.class));
+        //Verifica che la richiesta sia stata mandata in fase di Retry.
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
 
 	}
 
-    @Test
-    void lavorazioneRichiestaInternalError() {
-
-        var internalErrorException = new RuntimeException("INTERNAL ERROR!");
-
-        // Mock di una generica getRichiesta.
-        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));
-
-        // Mock di una generica putRequest.
-        when(paperMessageCall.putRequest(any(PaperEngageRequest.class)))
-                .thenReturn(Mono.error(new RestCallException.ResourceAlreadyInProgressException()));
-
-        // Mock della pubblicazione della notifica di un errore sulla coda degli errori cartaceo.
-        when(sqsService.send(eq(cartaceoSqsQueueName.errorName()), any(CartaceoPresaInCaricoInfo.class)))
-                .thenReturn(Mono.error(internalErrorException));
-
-
-        Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
-        StepVerifier.create(lavorazioneRichiesta).expectNext();
-        lavorazioneRichiesta.block();
-
-        // Verifica che sia stata eseguita la chiamata al gestore repository.
-        verify(gestoreRepositoryCall, times(1))
-                .getRichiesta(any(), any());
-
-        // Verifica che sia stata eseguita la chiamata a paperMessageCall.
-        verify(paperMessageCall, times(1))
-                .putRequest(any());
-
-        // Verifica che sia stata eseguita la chiamata all'sqsService per pubblicare sulla coda l'errore.
-        verify(sqsService, times(1))
-                .send(eq(cartaceoSqsQueueName.errorName()), any(CartaceoPresaInCaricoInfo.class));
-
-        // Verifica che sia stata eseguita DUE VOLTE la chiamata all'sqsService per pubblicare sulla coda dello stato cartaceo.
-        verify(sqsService, times(2))
-                .send(eq(notificationTrackerSqsName.statoCartaceoName())
-                        , any(NotificationTrackerQueueDto.class));
-
-    }
 
     /**
      * <h3>CRCLR.100.3</h3>

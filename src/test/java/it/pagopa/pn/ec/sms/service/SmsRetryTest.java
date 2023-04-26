@@ -2,6 +2,8 @@ package it.pagopa.pn.ec.sms.service;
 
 import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
+import it.pagopa.pn.ec.commons.service.SnsService;
+import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
@@ -9,10 +11,13 @@ import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
+import org.mockito.Spy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+import software.amazon.awssdk.services.sns.model.PublishResponse;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 
@@ -22,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.awspring.cloud.messaging.core.QueueMessageUtils.createMessage;
+import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.sms.testutils.DigitalCourtesySmsRequestFactory.createSmsRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static org.mockito.ArgumentMatchers.eq;
@@ -33,14 +39,17 @@ class SmsRetryTest {
     @Autowired
     private SmsSqsQueueName smsSqsQueueName;
 
-    @Autowired
+    @SpyBean
     SmsService smsService;
-
-    @Autowired
-    SmsService smsServiceMock;
 
     @SpyBean
     GestoreRepositoryCall gestoreRepositoryCall;
+
+    @SpyBean
+    SnsService snsService;
+
+    @SpyBean
+    SqsService sqsService;
 
     Message message = Message.builder().build();
 
@@ -53,6 +62,30 @@ class SmsRetryTest {
 
     private final SqsMessageWrapper<SmsPresaInCaricoInfo> sqsPresaInCaricoInfo = new SqsMessageWrapper<>(message, SMS_PRESA_IN_CARICO_INFO);
 
+    private static RequestDto buildRequestDto()
+    {
+        //RetryDTO
+        RetryDto retryDto=new RetryDto();
+        List<BigDecimal> retries = new ArrayList<>();
+        retries.add(0, BigDecimal.valueOf(5));
+        retries.add(1, BigDecimal.valueOf(10));
+        retryDto.setRetryPolicy(retries);
+        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
+        retryDto.setRetryStep(BigDecimal.valueOf(0));
+
+        //RequestMetadataDTO
+        RequestMetadataDto requestMetadata = new RequestMetadataDto();
+        requestMetadata.setRetry(retryDto);
+
+        //RequestDTO
+        RequestDto requestDto = new RequestDto();
+        requestDto.setStatusRequest("statusTest");
+        requestDto.setRequestIdx(SMS_PRESA_IN_CARICO_INFO.getRequestIdx());
+        requestDto.setxPagopaExtchCxId(SMS_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId());
+        requestDto.setRequestMetadata(requestMetadata);
+
+        return requestDto;
+    }
     @Test
     void testGestioneRetrySmsScheduler_NoMessages() {
         // mock SQSService per restituire un Mono vuoto quando viene chiamato getOneMessage
@@ -67,92 +100,50 @@ class SmsRetryTest {
         verify(mockSqsService, never()).deleteMessageFromQueue(eq(message), anyString());
     }
 
-    /*@Test
-    void gestioneRetrySms_RetryOk() {
-
-        RequestDto requestDto = new RequestDto();
-        requestDto.setStatusRequest("statusTest");
-        requestDto.setRequestIdx("idTest");
-
-
-        when(gestoreRepositoryCall.getRichiesta(eq(requestDto.getRequestIdx()))).thenReturn(Mono.just(requestDto));
-        when(snsServiceMock.send(eq(SMS_PRESA_IN_CARICO_INFO.getDigitalCourtesySmsRequest().getReceiverDigitalAddress()),
-                eq(SMS_PRESA_IN_CARICO_INFO.getDigitalCourtesySmsRequest().getMessageText())))
-                .thenReturn(Mono.just(PublishResponse.builder().build()));
-
-        gestoreRepositoryCall.getRichiesta(requestDto.getRequestIdx());
-        smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
-        snsService.send(SMS_PRESA_IN_CARICO_INFO.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(), SMS_PRESA_IN_CARICO_INFO.getDigitalCourtesySmsRequest().getMessageText());
-
-        verify(gestoreRepositoryCall, times(1)).getRichiesta(requestDto.getRequestIdx());
-        verify(snsServiceMock, times(1)).send(SMS_PRESA_IN_CARICO_INFO.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(), SMS_PRESA_IN_CARICO_INFO.getDigitalCourtesySmsRequest().getMessageText());
-
-    }*/
-
-
     @Test
-    void gestionreRetrySms_GenericError(){
+    void gestioneRetrySms_Retry_Ok() {
 
-        String requestId = "idTest";
-        RequestDto requestDto = new RequestDto();
-        requestDto.setStatusRequest("statusTest");
-        requestDto.setRequestIdx(requestId);
-        String clientId = DEFAULT_ID_CLIENT_HEADER_VALUE;
-        requestDto.setxPagopaExtchCxId(clientId);
+        var requestDto=buildRequestDto();
+
+        var clientId = requestDto.getxPagopaExtchCxId();
+        var requestId = requestDto.getRequestIdx();
+
         PatchDto patchDto = new PatchDto();
-
-        RequestMetadataDto requestMetadata = new RequestMetadataDto();
-        requestMetadata.setRetry(new RetryDto());
-        requestMetadata.getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
-        requestDto.setRequestMetadata(requestMetadata);
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-
-
-        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
-        //when(gestoreRepositoryCall.patchRichiesta(eq(requestId), eq(patchDto)).thenReturn(Mono.just(requestDto)));
-
-
-        DeleteMessageResponse response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message).block();
-
-        Assert.assertNull(response);
-    }
-
-    @Test
-    void gestionreRetrySms_Retry_Ok(){
-
-        String requestId = "idTest";
-        List<BigDecimal> retries = new ArrayList<>();
-        retries.add(0, BigDecimal.valueOf(5));
-        retries.add(1, BigDecimal.valueOf(10));
-        RequestDto requestDto = new RequestDto();
-        requestDto.setStatusRequest("statusTest");
-        requestDto.setRequestIdx(requestId);
-        Mono<RequestDto> monoRequest = new Mono<RequestDto>() {
-            @Override
-            public void subscribe(CoreSubscriber<? super RequestDto> actual) {
-
-            }
-        };
-        String clientId = DEFAULT_ID_CLIENT_HEADER_VALUE;
-        requestDto.setxPagopaExtchCxId(clientId);
-        PatchDto patchDto = new PatchDto();
-
-        RequestMetadataDto requestMetadata = new RequestMetadataDto();
-        requestMetadata.setRetry(new RetryDto());
-        requestMetadata.getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
-        requestMetadata.getRetry().setRetryStep(BigDecimal.valueOf(0));
-        requestDto.setRequestMetadata(requestMetadata);
-        requestDto.getRequestMetadata().getRetry().setRetryPolicy(retries);
-        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-
 
         when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(smsSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
 
         Mono<DeleteMessageResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-        Assert.assertNotNull(response);
+        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+    }
+    @Test
+    void gestioneRetrySms_GenericError() {
+
+        var requestDto=buildRequestDto();
+
+        var clientId = requestDto.getxPagopaExtchCxId();
+        var requestId = requestDto.getRequestIdx();
+
+        PatchDto patchDto = new PatchDto();
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+
+        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.error(new RuntimeException()));
+
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(smsSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mono<DeleteMessageResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
 
 }

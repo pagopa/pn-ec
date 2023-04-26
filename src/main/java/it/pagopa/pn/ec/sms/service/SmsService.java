@@ -12,10 +12,7 @@ import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.policy.Policy;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.commons.service.AuthService;
-import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
-import it.pagopa.pn.ec.commons.service.SnsService;
-import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.commons.service.*;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
@@ -45,7 +42,7 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageConte
 
 @Service
 @Slf4j
-public class SmsService extends PresaInCaricoService {
+public class SmsService extends PresaInCaricoService implements QueueOperationsService {
 
     private final SqsService sqsService;
     private final SnsService snsService;
@@ -77,7 +74,7 @@ public class SmsService extends PresaInCaricoService {
         digitalCourtesySmsRequest.setRequestId(smsPresaInCaricoInfo.getRequestIdx());
 
 //      Insert request from SMS request and publish to Notification Tracker with next status -> BOOKED
-        return insertRequestFromSms(digitalCourtesySmsRequest, smsPresaInCaricoInfo.getXPagopaExtchCxId()).then(sendNotificationOnStatusQueue(smsPresaInCaricoInfo, BOOKED, new DigitalProgressStatusDto()))
+        return insertRequestFromSms(digitalCourtesySmsRequest, smsPresaInCaricoInfo.getXPagopaExtchCxId()).then(sendNotificationOnStatusQueue(smsPresaInCaricoInfo, BOOKED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto()))
 //                                                                                                        Publish to SMS INTERACTIVE or
 //                                                                                                        SMS BATCH
                                                                                                           .flatMap(sendMessageResponse -> {
@@ -86,13 +83,9 @@ public class SmsService extends PresaInCaricoService {
                                                                                                                       smsPresaInCaricoInfo.getDigitalCourtesySmsRequest()
                                                                                                                                           .getQos();
                                                                                                               if (qos == INTERACTIVE) {
-                                                                                                                  return sqsService.send(
-                                                                                                                          smsSqsQueueName.interactiveName(),
-                                                                                                                          smsPresaInCaricoInfo);
+                                                                                                                  return sendNotificationOnInteractiveQueue(smsPresaInCaricoInfo);
                                                                                                               } else if (qos == BATCH) {
-                                                                                                                  return sqsService.send(
-                                                                                                                          smsSqsQueueName.batchName(),
-                                                                                                                          smsPresaInCaricoInfo);
+                                                                                                                  return sendNotificationOnBatchQueue(smsPresaInCaricoInfo);
                                                                                                               } else {
                                                                                                                   return Mono.empty();
                                                                                                               }
@@ -166,7 +159,7 @@ public class SmsService extends PresaInCaricoService {
                          .map(this::createGeneratedMessageDto)
 
 //                       The SMS in sent, publish to Notification Tracker with next status -> SENT
-                         .flatMap(generatedMessageDto -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo, SENT, new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
+                         .flatMap(generatedMessageDto -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
 
 //                                                                An error occurred during SQS publishing to the Notification Tracker ->
 //                                                                Publish to Errori SMS queue and notify to retry update status only
@@ -176,19 +169,10 @@ public class SmsService extends PresaInCaricoService {
 
 //                       The maximum number of retries has ended
                          .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
-                                        snsMaxRetriesExceeded -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo, RETRY, new DigitalProgressStatusDto())
+                                        snsMaxRetriesExceeded -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo, RETRY.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
 
 //                                                                         Publish to ERRORI SMS queue
-                                                                           .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo)))
-                .onErrorResume(throwable ->
-                {
-                    log.error("Internal Error ---> {}", throwable.getMessage());
-                    return sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                                    createNotificationTrackerQueueDtoDigital(smsPresaInCaricoInfo,
-                                            INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                            new DigitalProgressStatusDto()))
-                            .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo));
-                });
+                                                                           .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo)));
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(PublishResponse publishResponse) {
@@ -214,7 +198,7 @@ public class SmsService extends PresaInCaricoService {
 
     public Mono<DeleteMessageResponse> gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message) {
 
-        log.info("<-- START GESTIONE RETRY SMS--> richiesta :", smsPresaInCaricoInfo.getRequestIdx());
+        log.info("<-- START GESTIONE RETRY SMS--> richiesta : {}", smsPresaInCaricoInfo.getRequestIdx());
         Policy retryPolicies = new Policy();
 
         String toDelete = "toDelete";
@@ -276,7 +260,7 @@ public class SmsService extends PresaInCaricoService {
                                     })
 //              Tentativo invio sms
                                     .flatMap(requestDto -> {
-                                        log.debug("requestDto Value:", requestDto.getRequestMetadata().getRetry());
+                                        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
 
                                         return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest()
                                                                                    .getReceiverDigitalAddress(),
@@ -289,10 +273,10 @@ public class SmsService extends PresaInCaricoService {
                                                          .map(this::createGeneratedMessageDto)
 
 //                       The SMS in sent, publish to Notification Tracker with next status -> SENT
-                                                         .flatMap(generatedMessageDto -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo, SENT, new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
+                                                         .flatMap(generatedMessageDto -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
 
                                                                  ).flatMap(sendMessageResponse -> {
-                                                    log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore",
+                                                    log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}",
                                                               smsSqsQueueName.errorName());
                                                     return deleteMessageFromErrorQueue(message);
                                                 }).onErrorResume(sqsPublishException -> {
@@ -306,7 +290,7 @@ public class SmsService extends PresaInCaricoService {
                                                         // operazioni per la rimozione del messaggio
                                                         log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi " +
                                                                   "tentativi: {}", smsSqsQueueName.errorName());
-                                                        return sendNotificationOnStatusQueue(smsPresaInCaricoInfo, ERROR, new DigitalProgressStatusDto())
+                                                        return sendNotificationOnStatusQueue(smsPresaInCaricoInfo, ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
                                                                 .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
 
                                                     }
@@ -317,28 +301,42 @@ public class SmsService extends PresaInCaricoService {
                                     .onErrorResume(StatusToDeleteException.class, exception -> {
                                         log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}",
                                                   smsSqsQueueName.errorName());
-                                        return sendNotificationOnStatusQueue(smsPresaInCaricoInfo, DELETED, new DigitalProgressStatusDto())
+                                        return sendNotificationOnStatusQueue(smsPresaInCaricoInfo, DELETED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
                                                          .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
 
 
                                     })
-                                    .onErrorResume(internalError -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo, INTERNAL_ERROR, new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)));
+                                    .onErrorResume(internalError -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
+                                            .then(deleteMessageFromErrorQueue(message)));
     }
 
     @Override
-    protected Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, Status status, DigitalProgressStatusDto digitalProgressStatusDto) {
+    public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status, DigitalProgressStatusDto digitalProgressStatusDto) {
         return sqsService.send(notificationTrackerSqsName.statoSmsName(),
                 createNotificationTrackerQueueDtoDigital(presaInCaricoInfo,
-                        status.getStatusTransactionTableCompliant(),
+                        status,
                         digitalProgressStatusDto));
     }
+
     @Override
-    protected Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
+    public Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
         return sqsService.send(smsSqsQueueName.errorName(), presaInCaricoInfo);
     }
 
     @Override
-    protected Mono<DeleteMessageResponse> deleteMessageFromErrorQueue(Message message) {
+    public Mono<SendMessageResponse> sendNotificationOnBatchQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return sqsService.send(smsSqsQueueName.batchName(),
+                presaInCaricoInfo);
+    }
+
+    @Override
+    public Mono<SendMessageResponse> sendNotificationOnInteractiveQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return sqsService.send(smsSqsQueueName.interactiveName(),
+                presaInCaricoInfo);
+    }
+
+    @Override
+    public Mono<DeleteMessageResponse> deleteMessageFromErrorQueue(Message message) {
         return sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
     }
 

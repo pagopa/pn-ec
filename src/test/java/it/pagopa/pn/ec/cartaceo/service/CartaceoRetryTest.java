@@ -28,6 +28,9 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static it.pagopa.pn.ec.commons.constant.Status.SENT;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.CODE_TO_STATUS_MAP;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.OK_CODE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -43,7 +46,7 @@ class CartaceoRetryTest {
     @Autowired
     SmsService smsService;
 
-    @Autowired
+    @SpyBean
     CartaceoService cartaceoService;
 
     @MockBean
@@ -124,7 +127,7 @@ class CartaceoRetryTest {
         when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
 
         // Mock di una generica putRequest.
-        when(paperMessageCall.putRequest(any(org.openapitools.client.model.PaperEngageRequest.class))).thenReturn(Mono.just(new org.openapitools.client.model.OperationResultCodeResponse().resultCode("200.00")));
+        when(paperMessageCall.putRequest(any(org.openapitools.client.model.PaperEngageRequest.class))).thenReturn(Mono.just(new org.openapitools.client.model.OperationResultCodeResponse().resultCode(OK_CODE)));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
@@ -133,12 +136,8 @@ class CartaceoRetryTest {
         StepVerifier.create(response).expectNext();
         response.block();
 
-
-        verify(gestoreRepositoryCall, times(1)).getRichiesta(eq(clientId), eq(requestId));
-        verify(gestoreRepositoryCall, times(1)).patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class));
-        verify(paperMessageCall, times(1)).putRequest(any(org.openapitools.client.model.PaperEngageRequest.class));
-        verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class));
-        verify(sqsService, times(1)).deleteMessageFromQueue(any(Message.class), eq(cartaceoSqsQueueName.errorName()));
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO),eq(SENT.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
+        verify(cartaceoService, times(1)).deleteMessageFromErrorQueue(any(Message.class));
 
     }
 
