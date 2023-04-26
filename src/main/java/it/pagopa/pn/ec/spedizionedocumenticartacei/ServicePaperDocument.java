@@ -75,11 +75,11 @@ public class ServicePaperDocument {
 		psec.setPapProgStEv(new PaperProgressStatusEvent());
 		
 		OffsetDateTime odt = OffsetDateTime.now();
-		
+
 		AttachmentDetails apsrc1 = new AttachmentDetails();
 		
 //		NB: interfaccia con il consolidatore
-		apsrc1.setId("1");
+		apsrc1.getId();
 		apsrc1.setDocumentType("AR");
 		apsrc1.setUrl("https://www.eng.it/resources/whitepaper/doc/blockchain/Blockchain_whitepaper_it.pdf");
 		apsrc1.setDate(odt);

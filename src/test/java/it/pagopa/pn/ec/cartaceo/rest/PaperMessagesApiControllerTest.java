@@ -111,11 +111,11 @@ class PaperMessagesApiControllerTest {
         paperEngageRequest.setArCity("");
         var vas = new HashMap<String,String>();
         paperEngageRequest.setVas(vas);
-        paperEngageRequest.setIun("iun");
+        paperEngageRequest.setIun("iun123456789");
         paperEngageRequest.setRequestPaId("PagoPa");
-        paperEngageRequest.setProductType("product type");
-        paperEngageRequest.setPrintType("B/N");
-        paperEngageRequest.setRequestId("requestIdx");
+        paperEngageRequest.setProductType("AR");
+        paperEngageRequest.setPrintType("B/N12345");
+        paperEngageRequest.setRequestId("requestIdx_1234567891234567891010");
         paperEngageRequest.setClientRequestTimeStamp(OffsetDateTime.now());
     }
 
