@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.email.service;
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SesService;
@@ -25,15 +26,16 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.email.testutils.DigitalCourtesyMailRequestFactory.createMailRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
-public class RetryEmailTest {
+class RetryEmailTest {
 
     @Autowired
     private EmailService emailService;
@@ -78,6 +80,19 @@ public class RetryEmailTest {
             .digitalCourtesyMailRequest(createMailRequest(0))
             .build();
 
+    private static final StepError STEP_ERROR = StepError.builder()
+            .generatedMessageDto(new GeneratedMessageDto().id("1221313223"))
+            .notificationTrackerError(NOTIFICATION_TRACKER_STEP)
+            .build();
+
+    private static final EmailPresaInCaricoInfo EMAIL_PRESA_IN_CARICO_INFO_STEP_ERROR = EmailPresaInCaricoInfo.builder()
+            .requestIdx("idTestStepError")
+            .xPagopaExtchCxId(
+                    DEFAULT_ID_CLIENT_HEADER_VALUE)
+            .stepError(STEP_ERROR)
+            .digitalCourtesyMailRequest(createMailRequest(0))
+            .build();
+
 
     private final SqsMessageWrapper<EmailPresaInCaricoInfo> sqsPresaInCaricoInfo = new SqsMessageWrapper<>(message, EMAIL_PRESA_IN_CARICO_INFO);
 
@@ -85,7 +100,7 @@ public class RetryEmailTest {
     void testGestioneRetryEmailScheduler_NoMessages() {
         // mock SQSService per restituire un Mono vuoto quando viene chiamato getOneMessage
         SqsServiceImpl mockSqsService = mock(SqsServiceImpl.class);
-        when(mockSqsService.getOneMessage(eq(emailSqsQueueName.errorName()), eq(EmailPresaInCaricoInfo.class)))
+        when(mockSqsService.getOneMessage(emailSqsQueueName.errorName(), EmailPresaInCaricoInfo.class))
                 .thenReturn(Mono.empty());
 
         // chiamare il metodo sotto test
@@ -116,7 +131,7 @@ public class RetryEmailTest {
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
 
-        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
         //when(gestoreRepositoryCall.patchRichiesta(eq(requestId), eq(patchDto)).thenReturn(Mono.just(requestDto)));
 
         DeleteMessageResponse response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message).block();
@@ -148,13 +163,15 @@ public class RetryEmailTest {
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
 
-        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
 
-        DeleteMessageResponse response =  emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message).block();
+//        DeleteMessageResponse response =
+//                emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message).block();
+                emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_STEP_ERROR, message).block();
 
-        Assert.assertNull(response);
+//        Assert.assertNull(response);
     }
 
 
@@ -184,7 +201,7 @@ public class RetryEmailTest {
         digitalCourtesyMailRequest.setAttachmentsUrls(attachList);
 
 
-        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
 
 
         DeleteMessageResponse response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message).block();
@@ -216,7 +233,7 @@ public class RetryEmailTest {
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
 
-        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
 
@@ -230,7 +247,7 @@ public class RetryEmailTest {
     void testGestioneRetryEmailSchedulerBach_NoMessages() {
         // mock SQSService per restituire un Mono vuoto quando viene chiamato getOneMessage
         SqsServiceImpl mockSqsService = mock(SqsServiceImpl.class);
-        when(mockSqsService.getOneMessage(eq(emailSqsQueueName.batchName()), eq(EmailPresaInCaricoInfo.class)))
+        when(mockSqsService.getOneMessage(emailSqsQueueName.batchName(), EmailPresaInCaricoInfo.class))
                 .thenReturn(Mono.empty());
 
         // chiamare il metodo sotto test

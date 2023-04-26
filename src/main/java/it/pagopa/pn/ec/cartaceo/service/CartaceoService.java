@@ -385,6 +385,7 @@ public class CartaceoService extends PresaInCaricoService {
 //              check step error per evitare nuova chiamata verso consolidatore
 //              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The PAPER in sent, publish to Notification Tracker with next status
                     if (Objects.equals(cartaceoPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
+                        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
                         return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
                                 createNotificationTrackerQueueDtoPaper(
                                         cartaceoPresaInCaricoInfo,

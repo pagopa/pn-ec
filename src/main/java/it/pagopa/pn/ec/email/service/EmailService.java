@@ -504,91 +504,50 @@ public class EmailService extends PresaInCaricoService {
 
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         var requestId = emailPresaInCaricoInfo.getRequestIdx();
-        var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
-        Policy retryPolicies = new Policy();
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
-        String toDelete = "toDelete";
         // Try to send EMAIL
         EmailField mailFld = compilaMail(digitalCourtesyMailRequest);
-
-
-
-        return gestoreRepositoryCall.getRichiesta(clientId, requestId)
-
-//              check status toDelete
-                                    .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
-//              se status toDelete throw Error
-                                    .switchIfEmpty(Mono.error(new RetryAttemptsExceededExeption(
-                                            "La lunghezza del valore non è maggiore di 5")))
-//              check Id per evitare loop
-                                    .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
-//              se il primo step, inizializza l'attributo retry
-                                    .flatMap(requestDto -> {
-                                        if (requestDto.getRequestMetadata().getRetry() == null) {
-                                            log.debug("Primo tentativo di Retry");
-                                            RetryDto retryDto = new RetryDto();
-                                            return getMono(requestId, retryPolicies, requestDto, retryDto);
-
-                                        } else {
-                                            var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
-                                            log.debug(retryNumber + " tentativo di Retry");
-                                            return Mono.just(requestDto);
-                                        }
-                                    }).filter(requestDto -> {
-
-                    var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();
-                    var dateTime2 = OffsetDateTime.now();
-                    Duration duration = Duration.between(dateTime1, dateTime2);
-                    int step = requestDto.getRequestMetadata().getRetry().getRetryStep().intValueExact();
-                    long minutes = duration.toMinutes();
-                    long minutesToCheck = requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
-                    return minutes >= minutesToCheck;
-                }).flatMap(requestDto -> {
-                    requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
-                    requestDto.getRequestMetadata()
-                              .getRetry()
-                              .setRetryStep(requestDto.getRequestMetadata().getRetry().getRetryStep().add(BigDecimal.ONE));
-                    PatchDto patchDto = new PatchDto();
-                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                    return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
-                })
+        return filterRequestEmail(emailPresaInCaricoInfo)
                 .flatMap(requestDto -> {
-                    log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
-                    return sesService.send(mailFld).retryWhen(DEFAULT_RETRY_STRATEGY)
+                    //                                        check step error per evitare null pointer
+                    if (emailPresaInCaricoInfo.getStepError() == null) {
+                        var stepError = new StepError();
+                        emailPresaInCaricoInfo.setStepError(stepError);
+                    }
+                    //                                        check step error per evitare nuova chiamata verso ses
+//              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The EMAIL in sent, publish to Notification Tracker with next status -> SENT
+                    if (Objects.equals(emailPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
+                        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
+                        return sqsService.send(notificationTrackerSqsName.statoEmailName(),
+                                createNotificationTrackerQueueDtoDigital(
+                                        emailPresaInCaricoInfo,
+                                        SENT.getStatusTransactionTableCompliant(),
+                                        new DigitalProgressStatusDto().generatedMessage(emailPresaInCaricoInfo.getStepError().getGeneratedMessageDto())))
 
-                                     .map(this::createGeneratedMessageDto)
-                                     // The EMAIL in sent, publish to Notification Tracker with next status -> SENT
-                                     .flatMap(publishResponse -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                                                 createNotificationTrackerQueueDtoDigital(
-                                                                                         emailPresaInCaricoInfo,
-                                                                                         SENT.getStatusTransactionTableCompliant(),
-                                                                                         new DigitalProgressStatusDto().generatedMessage(
-                                                                                                 generatedMessageDto.get()))))
+                                .flatMap(sendMessageResponse -> {
+                            log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore {}",
+                                    emailSqsQueueName.errorName());
+                            return sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName());
+                        }).onErrorResume(sqsPublishException -> checkTentativiEccessiviEmail(requestId, requestDto, emailPresaInCaricoInfo, message));
+                    } else {
+                        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
+                        return sesService.send(mailFld).retryWhen(DEFAULT_RETRY_STRATEGY)
 
-                                     .flatMap(sendMessageResponse -> {
-                                         log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore {}",
-                                                   emailSqsQueueName.errorName());
-                                         return sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName());
-                                     }).onErrorResume(sqsPublishException -> {
-                                if (idSaved == null) {
-                                    idSaved = requestId;
-                                }
-                                if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
-                                    // operazioni per la rimozione del messaggio
-                                    log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}",
-                                              emailSqsQueueName.errorName());
-                                    return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                                                           createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
-                                                                                                    ERROR.getStatusTransactionTableCompliant(),
-                                                                                                    new DigitalProgressStatusDto().generatedMessage(
-                                                                                                            new GeneratedMessageDto())))
-                                                     .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
-                                                                                                                       emailSqsQueueName.errorName()));
+                                .map(this::createGeneratedMessageDto)
+                                // The EMAIL in sent, publish to Notification Tracker with next status -> SENT
+                                .flatMap(publishResponse -> sqsService.send(notificationTrackerSqsName.statoEmailName(),
+                                        createNotificationTrackerQueueDtoDigital(
+                                                emailPresaInCaricoInfo,
+                                                SENT.getStatusTransactionTableCompliant(),
+                                                new DigitalProgressStatusDto().generatedMessage(
+                                                        generatedMessageDto.get()))))
 
-                                }
-                                return Mono.empty();
-                            });
-
+                                .flatMap(sendMessageResponse -> {
+                                    log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore {}",
+                                            emailSqsQueueName.errorName());
+                                    return sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName());
+                                }).onErrorResume(sqsPublishException -> checkTentativiEccessiviEmail(requestId, requestDto, emailPresaInCaricoInfo, message));
+                    }
                 }).onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", emailSqsQueueName.errorName());
                     return sqsService.send(notificationTrackerSqsName.statoEmailName(),

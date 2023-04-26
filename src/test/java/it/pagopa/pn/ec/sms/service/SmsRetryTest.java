@@ -164,8 +164,8 @@ class SmsRetryTest {
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
 
-        smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message).block();
-//        smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO1, message).block();
+//        smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message).block();
+        smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO1, message).block();
 
     }
 

@@ -390,6 +390,7 @@ public class PecService extends PresaInCaricoService {
 //            check step error per evitare nuova chiamata verso aruba
 //              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The PEC in sent, publish to Notification Tracker with next status -> SENT
                     if (Objects.equals(pecPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
+                        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
                         return sqsService.send(notificationTrackerSqsName.statoPecName(), createNotificationTrackerQueueDtoDigital(pecPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto()))).flatMap(sendMessageResponse -> {
                             log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore '{}'", pecSqsQueueName.errorName());
                             return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName());
