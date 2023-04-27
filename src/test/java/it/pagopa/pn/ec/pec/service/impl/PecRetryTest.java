@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.pec.service.impl;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -22,25 +23,26 @@ import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 import java.io.ByteArrayOutputStream;
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import static it.pagopa.pn.ec.commons.constant.Status.INTERNAL_ERROR;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
+
+import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.never;
 
 @SpringBootTestWebEnv
-public class PecRetryTest {
+class PecRetryTest {
 
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
@@ -88,6 +90,20 @@ public class PecRetryTest {
                     DEFAULT_ID_CLIENT_HEADER_VALUE)
             .digitalNotificationRequest(createDigitalNotificationRequest())
             .build();
+
+    private static final StepError STEP_ERROR = StepError.builder()
+            .generatedMessageDto(new GeneratedMessageDto().id("1221313223"))
+            .notificationTrackerError(NOTIFICATION_TRACKER_STEP)
+            .build();
+
+    private static final PecPresaInCaricoInfo PEC_PRESA_IN_CARICO_INFO_STEP_ERROR = PecPresaInCaricoInfo.builder()
+            .requestIdx(DEFAULT_REQUEST_IDX)
+            .xPagopaExtchCxId(
+                    DEFAULT_ID_CLIENT_HEADER_VALUE)
+            .stepError(STEP_ERROR)
+            .digitalNotificationRequest(createDigitalNotificationRequest())
+            .build();
+
     private static final FileDownloadResponse FILE_DOWNLOAD_RESPONSE = new FileDownloadResponse()
             .download(new FileDownloadInfo()
                     .url("url"))
@@ -129,7 +145,7 @@ public class PecRetryTest {
     void testGestioneRetryPecScheduler_NoMessages() {
         // mock SQSService per restituire un Mono vuoto quando viene chiamato getOneMessage
         SqsServiceImpl mockSqsService = mock(SqsServiceImpl.class);
-        when(mockSqsService.getOneMessage(eq(pecSqsQueueName.errorName()), eq(PecPresaInCaricoInfo.class)))
+        when(mockSqsService.getOneMessage(pecSqsQueueName.errorName(), PecPresaInCaricoInfo.class))
                 .thenReturn(Mono.empty());
 
         // chiamare il metodo sotto test
@@ -155,7 +171,7 @@ public class PecRetryTest {
         when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
 
         //Gestore repository mocks.
-        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.error(new RuntimeException()));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.error(new RuntimeException()));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
@@ -186,23 +202,25 @@ public class PecRetryTest {
 
         //Gestore repository mocks.
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message);
+//        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+//        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
 
     @Test
     void testGestioneRetryPecSchedulerBach_NoMessages() {
         // mock SQSService per restituire un Mono vuoto quando viene chiamato getOneMessage
         SqsServiceImpl mockSqsService = mock(SqsServiceImpl.class);
-        when(mockSqsService.getOneMessage(eq(pecSqsQueueName.batchName()), eq(PecPresaInCaricoInfo.class)))
+        when(mockSqsService.getOneMessage(pecSqsQueueName.batchName(), PecPresaInCaricoInfo.class))
                 .thenReturn(Mono.empty());
 
         // chiamare il metodo sotto test
