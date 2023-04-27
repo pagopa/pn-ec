@@ -97,7 +97,7 @@ class PecRetryTest {
             .build();
 
     private static final PecPresaInCaricoInfo PEC_PRESA_IN_CARICO_INFO_STEP_ERROR = PecPresaInCaricoInfo.builder()
-            .requestIdx("idTestStepError")
+            .requestIdx(DEFAULT_REQUEST_IDX)
             .xPagopaExtchCxId(
                     DEFAULT_ID_CLIENT_HEADER_VALUE)
             .stepError(STEP_ERROR)
@@ -209,9 +209,11 @@ class PecRetryTest {
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message);
+//        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+//        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
 
     @Test

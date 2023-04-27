@@ -368,7 +368,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 //              check step error per evitare nuova chiamata verso consolidatore
 //              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The PAPER in sent, publish to Notification Tracker with next status
                     if (Objects.equals(cartaceoPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
-                        return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, cartaceoPresaInCaricoInfo.getStepError().getOperationResultCodeResponse().getResultCode(), new PaperProgressStatusDto())
+                        return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, CODE_TO_STATUS_MAP.get(cartaceoPresaInCaricoInfo.getStepError().getOperationResultCodeResponse().getResultCode()), new PaperProgressStatusDto())
                                 .flatMap(sendMessageResponse -> {
                                     log.debug("Il messaggio è stato gestito " +
                                                     "correttamente e rimosso dalla " +

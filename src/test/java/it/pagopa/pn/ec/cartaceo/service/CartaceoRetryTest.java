@@ -3,7 +3,6 @@ package it.pagopa.pn.ec.cartaceo.service;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
@@ -21,8 +20,6 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
-
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -30,9 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.CODE_TO_STATUS_MAP;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.OK_CODE;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.OK_CODE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -74,7 +70,7 @@ class CartaceoRetryTest {
 
     private static final StepError STEP_ERROR = StepError.builder()
             .notificationTrackerError(NOTIFICATION_TRACKER_STEP)
-            .operationResultCodeResponse(new OperationResultCodeResponse().resultCode("C00"))
+            .operationResultCodeResponse(new OperationResultCodeResponse().resultCode(OK_CODE))
             .build();
 
     private static final CartaceoPresaInCaricoInfo CARTACEO_PRESA_IN_CARICO_INFO_STEP_ERROR = CartaceoPresaInCaricoInfo.builder()
@@ -147,10 +143,11 @@ class CartaceoRetryTest {
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO, message);
-        StepVerifier.create(response).expectNext();
-        response.block();
+//        Mono<DeleteMessageResponse> response = cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO_STEP_ERROR, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO),eq(SENT.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
+//        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_STEP_ERROR),eq(SENT.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
         verify(cartaceoService, times(1)).deleteMessageFromErrorQueue(any(Message.class));
 
     }

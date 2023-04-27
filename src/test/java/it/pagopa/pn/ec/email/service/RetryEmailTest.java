@@ -91,7 +91,7 @@ class RetryEmailTest {
             .build();
 
     private static final EmailPresaInCaricoInfo EMAIL_PRESA_IN_CARICO_INFO_STEP_ERROR = EmailPresaInCaricoInfo.builder()
-            .requestIdx("idTestStepError")
+            .requestIdx("idTest")
             .xPagopaExtchCxId(
                     DEFAULT_ID_CLIENT_HEADER_VALUE)
             .stepError(STEP_ERROR)
@@ -165,10 +165,11 @@ class RetryEmailTest {
         //when(gestoreRepositoryCall.patchRichiesta(eq(requestId), eq(patchDto)).thenReturn(Mono.just(requestDto)));
 
         Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message);
+//        Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-
+//        verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
 
     @Test
