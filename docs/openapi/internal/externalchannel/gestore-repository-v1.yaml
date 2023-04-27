@@ -137,6 +137,12 @@ paths:
           $ref: '#/components/responses/requestResponseOk'
         409:
           $ref: '#/components/responses/requestedItemAlreadyExist'
+        204:
+          description: Richiesta con lo stesso hash già presente a sistema
+          content:
+            application/json:
+              schema:
+                $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
 
   /external-channel/gestoreRepository/requests/messageId/{messageId}:
     parameters:
@@ -281,6 +287,7 @@ components:
       properties:
         requestHash:
           type: string
+          readOnly: true
         digitalRequestMetadata:
           $ref: './schemas/internal-schemas-digital-v1.yaml#/components/schemas/DigitalRequestMetadataDto'
         paperRequestMetadata:
