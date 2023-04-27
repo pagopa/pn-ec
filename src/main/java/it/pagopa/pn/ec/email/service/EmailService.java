@@ -500,30 +500,17 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                         log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
                         return sesService.send(mailFld).retryWhen(DEFAULT_RETRY_STRATEGY)
 
-                                     .map(this::createGeneratedMessageDto)
-                                     // The EMAIL in sent, publish to Notification Tracker with next status -> SENT
-                                     .flatMap(publishResponse -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(),
-                                             new DigitalProgressStatusDto().generatedMessage(generatedMessageDto.get())))
+                                .map(this::createGeneratedMessageDto)
+                                // The EMAIL in sent, publish to Notification Tracker with next status -> SENT
+                                .flatMap(publishResponse -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(),
+                                        new DigitalProgressStatusDto().generatedMessage(generatedMessageDto.get())))
 
-                                     .flatMap(sendMessageResponse -> {
-                                         log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore {}",
-                                                   emailSqsQueueName.errorName());
-                                         return deleteMessageFromErrorQueue(message);
-                                     }).onErrorResume(sqsPublishException -> {
-                                if (idSaved == null) {
-                                    idSaved = requestId;
-                                }
-                                if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
-                                    // operazioni per la rimozione del messaggio
-                                    log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: {}",
-                                              emailSqsQueueName.errorName());
-                                    return sendNotificationOnStatusQueue(emailPresaInCaricoInfo, ERROR.getStatusTransactionTableCompliant(),
-                                            new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
-                                                     .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
-
-                                }
-                                return Mono.empty();
-                            });
+                                .flatMap(sendMessageResponse -> {
+                                    log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore {}",
+                                            emailSqsQueueName.errorName());
+                                    return deleteMessageFromErrorQueue(message);
+                                }).onErrorResume(sqsPublishException -> checkTentativiEccessiviEmail(requestId, requestDto, emailPresaInCaricoInfo, message));
+                    }
 
                 }).onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", emailSqsQueueName.errorName());
