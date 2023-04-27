@@ -64,10 +64,12 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     public Mono<RequestMetadata> insertRequestMetadata(RequestMetadata requestMetadata) {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestMetadata.getRequestId())))
                    .handle((foundedRequest, sink) -> {
-                       if (!requestMetadata.getRequestHash().equals(foundedRequest.getRequestHash())) {
-                           sink.error(new RepositoryManagerException.IdRequestAlreadyPresent(requestMetadata.getRequestId()));
+                       var requestId = foundedRequest.getRequestId();
+                       var foundedRequestHash = foundedRequest.getRequestHash();
+                       if (!requestMetadata.getRequestHash().equals(foundedRequestHash)) {
+                           sink.error(new RepositoryManagerException.IdRequestAlreadyPresent(requestId));
                        } else {
-                           sink.error(new RepositoryManagerException.RequestWithSameHash());
+                           sink.error(new RepositoryManagerException.RequestWithSameHash(requestId, foundedRequestHash));
                        }
                    })
                    .defaultIfEmpty(requestMetadata)
@@ -79,11 +81,9 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                        }
                        return Mono.fromCompletionStage(requestMetadataDynamoDbTable.putItem(builder -> builder.item(requestMetadata)));
                    })
-                   .doOnError(RepositoryManagerException.IdRequestAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.error(throwable.getMessage()))
-                   .thenReturn(requestMetadata)
-//                  Request idempotence
-                   .onErrorResume(RepositoryManagerException.RequestWithSameHash.class, throwable -> Mono.just(requestMetadata));
+                   .doOnError(throwable -> log.info(throwable.getMessage()))
+                   .thenReturn(requestMetadata);
     }
 
     private Mono<RequestMetadata> managePatch(String requestId, Patch patch, RequestMetadata retrieveRequestMetadata) {

@@ -13,11 +13,12 @@ import static org.springframework.http.HttpStatus.CONFLICT;
 @ControllerAdvice
 public class PresaInCaricoErrorHandler {
 
+    @SuppressWarnings("Duplicates")
     @ExceptionHandler(RestCallException.ResourceAlreadyExistsException.class)
     public final ResponseEntity<Problem> handleRequestAlreadyInProgress(RestCallException.ResourceAlreadyExistsException exception) {
         var problem = new Problem();
         problem.setStatus(CONFLICT.value());
-        problem.setTitle("Request already exists");
+        problem.setTitle("Resource already exists");
         problem.setDetail(exception.getMessage());
         problem.setTraceId(UUID.randomUUID().toString());
         return new ResponseEntity<>(problem, CONFLICT);

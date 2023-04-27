@@ -50,5 +50,4 @@ public class AttachmentServiceImpl implements AttachmentService {
                    .flatMap(attachmentUrl -> uriBuilderCall.getFile(attachmentUrl.substring(ATTACHMENT_PREFIX.length()), xPagopaExtchCxId, metadataOnly))
                    .switchIfEmpty(Mono.just(new FileDownloadResponse()));
     }
-
 }
