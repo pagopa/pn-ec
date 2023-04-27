@@ -1,31 +1,35 @@
 package it.pagopa.pn.ec.pec.service.impl;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
+import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
-import it.pagopa.pn.ec.commons.service.AuthService;
+import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import org.junit.Assert;
+import it.pec.bridgews.SendMail;
+import it.pec.bridgews.SendMailResponse;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
+import java.io.ByteArrayOutputStream;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import static it.pagopa.pn.ec.commons.constant.Status.INTERNAL_ERROR;
+import static it.pagopa.pn.ec.commons.constant.Status.SENT;
 
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.PEC;
@@ -38,45 +42,32 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
-class PecServiceRetryTest {
-
-
+class PecRetryTest {
 
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
-
     @Autowired
     private PecSqsQueueName pecSqsQueueName;
-
+    @SpyBean
+    private SqsService sqsService;
     @MockBean
-    private FileCall uriBuilderCall;
-
-    @SpyBean
-    GestoreRepositoryCall gestoreRepositoryCall;
-
+    private ArubaCall arubaCall;
     @MockBean
-    private AuthService authService;
-
+    private DownloadCall downloadCall;
     @SpyBean
-    private SqsServiceImpl sqsService;
-
+    private PecService pecService;
+    @MockBean
+    private FileCall fileCall;
     @SpyBean
-   private ArubaCall arubaCall;
+    private GestoreRepositoryCall gestoreRepositoryCall;
 
-    @Autowired
-     PecService pecService;
-
-    @Mock
-    private Acknowledgment acknowledgment;
 
     Message message = Message.builder().build();
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
-    private static final RequestDto requestDto = new RequestDto();
+    private static final String ATTACHMENT_PREFIX = "safestorage://";
     private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
     public static DigitalNotificationRequest createDigitalNotificationRequest() {
-//        Mock an existing request. Set the requestIdx
-        requestDto.setRequestIdx("requestIdx");
 
         List<String> defaultListAttachmentUrls = new ArrayList<>();
         defaultListAttachmentUrls.add(defaultAttachmentUrl);
@@ -100,13 +91,6 @@ class PecServiceRetryTest {
             .digitalNotificationRequest(createDigitalNotificationRequest())
             .build();
 
-    private static final PecPresaInCaricoInfo PEC_PRESA_IN_CARICO_INFO_TEST = PecPresaInCaricoInfo.builder()
-            .requestIdx("idTest")
-            .xPagopaExtchCxId(
-                    DEFAULT_ID_CLIENT_HEADER_VALUE)
-            .digitalNotificationRequest(new DigitalNotificationRequest())
-            .build();
-
     private static final StepError STEP_ERROR = StepError.builder()
             .generatedMessageDto(new GeneratedMessageDto().id("1221313223"))
             .notificationTrackerError(NOTIFICATION_TRACKER_STEP)
@@ -120,6 +104,42 @@ class PecServiceRetryTest {
             .digitalNotificationRequest(createDigitalNotificationRequest())
             .build();
 
+    private static final FileDownloadResponse FILE_DOWNLOAD_RESPONSE = new FileDownloadResponse()
+            .download(new FileDownloadInfo()
+                    .url("url"))
+            .key("key")
+            .checksum("checksum")
+            .contentLength(BigDecimal.TEN)
+            .contentType("contentType")
+            .versionId("versionId")
+            .documentStatus("documentStatus")
+            .documentType("documentType")
+            .retentionUntil(OffsetDateTime.parse("2023-04-18T05:08:27.101Z"));
+
+    private static RequestDto buildRequestDto()
+    {
+        //RetryDto
+        RetryDto retryDto=new RetryDto();
+        List<BigDecimal> retries = new ArrayList<>();
+        retries.add(0, BigDecimal.valueOf(5));
+        retries.add(1, BigDecimal.valueOf(10));
+        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
+        retryDto.setRetryStep(BigDecimal.valueOf(0));
+        retryDto.setRetryPolicy(retries);
+
+        //RequestMetadataDto
+        RequestMetadataDto requestMetadata = new RequestMetadataDto();
+        requestMetadata.setRetry(retryDto);
+
+        //RequestDto
+        RequestDto requestDto = new RequestDto();
+        requestDto.setStatusRequest("statusTest");
+        requestDto.setRequestIdx(PEC_PRESA_IN_CARICO_INFO.getRequestIdx());
+        requestDto.setxPagopaExtchCxId(PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId());
+        requestDto.setRequestMetadata(requestMetadata);
+
+        return requestDto;
+    }
 
     @Test
     void testGestioneRetryPecScheduler_NoMessages() {
@@ -133,131 +153,66 @@ class PecServiceRetryTest {
 
         // verificare che non sia stata eseguita alcuna operazione sul mock SQSService
         verify(mockSqsService, never()).deleteMessageFromQueue(eq(message), anyString());
-
     }
 
 
     @Test
-    void gestionreRetryPec_GenericError(){
+    void gestionreRetryPec_GenericError() {
 
-        String requestId = "idTest";
-        RequestDto requestDto = new RequestDto();
-        requestDto.setStatusRequest("statusTest");
-        requestDto.setRequestIdx(requestId);
-        String clientId = DEFAULT_ID_CLIENT_HEADER_VALUE;
-        requestDto.setxPagopaExtchCxId(clientId);
-        PatchDto patchDto = new PatchDto();
+        String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+        String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestDto=buildRequestDto();
 
-        RequestMetadataDto requestMetadata = new RequestMetadataDto();
-        requestMetadata.setRetry(new RetryDto());
-        requestMetadata.getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
-        requestDto.setRequestMetadata(requestMetadata);
-        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+        var sendMailResponse=new SendMailResponse();
+        sendMailResponse.setErrstr("errorstr");
 
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
 
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        //when(gestoreRepositoryCall.patchRichiesta(eq(requestId), eq(patchDto)).thenReturn(Mono.just(requestDto)));
+        //Gestore repository mocks.
+        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.error(new RuntimeException()));
 
-        DeleteMessageResponse response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_TEST, message).block();
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
-        Assert.assertNull(response);
-    }
+        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-    @Test
-    void gestionreRetryPec_GenericErrorTest(){
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
-        String requestId = "idTest";
-        RequestDto requestDto = new RequestDto();
-        requestDto.setStatusRequest("statusTest");
-        requestDto.setRequestIdx(requestId);
-        String clientId = DEFAULT_ID_CLIENT_HEADER_VALUE;
-        requestDto.setxPagopaExtchCxId(clientId);
-        PatchDto patchDto = new PatchDto();
-
-        RequestMetadataDto requestMetadata = new RequestMetadataDto();
-        requestMetadata.setRetry(new RetryDto());
-        requestMetadata.getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
-        requestDto.setRequestMetadata(requestMetadata);
-        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-
-
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        //when(gestoreRepositoryCall.patchRichiesta(eq(requestId), eq(patchDto)).thenReturn(Mono.just(requestDto)));
-
-        DeleteMessageResponse response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message).block();
-
-        Assert.assertNull(response);
     }
 
     @Test
     void gestionreRetryPec_Retry_Ok(){
 
-        String requestId = "idTest";
-        List<BigDecimal> retries = new ArrayList<>();
-        retries.add(0, BigDecimal.valueOf(5));
-        retries.add(1, BigDecimal.valueOf(10));
-        RequestDto requestDto = new RequestDto();
-        requestDto.setStatusRequest("statusTest");
-        requestDto.setRequestIdx(requestId);
-        String clientId = DEFAULT_ID_CLIENT_HEADER_VALUE;
-        requestDto.setxPagopaExtchCxId(clientId);
+        String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+        String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestDto=buildRequestDto();
 
         PatchDto patchDto = new PatchDto();
-
-        RequestMetadataDto requestMetadata = new RequestMetadataDto();
-        requestMetadata.setRetry(new RetryDto());
-        requestMetadata.getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
-        requestMetadata.getRetry().setRetryStep(BigDecimal.valueOf(0));
-        requestDto.setRequestMetadata(requestMetadata);
-        requestDto.getRequestMetadata().getRetry().setRetryPolicy(retries);
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
+        var sendMailResponse=new SendMailResponse();
+        sendMailResponse.setErrstr("errorstr");
 
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
+
+        //Gestore repository mocks.
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
-//        DeleteMessageResponse response =
-//                pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message).block();
-                pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_STEP_ERROR, message).block();
+        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-//        Assert.assertNull(response);
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
-
-
-    @Test
-    void gestionreLavorazionePec_Ok(){
-
-        String requestId = "idTest";
-        List<BigDecimal> retries = new ArrayList<>();
-        retries.add(0, BigDecimal.valueOf(5));
-        retries.add(1, BigDecimal.valueOf(10));
-        RequestDto requestDto = new RequestDto();
-        requestDto.setStatusRequest("statusTest");
-        requestDto.setRequestIdx(requestId);
-        String clientId = DEFAULT_ID_CLIENT_HEADER_VALUE;
-        requestDto.setxPagopaExtchCxId(clientId);
-
-        PatchDto patchDto = new PatchDto();
-
-        RequestMetadataDto requestMetadata = new RequestMetadataDto();
-        requestMetadata.setRetry(new RetryDto());
-        requestMetadata.getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
-        requestMetadata.getRetry().setRetryStep(BigDecimal.valueOf(0));
-        requestDto.setRequestMetadata(requestMetadata);
-        requestDto.getRequestMetadata().getRetry().setRetryPolicy(retries);
-        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-
-
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
-
-
-          pecService.lavorazioneRichiestaInteractive(PEC_PRESA_IN_CARICO_INFO, acknowledgment);
-
-//        Assert.assertNull(response);
-    }
-
 
     @Test
     void testGestioneRetryPecSchedulerBach_NoMessages() {

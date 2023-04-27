@@ -17,6 +17,7 @@ public enum Status {
     ERROR("error"),
     IN_PROGRESS("inprogress"),
     DELETED("deleted"),
+    INTERNAL_ERROR("internalError"),
 
     //  <-- ONLY EMAIL AND PEC -->
     COMPOSITION_ERROR("compError"),

@@ -17,6 +17,7 @@ import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessage
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
+import it.pagopa.pn.ec.commons.service.QueueOperationsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -28,6 +29,7 @@ import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import java.awt.print.Paper;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -45,7 +47,7 @@ import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.CODE_TO_STATUS_MAP
 
 @Service
 @Slf4j
-public class CartaceoService extends PresaInCaricoService {
+public class CartaceoService extends PresaInCaricoService implements QueueOperationsService {
 
 
     private final SqsService sqsService;
@@ -87,16 +89,15 @@ public class CartaceoService extends PresaInCaricoService {
                 .then(insertRequestFromCartaceo(paperNotificationRequest,
                         xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException())))
 
-                .flatMap(requestDto -> sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
-                        createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
-                                BOOKED.getStatusTransactionTableCompliant(),
-                                new PaperProgressStatusDto())))
+                .flatMap(requestDto -> sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, BOOKED.getStatusTransactionTableCompliant(), new PaperProgressStatusDto()))
 //                              Publish to CARTACEO BATCH
-                .flatMap(sendMessageResponse ->
-
-                        sqsService.send(cartaceoSqsQueueName.batchName(),
-                                cartaceoPresaInCaricoInfo)
-                )
+                .flatMap(sendMessageResponse -> sendNotificationOnBatchQueue(cartaceoPresaInCaricoInfo))
+                .onErrorResume(SqsClientException.class, sqsClientException->
+                {
+                    log.error("Internal Error ---> {}", sqsClientException.getMessage());
+                    sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new PaperProgressStatusDto());
+                    return Mono.error(sqsClientException);
+                })
                 .then();
     }
 
@@ -213,13 +214,8 @@ public class CartaceoService extends PresaInCaricoService {
                                 // Notification Tracker with next status ->
                                 // SENT
                                 .flatMap(
-                                        operationResultCodeResponse -> sqsService.send(
-                                                        notificationTrackerSqsName.statoCartaceoName(),
-                                                        createNotificationTrackerQueueDtoPaper(
-                                                                cartaceoPresaInCaricoInfo,
-                                                                CODE_TO_STATUS_MAP.get(
-                                                                        operationResultCodeResponse.getResultCode()),
-                                                                new PaperProgressStatusDto()))
+                                        operationResultCodeResponse ->sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, CODE_TO_STATUS_MAP.get(
+                                                operationResultCodeResponse.getResultCode()), new PaperProgressStatusDto())
 
                                                 // An error occurred
                                                 // during PAPER send,
@@ -240,9 +236,7 @@ public class CartaceoService extends PresaInCaricoService {
                                                             cartaceoPresaInCaricoInfo.setStepError(stepError);
                                                             cartaceoPresaInCaricoInfo.getStepError().setNotificationTrackerError(NOTIFICATION_TRACKER_STEP);
                                                             cartaceoPresaInCaricoInfo.getStepError().setOperationResultCodeResponse(operationResultCodeResponse);
-                                                            return sqsService.send(
-                                                                    cartaceoSqsQueueName.errorName(),
-                                                                    cartaceoPresaInCaricoInfo);
+                                                            return sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo);
                                                         })
 
                                 ))
@@ -250,14 +244,10 @@ public class CartaceoService extends PresaInCaricoService {
                 .onErrorResume(CartaceoSendException.CartaceoMaxRetriesExceededException.class//
                         , cartaceoMaxRetriesExceeded ->
 
-                                sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
-                                                createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
-                                                        RETRY.getStatusTransactionTableCompliant(),
-                                                        new PaperProgressStatusDto()))
+                                sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, RETRY.getStatusTransactionTableCompliant(), new PaperProgressStatusDto())
 
                                         // Publish to ERRORI PAPER queue
-                                        .then(sqsService.send(cartaceoSqsQueueName.errorName(),
-                                                cartaceoPresaInCaricoInfo))
+                                        .then(sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo))
                 );
     }
 
@@ -354,16 +344,9 @@ public class CartaceoService extends PresaInCaricoService {
                             "dalla coda d'errore per " +
                             "eccessivi tentativi: {}",
                     cartaceoSqsQueueName.errorName());
-            return sqsService.send(
-                            notificationTrackerSqsName.statoCartaceoName(),
-                            createNotificationTrackerQueueDtoPaper(
-                                    cartaceoPresaInCaricoInfo,
-                                    ERROR.getStatusTransactionTableCompliant(),
-                                    new PaperProgressStatusDto()))
+            return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, ERROR.getStatusTransactionTableCompliant(), new PaperProgressStatusDto())
                     .flatMap(
-                            sendMessageResponse -> sqsService.deleteMessageFromQueue(
-                                    message,
-                                    cartaceoSqsQueueName.errorName()));
+                            sendMessageResponse -> deleteMessageFromErrorQueue(message));
 
         }
         return Mono.empty();
@@ -385,20 +368,13 @@ public class CartaceoService extends PresaInCaricoService {
 //              check step error per evitare nuova chiamata verso consolidatore
 //              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The PAPER in sent, publish to Notification Tracker with next status
                     if (Objects.equals(cartaceoPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
-                        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
-                        return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
-                                createNotificationTrackerQueueDtoPaper(
-                                        cartaceoPresaInCaricoInfo,
-                                        cartaceoPresaInCaricoInfo.getStepError().getOperationResultCodeResponse().getResultCode(),
-                                        new PaperProgressStatusDto()))
+                        return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, cartaceoPresaInCaricoInfo.getStepError().getOperationResultCodeResponse().getResultCode(), new PaperProgressStatusDto())
                                 .flatMap(sendMessageResponse -> {
                                     log.debug("Il messaggio è stato gestito " +
                                                     "correttamente e rimosso dalla " +
                                                     "coda" + " d'errore {}",
                                             cartaceoSqsQueueName.errorName());
-                                    return sqsService.deleteMessageFromQueue(
-                                            message,
-                                            cartaceoSqsQueueName.errorName());
+                                    return deleteMessageFromErrorQueue(message);
                                 })
                                 .onErrorResume(sqsPublishException -> checkTentativiEccessiviCartaceo(requestId, requestDto, cartaceoPresaInCaricoInfo, message));
                     } else {
@@ -408,20 +384,14 @@ public class CartaceoService extends PresaInCaricoService {
                                 // The PAPER in sent, publish to Notification Tracker with next status ->
                                 // SENT
                                 .flatMap(operationResultCodeResponse ->
-                                        sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
-                                                        createNotificationTrackerQueueDtoPaper(
-                                                                cartaceoPresaInCaricoInfo,
-                                                                CODE_TO_STATUS_MAP.get(
-                                                                        operationResultCodeResponse.getResultCode()),
-                                                                new PaperProgressStatusDto()))
+                                        sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, CODE_TO_STATUS_MAP.get(
+                                                operationResultCodeResponse.getResultCode()), new PaperProgressStatusDto())
                                                 .flatMap(sendMessageResponse -> {
                                                     log.debug("Il messaggio è stato gestito " +
                                                                     "correttamente e rimosso dalla " +
                                                                     "coda" + " d'errore {}",
                                                             cartaceoSqsQueueName.errorName());
-                                                    return sqsService.deleteMessageFromQueue(
-                                                            message,
-                                                            cartaceoSqsQueueName.errorName());
+                                                    return deleteMessageFromErrorQueue(message);
                                                 })
                                                 .onErrorResume(sqsPublishException -> checkTentativiEccessiviCartaceo(requestId, requestDto, cartaceoPresaInCaricoInfo, message)));
                     }
@@ -430,12 +400,39 @@ public class CartaceoService extends PresaInCaricoService {
                 .onErrorResume(StatusToDeleteException.class, exception -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}",
                             cartaceoSqsQueueName.errorName());
-                    return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
-                                    createNotificationTrackerQueueDtoPaper(cartaceoPresaInCaricoInfo,
-                                            ERROR.getStatusTransactionTableCompliant(),
-                                            new PaperProgressStatusDto()))
-                            .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message,
-                                    cartaceoSqsQueueName.errorName()));
+                    return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, ERROR.getStatusTransactionTableCompliant(), new PaperProgressStatusDto())
+                            .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
+                })
+                //Catch errore interno, pubblicazione sul notification tracker ed eliminazione dalla coda di errore.
+                .onErrorResume(throwable ->
+                {
+                    log.error("Internal Error -> {}", throwable.getMessage());
+                    return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new PaperProgressStatusDto())
+                            .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 });
     }
+
+    @Override
+    public Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return sqsService.send(cartaceoSqsQueueName.errorName(), presaInCaricoInfo);
+    }
+
+    @Override
+    public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status, PaperProgressStatusDto paperProgressStatusDto) {
+        return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+                createNotificationTrackerQueueDtoPaper(presaInCaricoInfo,
+                        status,
+                        paperProgressStatusDto));
+    }
+
+    @Override
+    public Mono<DeleteMessageResponse> deleteMessageFromErrorQueue(Message message) {
+        return sqsService.deleteMessageFromQueue(message, cartaceoSqsQueueName.errorName());
+    }
+
+    @Override
+    public Mono<SendMessageResponse> sendNotificationOnBatchQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return sqsService.send(cartaceoSqsQueueName.batchName(), presaInCaricoInfo);
+    }
+
 }
