@@ -24,7 +24,7 @@ public class SqsServiceImpl implements SqsService {
     private final SqsAsyncClient sqsAsyncClient;
     private final ObjectMapper objectMapper;
     private final JsonUtils jsonUtils;
-    private static final int messageGroupIdLength = 64;
+    private static final int MESSAGE_GROUP_ID_LENGTH= 64;
 
     public SqsServiceImpl(SqsAsyncClient sqsAsyncClient, ObjectMapper objectMapper, JsonUtils jsonUtils) {
         this.sqsAsyncClient = sqsAsyncClient;
@@ -40,7 +40,7 @@ public class SqsServiceImpl implements SqsService {
                 .zipWith(getQueueUrlFromName(queueName))
                 .flatMap(objects -> Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> builder.queueUrl(objects.getT2())
                         .messageBody(objects.getT1())
-                        .messageGroupId(RandomStringUtils.randomAlphanumeric(messageGroupIdLength)))))
+                        .messageGroupId(RandomStringUtils.randomAlphanumeric(MESSAGE_GROUP_ID_LENGTH)))))
                 .onErrorResume(throwable -> {
                     log.error(throwable.getMessage(), throwable);
                     return Mono.error(new SqsClientException(queueName));

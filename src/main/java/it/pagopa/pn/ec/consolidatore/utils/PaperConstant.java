@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.consolidatore.utils;
 
 public class PaperConstant {
 
-    public PaperConstant() {
+    private PaperConstant(){
     }
 
     public static final String SS_IN_URI = "safestorage://";

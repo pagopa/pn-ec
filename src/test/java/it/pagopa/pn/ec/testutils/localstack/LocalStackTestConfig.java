@@ -77,7 +77,7 @@ public class LocalStackTestConfig {
                     "--name",
                     "pn/identity/pec",
                     "--secret-string",
-                    "{\"user\":\"aruba_username\",\"pass\":\"aruba_password\"}");
+                    "{\"user\":\"aruba_username@dgsspa.com\",\"pass\":\"aruba_password\"}");
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
