@@ -116,7 +116,6 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                                                  }))
                 .onErrorResume(SqsClientException.class, sqsClientException->
                 {
-                    log.error("Internal Error ---> {}", sqsClientException.getMessage());
                     sendNotificationOnStatusQueue(pecPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new PaperProgressStatusDto());
                     return Mono.error(sqsClientException);
                 })

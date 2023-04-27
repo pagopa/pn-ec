@@ -94,7 +94,6 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .flatMap(sendMessageResponse -> sendNotificationOnBatchQueue(cartaceoPresaInCaricoInfo))
                 .onErrorResume(SqsClientException.class, sqsClientException->
                 {
-                    log.error("Internal Error ---> {}", sqsClientException.getMessage());
                     sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new PaperProgressStatusDto());
                     return Mono.error(sqsClientException);
                 })
