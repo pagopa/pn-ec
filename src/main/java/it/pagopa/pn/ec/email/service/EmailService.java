@@ -121,7 +121,6 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                 })
                 .onErrorResume(SqsClientException.class, sqsClientException->
                 {
-                    log.error("Internal Error ---> {}", sqsClientException.getMessage());
                     sendNotificationOnStatusQueue(emailPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new PaperProgressStatusDto());
                     return Mono.error(sqsClientException);
                 })

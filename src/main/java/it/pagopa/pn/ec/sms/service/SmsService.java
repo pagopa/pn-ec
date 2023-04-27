@@ -92,7 +92,6 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                                                                                           })
                 .onErrorResume(SqsClientException.class, sqsClientException->
                 {
-                    log.error("Internal Error ---> {}", sqsClientException.getMessage());
                     sendNotificationOnStatusQueue(smsPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new PaperProgressStatusDto());
                     return Mono.error(sqsClientException);
                 })
