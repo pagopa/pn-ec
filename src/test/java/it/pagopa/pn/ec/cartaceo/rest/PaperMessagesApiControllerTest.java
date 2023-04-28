@@ -1,9 +1,9 @@
 package it.pagopa.pn.ec.cartaceo.rest;
 
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
+import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
-import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -33,11 +33,11 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
+import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
-import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -46,7 +46,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
 class PaperMessagesApiControllerTest {
-
 
     @Autowired
     private WebTestClient webTestClient;
@@ -69,26 +68,21 @@ class PaperMessagesApiControllerTest {
     @MockBean
     private FileCall uriBuilderCall;
 
-    private static final String SEND_CARTACEO_ENDPOINT = "/external-channels/v1/paper-deliveries-engagements"
-            + "/{requestIdx}";
-
+    private static final String SEND_CARTACEO_ENDPOINT = "/external-channels/v1/paper-deliveries-engagements" + "/{requestIdx}";
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final PaperEngageRequest paperEngageRequest = new PaperEngageRequest();
-    private static final RequestDto requestDto = new RequestDto();
-
-    private static  PaperEngageRequestAttachments paperEngageRequestAttachments = new PaperEngageRequestAttachments();
+    private static final PaperEngageRequestAttachments PAPER_ENGAGE_REQUEST_ATTACHMENTS = new PaperEngageRequestAttachments();
     private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
+
     @BeforeAll
     public static void createDigitalCourtesyCartaceoRequest() {
 
-//      Mock an existing request. Set the requestIdx
-        requestDto.setRequestIdx("requestIdx");
-        paperEngageRequestAttachments.setUri(defaultAttachmentUrl);
-        paperEngageRequestAttachments.setOrder(BigDecimal.valueOf(1));
-        paperEngageRequestAttachments.setDocumentType("TEST");
-        paperEngageRequestAttachments.setSha256("stringstringstringstringstringstringstri");
+        PAPER_ENGAGE_REQUEST_ATTACHMENTS.setUri(defaultAttachmentUrl);
+        PAPER_ENGAGE_REQUEST_ATTACHMENTS.setOrder(BigDecimal.valueOf(1));
+        PAPER_ENGAGE_REQUEST_ATTACHMENTS.setDocumentType("TEST");
+        PAPER_ENGAGE_REQUEST_ATTACHMENTS.setSha256("stringstringstringstringstringstringstri");
         List<PaperEngageRequestAttachments> paperEngageRequestAttachmentsList = new ArrayList<>();
-        paperEngageRequestAttachmentsList.add(paperEngageRequestAttachments);
+        paperEngageRequestAttachmentsList.add(PAPER_ENGAGE_REQUEST_ATTACHMENTS);
         paperEngageRequest.setAttachments(paperEngageRequestAttachmentsList);
         paperEngageRequest.setReceiverName("");
         paperEngageRequest.setReceiverNameRow2("");
@@ -109,7 +103,7 @@ class PaperMessagesApiControllerTest {
         paperEngageRequest.setArAddress("");
         paperEngageRequest.setArCap("");
         paperEngageRequest.setArCity("");
-        var vas = new HashMap<String,String>();
+        var vas = new HashMap<String, String>();
         paperEngageRequest.setVas(vas);
         paperEngageRequest.setIun("iun123456789");
         paperEngageRequest.setRequestPaId("PagoPa");
@@ -119,27 +113,24 @@ class PaperMessagesApiControllerTest {
         paperEngageRequest.setClientRequestTimeStamp(OffsetDateTime.now());
     }
 
-    private WebTestClient.ResponseSpec sendCartaceoTestCall(BodyInserter<PaperEngageRequest, ReactiveHttpOutputMessage> bodyInserter
-            , String requestIdx) {
+    private WebTestClient.ResponseSpec sendCartaceoTestCall(BodyInserter<PaperEngageRequest, ReactiveHttpOutputMessage> bodyInserter,
+                                                            String requestIdx) {
 
         return this.webTestClient.put()
-                .uri(uriBuilder -> uriBuilder.path(SEND_CARTACEO_ENDPOINT).build(requestIdx))
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_JSON)
-                .body(bodyInserter)
-                .header(ID_CLIENT_HEADER_NAME, DEFAULT_ID_CLIENT_HEADER_VALUE)
-                .exchange();
+                                 .uri(uriBuilder -> uriBuilder.path(SEND_CARTACEO_ENDPOINT).build(requestIdx))
+                                 .accept(APPLICATION_JSON)
+                                 .contentType(APPLICATION_JSON)
+                                 .body(bodyInserter)
+                                 .header(ID_CLIENT_HEADER_NAME, DEFAULT_ID_CLIENT_HEADER_VALUE)
+                                 .exchange();
     }
 
-    // Per il momento le chiamate tra i vari microservizi di EC sono mocckate per
-    // evitare problemi di precondizioni nei vari ambienti
-
+    // Per il momento le chiamate tra i vari microservizi di EC sono mocckate per evitare problemi di precondizioni nei vari ambienti
 
     @Test
     void sendCartaceoOk() {
 
-        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
@@ -148,131 +139,114 @@ class PaperMessagesApiControllerTest {
 
     @Test
     void sendCartaceoBadBody() {
-        sendCartaceoTestCall(BodyInserters.empty(), DEFAULT_REQUEST_IDX).expectStatus().isBadRequest()
-                .expectBody(Problem.class);
+        sendCartaceoTestCall(BodyInserters.empty(), DEFAULT_REQUEST_IDX).expectStatus().isBadRequest().expectBody(Problem.class);
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { BAD_REQUEST_IDX_SHORT, BAD_REQUEST_IDX_CHAR_NOT_ALLOWED })
+    @ValueSource(strings = {BAD_REQUEST_IDX_SHORT, BAD_REQUEST_IDX_CHAR_NOT_ALLOWED})
     void sendCartaceoMalformedIdClient(String badRequestIdx) {
-        sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), badRequestIdx).expectStatus().isBadRequest()
-                .expectBody(Problem.class);
+        sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), badRequestIdx).expectStatus()
+                                                                                        .isBadRequest()
+                                                                                        .expectBody(Problem.class);
     }
-
-
-    // client -> KO
-    @Test
-    void callForClientAuthKo() {
-
-//      Client auth call -> KO
-        when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
-
-        sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(SERVICE_UNAVAILABLE).expectBody(RequestDto.class);
-    }
-
 
     @Test
     void sendCartaceoUnauthorizedIdClient() {
 
-//      Client auth call -> OK
 //      Client non tornato dall'anagrafica client
-        when(authService.clientAuth(anyString()))
-                .thenReturn(Mono.error(new ClientNotAuthorizedException(DEFAULT_ID_CLIENT_HEADER_VALUE)));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.error(new ClientNotAuthorizedException(DEFAULT_ID_CLIENT_HEADER_VALUE)));
 
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString()))
-                .thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
-
-        sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isForbidden();
+        sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus().isForbidden();
     }
 
-
-    // corrente -> KO
+//  Richiesta di invio CARTACEO già effettuata, contenuto della richiesta uguale
     @Test
-    void callToRetrieveCurrentStatusKo() {
+    void sendSmsRequestWithSameContentAlreadyMade() {
 
-//      Client auth call -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
+//      Client auth -> OK
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
 
-//      Retrieve request -> KO
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenThrow(EcInternalEndpointHttpException.class);
+//      Insert request -> Returns a 204 mapped to empty Mono, because a request with the same hash already exists
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.empty());
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(SERVICE_UNAVAILABLE).expectBody(Problem.class);
+                                                                                              .isEqualTo(OK)
+                                                                                              .expectBody(Problem.class);
     }
 
-
+    //  Richiesta di invio CARTACEO già effettuata
     @Test
     void sendCartaceoRequestAlreadyMade() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-//      Retrieve request -> Return an existent request, return 409 status
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.just(requestDto));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
+
+//      Insert request -> Returns a 409 mapped to RestCallException.ResourceAlreadyExistsException error signal, because a request with
+//      same id but different hash already exists
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.error(new RestCallException.ResourceAlreadyExistsException()));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(CONFLICT).expectBody(Problem.class);
+                                                                                              .isEqualTo(CONFLICT)
+                                                                                              .expectBody(Problem.class);
     }
 
-
-    // KO
+    //  Pubblicazione sulla coda "Notification tracker stato CARTACEO" -> KO
     @Test
     void sendCartaceoNotificationTrackerKo() {
 
-
-        when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
 //      Client auth -> OK
-        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-//      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
+
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
-                new SqsClientException(notificationTrackerSqsName.statoCartaceoName())));
+        when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()),
+                             argThat((NotificationTrackerQueueDto notificationTrackerQueueDto) -> Objects.equals(notificationTrackerQueueDto.getNextStatus(),
+                                                                                                                 BOOKED.getStatusTransactionTableCompliant())))).thenReturn(
+                Mono.error(new SqsClientException(notificationTrackerSqsName.statoCartaceoName())));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(SERVICE_UNAVAILABLE)
-                .expectBody(Problem.class);
+                                                                                              .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                              .expectBody(Problem.class);
     }
 
-
-
-
+    //  Pubblicazione sulla coda "CARTACEO" -> KO
     @Test
     void sendCartaceoQueueKo() {
-        //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
-        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-//      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+//      Client auth -> OK
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
+
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         when(sqsService.send(eq(cartaceoSqsQueueName.batchName()),
-                any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsClientException(cartaceoSqsQueueName.batchName())));
+                             any(CartaceoPresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(cartaceoSqsQueueName.batchName())));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(SERVICE_UNAVAILABLE)
-                .expectBody(Problem.class);
+                                                                                              .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                              .expectBody(Problem.class);
     }
-
 
     @Test
     void sendCartaceoWithoutValidAttachment() {
-        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
-
-        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(defaultAttachmentUrl)));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(
+                defaultAttachmentUrl)));
 
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                .isEqualTo(BAD_REQUEST)
-                .expectBody(Problem.class);
+                                                                                              .isEqualTo(BAD_REQUEST)
+                                                                                              .expectBody(Problem.class);
     }
 
 }

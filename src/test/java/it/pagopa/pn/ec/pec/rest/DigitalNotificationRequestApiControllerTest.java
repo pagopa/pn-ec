@@ -2,17 +2,20 @@ package it.pagopa.pn.ec.pec.rest;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
-import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
+import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
+import it.pagopa.pn.ec.pec.service.impl.PecService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.sms.service.SmsService;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -31,7 +34,9 @@ import reactor.core.publisher.Mono;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
+import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
@@ -69,13 +74,10 @@ public class DigitalNotificationRequestApiControllerTest {
     public static final String SEND_PEC_ENDPOINT = "/external-channels/v1/digital-deliveries/legal-full-message-requests" + "/{requestIdx}";
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
-    private static final RequestDto requestDto = new RequestDto();
     private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
 
     @BeforeAll
     public static void createDigitalNotificationRequest() {
-//        Mock an existing request. Set the requestIdx
-        requestDto.setRequestIdx("requestIdx");
 
         List<String> defaultListAttachmentUrls = new ArrayList<>();
         defaultListAttachmentUrls.add(defaultAttachmentUrl);
@@ -109,8 +111,7 @@ public class DigitalNotificationRequestApiControllerTest {
     //PECPIC.100.1 -> Test case positivo
     @Test
     void sendPecOk() {
-        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
@@ -132,18 +133,6 @@ public class DigitalNotificationRequestApiControllerTest {
                                                                                            .expectBody(Problem.class);
     }
 
-    //PECPIC.100.3.1 -> Chiamata verso Anagrafica Client per l'autenticazione del client -> KO
-    @Test
-    void callForClientAuthKo() {
-
-//      Client auth call -> KO
-        when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
-
-        sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)
-                                                                                                 .expectBody(Problem.class);
-    }
-
     //PECPIC.100.3.2 -> idClient non autorizzato
     @Test
     void sendPecUnauthorizedIdClient() {
@@ -152,39 +141,38 @@ public class DigitalNotificationRequestApiControllerTest {
 //      Client non tornato dall'anagrafica client
         when(authService.clientAuth(anyString())).thenReturn(Mono.error(new ClientNotAuthorizedException(DEFAULT_ID_CLIENT_HEADER_VALUE)));
 
-//      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
-
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                  .isForbidden()
                                                                                                  .expectBody(Problem.class);
     }
 
-    //PECPIC.100.6 -> Chiamata verso Gestore Repository per il recupero dello stato corrente -> KO
+    // Richiesta di invio SMS già effettuata, contenuto della richiesta uguale
     @Test
-    void callToRetrieveCurrentStatusKo() {
+    void sendSmsRequestWithSameContentAlreadyMade() {
 
-//      Client auth call -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
+//      Client auth -> OK
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
 
-//      Retrieve request -> KO
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenThrow(EcInternalEndpointHttpException.class);
+//      Insert request -> Returns a 204 mapped to empty Mono, because a request with the same hash already exists
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.empty());
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)
+                                                                                                 .isEqualTo(OK)
                                                                                                  .expectBody(Problem.class);
     }
-
 
     //PECPIC.100.9 -> Richiesta di invio PEC già effettuata
     @Test
     void sendPecRequestAlreadyMade() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
 
-//      Retrieve request -> Return an existent request, return 409 status
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.just(requestDto));
+//      Insert request -> Returns a 409 mapped to RestCallException.ResourceAlreadyExistsException error signal, because a request with
+//      same id but different hash already exists
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.error(new RestCallException.ResourceAlreadyExistsException()));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                  .isEqualTo(CONFLICT)
@@ -196,18 +184,15 @@ public class DigitalNotificationRequestApiControllerTest {
     void sendPecNotificationTrackerKo() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
-
-//      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
-
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
-
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
-                new SqsClientException(notificationTrackerSqsName.statoPecName())));
+        when(sqsService.send(eq(notificationTrackerSqsName.statoPecName()),
+                             argThat((NotificationTrackerQueueDto notificationTrackerQueueDto) -> Objects.equals(notificationTrackerQueueDto.getNextStatus(),
+                                                                                                                 BOOKED.getStatusTransactionTableCompliant())))).thenReturn(
+                Mono.error(new SqsClientException(notificationTrackerSqsName.statoPecName())));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                  .isEqualTo(SERVICE_UNAVAILABLE)
@@ -219,19 +204,13 @@ public class DigitalNotificationRequestApiControllerTest {
     void sendPecQueueKo() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
-        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
-
-//      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
-
-//        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
-
-//        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         when(sqsService.send(eq(pecSqsQueueName.interactiveName()),
-                             any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsClientException(pecSqsQueueName.interactiveName())));
+                             any(PresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(pecSqsQueueName.interactiveName())));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                  .isEqualTo(SERVICE_UNAVAILABLE)
@@ -242,12 +221,11 @@ public class DigitalNotificationRequestApiControllerTest {
     @Test
     void sendPecWithoutValidAttachment() {
 
-//        Client auth call -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
+//      Client auth call -> OK
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
-
-        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(defaultAttachmentUrl)));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(
+                defaultAttachmentUrl)));
 
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 

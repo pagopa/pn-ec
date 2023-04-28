@@ -3,10 +3,10 @@ package it.pagopa.pn.ec.email.rest;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
-import it.pagopa.pn.ec.commons.exception.EcInternalEndpointHttpException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
@@ -14,6 +14,7 @@ import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
+import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
@@ -34,8 +35,10 @@ import reactor.core.publisher.Mono;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 
+import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.ChannelEnum.EMAIL;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
@@ -76,13 +79,10 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
             "/external-channels/v1/digital-deliveries/courtesy-full-message-requests" + "/{requestIdx}";
     private static final DigitalCourtesyMailRequest digitalCourtesyMailRequest = new DigitalCourtesyMailRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
-    private static final RequestDto requestDto = new RequestDto();
     private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
 
     @BeforeAll
     public static void createDigitalCourtesyMailRequest() {
-//        Mock an existing request. Set the requestIdx
-        requestDto.setRequestIdx("requestIdx");
 
         List<String> defaultListAttachmentUrls = new ArrayList<>();
         defaultListAttachmentUrls.add(defaultAttachmentUrl);
@@ -111,13 +111,11 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
                                  .exchange();
     }
 
-
     //EMIALPIC.100.1 -> Test case positivo
     @Test
     void sendEmailOk() {
 
-        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
@@ -139,97 +137,87 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
                                                                                              .expectBody(Problem.class);
     }
 
-    //EMIALPIC.100.3.1 -> Chiamata verso Anagrafica Client per l'autenticazione del client -> KO
-    @Test
-    void callForClientAuthKo() {
-
-//      Client auth call -> KO
-        when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
-
-        sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                   .isEqualTo(SERVICE_UNAVAILABLE)
-                                                                                                   .expectBody(Problem.class);
-    }
-
     //EMIALPIC.100.3.2 -> idClient non autorizzato
     @Test
     void sendEmailUnauthorizedIdClient() {
 
-//      Client auth call -> OK
 //      Client non tornato dall'anagrafica client
         when(authService.clientAuth(anyString())).thenReturn(Mono.error(new ClientNotAuthorizedException(DEFAULT_ID_CLIENT_HEADER_VALUE)));
-
-//      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                    .isForbidden()
                                                                                                    .expectBody(Problem.class);
     }
 
-    //EMIALPIC.100.6 -> Chiamata verso Gestore Repository per il recupero dello stato corrente -> KO
-    @Test
-    void callToRetrieveCurrentStatusKo() {
-        when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
-//      Client auth call -> OK
-        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
-
-//      Retrieve request -> KO
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenThrow(EcInternalEndpointHttpException.class);
-
-        sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                   .isEqualTo(SERVICE_UNAVAILABLE)
-                                                                                                   .expectBody(Problem.class);
-    }
-
-
-    //EMIALPIC.100.9 -> Richiesta di invio PEC già effettuata
+    //EMIALPIC.100.9 -> Richiesta di invio EMAIL già effettuata, contenuto della richiesta diverso
     @Test
     void sendEmailRequestAlreadyMade() {
-        //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
+//      Client auth -> OK
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-//      Retrieve request -> Return an existent request, return 409 status
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.just(requestDto));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
+
+//      Insert request -> Returns a 409 mapped to RestCallException.ResourceAlreadyExistsException error signal, because a request with
+//      same id but different hash already exists
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.error(new RestCallException.ResourceAlreadyExistsException()));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                    .isEqualTo(CONFLICT)
                                                                                                    .expectBody(Problem.class);
     }
 
-    //EMIALPIC.100.7 -> Pubblicazione sulla coda "Notification tracker stato PEC" -> KO
+    // Richiesta di invio EMAIL già effettuata, contenuto della richiesta uguale
+    @Test
+    void sendSmsRequestWithSameContentAlreadyMade() {
+
+//      Client auth -> OK
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
+
+//      Insert request -> Returns a 204 mapped to empty Mono, because a request with the same hash already exists
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.empty());
+
+        sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                .isEqualTo(OK)
+                                                                                                .expectBody(Problem.class);
+    }
+
+    //EMIALPIC.100.7 -> Pubblicazione sulla coda "Notification tracker stato EMAIL" -> KO
     @Test
     void sendEmailNotificationTrackerKo() {
-        when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
 //      Client auth -> OK
-        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-//      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
+
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
-                new SqsClientException(notificationTrackerSqsName.statoSmsName())));
+        when(sqsService.send(eq(notificationTrackerSqsName.statoEmailName()),
+                             argThat((NotificationTrackerQueueDto notificationTrackerQueueDto) -> Objects.equals(notificationTrackerQueueDto.getNextStatus(),
+                                                                                                                 BOOKED.getStatusTransactionTableCompliant())))).thenReturn(
+                Mono.error(new SqsClientException(notificationTrackerSqsName.statoSmsName())));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                    .isEqualTo(SERVICE_UNAVAILABLE)
                                                                                                    .expectBody(Problem.class);
     }
 
-    //EMIALPIC.100.8 -> Pubblicazione sulla coda "PEC" -> KO
+    //EMIALPIC.100.8 -> Pubblicazione sulla coda "EMAIL" -> KO
     @Test
     void sendEmailQueueKo() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenThrow(EcInternalEndpointHttpException.class);
-        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
 
-//      Retrieve request -> OK (If no request is found an exception of type RestCallException.ResourceNotFoundException is thrown)
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
+
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
         when(sqsService.send(eq(emailSqsQueueName.interactiveName()),
-                             any(DigitalNotificationRequest.class))).thenReturn(Mono.error(new SqsClientException(emailSqsQueueName.interactiveName())));
+                             any(EmailPresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(emailSqsQueueName.interactiveName())));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                    .isEqualTo(SERVICE_UNAVAILABLE)
@@ -239,12 +227,12 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     //EMIALPIC.100.5 -> Attachment non disponibile dentro pn-ss
     @Test
     void sendEmailWithoutValidAttachment() {
-        when(authService.clientAuth(anyString())).thenReturn(Mono.empty());
 
-        when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
-
-        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(defaultAttachmentUrl)));
-
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(gestoreRepositoryCall.getRichiesta(anyString(),
+                                                anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(
+                defaultAttachmentUrl)));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
