@@ -68,10 +68,6 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     @Override
     public Mono<ResponseEntity<FileDownloadResponse>> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, final ServerWebExchange exchange) {
         return consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
-                .doOnError(throwable -> {
-                    log.error(throwable.getMessage());
-                    throwable.printStackTrace();
-                })
                 .map(ResponseEntity::ok);
     }
 
@@ -79,10 +75,6 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     @Override
     public Mono<ResponseEntity<PreLoadResponseData>> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> preLoadRequestData, ServerWebExchange exchange) {
         return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
-                .doOnError(throwable -> {
-                    log.error(throwable.getMessage());
-                    throwable.printStackTrace();
-                })
                 .map(ResponseEntity::ok);
     }
 

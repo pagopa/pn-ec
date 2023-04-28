@@ -73,7 +73,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     protected PecService(AuthService authService, ArubaCall arubaCall, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
             , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, ArubaSecretValue arubaSecretValue,
                          NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName) {
-        super(authService);
+        super(authService, gestoreRepositoryCall);
         this.arubaCall = arubaCall;
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
@@ -97,30 +97,29 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest()
                                                                                        .getAttachmentsUrls(), xPagopaExtchCxId, true)
 
-                                .flatMap(fileDownloadResponse -> insertRequestFromPec(digitalNotificationRequest,
+                                .then(insertRequestFromPec(digitalNotificationRequest,
                                                            xPagopaExtchCxId).onErrorResume(throwable -> Mono.error(new EcInternalEndpointHttpException())))
 
-                                .flatMap(requestDto -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                                                                                     BOOKED.getStatusTransactionTableCompliant(),
-                                                                                     new DigitalProgressStatusDto()))
+                                .flatMap(requestDto -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo, BOOKED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
 
-//                              Publish to PEC INTERACTIVE or PEC BATCH
-                                .flatMap(sendMessageResponse -> {
-                                    DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
-                                    if (qos == INTERACTIVE) {
-                                        return sendNotificationOnInteractiveQueue(pecPresaInCaricoInfo);
-                                    } else if (qos == BATCH) {
-                                        return sendNotificationOnBatchQueue(pecPresaInCaricoInfo);
-                                    } else {
-                                        return Mono.empty();
-                                    }
-                                }).onErrorResume(SqsClientException.class, sqsClientException -> {
-                    log.error("Internal Error ---> {}", sqsClientException.getMessage());
-                    sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                                                  INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                                  new PaperProgressStatusDto());
+//                                                               Publish to PEC INTERACTIVE or PEC BATCH
+                                                                 .flatMap(sendMessageResponse -> {
+                                                                     DigitalNotificationRequest.QosEnum qos =
+                                                                             pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
+                                                                     if (qos == INTERACTIVE) {
+                                                                         return sendNotificationOnInteractiveQueue(pecPresaInCaricoInfo);
+                                                                     } else if (qos == BATCH) {
+                                                                         return sendNotificationOnBatchQueue(pecPresaInCaricoInfo);
+                                                                     } else {
+                                                                         return Mono.empty();
+                                                                     }
+                                                                 }))
+                .onErrorResume(SqsClientException.class, sqsClientException->
+                {
+                    sendNotificationOnStatusQueue(pecPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new PaperProgressStatusDto());
                     return Mono.error(sqsClientException);
-                }).then();
+                })
+                .then();
     }
 
     @SuppressWarnings("Duplicates")
@@ -238,30 +237,30 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                 .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId,
                                                                                                                     requestIdx))
 
-                                .flatMap(objects -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                                                                                  SENT.getStatusTransactionTableCompliant(),
-                                                                                  new DigitalProgressStatusDto().generatedMessage(objects.getT1()))
+                                .flatMap(objects ->
+                                        sendNotificationOnStatusQueue(pecPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(),
+                                                new DigitalProgressStatusDto().generatedMessage(
+                                                        objects.getT1()))
 
 //                                                            An error occurred during PEC send, start retries
-.retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                                                              .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
 //                                                            An error occurred during SQS publishing to the Notification Tracker ->
 //                                                            Publish to Errori PEC queue and notify to retry update status only
-.onErrorResume(SqsClientException.class, sqsPublishException -> {
-    var stepError = new StepError();
-    pecPresaInCaricoInfo.setStepError(stepError);
-    pecPresaInCaricoInfo.getStepError().setNotificationTrackerError(NOTIFICATION_TRACKER_STEP);
-    pecPresaInCaricoInfo.getStepError().setGeneratedMessageDto(objects.getT1());
-    return sendNotificationOnErrorQueue(pecPresaInCaricoInfo);
-}))
+                                                              .onErrorResume(SqsClientException.class,
+                                                                    sqsPublishException -> {
+                                                                        var stepError = new StepError();
+                                                                        pecPresaInCaricoInfo.setStepError(stepError);
+                                                                        pecPresaInCaricoInfo.getStepError().setNotificationTrackerError(NOTIFICATION_TRACKER_STEP);
+                                                                        pecPresaInCaricoInfo.getStepError().setGeneratedMessageDto(objects.getT1());
+                                                                        return sendNotificationOnErrorQueue(pecPresaInCaricoInfo);
+                                                              }))
                                 .doOnError(throwable -> log.error("An error occurred during lavorazione PEC {}", throwable.getMessage()))
 
-                                .onErrorResume(throwable -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                                                                                          RETRY.getStatusTransactionTableCompliant(),
-                                                                                          new DigitalProgressStatusDto())
+                                .onErrorResume(throwable -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo, RETRY.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
 
 //                                                                    Publish to ERRORI PEC queue
-.then(sendNotificationOnErrorQueue(pecPresaInCaricoInfo)));
+                                                                      .then(sendNotificationOnErrorQueue(pecPresaInCaricoInfo)));
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(SendMailResponse sendMailResponse) {
@@ -297,70 +296,72 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         String toDelete = "toDelete";
         return gestoreRepositoryCall.getRichiesta(xPagopaExtchCxId, requestIdx)
 //              check status toDelete
-                                    .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
+                .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
 //              se status toDelete throw Error
-                                    .switchIfEmpty(Mono.error(new StatusToDeleteException(requestIdx)))
+                .switchIfEmpty(Mono.error(new StatusToDeleteException(requestIdx)))
 //              check Id per evitare loop
-                                    .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
+                .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
 //              se il primo step, inizializza l'attributo retry
-                                    .flatMap(requestDto -> {
-                                        if (requestDto.getRequestMetadata().getRetry() == null) {
-                                            log.debug("Primo tentativo di Retry");
-                                            RetryDto retryDto = new RetryDto();
-                                            log.debug("policy" + retryPolicies.getPolicy().get("PEC"));
-                                            retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PEC"));
-                                            retryDto.setRetryStep(BigDecimal.ZERO);
-                                            retryDto.setLastRetryTimestamp(OffsetDateTime.now());
-                                            requestDto.getRequestMetadata().setRetry(retryDto);
-                                            PatchDto patchDto = new PatchDto();
-                                            patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                                            return gestoreRepositoryCall.patchRichiesta(xPagopaExtchCxId, requestIdx, patchDto);
+                .flatMap(requestDto -> {
+                    if (requestDto.getRequestMetadata().getRetry() == null) {
+                        log.debug("Primo tentativo di Retry");
+                        RetryDto retryDto = new RetryDto();
+                        log.debug("policy" + retryPolicies.getPolicy().get("PEC"));
+                        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PEC"));
+                        retryDto.setRetryStep(BigDecimal.ZERO);
+                        retryDto.setLastRetryTimestamp(OffsetDateTime.now());
+                        requestDto.getRequestMetadata().setRetry(retryDto);
+                        PatchDto patchDto = new PatchDto();
+                        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                        return gestoreRepositoryCall.patchRichiesta(xPagopaExtchCxId, requestIdx, patchDto);
 
-                                        } else {
-                                            var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
-                                            log.debug(retryNumber + " tentativo di Retry");
-                                            return Mono.just(requestDto);
-                                        }
-                                    })
+                    } else {
+                        var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
+                        log.debug(retryNumber + " tentativo di Retry");
+                        return Mono.just(requestDto);
+                    }
+                })
 //              check retry policies
-                                    .filter(requestDto -> {
+                .filter(requestDto -> {
 
-                                        var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();
-                                        var dateTime2 = OffsetDateTime.now();
-                                        Duration duration = Duration.between(dateTime1, dateTime2);
-                                        int step = requestDto.getRequestMetadata().getRetry().getRetryStep().intValueExact();
-                                        long minutes = duration.toMinutes();
-                                        long minutesToCheck =
-                                                requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
-                                        return minutes >= minutesToCheck;
-                                    })
+                    var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();
+                    var dateTime2 = OffsetDateTime.now();
+                    Duration duration = Duration.between(dateTime1, dateTime2);
+                    int step = requestDto.getRequestMetadata().getRetry().getRetryStep().intValueExact();
+                    long minutes = duration.toMinutes();
+                    long minutesToCheck =
+                            requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
+                    return minutes >= minutesToCheck;
+                })
 //              patch con orario attuale e dello step retry
-                                    .flatMap(requestDto -> {
-                                        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
-                                        requestDto.getRequestMetadata()
-                                                  .getRetry()
-                                                  .setRetryStep(requestDto.getRequestMetadata()
-                                                                          .getRetry()
-                                                                          .getRetryStep()
-                                                                          .add(BigDecimal.ONE));
-                                        PatchDto patchDto = new PatchDto();
-                                        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                                        return gestoreRepositoryCall.patchRichiesta(xPagopaExtchCxId, requestIdx, patchDto);
-                                    });
+                .flatMap(requestDto -> {
+                    requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
+                    requestDto.getRequestMetadata()
+                            .getRetry()
+                            .setRetryStep(requestDto.getRequestMetadata()
+                                    .getRetry()
+                                    .getRetryStep()
+                                    .add(BigDecimal.ONE));
+                    PatchDto patchDto = new PatchDto();
+                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                    return gestoreRepositoryCall.patchRichiesta(xPagopaExtchCxId, requestIdx, patchDto);
+                });
     }
 
-    private Mono<DeleteMessageResponse> checkTentativiEccessiviPec(String requestIdx, RequestDto requestDto,
-                                                                   final PecPresaInCaricoInfo pecPresaInCaricoInfo, Message message) {
+    private Mono<DeleteMessageResponse> checkTentativiEccessiviPec(String requestIdx, RequestDto requestDto, final PecPresaInCaricoInfo pecPresaInCaricoInfo, Message message) {
         if (idSaved == null) {
             idSaved = requestIdx;
         }
-        if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
+        if (requestDto.getRequestMetadata()
+                .getRetry()
+                .getRetryStep()
+                .compareTo(BigDecimal.valueOf(3)) > 0) {
             // operazioni per la rimozione del messaggio
-            log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: " + "{}", pecSqsQueueName.errorName());
-            return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                                                 ERROR.getStatusTransactionTableCompliant(),
-                                                 new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto())).flatMap(
-                    sendMessageResponse -> deleteMessageFromErrorQueue(message));
+            log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: " +
+                    "{}", pecSqsQueueName.errorName());
+            return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, ERROR.getStatusTransactionTableCompliant(),
+                    new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
+                    .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
 
         }
         return Mono.empty();
@@ -370,138 +371,91 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
-        return filterRequestPec(pecPresaInCaricoInfo).flatMap(requestDto -> {
+        return filterRequestPec(pecPresaInCaricoInfo)
+                .flatMap(requestDto -> {
 //            check step error per evitare null pointer
-                                                         if (pecPresaInCaricoInfo.getStepError() == null) {
-                                                             var stepError = new StepError();
-                                                             pecPresaInCaricoInfo.setStepError(stepError);
-                                                         }
+                    if (pecPresaInCaricoInfo.getStepError() == null) {
+                        var stepError = new StepError();
+                        pecPresaInCaricoInfo.setStepError(stepError);
+                    }
 //            check step error per evitare nuova chiamata verso aruba
-//              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The PEC in sent, publish to Notification
-//              Tracker with next status -> SENT
-                                                         if (Objects.equals(pecPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
-                                                             return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                                                                                                  SENT.getStatusTransactionTableCompliant(),
-                                                                                                  new DigitalProgressStatusDto().generatedMessage(pecPresaInCaricoInfo.getStepError()
-                                                                                                                                                                      .getGeneratedMessageDto())).flatMap(
-                                                                                                                                                                                                         sendMessageResponse -> {
-                                                                                                                                                                                                             log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore '{}'",
-                                                                                                                                                                                                                       pecSqsQueueName.errorName());
-                                                                                                                                                                                                             return deleteMessageFromErrorQueue(message);
-                                                                                                                                                                                                         })
-                                                                                                                                                                                                 .onErrorResume(
-                                                                                                                                                                                                         sqsPublishException -> checkTentativiEccessiviPec(
-                                                                                                                                                                                                                 requestIdx,
-                                                                                                                                                                                                                 requestDto,
-                                                                                                                                                                                                                 pecPresaInCaricoInfo,
-                                                                                                                                                                                                                 message));
-                                                         } else {
-                                                             //Gestisco il caso retry a partire dalla gestione allegati
-                                                             log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
-                                                             //Get attachment presigned url Flux
-                                                             return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest()
-                                                                                                                                            .getAttachmentsUrls(),
-                                                                                                                        xPagopaExtchCxId,
-                                                                                                                        false)
-                                                                                     .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+//              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The PEC in sent, publish to Notification Tracker with next status -> SENT
+                    if (Objects.equals(pecPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
+                        return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto()))
+                        .flatMap(sendMessageResponse -> {
+                            log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore '{}'", pecSqsQueueName.errorName());
+                            return deleteMessageFromErrorQueue(message);
+                        }).onErrorResume(sqsPublishException -> checkTentativiEccessiviPec(requestIdx, requestDto, pecPresaInCaricoInfo, message));
+                    } else {
+                        //Gestisco il caso retry a partire dalla gestione allegati
+                        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
+                        //Get attachment presigned url Flux
+                        return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest().getAttachmentsUrls(), xPagopaExtchCxId, false).retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
-                                                                                     .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
+                                .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
 
-                                                                                     .flatMap(fileDownloadResponse -> downloadCall.downloadFile(fileDownloadResponse.getDownload()
-                                                                                                                                                                    .getUrl())
-                                                                                                                                  .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
-                                                                                                                                  .map(outputStream -> EmailAttachment.builder()
-                                                                                                                                                                      .nameWithExtension(
-                                                                                                                                                                              fileDownloadResponse.getKey())
-                                                                                                                                                                      .content(
-                                                                                                                                                                              outputStream)
-                                                                                                                                                                      .build()))
+                                .flatMap(fileDownloadResponse -> downloadCall.downloadFile(fileDownloadResponse.getDownload().getUrl()).retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY).map(outputStream -> EmailAttachment.builder().nameWithExtension(fileDownloadResponse.getKey()).content(outputStream).build()))
 
 //                              Convert to Mono<List>
-                                                                                     .collectList()
+                                .collectList()
 
 //                              Create EmailField object with request info and attachments
-                                                                                     .map(fileDownloadResponses -> EmailField.builder()
-                                                                                                                             .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
-                                                                                                                             .from(arubaSecretValue.getPecUsername())
-                                                                                                                             .to(pecPresaInCaricoInfo.getDigitalNotificationRequest()
-                                                                                                                                                     .getReceiverDigitalAddress())
-                                                                                                                             .subject(pecPresaInCaricoInfo.getDigitalNotificationRequest()
-                                                                                                                                                          .getSubjectText())
-                                                                                                                             .text(pecPresaInCaricoInfo.getDigitalNotificationRequest()
-                                                                                                                                                       .getMessageText())
-                                                                                                                             .contentType(pecPresaInCaricoInfo.getDigitalNotificationRequest()
-                                                                                                                                                              .getMessageContentType()
-                                                                                                                                                              .getValue())
-                                                                                                                             .emailAttachments(fileDownloadResponses)
-                                                                                                                             .build())
+                                .map(fileDownloadResponses -> EmailField.builder().msgId(encodeMessageId(xPagopaExtchCxId, requestIdx)).from(arubaSecretValue.getPecUsername()).to(pecPresaInCaricoInfo.getDigitalNotificationRequest().getReceiverDigitalAddress()).subject(pecPresaInCaricoInfo.getDigitalNotificationRequest().getSubjectText()).text(pecPresaInCaricoInfo.getDigitalNotificationRequest().getMessageText()).contentType(pecPresaInCaricoInfo.getDigitalNotificationRequest().getMessageContentType().getValue()).emailAttachments(fileDownloadResponses).build())
 
-                                                                                     .map(EmailUtils::getMimeMessageInCDATATag)
+                                .map(EmailUtils::getMimeMessageInCDATATag)
 
-                                                                                     .flatMap(mimeMessageInCdata -> {
-                                                                                         var sendMail = new SendMail();
-                                                                                         sendMail.setData(mimeMessageInCdata);
-                                                                                         return arubaCall.sendMail(sendMail);
-                                                                                     })
+                                .flatMap(mimeMessageInCdata -> {
+                                    var sendMail = new SendMail();
+                                    sendMail.setData(mimeMessageInCdata);
+                                    return arubaCall.sendMail(sendMail);
+                                })
 
-                                                                                     .handle((sendMailResponse, sink) -> {
-                                                                                         if (sendMailResponse.getErrcode() != 0) {
-                                                                                             sink.error(new ArubaSendException());
-                                                                                         } else {
-                                                                                             sink.next(sendMailResponse);
-                                                                                         }
-                                                                                     })
+                                .handle((sendMailResponse, sink) -> {
+                                    if (sendMailResponse.getErrcode() != 0) {
+                                        sink.error(new ArubaSendException());
+                                    } else {
+                                        sink.next(sendMailResponse);
+                                    }
+                                })
 
-                                                                                     .cast(SendMailResponse.class)
+                                .cast(SendMailResponse.class)
 
-                                                                                     .map(this::createGeneratedMessageDto)
+                                .map(this::createGeneratedMessageDto)
 
-                                                                                     .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId,
-                                                                                                                                                                         requestIdx))
+                                .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId, requestIdx))
 
-                                                                                     .flatMap(objects -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                                                                                                                                       SENT.getStatusTransactionTableCompliant(),
-                                                                                                                                       new DigitalProgressStatusDto().generatedMessage(
-                                                                                                                                               objects.getT1())))
+                                .flatMap(objects -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(objects.getT1())))
 
-                                                                                     .flatMap(sendMessageResponse -> {
-                                                                                         log.debug("Il messaggio è stato gestito " +
-                                                                                                   "correttamente e rimosso dalla coda " +
-                                                                                                   "d'errore '{}'",
-                                                                                                   pecSqsQueueName.errorName());
-                                                                                         return deleteMessageFromErrorQueue(message);
-                                                                                     })
-                                                                                     .onErrorResume(sqsPublishException -> checkTentativiEccessiviPec(requestIdx,
-                                                                                                                                                      requestDto,
-                                                                                                                                                      pecPresaInCaricoInfo,
-                                                                                                                                                      message));
-                                                         }
+                                .flatMap(sendMessageResponse -> {
+                                    log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore '{}'", pecSqsQueueName.errorName());
+                                    return deleteMessageFromErrorQueue(message);
+                                }).onErrorResume(sqsPublishException -> checkTentativiEccessiviPec(requestIdx, requestDto, pecPresaInCaricoInfo, message));
+                    }
 
-                                                     })//              Catch errore tirato per lo stato toDelete
-                                                     .onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
-                                                         log.debug(
-                                                                 "Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}",
-                                                                 pecSqsQueueName.errorName());
-                                                         return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                                                                                              DELETED.getStatusTransactionTableCompliant(),
-                                                                                              new DigitalProgressStatusDto().generatedMessage(
-                                                                                                      new GeneratedMessageDto())).flatMap(
-                                                                 sendMessageResponse -> deleteMessageFromErrorQueue(message));
-
-                                                     }).onErrorResume(internalError -> {
-                    log.error(internalError.getMessage());
+                })//              Catch errore tirato per lo stato toDelete
+                .onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
+                    log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}",
+                            pecSqsQueueName.errorName());
                     return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                                                         INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                                         new DigitalProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(
-                            message));
+                            DELETED.getStatusTransactionTableCompliant(),
+                            new DigitalProgressStatusDto().generatedMessage(
+                                    new GeneratedMessageDto()))
+                            .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
+
+                })
+                .onErrorResume(internalError -> {
+                    log.error(internalError.getMessage());
+                    return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
+                            .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 });
     }
 
     @Override
-    public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
-                                                                   DigitalProgressStatusDto digitalProgressStatusDto) {
+    public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status, DigitalProgressStatusDto digitalProgressStatusDto) {
         return sqsService.send(notificationTrackerSqsName.statoPecName(),
-                               createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
+                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo,
+                        status,
+                        digitalProgressStatusDto));
     }
 
     @Override
@@ -511,12 +465,14 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnBatchQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(pecSqsQueueName.batchName(), presaInCaricoInfo);
+        return sqsService.send(pecSqsQueueName.batchName(),
+                presaInCaricoInfo);
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnInteractiveQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(pecSqsQueueName.interactiveName(), presaInCaricoInfo);
+        return sqsService.send(pecSqsQueueName.interactiveName(),
+                presaInCaricoInfo);
     }
 
     @Override
