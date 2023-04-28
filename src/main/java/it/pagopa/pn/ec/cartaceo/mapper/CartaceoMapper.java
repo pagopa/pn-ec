@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.cartaceo.mapper;
 
+import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,14 +15,14 @@ public class CartaceoMapper {
 
     private final ObjectMapper objectMapper;
 
-    public org.openapitools.client.model.PaperEngageRequest convert(final it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest srcPaperEngageRequest) {
-        org.openapitools.client.model.PaperEngageRequest dstPaperEngageRequest = null;
+    public PaperEngageRequest convert(final it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest srcPaperEngageRequest) {
+        PaperEngageRequest dstPaperEngageRequest = null;
         if (srcPaperEngageRequest != null) {
             OffsetDateTime srcClientRequestTimeStamp = srcPaperEngageRequest.getClientRequestTimeStamp();
             OffsetDateTime dstClientRequestTimeStamp = null;
             srcPaperEngageRequest.setClientRequestTimeStamp(null);
 
-            dstPaperEngageRequest = objectMapper.convertValue(srcPaperEngageRequest, org.openapitools.client.model.PaperEngageRequest.class);
+            dstPaperEngageRequest = objectMapper.convertValue(srcPaperEngageRequest, PaperEngageRequest.class);
 
             if (srcClientRequestTimeStamp != null) {
                 dstClientRequestTimeStamp = OffsetDateTime.parse(srcClientRequestTimeStamp.toString());

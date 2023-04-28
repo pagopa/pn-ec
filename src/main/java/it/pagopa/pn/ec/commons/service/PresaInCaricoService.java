@@ -28,7 +28,7 @@ public abstract class PresaInCaricoService {
                           .then(gestoreRepositoryCall.getRichiesta(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx()))
 //                        The request exists
 //                        TODO: Definire la logica di una richiesta già presente. Al momento se una richiesta esiste viene tornato
-//                         direttamente un 409 come risposta
+//                         direttamente un 409 come risposta. Ricevere definizione di insieme di info (hash) da inserire su dynamo e su cui fare il controllo
                           .handle((existingRequest, sink) -> sink.error(new RequestAlreadyInProgressException(existingRequest.getRequestIdx())))
 //                        The request doesn't exist
                           .onErrorResume(RestCallException.ResourceNotFoundException.class, throwable -> {

@@ -1,5 +1,8 @@
 package it.pagopa.pn.ec.cartaceo.testutils;
 
+import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest;
+import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequestAttachments;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -59,16 +62,16 @@ public class PaperEngageRequestFactory {
 		return paperEngageRequestFactory;
 	}
 
-	public static org.openapitools.client.model.PaperEngageRequest createApiPaperRequest(int attachNum) {
+	public static PaperEngageRequest createApiPaperRequest(int attachNum) {
 
 		var odt = OffsetDateTime.now();
 
-		var paperEngageRequestAttachments = new org.openapitools.client.model.PaperEngageRequestAttachments();
+		var paperEngageRequestAttachments = new PaperEngageRequestAttachments();
 		paperEngageRequestAttachments.setUri("safestorage://PN_EXTERNAL_LEGAL_FACTS-14d277f9beb4c8a9da322092c350d51");
 		paperEngageRequestAttachments.setDocumentType("AR");
 		paperEngageRequestAttachments.setSha256("");
 
-		var attachments = new ArrayList<org.openapitools.client.model.PaperEngageRequestAttachments>();
+		var attachments = new ArrayList<PaperEngageRequestAttachments>();
 		for (int idx = 0; idx < attachNum; idx++) {
 			paperEngageRequestAttachments.setOrder(new BigDecimal(idx));
 			attachments.add(paperEngageRequestAttachments);
@@ -77,7 +80,7 @@ public class PaperEngageRequestFactory {
 		var vas = new HashMap<String, String>();
 		vas.put("Servizi", "valore aggiunto");
 
-		var paperEngageRequestFactory = new org.openapitools.client.model.PaperEngageRequest();
+		var paperEngageRequestFactory = new PaperEngageRequest();
 
 		paperEngageRequestFactory.setIun("ABCD-HILM-YKWX-202202-1");
 		paperEngageRequestFactory.setRequestId("requestId");

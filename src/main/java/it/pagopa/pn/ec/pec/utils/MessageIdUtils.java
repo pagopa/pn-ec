@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.pec.utils;
 
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.pec.exception.MessageIdException;
 import org.springframework.util.Base64Utils;
 
@@ -50,7 +51,8 @@ public class MessageIdUtils {
             var base64ClientId = splitAtPipe[0];
             var base64RequestId = splitAtPipe[1].split(String.valueOf(DOMAIN.charAt(0)))[0];
             return new PresaInCaricoInfo(new String(Base64Utils.decodeFromString(base64RequestId)),
-                                         new String(Base64Utils.decodeFromString(base64ClientId)));
+                                         new String(Base64Utils.decodeFromString(base64ClientId)),
+                                         new StepError());
         } catch (Exception e) {
             throw new MessageIdException.DecodeMessageIdException();
         }
