@@ -204,7 +204,7 @@ class PaperMessagesApiControllerTest {
 
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
-//      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
+//      Mock dell'eccezione throwata dalla pubblicazione sulla coda
         when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()),
                              argThat((NotificationTrackerQueueDto notificationTrackerQueueDto) -> Objects.equals(notificationTrackerQueueDto.getNextStatus(),
                                                                                                                  BOOKED.getStatusTransactionTableCompliant())))).thenReturn(
@@ -226,7 +226,7 @@ class PaperMessagesApiControllerTest {
 
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
-//      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
+//      Mock dell'eccezione throwata dalla pubblicazione sulla coda
         when(sqsService.send(eq(cartaceoSqsQueueName.batchName()),
                              any(CartaceoPresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(cartaceoSqsQueueName.batchName())));
 

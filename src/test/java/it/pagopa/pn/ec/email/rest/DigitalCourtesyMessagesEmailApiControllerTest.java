@@ -193,7 +193,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
 
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
-//      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
+//      Mock dell'eccezione throwata dalla pubblicazione sulla coda
         when(sqsService.send(eq(notificationTrackerSqsName.statoEmailName()),
                              argThat((NotificationTrackerQueueDto notificationTrackerQueueDto) -> Objects.equals(notificationTrackerQueueDto.getNextStatus(),
                                                                                                                  BOOKED.getStatusTransactionTableCompliant())))).thenReturn(
@@ -215,7 +215,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
 
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
-//      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
+//      Mock dell'eccezione throwata dalla pubblicazione sulla coda
         when(sqsService.send(eq(emailSqsQueueName.interactiveName()),
                              any(EmailPresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(emailSqsQueueName.interactiveName())));
 

@@ -158,7 +158,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
-//      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
+//      Mock dell'eccezione throwata dalla pubblicazione sulla coda
         when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()),
                              argThat((NotificationTrackerQueueDto notificationTrackerQueueDto) -> Objects.equals(notificationTrackerQueueDto.getNextStatus(),
                                                                                                                  BOOKED.getStatusTransactionTableCompliant())))).thenReturn(
@@ -178,7 +178,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
-//      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
+//      Mock dell'eccezione throwata dalla pubblicazione sulla coda
         when(sqsService.send(eq(smsSqsQueueName.interactiveName()),
                              any(SmsPresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(smsSqsQueueName.interactiveName())));
 

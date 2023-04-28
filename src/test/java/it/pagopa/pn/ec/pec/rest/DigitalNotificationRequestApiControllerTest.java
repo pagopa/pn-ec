@@ -188,7 +188,7 @@ public class DigitalNotificationRequestApiControllerTest {
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
-//      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
+//      Mock dell'eccezione throwata dalla pubblicazione sulla coda
         when(sqsService.send(eq(notificationTrackerSqsName.statoPecName()),
                              argThat((NotificationTrackerQueueDto notificationTrackerQueueDto) -> Objects.equals(notificationTrackerQueueDto.getNextStatus(),
                                                                                                                  BOOKED.getStatusTransactionTableCompliant())))).thenReturn(
@@ -208,7 +208,7 @@ public class DigitalNotificationRequestApiControllerTest {
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
-//      Mock dell'eccezione trhowata dalla pubblicazione sulla coda
+//      Mock dell'eccezione throwata dalla pubblicazione sulla coda
         when(sqsService.send(eq(pecSqsQueueName.interactiveName()),
                              any(PresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(pecSqsQueueName.interactiveName())));
 
