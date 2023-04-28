@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.handler.annotation.support.PayloadMethodArgumentResolver;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
-import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.metrics.publishers.cloudwatch.CloudWatchMetricPublisher;
 import software.amazon.awssdk.regions.Region;
@@ -55,10 +55,10 @@ public class AwsConfiguration {
     @Value("${test.aws.cloudwatch.endpoint:#{null}}")
     String cloudwatchLocalStackEndpoint;
 
-    private static final com.amazonaws.auth.profile.ProfileCredentialsProvider PROFILE_CREDENTIALS_PROVIDER_V1 =
-            new com.amazonaws.auth.profile.ProfileCredentialsProvider();
+    private static final com.amazonaws.auth.DefaultAWSCredentialsProviderChain DEFAULT_AWS_CREDENTIALS_PROVIDER_CHAIN_V1 =
+            new com.amazonaws.auth.DefaultAWSCredentialsProviderChain();
 
-    private static final ProfileCredentialsProvider PROFILE_CREDENTIALS_PROVIDER_V2 = ProfileCredentialsProvider.create();
+    private static final DefaultCredentialsProvider DEFAULT_CREDENTIALS_PROVIDER_V2 = DefaultCredentialsProvider.create();
 
     public AwsConfiguration(AwsConfigurationProperties awsConfigurationProperties) {
         this.awsConfigurationProperties = awsConfigurationProperties;
@@ -86,7 +86,7 @@ public class AwsConfiguration {
     @Bean
     AmazonSQSAsync amazonSQS() {
         return AmazonSQSAsyncClientBuilder.standard()
-                                          .withCredentials(PROFILE_CREDENTIALS_PROVIDER_V1)
+                                          .withCredentials(DEFAULT_AWS_CREDENTIALS_PROVIDER_CHAIN_V1)
                                           .withRegion(String.valueOf(Region.of(awsConfigurationProperties.regionCode())))
                                           .build();
     }
@@ -97,7 +97,7 @@ public class AwsConfiguration {
     @Bean
     public EventBridgeAsyncClient eventBridgeAsyncClient() {
         EventBridgeAsyncClientBuilder eventBrClient = EventBridgeAsyncClient.builder()
-                                                                            .credentialsProvider(PROFILE_CREDENTIALS_PROVIDER_V2)
+                                                                            .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER_V2)
                                                                             .region(Region.of(awsConfigurationProperties.regionCode()));
 
         if (eventLocalStackEndpoint != null) {
@@ -110,7 +110,7 @@ public class AwsConfiguration {
     @Bean
     public SqsAsyncClient sqsAsyncClient() {
         SqsAsyncClientBuilder sqsAsyncClientBuilder = SqsAsyncClient.builder()
-                                                                    .credentialsProvider(PROFILE_CREDENTIALS_PROVIDER_V2)
+                                                                    .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER_V2)
                                                                     .region(Region.of(awsConfigurationProperties.regionCode()));
 
         if (sqsLocalStackEndpoint != null) {
@@ -123,7 +123,7 @@ public class AwsConfiguration {
     @Bean
     public DynamoDbAsyncClient dynamoDbAsyncClient() {
         DynamoDbAsyncClientBuilder dynamoDbAsyncClientBuilder = DynamoDbAsyncClient.builder()
-                                                                                   .credentialsProvider(PROFILE_CREDENTIALS_PROVIDER_V2)
+                                                                                   .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER_V2)
                                                                                    .region(Region.of(awsConfigurationProperties.regionCode()));
 
         if (dynamoDbLocalStackEndpoint != null) {
@@ -141,7 +141,7 @@ public class AwsConfiguration {
     @Bean
     public SnsAsyncClient snsClient() {
         SnsAsyncClientBuilder snsAsyncClientBuilder = SnsAsyncClient.builder()
-                                                                    .credentialsProvider(PROFILE_CREDENTIALS_PROVIDER_V2)
+                                                                    .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER_V2)
                                                                     .region(Region.of(awsConfigurationProperties.regionCode()))
                                                                     .overrideConfiguration(c -> c.addMetricPublisher(
                                                                             CloudWatchMetricPublisher.create()));
@@ -156,7 +156,7 @@ public class AwsConfiguration {
     @Bean
     public SesAsyncClient sesClient() {
         SesAsyncClientBuilder sesAsyncClientBuilder = SesAsyncClient.builder()
-                                                                    .credentialsProvider(PROFILE_CREDENTIALS_PROVIDER_V2)
+                                                                    .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER_V2)
                                                                     .region(Region.of(awsConfigurationProperties.regionCode()))
                                                                     .overrideConfiguration(c -> c.addMetricPublisher(
                                                                             CloudWatchMetricPublisher.create()));
@@ -171,7 +171,7 @@ public class AwsConfiguration {
     @Bean
     public SecretsManagerClient secretsManagerClient() {
         SecretsManagerClientBuilder secretsManagerClient = SecretsManagerClient.builder()
-                                                                               .credentialsProvider(PROFILE_CREDENTIALS_PROVIDER_V2)
+                                                                               .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER_V2)
                                                                                .region(Region.of(awsConfigurationProperties.regionCode()));
 
         if (sesLocalStackEndpoint != null) {
@@ -185,7 +185,7 @@ public class AwsConfiguration {
     public CloudWatchAsyncClient cloudWatchAsyncClient() {
         CloudWatchAsyncClientBuilder cloudWatchAsyncClientBuilder = CloudWatchAsyncClient.builder()
                                                                                          .credentialsProvider(
-                                                                                                 PROFILE_CREDENTIALS_PROVIDER_V2)
+                                                                                                 DEFAULT_CREDENTIALS_PROVIDER_V2)
                                                                                          .region(Region.of(awsConfigurationProperties.regionCode()));
 
         if (cloudwatchLocalStackEndpoint != null) {
