@@ -39,7 +39,7 @@ public class JettyHttpClientConf {
 
     private Request enhance(Request request) {
 
-        request.onRequestBegin(theRequest -> log.info("Start {} request to {}", theRequest.getMethod(), theRequest.getURI()));
+        request.onRequestBegin(theRequest -> log.debug("Start {} request to {}", theRequest.getMethod(), theRequest.getURI()));
 
         request.onRequestHeaders(theRequest -> {
             for (HttpField header : theRequest.getHeaders()) {

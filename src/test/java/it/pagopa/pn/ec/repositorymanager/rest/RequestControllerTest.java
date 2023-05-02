@@ -165,13 +165,13 @@ class RequestControllerTest {
 
         initializeRequestDto();
         insertRequestPersonal(DEFAULT_CONCATE_ID_DIGITAL,
-                objectMapper.convertValue(digitalRequest.getRequestPersonal(), RequestPersonal.class));
+                              objectMapper.convertValue(digitalRequest.getRequestPersonal(), RequestPersonal.class));
         insertRequestMetadata(DEFAULT_CONCATE_ID_DIGITAL,
-                objectMapper.convertValue(digitalRequest.getRequestMetadata(), RequestMetadata.class));
+                              objectMapper.convertValue(digitalRequest.getRequestMetadata(), RequestMetadata.class));
         insertRequestPersonal(DEFAULT_CONCATE_ID_PAPER,
-                objectMapper.convertValue(paperRequest.getRequestPersonal(), RequestPersonal.class));
+                              objectMapper.convertValue(paperRequest.getRequestPersonal(), RequestPersonal.class));
         insertRequestMetadata(DEFAULT_CONCATE_ID_PAPER,
-                objectMapper.convertValue(paperRequest.getRequestMetadata(), RequestMetadata.class));
+                              objectMapper.convertValue(paperRequest.getRequestMetadata(), RequestMetadata.class));
     }
 
     private static Stream<Arguments> provideDigitalAndPaperRequestToInsert() {
@@ -185,23 +185,32 @@ class RequestControllerTest {
 
         requestDto.setRequestIdx(newId);
 
-        webClient.post()
-                 .uri(gestoreRepositoryEndpointProperties.postRequest())
-                 .body(BodyInserters.fromValue(requestDto))
-                 .exchange()
-                 .expectStatus()
-                 .isOk();
+        webClient.post().uri(gestoreRepositoryEndpointProperties.postRequest()).bodyValue(requestDto).exchange().expectStatus().isOk();
     }
 
     // test.100.2
     @Test
-    void insertRequestTestFailed() {
+    void insertDigitalRequestAlreadyPresentTest() {
+
+//      Set any field from which the hash is calculated to modify it
+        digitalRequest.getRequestPersonal().getDigitalRequestPersonal().setMessageText("Different message text");
+
         webClient.post()
                  .uri(gestoreRepositoryEndpointProperties.postRequest())
-                 .body(BodyInserters.fromValue(digitalRequest))
+                 .bodyValue(digitalRequest)
                  .exchange()
                  .expectStatus()
                  .isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void insertDigitalRequestWithSameHashTest() {
+        webClient.post()
+                 .uri(gestoreRepositoryEndpointProperties.postRequest())
+                 .bodyValue(digitalRequest)
+                 .exchange()
+                 .expectStatus()
+                 .isEqualTo(HttpStatus.NO_CONTENT);
     }
 
     // test.101.1
@@ -373,7 +382,7 @@ class RequestControllerTest {
     void getRequestByMessageIdOk(String idRequest) {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId())
-                         .build(encodeMessageId(idRequest)))
+                                              .build(encodeMessageId(idRequest)))
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
@@ -384,7 +393,7 @@ class RequestControllerTest {
     void getRequestByMessageNotFound() {
         webClient.get()
                  .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId())
-                         .build(encodeMessageId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE + "~idRequestCheNonEsiste")))
+                                              .build(encodeMessageId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE + "~idRequestCheNonEsiste")))
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
