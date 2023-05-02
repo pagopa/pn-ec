@@ -54,45 +54,54 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     @Override
     public Mono<RequestDto> getRichiesta(String clientId, String requestIdx) throws RestCallException.ResourceNotFoundException {
         return ecWebClient.get()
-                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(requestIdx))
-                .header(CLIENT_HEADER_NAME, clientId)
-                .retrieve()
-                .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
-                .bodyToMono(RequestDto.class);
+                          .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(requestIdx))
+                          .header(CLIENT_HEADER_NAME, clientId)
+                          .retrieve()
+                          .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
+                          .bodyToMono(RequestDto.class);
     }
 
     @Override
     public Mono<RequestDto> insertRichiesta(RequestDto requestDto) throws RestCallException.ResourceAlreadyExistsException {
         return ecWebClient.post()
-                .uri(gestoreRepositoryEndpointProperties.postRequest())
-                .bodyValue(requestDto)
-                .retrieve()
-                .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new RepositoryManagerException.RequestMalformedException()))
-                .onStatus(CONFLICT::equals, clientResponse -> Mono.error(new RestCallException.ResourceAlreadyExistsException()))
-                .bodyToMono(RequestDto.class);
+                          .uri(gestoreRepositoryEndpointProperties.postRequest())
+                          .bodyValue(requestDto)
+                          .retrieve()
+                          .onStatus(BAD_REQUEST::equals,
+                                    clientResponse -> Mono.error(new RepositoryManagerException.RequestMalformedException()))
+                          .onStatus(CONFLICT::equals,
+                                    clientResponse -> clientResponse.bodyToMono(Problem.class)
+                                                                    .flatMap(problem -> Mono.error(new RestCallException.ResourceAlreadyExistsException(
+                                                                            problem.getDetail()))))
+                          .onStatus(NO_CONTENT::equals, clientResponse -> Mono.empty())
+                          .bodyToMono(RequestDto.class);
     }
 
     @Override
-    public Mono<RequestDto> patchRichiestaEvent(String clientId, String requestIdx, EventsDto eventsDto) throws RestCallException.ResourceNotFoundException {
+    public Mono<RequestDto> patchRichiestaEvent(String clientId, String requestIdx, EventsDto eventsDto)
+            throws RestCallException.ResourceNotFoundException {
         log.info("<-- START REQUEST EVENT PATCH --> Request ID: {}", requestIdx);
         return patchRichiesta(clientId, requestIdx, new PatchDto().event(eventsDto));
     }
 
     @Override
-    public Mono<RequestDto> patchRichiestaRetry(String clientId, String requestIdx, RetryDto retryDto) throws RestCallException.ResourceNotFoundException {
+    public Mono<RequestDto> patchRichiestaRetry(String clientId, String requestIdx, RetryDto retryDto)
+            throws RestCallException.ResourceNotFoundException {
         return patchRichiesta(clientId, requestIdx, new PatchDto().retry(retryDto));
     }
 
     @Override
-    public Mono<RequestDto> patchRichiesta(String clientId, String requestIdx, PatchDto patchDto) throws RestCallException.ResourceNotFoundException {
+    public Mono<RequestDto> patchRichiesta(String clientId, String requestIdx, PatchDto patchDto)
+            throws RestCallException.ResourceNotFoundException {
         return ecWebClient.patch()
-                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(requestIdx))
-                .header(CLIENT_HEADER_NAME, clientId)
-                .bodyValue(patchDto)
-                .retrieve()
-                .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new RepositoryManagerException.RequestMalformedException()))
-                .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
-                .bodyToMono(RequestDto.class);
+                          .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(requestIdx))
+                          .header(CLIENT_HEADER_NAME, clientId)
+                          .bodyValue(patchDto)
+                          .retrieve()
+                          .onStatus(BAD_REQUEST::equals,
+                                    clientResponse -> Mono.error(new RepositoryManagerException.RequestMalformedException()))
+                          .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
+                          .bodyToMono(RequestDto.class);
     }
 
     @Override
@@ -104,11 +113,11 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     public Mono<RequestDto> getRequestByMessageId(String messageId)
             throws RestCallException.ResourceNotFoundException, BadMessageIdProvidedException {
         return ecWebClient.get()
-                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId()).build(messageId))
-                .retrieve()
-                .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
-                .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new BadMessageIdProvidedException()))
-                .bodyToMono(RequestDto.class);
+                          .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId()).build(messageId))
+                          .retrieve()
+                          .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
+                          .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new BadMessageIdProvidedException()))
+                          .bodyToMono(RequestDto.class);
     }
 
     private static class BadMessageIdProvidedException extends RestCallException {
@@ -122,13 +131,13 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     public Mono<RequestDto> setMessageIdInRequestMetadata(String clientId, String requestIdx)
             throws RestCallException.ResourceNotFoundException, ISEForMessageIdCreationException {
         return ecWebClient.post()
-                .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
-                        .build(requestIdx))
-                .header(CLIENT_HEADER_NAME, clientId)
-                .retrieve()
-                .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
-                .onStatus(INTERNAL_SERVER_ERROR::equals, clientResponse -> Mono.error(new ISEForMessageIdCreationException()))
-                .bodyToMono(RequestDto.class);
+                          .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
+                                                       .build(requestIdx))
+                          .header(CLIENT_HEADER_NAME, clientId)
+                          .retrieve()
+                          .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
+                          .onStatus(INTERNAL_SERVER_ERROR::equals, clientResponse -> Mono.error(new ISEForMessageIdCreationException()))
+                          .bodyToMono(RequestDto.class);
     }
 
     private static class ISEForMessageIdCreationException extends RestCallException {

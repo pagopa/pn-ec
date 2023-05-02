@@ -13,6 +13,7 @@ import static org.springframework.http.HttpStatus.*;
 @ControllerAdvice
 public class RepositoryManagerErrorHandler {
 
+    @SuppressWarnings("Duplicates")
     @ExceptionHandler({RepositoryManagerException.IdClientAlreadyPresent.class, RepositoryManagerException.IdRequestAlreadyPresent.class})
     public final ResponseEntity<Problem> handleConflictIdClient(Exception exception) {
         var problem = new Problem();
@@ -53,5 +54,15 @@ public class RepositoryManagerErrorHandler {
         problem.setDetail(exception.getMessage());
         problem.setTraceId(UUID.randomUUID().toString());
         return new ResponseEntity<>(problem, FORBIDDEN);
+    }
+
+    @ExceptionHandler(RepositoryManagerException.RequestWithSameHash.class)
+    public final ResponseEntity<Problem> handleRequestWithSameHash(RepositoryManagerException.RequestWithSameHash exception) {
+        var problem = new Problem();
+        problem.setStatus(NO_CONTENT.value());
+        problem.setTitle("Request idempotence");
+        problem.setDetail(exception.getMessage());
+        problem.setTraceId(UUID.randomUUID().toString());
+        return new ResponseEntity<>(problem, NO_CONTENT);
     }
 }

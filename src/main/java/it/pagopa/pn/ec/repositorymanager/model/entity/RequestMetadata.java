@@ -21,6 +21,7 @@ public class RequestMetadata extends DocumentVersion {
     String messageId;
     String xPagopaExtchCxId;
     String statusRequest;
+    String requestHash;
     OffsetDateTime clientRequestTimeStamp;
     OffsetDateTime requestTimestamp;
     DigitalRequestMetadata digitalRequestMetadata;
