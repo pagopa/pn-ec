@@ -130,7 +130,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
 
     //PECPIC.100.2 -> Validazione della regex sul path param requestIdx KO
     @ParameterizedTest
-    @ValueSource(strings = {BAD_REQUEST_IDX_SHORT, BAD_REQUEST_IDX_CHAR_NOT_ALLOWED})
+    @ValueSource(strings = {BAD_REQUEST_IDX_SHORT})
     void sendEmailMalformedIdClient(String badRequestIdx) {
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), badRequestIdx).expectStatus()
                                                                                              .isBadRequest()

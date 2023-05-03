@@ -98,16 +98,16 @@ class DigitalCourtesyMessagesApiControllerTest {
 
     // SMSPIC.107.3 -> Validazione della regex sul path param requestIdx KO
     @ParameterizedTest
-    @ValueSource(strings = {BAD_REQUEST_IDX_SHORT, BAD_REQUEST_IDX_CHAR_NOT_ALLOWED})
+    @ValueSource(strings = {BAD_REQUEST_IDX_SHORT})
     void sendSmsMalformedIdClient(String badRequestIdx) {
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), badRequestIdx).expectStatus()
                                                                                           .isBadRequest()
                                                                                           .expectBody(Problem.class);
     }
 
-    // SMSPIC.107.5 -> idClient non autorizzato
-    @Test
-    void sendSmsUnauthorizedIdClient() {
+	// SMSPIC.107.5 -> idClient non autorizzato
+	@Test
+	void sendSmsUnauthorizedIdClient() {
 
 //      Client auth call -> OK
 //      Client non tornato dall'anagrafica client

@@ -129,7 +129,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
     	events.add(getProgressStatusEventWithoutAttachments());
     	
-        webClient.post()
+        webClient.put()
 	        .uri(RICEZIONE_ESITI_ENDPOINT)
 	        .accept(APPLICATION_JSON)
 	        .contentType(APPLICATION_JSON)
@@ -151,7 +151,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
     	events.add(getProgressStatusEventWithoutAttachments());
     	
-        webClient.post()
+        webClient.put()
 	        .uri(RICEZIONE_ESITI_ENDPOINT)
 	        .accept(APPLICATION_JSON)
 	        .contentType(APPLICATION_JSON)
@@ -176,7 +176,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
     	events.add(progressStatusEvent);
     	
-        webClient.post()
+        webClient.put()
 	        .uri(RICEZIONE_ESITI_ENDPOINT)
 	        .accept(APPLICATION_JSON)
 	        .contentType(APPLICATION_JSON)
@@ -201,7 +201,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
     	events.add(getProgressStatusEventWithAttachments());
     	
-        webClient.post()
+        webClient.put()
 	        .uri(RICEZIONE_ESITI_ENDPOINT)
 	        .accept(APPLICATION_JSON)
 	        .contentType(APPLICATION_JSON)
@@ -233,7 +233,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	events.add(getProgressStatusEventWithoutAttachments());
     	events.add(getProgressStatusEventWithoutAttachments());
     	
-        webClient.post()
+        webClient.put()
         .uri(RICEZIONE_ESITI_ENDPOINT)
         .accept(APPLICATION_JSON)
         .contentType(APPLICATION_JSON)
