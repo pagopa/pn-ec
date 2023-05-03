@@ -49,8 +49,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                Mono<DigitalCourtesySmsRequest> digitalCourtesySmsRequest,
                                                                final ServerWebExchange exchange) {
 
-        return digitalCourtesySmsRequest
-                                        .flatMap(request -> smsService.presaInCarico(SmsPresaInCaricoInfo.builder()
+        return digitalCourtesySmsRequest.flatMap(request -> smsService.presaInCarico(SmsPresaInCaricoInfo.builder()
                                                                                                          .requestIdx(requestIdx)
                                                                                                          .xPagopaExtchCxId(xPagopaExtchCxId)
                                                                                                          .digitalCourtesySmsRequest(request)
@@ -72,8 +71,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                  Mono<DigitalCourtesyMailRequest> digitalCourtesyMailRequest,
                                                                  final ServerWebExchange exchange) {
 
-        return digitalCourtesyMailRequest
-                                         .flatMap(request -> emailService.presaInCarico(EmailPresaInCaricoInfo.builder()
+        return digitalCourtesyMailRequest.flatMap(request -> emailService.presaInCarico(EmailPresaInCaricoInfo.builder()
                                                                                                               .requestIdx(requestIdx)
                                                                                                               .xPagopaExtchCxId(
                                                                                                                       xPagopaExtchCxId)

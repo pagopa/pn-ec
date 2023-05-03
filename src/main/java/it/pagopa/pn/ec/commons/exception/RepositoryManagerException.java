@@ -27,6 +27,13 @@ public class RepositoryManagerException extends RuntimeException {
         }
     }
 
+    public static class RequestWithSameHash extends RepositoryManagerException {
+
+        public RequestWithSameHash(String idRequest, String requestHash) {
+            super(String.format("Id request '%s' with hash '%s' already present", idRequest, requestHash));
+        }
+    }
+
     public static class IdClientNotFoundException extends RepositoryManagerException {
 
         public IdClientNotFoundException(String idClient) {

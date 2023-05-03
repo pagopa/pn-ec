@@ -18,6 +18,10 @@ public class RestCallException extends RuntimeException{
         public ResourceAlreadyExistsException() {
             super("Resource already exists");
         }
+
+        public ResourceAlreadyExistsException(String message) {
+            super(message);
+        }
     }
 
     public static class ResourceAlreadyInProgressException extends RestCallException{

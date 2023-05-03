@@ -1,19 +1,26 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
-import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
-import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
+import it.pagopa.pn.ec.repositorymanager.model.entity.*;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Patch;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
 import it.pagopa.pn.ec.repositorymanager.service.RequestPersonalService;
 import it.pagopa.pn.ec.repositorymanager.service.RequestService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import static it.pagopa.pn.ec.commons.utils.StreamUtils.getStreamOfNullableList;
 import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.createRequestFromPersonalAndMetadata;
 
 @Service
@@ -32,6 +39,48 @@ public class RequestServiceImpl implements RequestService {
 
     static String concatRequestId(String clientId, String requestId) {
         return (String.format("%s%s%s", clientId, SEPARATORE, requestId));
+    }
+
+    private String createRequestHash(List<String> sourceStrings) {
+        return DigestUtils.sha256Hex(sourceStrings.stream()
+                                                  .filter(Objects::nonNull)
+                                                  .filter(Predicate.not(String::isEmpty))
+                                                  .map(String::toLowerCase)
+                                                  .map(StringUtils::normalizeSpace)
+                                                  .map(StringUtils::deleteWhitespace)
+                                                  .collect(Collectors.joining(SEPARATORE)));
+    }
+
+    private List<String> retrieveFieldsToHashFromDigitalRequestPersonal(DigitalRequestPersonal digitalRequestPersonal) {
+        return Stream.concat(Stream.of(digitalRequestPersonal.getReceiverDigitalAddress(),
+                                       digitalRequestPersonal.getMessageText(),
+                                       digitalRequestPersonal.getSenderDigitalAddress(),
+                                       digitalRequestPersonal.getSubjectText()),
+                             getStreamOfNullableList(digitalRequestPersonal.getAttachmentsUrls())).toList();
+    }
+
+    private List<String> retrieveFieldsToHashFromPaperRequestPersonal(PaperRequestPersonal paperRequestPersonal) {
+        return Stream.concat(Stream.of(paperRequestPersonal.getReceiverName(),
+                                       paperRequestPersonal.getReceiverNameRow2(),
+                                       paperRequestPersonal.getReceiverAddress(),
+                                       paperRequestPersonal.getReceiverNameRow2(),
+                                       paperRequestPersonal.getReceiverCap(),
+                                       paperRequestPersonal.getReceiverCity(),
+                                       paperRequestPersonal.getReceiverCity2(),
+                                       paperRequestPersonal.getReceiverPr(),
+                                       paperRequestPersonal.getReceiverCountry(),
+                                       paperRequestPersonal.getReceiverFiscalCode(),
+                                       paperRequestPersonal.getSenderName(),
+                                       paperRequestPersonal.getSenderAddress(),
+                                       paperRequestPersonal.getSenderCity(),
+                                       paperRequestPersonal.getSenderPr(),
+                                       paperRequestPersonal.getSenderDigitalAddress(),
+                                       paperRequestPersonal.getArName(),
+                                       paperRequestPersonal.getArAddress(),
+                                       paperRequestPersonal.getArCap(),
+                                       paperRequestPersonal.getArCity()),
+                             getStreamOfNullableList(paperRequestPersonal.getAttachments()).map(PaperEngageRequestAttachments::getUri))
+                     .toList();
     }
 
     @Override
@@ -67,30 +116,43 @@ public class RequestServiceImpl implements RequestService {
 
                        return request;
                    })
-                   .handle((objects, sink) -> {
-                       var requestPersonal = objects.getRequestPersonal();
-                       var requestMetadata = objects.getRequestMetadata();
+                   .handle((requestPersonalAndMetadata, sink) -> {
+                       var requestPersonal = requestPersonalAndMetadata.getRequestPersonal();
+                       var requestMetadata = requestPersonalAndMetadata.getRequestMetadata();
 
                        if ((requestPersonal.getDigitalRequestPersonal() != null && requestMetadata.getPaperRequestMetadata() != null) ||
                            (requestPersonal.getPaperRequestPersonal() != null && requestMetadata.getDigitalRequestMetadata() != null)) {
                            sink.error(new RepositoryManagerException.RequestMalformedException(
                                    "Incompatibilità dati sensibili con " + "metadata"));
                        } else {
-                           sink.next(objects);
+                           sink.next(requestPersonalAndMetadata);
                        }
                    })
-                   .flatMap(objects -> requestPersonalService.insertRequestPersonal(request.getRequestPersonal()))
-                   .zipWhen(requestPersonal -> requestMetadataService.insertRequestMetadata(request.getRequestMetadata())
+                   .flatMap(object -> {
+                       var requestPersonal = request.getRequestPersonal();
+                       var digitalRequestPersonal = requestPersonal.getDigitalRequestPersonal();
+                       var paperRequestPersonal = requestPersonal.getPaperRequestPersonal();
+                       List<String> fieldsToHash;
+                       var requestMetadata = request.getRequestMetadata();
+                       if (digitalRequestPersonal != null) {
+                           fieldsToHash = retrieveFieldsToHashFromDigitalRequestPersonal(digitalRequestPersonal);
+                       } else {
+                           fieldsToHash = retrieveFieldsToHashFromPaperRequestPersonal(paperRequestPersonal);
+                       }
+                       requestMetadata.setRequestHash(createRequestHash(fieldsToHash));
+                       return requestMetadataService.insertRequestMetadata(requestMetadata);
+                   })
+                   .zipWhen(requestMetadata -> requestPersonalService.insertRequestPersonal(request.getRequestPersonal())
                                                                      .onErrorResume(throwable -> {
                                                                          var requestId = request.getRequestId();
                                                                          var concatRequestId =
                                                                                  concatRequestId(request.getXPagopaExtchCxId(), requestId);
-                                                                         return requestPersonalService.deleteRequestPersonal(concatRequestId)
+                                                                         return requestMetadataService.deleteRequestMetadata(concatRequestId)
                                                                                                       .then(Mono.error(throwable));
                                                                      }))
                    .map(objects -> {
-                       RequestPersonal insertedRequestPersonal = objects.getT1();
-                       RequestMetadata insertedRequestMetadata = objects.getT2();
+                       var insertedRequestMetadata = objects.getT1();
+                       var insertedRequestPersonal = objects.getT2();
                        return createRequestFromPersonalAndMetadata(insertedRequestPersonal, insertedRequestMetadata);
                    });
     }

@@ -63,7 +63,15 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     @Override
     public Mono<RequestMetadata> insertRequestMetadata(RequestMetadata requestMetadata) {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestMetadata.getRequestId())))
-                   .flatMap(foundedRequest -> Mono.error(new RepositoryManagerException.IdRequestAlreadyPresent(requestMetadata.getRequestId())))
+                   .handle((foundedRequest, sink) -> {
+                       var requestId = foundedRequest.getRequestId();
+                       var foundedRequestHash = foundedRequest.getRequestHash();
+                       if (!requestMetadata.getRequestHash().equals(foundedRequestHash)) {
+                           sink.error(new RepositoryManagerException.IdRequestAlreadyPresent(requestId));
+                       } else {
+                           sink.error(new RepositoryManagerException.RequestWithSameHash(requestId, foundedRequestHash));
+                       }
+                   })
                    .defaultIfEmpty(requestMetadata)
                    .flatMap(unused -> {
                        if ((requestMetadata.getDigitalRequestMetadata() != null && requestMetadata.getPaperRequestMetadata() != null) ||
@@ -73,8 +81,8 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                        }
                        return Mono.fromCompletionStage(requestMetadataDynamoDbTable.putItem(builder -> builder.item(requestMetadata)));
                    })
-                   .doOnError(RepositoryManagerException.IdRequestAlreadyPresent.class, throwable -> log.info(throwable.getMessage()))
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.error(throwable.getMessage()))
+                   .doOnError(throwable -> log.info(throwable.getMessage()))
                    .thenReturn(requestMetadata);
     }
 
@@ -131,10 +139,12 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
         return getRequestMetadata(concatRequestId)//
                                                   .doOnSuccess(retrievedRequest -> checkTipoPatchMetadata(retrievedRequest, patch))
                                                   .doOnError(RepositoryManagerException.RequestMalformedException.class,
-                                                       throwable -> log.info(throwable.getMessage()))
-                                                  .flatMap(retrieveRequestMetadata -> managePatch(concatRequestId, patch, retrieveRequestMetadata))
+                                                             throwable -> log.info(throwable.getMessage()))
+                                                  .flatMap(retrieveRequestMetadata -> managePatch(concatRequestId,
+                                                                                                  patch,
+                                                                                                  retrieveRequestMetadata))
                                                   .flatMap(requestMetadataWithPatchUpdated -> Mono.fromCompletionStage(
-                                                    requestMetadataDynamoDbTable.updateItem(requestMetadataWithPatchUpdated)))
+                                                          requestMetadataDynamoDbTable.updateItem(requestMetadataWithPatchUpdated)))
                                                   .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
     }
 
