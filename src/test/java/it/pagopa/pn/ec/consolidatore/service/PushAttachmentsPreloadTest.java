@@ -51,7 +51,7 @@ public class PushAttachmentsPreloadTest {
 
     private WebTestClient.ResponseSpec pushAttachmentsPreloadTestCall(BodyInserter<PreLoadRequestData, ReactiveHttpOutputMessage> bodyInserter) {
 
-        return this.webTestClient.post()
+        return this.webTestClient.put()
                 .uri(uriBuilder -> uriBuilder.path(URI).build())
                 .header("x-pagopa-extch-service-id", CLIENT_ID)
                 .header(safeStorageEndpointProperties.apiKeyHeaderName(), X_API_KEY)

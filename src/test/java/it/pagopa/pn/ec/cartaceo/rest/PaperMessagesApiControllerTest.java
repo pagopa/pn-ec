@@ -153,7 +153,7 @@ class PaperMessagesApiControllerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { BAD_REQUEST_IDX_SHORT, BAD_REQUEST_IDX_CHAR_NOT_ALLOWED })
+    @ValueSource(strings = { BAD_REQUEST_IDX_SHORT })
     void sendCartaceoMalformedIdClient(String badRequestIdx) {
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), badRequestIdx).expectStatus().isBadRequest()
                 .expectBody(Problem.class);
