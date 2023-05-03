@@ -14,7 +14,7 @@ tags:
 
 paths:
   /consolidatore-ingress/v1/attachement-preload:
-    post:
+    put:
       summary: Richiesta di pre-caricamento dei documenti da comunicare a PN
       description: |-
         Operazione che richiede a Piattaforma Notifica le informazioni e le autorizzazioni necessarie 
@@ -70,8 +70,8 @@ paths:
                   summary: 'Errore semantico'
                   value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type' ], clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
 
-  /consolidatore-ingress/v1/push-progress-events/:
-    post:
+  /consolidatore-ingress/v1/push-progress-events:
+    put:
       operationId: sendPaperProgressStatusRequest
       summary: Webhook con cui PN riceve progressi postalizzazioni
       description: |-
