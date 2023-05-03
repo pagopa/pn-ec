@@ -364,7 +364,8 @@ components:
       required: true
       schema:
         type: string
-        pattern: '[0-9A-Za-z_-]{5,100}'
+        minLength: 5
+        maxLength: 100
   
   responses:
     
