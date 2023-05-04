@@ -13,7 +13,7 @@ tags:
     description: API del consolidatore.
 
 paths:
-  /consolidatore-ingress/v1/attachement-preload:
+  /consolidatore-ingress/v1/attachment-preload:
     put:
       summary: Richiesta di pre-caricamento dei documenti da comunicare a PN
       description: |-
@@ -255,7 +255,7 @@ components:
           type: string
         iun:
           type: string
-          minLength: 30
+          minLength: 10
           maxLength: 50
           description: >-
             Identificativo Unico della Notifica. Proviene dalla richiesta originaria di PN.
