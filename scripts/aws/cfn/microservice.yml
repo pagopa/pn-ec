@@ -65,6 +65,11 @@ Parameters:
   #   Type: String
   #   Description: 'Kinesis stream that receive logs'
 
+  PnCoreTargetEventBus:
+    Type: String
+    Description: 'ARN of Pn Core Event Bus where to forward external notifications'
+    Default: ''
+
   PnEcIdentityPec:
     Type: String
     Description: 'Secret ID for Identity Pec'
@@ -467,7 +472,7 @@ Parameters:
     Type: String
     
 Conditions:
-  PnEcEventBusArnTrackerExternalNotificationExists: !Not [ !Equals [!Ref PnEcEventBusArnTrackerExternalNotification, '' ] ]
+  PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
 
 Resources:
 
@@ -939,7 +944,7 @@ Resources:
   #####    External notifications    #####
   PnEcRoleExternalNotifications:
     Type: AWS::IAM::Role
-    Condition: PnEcEventBusArnTrackerExternalNotificationExists
+    Condition: PnCoreTargetEventBusExists
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -961,11 +966,11 @@ Resources:
                 Action:
                   - 'events:PutEvents'
                 Resource:
-                  - !Ref PnEcEventBusArnTrackerExternalNotification
+                  - !Ref PnCoreTargetEventBus
 
   PnEcEventsDLQueueExternalNotifications:
     Type: AWS::SQS::Queue
-    Condition: PnEcEventBusArnTrackerExternalNotificationExists
+    Condition: PnCoreTargetEventBusExists
     Properties:
       SqsManagedSseEnabled: True
       MessageRetentionPeriod: 1209600
@@ -974,7 +979,7 @@ Resources:
 
   PnEcQueuePolicyExternalNotifications:
     Type: AWS::SQS::QueuePolicy
-    Condition: PnEcEventBusArnTrackerExternalNotificationExists
+    Condition: PnCoreTargetEventBusExists
     Properties: 
       Queues: 
         - !Ref PnEcEventsDLQueueExternalNotifications
@@ -1001,7 +1006,7 @@ Resources:
 
   PnEcEventRuleExternalNotifications:
     Type: AWS::Events::Rule
-    Condition: PnEcEventBusArnTrackerExternalNotificationExists
+    Condition: PnCoreTargetEventBusExists
     Properties:
       EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
       Description: 'Rule forwarding events to EventBus'
@@ -1014,7 +1019,7 @@ Resources:
           - !Sub ${AWS::Region}
       State: 'ENABLED'
       Targets:
-        - Arn: !Ref PnEcEventBusArnTrackerExternalNotification
+        - Arn: !Ref PnCoreTargetEventBus
           Id: 'PnEcExternalNotificationTarget'
           RoleArn: !GetAtt PnEcRoleExternalNotifications.Arn
           DeadLetterConfig:
