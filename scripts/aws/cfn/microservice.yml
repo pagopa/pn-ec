@@ -11,6 +11,10 @@ Parameters:
     Type: String
     Description: ARN of alarm topic
 
+  AlarmSNSTopicName:
+    Type: String
+    Description: 'Topic alarm'
+
   # WebApiDnsName:
   #   Type: String
   #   Description: 'The DNS name used for WEB rest API.'

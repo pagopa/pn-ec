@@ -29,6 +29,10 @@ Parameters:
     Description: 'Nome del Event Bus che raccoglie gli eventi del microservizio Gestore Disponibilita'
     Default: 'Pn-Ec-Tracker-Notifications-Bus'
 
+  AlarmSNSTopicName:
+    Type: String
+    Description: 'Topic alarm'
+
 Resources:
 
   PnEcTableAnagrafica:
