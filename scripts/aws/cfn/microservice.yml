@@ -966,7 +966,7 @@ Resources:
                 Action:
                   - 'events:PutEvents'
                 Resource:
-                  - !Ref PnEcEventBusArnTrackerExternalNotification
+                  - !Ref PnCoreTargetEventBus
 
   PnEcEventsDLQueueExternalNotifications:
     Type: AWS::SQS::Queue
@@ -1019,7 +1019,7 @@ Resources:
           - !Sub ${AWS::Region}
       State: 'ENABLED'
       Targets:
-        - Arn: !Ref PnEcEventBusArnTrackerExternalNotification
+        - Arn: !Ref PnCoreTargetEventBus
           Id: 'PnEcExternalNotificationTarget'
           RoleArn: !GetAtt PnEcRoleExternalNotifications.Arn
           DeadLetterConfig:
