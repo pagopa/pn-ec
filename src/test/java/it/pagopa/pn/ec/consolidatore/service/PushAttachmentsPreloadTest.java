@@ -38,7 +38,7 @@ public class PushAttachmentsPreloadTest {
     private static final String CLIENT_ID = "CLIENT_ID";
     private static final String X_API_KEY = "X_API_KEY";
 
-    private static final String URI = "/consolidatore-ingress/v1/attachement-preload";
+    private static final String URI = "/consolidatore-ingress/v1/attachment-preload";
 
     private static final PreLoadRequest preLoadRequest = new PreLoadRequest();
 

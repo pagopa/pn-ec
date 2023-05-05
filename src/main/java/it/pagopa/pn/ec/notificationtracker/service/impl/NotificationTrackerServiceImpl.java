@@ -17,6 +17,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static java.time.temporal.ChronoUnit.SECONDS;
 
@@ -152,17 +153,19 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                             paperProgressEvent.setAttachments(attachmentsDetailsList);
 
                                             var lastDiscoveredAddress = lastEventUpdatedPaper.getDiscoveredAddress();
-                                            var discoveredAddress = new DiscoveredAddress();
-                                            discoveredAddress.setName(lastDiscoveredAddress.getName());
-                                            discoveredAddress.setNameRow2(lastDiscoveredAddress.getNameRow2());
-                                            discoveredAddress.setAddress(lastDiscoveredAddress.getAddress());
-                                            discoveredAddress.setAddressRow2(lastDiscoveredAddress.getAddressRow2());
-                                            discoveredAddress.setCap(lastDiscoveredAddress.getCap());
-                                            discoveredAddress.setCity(lastDiscoveredAddress.getCity());
-                                            discoveredAddress.setCity2(lastDiscoveredAddress.getCity2());
-                                            discoveredAddress.setPr(lastDiscoveredAddress.getPr());
-                                            discoveredAddress.setCountry(lastDiscoveredAddress.getCountry());
-                                            paperProgressEvent.setDiscoveredAddress(discoveredAddress);
+                                            if(!Objects.isNull(lastDiscoveredAddress)) {
+                                                var discoveredAddress = new DiscoveredAddress();
+                                                discoveredAddress.setName(lastDiscoveredAddress.getName());
+                                                discoveredAddress.setNameRow2(lastDiscoveredAddress.getNameRow2());
+                                                discoveredAddress.setAddress(lastDiscoveredAddress.getAddress());
+                                                discoveredAddress.setAddressRow2(lastDiscoveredAddress.getAddressRow2());
+                                                discoveredAddress.setCap(lastDiscoveredAddress.getCap());
+                                                discoveredAddress.setCity(lastDiscoveredAddress.getCity());
+                                                discoveredAddress.setCity2(lastDiscoveredAddress.getCity2());
+                                                discoveredAddress.setPr(lastDiscoveredAddress.getPr());
+                                                discoveredAddress.setCountry(lastDiscoveredAddress.getCountry());
+                                                paperProgressEvent.setDiscoveredAddress(discoveredAddress);
+                                            }
 
                                             paperProgressEvent.setClientRequestTimeStamp(objects.getT2().getRequestTimeStamp());
 
