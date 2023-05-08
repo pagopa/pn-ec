@@ -8,6 +8,7 @@ import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.errorCodeDescripti
 import java.util.ArrayList;
 import java.util.List;
 
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
@@ -32,11 +33,14 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     private final ConsolidatoreServiceImpl consolidatoreServiceImpl;
     private final RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService;
 
+    private final SafeStorageEndpointProperties safeStorageEndpointProperties;
+
     public ConsolidatoreApiController(ConsolidatoreServiceImpl consolidatoreServiceImpl
-            , RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService
-    ) {
+            , RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService,
+                                      SafeStorageEndpointProperties safeStorageEndpointProperties) {
         this.consolidatoreServiceImpl = consolidatoreServiceImpl;
         this.ricezioneEsitiCartaceoService = ricezioneEsitiCartaceoService;
+        this.safeStorageEndpointProperties = safeStorageEndpointProperties;
     }
 
     private List<String> getAllErrors(List<OperationResultCodeResponse> responses) {
@@ -67,14 +71,18 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 
     @Override
     public Mono<ResponseEntity<FileDownloadResponse>> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, final ServerWebExchange exchange) {
-        return consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
+        String xTraceId = exchange.getRequest().getHeaders().getFirst(safeStorageEndpointProperties.traceIdHeaderName());
+
+        return consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey, xTraceId)
                 .map(ResponseEntity::ok);
     }
 
 
     @Override
     public Mono<ResponseEntity<PreLoadResponseData>> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> preLoadRequestData, ServerWebExchange exchange) {
-        return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
+        String xTraceId = exchange.getRequest().getHeaders().getFirst(safeStorageEndpointProperties.traceIdHeaderName());
+
+        return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, xTraceId, preLoadRequestData)
                 .map(ResponseEntity::ok);
     }
 

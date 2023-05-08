@@ -61,4 +61,5 @@ public class ConsolidatoreErrorHandler {
         problem.setTraceId(UUID.randomUUID().toString());
         return new ResponseEntity<>(problem, NOT_FOUND);
     }
+
 }

@@ -20,13 +20,13 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
     private static final String DOC_TYPE = "PN_EXTERNAL_LEGAL_FACTS";
 
 
-    public Mono<PreLoadResponseData> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> attachments) {
+    public Mono<PreLoadResponseData> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, String xTraceId, Mono<PreLoadRequestData> attachments) {
         log.info("<-- START PRESIGNED UPLOAD REQUEST --> Client ID : {}", xPagopaExtchServiceId);
         return attachments.map(PreLoadRequestData::getPreloads)
                 .flatMapMany(Flux::fromIterable)
                 .handle(((preLoadRequest, synchronousSink) -> {
                     String contentType = preLoadRequest.getContentType();
-                    if (!ContentTypes.CONTENT_TYPE_LIST.contains(contentType))
+                    if (contentType==null || !ContentTypes.CONTENT_TYPE_LIST.contains(contentType))
                         synchronousSink.error(new SemanticException("contentType"));
                     else synchronousSink.next(preLoadRequest);
                 }))
@@ -34,11 +34,11 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                 {
                     var preLoadRequest = (PreLoadRequest) object;
                     var fileCreationRequest = new FileCreationRequest();
-                    fileCreationRequest.setChecksumValue(preLoadRequest.getSha256());
+                   // fileCreationRequest.setChecksumValue(preLoadRequest.getSha256());
                     fileCreationRequest.setContentType(preLoadRequest.getContentType());
                     fileCreationRequest.setStatus("");
                     fileCreationRequest.setDocumentType(DOC_TYPE);
-                    return fileCall.postFile(xPagopaExtchServiceId, xApiKey, fileCreationRequest)
+                    return fileCall.postFile(xPagopaExtchServiceId, xApiKey, preLoadRequest.getSha256(), xTraceId, fileCreationRequest)
                             .flux()
                             .map(fileCreationResponse ->
                             {
@@ -69,9 +69,9 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
     }
 
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId
-            , String xApiKey) {
+            , String xApiKey, String xTraceId) {
         log.info("<-- START GET FILE --> Client ID : {}", xPagopaExtchServiceId);
-        return fileCall.getFile(fileKey, xPagopaExtchServiceId, xApiKey);
+        return fileCall.getFile(fileKey, xPagopaExtchServiceId, xApiKey, xTraceId);
     }
 
 }
