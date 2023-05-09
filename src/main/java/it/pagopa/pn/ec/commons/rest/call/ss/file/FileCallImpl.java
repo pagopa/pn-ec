@@ -60,13 +60,12 @@ public class FileCallImpl implements FileCall {
 
 
     @Override
-    public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, String xTraceId) {
+    public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey) {
         return ssWebClient.get()
                 .uri(uriBuilder -> uriBuilder.path(filesEndpointProperties.getFile())
                         .build(fileKey))
                 .header(safeStorageEndpointProperties.clientHeaderName(), xPagopaExtchServiceId)
                 .header(safeStorageEndpointProperties.apiKeyHeaderName(), xApiKey)
-                .header(safeStorageEndpointProperties.traceIdHeaderName(), xTraceId)
                 .retrieve()
                 .onStatus(HttpStatus.FORBIDDEN::equals, clientResponse -> Mono.error(new ClientNotAuthorizedOrFoundException(xPagopaExtchServiceId)))
                 .bodyToMono(FileDownloadResponse.class);

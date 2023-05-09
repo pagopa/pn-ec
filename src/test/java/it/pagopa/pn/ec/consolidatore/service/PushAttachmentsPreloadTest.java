@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.consolidatore.service;
 
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.ConsolidatoreEndpointProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
@@ -31,16 +32,14 @@ public class PushAttachmentsPreloadTest {
     @MockBean
     private FileCall fileCall;
     @Autowired
-    private SafeStorageEndpointProperties safeStorageEndpointProperties;
+    private ConsolidatoreEndpointProperties consolidatoreEndpointProperties;
+
     private static final String BAD_CONTENT_TYPE = "BAD_CONTENT_TYPE";
     private static final String DOC_TYPE = "PN_EXTERNAL_LEGAL_FACTS";
 
     private static final String CLIENT_ID = "CLIENT_ID";
     private static final String X_API_KEY = "X_API_KEY";
-
     private static final String X_CHECKSUM_VALUE = "dffe706eb6fd101590f88f4f02e07f6bb6940c7a3998ff6";
-
-    private static final String X_AMZN_TRACE_ID = "X_AMZN_TRACE_ID";
 
     private static final String URI = "/consolidatore-ingress/v1/attachment-preload";
 
@@ -53,14 +52,13 @@ public class PushAttachmentsPreloadTest {
         preLoadRequest.setSha256(X_CHECKSUM_VALUE);
     }
 
+
     private WebTestClient.ResponseSpec pushAttachmentsPreloadTestCall(BodyInserter<PreLoadRequestData, ReactiveHttpOutputMessage> bodyInserter) {
 
         return this.webTestClient.put()
                 .uri(uriBuilder -> uriBuilder.path(URI).build())
-                .header("x-pagopa-extch-service-id", CLIENT_ID)
-                .header(safeStorageEndpointProperties.apiKeyHeaderName(), X_API_KEY)
-                .header(safeStorageEndpointProperties.checksumValueHeaderName(), X_CHECKSUM_VALUE)
-                .header(safeStorageEndpointProperties.traceIdHeaderName(), X_AMZN_TRACE_ID)
+                .header(consolidatoreEndpointProperties.clientHeaderName(), CLIENT_ID)
+                .header(consolidatoreEndpointProperties.apiKeyHeaderName(), X_API_KEY)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .body(bodyInserter)
@@ -70,8 +68,7 @@ public class PushAttachmentsPreloadTest {
     @Test
     void pushAttachmentsOk() {
 
-
-        when(fileCall.postFile(eq(CLIENT_ID), eq(X_API_KEY), eq(X_CHECKSUM_VALUE), eq(X_AMZN_TRACE_ID), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
+        when(fileCall.postFile(eq(CLIENT_ID), eq(X_API_KEY), eq(X_CHECKSUM_VALUE), eq(preLoadRequest.getPreloadIdx()), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
 
         PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
         preLoadRequestSchema.getPreloads().add(preLoadRequest);
@@ -83,7 +80,7 @@ public class PushAttachmentsPreloadTest {
 
     @Test
     void testEmptyPreloadsBadRequest() {
-        when(fileCall.postFile(eq(CLIENT_ID), eq(X_API_KEY), eq(X_CHECKSUM_VALUE), eq(X_AMZN_TRACE_ID), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
+        when(fileCall.postFile(eq(CLIENT_ID), eq(X_API_KEY), eq(X_CHECKSUM_VALUE), eq(preLoadRequest.getPreloadIdx()), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
 
         PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
 
@@ -97,7 +94,7 @@ public class PushAttachmentsPreloadTest {
         PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
 
         PreLoadRequest badPreLoadRequest = new PreLoadRequest();
-        badPreLoadRequest.setSha256("");
+        badPreLoadRequest.setSha256(preLoadRequest.getSha256());
         badPreLoadRequest.setContentType("BAD_CONTENT_TYPE");
         badPreLoadRequest.setPreloadIdx(preLoadRequest.getPreloadIdx());
         preLoadRequestSchema.getPreloads().add(badPreLoadRequest);

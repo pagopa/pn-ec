@@ -7,8 +7,8 @@ import reactor.core.publisher.Mono;
 
 public interface ConsolidatoreService {
 
-    Mono<PreLoadResponseData> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, String xTraceId, Mono<PreLoadRequestData> attachments);
+    Mono<PreLoadResponseData> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> attachments);
 
-    Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, String xTraceId);
+    Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey);
 
 }

@@ -71,18 +71,14 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 
     @Override
     public Mono<ResponseEntity<FileDownloadResponse>> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, final ServerWebExchange exchange) {
-        String xTraceId = exchange.getRequest().getHeaders().getFirst(safeStorageEndpointProperties.traceIdHeaderName());
-
-        return consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey, xTraceId)
+        return consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
                 .map(ResponseEntity::ok);
     }
 
 
     @Override
     public Mono<ResponseEntity<PreLoadResponseData>> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> preLoadRequestData, ServerWebExchange exchange) {
-        String xTraceId = exchange.getRequest().getHeaders().getFirst(safeStorageEndpointProperties.traceIdHeaderName());
-
-        return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, xTraceId, preLoadRequestData)
+        return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
                 .map(ResponseEntity::ok);
     }
 
