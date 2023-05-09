@@ -60,22 +60,25 @@ public class FileCallImpl implements FileCall {
 
 
     @Override
-    public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey) {
+    public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, String xTraceId) {
         return ssWebClient.get()
                 .uri(uriBuilder -> uriBuilder.path(filesEndpointProperties.getFile())
                         .build(fileKey))
                 .header(safeStorageEndpointProperties.clientHeaderName(), xPagopaExtchServiceId)
                 .header(safeStorageEndpointProperties.apiKeyHeaderName(), xApiKey)
+                .header(safeStorageEndpointProperties.traceIdHeaderName(), xTraceId)
                 .retrieve()
                 .onStatus(HttpStatus.FORBIDDEN::equals, clientResponse -> Mono.error(new ClientNotAuthorizedOrFoundException(xPagopaExtchServiceId)))
                 .bodyToMono(FileDownloadResponse.class);
     }
 
     @Override
-    public Mono<FileCreationResponse> postFile(String xPagopaExtchServiceId, String xApiKey, FileCreationRequest fileCreationRequest) {
+    public Mono<FileCreationResponse> postFile(String xPagopaExtchServiceId, String xApiKey, String checksumValue, String xTraceId, FileCreationRequest fileCreationRequest) {
         return ssWebClient.post().uri(filesEndpointProperties.postFile())
                 .header(safeStorageEndpointProperties.clientHeaderName(), xPagopaExtchServiceId)
                 .header(safeStorageEndpointProperties.apiKeyHeaderName(), xApiKey)
+                .header(safeStorageEndpointProperties.checksumValueHeaderName(), checksumValue)
+                .header(safeStorageEndpointProperties.traceIdHeaderName(), xTraceId)
                 .body(BodyInserters.fromValue(fileCreationRequest))
                 .retrieve()
                 .bodyToMono(FileCreationResponse.class);
