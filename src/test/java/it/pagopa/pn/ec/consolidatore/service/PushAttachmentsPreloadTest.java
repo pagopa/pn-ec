@@ -68,7 +68,7 @@ public class PushAttachmentsPreloadTest {
     @Test
     void pushAttachmentsOk() {
 
-        when(fileCall.postFile(eq(CLIENT_ID), eq(X_API_KEY), eq(X_CHECKSUM_VALUE), eq(preLoadRequest.getPreloadIdx()), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
+        when(fileCall.postFile(eq(CLIENT_ID), eq(X_API_KEY), eq(X_CHECKSUM_VALUE), anyString(), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
 
         PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
         preLoadRequestSchema.getPreloads().add(preLoadRequest);
@@ -80,7 +80,7 @@ public class PushAttachmentsPreloadTest {
 
     @Test
     void testEmptyPreloadsBadRequest() {
-        when(fileCall.postFile(eq(CLIENT_ID), eq(X_API_KEY), eq(X_CHECKSUM_VALUE), eq(preLoadRequest.getPreloadIdx()), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
+        when(fileCall.postFile(eq(CLIENT_ID), eq(X_API_KEY), eq(X_CHECKSUM_VALUE), anyString(), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
 
         PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
 

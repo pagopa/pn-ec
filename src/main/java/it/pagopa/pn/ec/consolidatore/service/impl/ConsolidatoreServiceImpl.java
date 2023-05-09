@@ -8,6 +8,7 @@ import it.pagopa.pn.ec.consolidatore.service.ConsolidatoreService;
 import it.pagopa.pn.ec.consolidatore.utils.ContentTypes;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
     @Autowired
     private ConsolidatoreEndpointProperties consolidatoreEndpointProperties;
     private static final String DOC_TYPE = "PN_EXTERNAL_LEGAL_FACTS";
+    private static final Integer TRACE_ID_LENGTH = 40;
 
 
     public Mono<PreLoadResponseData> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> attachments) {
@@ -39,7 +41,10 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                     fileCreationRequest.setContentType(preLoadRequest.getContentType());
                     fileCreationRequest.setStatus("");
                     fileCreationRequest.setDocumentType(DOC_TYPE);
-                    return fileCall.postFile(xPagopaExtchServiceId, xApiKey, preLoadRequest.getSha256(),  preLoadRequest.getPreloadIdx(), fileCreationRequest)
+
+                    String xTraceId = RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH);
+
+                    return fileCall.postFile(xPagopaExtchServiceId, xApiKey, preLoadRequest.getSha256(),  xTraceId, fileCreationRequest)
                             .flux()
                             .map(fileCreationResponse ->
                             {
@@ -73,7 +78,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
             , String xApiKey) {
         log.info("<-- START GET FILE --> Client ID : {}", xPagopaExtchServiceId);
         return checkHeaders(xPagopaExtchServiceId, xApiKey)
-                .then(fileCall.getFile(fileKey, xPagopaExtchServiceId, xApiKey));
+                .then(fileCall.getFile(fileKey, xPagopaExtchServiceId, xApiKey, RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH)));
     }
 
     private Mono<Void> checkHeaders(String xPagopaExtchServiceId, String xApiKey) {
