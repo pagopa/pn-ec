@@ -44,7 +44,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
 
                     String xTraceId = RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH);
 
-                    return fileCall.postFile(xPagopaExtchServiceId, xApiKey, preLoadRequest.getSha256(),  xTraceId, fileCreationRequest)
+                    return fileCall.postFile(xPagopaExtchServiceId, "", preLoadRequest.getSha256(),  xTraceId, fileCreationRequest)
                             .flux()
                             .map(fileCreationResponse ->
                             {
@@ -84,8 +84,6 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
     private Mono<Void> checkHeaders(String xPagopaExtchServiceId, String xApiKey) {
         if (StringUtils.isBlank(xPagopaExtchServiceId))
             return Mono.error(new SyntaxException(consolidatoreEndpointProperties.clientHeaderName()));
-        else if (StringUtils.isBlank(xApiKey))
-            return Mono.error(new SyntaxException(consolidatoreEndpointProperties.apiKeyHeaderName()));
         else return Mono.empty();
     }
 
