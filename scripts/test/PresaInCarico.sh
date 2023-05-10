@@ -66,3 +66,19 @@ if [ x$sendEmail == x1 ] ; then
   [ $? -eq 0 ] && echo "Ok" || echo "***KO***"
   unset IFS
 fi
+
+if [ x$sendPEC == x1 ] ; then
+
+  PECSender="pectest@pec.pagopa.it"
+  PECReceiver="mario.ottone@arubapec.it"
+
+  PECRequestId="TestPEC-"$(date +%s)
+
+  IFS=_
+  PECRequestBody="{\"requestId\":\"${PECRequestId}\",\"correlationId\":\"string\",\"eventType\":\"string\",\"qos\":\"INTERACTIVE\",\"clientRequestTimeStamp\":\"2023-02-01T07:41:35.717Z\",\"receiverDigitalAddress\":\"${PECReceiver}\",\"messageText\":\"Test message - requestId: ${PECRequestId}\",\"senderDigitalAddress\":\"${PECSender}\",\"channel\":\"PEC\",\"tags\":{\"iun\":\"string\",\"additionalProperties\":\"string\"},\"subjectText\":\"Test message\",\"messageContentType\":\"text/plain\",\"attachmentsUrls\":[]}"
+
+  echo -n "Invio PEC: ${PECRequestId} - "
+  curl -H "x-pagopa-extch-cx-id: pn-delivery" -H "Accept: application/json" -H "Content-type: application/json" -X PUT -d ${PECRequestBody} ${ALBBaseURL}/external-channels/v1/digital-deliveries/legal-full-message-requests/${PECRequestId}
+  [ $? -eq 0 ] && echo "Ok" || echo "***KO***"
+  unset IFS
+fi
