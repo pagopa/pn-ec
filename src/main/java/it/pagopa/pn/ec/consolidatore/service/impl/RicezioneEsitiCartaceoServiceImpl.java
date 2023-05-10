@@ -251,7 +251,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	 			if (statusEvent.getAttachments() != null && !statusEvent.getAttachments().isEmpty()) {
 	 				statusEvent.getAttachments().forEach(attachment -> {
 	 					AttachmentsProgressEventDto attachmentDto = objectMapper.convertValue(attachment, AttachmentsProgressEventDto.class);
-	 					attachmentDto.setId(attachment.getDocumentId());
+	 					attachmentDto.setId(attachment.getId());
 	 					attachmentsDto.add(attachmentDto);
 	 				});
 	 			}
