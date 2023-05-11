@@ -93,10 +93,9 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                     .filter(objects -> objects.getT1().getLogicStatus() != null)
                                     .flatMap(objects -> {
 
-                                        var lastEventIndex = objects.getT2().getRequestMetadata().getEventsList().size() - 1;
-
                                         var macchinaStatiDecodeResponseDto=objects.getT1();
                                         var requestDto=objects.getT2();
+                                        var lastEventIndex = requestDto.getRequestMetadata().getEventsList().size() - 1;
 
                                         SingleStatusUpdate singleStatusUpdate = new SingleStatusUpdate();
 
