@@ -1,6 +1,6 @@
 {
   "Parameters": {
     "PnEcIdentityPec":"pn/identity/pec",
-    "PnEcConsolidatoreBaseURL":"http://internal-pn-in-Appli-1HXGA7HK0CJQ3-1346751104.eu-south-1.elb.amazonaws.com:8080"
+    "PnEcConsolidatoreBaseURL":"http://internal-EcsA-20230406081307135800000004-20484703.eu-south-1.elb.amazonaws.com:8080"
   }
 }
