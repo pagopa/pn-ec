@@ -187,6 +187,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                             singleStatusUpdate.setAnalogMail(paperProgressStatusEvent);
                                         }
+
                                         return putEvents.putEventExternal(singleStatusUpdate, processId);
                                     })
                                     .doOnSuccess(result -> acknowledgment.acknowledge())
