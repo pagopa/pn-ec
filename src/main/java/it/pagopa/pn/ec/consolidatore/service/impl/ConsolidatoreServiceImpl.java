@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.consolidatore.service.impl;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.ConsolidatoreEndpointProperties;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
+import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.consolidatore.exception.SemanticException;
 import it.pagopa.pn.ec.consolidatore.exception.SyntaxException;
 import it.pagopa.pn.ec.consolidatore.service.ConsolidatoreService;
@@ -24,13 +25,21 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
     private FileCall fileCall;
     @Autowired
     private ConsolidatoreEndpointProperties consolidatoreEndpointProperties;
+    @Autowired
+    private AuthService authService;
     private static final String DOC_TYPE = "PN_EXTERNAL_LEGAL_FACTS";
     private static final Integer TRACE_ID_LENGTH = 40;
 
 
     public Mono<PreLoadResponseData> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> attachments) {
         log.info("<-- START PRESIGNED UPLOAD REQUEST --> Client ID : {}", xPagopaExtchServiceId);
-        return checkHeaders(xPagopaExtchServiceId, xApiKey)
+        return authService.clientAuth(xPagopaExtchServiceId)
+                .filter(clientConfiguration -> {
+                    log.info("DOPO CLIENT AUTH, CLIENTCONFIGURATION: ",clientConfiguration.toString());
+                    return clientConfiguration.getApiKey().equals(xApiKey);
+                })
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Invalid API key")))
+                .then(checkHeaders(xPagopaExtchServiceId, xApiKey))
                 .then(attachments.map(PreLoadRequestData::getPreloads))
                 .flatMapMany(Flux::fromIterable)
                 .transform(checkFields)
@@ -44,7 +53,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
 
                     String xTraceId = RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH);
 
-                    return fileCall.postFile(xPagopaExtchServiceId, "", preLoadRequest.getSha256(),  xTraceId, fileCreationRequest)
+                    return fileCall.postFile(xPagopaExtchServiceId, xApiKey, preLoadRequest.getSha256(),  xTraceId, fileCreationRequest)
                             .flux()
                             .map(fileCreationResponse ->
                             {
@@ -74,10 +83,17 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                 });
     }
 
+
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId
             , String xApiKey) {
         log.info("<-- START GET FILE --> Client ID : {}", xPagopaExtchServiceId);
-        return checkHeaders(xPagopaExtchServiceId, xApiKey)
+        return authService.clientAuth(xPagopaExtchServiceId)
+                .filter(clientConfiguration -> {
+                    log.info("DOPO CLIENT AUTH, CLIENTCONFIGURATION: ",clientConfiguration.toString());
+                    return clientConfiguration.getApiKey().equals(xApiKey);
+                })
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Invalid API key")))
+                .then(checkHeaders(xPagopaExtchServiceId, xApiKey))
                 .then(fileCall.getFile(fileKey, xPagopaExtchServiceId, xApiKey, RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH)));
     }
 
