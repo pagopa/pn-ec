@@ -33,6 +33,8 @@ import org.springframework.context.annotation.PropertySource;
 //  <-- EMAIL -->
 // SQS QUEUE
 @PropertySource("classpath:email/email-sqs-queue.properties")
+// DEFAULT
+@PropertySource("classpath:email/email.properties")
 
 //  <-- PEC -->
 // SQS QUEUE
