@@ -14,7 +14,9 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import software.amazon.ion.Timestamp;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -186,6 +188,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                             singleStatusUpdate.setAnalogMail(paperProgressStatusEvent);
                                         }
+                                        singleStatusUpdate.setClientId(requestDto.getxPagopaExtchCxId());
+                                        singleStatusUpdate.setEventTimestamp(OffsetDateTime.now());
                                         return putEvents.putEventExternal(singleStatusUpdate, processId);
                                     })
                                     .doOnSuccess(result -> acknowledgment.acknowledge())

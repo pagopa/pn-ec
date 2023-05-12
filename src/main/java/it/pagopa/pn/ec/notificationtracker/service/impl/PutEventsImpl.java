@@ -35,7 +35,7 @@ public class PutEventsImpl implements PutEvents {
         return Mono.fromCallable(() -> PutEventsRequestEntry.builder()
                                                             .time(new Date().toInstant())
                                                             .source("NOTIFICATION TRACKER")
-                                                            .detailType(processId)
+                                                            .detailType("ExternalChannelOutcomeEvent")
                                                             .detail(objectMapper.writeValueAsString(objectToNotify))
                                                             .eventBusName(notificationTrackerEventBridgeEventName.notificationsBusName())
                                                             .build()).flatMap(putEventsRequestEntry -> {
