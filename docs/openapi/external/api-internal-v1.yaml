@@ -449,6 +449,13 @@ components:
           $ref: '#/components/schemas/LegalMessageSentDetails'
         analogMail:
           $ref: '#/components/schemas/PaperProgressStatusEvent'
+        clientId: 
+          type: string
+        eventTimestamp: 
+          type: string
+          format: date-time
+          description: >-
+            Data di produzione dell'evento.
     
 
     ### - RIFERIMENTI AD ALTRI FILE
