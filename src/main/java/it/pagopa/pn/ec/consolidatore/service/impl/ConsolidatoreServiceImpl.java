@@ -34,11 +34,12 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
     public Mono<PreLoadResponseData> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> attachments) {
         log.info("<-- START PRESIGNED UPLOAD REQUEST --> Client ID : {}", xPagopaExtchServiceId);
         return authService.clientAuth(xPagopaExtchServiceId)
-                .filter(clientConfiguration -> {
-                    log.info("DOPO CLIENT AUTH, CLIENTCONFIGURATION: ",clientConfiguration.toString());
-                    return clientConfiguration.getApiKey().equals(xApiKey);
+                .flatMap(clientConfiguration -> {
+                    if (!clientConfiguration.getApiKey().equals(xApiKey)) {
+                        return Mono.error(new IllegalArgumentException("Invalid API key"));
+                    }
+                    return Mono.just(clientConfiguration);
                 })
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Invalid API key")))
                 .then(checkHeaders(xPagopaExtchServiceId, xApiKey))
                 .then(attachments.map(PreLoadRequestData::getPreloads))
                 .flatMapMany(Flux::fromIterable)
@@ -88,11 +89,12 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
             , String xApiKey) {
         log.info("<-- START GET FILE --> Client ID : {}", xPagopaExtchServiceId);
         return authService.clientAuth(xPagopaExtchServiceId)
-                .filter(clientConfiguration -> {
-                    log.info("DOPO CLIENT AUTH, CLIENTCONFIGURATION: ",clientConfiguration.toString());
-                    return clientConfiguration.getApiKey().equals(xApiKey);
+                .flatMap(clientConfiguration -> {
+                    if (!clientConfiguration.getApiKey().equals(xApiKey)) {
+                        return Mono.error(new IllegalArgumentException("Invalid API key"));
+                    }
+                    return Mono.just(clientConfiguration);
                 })
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Invalid API key")))
                 .then(checkHeaders(xPagopaExtchServiceId, xApiKey))
                 .then(fileCall.getFile(fileKey, xPagopaExtchServiceId, xApiKey, RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH)));
     }
