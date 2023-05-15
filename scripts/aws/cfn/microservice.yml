@@ -125,6 +125,14 @@ Parameters:
   PnEcQueueUrlTrackerStatoSMS:
     Type: String
     Description: '[Notification Tracker: canale SMS] URL della Coda per aggiornamenti di stato afferenti al canale SMS'
+    
+  PnEcAlarmArnQueueTrackerStatoSMS:
+    Type: String
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoSMS"
+
+  PnEcAlarmArnDLQueueTrackerStatoSMS:
+    Type: String
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoSMS"
 
   PnEcQueueNameTrackerErroriSMS:
     Type: String
@@ -137,126 +145,182 @@ Parameters:
   PnEcQueueUrlTrackerErroriSMS:
     Type: String
     Description: '[Notification Tracker: canale SMS] URL della Coda Errori afferenti al canale SMS'
+    
+  PnEcAlarmArnQueueTrackerErroriSMS:
+    Type: String
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriSMS"
+
+  PnEcAlarmArnDLQueueTrackerErroriSMS:
+    Type: String
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriSMS"
 
   PnEcQueueNameTrackerStatoPEC:
-    Description: '[Notification Tracker: canale PEC] Nome della Coda per aggiornamenti di stato afferenti al canale PEC'
     Type: String
+    Description: '[Notification Tracker: canale PEC] Nome della Coda per aggiornamenti di stato afferenti al canale PEC'
 
   PnEcQueueArnTrackerStatoPEC:
-    Description: '[Notification Tracker: canale PEC] ARN della Coda per aggiornamenti di stato afferenti al canale PEC'
     Type: String
+    Description: '[Notification Tracker: canale PEC] ARN della Coda per aggiornamenti di stato afferenti al canale PEC'
 
   PnEcQueueUrlTrackerStatoPEC:
-    Description: '[Notification Tracker: canale PEC] URL della Coda per aggiornamenti di stato afferenti al canale PEC'
     Type: String
+    Description: '[Notification Tracker: canale PEC] URL della Coda per aggiornamenti di stato afferenti al canale PEC'
 
   PnEcDLQueueNameTrackerStatoPEC:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoPEC'
     Type: String
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoPEC'
 
   PnEcDLQueueArnTrackerStatoPEC:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoPEC'
     Type: String
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoPEC'
+    
+  PnEcAlarmArnQueueTrackerStatoPEC:
+    Type: String
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoPEC"
+
+  PnEcAlarmArnDLQueueTrackerStatoPEC:
+    Type: String
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoPEC"
 
   PnEcQueueNameTrackerErroriPEC:
-    Description: '[Notification Tracker: canale PEC] Nome della Coda Errori afferenti al canale PEC'
     Type: String
+    Description: '[Notification Tracker: canale PEC] Nome della Coda Errori afferenti al canale PEC'
     
   PnEcQueueArnTrackerErroriPEC:
-    Description: '[Notification Tracker: canale PEC] ARN della Coda Errori afferenti al canale PEC'
     Type: String
+    Description: '[Notification Tracker: canale PEC] ARN della Coda Errori afferenti al canale PEC'
     
   PnEcQueueUrlTrackerErroriPEC:
-    Description: '[Notification Tracker: canale PEC] URL della Coda Errori afferenti al canale PEC'
     Type: String
+    Description: '[Notification Tracker: canale PEC] URL della Coda Errori afferenti al canale PEC'
 
   PnEcDLQueueNameTrackerErroriPEC:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriPEC'
     Type: String
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriPEC'
     
   PnEcDLQueueArnTrackerErroriPEC:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriPEC'
     Type: String
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriPEC'
+    
+  PnEcAlarmArnQueueTrackerErroriPEC:
+    Type: String
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriPEC"
+
+  PnEcAlarmArnDLQueueTrackerErroriPEC:
+    Type: String
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriPEC"
     
   PnEcQueueNameTrackerStatoEMAIL:
-    Description: '[Notification Tracker: canale EMAIL] Nome della Coda per aggiornamenti di stato afferenti al canale EMAIL'
     Type: String
+    Description: '[Notification Tracker: canale EMAIL] Nome della Coda per aggiornamenti di stato afferenti al canale EMAIL'
 
   PnEcQueueArnTrackerStatoEMAIL:
-    Description: '[Notification Tracker: canale EMAIL] ARN della Coda per aggiornamenti di stato afferenti al canale EMAIL'
     Type: String
+    Description: '[Notification Tracker: canale EMAIL] ARN della Coda per aggiornamenti di stato afferenti al canale EMAIL'
 
   PnEcQueueUrlTrackerStatoEMAIL:
-    Description: '[Notification Tracker: canale EMAIL] URL della Coda per aggiornamenti di stato afferenti al canale EMAIL'
     Type: String
+    Description: '[Notification Tracker: canale EMAIL] URL della Coda per aggiornamenti di stato afferenti al canale EMAIL'
 
   PnEcDLQueueNameTrackerStatoEMAIL:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoEMAIL'
     Type: String
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoEMAIL'
 
   PnEcDLQueueArnTrackerStatoEMAIL:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoEMAIL'
     Type: String
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoEMAIL'
+    
+  PnEcAlarmArnQueueTrackerStatoEMAIL:
+    Type: String
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoEMAIL"
+
+  PnEcAlarmArnDLQueueTrackerStatoEMAIL:
+    Type: String
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoEMAIL"
 
   PnEcQueueNameTrackerErroriEMAIL:
-    Description: '[Notification Tracker: canale EMAIL] Nome della Coda Errori afferenti al canale EMAIL'
     Type: String
+    Description: '[Notification Tracker: canale EMAIL] Nome della Coda Errori afferenti al canale EMAIL'
     
   PnEcQueueArnTrackerErroriEMAIL:
-    Description: '[Notification Tracker: canale EMAIL] ARN della Coda Errori afferenti al canale EMAIL'
     Type: String
+    Description: '[Notification Tracker: canale EMAIL] ARN della Coda Errori afferenti al canale EMAIL'
     
   PnEcQueueUrlTrackerErroriEMAIL:
-    Description: '[Notification Tracker: canale EMAIL] URL della Coda Errori afferenti al canale EMAIL'
     Type: String
+    Description: '[Notification Tracker: canale EMAIL] URL della Coda Errori afferenti al canale EMAIL'
 
   PnEcDLQueueNameTrackerErroriEMAIL:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriEMAIL'
     Type: String
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriEMAIL'
     
   PnEcDLQueueArnTrackerErroriEMAIL:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriEMAIL'
     Type: String
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriEMAIL'
+    
+  PnEcAlarmArnQueueTrackerErroriEMAIL:
+    Type: String
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriEMAIL"
+
+  PnEcAlarmArnDLQueueTrackerErroriEMAIL:
+    Type: String
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriEMAIL"
 
   PnEcQueueNameTrackerStatoCARTACEO:
-    Description: '[Notification Tracker: canale CARTACEO] Nome della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
     Type: String
+    Description: '[Notification Tracker: canale CARTACEO] Nome della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
 
   PnEcQueueArnTrackerStatoCARTACEO:
-    Description: '[Notification Tracker: canale CARTACEO] ARN della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
     Type: String
+    Description: '[Notification Tracker: canale CARTACEO] ARN della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
 
   PnEcQueueUrlTrackerStatoCARTACEO:
-    Description: '[Notification Tracker: canale CARTACEO] URL della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
     Type: String
+    Description: '[Notification Tracker: canale CARTACEO] URL della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
 
   PnEcDLQueueNameTrackerStatoCARTACEO:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoCARTACEO'
     Type: String
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoCARTACEO'
 
   PnEcDLQueueArnTrackerStatoCARTACEO:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoCARTACEO'
     Type: String
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoCARTACEO'
+    
+  PnEcAlarmArnQueueTrackerStatoCARTACEO:
+    Type: String
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoCARTACEO"
+
+  PnEcAlarmArnDLQueueTrackerStatoCARTACEO:
+    Type: String
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoCARTACEO"
 
   PnEcQueueNameTrackerErroriCARTACEO:
-    Description: '[Notification Tracker: canale CARTACEO] Nome della Coda Errori afferenti al canale CARTACEO'
     Type: String
+    Description: '[Notification Tracker: canale CARTACEO] Nome della Coda Errori afferenti al canale CARTACEO'
     
   PnEcQueueArnTrackerErroriCARTACEO:
-    Description: '[Notification Tracker: canale CARTACEO] ARN della Coda Errori afferenti al canale CARTACEO'
     Type: String
+    Description: '[Notification Tracker: canale CARTACEO] ARN della Coda Errori afferenti al canale CARTACEO'
     
   PnEcQueueUrlTrackerErroriCARTACEO:
-    Description: '[Notification Tracker: canale CARTACEO] URL della Coda Errori afferenti al canale CARTACEO'
     Type: String
+    Description: '[Notification Tracker: canale CARTACEO] URL della Coda Errori afferenti al canale CARTACEO'
 
   PnEcDLQueueNameTrackerErroriCARTACEO:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriCARTACEO'
     Type: String
+    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriCARTACEO'
     
   PnEcDLQueueArnTrackerErroriCARTACEO:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriCARTACEO'
     Type: String
+    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriCARTACEO'
+    
+  PnEcAlarmArnQueueTrackerErroriCARTACEO:
+    Type: String
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriCARTACEO"
+
+  PnEcAlarmArnDLQueueTrackerErroriCARTACEO:
+    Type: String
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriCARTACEO"
 
   PnEcQueueNameNotificheExt1:
     Type: String
@@ -269,6 +333,18 @@ Parameters:
   PnEcQueueUrlNotificheExt1:
     Type: String
     Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] URL della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
+  
+  PnEcEventRuleArnNotificheExt1:
+    Type: String
+    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] ARN della Regola per le notifiche a PIATTAFORMA_ESTERNA_1'
+    
+  PnEcAlarmArnQueueNotificheExt1:
+    Type: String
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueNotificheExt1"
+
+  PnEcAlarmArnDLQueueNotificheExt1:
+    Type: String
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueNotificheExt1"
 
   PnEcQueueNameBatchSMS:
     Type: String
@@ -281,6 +357,14 @@ Parameters:
   PnEcQueueUrlBatchSMS:
     Type: String
     Description: '[Canale SMS] URL della Coda per la modalità SMS-Batch'
+    
+  PnEcAlarmArnQueueBatchSMS:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchSMS"
+
+  PnEcAlarmArnDLQueueBatchSMS:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchSMS"
 
   PnEcQueueNameInteractiveSMS:
     Type: String
@@ -293,6 +377,14 @@ Parameters:
   PnEcQueueUrlInteractiveSMS:
     Type: String
     Description: '[Canale SMS] URL della Coda per la modalità SMS-Interactive'
+    
+  PnEcAlarmArnQueueInteractiveSMS:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractiveSMS"
+
+  PnEcAlarmArnDLQueueInteractiveSMS:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractiveSMS"
 
   PnEcQueueNameErroriSMS:
     Type: String
@@ -305,166 +397,238 @@ Parameters:
   PnEcQueueUrlErroriSMS:
     Type: String
     Description: '[Canale SMS] URL della Coda Errori SMS'
+    
+  PnEcAlarmArnQueueErroriSMS:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriSMS"
+
+  PnEcAlarmArnDLQueueErroriSMS:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriSMS"
 
   PnEcQueueNameBatchPEC:
-    Description: '[Canale PEC] Nome della Coda per la modalità PEC-Batch'
     Type: String
+    Description: '[Canale PEC] Nome della Coda per la modalità PEC-Batch'
     
   PnEcQueueArnBatchPEC:
-    Description: '[Canale PEC] ARN della Coda per la modalità PEC-Batch'
     Type: String
+    Description: '[Canale PEC] ARN della Coda per la modalità PEC-Batch'
     
   PnEcQueueUrlBatchPEC:
-    Description: '[Canale PEC] URL della Coda per la modalità PEC-Batch'
     Type: String
+    Description: '[Canale PEC] URL della Coda per la modalità PEC-Batch'
     
   PnEcDLQueueNameBatchPEC:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchPEC'
     Type: String
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchPEC'
     
   PnEcDLQueueArnBatchPEC:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchPEC'
     Type: String
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchPEC'
+    
+  PnEcAlarmArnQueueBatchPEC:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchPEC"
+
+  PnEcAlarmArnDLQueueBatchPEC:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchPEC"
     
   PnEcQueueNameInteractivePEC:
-    Description: '[Canale PEC] Nome della Coda per la modalità PEC-Interactive'
     Type: String
+    Description: '[Canale PEC] Nome della Coda per la modalità PEC-Interactive'
     
   PnEcQueueArnInteractivePEC:
-    Description: '[Canale PEC] ARN della Coda per la modalità PEC-Interactive'
     Type: String
+    Description: '[Canale PEC] ARN della Coda per la modalità PEC-Interactive'
     
   PnEcQueueUrlInteractivePEC:
-    Description: '[Canale PEC] URL della Coda per la modalità PEC-Interactive'
     Type: String
+    Description: '[Canale PEC] URL della Coda per la modalità PEC-Interactive'
     
   PnEcDLQueueNameInteractivePEC:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractivePEC'
     Type: String
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractivePEC'
     
   PnEcDLQueueArnInteractivePEC:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueInteractivePEC'
     Type: String
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueInteractivePEC'
+    
+  PnEcAlarmArnQueueInteractivePEC:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractivePEC"
+
+  PnEcAlarmArnDLQueueInteractivePEC:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractivePEC"
     
   PnEcQueueNameErroriPEC:
-    Description: '[Canale PEC] Nome della Coda Errori PEC'
     Type: String
+    Description: '[Canale PEC] Nome della Coda Errori PEC'
     
   PnEcQueueArnErroriPEC:
-    Description: '[Canale PEC] ARN della Coda Errori PEC'
     Type: String
+    Description: '[Canale PEC] ARN della Coda Errori PEC'
     
   PnEcQueueUrlErroriPEC:
-    Description: '[Canale PEC] URL della Coda Errori PEC'
     Type: String
+    Description: '[Canale PEC] URL della Coda Errori PEC'
     
   PnEcDLQueueNameErroriPEC:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriPEC'
     Type: String
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriPEC'
     
   PnEcDLQueueArnErroriPEC:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriPEC'
     Type: String
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriPEC'
+    
+  PnEcAlarmArnQueueErroriPEC:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriPEC"
+
+  PnEcAlarmArnDLQueueErroriPEC:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriPEC"
 
   PnEcQueueNameBatchEMAIL:
-    Description: '[Canale EMAIL] Nome della Coda per la modalità EMAIL-Batch'
     Type: String
+    Description: '[Canale EMAIL] Nome della Coda per la modalità EMAIL-Batch'
     
   PnEcQueueArnBatchEMAIL:
-    Description: '[Canale EMAIL] ARN della Coda per la modalità EMAIL-Batch'
     Type: String
+    Description: '[Canale EMAIL] ARN della Coda per la modalità EMAIL-Batch'
     
   PnEcQueueUrlBatchEMAIL:
-    Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Batch'
     Type: String
+    Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Batch'
     
   PnEcDLQueueNameBatchEMAIL:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchEMAIL'
     Type: String
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchEMAIL'
     
   PnEcDLQueueArnBatchEMAIL:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchEMAIL'
     Type: String
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchEMAIL'
+    
+  PnEcAlarmArnQueueBatchEMAIL:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchEMAIL"
+
+  PnEcAlarmArnDLQueueBatchEMAIL:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchEMAIL"
     
   PnEcQueueNameInteractiveEMAIL:
-    Description: '[Canale EMAIL] Nome della Coda per la modalità EMAIL-Interactive'
     Type: String
+    Description: '[Canale EMAIL] Nome della Coda per la modalità EMAIL-Interactive'
     
   PnEcQueueArnInteractiveEMAIL:
-    Description: '[Canale EMAIL] ARN della Coda per la modalità EMAIL-Interactive'
     Type: String
+    Description: '[Canale EMAIL] ARN della Coda per la modalità EMAIL-Interactive'
     
   PnEcQueueUrlInteractiveEMAIL:
-    Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Interactive'
     Type: String
+    Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Interactive'
     
   PnEcDLQueueNameInteractiveEMAIL:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractiveEMAIL'
     Type: String
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractiveEMAIL'
     
   PnEcDLQueueArnInteractiveEMAIL:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueInteractiveEMAIL'
     Type: String
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueInteractiveEMAIL'
+    
+  PnEcAlarmArnQueueInteractiveEMAIL:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractiveEMAIL"
+
+  PnEcAlarmArnDLQueueInteractiveEMAIL:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractiveEMAIL"
     
   PnEcQueueNameErroriEMAIL:
-    Description: '[Canale EMAIL] Nome della Coda Errori EMAIL'
     Type: String
+    Description: '[Canale EMAIL] Nome della Coda Errori EMAIL'
     
   PnEcQueueArnErroriEMAIL:
-    Description: '[Canale EMAIL] ARN della Coda Errori EMAIL'
     Type: String
+    Description: '[Canale EMAIL] ARN della Coda Errori EMAIL'
     
   PnEcQueueUrlErroriEMAIL:
-    Description: '[Canale EMAIL] URL della Coda Errori EMAIL'
     Type: String
+    Description: '[Canale EMAIL] URL della Coda Errori EMAIL'
     
   PnEcDLQueueNameErroriEMAIL:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriEMAIL'
     Type: String
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriEMAIL'
     
   PnEcDLQueueArnErroriEMAIL:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriEMAIL'
     Type: String
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriEMAIL'
+    
+  PnEcAlarmArnQueueErroriEMAIL:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriEMAIL"
+
+  PnEcAlarmArnDLQueueErroriEMAIL:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriEMAIL"
 
   PnEcQueueNameBatchCARTACEO:
-    Description: '[Canale CARTACEO] Nome della Coda per la modalità CARTACEO-Batch'
     Type: String
+    Description: '[Canale CARTACEO] Nome della Coda per la modalità CARTACEO-Batch'
     
   PnEcQueueArnBatchCARTACEO:
-    Description: '[Canale CARTACEO] ARN della Coda per la modalità CARTACEO-Batch'
     Type: String
+    Description: '[Canale CARTACEO] ARN della Coda per la modalità CARTACEO-Batch'
     
   PnEcQueueUrlBatchCARTACEO:
-    Description: '[Canale CARTACEO] URL della Coda per la modalità CARTACEO-Batch'
     Type: String
+    Description: '[Canale CARTACEO] URL della Coda per la modalità CARTACEO-Batch'
     
   PnEcDLQueueNameBatchCARTACEO:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchCARTACEO'
     Type: String
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchCARTACEO'
     
   PnEcDLQueueArnBatchCARTACEO:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchCARTACEO'
     Type: String
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchCARTACEO'
+    
+  PnEcAlarmArnQueueBatchCARTACEO:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchCARTACEO"
+
+  PnEcAlarmArnDLQueueBatchCARTACEO:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchCARTACEO"
     
   PnEcQueueNameErroriCARTACEO:
-    Description: '[Canale CARTACEO] Nome della Coda Errori CARTACEO'
     Type: String
+    Description: '[Canale CARTACEO] Nome della Coda Errori CARTACEO'
     
   PnEcQueueArnErroriCARTACEO:
-    Description: '[Canale CARTACEO] ARN della Coda Errori CARTACEO'
     Type: String
+    Description: '[Canale CARTACEO] ARN della Coda Errori CARTACEO'
     
   PnEcQueueUrlErroriCARTACEO:
-    Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
     Type: String
+    Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
     
   PnEcDLQueueNameErroriCARTACEO:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriCARTACEO'
     Type: String
+    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriCARTACEO'
     
   PnEcDLQueueArnErroriCARTACEO:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriCARTACEO'
     Type: String
+    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriCARTACEO'
+    
+  PnEcAlarmArnQueueErroriCARTACEO:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriCARTACEO"
+
+  PnEcAlarmArnDLQueueErroriCARTACEO:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriCARTACEO"
 
   PnEcConsolidatoreBaseURL:
     Description: 'Base URL per accesso ai servizi del consolidatore'
@@ -629,7 +793,7 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
-###########  NOTIFICATION TRACKER - QUEUE POLICIES   ###########
+  ###########  NOTIFICATION TRACKER - QUEUE POLICIES   ###########
 
   PnEcQueuePolicyTrackerStatoSMS:
     Type: AWS::SQS::QueuePolicy
@@ -758,7 +922,8 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
-###########  CHANNEL SMS - QUEUE POLICIES  ###########
+  ###########  CHANNEL SMS - QUEUE POLICIES  ###########
+  
   PnEcQueuePolicyBatchSMS:
     Type: AWS::SQS::QueuePolicy
     Properties: 
@@ -807,7 +972,8 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
-###########  CHANNEL PEC - QUEUE POLICIES  ###########
+  ###########  CHANNEL PEC - QUEUE POLICIES  ###########
+  
   PnEcQueuePolicyBatchPEC:
     Type: AWS::SQS::QueuePolicy
     Properties: 
@@ -856,7 +1022,8 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
-###########  CHANNEL EMAIL - QUEUE POLICIES  ###########
+  ###########  CHANNEL EMAIL - QUEUE POLICIES  ###########
+  
   PnEcQueuePolicyBatchEMAIL:
     Type: AWS::SQS::QueuePolicy
     Properties: 
@@ -906,7 +1073,8 @@ Resources:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
 
-###########  CHANNEL CARTACEO - QUEUE POLICIES  ###########
+  ###########  CHANNEL CARTACEO - QUEUE POLICIES  ###########
+  
   PnEcQueuePolicyBatchCARTACEO:
     Type: AWS::SQS::QueuePolicy
     Properties: 
@@ -936,3 +1104,100 @@ Resources:
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+                
+  ########### METRICS AND ALARMS - MICROSERVICE ###########
+  
+  SafeStorageMicroserviceAlarm:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-alarm.yaml"
+      Parameters:
+        MicroserviceName: !Sub '${ProjectName}-external-channel' # Must be identical to the one in the ecs-service stack
+        EvaluationPeriod: '10'
+        DatapointsToAlarm: '1'
+        Threshold: '1'
+        
+  SafeStorageMicroserviceAlarmDashboard:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
+      Parameters:
+        DashboardName: !Sub '${ProjectName}-safe-storage'
+        AlarmArns:
+          !Join
+          - ','
+          - - !Ref PnEcAlarmArnQueueTrackerStatoSMS
+            - !Ref PnEcAlarmArnDLQueueTrackerStatoSMS
+            - !Ref PnEcAlarmArnQueueTrackerErroriSMS
+            - !Ref PnEcAlarmArnDLQueueTrackerErroriSMS
+            - !Ref PnEcAlarmArnQueueTrackerStatoPEC
+            - !Ref PnEcAlarmArnDLQueueTrackerStatoPEC
+            - !Ref PnEcAlarmArnQueueTrackerErroriPEC
+            - !Ref PnEcAlarmArnDLQueueTrackerErroriPEC
+            - !Ref PnEcAlarmArnQueueTrackerStatoEMAIL
+            - !Ref PnEcAlarmArnDLQueueTrackerStatoEMAIL
+            - !Ref PnEcAlarmArnQueueTrackerErroriEMAIL
+            - !Ref PnEcAlarmArnDLQueueTrackerErroriEMAIL
+            - !Ref PnEcAlarmArnQueueTrackerStatoCARTACEO
+            - !Ref PnEcAlarmArnDLQueueTrackerStatoCARTACEO
+            - !Ref PnEcAlarmArnQueueTrackerErroriCARTACEO
+            - !Ref PnEcAlarmArnDLQueueTrackerErroriCARTACEO
+            - !Ref PnEcAlarmArnQueueNotificheExt1
+            - !Ref PnEcAlarmArnDLQueueNotificheExt1
+            - !Ref PnEcAlarmArnQueueBatchSMS
+            - !Ref PnEcAlarmArnDLQueueBatchSMS
+            - !Ref PnEcAlarmArnQueueInteractiveSMS
+            - !Ref PnEcAlarmArnDLQueueInteractiveSMS
+            - !Ref PnEcAlarmArnQueueErroriSMS
+            - !Ref PnEcAlarmArnDLQueueErroriSMS
+            - !Ref PnEcAlarmArnQueueBatchPEC
+            - !Ref PnEcAlarmArnDLQueueBatchPEC
+            - !Ref PnEcAlarmArnQueueInteractivePEC
+            - !Ref PnEcAlarmArnDLQueueInteractivePEC
+            - !Ref PnEcAlarmArnQueueErroriPEC
+            - !Ref PnEcAlarmArnDLQueueErroriPEC
+            - !Ref PnEcAlarmArnQueueBatchEMAIL
+            - !Ref PnEcAlarmArnDLQueueBatchEMAIL
+            - !Ref PnEcAlarmArnQueueInteractiveEMAIL
+            - !Ref PnEcAlarmArnDLQueueInteractiveEMAIL
+            - !Ref PnEcAlarmArnQueueErroriEMAIL
+            - !Ref PnEcAlarmArnDLQueueErroriEMAIL
+            - !Ref PnEcAlarmArnQueueBatchCARTACEO
+            - !Ref PnEcAlarmArnDLQueueBatchCARTACEO
+            - !Ref PnEcAlarmArnQueueErroriCARTACEO
+            - !Ref PnEcAlarmArnDLQueueErroriCARTACEO
+        DynamoDBTableNames:
+          !Join
+          - ','
+          - - !Ref PnEcTableNameAnagrafica
+            - !Ref PnEcTableNameRichieste
+            - !Ref PnEcTableNameRichiesteMetadati
+        # RestApiStageArns: 
+        # RestApiNames: 
+        QueueArns:
+          !Join
+          - ','
+          - - !Ref PnEcQueueArnTrackerStatoSMS 
+            - !Ref PnEcQueueArnTrackerErroriSMS
+            - !Ref PnEcQueueArnTrackerStatoPEC
+            - !Ref PnEcQueueArnTrackerErroriPEC
+            - !Ref PnEcQueueArnTrackerStatoEMAIL
+            - !Ref PnEcQueueArnTrackerErroriEMAIL
+            - !Ref PnEcQueueArnTrackerStatoCARTACEO
+            - !Ref PnEcQueueArnTrackerErroriCARTACEO
+            - !Ref PnEcQueueArnNotificheExt1
+            - !Ref PnEcQueueArnBatchSMS
+            - !Ref PnEcQueueArnInteractiveSMS
+            - !Ref PnEcQueueArnErroriSMS
+            - !Ref PnEcQueueArnBatchPEC
+            - !Ref PnEcQueueArnInteractivePEC
+            - !Ref PnEcQueueArnErroriPEC
+            - !Ref PnEcQueueArnBatchEMAIL
+            - !Ref PnEcQueueArnInteractiveEMAIL
+            - !Ref PnEcQueueArnErroriEMAIL
+            - !Ref PnEcQueueArnBatchCARTACEO
+            - !Ref PnEcQueueArnErroriCARTACEO
+        # KinesisDataArns: 
+        # KinesisFirehoseArns: 
+        EventRuleArns:
+          - !Ref PnEcEventRuleArnNotificheExt1
