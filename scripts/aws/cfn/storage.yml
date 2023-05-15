@@ -35,6 +35,8 @@ Parameters:
 
 Resources:
 
+  ######### DYNAMODB TABLES  ############
+
   PnEcTableAnagrafica:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -95,279 +97,218 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
 
-######### NOTIFICATION TRACKER QUEUES  ############
-######### TRACKER : SMS  ############
-  PnEcQueueTrackerStatoSMS:
-    Type: AWS::SQS::Queue
+  ######### NOTIFICATION TRACKER QUEUES  ############
+  ######### TRACKER : SMS  ############
+
+  PnEcQueueTrackerStatoSMSStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueTrackerStatoSMS.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
-  
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-tracker-sms-stato-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+
   PnEcTrackerStatoSMSQueuePolicy:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
+    Properties:
       Queues:
-        - !Ref PnEcQueueTrackerStatoSMS
+        - !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueURL
       PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'SQS:*'
             Effect: "Allow"
-            Resource: !GetAtt PnEcQueueTrackerStatoSMS.Arn
-            Principal:  
+            Resource: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueARN
+            Principal:
               AWS: '*'
 
-  PnEcDLQueueTrackerStatoSMS:
-    Type: AWS::SQS::Queue
+  PnEcQueueTrackerErroriSMSStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-tracker-sms-errori-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
-  PnEcQueueTrackerErroriSMS:
-    Type: AWS::SQS::Queue
+  ######### TRACKER : PEC  ##########
+
+  PnEcQueueTrackerStatoPECStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt PnEcDLQueueTrackerErroriSMS.Arn
-        maxReceiveCount: 10
-      VisibilityTimeout: 30
-
-  PnEcDLQueueTrackerErroriSMS:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
-
-######### TRACKER : PEC  ##########
-
-  PnEcQueueTrackerStatoPEC:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueTrackerStatoPEC.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-tracker-pec-stato-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   PnEcTrackerStatoPECQueuePolicy:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
+    Properties:
       Queues:
-        - !Ref PnEcQueueTrackerStatoPEC
+        - !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.QueueURL
       PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'SQS:*'
             Effect: "Allow"
-            Resource: !GetAtt PnEcQueueTrackerStatoPEC.Arn
-            Principal:  
+            Resource: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.QueueARN
+            Principal:
               AWS: '*'
 
-  PnEcDLQueueTrackerStatoPEC:
-    Type: AWS::SQS::Queue
+  PnEcQueueTrackerErroriPECStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-tracker-pec-errori-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
-  PnEcQueueTrackerErroriPEC:
-    Type: AWS::SQS::Queue
+  ######### TRACKER : EMAIL  #########
+
+  PnEcQueueTrackerStatoEMAILStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt PnEcDLQueueTrackerErroriPEC.Arn
-        maxReceiveCount: 10
-      VisibilityTimeout: 30
-
-  PnEcDLQueueTrackerErroriPEC:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
-
-######### TRACKER : EMAIL  #########
-
-  PnEcQueueTrackerStatoEMAIL:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueTrackerStatoEMAIL.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-tracker-email-stato-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   PnEcTrackerStatoEMAILQueuePolicy:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
+    Properties:
       Queues:
-        - !Ref PnEcQueueTrackerStatoEMAIL
+        - !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.QueueURL
       PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'SQS:*'
             Effect: "Allow"
-            Resource: !GetAtt PnEcQueueTrackerStatoEMAIL.Arn
-            Principal:  
+            Resource: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.QueueARN
+            Principal:
               AWS: '*'
 
-  PnEcDLQueueTrackerStatoEMAIL:
-    Type: AWS::SQS::Queue
+  PnEcQueueTrackerErroriEMAILStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-tracker-email-errori-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
-  PnEcQueueTrackerErroriEMAIL:
-    Type: AWS::SQS::Queue
+  ######### TRACKER : CARTACEO  #########
+
+  PnEcQueueTrackerStatoCARTACEOStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt PnEcDLQueueTrackerErroriEMAIL.Arn
-        maxReceiveCount: 10
-      VisibilityTimeout: 30
-
-  PnEcDLQueueTrackerErroriEMAIL:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
-
-######### TRACKER : CARTACEO  #########
-
-  PnEcQueueTrackerStatoCARTACEO:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueTrackerStatoCARTACEO.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-tracker-cartaceo-stato-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   PnEcTrackerStatoCARTACEOQueuePolicy:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
+    Properties:
       Queues:
-        - !Ref PnEcQueueTrackerStatoCARTACEO
+        - !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.QueueURL
       PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'SQS:*'
             Effect: "Allow"
-            Resource: !GetAtt PnEcQueueTrackerStatoCARTACEO.Arn
-            Principal:  
+            Resource: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.QueueARN
+            Principal:
               AWS: '*'
 
-  PnEcDLQueueTrackerStatoCARTACEO:
-    Type: AWS::SQS::Queue
+  PnEcQueueTrackerErroriCARTACEOStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-tracker-cartaceo-errori-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
-  PnEcQueueTrackerErroriCARTACEO:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt PnEcDLQueueTrackerErroriCARTACEO.Arn
-        maxReceiveCount: 10
-      VisibilityTimeout: 30
+  ###########  TRACKER: EXTERNAL NOTIFICATION  ###########
 
-  PnEcDLQueueTrackerErroriCARTACEO:
-    Type: AWS::SQS::Queue
+  PnEcQueueNotificheExt1Stack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-notifiche-esterne-piattaforma-1-queue'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
-###########  NOTIFICATION TRACKER EXTERNAL NOTIFICATION  ###########
-  PnEcQueueNotificheExt1:
-    Type: AWS::SQS::Queue
-    Properties:
-      # KmsDataKeyReusePeriodSeconds: 300
-      # KmsMasterKeyId: 'alias/aws/sqs'
-      SqsManagedSseEnabled: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueNotificheExt1.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
+  PnEcQueuePolicyNotificheExt1:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues:
+        - !GetAtt PnEcQueueNotificheExt1Stack.Outputs.QueueURL
+      PolicyDocument: 
+        Statement: 
+          - Sid: 'AllowAccessSameAccount'
+            Action: 
+              - "SQS:*"
+            Effect: "Allow"
+            Resource: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.QueueARN
+            Principal: 
+              AWS: !Sub ${AWS::AccountId}
+          - Sid: 'AllowPutEventsFromEventRule'
+            Action: 
+              - "sqs:SendMessage"
+            Effect: "Allow"
+            Resource: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.QueueARN
+            Principal: 
+              Service:
+              - 'events.amazonaws.com'
+            Condition: 
+              ArnEquals:
+                aws:SourceArn: !GetAtt PnEcEventRuleNotificheExt1.Arn
 
-  PnEcDLQueueNotificheExt1:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
       
   PnEcEventBusTrackerExternalNotification: 
     Type: AWS::Events::EventBus
@@ -432,32 +373,7 @@ Resources:
   #         StringNotEquals:
   #           aws:SourceAccount: !Sub '${AWS::AccountId}'
 
-  PnEcQueuePolicyNotificheExt1:
-    Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues:
-        - !Ref PnEcQueueNotificheExt1
-      PolicyDocument: 
-        Statement: 
-          - Sid: 'AllowAccessSameAccount'
-            Action: 
-              - "SQS:*"
-            Effect: "Allow"
-            Resource: !GetAtt PnEcQueueNotificheExt1.Arn
-            Principal: 
-              AWS: !Sub ${AWS::AccountId}
-          - Sid: 'AllowPutEventsFromEventRule'
-            Action: 
-              - "sqs:SendMessage"
-            Effect: "Allow"
-            Resource: !GetAtt PnEcQueueNotificheExt1.Arn
-            Principal: 
-              Service:
-              - 'events.amazonaws.com'
-            Condition: 
-              ArnEquals:
-                aws:SourceArn: !GetAtt PnEcEventRuleNotificheExt1.Arn
-
+  
   PnEcEventRuleNotificheExt1:
     Type: AWS::Events::Rule
     Properties:
@@ -472,10 +388,8 @@ Resources:
           - !Sub ${AWS::Region}
       State: 'ENABLED'
       Targets:
-        - Arn: !GetAtt PnEcQueueNotificheExt1.Arn
+        - Arn: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.QueueARN
           Id: 'PnEcExt1QueueTargetForExtNotification'
-
-
 
   # PnEcEventBusArchiveTrackerExternalNotification:
   #   Type: AWS::Events::Archive
@@ -483,318 +397,212 @@ Resources:
   #     Description: 'Archive for storage of events to be delivered from Notification Tracker towards external platform'
   #     RetentionDays: 15
   #     SourceArn: !Ref PnEcEventBusTrackerExternalNotification
-
-###### CHANNEL SMS #######
-
-  PnEcQueueBatchSMS:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueBatchSMS.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
-
-  PnEcDLQueueBatchSMS:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
   
-  PnEcQueueInteractiveSMS:
-    Type: AWS::SQS::Queue
+  ###### CHANNEL : SMS #######
+  
+  PnEcQueueBatchSMSStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueInteractiveSMS.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-sms-batch-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        
+  PnEcQueueInteractiveSMSStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-sms-interactive-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName      
 
   PnEcInteractiveSMSQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues:
-        - !Ref PnEcQueueInteractiveSMS
+        - !GetAtt PnEcQueueInteractiveSMSStack.Outputs.QueueURL
       PolicyDocument:
         Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
             Effect: "Allow"
-            Resource: !GetAtt PnEcQueueInteractiveSMS.Arn
+            Resource: !GetAtt PnEcQueueInteractiveSMSStack.Outputs.QueueARN
             Principal:  
               AWS: '*'
-
-  PnEcDLQueueInteractiveSMS:
-    Type: AWS::SQS::Queue
+              
+  PnEcQueueErroriSMSStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-sms-errori-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        DelaySeconds: 300
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName   
 
-  PnEcQueueErroriSMS:
-    Type: AWS::SQS::Queue
+  ###### CHANNEL : PEC #######
+  
+  PnEcQueueBatchPECStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      DelaySeconds: 300
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueErroriSMS.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
-
-  PnEcDLQueueErroriSMS:
-    Type: AWS::SQS::Queue
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-pec-batch-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        
+  PnEcQueueInteractivePECStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
-
-
-###### CHANNEL PEC #######
-  PnEcQueueBatchPEC:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueBatchPEC.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
-
-  PnEcDLQueueBatchPEC:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
-
-  PnEcQueueInteractivePEC:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueInteractivePEC.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-pec-interactive-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName      
 
   PnEcInteractivePECQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues:
-        - !Ref PnEcQueueInteractivePEC
+        - !GetAtt PnEcQueueInteractivePECStack.Outputs.QueueURL
       PolicyDocument:
         Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
             Effect: "Allow"
-            Resource: !GetAtt PnEcQueueInteractivePEC.Arn
+            Resource: !GetAtt PnEcQueueInteractivePECStack.Outputs.QueueARN
             Principal:  
               AWS: '*'
-
-  PnEcDLQueueInteractivePEC:
-    Type: AWS::SQS::Queue
+              
+  PnEcQueueErroriPECStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'PnEcQueueErroriPEC'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        DelaySeconds: 300
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName 
 
-  PnEcQueueErroriPEC:
-    Type: AWS::SQS::Queue
+  ###### CHANNEL : EMAIL #######
+  
+  PnEcQueueBatchEMAILStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      DelaySeconds: 300
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueErroriPEC.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
-
-  PnEcDLQueueErroriPEC:
-    Type: AWS::SQS::Queue
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-email-batch-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        
+  PnEcQueueInteractiveEMAILStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
-
-###### CHANNEL EMAIL #######
-  PnEcQueueBatchEMAIL:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True 
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueBatchEMAIL.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
-
-  PnEcDLQueueBatchEMAIL:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
-
-  PnEcQueueInteractiveEMAIL:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueInteractiveEMAIL.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
-
-  PnEcDLQueueInteractiveEMAIL:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-email-interactive-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName  
 
   PnEcInteractiveEMAILQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues:
-        - !Ref PnEcQueueInteractiveEMAIL
+        - !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.QueueURL
       PolicyDocument:
         Version: '2012-10-17'
         Statement: 
           - Action: 
               - 'SQS:*'
             Effect: "Allow"
-            Resource: !GetAtt PnEcQueueInteractiveEMAIL.Arn
+            Resource: !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.QueueARN
             Principal:  
               AWS: '*'
-
-  PnEcQueueErroriEMAIL:
-    Type: AWS::SQS::Queue
+              
+  PnEcQueueErroriEMAILStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      DelaySeconds: 300
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueErroriEMAIL.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-email-errori-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        DelaySeconds: 300
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName 
 
-  PnEcDLQueueErroriEMAIL:
-    Type: AWS::SQS::Queue
+  ###### CHANNEL : CARTACEO #######
+  
+  PnEcQueueBatchCARTACEOStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
-
-
-###### CHANNEL CARTACEO #######
-
-  PnEcQueueBatchCARTACEO:
-    Type: AWS::SQS::Queue
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-cartaceo-batch-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+  
+  PnEcQueueErroriCARTACEOStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueBatchCARTACEO.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
-
-  PnEcDLQueueBatchCARTACEO:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
-
-  PnEcQueueErroriCARTACEO:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      DelaySeconds: 300
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1      
-      RedrivePolicy:
-        deadLetterTargetArn : !GetAtt PnEcDLQueueErroriCARTACEO.Arn
-        maxReceiveCount : 10
-      VisibilityTimeout: 30
-
-  PnEcDLQueueErroriCARTACEO:
-    Type: AWS::SQS::Queue
-    Properties:
-      SqsManagedSseEnabled: True
-      FifoQueue: True
-      ContentBasedDeduplication: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 1
-      VisibilityTimeout: 30
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-cartaceo-errori-queue'
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        DelaySeconds: 300
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName 
+      
+#########  OUTPUTS  ##########
 
 Outputs:
+
+  ######### EVENTBUS  ############
 
   PnEcEventBusNameTrackerExternalNotification:
     Description: 'Nome del Event Bus per le notifiche verso le piattaforme esterne'
@@ -803,6 +611,8 @@ Outputs:
   PnEcEventBusArnTrackerExternalNotification:
     Description: 'ARN del Event Bus per le notifiche verso le piattaforme esterne'
     Value: !GetAtt PnEcEventBusTrackerExternalNotification.Arn
+    
+  ######### TABLES  ############
 
   PnEcTableNameAnagrafica:
     Description: 'Nome della Tabella DynamoDB relativa ad Anagrafica Client'
@@ -827,403 +637,610 @@ Outputs:
   PnEcTableArnRichiesteMetadati:
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
     Value: !GetAtt PnEcTableRichiesteMetadati.Arn
+    
+  ######### QUEUES  ############
+  ######### TRACKER : SMS  ##########
 
   PnEcQueueNameTrackerStatoSMS:
     Description: '[Notification Tracker: canale SMS] Nome della Coda per aggiornamenti di stato afferenti al canale SMS'
-    Value: !GetAtt  PnEcQueueTrackerStatoSMS.QueueName
+    Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueName
 
   PnEcQueueArnTrackerStatoSMS:
     Description: '[Notification Tracker: canale SMS] ARN della Coda per aggiornamenti di stato afferenti al canale SMS'
-    Value: !GetAtt  PnEcQueueTrackerStatoSMS.Arn
+    Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueARN
 
   PnEcQueueUrlTrackerStatoSMS:
     Description: '[Notification Tracker: canale SMS] URL della Coda per aggiornamenti di stato afferenti al canale SMS'
-    Value: !Ref  PnEcQueueTrackerStatoSMS
+    Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueURL
 
   PnEcDLQueueNameTrackerStatoSMS:
     Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoSMS'
-    Value: !GetAtt  PnEcDLQueueTrackerStatoSMS.QueueName
+    Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnTrackerStatoSMS:
     Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoSMS'
-    Value: !GetAtt  PnEcDLQueueTrackerStatoSMS.Arn
+    Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.DeadLetterQueueARN
+
+  PnEcAlarmArnQueueTrackerStatoSMS:
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoSMS"
+    Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueTrackerStatoSMS:
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoSMS"
+    Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.SqsDLQAlarmArn
+
+  ######### TRACKER : ERRORI SMS  ##########
 
   PnEcQueueNameTrackerErroriSMS:
     Description: '[Notification Tracker: canale SMS] Nome della Coda Errori afferenti al canale SMS'
-    Value: !GetAtt  PnEcQueueTrackerErroriSMS.QueueName
+    Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.QueueName
 
   PnEcQueueArnTrackerErroriSMS:
     Description: '[Notification Tracker: canale SMS] ARN della Coda Errori afferenti al canale SMS'
-    Value: !GetAtt  PnEcQueueTrackerErroriSMS.Arn
+    Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.QueueARN
 
   PnEcQueueUrlTrackerErroriSMS:
     Description: '[Notification Tracker: canale SMS] URL della Coda Errori afferenti al canale SMS'
-    Value: !Ref  PnEcQueueTrackerErroriSMS
+    Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.QueueURL
 
   PnEcDLQueueNameTrackerErroriSMS:
     Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriSMS'
-    Value: !GetAtt  PnEcDLQueueTrackerErroriSMS.QueueName
+    Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnTrackerErroriSMS:
     Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriSMS'
-    Value: !GetAtt  PnEcDLQueueTrackerErroriSMS.Arn
+    Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueTrackerErroriSMS:
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriSMS"
+    Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueTrackerErroriSMS:
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriSMS"
+    Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.SqsDLQAlarmArn
+
+  ######### TRACKER : PEC  ##########
 
   PnEcQueueNameTrackerStatoPEC:
     Description: '[Notification Tracker: canale PEC] Nome della Coda per aggiornamenti di stato afferenti al canale PEC'
-    Value: !GetAtt  PnEcQueueTrackerStatoPEC.QueueName
+    Value: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.QueueName
 
   PnEcQueueArnTrackerStatoPEC:
     Description: '[Notification Tracker: canale PEC] ARN della Coda per aggiornamenti di stato afferenti al canale PEC'
-    Value: !GetAtt  PnEcQueueTrackerStatoPEC.Arn
+    Value: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.QueueARN
 
   PnEcQueueUrlTrackerStatoPEC:
     Description: '[Notification Tracker: canale PEC] URL della Coda per aggiornamenti di stato afferenti al canale PEC'
-    Value: !Ref  PnEcQueueTrackerStatoPEC
+    Value: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.QueueURL
 
   PnEcDLQueueNameTrackerStatoPEC:
     Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoPEC'
-    Value: !GetAtt  PnEcDLQueueTrackerStatoPEC.QueueName
+    Value: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnTrackerStatoPEC:
     Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoPEC'
-    Value: !GetAtt  PnEcDLQueueTrackerStatoPEC.Arn
+    Value: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.DeadLetterQueueARN
+  
+  PnEcAlarmArnQueueTrackerStatoPEC:
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoPEC"
+    Value: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueTrackerStatoPEC:
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoPEC"
+    Value: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.SqsDLQAlarmArn
+
+  ######### TRACKER : ERRORI PEC  ##########
 
   PnEcQueueNameTrackerErroriPEC:
     Description: '[Notification Tracker: canale PEC] Nome della Coda Errori afferenti al canale PEC'
-    Value: !GetAtt  PnEcQueueTrackerErroriPEC.QueueName
+    Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.QueueName
 
   PnEcQueueArnTrackerErroriPEC:
     Description: '[Notification Tracker: canale PEC] ARN della Coda Errori afferenti al canale PEC'
-    Value: !GetAtt  PnEcQueueTrackerErroriPEC.Arn
+    Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.QueueARN
 
   PnEcQueueUrlTrackerErroriPEC:
     Description: '[Notification Tracker: canale PEC] URL della Coda Errori afferenti al canale PEC'
-    Value: !Ref  PnEcQueueTrackerErroriPEC
+    Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.QueueURL
 
   PnEcDLQueueNameTrackerErroriPEC:
     Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriPEC'
-    Value: !GetAtt  PnEcDLQueueTrackerErroriPEC.QueueName
+    Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnTrackerErroriPEC:
     Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriPEC'
-    Value: !GetAtt  PnEcDLQueueTrackerErroriPEC.Arn
+    Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueTrackerErroriPEC:
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriPEC"
+    Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueTrackerErroriPEC:
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriPEC"
+    Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.SqsDLQAlarmArn
+
+  ######### TRACKER : EMAIL  ##########
 
   PnEcQueueNameTrackerStatoEMAIL:
     Description: '[Notification Tracker: canale EMAIL] Nome della Coda per aggiornamenti di stato afferenti al canale EMAIL'
-    Value: !GetAtt  PnEcQueueTrackerStatoEMAIL.QueueName
+    Value: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.QueueName
 
   PnEcQueueArnTrackerStatoEMAIL:
     Description: '[Notification Tracker: canale EMAIL] ARN della Coda per aggiornamenti di stato afferenti al canale EMAIL'
-    Value: !GetAtt  PnEcQueueTrackerStatoEMAIL.Arn
+    Value: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.QueueARN
 
   PnEcQueueUrlTrackerStatoEMAIL:
     Description: '[Notification Tracker: canale EMAIL] URL della Coda per aggiornamenti di stato afferenti al canale EMAIL'
-    Value: !Ref  PnEcQueueTrackerStatoEMAIL
+    Value: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.QueueURL
 
   PnEcDLQueueNameTrackerStatoEMAIL:
     Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoEMAIL'
-    Value: !GetAtt  PnEcDLQueueTrackerStatoEMAIL.QueueName
+    Value: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnTrackerStatoEMAIL:
     Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoEMAIL'
-    Value: !GetAtt  PnEcDLQueueTrackerStatoEMAIL.Arn
+    Value: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueTrackerStatoEMAIL:
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoEMAIL"
+    Value: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueTrackerStatoEMAIL:
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoEMAIL"
+    Value: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.SqsDLQAlarmArn
+
+  ######### TRACKER : ERRORI EMAIL  ##########
 
   PnEcQueueNameTrackerErroriEMAIL:
     Description: '[Notification Tracker: canale EMAIL] Nome della Coda Errori afferenti al canale EMAIL'
-    Value: !GetAtt  PnEcQueueTrackerErroriEMAIL.QueueName
+    Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.QueueName
 
   PnEcQueueArnTrackerErroriEMAIL:
     Description: '[Notification Tracker: canale EMAIL] ARN della Coda Errori afferenti al canale EMAIL'
-    Value: !GetAtt  PnEcQueueTrackerErroriEMAIL.Arn
+    Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.QueueARN
 
   PnEcQueueUrlTrackerErroriEMAIL:
     Description: '[Notification Tracker: canale EMAIL] URL della Coda Errori afferenti al canale EMAIL'
-    Value: !Ref  PnEcQueueTrackerErroriEMAIL
+    Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.QueueURL
 
   PnEcDLQueueNameTrackerErroriEMAIL:
     Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriEMAIL'
-    Value: !GetAtt  PnEcDLQueueTrackerErroriEMAIL.QueueName
+    Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnTrackerErroriEMAIL:
     Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriEMAIL'
-    Value: !GetAtt  PnEcDLQueueTrackerErroriEMAIL.Arn
+    Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueTrackerErroriEMAIL:
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriEMAIL"
+    Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueTrackerErroriEMAIL:
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriEMAIL"
+    Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.SqsDLQAlarmArn
+
+  ######### TRACKER : CARTACEO  ##########
 
   PnEcQueueNameTrackerStatoCARTACEO:
     Description: '[Notification Tracker: canale CARTACEO] Nome della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
-    Value: !GetAtt  PnEcQueueTrackerStatoCARTACEO.QueueName
+    Value: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.QueueName
 
   PnEcQueueArnTrackerStatoCARTACEO:
     Description: '[Notification Tracker: canale CARTACEO] ARN della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
-    Value: !GetAtt  PnEcQueueTrackerStatoCARTACEO.Arn
+    Value: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.QueueARN
 
   PnEcQueueUrlTrackerStatoCARTACEO:
     Description: '[Notification Tracker: canale CARTACEO] URL della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
-    Value: !Ref  PnEcQueueTrackerStatoCARTACEO
+    Value: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.QueueURL
 
   PnEcDLQueueNameTrackerStatoCARTACEO:
     Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoCARTACEO'
-    Value: !GetAtt  PnEcDLQueueTrackerStatoCARTACEO.QueueName
+    Value: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnTrackerStatoCARTACEO:
     Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoCARTACEO'
-    Value: !GetAtt  PnEcDLQueueTrackerStatoCARTACEO.Arn
+    Value: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueTrackerStatoCARTACEO:
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoCARTACEO"
+    Value: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueTrackerStatoCARTACEO:
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoCARTACEO"
+    Value: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.SqsDLQAlarmArn
+
+  ######### TRACKER : ERRORI CARTACEO  ##########
 
   PnEcQueueNameTrackerErroriCARTACEO:
     Description: '[Notification Tracker: canale CARTACEO] Nome della Coda Errori afferenti al canale CARTACEO'
-    Value: !GetAtt  PnEcQueueTrackerErroriCARTACEO.QueueName
+    Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.QueueName
 
   PnEcQueueArnTrackerErroriCARTACEO:
     Description: '[Notification Tracker: canale CARTACEO] ARN della Coda Errori afferenti al canale CARTACEO'
-    Value: !GetAtt  PnEcQueueTrackerErroriCARTACEO.Arn
+    Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.QueueARN
 
   PnEcQueueUrlTrackerErroriCARTACEO:
     Description: '[Notification Tracker: canale CARTACEO] URL della Coda Errori afferenti al canale CARTACEO'
-    Value: !Ref  PnEcQueueTrackerErroriCARTACEO
+    Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.QueueURL
 
   PnEcDLQueueNameTrackerErroriCARTACEO:
     Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriCARTACEO'
-    Value: !GetAtt  PnEcDLQueueTrackerErroriCARTACEO.QueueName
+    Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnTrackerErroriCARTACEO:
     Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriCARTACEO'
-    Value: !GetAtt  PnEcDLQueueTrackerErroriCARTACEO.Arn
+    Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueTrackerErroriCARTACEO:
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriCARTACEO"
+    Value: !GetAtt PnEcQueueTrackerErroriCARTACEOStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueTrackerErroriCARTACEO:
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriCARTACEO"
+    Value: !GetAtt PnEcQueueTrackerErroriCARTACEOStack.Outputs.SqsDLQAlarmArn
+
+  ######### TRACKER : EXTERNAL NOTIFICATION 1 ##########
 
   PnEcQueueNameNotificheExt1:
     Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] Nome della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
-    Value: !GetAtt  PnEcQueueNotificheExt1.QueueName
+    Value: !GetAtt  PnEcQueueNotificheExt1Stack.Outputs.QueueName
 
   PnEcQueueArnNotificheExt1:
     Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] ARN della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
-    Value: !GetAtt  PnEcQueueNotificheExt1.Arn
+    Value: !GetAtt  PnEcQueueNotificheExt1Stack.Outputs.QueueARN
 
   PnEcQueueUrlNotificheExt1:
     Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] URL della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
-    Value: !Ref  PnEcQueueNotificheExt1
+    Value: !GetAtt  PnEcQueueNotificheExt1Stack.Outputs.QueueURL
 
   PnEcDLQueueNameNotificheExt1:
     Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueNotificheExt1'
-    Value: !GetAtt  PnEcDLQueueNotificheExt1.QueueName
+    Value: !GetAtt  PnEcQueueNotificheExt1Stack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnNotificheExt1:
     Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueNotificheExt1'
-    Value: !GetAtt  PnEcDLQueueNotificheExt1.Arn
+    Value: !GetAtt  PnEcQueueNotificheExt1Stack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueNotificheExt1:
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueNotificheExt1"
+    Value: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueNotificheExt1:
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueNotificheExt1"
+    Value: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.SqsDLQAlarmArn
+    
+  ###### EVENT RULE #######
+    
+  PnEcEventRuleArnNotificheExt1:
+    Description: "[Event Rule - Tracker] ARN dell'evento relativo alla coda PnEcQueueNotificheExt1"
+    Value: !GetAtt PnEcEventRuleNotificheExt1.Arn
+    
+  ###### BATCH : SMS #######
 
   PnEcQueueNameBatchSMS:
     Description: '[Canale SMS] Nome della Coda per la modalità SMS-Batch'
-    Value: !GetAtt  PnEcQueueBatchSMS.QueueName
+    Value: !GetAtt  PnEcQueueBatchSMSStack.Outputs.QueueName
 
   PnEcQueueArnBatchSMS:
     Description: '[Canale SMS] ARN della Coda per la modalità SMS-Batch'
-    Value: !GetAtt  PnEcQueueBatchSMS.Arn
+    Value: !GetAtt  PnEcQueueBatchSMSStack.Outputs.QueueARN
 
   PnEcQueueUrlBatchSMS:
     Description: '[Canale SMS] URL della Coda per la modalità SMS-Batch'
-    Value: !Ref  PnEcQueueBatchSMS
+    Value: !GetAtt  PnEcQueueBatchSMSStack.Outputs.QueueURL
 
   PnEcDLQueueNameBatchSMS:
     Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchSMS'
-    Value: !GetAtt  PnEcDLQueueBatchSMS.QueueName
+    Value: !GetAtt  PnEcQueueBatchSMSStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnBatchSMS:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchSMS'
-    Value: !GetAtt  PnEcDLQueueBatchSMS.Arn
+    Value: !GetAtt  PnEcQueueBatchSMSStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueBatchSMS:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchSMS"
+    Value: !GetAtt PnEcQueueBatchSMSStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueBatchSMS:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchSMS"
+    Value: !GetAtt PnEcQueueBatchSMSStack.Outputs.SqsDLQAlarmArn
+    
+  ###### INTERACTIVE : SMS #######
 
   PnEcQueueNameInteractiveSMS:
     Description: '[Canale SMS] Nome della Coda per la modalità SMS-Interactive'
-    Value: !GetAtt  PnEcQueueInteractiveSMS.QueueName
+    Value: !GetAtt  PnEcQueueInteractiveSMSStack.Outputs.QueueName
 
   PnEcQueueArnInteractiveSMS:
     Description: '[Canale SMS] ARN della Coda per la modalità SMS-Interactive'
-    Value: !GetAtt  PnEcQueueInteractiveSMS.Arn
+    Value: !GetAtt  PnEcQueueInteractiveSMSStack.Outputs.QueueARN
 
   PnEcQueueUrlInteractiveSMS:
     Description: '[Canale SMS] URL della Coda per la modalità SMS-Interactive'
-    Value: !Ref  PnEcQueueInteractiveSMS
+    Value: !GetAtt  PnEcQueueInteractiveSMSStack.Outputs.QueueURL
 
   PnEcDLQueueNameInteractiveSMS:
     Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractiveSMS'
-    Value: !GetAtt  PnEcDLQueueInteractiveSMS.QueueName
+    Value: !GetAtt  PnEcQueueInteractiveSMSStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnInteractiveSMS:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueInteractiveSMS'
-    Value: !GetAtt  PnEcDLQueueInteractiveSMS.Arn
+    Value: !GetAtt  PnEcQueueInteractiveSMSStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueInteractiveSMS:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractiveSMS"
+    Value: !GetAtt PnEcQueueInteractiveSMSStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueInteractiveSMS:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractiveSMS"
+    Value: !GetAtt PnEcQueueInteractiveSMSStack.Outputs.SqsDLQAlarmArn
+    
+  ###### ERRORI : SMS #######
 
   PnEcQueueNameErroriSMS:
     Description: '[Canale SMS] Nome della Coda Errori SMS'
-    Value: !GetAtt  PnEcQueueErroriSMS.QueueName
+    Value: !GetAtt  PnEcQueueErroriSMSStack.Outputs.QueueName
 
   PnEcQueueArnErroriSMS:
     Description: '[Canale SMS] ARN della Coda Errori SMS'
-    Value: !GetAtt  PnEcQueueErroriSMS.Arn
+    Value: !GetAtt  PnEcQueueErroriSMSStack.Outputs.QueueARN
 
   PnEcQueueUrlErroriSMS:
     Description: '[Canale SMS] URL della Coda Errori SMS'
-    Value: !Ref  PnEcQueueErroriSMS
+    Value: !GetAtt  PnEcQueueErroriSMSStack.Outputs.QueueURL
 
   PnEcDLQueueNameErroriSMS:
     Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriSMS'
-    Value: !GetAtt  PnEcDLQueueErroriSMS.QueueName
+    Value: !GetAtt  PnEcQueueErroriSMSStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnErroriSMS:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriSMS'
-    Value: !GetAtt  PnEcDLQueueErroriSMS.Arn
+    Value: !GetAtt  PnEcQueueErroriSMSStack.Outputs.DeadLetterQueueARN
+  
+  PnEcAlarmArnQueueErroriSMS:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriSMS"
+    Value: !GetAtt PnEcQueueErroriSMSStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueErroriSMS:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriSMS"
+    Value: !GetAtt PnEcQueueErroriSMSStack.Outputs.SqsDLQAlarmArn
+    
+  ###### BATCH : PEC #######
 
   PnEcQueueNameBatchPEC:
     Description: '[Canale PEC] Nome della Coda per la modalità PEC-Batch'
-    Value: !GetAtt  PnEcQueueBatchPEC.QueueName
+    Value: !GetAtt  PnEcQueueBatchPECStack.Outputs.QueueName
 
   PnEcQueueArnBatchPEC:
     Description: '[Canale PEC] ARN della Coda per la modalità PEC-Batch'
-    Value: !GetAtt  PnEcQueueBatchPEC.Arn
+    Value: !GetAtt  PnEcQueueBatchPECStack.Outputs.QueueARN
 
   PnEcQueueUrlBatchPEC:
     Description: '[Canale PEC] URL della Coda per la modalità PEC-Batch'
-    Value: !Ref  PnEcQueueBatchPEC
+    Value: !GetAtt  PnEcQueueBatchPECStack.Outputs.QueueURL
 
   PnEcDLQueueNameBatchPEC:
     Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchPEC'
-    Value: !GetAtt  PnEcDLQueueBatchPEC.QueueName
+    Value: !GetAtt  PnEcQueueBatchPECStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnBatchPEC:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchPEC'
-    Value: !GetAtt  PnEcDLQueueBatchPEC.Arn
+    Value: !GetAtt  PnEcQueueBatchPECStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueBatchPEC:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchPEC"
+    Value: !GetAtt PnEcQueueBatchPECStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueBatchPEC:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchPEC"
+    Value: !GetAtt PnEcQueueBatchPECStack.Outputs.SqsDLQAlarmArn
+    
+  ###### INTERACTIVE : PEC #######
 
   PnEcQueueNameInteractivePEC:
     Description: '[Canale PEC] Nome della Coda per la modalità PEC-Interactive'
-    Value: !GetAtt  PnEcQueueInteractivePEC.QueueName
+    Value: !GetAtt  PnEcQueueInteractivePECStack.Outputs.QueueName
 
   PnEcQueueArnInteractivePEC:
     Description: '[Canale PEC] ARN della Coda per la modalità PEC-Interactive'
-    Value: !GetAtt  PnEcQueueInteractivePEC.Arn
+    Value: !GetAtt  PnEcQueueInteractivePECStack.Outputs.QueueARN
 
   PnEcQueueUrlInteractivePEC:
     Description: '[Canale PEC] URL della Coda per la modalità PEC-Interactive'
-    Value: !Ref  PnEcQueueInteractivePEC
+    Value: !GetAtt  PnEcQueueInteractivePECStack.Outputs.QueueURL
 
   PnEcDLQueueNameInteractivePEC:
     Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractivePEC'
-    Value: !GetAtt  PnEcDLQueueInteractivePEC.QueueName
+    Value: !GetAtt  PnEcQueueInteractivePECStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnInteractivePEC:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueInteractivePEC'
-    Value: !GetAtt  PnEcDLQueueInteractivePEC.Arn
+    Value: !GetAtt  PnEcQueueInteractivePECStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueInteractivePEC:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractivePEC"
+    Value: !GetAtt PnEcQueueInteractivePECStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueInteractivePEC:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractivePEC"
+    Value: !GetAtt PnEcQueueInteractivePECStack.Outputs.SqsDLQAlarmArn
+    
+  ###### ERRORI : PEC #######
 
   PnEcQueueNameErroriPEC:
     Description: '[Canale PEC] Nome della Coda Errori PEC'
-    Value: !GetAtt  PnEcQueueErroriPEC.QueueName
+    Value: !GetAtt  PnEcQueueErroriPECStack.Outputs.QueueName
 
   PnEcQueueArnErroriPEC:
     Description: '[Canale PEC] ARN della Coda Errori PEC'
-    Value: !GetAtt  PnEcQueueErroriPEC.Arn
+    Value: !GetAtt  PnEcQueueErroriPECStack.Outputs.QueueARN
 
   PnEcQueueUrlErroriPEC:
     Description: '[Canale PEC] URL della Coda Errori PEC'
-    Value: !Ref  PnEcQueueErroriPEC
+    Value: !GetAtt  PnEcQueueErroriPECStack.Outputs.QueueURL
 
   PnEcDLQueueNameErroriPEC:
     Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriPEC'
-    Value: !GetAtt  PnEcDLQueueErroriPEC.QueueName
+    Value: !GetAtt  PnEcQueueErroriPECStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnErroriPEC:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriPEC'
-    Value: !GetAtt  PnEcDLQueueErroriPEC.Arn
+    Value: !GetAtt  PnEcQueueErroriPECStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueErroriPEC:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriPEC"
+    Value: !GetAtt PnEcQueueErroriPECStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueErroriPEC:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriPEC"
+    Value: !GetAtt PnEcQueueErroriPECStack.Outputs.SqsDLQAlarmArn
+    
+  ###### BATCH : EMAIL #######
 
   PnEcQueueNameBatchEMAIL:
     Description: '[Canale EMAIL] Nome della Coda per la modalità EMAIL-Batch'
-    Value: !GetAtt  PnEcQueueBatchEMAIL.QueueName
+    Value: !GetAtt  PnEcQueueBatchEMAILStack.Outputs.QueueName
 
   PnEcQueueArnBatchEMAIL:
     Description: '[Canale EMAIL] ARN della Coda per la modalità EMAIL-Batch'
-    Value: !GetAtt  PnEcQueueBatchEMAIL.Arn
+    Value: !GetAtt  PnEcQueueBatchEMAILStack.Outputs.QueueARN
 
   PnEcQueueUrlBatchEMAIL:
     Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Batch'
-    Value: !Ref  PnEcQueueBatchEMAIL
+    Value: !GetAtt  PnEcQueueBatchEMAILStack.Outputs.QueueURL
 
   PnEcDLQueueNameBatchEMAIL:
     Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchEMAIL'
-    Value: !GetAtt  PnEcDLQueueBatchEMAIL.QueueName
+    Value: !GetAtt  PnEcQueueBatchEMAILStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnBatchEMAIL:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchEMAIL'
-    Value: !GetAtt  PnEcDLQueueBatchEMAIL.Arn
+    Value: !GetAtt  PnEcQueueBatchEMAILStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueBatchEMAIL:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchEMAIL"
+    Value: !GetAtt PnEcQueueBatchEMAILStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueBatchEMAIL:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchEMAIL"
+    Value: !GetAtt PnEcQueueBatchEMAILStack.Outputs.SqsDLQAlarmArn
+    
+  ###### INTERACTIVE : EMAIL #######
 
   PnEcQueueNameInteractiveEMAIL:
     Description: '[Canale EMAIL] Nome della Coda per la modalità EMAIL-Interactive'
-    Value: !GetAtt  PnEcQueueInteractiveEMAIL.QueueName
+    Value: !GetAtt  PnEcQueueInteractiveEMAILStack.Outputs.QueueName
 
   PnEcQueueArnInteractiveEMAIL:
     Description: '[Canale EMAIL] ARN della Coda per la modalità EMAIL-Interactive'
-    Value: !GetAtt  PnEcQueueInteractiveEMAIL.Arn
+    Value: !GetAtt  PnEcQueueInteractiveEMAILStack.Outputs.QueueARN
 
   PnEcQueueUrlInteractiveEMAIL:
     Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Interactive'
-    Value: !Ref  PnEcQueueInteractiveEMAIL
+    Value: !GetAtt  PnEcQueueInteractiveEMAILStack.Outputs.QueueURL
 
   PnEcDLQueueNameInteractiveEMAIL:
     Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractiveEMAIL'
-    Value: !GetAtt  PnEcDLQueueInteractiveEMAIL.QueueName
+    Value: !GetAtt  PnEcQueueInteractiveEMAILStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnInteractiveEMAIL:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueInteractiveEMAIL'
-    Value: !GetAtt  PnEcDLQueueInteractiveEMAIL.Arn
+    Value: !GetAtt  PnEcQueueInteractiveEMAILStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueInteractiveEMAIL:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractiveEMAIL"
+    Value: !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueInteractiveEMAIL:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractiveEMAIL"
+    Value: !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.SqsDLQAlarmArn
+    
+  ###### ERRORI : EMAIL #######
 
   PnEcQueueNameErroriEMAIL:
     Description: '[Canale EMAIL] Nome della Coda Errori EMAIL'
-    Value: !GetAtt  PnEcQueueErroriEMAIL.QueueName
+    Value: !GetAtt  PnEcQueueErroriEMAILStack.Outputs.QueueName
 
   PnEcQueueArnErroriEMAIL:
     Description: '[Canale EMAIL] ARN della Coda Errori EMAIL'
-    Value: !GetAtt  PnEcQueueErroriEMAIL.Arn
+    Value: !GetAtt  PnEcQueueErroriEMAILStack.Outputs.QueueARN
 
   PnEcQueueUrlErroriEMAIL:
     Description: '[Canale EMAIL] URL della Coda Errori EMAIL'
-    Value: !Ref  PnEcQueueErroriEMAIL
+    Value: !GetAtt  PnEcQueueErroriEMAILStack.Outputs.QueueURL
 
   PnEcDLQueueNameErroriEMAIL:
     Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriEMAIL'
-    Value: !GetAtt  PnEcDLQueueErroriEMAIL.QueueName
+    Value: !GetAtt  PnEcQueueErroriEMAILStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnErroriEMAIL:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriEMAIL'
-    Value: !GetAtt  PnEcDLQueueErroriEMAIL.Arn
+    Value: !GetAtt  PnEcQueueErroriEMAILStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueErroriEMAIL:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriEMAIL"
+    Value: !GetAtt PnEcQueueErroriEMAILStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueErroriEMAIL:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriEMAIL"
+    Value: !GetAtt PnEcQueueErroriEMAILStack.Outputs.SqsDLQAlarmArn
+    
+  ###### BATCH : CARTACEO #######
 
   PnEcQueueNameBatchCARTACEO:
     Description: '[Canale CARTACEO] Nome della Coda per la modalità CARTACEO-Batch'
-    Value: !GetAtt  PnEcQueueBatchCARTACEO.QueueName
+    Value: !GetAtt  PnEcQueueBatchCARTACEOStack.Outputs.QueueName
 
   PnEcQueueArnBatchCARTACEO:
     Description: '[Canale CARTACEO] ARN della Coda per la modalità CARTACEO-Batch'
-    Value: !GetAtt  PnEcQueueBatchCARTACEO.Arn
+    Value: !GetAtt  PnEcQueueBatchCARTACEOStack.Outputs.QueueARN
 
   PnEcQueueUrlBatchCARTACEO:
     Description: '[Canale CARTACEO] URL della Coda per la modalità CARTACEO-Batch'
-    Value: !Ref  PnEcQueueBatchCARTACEO
+    Value: !GetAtt  PnEcQueueBatchCARTACEOStack.Outputs.QueueURL
 
   PnEcDLQueueNameBatchCARTACEO:
     Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchCARTACEO'
-    Value: !GetAtt  PnEcDLQueueBatchCARTACEO.QueueName
+    Value: !GetAtt  PnEcQueueBatchCARTACEOStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnBatchCARTACEO:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchCARTACEO'
-    Value: !GetAtt  PnEcDLQueueBatchCARTACEO.Arn
+    Value: !GetAtt  PnEcQueueBatchCARTACEOStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueBatchCARTACEO:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchCARTACEO"
+    Value: !GetAtt PnEcQueueBatchCARTACEOStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueBatchCARTACEO:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchCARTACEO"
+    Value: !GetAtt PnEcQueueBatchCARTACEOStack.Outputs.SqsDLQAlarmArn
+    
+  ###### ERRORI : CARTACEO #######
 
   PnEcQueueNameErroriCARTACEO:
     Description: '[Canale CARTACEO] Nome della Coda Errori CARTACEO'
-    Value: !GetAtt  PnEcQueueErroriCARTACEO.QueueName
+    Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.QueueName
 
   PnEcQueueArnErroriCARTACEO:
     Description: '[Canale CARTACEO] ARN della Coda Errori CARTACEO'
-    Value: !GetAtt  PnEcQueueErroriCARTACEO.Arn
+    Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.QueueARN
 
   PnEcQueueUrlErroriCARTACEO:
     Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
-    Value: !Ref  PnEcQueueErroriCARTACEO
+    Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.QueueURL
 
   PnEcDLQueueNameErroriCARTACEO:
     Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriCARTACEO'
-    Value: !GetAtt  PnEcDLQueueErroriCARTACEO.QueueName
+    Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.DeadLetterQueueName
 
   PnEcDLQueueArnErroriCARTACEO:
     Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriCARTACEO'
-    Value: !GetAtt  PnEcDLQueueErroriCARTACEO.Arn
+    Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.DeadLetterQueueARN
+    
+  PnEcAlarmArnQueueErroriCARTACEO:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriCARTACEO"
+    Value: !GetAtt PnEcQueueErroriCARTACEOStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueErroriCARTACEO:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriCARTACEO"
+    Value: !GetAtt PnEcQueueErroriCARTACEOStack.Outputs.SqsDLQAlarmArn
