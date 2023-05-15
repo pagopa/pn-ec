@@ -44,13 +44,17 @@ public class PushAttachmentsPreloadTest {
     private static final String DOC_TYPE = "PN_EXTERNAL_LEGAL_FACTS";
 
     private static final String CLIENT_ID = "CLIENT_ID";
+    private static final String FILE_KEY = "PN_NOTIFICATION_ATTACHMENTS-1a1f2a2430a4494e96d39081c132d21c";
     private static final String X_API_KEY = "X_API_KEY";
     private static final String X_CHECKSUM_VALUE = "dffe706eb6fd101590f88f4f02e07f6bb6940c7a3998ff6";
 
     private static final String URI = "/consolidatore-ingress/v1/attachment-preload";
+    private static final String URI_GET = "/consolidatore-ingress/v1/get-attachment/"+FILE_KEY;
 
     private static final PreLoadRequest preLoadRequest = new PreLoadRequest();
     private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
+    private static final ClientConfigurationInternalDto clientConfigurationInternalDtoWithWrongApiKey = new ClientConfigurationInternalDto();
+
 
     @BeforeAll
     public static void buildPreLoadRequest() {
@@ -62,7 +66,11 @@ public class PushAttachmentsPreloadTest {
     public static void buildClientConfigurationInternalDto() {
         clientConfigurationInternalDto.setApiKey(X_API_KEY);
         clientConfigurationInternalDto.setxPagopaExtchCxId(CLIENT_ID);
-
+    }
+    @BeforeAll
+    public static void buildClientConfigurationInternalDtoWithWrongApiKey() {
+        clientConfigurationInternalDtoWithWrongApiKey.setApiKey("TEST");
+        clientConfigurationInternalDtoWithWrongApiKey.setxPagopaExtchCxId(CLIENT_ID);
     }
 
 
@@ -78,6 +86,16 @@ public class PushAttachmentsPreloadTest {
                 .exchange();
     }
 
+    private WebTestClient.ResponseSpec getFileTestCall() {
+
+        return this.webTestClient.get()
+                .uri(uriBuilder -> uriBuilder.path(URI_GET).build())
+                .header(consolidatoreEndpointProperties.clientHeaderName(), CLIENT_ID)
+                .header(consolidatoreEndpointProperties.apiKeyHeaderName(), X_API_KEY)
+                .accept(APPLICATION_JSON)
+                .exchange();
+    }
+
     @Test
     void pushAttachmentsOk() {
         when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
@@ -89,6 +107,19 @@ public class PushAttachmentsPreloadTest {
         pushAttachmentsPreloadTestCall(BodyInserters.fromValue(preLoadRequestSchema))
                 .expectStatus()
                 .isOk();
+    }
+
+    @Test
+    void pushAttachmentsInvalidApiKey() {
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDtoWithWrongApiKey));
+        when(fileCall.postFile(eq(CLIENT_ID), eq(X_API_KEY), eq(X_CHECKSUM_VALUE), anyString(), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
+
+        PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
+        preLoadRequestSchema.getPreloads().add(preLoadRequest);
+
+        pushAttachmentsPreloadTestCall(BodyInserters.fromValue(preLoadRequestSchema))
+                .expectStatus()
+                .is5xxServerError();
     }
 
     @Test
@@ -133,6 +164,20 @@ public class PushAttachmentsPreloadTest {
         pushAttachmentsPreloadTestCall(BodyInserters.fromValue(preLoadRequestSchema))
                 .expectStatus()
                 .isBadRequest();
+    }
+
+    @Test
+    void getFileOk(){
+        when(fileCall.getFile(eq (FILE_KEY), eq(CLIENT_ID), eq(X_API_KEY), anyString())).thenReturn(Mono.just(new FileDownloadResponse()));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+        getFileTestCall().expectStatus().isOk();
+    }
+
+    @Test
+    void getFileInvalidApiKey(){
+        when(fileCall.getFile(eq (FILE_KEY), eq(CLIENT_ID), eq(X_API_KEY), anyString())).thenReturn(Mono.just(new FileDownloadResponse()));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDtoWithWrongApiKey));
+        getFileTestCall().expectStatus().is5xxServerError();
     }
 
 }
