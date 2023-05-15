@@ -21,7 +21,7 @@ public class ClientConfigurationInternal extends DocumentVersion {
     String sqsName;
     String pecReplyTo;
     String mailReplyTo;
-    String xApiKey;
+    String apiKey;
     SenderPhysicalAddress senderPhysicalAddress;
 }
 
