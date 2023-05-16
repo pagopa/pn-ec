@@ -55,6 +55,8 @@ public class FileCallImpl implements FileCall {
                                         xPagopaExtchCxId))))
                 .onStatus(NOT_FOUND::equals,
                         clientResponse -> Mono.error(new AttachmentNotAvailableException(fileKey)))
+                .onStatus(status-> status.equals(HttpStatus.GONE),
+                        clientResponse -> Mono.error(new Generic400ErrorException(GET_FILE_ERROR_TITLE, "Resource is no longer available. It may have been removed or deleted.")))
                 .bodyToMono(FileDownloadResponse.class);
     }
 
@@ -69,6 +71,8 @@ public class FileCallImpl implements FileCall {
                 .header(safeStorageEndpointProperties.traceIdHeaderName(), xTraceId)
                 .retrieve()
                 .onStatus(HttpStatus.FORBIDDEN::equals, clientResponse -> Mono.error(new ClientNotAuthorizedOrFoundException(xPagopaExtchServiceId)))
+                .onStatus(status-> status.equals(HttpStatus.GONE),
+                        clientResponse -> Mono.error(new Generic400ErrorException(GET_FILE_ERROR_TITLE, "Resource is no longer available. It may have been removed or deleted.")))
                 .bodyToMono(FileDownloadResponse.class);
     }
 
