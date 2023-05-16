@@ -6,10 +6,17 @@ import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 
 @SpringBootTestWebEnv
 class ScaricamentoEsitiPecSchedulerTest {
@@ -31,9 +38,27 @@ class ScaricamentoEsitiPecSchedulerTest {
 
     @Autowired
     private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    @Autowired
+    private ScaricamentoEsitiPecScheduler scaricamentoEsitiPecScheduler;
 
     @Test
     void scaricamentoEsitiPecOk() {
 
+    }
+
+    @Test
+    void generateLocationOk() {
+        RequestDto requestDto = new RequestDto().requestIdx("REQUEST_IDX").xPagopaExtchCxId("pn-external-channels");
+
+        File file = new File("src/test/resources/prova.xml");
+        byte[] fileBytes;
+        Mono<String> fileKeyMono;
+        try {
+            fileBytes = Files.readAllBytes(file.toPath());
+            fileKeyMono=scaricamentoEsitiPecScheduler.generateLocation("REQUEST_IDX","pn-external-channels", fileBytes);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        StepVerifier.create(fileKeyMono).expectNextCount(1).verifyComplete();
     }
 }
