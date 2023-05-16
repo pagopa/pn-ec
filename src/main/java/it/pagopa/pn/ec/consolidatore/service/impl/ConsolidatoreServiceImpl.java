@@ -12,9 +12,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.nio.file.AccessDeniedException;
 import java.util.function.Function;
 
 @Service
@@ -36,7 +40,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
         return authService.clientAuth(xPagopaExtchServiceId)
                 .flatMap(clientConfiguration -> {
                     if (!clientConfiguration.getApiKey().equals(xApiKey)) {
-                        return Mono.error(new IllegalArgumentException("Invalid API key"));
+                        return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid API key"));
                     }
                     return Mono.just(clientConfiguration);
                 })
@@ -91,7 +95,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
         return authService.clientAuth(xPagopaExtchServiceId)
                 .flatMap(clientConfiguration -> {
                     if (!clientConfiguration.getApiKey().equals(xApiKey)) {
-                        return Mono.error(new IllegalArgumentException("Invalid API key"));
+                        return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid API key"));
                     }
                     return Mono.just(clientConfiguration);
                 })

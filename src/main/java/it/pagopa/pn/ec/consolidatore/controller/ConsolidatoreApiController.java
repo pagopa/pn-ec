@@ -11,8 +11,10 @@ import java.util.List;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import it.pagopa.pn.ec.consolidatore.service.impl.ConsolidatoreServiceImpl;
 import it.pagopa.pn.ec.consolidatore.service.RicezioneEsitiCartaceoService;
@@ -94,7 +96,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
         return authService.clientAuth(xPagopaExtchServiceId)
                 .flatMap(clientConfiguration -> {
                     if (!clientConfiguration.getApiKey().equals(xApiKey)) {
-                        return Mono.error(new IllegalArgumentException("Invalid API key"));
+                        return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid API key"));
                     }
                     return Mono.just(clientConfiguration);
                 })

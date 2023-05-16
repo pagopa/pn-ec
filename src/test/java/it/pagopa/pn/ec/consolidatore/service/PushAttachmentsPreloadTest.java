@@ -119,7 +119,7 @@ public class PushAttachmentsPreloadTest {
 
         pushAttachmentsPreloadTestCall(BodyInserters.fromValue(preLoadRequestSchema))
                 .expectStatus()
-                .is5xxServerError();
+                .is4xxClientError();
     }
 
     @Test
@@ -177,7 +177,7 @@ public class PushAttachmentsPreloadTest {
     void getFileInvalidApiKey(){
         when(fileCall.getFile(eq (FILE_KEY), eq(CLIENT_ID), eq(X_API_KEY), anyString())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDtoWithWrongApiKey));
-        getFileTestCall().expectStatus().is5xxServerError();
+        getFileTestCall().expectStatus().is4xxClientError();
     }
 
 }
