@@ -96,7 +96,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         digitalCourtesyMailRequest.channel(EMAIL);
         digitalCourtesyMailRequest.setSubjectText("Test");
         digitalCourtesyMailRequest.setMessageContentType(PLAIN);
-        digitalCourtesyMailRequest.setAttachmentsUrls(defaultListAttachmentUrls);
+        digitalCourtesyMailRequest.setAttachmentUrls(defaultListAttachmentUrls);
     }
 
     private WebTestClient.ResponseSpec sendEmailTestCall(BodyInserter<DigitalCourtesyMailRequest, ReactiveHttpOutputMessage> bodyInserter

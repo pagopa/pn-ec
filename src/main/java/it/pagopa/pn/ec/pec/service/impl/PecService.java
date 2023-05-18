@@ -97,7 +97,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         digitalNotificationRequest.setRequestId(requestIdx);
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest()
-                                                                                       .getAttachmentsUrls(), xPagopaExtchCxId, true)
+                                                                                       .getAttachmentUrls(), xPagopaExtchCxId, true)
 
                                 .flatMap(fileDownloadResponse -> insertRequestFromPec(digitalNotificationRequest, xPagopaExtchCxId))
 
@@ -139,7 +139,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
             digitalRequestPersonalDto.setMessageText(digitalNotificationRequest.getMessageText());
             digitalRequestPersonalDto.setSenderDigitalAddress(digitalNotificationRequest.getSenderDigitalAddress());
             digitalRequestPersonalDto.setSubjectText(digitalNotificationRequest.getSubjectText());
-            digitalRequestPersonalDto.setAttachmentsUrls(digitalNotificationRequest.getAttachmentsUrls());
+            digitalRequestPersonalDto.setAttachmentsUrls(digitalNotificationRequest.getAttachmentUrls());
             requestPersonalDto.setDigitalRequestPersonal(digitalRequestPersonalDto);
 
             var requestMetadataDto = new RequestMetadataDto();
@@ -187,7 +187,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
 
 //      Get attachment presigned url Flux
-        return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalNotificationRequest.getAttachmentsUrls(), xPagopaExtchCxId, false)
+        return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalNotificationRequest.getAttachmentUrls(), xPagopaExtchCxId, false)
                                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
                                 .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
@@ -400,7 +400,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                                              log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
                                                              //Get attachment presigned url Flux
                                                              return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest()
-                                                                                                                                            .getAttachmentsUrls(),
+                                                                                                                                            .getAttachmentUrls(),
                                                                                                                         xPagopaExtchCxId,
                                                                                                                         false)
                                                                                      .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)

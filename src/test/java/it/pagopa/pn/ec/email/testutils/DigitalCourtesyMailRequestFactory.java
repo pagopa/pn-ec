@@ -60,7 +60,7 @@ public class DigitalCourtesyMailRequestFactory {
 		for (int idx = 0; idx < attachNum; idx++) {
 			attachList.add("safestorage://PN_EXTERNAL_LEGAL_FACTS-14d277f9beb4c8a9da322092c350d51");
 		}
-		digitalCourtesyMailRequestFactory.setAttachmentsUrls(attachList);
+		digitalCourtesyMailRequestFactory.setAttachmentUrls(attachList);
 
 		return digitalCourtesyMailRequestFactory;
 	}
