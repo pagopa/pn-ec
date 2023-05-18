@@ -17,6 +17,7 @@ import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.*;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
+import it.pagopa.pn.ec.email.configurationproperties.EmailDefault;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -59,6 +60,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     private final AttachmentServiceImpl attachmentService;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final EmailSqsQueueName emailSqsQueueName;
+    private final EmailDefault emailDefault;
     private final DownloadCall downloadCall;
 
     private String idSaved;
@@ -68,7 +70,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
                            SesService sesService, AttachmentServiceImpl attachmentService,
                            NotificationTrackerSqsName notificationTrackerSqsName, EmailSqsQueueName emailSqsQueueName,
-                           DownloadCall downloadCall) {
+                           DownloadCall downloadCall, EmailDefault emailDefault) {
         super(authService);
         this.sqsService = sqsService;
         this.sesService = sesService;
@@ -76,6 +78,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         this.attachmentService = attachmentService;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.emailSqsQueueName = emailSqsQueueName;
+        this.emailDefault = emailDefault;
         this.downloadCall = downloadCall;
     }
 
@@ -86,13 +89,17 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
+        var senderAddress= digitalNotificationRequest.getSenderDigitalAddress();
+        if(Objects.isNull(senderAddress) || senderAddress.isEmpty()) {
+            digitalNotificationRequest.setSenderDigitalAddress(emailDefault.defaultSenderAddress());
+        }
 
         log.info("<-- START PRESA IN CARICO EMAIL --> Request ID: {}, Client ID: {}", requestIdx, xPagopaExtchCxId);
 
         digitalNotificationRequest.setRequestId(requestIdx);
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest()
-                                                                                         .getAttachmentsUrls(), xPagopaExtchCxId, true)
+                                                                                         .getAttachmentUrls(), xPagopaExtchCxId, true)
 
                                 .flatMap(fileDownloadResponse -> insertRequestFromEmail(digitalNotificationRequest,
                                                                                         emailPresaInCaricoInfo.getXPagopaExtchCxId()))
@@ -139,7 +146,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             digitalRequestPersonalDto.setMessageText(digitalCourtesyMailRequest.getMessageText());
             digitalRequestPersonalDto.setSenderDigitalAddress(digitalCourtesyMailRequest.getSenderDigitalAddress());
             digitalRequestPersonalDto.setSubjectText(digitalCourtesyMailRequest.getSubjectText());
-            digitalRequestPersonalDto.setAttachmentsUrls(digitalCourtesyMailRequest.getAttachmentsUrls());
+            digitalRequestPersonalDto.setAttachmentsUrls(digitalCourtesyMailRequest.getAttachmentUrls());
             requestPersonalDto.setDigitalRequestPersonal(digitalRequestPersonalDto);
 
             var requestMetadataDto = new RequestMetadataDto();
@@ -190,7 +197,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
         // Try to send EMAIL
-        return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), requestId, false)
+        return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentUrls(), requestId, false)
                                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
                                 .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
@@ -283,7 +290,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                  emailPresaInCaricoInfo.getXPagopaExtchCxId());
         logIncomingMessage(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-        if (!digitalCourtesyMailRequest.getAttachmentsUrls().isEmpty()) {
+        if (!digitalCourtesyMailRequest.getAttachmentUrls().isEmpty()) {
             return processWithAttachRetry(emailPresaInCaricoInfo, message);
         } else {
             return processOnlyBodyRerty(emailPresaInCaricoInfo, message);
@@ -399,7 +406,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                              } else {
                                                                  //                gestisco il caso retry a partire dalla gestione
                                                                  //                allegati e invio a ses
-                                                                 return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(),
+                                                                 return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentUrls(),
                                                                                                                             emailPresaInCaricoInfo.getXPagopaExtchCxId(),
                                                                                                                             false)
 

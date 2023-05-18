@@ -39,6 +39,10 @@ Parameters:
     Type: String
     Description: 'subnets ids comma separated list. Where to deploy the microservice'
 
+  VpcEgressSubnetsIds:
+    Type: String
+    Description: subnets where to install PN-CONFINFO
+
   VpcId:
     Type: String
     Description: 'VpcId where the microservice is going to be deployed'
@@ -471,6 +475,10 @@ Parameters:
     Description: 'Base URL per accesso ai servizi del consolidatore'
     Type: String
     
+  PnEcEmailDefaultSender:
+    Description: 'Default sender email address'
+    Type: String
+    
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
 
@@ -514,13 +522,14 @@ Resources:
         ContainerEnvEntry25: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
         ContainerEnvEntry30: 'SafeStorageClientId=pn-external-channels'
         ContainerEnvEntry31: 'SafeStorageClientApiKey=pn-external-channels_api_key'
+        ContainerEnvEntry32: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
         ContainerEnvEntry35: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry36: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry37: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry38: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
         ECSClusterName: !Ref ECSClusterName
-        Subnets: !Ref SubnetsIds
+        Subnets: !Ref VpcEgressSubnetsIds
         VpcId: !Ref VpcId
         EcsDefaultSecurityGroup: !Ref EcsDefaultSecurityGroup
         LoadBalancerListenerArn: !Ref ApplicationLoadBalancerListenerArn

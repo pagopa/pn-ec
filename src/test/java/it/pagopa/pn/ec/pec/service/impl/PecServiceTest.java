@@ -100,7 +100,7 @@ class PecServiceTest {
         digitalNotificationRequest.channel(PEC);
         digitalNotificationRequest.setSubjectText("prova testo");
         digitalNotificationRequest.setMessageContentType(PLAIN);
-        digitalNotificationRequest.setAttachmentsUrls(defaultListAttachmentUrls);
+        digitalNotificationRequest.setAttachmentUrls(defaultListAttachmentUrls);
         return digitalNotificationRequest;
     }
     private static final PecPresaInCaricoInfo PEC_PRESA_IN_CARICO_INFO = PecPresaInCaricoInfo.builder()

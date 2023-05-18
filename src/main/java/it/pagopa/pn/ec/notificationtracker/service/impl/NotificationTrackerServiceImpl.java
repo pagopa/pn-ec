@@ -14,7 +14,9 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import software.amazon.ion.Timestamp;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -92,49 +94,64 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                     .filter(objects -> objects.getT1().getLogicStatus() != null)
                                     .flatMap(objects -> {
 
-                                        var lastEventIndex = objects.getT2().getRequestMetadata().getEventsList().size() - 1;
+                                        var macchinaStatiDecodeResponseDto=objects.getT1();
+                                        var requestDto=objects.getT2();
+                                        var lastEventIndex = requestDto.getRequestMetadata().getEventsList().size() - 1;
+
+                                        SingleStatusUpdate singleStatusUpdate = new SingleStatusUpdate();
 
                                         if (notificationTrackerQueueDto.getDigitalProgressStatusDto() != null) {
 
-                                            var digitalMessageProgressEvent = new BaseMessageProgressEvent();
-                                            digitalMessageProgressEvent.setRequestId(objects.getT2().getRequestIdx());
-                                            var lastEventUpdatedDigital = objects.getT2()
-                                                                                 .getRequestMetadata()
-                                                                                 .getEventsList()
-                                                                                 .get(lastEventIndex)
-                                                                                 .getDigProgrStatus();
-                                            digitalMessageProgressEvent.setEventTimestamp(lastEventUpdatedDigital.getEventTimestamp());
-                                            var status = Enum.valueOf(ProgressEventCategory.class, objects.getT1().getExternalStatus());
-                                            digitalMessageProgressEvent.setStatus(status);
-                                            digitalMessageProgressEvent.setEventCode(objects.getT1().getLogicStatus());
-                                            digitalMessageProgressEvent.setEventDetails(lastEventUpdatedDigital.getEventDetails());
+                                            var lastEventUpdatedDigital = requestDto.getRequestMetadata().getEventsList().get(lastEventIndex).getDigProgrStatus();
 
-                                            var generatedMessage = lastEventUpdatedDigital.getGeneratedMessage();
                                             var digitalMessageReference = new DigitalMessageReference();
+                                            var generatedMessage = lastEventUpdatedDigital.getGeneratedMessage();
                                             digitalMessageReference.setId(generatedMessage.getId());
                                             digitalMessageReference.setSystem(generatedMessage.getSystem());
                                             digitalMessageReference.setLocation(generatedMessage.getLocation());
-                                            digitalMessageProgressEvent.setGeneratedMessage(digitalMessageReference);
 
-                                            return putEvents.putEventExternal(digitalMessageProgressEvent, processId);
+                                            if (transactionProcessConfigurationProperties.pec().equals(processId)) {
 
+                                                LegalMessageSentDetails legalMessageSentDetails = new LegalMessageSentDetails();
+
+                                                legalMessageSentDetails.setRequestId(requestDto.getRequestIdx());
+                                                legalMessageSentDetails.setStatus(Enum.valueOf(ProgressEventCategory.class, macchinaStatiDecodeResponseDto.getExternalStatus()));
+                                                legalMessageSentDetails.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                                                legalMessageSentDetails.setEventDetails(lastEventUpdatedDigital.getEventDetails());
+                                                legalMessageSentDetails.setEventTimestamp(lastEventUpdatedDigital.getEventTimestamp());
+                                                legalMessageSentDetails.setGeneratedMessage(digitalMessageReference);
+
+                                                singleStatusUpdate.setDigitalLegal(legalMessageSentDetails);
+
+                                            } else {
+
+                                                CourtesyMessageProgressEvent courtesyMessageProgressEvent = new CourtesyMessageProgressEvent();
+
+                                                courtesyMessageProgressEvent.setRequestId(requestDto.getRequestIdx());
+                                                courtesyMessageProgressEvent.setStatus(Enum.valueOf(ProgressEventCategory.class, macchinaStatiDecodeResponseDto.getExternalStatus()));
+                                                courtesyMessageProgressEvent.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                                                courtesyMessageProgressEvent.setEventDetails(lastEventUpdatedDigital.getEventDetails());
+                                                courtesyMessageProgressEvent.setEventTimestamp(lastEventUpdatedDigital.getEventTimestamp());
+                                                courtesyMessageProgressEvent.setGeneratedMessage(digitalMessageReference);
+
+                                                singleStatusUpdate.setDigitalCourtesy(courtesyMessageProgressEvent);
+
+                                            }
                                         } else {
+                                            PaperProgressStatusEvent paperProgressStatusEvent = new PaperProgressStatusEvent();
 
-                                            var paperProgressEvent = new PaperProgressStatusEvent();
-                                            paperProgressEvent.setRequestId(objects.getT2().getRequestIdx());
-                                            var lastEventUpdatedPaper = objects.getT2()
-                                                                               .getRequestMetadata()
-                                                                               .getEventsList()
-                                                                               .get(lastEventIndex)
-                                                                               .getPaperProgrStatus();
-                                            paperProgressEvent.setRegisteredLetterCode(lastEventUpdatedPaper.getRegisteredLetterCode());
-                                            var paperRequest = objects.getT2().getRequestMetadata().getPaperRequestMetadata();
-                                            paperProgressEvent.setProductType(paperRequest.getProductType());
-                                            paperProgressEvent.setIun(paperRequest.getIun());
-                                            paperProgressEvent.setStatusCode(objects.getT1().getLogicStatus());
-                                            paperProgressEvent.setStatusDescription(objects.getT1().getExternalStatus());
-                                            paperProgressEvent.setStatusDateTime(lastEventUpdatedPaper.getStatusDateTime());
-                                            paperProgressEvent.setDeliveryFailureCause(lastEventUpdatedPaper.getDeliveryFailureCause());
+                                            var lastEventUpdatedPaper = requestDto.getRequestMetadata().getEventsList().get(lastEventIndex).getPaperProgrStatus();
+
+                                            paperProgressStatusEvent.setRequestId(requestDto.getRequestIdx());
+                                            paperProgressStatusEvent.setRegisteredLetterCode(lastEventUpdatedPaper.getRegisteredLetterCode());
+
+                                            var paperRequest = requestDto.getRequestMetadata().getPaperRequestMetadata();
+                                            paperProgressStatusEvent.setProductType(paperRequest.getProductType());
+                                            paperProgressStatusEvent.setIun(paperRequest.getIun());
+                                            paperProgressStatusEvent.setStatusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                                            paperProgressStatusEvent.setStatusDescription(macchinaStatiDecodeResponseDto.getExternalStatus());
+                                            paperProgressStatusEvent.setStatusDateTime(lastEventUpdatedPaper.getStatusDateTime());
+                                            paperProgressStatusEvent.setDeliveryFailureCause(lastEventUpdatedPaper.getDeliveryFailureCause());
 
                                             var attachmentsDetails = new AttachmentDetails();
                                             var attachmentsDetailsList = new ArrayList<AttachmentDetails>();
@@ -150,10 +167,10 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                 attachmentsDetails.setDate(attachmentsProgressEventDto.getDate());
                                                 attachmentsDetailsList.add(attachmentsDetails);
                                             }
-                                            paperProgressEvent.setAttachments(attachmentsDetailsList);
+                                            paperProgressStatusEvent.setAttachments(attachmentsDetailsList);
 
                                             var lastDiscoveredAddress = lastEventUpdatedPaper.getDiscoveredAddress();
-                                            if(!Objects.isNull(lastDiscoveredAddress)) {
+                                            if (!Objects.isNull(lastDiscoveredAddress)) {
                                                 var discoveredAddress = new DiscoveredAddress();
                                                 discoveredAddress.setName(lastDiscoveredAddress.getName());
                                                 discoveredAddress.setNameRow2(lastDiscoveredAddress.getNameRow2());
@@ -164,13 +181,16 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                 discoveredAddress.setCity2(lastDiscoveredAddress.getCity2());
                                                 discoveredAddress.setPr(lastDiscoveredAddress.getPr());
                                                 discoveredAddress.setCountry(lastDiscoveredAddress.getCountry());
-                                                paperProgressEvent.setDiscoveredAddress(discoveredAddress);
+                                                paperProgressStatusEvent.setDiscoveredAddress(discoveredAddress);
                                             }
 
-                                            paperProgressEvent.setClientRequestTimeStamp(objects.getT2().getRequestTimeStamp());
+                                            paperProgressStatusEvent.setClientRequestTimeStamp(requestDto.getRequestTimeStamp());
 
-                                            return putEvents.putEventExternal(paperProgressEvent, processId);
+                                            singleStatusUpdate.setAnalogMail(paperProgressStatusEvent);
                                         }
+                                        singleStatusUpdate.setClientId(requestDto.getxPagopaExtchCxId());
+                                        singleStatusUpdate.setEventTimestamp(OffsetDateTime.now());
+                                        return putEvents.putEventExternal(singleStatusUpdate, processId);
                                     })
                                     .doOnSuccess(result -> acknowledgment.acknowledge())
                                     .then()
