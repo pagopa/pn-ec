@@ -161,9 +161,10 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                             for (AttachmentsProgressEventDto attachmentsProgressEventDto :
                                                     attachmentsProgressEventDtolist) {
+                                                attachmentsDetails.setSha256(attachmentsProgressEventDto.getSha256());
                                                 attachmentsDetails.setId(attachmentsProgressEventDto.getId());
                                                 attachmentsDetails.setDocumentType(attachmentsProgressEventDto.getDocumentType());
-                                                attachmentsDetails.setUrl(attachmentsProgressEventDto.getUri());
+                                                attachmentsDetails.setUri(attachmentsProgressEventDto.getUri());
                                                 attachmentsDetails.setDate(attachmentsProgressEventDto.getDate());
                                                 attachmentsDetailsList.add(attachmentsDetails);
                                             }
