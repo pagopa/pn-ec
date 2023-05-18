@@ -122,7 +122,7 @@ class EmailServiceTest {
     @Test
     void lavorazioneRichiestaOk() {
 
-        var attachments = EMAIL_PRESA_IN_CARICO_INFO.getDigitalCourtesyMailRequest().getAttachmentsUrls();
+        var attachments = EMAIL_PRESA_IN_CARICO_INFO.getDigitalCourtesyMailRequest().getAttachmentUrls();
         var clientId = EMAIL_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
 
         when(downloadCall.downloadFile(FILE_DOWNLOAD_RESPONSE.getDownload().getUrl())).thenReturn(Mono.just(new ByteArrayOutputStream()));

@@ -84,7 +84,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         paperNotificationRequest.setRequestId(requestIdx);
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(attachmentsUri, presaInCaricoInfo.getXPagopaExtchCxId(), true)
-                                .flatMap(fileDownloadResponse -> insertRequestFromCartaceo(paperNotificationRequest, xPagopaExtchCxId))
+                                .then(insertRequestFromCartaceo(paperNotificationRequest, xPagopaExtchCxId))
                                 .flatMap(requestDto -> sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo,
                                                                                      BOOKED.getStatusTransactionTableCompliant(),
                                                                                      new PaperProgressStatusDto()))

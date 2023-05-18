@@ -91,7 +91,7 @@ public class DigitalNotificationRequestApiControllerTest {
         digitalNotificationRequest.channel(PEC);
         digitalNotificationRequest.setSubjectText("prova testo");
         digitalNotificationRequest.setMessageContentType(PLAIN);
-        digitalNotificationRequest.setAttachmentsUrls(defaultListAttachmentUrls);
+        digitalNotificationRequest.setAttachmentUrls(defaultListAttachmentUrls);
     }
 
     private WebTestClient.ResponseSpec sendPecTestCall(BodyInserter<DigitalNotificationRequest, ReactiveHttpOutputMessage> bodyInserter,
