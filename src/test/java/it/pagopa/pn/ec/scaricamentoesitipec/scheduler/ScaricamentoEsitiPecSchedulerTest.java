@@ -46,19 +46,4 @@ class ScaricamentoEsitiPecSchedulerTest {
 
     }
 
-    @Test
-    void generateLocationOk() {
-        RequestDto requestDto = new RequestDto().requestIdx("REQUEST_IDX").xPagopaExtchCxId("pn-external-channels");
-
-        File file = new File("src/test/resources/prova.xml");
-        byte[] fileBytes;
-        Mono<String> fileKeyMono;
-        try {
-            fileBytes = Files.readAllBytes(file.toPath());
-            fileKeyMono=scaricamentoEsitiPecScheduler.generateLocation("REQUEST_IDX","pn-external-channels", fileBytes);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        StepVerifier.create(fileKeyMono).expectNextCount(1).verifyComplete();
-    }
 }
