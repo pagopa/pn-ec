@@ -1124,7 +1124,7 @@ Resources:
                 
   ########### METRICS AND ALARMS - MICROSERVICE ###########
   
-  SafeStorageMicroserviceAlarm:
+  ExternalChannelMicroserviceAlarm:
     Type: AWS::CloudFormation::Stack
     Properties: 
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-alarm.yaml"
@@ -1134,34 +1134,16 @@ Resources:
         DatapointsToAlarm: '1'
         Threshold: '1'
         
-  SafeStorageMicroserviceAlarmDashboard:
+  ExternalChannelMicroserviceAlarmDashboard:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
       Parameters:
-        DashboardName: !Sub '${ProjectName}-safe-storage'
+        DashboardName: !Sub '${ProjectName}-external-channel'
         AlarmArns:
           !Join
           - ','
-          - - !Ref PnEcAlarmArnQueueTrackerStatoSMS
-            - !Ref PnEcAlarmArnDLQueueTrackerStatoSMS
-            - !Ref PnEcAlarmArnQueueTrackerErroriSMS
-            - !Ref PnEcAlarmArnDLQueueTrackerErroriSMS
-            - !Ref PnEcAlarmArnQueueTrackerStatoPEC
-            - !Ref PnEcAlarmArnDLQueueTrackerStatoPEC
-            - !Ref PnEcAlarmArnQueueTrackerErroriPEC
-            - !Ref PnEcAlarmArnDLQueueTrackerErroriPEC
-            - !Ref PnEcAlarmArnQueueTrackerStatoEMAIL
-            - !Ref PnEcAlarmArnDLQueueTrackerStatoEMAIL
-            - !Ref PnEcAlarmArnQueueTrackerErroriEMAIL
-            - !Ref PnEcAlarmArnDLQueueTrackerErroriEMAIL
-            - !Ref PnEcAlarmArnQueueTrackerStatoCARTACEO
-            - !Ref PnEcAlarmArnDLQueueTrackerStatoCARTACEO
-            - !Ref PnEcAlarmArnQueueTrackerErroriCARTACEO
-            - !Ref PnEcAlarmArnDLQueueTrackerErroriCARTACEO
-            - !Ref PnEcAlarmArnQueueNotificheExt1
-            - !Ref PnEcAlarmArnDLQueueNotificheExt1
-            - !Ref PnEcAlarmArnQueueBatchSMS
+          - - !Ref PnEcAlarmArnQueueBatchSMS
             - !Ref PnEcAlarmArnDLQueueBatchSMS
             - !Ref PnEcAlarmArnQueueInteractiveSMS
             - !Ref PnEcAlarmArnDLQueueInteractiveSMS
@@ -1194,16 +1176,7 @@ Resources:
         QueueArns:
           !Join
           - ','
-          - - !Ref PnEcQueueArnTrackerStatoSMS 
-            - !Ref PnEcQueueArnTrackerErroriSMS
-            - !Ref PnEcQueueArnTrackerStatoPEC
-            - !Ref PnEcQueueArnTrackerErroriPEC
-            - !Ref PnEcQueueArnTrackerStatoEMAIL
-            - !Ref PnEcQueueArnTrackerErroriEMAIL
-            - !Ref PnEcQueueArnTrackerStatoCARTACEO
-            - !Ref PnEcQueueArnTrackerErroriCARTACEO
-            - !Ref PnEcQueueArnNotificheExt1
-            - !Ref PnEcQueueArnBatchSMS
+          - - !Ref PnEcQueueArnBatchSMS
             - !Ref PnEcQueueArnInteractiveSMS
             - !Ref PnEcQueueArnErroriSMS
             - !Ref PnEcQueueArnBatchPEC
@@ -1214,6 +1187,56 @@ Resources:
             - !Ref PnEcQueueArnErroriEMAIL
             - !Ref PnEcQueueArnBatchCARTACEO
             - !Ref PnEcQueueArnErroriCARTACEO
+        # KinesisDataArns: 
+        # KinesisFirehoseArns: 
+
+  ExternalChannelChannelsMicroserviceAlarmDashboard:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
+      Parameters:
+        DashboardName: !Sub '${ProjectName}-external-channels'
+        AlarmArns:
+          !Join
+          - ','
+          - - !Ref PnEcAlarmArnQueueTrackerStatoSMS
+            - !Ref PnEcAlarmArnDLQueueTrackerStatoSMS
+            - !Ref PnEcAlarmArnQueueTrackerErroriSMS
+            - !Ref PnEcAlarmArnDLQueueTrackerErroriSMS
+            - !Ref PnEcAlarmArnQueueTrackerStatoPEC
+            - !Ref PnEcAlarmArnDLQueueTrackerStatoPEC
+            - !Ref PnEcAlarmArnQueueTrackerErroriPEC
+            - !Ref PnEcAlarmArnDLQueueTrackerErroriPEC
+            - !Ref PnEcAlarmArnQueueTrackerStatoEMAIL
+            - !Ref PnEcAlarmArnDLQueueTrackerStatoEMAIL
+            - !Ref PnEcAlarmArnQueueTrackerErroriEMAIL
+            - !Ref PnEcAlarmArnDLQueueTrackerErroriEMAIL
+            - !Ref PnEcAlarmArnQueueTrackerStatoCARTACEO
+            - !Ref PnEcAlarmArnDLQueueTrackerStatoCARTACEO
+            - !Ref PnEcAlarmArnQueueTrackerErroriCARTACEO
+            - !Ref PnEcAlarmArnDLQueueTrackerErroriCARTACEO
+            - !Ref PnEcAlarmArnQueueNotificheExt1
+            - !Ref PnEcAlarmArnDLQueueNotificheExt1
+        DynamoDBTableNames:
+          !Join
+          - ','
+          - - !Ref PnEcTableNameAnagrafica
+            - !Ref PnEcTableNameRichieste
+            - !Ref PnEcTableNameRichiesteMetadati
+        # RestApiStageArns: 
+        # RestApiNames: 
+        QueueArns:
+          !Join
+          - ','
+          - - !Ref PnEcQueueArnTrackerStatoSMS 
+            - !Ref PnEcQueueArnTrackerErroriSMS
+            - !Ref PnEcQueueArnTrackerStatoPEC
+            - !Ref PnEcQueueArnTrackerErroriPEC
+            - !Ref PnEcQueueArnTrackerStatoEMAIL
+            - !Ref PnEcQueueArnTrackerErroriEMAIL
+            - !Ref PnEcQueueArnTrackerStatoCARTACEO
+            - !Ref PnEcQueueArnTrackerErroriCARTACEO
+            - !Ref PnEcQueueArnNotificheExt1
         # KinesisDataArns: 
         # KinesisFirehoseArns: 
         EventRuleArns:
