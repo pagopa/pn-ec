@@ -43,6 +43,10 @@ Parameters:
     Type: String
     Description: 'subnets ids comma separated list. Where to deploy the microservice'
 
+  VpcEgressSubnetsIds:
+    Type: String
+    Description: subnets where to install PN-CONFINFO
+
   VpcId:
     Type: String
     Description: 'VpcId where the microservice is going to be deployed'
@@ -68,6 +72,11 @@ Parameters:
   # LogsKinesisSourceStreamArn:
   #   Type: String
   #   Description: 'Kinesis stream that receive logs'
+
+  PnCoreTargetEventBus:
+    Type: String
+    Description: 'ARN of Pn Core Event Bus where to forward external notifications'
+    Default: ''
 
   PnEcIdentityPec:
     Type: String
@@ -634,6 +643,13 @@ Parameters:
     Description: 'Base URL per accesso ai servizi del consolidatore'
     Type: String
     
+  PnEcEmailDefaultSender:
+    Description: 'Default sender email address'
+    Type: String
+    
+Conditions:
+  PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
+
 Resources:
 
   # PN-TemplateBeMs microservice
@@ -674,13 +690,14 @@ Resources:
         ContainerEnvEntry25: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
         ContainerEnvEntry30: 'SafeStorageClientId=pn-external-channels'
         ContainerEnvEntry31: 'SafeStorageClientApiKey=pn-external-channels_api_key'
+        ContainerEnvEntry32: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
         ContainerEnvEntry35: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry36: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry37: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry38: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
         ECSClusterName: !Ref ECSClusterName
-        Subnets: !Ref SubnetsIds
+        Subnets: !Ref VpcEgressSubnetsIds
         VpcId: !Ref VpcId
         EcsDefaultSecurityGroup: !Ref EcsDefaultSecurityGroup
         LoadBalancerListenerArn: !Ref ApplicationLoadBalancerListenerArn
@@ -1201,3 +1218,88 @@ Resources:
         # KinesisFirehoseArns: 
         EventRuleArns:
           - !Ref PnEcEventRuleArnNotificheExt1
+
+  #####    External notifications    #####
+  PnEcRoleExternalNotifications:
+    Type: AWS::IAM::Role
+    Condition: PnCoreTargetEventBusExists
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Action:
+              - 'sts:AssumeRole'
+            Principal:
+              Service: 
+                - 'events.amazonaws.com'
+      Description: 'Role for forwarding Events to EventBus'
+      Policies:
+        - PolicyName: 'PutEventsInlinePolicy'
+          PolicyDocument: 
+            Version: '2012-10-17'
+            Statement:
+              - Sid: 'PutEventsOnTargetAccount'
+                Effect: Allow
+                Action:
+                  - 'events:PutEvents'
+                Resource:
+                  - !Ref PnCoreTargetEventBus
+
+  PnEcEventsDLQueueExternalNotifications:
+    Type: AWS::SQS::Queue
+    Condition: PnCoreTargetEventBusExists
+    Properties:
+      SqsManagedSseEnabled: True
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 0
+      VisibilityTimeout: 30
+
+  PnEcQueuePolicyExternalNotifications:
+    Type: AWS::SQS::QueuePolicy
+    Condition: PnCoreTargetEventBusExists
+    Properties: 
+      Queues: 
+        - !Ref PnEcEventsDLQueueExternalNotifications
+      PolicyDocument: 
+        Statement: 
+          - Sid: 'AllowAccessSameAccount'
+            Action: 
+              - "SQS:*"
+            Effect: "Allow"
+            Resource: !GetAtt PnEcEventsDLQueueExternalNotifications.Arn
+            Principal: 
+              AWS: !Sub ${AWS::AccountId}
+          - Sid: 'AllowPutEventsFromEventRule'
+            Action: 
+              - "sqs:SendMessage"
+            Effect: "Allow"
+            Resource: !GetAtt PnEcEventsDLQueueExternalNotifications.Arn
+            Principal: 
+              Service:
+              - 'events.amazonaws.com'
+            Condition: 
+              ArnEquals:
+                aws:SourceArn: !GetAtt PnEcEventRuleExternalNotifications.Arn
+
+  PnEcEventRuleExternalNotifications:
+    Type: AWS::Events::Rule
+    Condition: PnCoreTargetEventBusExists
+    Properties:
+      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      Description: 'Rule forwarding events to EventBus'
+      EventPattern:
+        source: 
+          - "NOTIFICATION TRACKER"
+        account: 
+          - !Sub ${AWS::AccountId}
+        region: 
+          - !Sub ${AWS::Region}
+      State: 'ENABLED'
+      Targets:
+        - Arn: !Ref PnCoreTargetEventBus
+          Id: 'PnEcExternalNotificationTarget'
+          RoleArn: !GetAtt PnEcRoleExternalNotifications.Arn
+          DeadLetterConfig:
+            Arn: !GetAtt PnEcEventsDLQueueExternalNotifications.Arn
+

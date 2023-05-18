@@ -6,7 +6,7 @@
     <parent>
         <groupId>it.pagopa.pn</groupId>
         <artifactId>pn-parent</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>2.0.0</version>
         <relativePath/>
     </parent>
 
@@ -38,7 +38,7 @@
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-commons</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0</version>
         </dependency>
 
         <!-- Start OpenApi dependencies -->
@@ -358,7 +358,7 @@
                         </goals>
                         <phase>process-resources</phase>
                         <configuration>
-                            <inputSpec>${project.basedir}/docs/openapi/internal/safestorage/pn-safestorage-api.yaml
+                            <inputSpec>${project.basedir}/docs/openapi/internal/safestorage/pn-safestorage-v1.1-api.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>

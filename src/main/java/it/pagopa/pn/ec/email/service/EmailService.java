@@ -17,6 +17,7 @@ import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.*;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
+import it.pagopa.pn.ec.email.configurationproperties.EmailDefault;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -59,6 +60,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     private final AttachmentServiceImpl attachmentService;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final EmailSqsQueueName emailSqsQueueName;
+    private final EmailDefault emailDefault;
     private final DownloadCall downloadCall;
 
     private String idSaved;
@@ -68,7 +70,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
                            SesService sesService, AttachmentServiceImpl attachmentService,
                            NotificationTrackerSqsName notificationTrackerSqsName, EmailSqsQueueName emailSqsQueueName,
-                           DownloadCall downloadCall) {
+                           DownloadCall downloadCall, EmailDefault emailDefault) {
         super(authService);
         this.sqsService = sqsService;
         this.sesService = sesService;
@@ -76,6 +78,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         this.attachmentService = attachmentService;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.emailSqsQueueName = emailSqsQueueName;
+        this.emailDefault = emailDefault;
         this.downloadCall = downloadCall;
     }
 
@@ -86,6 +89,10 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
+        var senderAddress= digitalNotificationRequest.getSenderDigitalAddress();
+        if(Objects.isNull(senderAddress) || senderAddress.isEmpty()) {
+            digitalNotificationRequest.setSenderDigitalAddress(emailDefault.defaultSenderAddress());
+        }
 
         log.info("<-- START PRESA IN CARICO EMAIL --> Request ID: {}, Client ID: {}", requestIdx, xPagopaExtchCxId);
 
@@ -94,8 +101,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         return attachmentService.getAllegatiPresignedUrlOrMetadata(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest()
                                                                                          .getAttachmentsUrls(), xPagopaExtchCxId, true)
 
-                                .flatMap(fileDownloadResponse -> insertRequestFromEmail(digitalNotificationRequest,
-                                                                                        emailPresaInCaricoInfo.getXPagopaExtchCxId()))
+                                .then(insertRequestFromEmail(digitalNotificationRequest, emailPresaInCaricoInfo.getXPagopaExtchCxId()))
 
                                 .flatMap(requestDto -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                                                                                      BOOKED.getStatusTransactionTableCompliant(),

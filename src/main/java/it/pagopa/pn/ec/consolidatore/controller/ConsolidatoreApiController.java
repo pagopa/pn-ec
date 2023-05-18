@@ -8,6 +8,7 @@ import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.errorCodeDescripti
 import java.util.ArrayList;
 import java.util.List;
 
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
@@ -32,11 +33,14 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     private final ConsolidatoreServiceImpl consolidatoreServiceImpl;
     private final RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService;
 
+    private final SafeStorageEndpointProperties safeStorageEndpointProperties;
+
     public ConsolidatoreApiController(ConsolidatoreServiceImpl consolidatoreServiceImpl
-            , RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService
-    ) {
+            , RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService,
+                                      SafeStorageEndpointProperties safeStorageEndpointProperties) {
         this.consolidatoreServiceImpl = consolidatoreServiceImpl;
         this.ricezioneEsitiCartaceoService = ricezioneEsitiCartaceoService;
+        this.safeStorageEndpointProperties = safeStorageEndpointProperties;
     }
 
     private List<String> getAllErrors(List<OperationResultCodeResponse> responses) {
