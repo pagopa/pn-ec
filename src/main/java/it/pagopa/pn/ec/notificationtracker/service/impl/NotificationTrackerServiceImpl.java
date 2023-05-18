@@ -156,9 +156,6 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                             var attachmentsDetails = new AttachmentDetails();
                                             var attachmentsDetailsList = new ArrayList<AttachmentDetails>();
 
-                                            List<AttachmentsProgressEventDto> attachmentsProgressEventDtolist =
-                                                    lastEventUpdatedPaper.getAttachments();
-
                                             List<AttachmentsProgressEventDto> attachmentsProgressEventDtolist= new ArrayList<>();
 
                                             if(!Objects.isNull(lastEventUpdatedPaper.getAttachments())) {
