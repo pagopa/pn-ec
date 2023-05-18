@@ -99,7 +99,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         digitalNotificationRequest.setRequestId(requestIdx);
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest()
-                                                                                         .getAttachmentsUrls(), xPagopaExtchCxId, true)
+                                                                                         .getAttachmentUrls(), xPagopaExtchCxId, true)
 
                                 .then(insertRequestFromEmail(digitalNotificationRequest, emailPresaInCaricoInfo.getXPagopaExtchCxId()))
 
@@ -145,7 +145,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             digitalRequestPersonalDto.setMessageText(digitalCourtesyMailRequest.getMessageText());
             digitalRequestPersonalDto.setSenderDigitalAddress(digitalCourtesyMailRequest.getSenderDigitalAddress());
             digitalRequestPersonalDto.setSubjectText(digitalCourtesyMailRequest.getSubjectText());
-            digitalRequestPersonalDto.setAttachmentsUrls(digitalCourtesyMailRequest.getAttachmentsUrls());
+            digitalRequestPersonalDto.setAttachmentsUrls(digitalCourtesyMailRequest.getAttachmentUrls());
             requestPersonalDto.setDigitalRequestPersonal(digitalRequestPersonalDto);
 
             var requestMetadataDto = new RequestMetadataDto();
@@ -196,7 +196,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
         // Try to send EMAIL
-        return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), requestId, false)
+        return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentUrls(), requestId, false)
                                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
                                 .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
@@ -289,7 +289,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                  emailPresaInCaricoInfo.getXPagopaExtchCxId());
         logIncomingMessage(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-        if (!digitalCourtesyMailRequest.getAttachmentsUrls().isEmpty()) {
+        if (!digitalCourtesyMailRequest.getAttachmentUrls().isEmpty()) {
             return processWithAttachRetry(emailPresaInCaricoInfo, message);
         } else {
             return processOnlyBodyRerty(emailPresaInCaricoInfo, message);
@@ -405,7 +405,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                              } else {
                                                                  //                gestisco il caso retry a partire dalla gestione
                                                                  //                allegati e invio a ses
-                                                                 return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(),
+                                                                 return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentUrls(),
                                                                                                                             emailPresaInCaricoInfo.getXPagopaExtchCxId(),
                                                                                                                             false)
 
