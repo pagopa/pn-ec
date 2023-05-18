@@ -1,9 +1,9 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.s3.BucketName;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
+import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
@@ -11,7 +11,6 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.DaticertService;
-import it.pagopa.pn.ec.commons.service.S3Service;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.consolidatore.utils.ContentTypes;
@@ -23,21 +22,13 @@ import it.pec.bridgews.*;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
-import org.springframework.web.reactive.function.BodyInserters;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
-import java.net.URL;
+import java.net.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
@@ -70,7 +61,8 @@ public class ScaricamentoEsitiPecScheduler {
     private final ArubaSecretValue arubaSecretValue;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
     private final Random random;
-    private final String SAFESTORAGE_PREFIX = "safestorage://";
+    private final WebClient uploadWebClient;
+    private static final String SAFESTORAGE_PREFIX = "safestorage://";
     @Value("${scaricamento-esiti-pec.get-messages.limit}")
     private String scaricamentoEsitiPecGetMessagesLimit;
 
@@ -81,7 +73,7 @@ public class ScaricamentoEsitiPecScheduler {
                                          GestoreRepositoryCall gestoreRepositoryCall, StatusPullService statusPullService, SqsService sqsService, FileCall fileCall, CloudWatchPecMetrics cloudWatchPecMetrics,
                                          NotificationTrackerSqsName notificationTrackerSqsName, ArubaSecretValue arubaSecretValue,
                                          TransactionProcessConfigurationProperties transactionProcessConfigurationProperties,
-                                         Random random) {
+                                         Random random, WebClient uploadWebClient) {
         this.arubaCall = arubaCall;
         this.daticertService = daticertService;
         this.callMacchinaStati = callMacchinaStati;
@@ -94,6 +86,7 @@ public class ScaricamentoEsitiPecScheduler {
         this.arubaSecretValue = arubaSecretValue;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
         this.random = random;
+        this.uploadWebClient = uploadWebClient;
     }
 
     private final Predicate<Postacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
@@ -270,7 +263,7 @@ public class ScaricamentoEsitiPecScheduler {
                                     })
 
                                     //Preparazione payload per la coda stati PEC
-                                    .flatMap(objects->
+                                    .flatMap(objects ->
                                     {
                                         Postacert postacert = objects.getT1();
                                         RequestDto requestDto = objects.getT2();
@@ -288,7 +281,7 @@ public class ScaricamentoEsitiPecScheduler {
                                         var receiversDomain = getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]);
 
                                         return generateLocation(requestIdx, xPagopaExtchCxId, attachBytes)
-                                                .map(location->
+                                                .map(location ->
                                                 {
                                                     var generatedMessageDto = createGeneratedMessageByStatus(receiversDomain,
                                                             senderDomain,
@@ -353,69 +346,41 @@ public class ScaricamentoEsitiPecScheduler {
                 .subscribe();
     }
 
-//     Mono<String> generateLocation(String requestIdx, String xPagopaExtchCxId, byte[] fileBytes) {
-//
-//        FileCreationRequest fileCreationRequest = new FileCreationRequest().contentType(ContentTypes.APPLICATION_XML)
-//                .documentType(PN_EXTERNAL_LEGAL_FACTS.getValue())
-//                .status("");
-//
-//         return fileCall.postFile(xPagopaExtchCxId, "pn-external-channels_api_key", generateSha256(fileBytes), xPagopaExtchCxId + "~" + requestIdx, fileCreationRequest)
-//                 .flatMap(fileCreationResponse ->
-//                 {
-//                     String uploadUrl = fileCreationResponse.getUploadUrl();
-//                     log.info(uploadUrl);
-//                     var webClient = WebClient.create();
-//                     return webClient.put()
-//                             .uri(uploadUrl)
-//                             .bodyValue(fileBytes)
-//                             .retrieve()
-//                             .toBodilessEntity().thenReturn(fileCreationResponse.getKey());
-//                 })
-//                 .doOnError(e->log.error(e.getMessage()));
-//     }
-
     Mono<String> generateLocation(String requestIdx, String xPagopaExtchCxId, byte[] fileBytes) {
 
         FileCreationRequest fileCreationRequest = new FileCreationRequest().contentType(ContentTypes.APPLICATION_XML)
                 .documentType(PN_EXTERNAL_LEGAL_FACTS.getValue())
                 .status("");
 
-        return fileCall.postFile(xPagopaExtchCxId, "pn-external-channels_api_key", generateSha256(fileBytes), xPagopaExtchCxId + "~" + requestIdx, fileCreationRequest)
-                .map(fileCreationResponse ->
+        var checksumValue = generateSha256(fileBytes);
+
+        return fileCall.postFile(xPagopaExtchCxId, "pn-external-channels_api_key", checksumValue, xPagopaExtchCxId + "~" + requestIdx, fileCreationRequest)
+                .flatMap(fileCreationResponse ->
                 {
                     String uploadUrl = fileCreationResponse.getUploadUrl();
                     log.info(uploadUrl);
-                    HttpURLConnection connection = null;
-                    try {
-                        connection = (HttpURLConnection) new URL(uploadUrl).openConnection();
-                        connection.setDoOutput(true);
-                        connection.setRequestProperty("Content-Type", ContentTypes.APPLICATION_XML);
-                        connection.setRequestProperty("Content-Length", Integer.toString(fileBytes.length));
-                        connection.setRequestMethod("PUT");
-                        var outputStream = connection.getOutputStream();
-                        outputStream.write(fileBytes);
-                        outputStream.close();
-                        connection.getResponseCode();
-                        log.info("" + connection.getResponseCode());
-                    } catch (IOException e) {
-                        log.error(e.getMessage());
-                    }
-                    return fileCreationResponse.getKey();
+                    return uploadWebClient.put()
+                            .uri(URI.create(uploadUrl))
+                            .header("Content-Type", ContentTypes.APPLICATION_XML)
+                            .header("x-amz-meta-secret", fileCreationResponse.getSecret())
+                            .header("x-amz-checksum-sha256", checksumValue)
+                            .bodyValue(fileBytes)
+                            .retrieve()
+                            .toBodilessEntity()
+                            .thenReturn(SAFESTORAGE_PREFIX + fileCreationResponse.getKey());
                 });
     }
 
-
     private String generateSha256(byte[] fileBytes) {
-        MessageDigest md = null;
+        MessageDigest md;
         try {
             md = MessageDigest.getInstance("SHA256");
             md.update(fileBytes);
             byte[] digest = md.digest();
             return Base64.getEncoder().encodeToString(digest);
         } catch (NoSuchAlgorithmException | NullPointerException e) {
-            log.error(e.getMessage());
+            throw new ShaGenerationException(e.getMessage());
         }
-        return null;
     }
 
 }
