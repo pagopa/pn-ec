@@ -101,8 +101,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         return attachmentService.getAllegatiPresignedUrlOrMetadata(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest()
                                                                                          .getAttachmentUrls(), xPagopaExtchCxId, true)
 
-                                .flatMap(fileDownloadResponse -> insertRequestFromEmail(digitalNotificationRequest,
-                                                                                        emailPresaInCaricoInfo.getXPagopaExtchCxId()))
+                                .then(insertRequestFromEmail(digitalNotificationRequest, emailPresaInCaricoInfo.getXPagopaExtchCxId()))
 
                                 .flatMap(requestDto -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                                                                                      BOOKED.getStatusTransactionTableCompliant(),

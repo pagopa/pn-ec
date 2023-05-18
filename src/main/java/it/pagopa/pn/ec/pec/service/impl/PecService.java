@@ -99,7 +99,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest()
                                                                                        .getAttachmentUrls(), xPagopaExtchCxId, true)
 
-                                .flatMap(fileDownloadResponse -> insertRequestFromPec(digitalNotificationRequest, xPagopaExtchCxId))
+                                .then(insertRequestFromPec(digitalNotificationRequest, xPagopaExtchCxId))
 
                                 .flatMap(requestDto -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                                                                                      BOOKED.getStatusTransactionTableCompliant(),

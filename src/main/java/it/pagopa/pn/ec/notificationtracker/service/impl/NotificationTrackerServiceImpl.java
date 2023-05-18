@@ -159,17 +159,21 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                             List<AttachmentsProgressEventDto> attachmentsProgressEventDtolist =
                                                     lastEventUpdatedPaper.getAttachments();
 
-                                            for (AttachmentsProgressEventDto attachmentsProgressEventDto :
-                                                    attachmentsProgressEventDtolist) {
-                                                attachmentsDetails.setSha256(attachmentsProgressEventDto.getSha256());
-                                                attachmentsDetails.setId(attachmentsProgressEventDto.getId());
-                                                attachmentsDetails.setDocumentType(attachmentsProgressEventDto.getDocumentType());
-                                                attachmentsDetails.setUri(attachmentsProgressEventDto.getUri());
-                                                attachmentsDetails.setDate(attachmentsProgressEventDto.getDate());
-                                                attachmentsDetailsList.add(attachmentsDetails);
+                                            List<AttachmentsProgressEventDto> attachmentsProgressEventDtolist= new ArrayList<>();
+
+                                            if(!Objects.isNull(lastEventUpdatedPaper.getAttachments())) {
+                                                attachmentsProgressEventDtolist = lastEventUpdatedPaper.getAttachments();
+                                                for (AttachmentsProgressEventDto attachmentsProgressEventDto :
+                                                        attachmentsProgressEventDtolist) {
+                                                    attachmentsDetails.setSha256(attachmentsProgressEventDto.getSha256());
+                                                    attachmentsDetails.setId(attachmentsProgressEventDto.getId());
+                                                    attachmentsDetails.setDocumentType(attachmentsProgressEventDto.getDocumentType());
+                                                    attachmentsDetails.setUri(attachmentsProgressEventDto.getUri());
+                                                    attachmentsDetails.setDate(attachmentsProgressEventDto.getDate());
+                                                    attachmentsDetailsList.add(attachmentsDetails);
+                                                }
                                             }
                                             paperProgressStatusEvent.setAttachments(attachmentsDetailsList);
-
                                             var lastDiscoveredAddress = lastEventUpdatedPaper.getDiscoveredAddress();
                                             if (!Objects.isNull(lastDiscoveredAddress)) {
                                                 var discoveredAddress = new DiscoveredAddress();
