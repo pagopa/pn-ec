@@ -116,7 +116,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                                 legalMessageSentDetails.setRequestId(requestDto.getRequestIdx());
                                                 legalMessageSentDetails.setStatus(Enum.valueOf(ProgressEventCategory.class, macchinaStatiDecodeResponseDto.getExternalStatus()));
-                                                legalMessageSentDetails.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                                                legalMessageSentDetails.setEventCode(LegalMessageSentDetails.EventCodeEnum.fromValue(macchinaStatiDecodeResponseDto.getLogicStatus()));
                                                 legalMessageSentDetails.setEventDetails(lastEventUpdatedDigital.getEventDetails());
                                                 legalMessageSentDetails.setEventTimestamp(lastEventUpdatedDigital.getEventTimestamp());
                                                 legalMessageSentDetails.setGeneratedMessage(digitalMessageReference);
@@ -129,7 +129,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                                 courtesyMessageProgressEvent.setRequestId(requestDto.getRequestIdx());
                                                 courtesyMessageProgressEvent.setStatus(Enum.valueOf(ProgressEventCategory.class, macchinaStatiDecodeResponseDto.getExternalStatus()));
-                                                courtesyMessageProgressEvent.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                                                courtesyMessageProgressEvent.setEventCode(CourtesyMessageProgressEvent.EventCodeEnum.fromValue(macchinaStatiDecodeResponseDto.getLogicStatus()));
                                                 courtesyMessageProgressEvent.setEventDetails(lastEventUpdatedDigital.getEventDetails());
                                                 courtesyMessageProgressEvent.setEventTimestamp(lastEventUpdatedDigital.getEventTimestamp());
                                                 courtesyMessageProgressEvent.setGeneratedMessage(digitalMessageReference);
