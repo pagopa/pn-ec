@@ -183,7 +183,6 @@ components:
         - requestId
         - eventTimestamp
         - status
-        - eventCode
       properties:
         requestId:
           type: string
@@ -195,8 +194,6 @@ components:
           format: date-time
         status:
           $ref: '#/components/schemas/ProgressEventCategory'
-        eventCode:
-          type: string
         eventDetails:
           type: string
         generatedMessage:
@@ -207,8 +204,64 @@ components:
       title: Avanzamento per messaggi di cortesia
       allOf:
         - $ref: '#/components/schemas/BaseMessageProgressEvent'
+        - type: object
+          required:
+            - eventCode
+          properties:
+            eventCode:
+              type: string
+              enum:
+                - M003
+                - M008
+                - M011
+                - M009
+                - M010
+                - S003
+                - S008
+                - S010
+              description: >-
+                * STATUS     EVENTCODE
+                * OK         M003 = MAIL - Sent
+                * ERROR      M008 = MAIL - Error
+                * ERROR      M011 = MAIL - Composition error
+                * ERROR      M009 = MAIL - Destination address not allowed
+                * ERROR      M010 = MAIL - Internal error
+                * OK         S003 = SMS - Sent
+                * ERROR      S008 = SMS - Error
+                * ERROR      S010 = SMS - Internal error
     
     LegalMessageSentDetails:
       title: Avanzamento per messaggi legali
       allOf:
         - $ref: '#/components/schemas/BaseMessageProgressEvent'
+        - type: object
+          required:
+            - eventCode
+          properties:
+            eventCode:
+              type: string
+              enum:
+                - C000
+                - C001
+                - C002
+                - C003
+                - C004
+                - C005
+                - C006
+                - C007
+                - C008
+                - C009
+                - C010
+              description: >-
+                * STATUS     EVENTCODE
+                * PROGRESS   C000 = PEC - PREACCETTAZIONE (Conferma avvenuta comunicazione con Wrapper Pec)
+                * PROGRESS   C001 = PEC - StatusPec.ACCETTAZIONE
+                * PROGRESS   C005 = PEC - StatusPec.PRESA_IN_CARICO
+                * PROGRESS   C007 = PEC - StatusPec.PREAVVISO_ERRORE_CONSEGNA
+                * ERROR      C002 = PEC - StatusPec.NON_ACCETTAZIONE
+                * ERROR      C004 = PEC - StatusPec.ERRORE_CONSEGNA
+                * ERROR      C006 = PEC - StatusPec.RILEVAZIONE_VIRUS
+                * ERROR      C008 = PEC - ERRORE_COMUNICAZIONE_SERVER_PEC
+                * ERROR      C009 = PEC - ERRORE_DOMINIO_PEC_NON_VALIDO
+                * ERROR      C010 = PEC - ERROR_INVIO_PEC
+                * OK         C003 = PEC - StatusPec.AVVENUTA_CONSEGNA
