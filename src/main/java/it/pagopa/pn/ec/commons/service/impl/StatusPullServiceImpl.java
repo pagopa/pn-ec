@@ -156,7 +156,8 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                        attachment.setDate(attachmentDTO.getDate());
                                                                        attachment.setDocumentType(attachmentDTO.getDocumentType());
                                                                        attachment.setId(attachmentDTO.getId());
-                                                                       attachment.setUrl(attachmentDTO.getUri());
+                                                                       attachment.setUri(attachmentDTO.getUri());
+                                                                       attachment.setSha256(attachmentDTO.getSha256());
 
                                                                        attachmentList.add(attachment);
                                                                    }

@@ -81,14 +81,14 @@ public class ServicePaperDocument {
 //		NB: interfaccia con il consolidatore
 		apsrc1.getId();
 		apsrc1.setDocumentType("AR");
-		apsrc1.setUrl("https://www.eng.it/resources/whitepaper/doc/blockchain/Blockchain_whitepaper_it.pdf");
+		apsrc1.setUri("https://www.eng.it/resources/whitepaper/doc/blockchain/Blockchain_whitepaper_it.pdf");
 		apsrc1.setDate(odt);
 		
 		AttachmentDetails apsrc2 = new AttachmentDetails();
 		
 		apsrc2.setId("2");
 		apsrc2.setDocumentType("AR");
-		apsrc2.setUrl("https://assets.loescher.it/risorse/download/innovando/itastra/Scheda1_GliArticoli.pdf");
+		apsrc2.setUri("https://assets.loescher.it/risorse/download/innovando/itastra/Scheda1_GliArticoli.pdf");
 		apsrc2.setDate(odt);
 		
 		List<AttachmentDetails> attachments = new ArrayList<>();
@@ -133,14 +133,14 @@ public class ServicePaperDocument {
 		
 		List<String> atUrl = new ArrayList<>();
 		
-		String s1 = getProgessStatusEvent(hr).papDelProgrResp.getEvents().get(0).getAttachments().get(0).getUrl();
+		String s1 = getProgessStatusEvent(hr).papDelProgrResp.getEvents().get(0).getAttachments().get(0).getUri();
 		String s2 = getProgessStatusEvent(hr)
 				.papDelProgrResp
 				.getEvents()
 				.get(0)
 				.getAttachments()
 				.get(1)
-				.getUrl();
+				.getUri();
 		
 		atUrl.add(s1);
 		atUrl.add(s2);

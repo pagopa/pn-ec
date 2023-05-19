@@ -414,7 +414,8 @@ components:
       required:
         - id
         - documentType
-        - url
+        - uri
+        - sha256
         - date
       properties:
         id:
@@ -425,10 +426,14 @@ components:
           type: string
           description: >-
             La descrizione della tipologia di oggetto.
-        url:
+        uri:
           type: string
           description: >-
             Le coordinate del documento correlato allo stato.
+        sha256:
+          type: string
+          description: >-
+            sha256, codificato in base 64, del contenuto del file riferenziato dal campo uri
         date:
           type: string
           format: date-time
