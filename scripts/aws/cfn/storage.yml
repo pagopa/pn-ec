@@ -109,7 +109,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-tracker-sms-stato-queue'
+        QueueName: 'xx-pn-ec-tracker-sms-stato-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -137,7 +137,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-tracker-sms-errori-queue'
+        QueueName: 'xx-pn-ec-tracker-sms-errori-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -152,7 +152,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-tracker-pec-stato-queue'
+        QueueName: 'xx-pn-ec-tracker-pec-stato-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -180,7 +180,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-tracker-pec-errori-queue'
+        QueueName: 'xx-pn-ec-tracker-pec-errori-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -195,7 +195,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-tracker-email-stato-queue'
+        QueueName: 'xx-pn-ec-tracker-email-stato-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -223,7 +223,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-tracker-email-errori-queue'
+        QueueName: 'xx-pn-ec-tracker-email-errori-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -238,7 +238,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-tracker-cartaceo-stato-queue'
+        QueueName: 'xx-pn-ec-tracker-cartaceo-stato-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -266,7 +266,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-tracker-cartaceo-errori-queue'
+        QueueName: 'xx-pn-ec-tracker-cartaceo-errori-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -281,7 +281,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-notifiche-esterne-piattaforma-1-queue'
+        QueueName: 'xx-pn-ec-notifiche-esterne-piattaforma-1-queue'
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'true'
@@ -401,7 +401,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-forward-events-pncoreeventbus-DLQueue'
+        QueueName: 'xx-pn-ec-forward-events-pncoreeventbus-DLQueue'
         HasDLQ: False
         QueueHasAlarm: 'true'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
@@ -420,7 +420,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-sms-batch-queue'
+        QueueName: 'xx-pn-ec-sms-batch-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -433,7 +433,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-sms-interactive-queue'
+        QueueName: 'xx-pn-ec-sms-interactive-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -461,7 +461,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-sms-errori-queue'
+        QueueName: 'xx-pn-ec-sms-errori-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         DelaySeconds: 300
@@ -477,7 +477,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-pec-batch-queue'
+        QueueName: 'xx-pn-ec-pec-batch-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -490,7 +490,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-pec-interactive-queue'
+        QueueName: 'xx-pn-ec-pec-interactive-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -518,7 +518,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'PnEcQueueErroriPEC'
+        QueueName: 'xx-pn-ec-pec-errori-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         DelaySeconds: 300
@@ -534,7 +534,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-email-batch-queue'
+        QueueName: 'xx-pn-ec-email-batch-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -547,7 +547,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-email-interactive-queue'
+        QueueName: 'xx-pn-ec-email-interactive-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -575,7 +575,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-email-errori-queue'
+        QueueName: 'xx-pn-ec-email-errori-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         DelaySeconds: 300
@@ -591,7 +591,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-cartaceo-batch-queue'
+        QueueName: 'xx-pn-ec-cartaceo-batch-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
@@ -604,7 +604,7 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-cartaceo-errori-queue'
+        QueueName: 'xx-pn-ec-cartaceo-errori-queue'
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         DelaySeconds: 300
