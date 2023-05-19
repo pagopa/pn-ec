@@ -689,14 +689,6 @@ Outputs:
     Description: '[Notification Tracker: canale SMS] URL della Coda per aggiornamenti di stato afferenti al canale SMS'
     Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueURL
 
-  PnEcDLQueueNameTrackerStatoSMS:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoSMS'
-    Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnTrackerStatoSMS:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoSMS'
-    Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.DeadLetterQueueARN
-
   PnEcAlarmArnQueueTrackerStatoSMS:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoSMS"
     Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.SqsAgeAlarmArn
@@ -719,14 +711,6 @@ Outputs:
     Description: '[Notification Tracker: canale SMS] URL della Coda Errori afferenti al canale SMS'
     Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.QueueURL
 
-  PnEcDLQueueNameTrackerErroriSMS:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriSMS'
-    Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnTrackerErroriSMS:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriSMS'
-    Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.DeadLetterQueueARN
-    
   PnEcAlarmArnQueueTrackerErroriSMS:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriSMS"
     Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.SqsAgeAlarmArn
@@ -749,14 +733,6 @@ Outputs:
     Description: '[Notification Tracker: canale PEC] URL della Coda per aggiornamenti di stato afferenti al canale PEC'
     Value: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.QueueURL
 
-  PnEcDLQueueNameTrackerStatoPEC:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoPEC'
-    Value: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnTrackerStatoPEC:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoPEC'
-    Value: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.DeadLetterQueueARN
-  
   PnEcAlarmArnQueueTrackerStatoPEC:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoPEC"
     Value: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.SqsAgeAlarmArn
@@ -778,14 +754,6 @@ Outputs:
   PnEcQueueUrlTrackerErroriPEC:
     Description: '[Notification Tracker: canale PEC] URL della Coda Errori afferenti al canale PEC'
     Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.QueueURL
-
-  PnEcDLQueueNameTrackerErroriPEC:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriPEC'
-    Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnTrackerErroriPEC:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriPEC'
-    Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.DeadLetterQueueARN
     
   PnEcAlarmArnQueueTrackerErroriPEC:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriPEC"
@@ -809,14 +777,6 @@ Outputs:
     Description: '[Notification Tracker: canale EMAIL] URL della Coda per aggiornamenti di stato afferenti al canale EMAIL'
     Value: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.QueueURL
 
-  PnEcDLQueueNameTrackerStatoEMAIL:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoEMAIL'
-    Value: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnTrackerStatoEMAIL:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoEMAIL'
-    Value: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.DeadLetterQueueARN
-    
   PnEcAlarmArnQueueTrackerStatoEMAIL:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoEMAIL"
     Value: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.SqsAgeAlarmArn
@@ -838,14 +798,6 @@ Outputs:
   PnEcQueueUrlTrackerErroriEMAIL:
     Description: '[Notification Tracker: canale EMAIL] URL della Coda Errori afferenti al canale EMAIL'
     Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.QueueURL
-
-  PnEcDLQueueNameTrackerErroriEMAIL:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriEMAIL'
-    Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnTrackerErroriEMAIL:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriEMAIL'
-    Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.DeadLetterQueueARN
     
   PnEcAlarmArnQueueTrackerErroriEMAIL:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriEMAIL"
@@ -869,14 +821,6 @@ Outputs:
     Description: '[Notification Tracker: canale CARTACEO] URL della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
     Value: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.QueueURL
 
-  PnEcDLQueueNameTrackerStatoCARTACEO:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerStatoCARTACEO'
-    Value: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnTrackerStatoCARTACEO:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerStatoCARTACEO'
-    Value: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.DeadLetterQueueARN
-    
   PnEcAlarmArnQueueTrackerStatoCARTACEO:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoCARTACEO"
     Value: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.SqsAgeAlarmArn
@@ -899,14 +843,6 @@ Outputs:
     Description: '[Notification Tracker: canale CARTACEO] URL della Coda Errori afferenti al canale CARTACEO'
     Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.QueueURL
 
-  PnEcDLQueueNameTrackerErroriCARTACEO:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueTrackerErroriCARTACEO'
-    Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnTrackerErroriCARTACEO:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueTrackerErroriCARTACEO'
-    Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.DeadLetterQueueARN
-    
   PnEcAlarmArnQueueTrackerErroriCARTACEO:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriCARTACEO"
     Value: !GetAtt PnEcQueueTrackerErroriCARTACEOStack.Outputs.SqsAgeAlarmArn
@@ -965,14 +901,6 @@ Outputs:
     Description: '[Canale SMS] URL della Coda per la modalità SMS-Batch'
     Value: !GetAtt  PnEcQueueBatchSMSStack.Outputs.QueueURL
 
-  PnEcDLQueueNameBatchSMS:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchSMS'
-    Value: !GetAtt  PnEcQueueBatchSMSStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnBatchSMS:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchSMS'
-    Value: !GetAtt  PnEcQueueBatchSMSStack.Outputs.DeadLetterQueueARN
-    
   PnEcAlarmArnQueueBatchSMS:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchSMS"
     Value: !GetAtt PnEcQueueBatchSMSStack.Outputs.SqsAgeAlarmArn
@@ -995,14 +923,6 @@ Outputs:
     Description: '[Canale SMS] URL della Coda per la modalità SMS-Interactive'
     Value: !GetAtt  PnEcQueueInteractiveSMSStack.Outputs.QueueURL
 
-  PnEcDLQueueNameInteractiveSMS:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractiveSMS'
-    Value: !GetAtt  PnEcQueueInteractiveSMSStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnInteractiveSMS:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueInteractiveSMS'
-    Value: !GetAtt  PnEcQueueInteractiveSMSStack.Outputs.DeadLetterQueueARN
-    
   PnEcAlarmArnQueueInteractiveSMS:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractiveSMS"
     Value: !GetAtt PnEcQueueInteractiveSMSStack.Outputs.SqsAgeAlarmArn
@@ -1025,14 +945,6 @@ Outputs:
     Description: '[Canale SMS] URL della Coda Errori SMS'
     Value: !GetAtt  PnEcQueueErroriSMSStack.Outputs.QueueURL
 
-  PnEcDLQueueNameErroriSMS:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriSMS'
-    Value: !GetAtt  PnEcQueueErroriSMSStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnErroriSMS:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriSMS'
-    Value: !GetAtt  PnEcQueueErroriSMSStack.Outputs.DeadLetterQueueARN
-  
   PnEcAlarmArnQueueErroriSMS:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriSMS"
     Value: !GetAtt PnEcQueueErroriSMSStack.Outputs.SqsAgeAlarmArn
@@ -1055,14 +967,6 @@ Outputs:
     Description: '[Canale PEC] URL della Coda per la modalità PEC-Batch'
     Value: !GetAtt  PnEcQueueBatchPECStack.Outputs.QueueURL
 
-  PnEcDLQueueNameBatchPEC:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchPEC'
-    Value: !GetAtt  PnEcQueueBatchPECStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnBatchPEC:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchPEC'
-    Value: !GetAtt  PnEcQueueBatchPECStack.Outputs.DeadLetterQueueARN
-    
   PnEcAlarmArnQueueBatchPEC:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchPEC"
     Value: !GetAtt PnEcQueueBatchPECStack.Outputs.SqsAgeAlarmArn
@@ -1085,14 +989,6 @@ Outputs:
     Description: '[Canale PEC] URL della Coda per la modalità PEC-Interactive'
     Value: !GetAtt  PnEcQueueInteractivePECStack.Outputs.QueueURL
 
-  PnEcDLQueueNameInteractivePEC:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractivePEC'
-    Value: !GetAtt  PnEcQueueInteractivePECStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnInteractivePEC:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueInteractivePEC'
-    Value: !GetAtt  PnEcQueueInteractivePECStack.Outputs.DeadLetterQueueARN
-    
   PnEcAlarmArnQueueInteractivePEC:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractivePEC"
     Value: !GetAtt PnEcQueueInteractivePECStack.Outputs.SqsAgeAlarmArn
@@ -1115,14 +1011,6 @@ Outputs:
     Description: '[Canale PEC] URL della Coda Errori PEC'
     Value: !GetAtt  PnEcQueueErroriPECStack.Outputs.QueueURL
 
-  PnEcDLQueueNameErroriPEC:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriPEC'
-    Value: !GetAtt  PnEcQueueErroriPECStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnErroriPEC:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriPEC'
-    Value: !GetAtt  PnEcQueueErroriPECStack.Outputs.DeadLetterQueueARN
-    
   PnEcAlarmArnQueueErroriPEC:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriPEC"
     Value: !GetAtt PnEcQueueErroriPECStack.Outputs.SqsAgeAlarmArn
@@ -1144,15 +1032,7 @@ Outputs:
   PnEcQueueUrlBatchEMAIL:
     Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Batch'
     Value: !GetAtt  PnEcQueueBatchEMAILStack.Outputs.QueueURL
-
-  PnEcDLQueueNameBatchEMAIL:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchEMAIL'
-    Value: !GetAtt  PnEcQueueBatchEMAILStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnBatchEMAIL:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchEMAIL'
-    Value: !GetAtt  PnEcQueueBatchEMAILStack.Outputs.DeadLetterQueueARN
-    
+ 
   PnEcAlarmArnQueueBatchEMAIL:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchEMAIL"
     Value: !GetAtt PnEcQueueBatchEMAILStack.Outputs.SqsAgeAlarmArn
@@ -1174,15 +1054,7 @@ Outputs:
   PnEcQueueUrlInteractiveEMAIL:
     Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Interactive'
     Value: !GetAtt  PnEcQueueInteractiveEMAILStack.Outputs.QueueURL
-
-  PnEcDLQueueNameInteractiveEMAIL:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueInteractiveEMAIL'
-    Value: !GetAtt  PnEcQueueInteractiveEMAILStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnInteractiveEMAIL:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueInteractiveEMAIL'
-    Value: !GetAtt  PnEcQueueInteractiveEMAILStack.Outputs.DeadLetterQueueARN
-    
+ 
   PnEcAlarmArnQueueInteractiveEMAIL:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractiveEMAIL"
     Value: !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.SqsAgeAlarmArn
@@ -1205,14 +1077,6 @@ Outputs:
     Description: '[Canale EMAIL] URL della Coda Errori EMAIL'
     Value: !GetAtt  PnEcQueueErroriEMAILStack.Outputs.QueueURL
 
-  PnEcDLQueueNameErroriEMAIL:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriEMAIL'
-    Value: !GetAtt  PnEcQueueErroriEMAILStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnErroriEMAIL:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriEMAIL'
-    Value: !GetAtt  PnEcQueueErroriEMAILStack.Outputs.DeadLetterQueueARN
-    
   PnEcAlarmArnQueueErroriEMAIL:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriEMAIL"
     Value: !GetAtt PnEcQueueErroriEMAILStack.Outputs.SqsAgeAlarmArn
@@ -1235,14 +1099,6 @@ Outputs:
     Description: '[Canale CARTACEO] URL della Coda per la modalità CARTACEO-Batch'
     Value: !GetAtt  PnEcQueueBatchCARTACEOStack.Outputs.QueueURL
 
-  PnEcDLQueueNameBatchCARTACEO:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueBatchCARTACEO'
-    Value: !GetAtt  PnEcQueueBatchCARTACEOStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnBatchCARTACEO:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueBatchCARTACEO'
-    Value: !GetAtt  PnEcQueueBatchCARTACEOStack.Outputs.DeadLetterQueueARN
-    
   PnEcAlarmArnQueueBatchCARTACEO:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchCARTACEO"
     Value: !GetAtt PnEcQueueBatchCARTACEOStack.Outputs.SqsAgeAlarmArn
@@ -1265,14 +1121,6 @@ Outputs:
     Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
     Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.QueueURL
 
-  PnEcDLQueueNameErroriCARTACEO:
-    Description: '[DLQ di Servizio] Nome della DLQ relativa alla coda PnEcQueueErroriCARTACEO'
-    Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnErroriCARTACEO:
-    Description: '[DLQ di Servizio] ARN della DLQ relativa alla coda PnEcQueueErroriCARTACEO'
-    Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.DeadLetterQueueARN
-    
   PnEcAlarmArnQueueErroriCARTACEO:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriCARTACEO"
     Value: !GetAtt PnEcQueueErroriCARTACEOStack.Outputs.SqsAgeAlarmArn
