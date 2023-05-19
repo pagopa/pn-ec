@@ -8,7 +8,7 @@ import reactor.core.publisher.Mono;
 public interface GestoreRepositoryCall {
 
 //  <-- CLIENT CONFIGURATION -->
-    Mono<ClientConfigurationDto> getClientConfiguration(String xPagopaExtchCxId) throws RestCallException.ResourceNotFoundException;
+    Mono<ClientConfigurationInternalDto> getClientConfiguration(String xPagopaExtchCxId) throws RestCallException.ResourceNotFoundException;
     Mono<ClientConfigurationDto> insertClientConfiguration(ClientConfigurationDto clientConfigurationDto);
     Mono<ClientConfigurationDto> updateClientConfiguration(String xPagopaExtchCxId, ClientConfigurationDto clientConfigurationDto);
     Mono<Void> deleteClientConfiguration(String xPagopaExtchCxId);
