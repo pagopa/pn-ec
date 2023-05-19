@@ -1264,6 +1264,7 @@ Resources:
   PnEcRoleExternalNotifications:
     Type: AWS::IAM::Role
     Properties:
+      Description: 'Role for forwarding Events to PnCoreTargetEventBus'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -1273,7 +1274,6 @@ Resources:
             Principal:
               Service: 
                 - 'events.amazonaws.com'
-      Description: 'Role for forwarding Events to EventBus'
       Policies:
         - PolicyName: 'PutEventsInlinePolicy'
           PolicyDocument: 
