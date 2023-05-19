@@ -638,6 +638,22 @@ Parameters:
   PnEcAlarmArnDLQueueErroriCARTACEO:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriCARTACEO"
+ 
+  PnEcQueueNameEventsDLQueuePnCoreTargetEventBus:
+    Type: String
+    Description: 'Nome DLQ per forward degli eventi al bus PnCoreTargetEventBus'
+
+  PnEcQueueArnEventsDLQueuePnCoreTargetEventBus:
+    Type: String
+    Description: 'ARN DLQ per forward degli eventi al bus PnCoreTargetEventBus'
+
+  PnEcQueueUrlEventsDLQueuePnCoreTargetEventBus:
+    Type: String
+    Description: 'URL DLQ per forward degli eventi al bus PnCoreTargetEventBus'
+
+  PnEcAlarmArnEventsDLQueuePnCoreTargetEventBus:
+    Type: String
+    Description: "ARN dell'allarme messaggi vecchi nella DLQ per forward degli eventi al bus PnCoreTargetEventBus"
 
   PnEcConsolidatoreBaseURL:
     Description: 'Base URL per accesso ai servizi del consolidatore'
@@ -754,6 +770,8 @@ Resources:
               - !Sub '${PnEcQueueArnBatchEMAIL}'
               - !Sub '${PnEcQueueArnInteractiveEMAIL}'
               - !Sub '${PnEcQueueArnErroriEMAIL}'
+              - !Sub '${PnEcQueueArnBatchCARTACEO}'
+              - !Sub '${PnEcQueueArnErroriCARTACEO}'
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
@@ -1245,7 +1263,6 @@ Resources:
   #####    External notifications    #####
   PnEcRoleExternalNotifications:
     Type: AWS::IAM::Role
-    Condition: PnCoreTargetEventBusExists
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -1269,48 +1286,37 @@ Resources:
                 Resource:
                   - !Ref PnCoreTargetEventBus
 
-  PnEcEventsDLQueueExternalNotifications:
-    Type: AWS::SQS::Queue
-    Condition: PnCoreTargetEventBusExists
-    Properties:
-      SqsManagedSseEnabled: True
-      MessageRetentionPeriod: 1209600
-      ReceiveMessageWaitTimeSeconds: 0
-      VisibilityTimeout: 30
-
   PnEcQueuePolicyExternalNotifications:
     Type: AWS::SQS::QueuePolicy
-    Condition: PnCoreTargetEventBusExists
     Properties: 
       Queues: 
-        - !Ref PnEcEventsDLQueueExternalNotifications
+        - !Ref PnEcQueueUrlEventsDLQueuePnCoreTargetEventBus
       PolicyDocument: 
         Statement: 
           - Sid: 'AllowAccessSameAccount'
             Action: 
               - "SQS:*"
             Effect: "Allow"
-            Resource: !GetAtt PnEcEventsDLQueueExternalNotifications.Arn
+            Resource: !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
             Principal: 
               AWS: !Sub ${AWS::AccountId}
           - Sid: 'AllowPutEventsFromEventRule'
             Action: 
               - "sqs:SendMessage"
             Effect: "Allow"
-            Resource: !GetAtt PnEcEventsDLQueueExternalNotifications.Arn
+            Resource: !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
             Principal: 
               Service:
               - 'events.amazonaws.com'
             Condition: 
               ArnEquals:
-                aws:SourceArn: !GetAtt PnEcEventRuleExternalNotifications.Arn
+                aws:SourceArn: !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
 
   PnEcEventRuleExternalNotifications:
     Type: AWS::Events::Rule
-    Condition: PnCoreTargetEventBusExists
     Properties:
       EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
-      Description: 'Rule forwarding events to EventBus'
+      Description: 'Rule forwarding events to PnCoreTargetEventBus'
       EventPattern:
         source: 
           - "NOTIFICATION TRACKER"
@@ -1324,5 +1330,5 @@ Resources:
           Id: 'PnEcExternalNotificationTarget'
           RoleArn: !GetAtt PnEcRoleExternalNotifications.Arn
           DeadLetterConfig:
-            Arn: !GetAtt PnEcEventsDLQueueExternalNotifications.Arn
+            Arn: !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
 
