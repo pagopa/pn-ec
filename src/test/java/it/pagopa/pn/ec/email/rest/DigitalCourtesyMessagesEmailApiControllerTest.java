@@ -79,6 +79,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
             "/external-channels/v1/digital-deliveries/courtesy-full-message-requests" + "/{requestIdx}";
     private static final DigitalCourtesyMailRequest digitalCourtesyMailRequest = new DigitalCourtesyMailRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
+    private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
     private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
 
     @BeforeAll
@@ -115,7 +116,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     @Test
     void sendEmailOk() {
 
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
@@ -153,7 +154,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     @Test
     void sendEmailRequestAlreadyMade() {
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
 
@@ -171,7 +172,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     void sendSmsRequestWithSameContentAlreadyMade() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
 
@@ -187,7 +188,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     @Test
     void sendEmailNotificationTrackerKo() {
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
 
@@ -209,7 +210,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     void sendEmailQueueKo() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
 
@@ -228,7 +229,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     @Test
     void sendEmailWithoutValidAttachment() {
 
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
         when(gestoreRepositoryCall.getRichiesta(anyString(),
                                                 anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(
