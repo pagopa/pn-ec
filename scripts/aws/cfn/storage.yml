@@ -33,6 +33,10 @@ Parameters:
     Type: String
     Description: 'Topic alarm'
 
+Conditions:
+  # TODO: Sistemare questo parametro una volta che si dovrà fare il rilascio in un ambiente diverso da 'dev'
+  IsDevEnv: !Equals ['dev-env-param', 'dev-env-param' ] 
+
 Resources:
 
   ######### DYNAMODB TABLES  ############
@@ -373,11 +377,12 @@ Resources:
   #         StringNotEquals:
   #           aws:SourceAccount: !Sub '${AWS::AccountId}'
 
-  
+
   PnEcEventRuleNotificheExt1:
     Type: AWS::Events::Rule
+    Condition: IsDevEnv
     Properties:
-      Description: Description
+      Description: 'This Event rule is used to forward event on a dummy queue in addition to PnCoreTargetEventBus'
       EventBusName: !Ref PnEcEventBusTrackerExternalNotification
       EventPattern:   
         source: 
@@ -391,6 +396,16 @@ Resources:
         - Arn: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.QueueARN
           Id: 'PnEcExt1QueueTargetForExtNotification'
 
+  PnEcEventsDLQueuePnCoreTargetEventBusStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-forward-events-pncoreeventbus-DLQueue'
+        HasDLQ: False
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+    
   # PnEcEventBusArchiveTrackerExternalNotification:
   #   Type: AWS::Events::Archive
   #   Properties: 
@@ -1244,3 +1259,19 @@ Outputs:
   PnEcAlarmArnDLQueueErroriCARTACEO:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriCARTACEO"
     Value: !GetAtt PnEcQueueErroriCARTACEOStack.Outputs.SqsDLQAlarmArn
+  
+  PnEcQueueNameEventsDLQueuePnCoreTargetEventBus:
+    Description: 'Nome DLQ per forward degli eventi al bus PnCoreTargetEventBus'
+    Value: !GetAtt PnEcEventsDLQueuePnCoreTargetEventBusStack.Outputs.QueueName
+
+  PnEcQueueArnEventsDLQueuePnCoreTargetEventBus:
+    Description: 'ARN DLQ per forward degli eventi al bus PnCoreTargetEventBus'
+    Value: !GetAtt PnEcEventsDLQueuePnCoreTargetEventBusStack.Outputs.QueueARN
+
+  PnEcQueueUrlEventsDLQueuePnCoreTargetEventBus:
+    Description: 'URL DLQ per forward degli eventi al bus PnCoreTargetEventBus'
+    Value: !GetAtt PnEcEventsDLQueuePnCoreTargetEventBusStack.Outputs.QueueURL
+
+  PnEcAlarmArnEventsDLQueuePnCoreTargetEventBus:
+    Description: "ARN dell'allarme messaggi vecchi nella DLQ per forward degli eventi al bus PnCoreTargetEventBus"
+    Value: !GetAtt PnEcEventsDLQueuePnCoreTargetEventBusStack.Outputs.SqsAgeAlarmArn
