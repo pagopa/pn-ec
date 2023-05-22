@@ -39,7 +39,6 @@ Parameters:
     Default: 'dev'
 
 Conditions:
-  # TODO: Sistemare questo parametro una volta che si dovrà fare il rilascio in un ambiente diverso da 'dev'
   IsDevEnv: !Equals [ !Ref EnvType, 'dev'] 
 
 Resources:
