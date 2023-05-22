@@ -72,67 +72,63 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		log.info(LOG_LABEL + "START for requestId \"{}\"", progressStatusEvent.getRequestId());
 
 		return statusPullService.paperPullService(progressStatusEvent.getRequestId(), xPagopaExtchServiceId)
-				.handle(((progressStatusEventToCheck, synchronousSink) ->
+				.flatMap(progressStatusEventToCheck ->
 				{
 					var iun = progressStatusEventToCheck.getIun();
 					var productType = progressStatusEventToCheck.getProductType();
 
+					List<String> errorList = new ArrayList<>();
+
+                    //Iun
 					if (!progressStatusEvent.getIun().equals(iun)) {
-						synchronousSink.error(new RicezioneEsitiCartaceoException(
-								SEMANTIC_ERROR_CODE,
-								errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-								List.of(String.format(UNRECOGNIZED_ERROR, IUN_LABEL, iun))));
-					} else if (!progressStatusEvent.getProductType().equals(productType)) {
-						synchronousSink.error(new RicezioneEsitiCartaceoException(
-								SEMANTIC_ERROR_CODE,
-								errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-								List.of(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, productType))));
-					} else synchronousSink.next(progressStatusEventToCheck);
-				}))
-				.flatMap(unused ->
-				{
+						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, IUN_LABEL, progressStatusEvent.getStatusCode()));
+						errorList.add(String.format(UNRECOGNIZED_ERROR, IUN_LABEL, iun));
+					}
+					//ProductType
+					if (!progressStatusEvent.getProductType().equals(productType)) {
+						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getStatusCode()));
+						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, productType));
+					}
 					// StatusCode
 					if (!statusCodeDescriptionMap().containsKey(progressStatusEvent.getStatusCode())) {
 						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()));
-						return Mono.error(new RicezioneEsitiCartaceoException(
-								SEMANTIC_ERROR_CODE,
-								errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-								List.of(String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()))));
+						errorList.add(String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()));
 					}
 					// ProductTypeMap
 					if (!productTypeMap().containsKey(progressStatusEvent.getProductType())) {
 						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
-						return Mono.error(new RicezioneEsitiCartaceoException(
-								SEMANTIC_ERROR_CODE,
-								errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-								List.of(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()))));
+						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
 					}
-					// DeliveryFailureCaus non è un campo obbligatorio
+					// DeliveryFailureCause non è un campo obbligatorio
 					if (progressStatusEvent.getDeliveryFailureCause() != null
 							&& !progressStatusEvent.getDeliveryFailureCause().isBlank()
 							&& !deliveryFailureCausemap().containsKey(progressStatusEvent.getDeliveryFailureCause())) {
 						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
-						return Mono.error(new RicezioneEsitiCartaceoException(
-								SEMANTIC_ERROR_CODE,
-								errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-								List.of(String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()))));
+						errorList.add(String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
 					}
 					// Attachments non e' una lista obbligatoria
 					if (progressStatusEvent.getAttachments() != null && !progressStatusEvent.getAttachments().isEmpty()) {
 						for (ConsolidatoreIngressPaperProgressStatusEventAttachments attachment : progressStatusEvent.getAttachments()) {
 							if (!attachmentDocumentTypeMap().contains(attachment.getDocumentType())) {
 								log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, ATTACHMENT_DOCUMENT_TYPE_LABEL, attachment.getDocumentType()));
-								return Mono.error(new RicezioneEsitiCartaceoException(
-										SEMANTIC_ERROR_CODE,
-										errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-										List.of(String.format(UNRECOGNIZED_ERROR, ATTACHMENT_DOCUMENT_TYPE_LABEL, attachment.getDocumentType()))));
+								errorList.add(String.format(UNRECOGNIZED_ERROR, ATTACHMENT_DOCUMENT_TYPE_LABEL, attachment.getDocumentType()));
 							}
 						}
 					}
-					log.debug(LOG_LABEL + "END without errors for requestId \"{}\"", progressStatusEvent.getRequestId());
-					return Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null));
+						return Mono.just(errorList);
+					})
+				.handle((errorList, syncrhonousSink) ->
+				{
+					if (errorList.isEmpty()) {
+						log.debug(LOG_LABEL + "END without errors for requestId \"{}\"", progressStatusEvent.getRequestId());
+						syncrhonousSink.next(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null));
+					} else syncrhonousSink.error(new RicezioneEsitiCartaceoException(
+							SEMANTIC_ERROR_CODE,
+							errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
+							errorList));
 				});
 	}
+
 
 	private Mono<OperationResultCodeResponse> verificaAttachments(
 			String xPagopaExtchServiceId, String requestId,
@@ -231,7 +227,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			    	 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 			    			 								getOperationResultCodeResponse(REQUEST_ID_ERROR_CODE,
 																					       errorCodeDescriptionMap().get(REQUEST_ID_ERROR_CODE),
-																					       List.of("requestId " + progressStatusEvent.getRequestId() + " unrecognized"))));
+																					       List.of(String.format("requestId '%s' unrecognized", progressStatusEvent.getRequestId())))));
 			     })
 			     // *** errore semantico
 			     .onErrorResume(RicezioneEsitiCartaceoException.class, throwable -> {
