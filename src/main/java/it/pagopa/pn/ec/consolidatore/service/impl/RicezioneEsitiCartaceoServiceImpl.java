@@ -231,8 +231,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			    	 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 			    			 								getOperationResultCodeResponse(REQUEST_ID_ERROR_CODE,
 																					       errorCodeDescriptionMap().get(REQUEST_ID_ERROR_CODE),
-																						   //TODO Aggiungere valore del requestId sbagliato.
-																					       List.of("requestId unrecognized"))));
+																					       List.of("requestId " + progressStatusEvent.getRequestId() + " unrecognized"))));
 			     })
 			     // *** errore semantico
 			     .onErrorResume(RicezioneEsitiCartaceoException.class, throwable -> {
