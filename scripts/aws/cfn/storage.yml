@@ -32,10 +32,15 @@ Parameters:
   AlarmSNSTopicName:
     Type: String
     Description: 'Topic alarm'
+  
+  EnvType:
+    Type: String
+    Description: 'Deploy environment type'
+    Default: 'dev'
 
 Conditions:
   # TODO: Sistemare questo parametro una volta che si dovrà fare il rilascio in un ambiente diverso da 'dev'
-  IsDevEnv: !Equals ['dev-env-param', 'dev-env-param' ] 
+  IsDevEnv: !Equals [ !Ref EnvType, 'dev'] 
 
 Resources:
 
