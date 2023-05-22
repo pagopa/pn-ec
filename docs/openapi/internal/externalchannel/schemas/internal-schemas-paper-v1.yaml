@@ -228,6 +228,24 @@ components:
             - __08__ indirizzo insufficiente <br/>
             - ... Motivazioni aggiuntive concordate con il consolidatore
           type: string
+        productType:
+          description: >-
+            Tipo prodotto di cui viene chiesto il recapito:  <br/>
+            - __AR__: Raccomandata Andata e Ritorno nazionale,  <br/>
+            - __890__: Recapito a norma della legge 890/1982,  <br/>
+            - __RS__: Raccomandata Semplice nazionale (per Avviso di mancato Recapito). <br/>
+            - __RIS__: Raccomandata Internazionale Semplice,  <br/>
+            - __RIR__: Raccomandata Internazionale con AR.  <br/>
+          minLength: 2
+          maxLength: 3
+          type: string
+        iun:
+          type: string
+          minLength: 10
+          maxLength: 50
+          description: >-
+            Identificativo Unico della Notifica. Proviene dalla richiesta originaria di PN.
+          example: 'ABCD-HILM-YKWX-202202-1'
         attachments:
           type: array
           items:

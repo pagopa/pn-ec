@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import it.pagopa.pn.ec.commons.service.AuthService;
+import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,9 @@ class RicezioneEsitiConsolidatoreControllerTest {
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
     @MockBean
     private FileCall fileCall;
-    
+
+	@MockBean
+	private StatusPullService statusPullService;
 	@SpyBean
 	private SqsServiceImpl sqsService;
     
@@ -78,6 +81,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
     private static final String uri = SS_IN_URI + documentKey;
     // minLength: 40 maxLength: 50
     private static final String sha256Id = "abcdefghilabcdefghilabcdefghilabcdefghil123";
+
+	private static final String IUN = "abcdefghie";
 	private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
 
 	private static final String STATUS_CODE_INESISTENTE = "test";
@@ -89,6 +94,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	progressStatusEvent.setStatusDescription(statusCodeDescriptionMap().get(CON010));
     	progressStatusEvent.setStatusDateTime(now);
     	progressStatusEvent.setProductType(PRODUCT_TYPE_AR);
+		progressStatusEvent.setIun(IUN);
     	progressStatusEvent.setClientRequestTimeStamp(now);
     	return progressStatusEvent;
     }
@@ -128,6 +134,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiOk() : START");
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
     	when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
     	
     	FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
     	fileDownloadResponse.setKey(documentKey);
@@ -148,8 +155,64 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	        .expectStatus()
 	        .isOk();
     }
-    
-    @Test
+
+	@Test
+	/** Test CRCRE.100.1 */
+	void ricezioneEsitiErroreValidazioneIun() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiOk() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun("DIFFERENT_IUN")));
+
+		FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
+		fileDownloadResponse.setKey(documentKey);
+
+		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true)).thenReturn(Mono.just(fileDownloadResponse));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithoutAttachments());
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isBadRequest();
+	}
+
+	@Test
+	/** Test CRCRE.100.1 */
+	void ricezioneEsitiErroreValidazioneProductType() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiOk() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType("DIFFERENT_PRODUCT_TYPE").iun(IUN)));
+
+		FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
+		fileDownloadResponse.setKey(documentKey);
+
+		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true)).thenReturn(Mono.just(fileDownloadResponse));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithoutAttachments());
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isBadRequest();
+	}
+
+	@Test
     /** Test CRCRE.100.2 */
     void ricezioneEsitiErroreValidazioneIdRichiesta() {
     	log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneIdRichiesta() : START");

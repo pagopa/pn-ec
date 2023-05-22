@@ -11,6 +11,7 @@ import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.consolidatore.dto.RicezioneEsitiDto;
 import it.pagopa.pn.ec.consolidatore.exception.AttachmentsEmptyRicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.consolidatore.exception.RicezioneEsitiCartaceoException;
@@ -39,15 +40,18 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private final NotificationTrackerSqsName notificationTrackerSqsName;
 	private final SqsService sqsService;
 
+	private final StatusPullService statusPullService;
+
 	public RicezioneEsitiCartaceoServiceImpl(GestoreRepositoryCall gestoreRepositoryCall,
-			FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
-			SqsService sqsService) {
+											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
+											 SqsService sqsService, StatusPullService statusPullService) {
 		super();
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.fileCall = fileCall;
 		this.objectMapper = objectMapper;
 		this.notificationTrackerSqsName = notificationTrackerSqsName;
 		this.sqsService = sqsService;
+		this.statusPullService = statusPullService;
 	}
 
 	private OperationResultCodeResponse getOperationResultCodeResponse(
@@ -60,54 +64,71 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	}
 
 	// errore semantico -> resultDescription: 'Semantic Error'
-	private Mono<OperationResultCodeResponse> verificaErroriSemantici(ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent)
+	private Mono<OperationResultCodeResponse> verificaErroriSemantici(ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent, String xPagopaExtchServiceId)
 			throws RicezioneEsitiCartaceoException
 	{
 		final String LOG_LABEL = "RicezioneEsitiCartaceoServiceImpl.verificaErroriSemantici() ";
 		final String ERROR_LABEL = "error = {}";
 		log.info(LOG_LABEL + "START for requestId \"{}\"", progressStatusEvent.getRequestId());
 
-		// StatusCode
-		if (!statusCodeDescriptionMap().containsKey(progressStatusEvent.getStatusCode())) {
-				log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()));
-				return Mono.error(new RicezioneEsitiCartaceoException(
-		    	 						SEMANTIC_ERROR_CODE,
-		    	 						errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-		    	 						List.of(String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()))));
-		}
-		// ProductTypeMap
-		if (!productTypeMap().containsKey(progressStatusEvent.getProductType())) {
-				log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
-				return Mono.error(new RicezioneEsitiCartaceoException(
-		    	 						SEMANTIC_ERROR_CODE,
-		    	 						errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-		    	 						List.of(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()))));
-		}
-		// DeliveryFailureCaus non è un campo obbligatorio
-		if (progressStatusEvent.getDeliveryFailureCause() != null
-				&& !progressStatusEvent.getDeliveryFailureCause().isBlank()
-				&& !deliveryFailureCausemap().containsKey(progressStatusEvent.getDeliveryFailureCause())) {
-				log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
-				return Mono.error(new RicezioneEsitiCartaceoException(
-		    	 						SEMANTIC_ERROR_CODE,
-		    	 						errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-		    	 						List.of(String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()))));
-		}
-		// Attachments non e' una lista obbligatoria
-		if (progressStatusEvent.getAttachments() != null && !progressStatusEvent.getAttachments().isEmpty()) {
-			for (ConsolidatoreIngressPaperProgressStatusEventAttachments attachment: progressStatusEvent.getAttachments()) {
-				if (!attachmentDocumentTypeMap().contains(attachment.getDocumentType())) {
-					log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, ATTACHMENT_DOCUMENT_TYPE_LABEL, attachment.getDocumentType()));
-	 				return Mono.error(new RicezioneEsitiCartaceoException(
-	 						SEMANTIC_ERROR_CODE,
-	 						errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-	 						List.of(String.format(UNRECOGNIZED_ERROR, ATTACHMENT_DOCUMENT_TYPE_LABEL, attachment.getDocumentType()))));
-				}
-			}
-		}
-		log.debug(LOG_LABEL + "END without errors for requestId \"{}\"", progressStatusEvent.getRequestId());
-		return Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null));
+		return statusPullService.paperPullService(progressStatusEvent.getRequestId(), xPagopaExtchServiceId)
+				.flatMap(progressStatusEventToCheck ->
+				{
+					var iun = progressStatusEventToCheck.getIun();
+					var productType = progressStatusEventToCheck.getProductType();
+
+					List<String> errorList = new ArrayList<>();
+
+                    //Iun
+					if (!progressStatusEvent.getIun().equals(iun)) {
+						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, IUN_LABEL, progressStatusEvent.getStatusCode()));
+						errorList.add(String.format(UNRECOGNIZED_ERROR, IUN_LABEL, iun));
+					}
+					//ProductType
+					if (!progressStatusEvent.getProductType().equals(productType)) {
+						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getStatusCode()));
+						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, productType));
+					}
+					// StatusCode
+					if (!statusCodeDescriptionMap().containsKey(progressStatusEvent.getStatusCode())) {
+						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()));
+						errorList.add(String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()));
+					}
+					// ProductTypeMap
+					if (!productTypeMap().containsKey(progressStatusEvent.getProductType())) {
+						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
+						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
+					}
+					// DeliveryFailureCause non è un campo obbligatorio
+					if (progressStatusEvent.getDeliveryFailureCause() != null
+							&& !progressStatusEvent.getDeliveryFailureCause().isBlank()
+							&& !deliveryFailureCausemap().containsKey(progressStatusEvent.getDeliveryFailureCause())) {
+						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
+						errorList.add(String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
+					}
+					// Attachments non e' una lista obbligatoria
+					if (progressStatusEvent.getAttachments() != null && !progressStatusEvent.getAttachments().isEmpty()) {
+						for (ConsolidatoreIngressPaperProgressStatusEventAttachments attachment : progressStatusEvent.getAttachments()) {
+							if (!attachmentDocumentTypeMap().contains(attachment.getDocumentType())) {
+								log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, ATTACHMENT_DOCUMENT_TYPE_LABEL, attachment.getDocumentType()));
+								errorList.add(String.format(UNRECOGNIZED_ERROR, ATTACHMENT_DOCUMENT_TYPE_LABEL, attachment.getDocumentType()));
+							}
+						}
+					}
+						return Mono.just(errorList);
+					})
+				.handle((errorList, syncrhonousSink) ->
+				{
+					if (errorList.isEmpty()) {
+						log.debug(LOG_LABEL + "END without errors for requestId \"{}\"", progressStatusEvent.getRequestId());
+						syncrhonousSink.next(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null));
+					} else syncrhonousSink.error(new RicezioneEsitiCartaceoException(
+							SEMANTIC_ERROR_CODE,
+							errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
+							errorList));
+				});
 	}
+
 
 	private Mono<OperationResultCodeResponse> verificaAttachments(
 			String xPagopaExtchServiceId, String requestId,
@@ -192,7 +213,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			    			 xPagopaExtchServiceId, progressStatusEvent);
 			     })
 				 .flatMap(unused -> gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceId, progressStatusEvent.getRequestId()))
-			     .flatMap(unused -> verificaErroriSemantici(progressStatusEvent))
+			     .flatMap(unused -> verificaErroriSemantici(progressStatusEvent, xPagopaExtchServiceId))
 			     .flatMap(unused -> verificaAttachments(xPagopaExtchServiceId, progressStatusEvent.getRequestId(), progressStatusEvent.getAttachments()))
 			     .flatMap(unused -> Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 											 			 		    getOperationResultCodeResponse(COMPLETED_OK_CODE,
@@ -206,7 +227,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			    	 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 			    			 								getOperationResultCodeResponse(REQUEST_ID_ERROR_CODE,
 																					       errorCodeDescriptionMap().get(REQUEST_ID_ERROR_CODE),
-																					       List.of("requestId unrecognized"))));
+																					       List.of(String.format("requestId '%s' unrecognized", progressStatusEvent.getRequestId())))));
 			     })
 			     // *** errore semantico
 			     .onErrorResume(RicezioneEsitiCartaceoException.class, throwable -> {
@@ -233,8 +254,9 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			String xPagopaExtchServiceId,
 			ConsolidatoreIngressPaperProgressStatusEvent statusEvent)
 	{
-		return Mono.just(statusEvent)
-			.flatMap(progressStatusEvent -> {
+		return statusPullService.paperPullService(statusEvent.getRequestId(), xPagopaExtchServiceId)
+			.flatMap(unused -> {
+
 				log.info(LOG_PUB_LABEL + "START : xPagopaExtchServiceId = {} : statusEvent = {}",
 						xPagopaExtchServiceId, statusEvent);
 
@@ -262,6 +284,8 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	 			paperProgressStatusDto.setStatusDateTime(statusEvent.getStatusDateTime());
 	 			paperProgressStatusDto.setDeliveryFailureCause(statusEvent.getDeliveryFailureCause());
 	 			paperProgressStatusDto.setRegisteredLetterCode(statusEvent.getRegisteredLetterCode());
+				paperProgressStatusDto.setIun(statusEvent.getIun());
+				paperProgressStatusDto.setProductType(statusEvent.getProductType());
 	 			paperProgressStatusDto.setDiscoveredAddress(discoveredAddressDto);
 	 			paperProgressStatusDto.setAttachments(attachmentsDto);
 
