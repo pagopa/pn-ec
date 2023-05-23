@@ -93,16 +93,18 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                                                             String xApiKey,
                                                                                             Flux<ConsolidatoreIngressPaperProgressStatusEvent> consolidatoreIngressPaperProgressStatusEvent,
                                                                                             final ServerWebExchange exchange) {
+        log.info("START sendPaperProgressStatusRequest, clientID: {}", xPagopaExtchServiceId);
         return authService.clientAuth(xPagopaExtchServiceId)
                 .flatMap(clientConfiguration -> {
-                    if (!clientConfiguration.getApiKey().equals(xApiKey)) {
+
+                    if (clientConfiguration.getApiKey() == null || !clientConfiguration.getApiKey().equals(xApiKey)) {
                         return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid API key"));
                     }
                     return Mono.just(clientConfiguration);
                 })
                 .flatMap(clientConfiguration -> consolidatoreIngressPaperProgressStatusEvent
                         .flatMap(statusEvent -> {
-                            log.info(LOG_LABEL + "START for requestId {}", statusEvent.getRequestId());
+                            log.debug(LOG_LABEL + "START for requestId {}", statusEvent.getRequestId());
                             return ricezioneEsitiCartaceoService.verificaEsitoDaConsolidatore(xPagopaExtchServiceId, statusEvent);
                         })
                         .collectList()
