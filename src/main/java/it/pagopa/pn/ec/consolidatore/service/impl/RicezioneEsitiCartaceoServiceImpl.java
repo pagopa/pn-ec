@@ -18,6 +18,7 @@ import it.pagopa.pn.ec.consolidatore.exception.RicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.consolidatore.service.RicezioneEsitiCartaceoService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -79,15 +80,15 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 					List<String> errorList = new ArrayList<>();
 
-                    //Iun
-					if (!progressStatusEvent.getIun().equals(iun)) {
+					//TODO COMMENTATO PER UN CASO PARTICOLARE CHE ANDRA' GESTITO IN FUTURO.
+//					if (!progressStatusEvent.getProductType().equals(productType)) {
+//						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getStatusCode()));
+//						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, productType));
+//					}
+					//Iun
+					if (!StringUtils.isBlank(iun) && !progressStatusEvent.getIun().equals(iun)) {
 						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, IUN_LABEL, progressStatusEvent.getStatusCode()));
 						errorList.add(String.format(UNRECOGNIZED_ERROR, IUN_LABEL, iun));
-					}
-					//ProductType
-					if (!progressStatusEvent.getProductType().equals(productType)) {
-						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getStatusCode()));
-						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, productType));
 					}
 					// StatusCode
 					if (!statusCodeDescriptionMap().containsKey(progressStatusEvent.getStatusCode())) {
