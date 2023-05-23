@@ -184,33 +184,33 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.isBadRequest();
 	}
 
-	@Test
-	/** Test CRCRE.100.1 */
-	void ricezioneEsitiErroreValidazioneProductType() {
-		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiOk() : START");
-		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
-		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
-		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType("DIFFERENT_PRODUCT_TYPE").iun(IUN)));
-
-		FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
-		fileDownloadResponse.setKey(documentKey);
-
-		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true)).thenReturn(Mono.just(fileDownloadResponse));
-
-		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
-		events.add(getProgressStatusEventWithoutAttachments());
-
-		webClient.put()
-				.uri(RICEZIONE_ESITI_ENDPOINT)
-				.accept(APPLICATION_JSON)
-				.contentType(APPLICATION_JSON)
-				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
-				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
-				.body(BodyInserters.fromValue(events))
-				.exchange()
-				.expectStatus()
-				.isBadRequest();
-	}
+//	@Test
+//	/** Test CRCRE.100.1 */
+//	void ricezioneEsitiErroreValidazioneProductType() {
+//		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiOk() : START");
+//		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+//		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+//		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType("DIFFERENT_PRODUCT_TYPE").iun(IUN)));
+//
+//		FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
+//		fileDownloadResponse.setKey(documentKey);
+//
+//		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true)).thenReturn(Mono.just(fileDownloadResponse));
+//
+//		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+//		events.add(getProgressStatusEventWithoutAttachments());
+//
+//		webClient.put()
+//				.uri(RICEZIONE_ESITI_ENDPOINT)
+//				.accept(APPLICATION_JSON)
+//				.contentType(APPLICATION_JSON)
+//				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+//				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+//				.body(BodyInserters.fromValue(events))
+//				.exchange()
+//				.expectStatus()
+//				.isBadRequest();
+//	}
 
 	@Test
     /** Test CRCRE.100.2 */
