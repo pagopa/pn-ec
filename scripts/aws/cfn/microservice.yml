@@ -1046,31 +1046,31 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
       Parameters:
         DashboardName: !Sub '${ProjectName}-external-channel'
-        # AlarmArns:
-        #   !Join
-        #   - ','
-        #   - - !Ref PnEcAlarmArnQueueBatchSMS
-        #     - !Ref PnEcAlarmArnDLQueueBatchSMS
-        #     - !Ref PnEcAlarmArnQueueInteractiveSMS
-        #     - !Ref PnEcAlarmArnDLQueueInteractiveSMS
-        #     - !Ref PnEcAlarmArnQueueErroriSMS
-        #     - !Ref PnEcAlarmArnDLQueueErroriSMS
-        #     - !Ref PnEcAlarmArnQueueBatchPEC
-        #     - !Ref PnEcAlarmArnDLQueueBatchPEC
-        #     - !Ref PnEcAlarmArnQueueInteractivePEC
-        #     - !Ref PnEcAlarmArnDLQueueInteractivePEC
-        #     - !Ref PnEcAlarmArnQueueErroriPEC
-        #     - !Ref PnEcAlarmArnDLQueueErroriPEC
-        #     - !Ref PnEcAlarmArnQueueBatchEMAIL
-        #     - !Ref PnEcAlarmArnDLQueueBatchEMAIL
-        #     - !Ref PnEcAlarmArnQueueInteractiveEMAIL
-        #     - !Ref PnEcAlarmArnDLQueueInteractiveEMAIL
-        #     - !Ref PnEcAlarmArnQueueErroriEMAIL
-        #     - !Ref PnEcAlarmArnDLQueueErroriEMAIL
-        #     - !Ref PnEcAlarmArnQueueBatchCARTACEO
-        #     - !Ref PnEcAlarmArnDLQueueBatchCARTACEO
-        #     - !Ref PnEcAlarmArnQueueErroriCARTACEO
-        #     - !Ref PnEcAlarmArnDLQueueErroriCARTACEO
+        AlarmArns:
+          !Join
+          - ','
+          - - !Ref PnEcAlarmArnQueueBatchSMS
+            - !Ref PnEcAlarmArnDLQueueBatchSMS
+            - !Ref PnEcAlarmArnQueueInteractiveSMS
+            - !Ref PnEcAlarmArnDLQueueInteractiveSMS
+            - !Ref PnEcAlarmArnQueueErroriSMS
+            - !Ref PnEcAlarmArnDLQueueErroriSMS
+            - !Ref PnEcAlarmArnQueueBatchPEC
+            - !Ref PnEcAlarmArnDLQueueBatchPEC
+            - !Ref PnEcAlarmArnQueueInteractivePEC
+            - !Ref PnEcAlarmArnDLQueueInteractivePEC
+            - !Ref PnEcAlarmArnQueueErroriPEC
+            - !Ref PnEcAlarmArnDLQueueErroriPEC
+            - !Ref PnEcAlarmArnQueueBatchEMAIL
+            - !Ref PnEcAlarmArnDLQueueBatchEMAIL
+            - !Ref PnEcAlarmArnQueueInteractiveEMAIL
+            - !Ref PnEcAlarmArnDLQueueInteractiveEMAIL
+            - !Ref PnEcAlarmArnQueueErroriEMAIL
+            - !Ref PnEcAlarmArnDLQueueErroriEMAIL
+            - !Ref PnEcAlarmArnQueueBatchCARTACEO
+            - !Ref PnEcAlarmArnDLQueueBatchCARTACEO
+            - !Ref PnEcAlarmArnQueueErroriCARTACEO
+            - !Ref PnEcAlarmArnDLQueueErroriCARTACEO
         DynamoDBTableNames:
           !Join
           - ','
@@ -1102,33 +1102,33 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
       Parameters:
         DashboardName: !Sub '${ProjectName}-external-channels'
-        # AlarmArns:
-        #   !Join
-        #   - ','
-        #   - - !Ref PnEcAlarmArnQueueTrackerStatoSMS
-        #     - !Ref PnEcAlarmArnDLQueueTrackerStatoSMS
-        #     - !Ref PnEcAlarmArnQueueTrackerErroriSMS
-        #     - !Ref PnEcAlarmArnDLQueueTrackerErroriSMS
-        #     - !Ref PnEcAlarmArnQueueTrackerStatoPEC
-        #     - !Ref PnEcAlarmArnDLQueueTrackerStatoPEC
-        #     - !Ref PnEcAlarmArnQueueTrackerErroriPEC
-        #     - !Ref PnEcAlarmArnDLQueueTrackerErroriPEC
-        #     - !Ref PnEcAlarmArnQueueTrackerStatoEMAIL
-        #     - !Ref PnEcAlarmArnDLQueueTrackerStatoEMAIL
-        #     - !Ref PnEcAlarmArnQueueTrackerErroriEMAIL
-        #     - !Ref PnEcAlarmArnDLQueueTrackerErroriEMAIL
-        #     - !Ref PnEcAlarmArnQueueTrackerStatoCARTACEO
-        #     - !Ref PnEcAlarmArnDLQueueTrackerStatoCARTACEO
-        #     - !Ref PnEcAlarmArnQueueTrackerErroriCARTACEO
-        #     - !Ref PnEcAlarmArnDLQueueTrackerErroriCARTACEO
-        #     - !Ref PnEcAlarmArnQueueNotificheExt1
-        #     - !Ref PnEcAlarmArnDLQueueNotificheExt1
-        # DynamoDBTableNames:
-        #   !Join
-        #   - ','
-        #   - - !Ref PnEcTableNameAnagrafica
-        #     - !Ref PnEcTableNameRichieste
-        #     - !Ref PnEcTableNameRichiesteMetadati
+        AlarmArns:
+          !Join
+          - ','
+          - - !Ref PnEcAlarmArnQueueTrackerStatoSMS
+            - !Ref PnEcAlarmArnDLQueueTrackerStatoSMS
+            - !Ref PnEcAlarmArnQueueTrackerErroriSMS
+            - !Ref PnEcAlarmArnDLQueueTrackerErroriSMS
+            - !Ref PnEcAlarmArnQueueTrackerStatoPEC
+            - !Ref PnEcAlarmArnDLQueueTrackerStatoPEC
+            - !Ref PnEcAlarmArnQueueTrackerErroriPEC
+            - !Ref PnEcAlarmArnDLQueueTrackerErroriPEC
+            - !Ref PnEcAlarmArnQueueTrackerStatoEMAIL
+            - !Ref PnEcAlarmArnDLQueueTrackerStatoEMAIL
+            - !Ref PnEcAlarmArnQueueTrackerErroriEMAIL
+            - !Ref PnEcAlarmArnDLQueueTrackerErroriEMAIL
+            - !Ref PnEcAlarmArnQueueTrackerStatoCARTACEO
+            - !Ref PnEcAlarmArnDLQueueTrackerStatoCARTACEO
+            - !Ref PnEcAlarmArnQueueTrackerErroriCARTACEO
+            - !Ref PnEcAlarmArnDLQueueTrackerErroriCARTACEO
+            - !Ref PnEcAlarmArnQueueNotificheExt1
+            - !Ref PnEcAlarmArnDLQueueNotificheExt1
+        DynamoDBTableNames:
+          !Join
+          - ','
+          - - !Ref PnEcTableNameAnagrafica
+            - !Ref PnEcTableNameRichieste
+            - !Ref PnEcTableNameRichiesteMetadati
         # RestApiStageArns: 
         # RestApiNames: 
         QueueArns:
