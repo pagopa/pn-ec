@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -100,7 +101,7 @@ public class RequestServiceImpl implements RequestService {
                        var concatRequestId = concatRequestId(request.getXPagopaExtchCxId(), request.getRequestId());
                        var clientId = request.getXPagopaExtchCxId();
 
-                       var requestTimestamp = OffsetDateTime.now();
+                       var requestTimestamp = OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
                        var requestPersonal = request.getRequestPersonal();
                        requestPersonal.setRequestId(concatRequestId);

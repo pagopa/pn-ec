@@ -8,6 +8,7 @@ import it.pagopa.pn.ec.commons.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
@@ -52,6 +53,21 @@ public class SqsServiceImpl implements SqsService {
         return getQueueUrlFromName(queueName).flatMap(queueUrl -> Mono.fromCompletionStage(sqsAsyncClient.receiveMessage(builder -> builder.queueUrl(
                         queueUrl))))
                 .flatMap(receiveMessageResponse -> Mono.justOrEmpty(getFirstListElement(receiveMessageResponse.messages())))
+                .map(message -> new SqsMessageWrapper<>(message,
+                        jsonUtils.convertJsonStringToObject(message.body(),
+                                messageContentClass)))
+                .onErrorResume(throwable -> {
+                    log.error(throwable.getMessage(), throwable);
+                    return Mono.error(new SqsClientException(queueName));
+                });
+    }
+
+    @Override
+    public <T> Flux<SqsMessageWrapper<T>> getMessages(String queueName, Class<T> messageContentClass) {
+        return getQueueUrlFromName(queueName).flatMap(queueUrl -> Mono.fromCompletionStage(sqsAsyncClient.receiveMessage(builder -> builder.queueUrl(
+                        queueUrl))))
+                .flatMap(receiveMessageResponse -> Mono.justOrEmpty(receiveMessageResponse.messages()))
+                .flatMapMany(Flux::fromIterable)
                 .map(message -> new SqsMessageWrapper<>(message,
                         jsonUtils.convertJsonStringToObject(message.body(),
                                 messageContentClass)))
