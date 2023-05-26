@@ -47,6 +47,7 @@ import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.getDomainFromAddress;
+import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromMonoUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
@@ -166,14 +167,14 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     @Scheduled(cron = "${cron.value.lavorazione-batch-pec}")
     public void lavorazioneRichiestaBatch() {
 
-        sqsService.getOneMessage(pecSqsQueueName.batchName(), PecPresaInCaricoInfo.class)
+        sqsService.getMessages(pecSqsQueueName.batchName(), PecPresaInCaricoInfo.class)
                   .doOnNext(pecPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(pecSqsQueueName.batchName(),
                                                                                         pecPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                   .flatMap(pecPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(pecPresaInCaricoInfoSqsMessageWrapper.getMessage()),
                                                                              lavorazioneRichiesta(pecPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
                   .flatMap(pecPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(pecPresaInCaricoInfoSqsMessageWrapper.getT1(),
                                                                                                       pecSqsQueueName.batchName()))
-                  .transform(pullFromMonoUntilIsEmpty())
+                  .transform(pullFromFluxUntilIsEmpty())
                   .subscribe();
     }
 

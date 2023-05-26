@@ -39,6 +39,7 @@ import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall.DEFAULT_RETRY_STRATEGY;
+import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromMonoUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.CODE_TO_STATUS_MAP;
@@ -173,7 +174,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
     @Scheduled(cron = "${cron.value.lavorazione-batch-cartaceo}")
     public void lavorazioneRichiestaBatch() {
-        sqsService.getOneMessage(cartaceoSqsQueueName.batchName(), CartaceoPresaInCaricoInfo.class)//
+        sqsService.getMessages(cartaceoSqsQueueName.batchName(), CartaceoPresaInCaricoInfo.class)//
                   .doOnNext(cartaceoPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(cartaceoSqsQueueName.batchName()//
                           , cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                   .flatMap(cartaceoPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessage())
@@ -184,7 +185,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 //
                           ,
                           cartaceoSqsQueueName.batchName()))
-                  .transform(pullFromMonoUntilIsEmpty())//
+                  .transform(pullFromFluxUntilIsEmpty())//
                   .subscribe();
     }
 

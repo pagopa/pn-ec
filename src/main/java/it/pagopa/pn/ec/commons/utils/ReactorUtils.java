@@ -18,4 +18,12 @@ public class ReactorUtils {
                              .repeat()
                              .takeWhile(MonoResultWrapper::isNotEmpty);
     }
+
+    public static <T> Function<Flux<T>, Flux<MonoResultWrapper<T>>> pullFromFluxUntilIsEmpty() {
+        return tFlux -> tFlux.map(MonoResultWrapper::new)
+                .defaultIfEmpty(new MonoResultWrapper<>(null))
+                .repeat()
+                .takeWhile(MonoResultWrapper::isNotEmpty);
+    }
+
 }
