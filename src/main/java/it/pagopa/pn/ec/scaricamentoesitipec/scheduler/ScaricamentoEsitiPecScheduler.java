@@ -184,6 +184,8 @@ public class ScaricamentoEsitiPecScheduler {
                                        var requestIdx = presaInCaricoInfo.getRequestIdx();
                                        var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
 
+                                       log.debug("clientId is {}, requestId is {}", clientId, requestIdx);
+
                                        return Mono.zip(Mono.just(postacert),
                                                        gestoreRepositoryCall.getRichiesta(clientId, requestIdx),
                                                        statusPullService.pecPullService(requestIdx,
