@@ -16,6 +16,8 @@ import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
 
 import static it.pagopa.pn.ec.commons.utils.OptionalUtils.getFirstListElement;
 
@@ -27,6 +29,8 @@ public class SqsServiceImpl implements SqsService {
     private final ObjectMapper objectMapper;
     private final JsonUtils jsonUtils;
     private static final int MESSAGE_GROUP_ID_LENGTH= 64;
+    @Value("${SqsQueueMaxMessages:#{1000}}")
+    private Integer maxMessages;
 
     public SqsServiceImpl(SqsAsyncClient sqsAsyncClient, ObjectMapper objectMapper, JsonUtils jsonUtils) {
         this.sqsAsyncClient = sqsAsyncClient;
@@ -65,18 +69,26 @@ public class SqsServiceImpl implements SqsService {
 
     @Override
     public <T> Flux<SqsMessageWrapper<T>> getMessages(String queueName, Class<T> messageContentClass) {
+
+        AtomicInteger actualMessages = new AtomicInteger();
+        BooleanSupplier maxExceeded = () -> (actualMessages.get() <= maxMessages);
+
         return getQueueUrlFromName(queueName).flatMap(queueUrl -> Mono.fromCompletionStage(sqsAsyncClient.receiveMessage(builder -> builder.queueUrl(
                         queueUrl))))
                 .flatMap(receiveMessageResponse -> Mono.justOrEmpty(receiveMessageResponse.messages()))
                 .flatMapMany(Flux::fromIterable)
-                .map(message -> new SqsMessageWrapper<>(message,
-                        jsonUtils.convertJsonStringToObject(message.body(),
-                                messageContentClass)))
+                .map(message ->
+                {
+                    actualMessages.incrementAndGet();
+                    return new SqsMessageWrapper<>(message,
+                            jsonUtils.convertJsonStringToObject(message.body(),
+                                    messageContentClass));
+                })
                 .onErrorResume(throwable -> {
                     log.error(throwable.getMessage(), throwable);
                     return Mono.error(new SqsClientException(queueName));
                 })
-                .repeat();
+                .repeat(maxExceeded);
     }
 
     @Override
