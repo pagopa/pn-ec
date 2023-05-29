@@ -94,24 +94,13 @@ public class ScaricamentoEsitiPecScheduler {
     @Scheduled(cron = "${cron.value.scaricamento-esiti-pec}")
     void scaricamentoEsitiPec() {
 
-        log.info("<-- SCARICAMENTO ESITI PEC SCHEDULER -->");
+        log.info("<-- INIZIO SCARICAMENTO ESITI PEC SCHEDULER -->");
 
-//      Prevent scaricamentoEsitiPec overlapping
-        Mono.just(isScaricamentoEsitiPecRunning)
-            .filter(aBoolean -> !aBoolean)
-            .doOnNext(aBoolean -> isScaricamentoEsitiPecRunning = true)
+        var getMessages = new GetMessages();
+        getMessages.setUnseen(1);
+        getMessages.setLimit(Integer.valueOf(scaricamentoEsitiPecGetMessagesLimit));
 
-//          Since this scheduled method could be launched simultaneously in multiple instances of the microservice, a random delay was
-//          added to avoid processing the same information multiple times
-            .delayElement(Duration.ofSeconds(random.nextInt(Integer.parseInt(maximumDelaySeconds) + 1)))
-
-//          Chiamata al servizio imap bridge getMessages per il recupero di tutti i messaggi non letti.
-            .flatMap(aBoolean -> {
-                var getMessages = new GetMessages();
-                getMessages.setUnseen(1);
-                getMessages.setLimit(Integer.valueOf(scaricamentoEsitiPecGetMessagesLimit));
-                return arubaCall.getMessages(getMessages);
-            })
+        arubaCall.getMessages(getMessages)
             .doOnError(ArubaCallMaxRetriesExceededException.class, e -> log.debug("Aruba non risponde. Circuit breaker"))
             .onErrorComplete(ArubaCallMaxRetriesExceededException.class)
 
@@ -324,9 +313,7 @@ public class ScaricamentoEsitiPecScheduler {
                     log.error(throwable.getMessage(), throwable);
                 }
             })
-
-            .doOnComplete(() -> isScaricamentoEsitiPecRunning = false)
-
+            .doOnComplete(() -> log.info("<-- FINE SCARICAMENTO ESITI PEC SCHEDULER -->"))
             .subscribe();
     }
 }
