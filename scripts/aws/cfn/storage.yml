@@ -579,6 +579,24 @@ Resources:
         QueueHasAlarm: 'true'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName 
 
+  PnEcQueueScaricamentoEsitiPECStack:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-pec-scaricamento-esiti-queue'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        DeduplicationScope: 'messageGroup'
+        DelaySeconds: 300
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName 
+        
   ###### CHANNEL : EMAIL #######
   
   PnEcQueueBatchEMAILStack:
