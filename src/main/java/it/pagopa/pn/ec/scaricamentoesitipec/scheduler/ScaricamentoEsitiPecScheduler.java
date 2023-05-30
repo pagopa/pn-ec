@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -18,6 +19,7 @@ import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.bridgews.*;
+import it.pec.daticert.Destinatari;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +55,8 @@ public class ScaricamentoEsitiPecScheduler {
     private final ArubaSecretValue arubaSecretValue;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
     private final Random random;
+
+    private static final String DESTINATARIO_ESTERNO = "esterno";
 
     @Value("${scaricamento-esiti-pec.get-messages.limit}")
     private String scaricamentoEsitiPecGetMessagesLimit;
@@ -196,22 +200,30 @@ public class ScaricamentoEsitiPecScheduler {
 //                                 Validate status
                                    .flatMap(objects -> {
                                        Postacert postacert = objects.getT1();
+                                       Destinatari destinatario = postacert.getIntestazione().getDestinatari().get(0);
+                                       var tipoDestinatario = destinatario.getTipo();
+
                                        RequestDto requestDto = objects.getT2();
                                        LegalMessageSentDetails legalMessageSentDetails = objects.getT3();
                                        GetMessageIDResponse getMessageIDResponse = objects.getT4();
 
-                                       var nextStatus =
-                                               decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
+                                       var nextStatus = "";
+                                       if(tipoDestinatario.equals(DESTINATARIO_ESTERNO)){
+                                           nextStatus = Status.NOT_PEC.getStatusTransactionTableCompliant();
+                                       }else{
+                                           nextStatus = decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
+                                       }
 
+                                       String finalNextStatus = nextStatus;
                                        return callMacchinaStati.statusValidation(requestDto.getxPagopaExtchCxId(),
                                                                                  transactionProcessConfigurationProperties.pec(),
                                                                                  requestDto.getStatusRequest(),
-                                                                                 nextStatus)
+                                                                                 finalNextStatus)
                                                                .map(unused -> Tuples.of(postacert,
                                                                                         requestDto,
                                                                                         legalMessageSentDetails,
                                                                                         getMessageIDResponse,
-                                                                                        nextStatus))
+                                                                       finalNextStatus))
                                                                .doOnError(CallMacchinaStati.StatusValidationBadRequestException.class,
                                                                           throwable -> log.debug(
                                                                                   "La chiamata al notification tracker della PEC {} " +
