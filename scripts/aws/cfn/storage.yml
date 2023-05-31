@@ -124,23 +124,23 @@ Resources:
         QueueHasAlarm: 'true'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
-  PnEcTrackerStatoSMSQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueURL
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - 'sqs:*'
-            Effect: 'Allow'
-            Resource: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueARN
-            Principal:
-              AWS: '*'
-            Condition:
-              StringEquals:
-                AWS:SourceAccount: !Ref AWS::AccountId
+  # PnEcTrackerStatoSMSQueuePolicy:
+  #   Type: AWS::SQS::QueuePolicy
+  #   Properties:
+  #     Queues:
+  #       - !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueURL
+  #     PolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement:
+  #         - Action:
+  #             - 'sqs:*'
+  #           Effect: 'Allow'
+  #           Resource: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueARN
+  #           Principal:
+  #             AWS: '*'
+  #           Condition:
+  #             StringEquals:
+  #               AWS:SourceAccount: !Ref AWS::AccountId
 
   PnEcQueueTrackerErroriSMSStack:
     Type: AWS::CloudFormation::Stack
@@ -176,23 +176,23 @@ Resources:
         QueueHasAlarm: 'true'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
-  PnEcTrackerStatoPECQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.QueueURL
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - 'sqs:*'
-            Effect: 'Allow'
-            Resource: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.QueueARN
-            Principal:
-              AWS: '*'
-            Condition:
-              StringEquals:
-                AWS:SourceAccount: !Ref AWS::AccountId
+  # PnEcTrackerStatoPECQueuePolicy:
+  #   Type: AWS::SQS::QueuePolicy
+  #   Properties:
+  #     Queues:
+  #       - !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.QueueURL
+  #     PolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement:
+  #         - Action:
+  #             - 'sqs:*'
+  #           Effect: 'Allow'
+  #           Resource: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.QueueARN
+  #           Principal:
+  #             AWS: '*'
+  #           Condition:
+  #             StringEquals:
+  #               AWS:SourceAccount: !Ref AWS::AccountId
 
   PnEcQueueTrackerErroriPECStack:
     Type: AWS::CloudFormation::Stack
@@ -228,23 +228,23 @@ Resources:
         QueueHasAlarm: 'true'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
-  PnEcTrackerStatoEMAILQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.QueueURL
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - 'sqs:*'
-            Effect: 'Allow'
-            Resource: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.QueueARN
-            Principal:
-              AWS: '*'
-            Condition:
-              StringEquals:
-                AWS:SourceAccount: !Ref AWS::AccountId
+  # PnEcTrackerStatoEMAILQueuePolicy:
+  #   Type: AWS::SQS::QueuePolicy
+  #   Properties:
+  #     Queues:
+  #       - !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.QueueURL
+  #     PolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement:
+  #         - Action:
+  #             - 'sqs:*'
+  #           Effect: 'Allow'
+  #           Resource: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.QueueARN
+  #           Principal:
+  #             AWS: '*'
+  #           Condition:
+  #             StringEquals:
+  #               AWS:SourceAccount: !Ref AWS::AccountId
 
   PnEcQueueTrackerErroriEMAILStack:
     Type: AWS::CloudFormation::Stack
@@ -280,23 +280,23 @@ Resources:
         QueueHasAlarm: 'true'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
-  PnEcTrackerStatoCARTACEOQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.QueueURL
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - 'sqs:*'
-            Effect: 'Allow'
-            Resource: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.QueueARN
-            Principal:
-              AWS: '*'
-            Condition:
-              StringEquals:
-                AWS:SourceAccount: !Ref AWS::AccountId
+  # PnEcTrackerStatoCARTACEOQueuePolicy:
+  #   Type: AWS::SQS::QueuePolicy
+  #   Properties:
+  #     Queues:
+  #       - !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.QueueURL
+  #     PolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement:
+  #         - Action:
+  #             - 'sqs:*'
+  #           Effect: 'Allow'
+  #           Resource: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.QueueARN
+  #           Principal:
+  #             AWS: '*'
+  #           Condition:
+  #             StringEquals:
+  #               AWS:SourceAccount: !Ref AWS::AccountId
 
   PnEcQueueTrackerErroriCARTACEOStack:
     Type: AWS::CloudFormation::Stack
@@ -493,23 +493,23 @@ Resources:
         QueueHasAlarm: 'true'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName      
 
-  PnEcInteractiveSMSQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues:
-        - !GetAtt PnEcQueueInteractiveSMSStack.Outputs.QueueURL
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement: 
-          - Action: 
-              - 'sqs:*'
-            Effect: 'Allow'
-            Resource: !GetAtt PnEcQueueInteractiveSMSStack.Outputs.QueueARN
-            Principal:  
-              AWS: '*'
-            Condition:
-              StringEquals:
-                AWS:SourceAccount: !Ref AWS::AccountId
+  # PnEcInteractiveSMSQueuePolicy:
+  #   Type: AWS::SQS::QueuePolicy
+  #   Properties: 
+  #     Queues:
+  #       - !GetAtt PnEcQueueInteractiveSMSStack.Outputs.QueueURL
+  #     PolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement: 
+  #         - Action: 
+  #             - 'sqs:*'
+  #           Effect: 'Allow'
+  #           Resource: !GetAtt PnEcQueueInteractiveSMSStack.Outputs.QueueARN
+  #           Principal:  
+  #             AWS: '*'
+  #           Condition:
+  #             StringEquals:
+  #               AWS:SourceAccount: !Ref AWS::AccountId
               
   PnEcQueueErroriSMSStack:
     Type: AWS::CloudFormation::Stack
@@ -562,23 +562,23 @@ Resources:
         QueueHasAlarm: 'true'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName      
 
-  PnEcInteractivePECQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues:
-        - !GetAtt PnEcQueueInteractivePECStack.Outputs.QueueURL
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement: 
-          - Action: 
-              - 'sqs:*'
-            Effect: 'Allow'
-            Resource: !GetAtt PnEcQueueInteractivePECStack.Outputs.QueueARN
-            Principal:  
-              AWS: '*'
-            Condition:
-              StringEquals:
-                AWS:SourceAccount: !Ref AWS::AccountId
+  # PnEcInteractivePECQueuePolicy:
+  #   Type: AWS::SQS::QueuePolicy
+  #   Properties: 
+  #     Queues:
+  #       - !GetAtt PnEcQueueInteractivePECStack.Outputs.QueueURL
+  #     PolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement: 
+  #         - Action: 
+  #             - 'sqs:*'
+  #           Effect: 'Allow'
+  #           Resource: !GetAtt PnEcQueueInteractivePECStack.Outputs.QueueARN
+  #           Principal:  
+  #             AWS: '*'
+  #           Condition:
+  #             StringEquals:
+  #               AWS:SourceAccount: !Ref AWS::AccountId
               
   PnEcQueueErroriPECStack:
     Type: AWS::CloudFormation::Stack
@@ -631,23 +631,23 @@ Resources:
         QueueHasAlarm: 'true'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName  
 
-  PnEcInteractiveEMAILQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues:
-        - !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.QueueURL
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement: 
-          - Action: 
-              - 'sqs:*'
-            Effect: 'Allow'
-            Resource: !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.QueueARN
-            Principal:  
-              AWS: '*'
-            Condition:
-              StringEquals:
-                AWS:SourceAccount: !Ref AWS::AccountId
+  # PnEcInteractiveEMAILQueuePolicy:
+  #   Type: AWS::SQS::QueuePolicy
+  #   Properties: 
+  #     Queues:
+  #       - !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.QueueURL
+  #     PolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement: 
+  #         - Action: 
+  #             - 'sqs:*'
+  #           Effect: 'Allow'
+  #           Resource: !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.QueueARN
+  #           Principal:  
+  #             AWS: '*'
+  #           Condition:
+  #             StringEquals:
+  #               AWS:SourceAccount: !Ref AWS::AccountId
               
   PnEcQueueErroriEMAILStack:
     Type: AWS::CloudFormation::Stack
