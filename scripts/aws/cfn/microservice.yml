@@ -631,9 +631,9 @@ Resources:
               - 'dynamodb:Put*'
               - 'dynamodb:DeleteItem'
             Resource:
-              - !Sub '${PnEcTableArnAnagrafica}'
-              - !Sub '${PnEcTableArnRichieste}'
-              - !Sub '${PnEcTableArnRichiesteMetadati}'
+              - !Ref PnEcTableArnAnagrafica
+              - !Ref PnEcTableArnRichieste
+              - !Ref PnEcTableArnRichiesteMetadati
           - Effect: Allow
             Action:
               - 'sqs:ReceiveMessage'
@@ -642,30 +642,30 @@ Resources:
               - 'sqs:SendMessage'
               - 'sqs:GetQueueUrl'
             Resource:
-              - !Sub '${PnEcQueueArnTrackerStatoSMS}'
-              - !Sub '${PnEcQueueArnTrackerErroriSMS}'
-              - !Sub '${PnEcQueueArnTrackerStatoPEC}'
-              - !Sub '${PnEcQueueArnTrackerErroriPEC}'
-              - !Sub '${PnEcQueueArnTrackerStatoEMAIL}'
-              - !Sub '${PnEcQueueArnTrackerErroriEMAIL}'
-              - !Sub '${PnEcQueueArnNotificheExt1}'
-              - !Sub '${PnEcQueueArnBatchSMS}'
-              - !Sub '${PnEcQueueArnInteractiveSMS}'
-              - !Sub '${PnEcQueueArnErroriSMS}'
-              - !Sub '${PnEcQueueArnBatchPEC}'
-              - !Sub '${PnEcQueueArnInteractivePEC}'
-              - !Sub '${PnEcQueueArnErroriPEC}'
-              - !Sub '${PnEcQueueArnBatchEMAIL}'
-              - !Sub '${PnEcQueueArnInteractiveEMAIL}'
-              - !Sub '${PnEcQueueArnErroriEMAIL}'
-              - !Sub '${PnEcQueueArnBatchCARTACEO}'
-              - !Sub '${PnEcQueueArnErroriCARTACEO}'
+              - !Ref PnEcQueueArnTrackerStatoSMS
+              - !Ref PnEcQueueArnTrackerErroriSMS
+              - !Ref PnEcQueueArnTrackerStatoPEC
+              - !Ref PnEcQueueArnTrackerErroriPEC
+              - !Ref PnEcQueueArnTrackerStatoEMAIL
+              - !Ref PnEcQueueArnTrackerErroriEMAIL
+              - !Ref PnEcQueueArnNotificheExt1
+              - !Ref PnEcQueueArnBatchSMS
+              - !Ref PnEcQueueArnInteractiveSMS
+              - !Ref PnEcQueueArnErroriSMS
+              - !Ref PnEcQueueArnBatchPEC
+              - !Ref PnEcQueueArnInteractivePEC
+              - !Ref PnEcQueueArnErroriPEC
+              - !Ref PnEcQueueArnBatchEMAIL
+              - !Ref PnEcQueueArnInteractiveEMAIL
+              - !Ref PnEcQueueArnErroriEMAIL
+              - !Ref PnEcQueueArnBatchCARTACEO
+              - !Ref PnEcQueueArnErroriCARTACEO
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
               - 'events:PutEvents'
             Resource:
-              - !Sub '${PnEcEventBusArnTrackerExternalNotification}'
+              - !Ref PnEcEventBusArnTrackerExternalNotification
           - Effect: Allow
             Sid: 'SMS'
             Action:
@@ -705,14 +705,14 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlNotificheExt1}'
+        - !Ref PnEcQueueUrlNotificheExt1
       PolicyDocument: 
         Statement: 
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
-            Effect: "Allow"
-            Resource: !Sub ${PnEcQueueArnNotificheExt1}
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnNotificheExt1
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
@@ -730,7 +730,7 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
-            Effect: "Allow"
+            Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerStatoSMS
             Principal:  
               AWS: 
@@ -747,7 +747,7 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
-            Effect: "Allow"
+            Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerErroriSMS
             Principal:  
               AWS: 
@@ -764,7 +764,7 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
-            Effect: "Allow"
+            Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerStatoPEC
             Principal:  
               AWS: 
@@ -774,14 +774,15 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlTrackerErroriPEC}'
+        - !Ref PnEcQueueUrlTrackerErroriPEC
       PolicyDocument: 
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnTrackerErroriPEC}'
+              - 'sqs:SendMessage'
+              - 'sqs:ReceiveMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnTrackerErroriPEC
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
@@ -790,14 +791,15 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlTrackerStatoEMAIL}'
+        - !Ref PnEcQueueUrlTrackerStatoEMAIL
       PolicyDocument: 
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnTrackerStatoEMAIL}'
+              - 'sqs:SendMessage'
+              - 'sqs:ReceiveMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnTrackerStatoEMAIL
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
@@ -806,14 +808,15 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlTrackerErroriEMAIL}'
+        - !Ref PnEcQueueUrlTrackerErroriEMAIL
       PolicyDocument: 
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnTrackerErroriEMAIL}'
+              - 'sqs:SendMessage'
+              - 'sqs:ReceiveMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnTrackerErroriEMAIL
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
@@ -822,14 +825,15 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlTrackerStatoCARTACEO}'
+        - !Ref PnEcQueueUrlTrackerStatoCARTACEO
       PolicyDocument: 
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnTrackerStatoCARTACEO}'
+              - 'sqs:SendMessage'
+              - 'sqs:ReceiveMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnTrackerStatoCARTACEO
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
@@ -838,13 +842,14 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlTrackerErroriCARTACEO}'
+        - !Ref PnEcQueueUrlTrackerErroriCARTACEO
       PolicyDocument: 
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnTrackerErroriCARTACEO}'
+              - 'sqs:SendMessage'
+              - 'sqs:ReceiveMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnTrackerErroriCARTACEO
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
@@ -862,7 +867,7 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
-            Effect: "Allow"
+            Effect: 'Allow'
             Resource: !Ref PnEcQueueArnBatchSMS
             Principal:  
               AWS: 
@@ -879,7 +884,7 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
-            Effect: "Allow"
+            Effect: 'Allow'
             Resource: !Ref PnEcQueueArnInteractiveSMS
             Principal:  
               AWS: 
@@ -896,7 +901,7 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
-            Effect: "Allow"
+            Effect: 'Allow'
             Resource: !Ref PnEcQueueArnErroriSMS
             Principal:  
               AWS: 
@@ -908,14 +913,15 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlBatchPEC}'
+        - !Ref PnEcQueueUrlBatchPEC
       PolicyDocument: 
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnBatchPEC}'
+              - 'sqs:SendMessage'
+              - 'sqs:ReceiveMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnBatchPEC
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
@@ -924,14 +930,15 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlInteractivePEC}'
+        - !Ref PnEcQueueUrlInteractivePEC
       PolicyDocument: 
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnInteractivePEC}'
+              - 'sqs:SendMessage'
+              - 'sqs:ReceiveMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnInteractivePEC
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
@@ -940,14 +947,15 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlErroriPEC}'
+        - !Ref PnEcQueueUrlErroriPEC
       PolicyDocument: 
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnErroriPEC}'
+              - 'sqs:SendMessage'
+              - 'sqs:ReceiveMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnErroriPEC
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
@@ -958,14 +966,15 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlBatchEMAIL}'
+        - !Ref PnEcQueueUrlBatchEMAIL
       PolicyDocument:
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnBatchEMAIL}'
+              - 'sqs:SendMessage'
+              - 'sqs:ReceiveMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnBatchEMAIL
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
@@ -974,14 +983,15 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlInteractiveEMAIL}'
+        - !Ref PnEcQueueUrlInteractiveEMAIL
       PolicyDocument: 
         Version: '2012-10-17'
         Statement: 
           - Action:
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnInteractiveEMAIL}'
+              - 'sqs:SendMessage'
+              - 'sqs:ReceiveMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnInteractiveEMAIL
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
@@ -990,14 +1000,15 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlErroriEMAIL}'
+        - !Ref PnEcQueueUrlErroriEMAIL
       PolicyDocument: 
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnErroriEMAIL}'
+              - 'sqs:SendMessage'
+              - 'sqs:ReceiveMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnErroriEMAIL
             Principal:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
@@ -1009,13 +1020,14 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlBatchCARTACEO}'
+        - !Ref PnEcQueueUrlBatchCARTACEO
       PolicyDocument: 
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnBatchCARTACEO}'
+              - 'sqs:SendMessage'
+              - 'sqs:ReceiveMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnBatchCARTACEO
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
@@ -1024,13 +1036,14 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties: 
       Queues: 
-        - !Sub '${PnEcQueueUrlErroriCARTACEO}'
+        - !Ref PnEcQueueUrlErroriCARTACEO
       PolicyDocument: 
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
-            Resource: !Sub '${PnEcQueueArnErroriCARTACEO}'
+              - 'sqs:SendMessage'
+              - 'sqs:ReceiveMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnErroriCARTACEO
             Principal:  
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
@@ -1190,15 +1203,15 @@ Resources:
         Statement: 
           - Sid: 'AllowAccessSameAccount'
             Action: 
-              - "SQS:*"
-            Effect: "Allow"
+              - 'SQS:*'
+            Effect: 'Allow'
             Resource: !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
             Principal: 
-              AWS: !Sub ${AWS::AccountId}
+              AWS: !Ref AWS::AccountId
           - Sid: 'AllowPutEventsFromEventRule'
             Action: 
-              - "sqs:SendMessage"
-            Effect: "Allow"
+              - 'sqs:SendMessage'
+            Effect: 'Allow'
             Resource: !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
             Principal: 
               Service:
@@ -1214,11 +1227,11 @@ Resources:
       Description: 'Rule forwarding events to PnCoreTargetEventBus'
       EventPattern:
         source: 
-          - "NOTIFICATION TRACKER"
+          - 'NOTIFICATION TRACKER'
         account: 
-          - !Sub ${AWS::AccountId}
+          - !Ref AWS::AccountId
         region: 
-          - !Sub ${AWS::Region}
+          - !Ref AWS::Region
       State: 'ENABLED'
       Targets:
         - Arn: !Ref PnCoreTargetEventBus
