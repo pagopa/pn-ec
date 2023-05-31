@@ -7,15 +7,19 @@ import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigu
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
+import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
+import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
+import it.pagopa.pn.ec.consolidatore.utils.ContentTypes;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
+import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.LegalMessageSentDetails;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
@@ -27,12 +31,18 @@ import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
+import java.net.URI;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Random;
 import java.util.function.Predicate;
 
+import static it.pagopa.pn.ec.commons.constant.DocumentType.PN_EXTERNAL_LEGAL_FACTS;
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
@@ -64,9 +74,17 @@ public class ScaricamentoEsitiPecService {
     @Autowired
     private ArubaSecretValue arubaSecretValue;
     @Autowired
+    private FileCall fileCall;
+    @Autowired
+    private WebClient uploadWebClient;
+
+    @Autowired
     private Random random;
+
     @Value("${scaricamento-esiti-pec.get-messages.limit}")
     private String scaricamentoEsitiPecGetMessagesLimit;
+
+    private static final String SAFESTORAGE_PREFIX = "safestorage://";
 
     private static final String DESTINATARIO_ESTERNO = "esterno";
 
@@ -89,11 +107,10 @@ public class ScaricamentoEsitiPecService {
 
         var mimeMessage = getMimeMessage(ricezioneEsitiPecDto.getMessage());
         var messageID = getMessageIdFromMimeMessage(mimeMessage);
+        var daticert = ricezioneEsitiPecDto.getDaticert();
 
-        return Mono.just(ricezioneEsitiPecDto.getDaticert())
-                .flatMap(daticert -> {
-
-                    var postacert = daticertService.getPostacertFromByteArray(daticert);
+        return Mono.just(daticertService.getPostacertFromByteArray(daticert))
+                .flatMap(postacert -> {
 
                     var presaInCaricoInfo = decodeMessageId(postacert.getDati().getMsgid());
                     var requestIdx = presaInCaricoInfo.getRequestIdx();
@@ -103,8 +120,7 @@ public class ScaricamentoEsitiPecService {
 
                     return Mono.zip(Mono.just(postacert),
                             gestoreRepositoryCall.getRichiesta(clientId, requestIdx),
-                            statusPullService.pecPullService(requestIdx,
-                                    presaInCaricoInfo.getXPagopaExtchCxId()));
+                            statusPullService.pecPullService(requestIdx, presaInCaricoInfo.getXPagopaExtchCxId()));
                 })
 
                 //Validate status
@@ -123,11 +139,13 @@ public class ScaricamentoEsitiPecService {
                     } else {
                         nextStatus = decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
                     }
+
                     String finalNextStatus = nextStatus;
+
                     return callMacchinaStati.statusValidation(requestDto.getxPagopaExtchCxId(),
                                     transactionProcessConfigurationProperties.pec(),
                                     requestDto.getStatusRequest(),
-                                    nextStatus)
+                                    finalNextStatus)
                             .map(unused -> Tuples.of(postacert,
                                     requestDto,
                                     legalMessageSentDetails,
@@ -185,27 +203,31 @@ public class ScaricamentoEsitiPecService {
                     var senderDigitalAddress = arubaSecretValue.getPecUsername();
                     var senderDomain = getDomainFromAddress(senderDigitalAddress);
                     var receiversDomain = getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]);
-                    var generatedMessageDto = createGeneratedMessageByStatus(receiversDomain,
-                            senderDomain,
-                            pecIdMessageId,
-                            postacert.getTipo(),
-                            // TODO: COME RECUPERARE LOCATION ?
-                            null);
 
-                    log.debug("PEC {} has {} requestId", pecIdMessageId, requestIdx);
+                    return generateLocation(requestIdx, xPagopaExtchCxId, daticert)
+                            .map(location ->
+                            {
 
+                                var generatedMessageDto = createGeneratedMessageByStatus(receiversDomain,
+                                        senderDomain,
+                                        pecIdMessageId,
+                                        postacert.getTipo(),
+                                        location);
 
-                    var digitalProgressStatusDto =
-                            new DigitalProgressStatusDto().eventTimestamp(cloudWatchPecMetricsInfo.getNextEventTimestamp())
-                                    .eventDetails(eventDetails)
-                                    .generatedMessage(generatedMessageDto);
+                                log.debug("PEC {} has {} requestId", pecIdMessageId, requestIdx);
 
-                    return NotificationTrackerQueueDto.builder()
-                            .requestIdx(requestIdx)
-                            .xPagopaExtchCxId(xPagopaExtchCxId)
-                            .nextStatus(nextStatus)
-                            .digitalProgressStatusDto(digitalProgressStatusDto)
-                            .build();
+                                var digitalProgressStatusDto =
+                                        new DigitalProgressStatusDto().eventTimestamp(cloudWatchPecMetricsInfo.getNextEventTimestamp())
+                                                .eventDetails(eventDetails)
+                                                .generatedMessage(generatedMessageDto);
+
+                                return NotificationTrackerQueueDto.builder()
+                                        .requestIdx(requestIdx)
+                                        .xPagopaExtchCxId(xPagopaExtchCxId)
+                                        .nextStatus(nextStatus)
+                                        .digitalProgressStatusDto(digitalProgressStatusDto)
+                                        .build();
+                            });
                 })
 
                 //Pubblicazione sulla coda degli stati PEC
@@ -231,6 +253,44 @@ public class ScaricamentoEsitiPecService {
                 //Se avviene un errore all'interno di questa catena tornare un Mono.empty per non bloccare il flux
                 .onErrorResume(throwable -> Mono.empty())
                 .doOnSuccess(unused -> log.info("---> LAVORAZIONE ESITI PEC ENDED <---"));
+    }
+
+
+    Mono<String> generateLocation(String requestIdx, String xPagopaExtchCxId, byte[] fileBytes) {
+
+        FileCreationRequest fileCreationRequest = new FileCreationRequest().contentType(ContentTypes.APPLICATION_XML)
+                .documentType(PN_EXTERNAL_LEGAL_FACTS.getValue())
+                .status("");
+
+        var checksumValue = generateSha256(fileBytes);
+
+        return fileCall.postFile(xPagopaExtchCxId, "pn-external-channels_api_key", checksumValue, xPagopaExtchCxId + "~" + requestIdx, fileCreationRequest)
+                .flatMap(fileCreationResponse ->
+                {
+                    String uploadUrl = fileCreationResponse.getUploadUrl();
+                    log.info(uploadUrl);
+                    return uploadWebClient.put()
+                            .uri(URI.create(uploadUrl))
+                            .header("Content-Type", ContentTypes.APPLICATION_XML)
+                            .header("x-amz-meta-secret", fileCreationResponse.getSecret())
+                            .header("x-amz-checksum-sha256", checksumValue)
+                            .bodyValue(fileBytes)
+                            .retrieve()
+                            .toBodilessEntity()
+                            .thenReturn(SAFESTORAGE_PREFIX + fileCreationResponse.getKey());
+                });
+    }
+
+    private String generateSha256(byte[] fileBytes) {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("SHA256");
+            md.update(fileBytes);
+            byte[] digest = md.digest();
+            return Base64.getEncoder().encodeToString(digest);
+        } catch (NoSuchAlgorithmException | NullPointerException e) {
+            throw new ShaGenerationException(e.getMessage());
+        }
     }
 
 }
