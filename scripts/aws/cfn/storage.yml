@@ -133,7 +133,7 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Action:
-              - 'SQS:*'
+              - 'sqs:*'
             Effect: "Allow"
             Resource: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueARN
             Principal:
@@ -182,7 +182,7 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Action:
-              - 'SQS:*'
+              - 'sqs:*'
             Effect: "Allow"
             Resource: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.QueueARN
             Principal:
@@ -231,7 +231,7 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Action:
-              - 'SQS:*'
+              - 'sqs:*'
             Effect: "Allow"
             Resource: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.QueueARN
             Principal:
@@ -280,7 +280,7 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Action:
-              - 'SQS:*'
+              - 'sqs:*'
             Effect: "Allow"
             Resource: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.QueueARN
             Principal:
@@ -331,7 +331,7 @@ Resources:
             Effect: "Allow"
             Resource: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.QueueARN
             Principal: 
-              AWS: !Sub ${AWS::AccountId}
+              AWS: !Ref AWS::AccountId
           - Sid: 'AllowPutEventsFromEventRule'
             Action: 
               - "sqs:SendMessage"
@@ -384,11 +384,11 @@ Resources:
           - 'events:ListTagsForResource'
         Effect: 'Allow'
         Principal: 
-          AWS: !Sub '${AWS::AccountId}'
+          AWS: !Ref AWS::AccountId
         Resource: !GetAtt PnEcEventBusTrackerExternalNotification.Arn
         Condition:
           StringEqualsIfExists:
-            events:creatorAccount: !Sub '${AWS::AccountId}'
+            events:creatorAccount: !Ref AWS::AccountId
 
   # ####### DENY POLICY FROM OUTSIDE ACCOUNT ########
   # PnEcEventBusPolicyDenyTrackerExternalNotification:
@@ -419,9 +419,9 @@ Resources:
         source: 
           - 'NOTIFICATION TRACKER'
         account: 
-          - !Sub ${AWS::AccountId}
+          - !Ref AWS::AccountId
         region: 
-          - !Sub ${AWS::Region}
+          - !Ref AWS::Region
       State: 'ENABLED'
       Targets:
         - Arn: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.QueueARN
@@ -490,7 +490,7 @@ Resources:
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
+              - 'sqs:*'
             Effect: "Allow"
             Resource: !GetAtt PnEcQueueInteractiveSMSStack.Outputs.QueueARN
             Principal:  
@@ -556,7 +556,7 @@ Resources:
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
+              - 'sqs:*'
             Effect: "Allow"
             Resource: !GetAtt PnEcQueueInteractivePECStack.Outputs.QueueARN
             Principal:  
@@ -622,7 +622,7 @@ Resources:
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
+              - 'sqs:*'
             Effect: "Allow"
             Resource: !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.QueueARN
             Principal:  
