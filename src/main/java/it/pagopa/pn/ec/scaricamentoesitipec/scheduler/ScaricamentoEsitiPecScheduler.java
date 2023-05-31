@@ -16,7 +16,6 @@ import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.LegalMessageSentDetails;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
-import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.bridgews.*;
 import it.pec.daticert.Postacert;
@@ -24,12 +23,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
-import javax.mail.MessagingException;
 import java.time.Duration;
 import java.util.Random;
 import java.util.function.Predicate;
@@ -407,4 +403,42 @@ public class ScaricamentoEsitiPecScheduler {
 
             .subscribe();
     }
+
+    Mono<String> generateLocation(String requestIdx, String xPagopaExtchCxId, byte[] fileBytes) {
+
+        FileCreationRequest fileCreationRequest = new FileCreationRequest().contentType(ContentTypes.APPLICATION_XML)
+                .documentType(PN_EXTERNAL_LEGAL_FACTS.getValue())
+                .status("");
+
+        var checksumValue = generateSha256(fileBytes);
+
+        return fileCall.postFile(xPagopaExtchCxId, "pn-external-channels_api_key", checksumValue, xPagopaExtchCxId + "~" + requestIdx, fileCreationRequest)
+                .flatMap(fileCreationResponse ->
+                {
+                    String uploadUrl = fileCreationResponse.getUploadUrl();
+                    log.info(uploadUrl);
+                    return uploadWebClient.put()
+                            .uri(URI.create(uploadUrl))
+                            .header("Content-Type", ContentTypes.APPLICATION_XML)
+                            .header("x-amz-meta-secret", fileCreationResponse.getSecret())
+                            .header("x-amz-checksum-sha256", checksumValue)
+                            .bodyValue(fileBytes)
+                            .retrieve()
+                            .toBodilessEntity()
+                            .thenReturn(SAFESTORAGE_PREFIX + fileCreationResponse.getKey());
+                });
+    }
+
+    private String generateSha256(byte[] fileBytes) {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("SHA256");
+            md.update(fileBytes);
+            byte[] digest = md.digest();
+            return Base64.getEncoder().encodeToString(digest);
+        } catch (NoSuchAlgorithmException | NullPointerException e) {
+            throw new ShaGenerationException(e.getMessage());
+        }
+    }
+
 }
