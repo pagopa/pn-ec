@@ -28,8 +28,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
-
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Random;
 import java.util.function.Predicate;
 
@@ -102,7 +102,6 @@ public class ScaricamentoEsitiPecScheduler {
         var getMessages = new GetMessages();
         getMessages.setUnseen(1);
         getMessages.setOuttype(2);
-        getMessages.setMarkseen(1);
         getMessages.setLimit(Integer.valueOf(scaricamentoEsitiPecGetMessagesLimit));
 
         return arubaCall.getMessages(getMessages)
@@ -114,26 +113,21 @@ public class ScaricamentoEsitiPecScheduler {
 
                     var mimeMessage = getMimeMessage(message);
                     var messageID = getMessageIdFromMimeMessage(mimeMessage);
-                    var getAttach = new GetAttach();
-                    getAttach.setMailid(messageID);
-                    getAttach.setIsuid(2);
-                    getAttach.setMarkseen(0);
-                    getAttach.setNameattach("daticert.xml");
+                    var attachBytes=getAttachmentFromMimeMessage(mimeMessage, "daticert.xml");
+
 
                     log.debug("Try to download PEC {} daticert.xml", messageID);
 
-                    return arubaCall.getAttach(getAttach).flatMap(getAttachResponse -> {
-                        var attachBytes = getAttachResponse.getAttach();
-
 //                  Check se daticert.xml è presente controllando la lunghezza del byte[]
-                        if (attachBytes != null && attachBytes.length > 0) {
+                    if (!Objects.isNull(attachBytes) && attachBytes.length > 0) {
+
                             log.debug("PEC {} has daticert.xml", messageID);
 
 //                      Deserialize daticert.xml. Start a new Mono inside the flatMap
-                            return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(getAttachResponse.getAttach()))
+                            return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(attachBytes))
 
 //                                 Escludere questi daticert. Non sono delle 'comunicazione esiti'
-                                    .filter(isPostaCertificataPredicate.negate())
+                                   .filter(isPostaCertificataPredicate.negate())
 
 //                                 msgid arriva all'interno di due angolari <msgid>. Eliminare il primo e l'ultimo carattere
                                     .map(postacert -> {
@@ -156,13 +150,12 @@ public class ScaricamentoEsitiPecScheduler {
                                             log.debug("PEC {} discarded, it was not sent by us", messageID);
                                         }
                                     })
-                                    .then(sqsService.send("", messageID, RicezioneEsitiPecDto.builder()
+                                    .flatMap(postacert -> sqsService.send("", messageID, RicezioneEsitiPecDto.builder()
                                             .message(message)
                                             .daticert(attachBytes)
                                             .build()));
                         }
                         else return Mono.empty();
-                    });
                 });
     }
 

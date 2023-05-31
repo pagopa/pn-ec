@@ -1,28 +1,23 @@
 package it.pagopa.pn.ec.commons.utils;
 
 import it.pagopa.pn.ec.commons.exception.email.ComposeMimeMessageException;
+import it.pagopa.pn.ec.commons.exception.email.RetrieveContentException;
 import it.pagopa.pn.ec.commons.exception.email.RetrieveFromException;
 import it.pagopa.pn.ec.commons.exception.email.RetrieveMessageIdException;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.pec.model.pojo.PagopaMimeMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
-import javax.mail.Address;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
+import javax.mail.*;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.Properties;
+import java.io.*;
+import java.util.*;
 
 import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE;
 
@@ -45,6 +40,14 @@ public class EmailUtils {
         }
     }
 
+    public static Object getContentFromMimeMessage(MimeMessage mimeMessage) {
+        try {
+            return mimeMessage.getContent();
+        } catch (IOException | MessagingException e) {
+            throw new ComposeMimeMessageException();
+        }
+    }
+
     public static String getMessageIdFromMimeMessage(MimeMessage mimeMessage) throws RetrieveMessageIdException {
         try {
             return mimeMessage.getMessageID();
@@ -57,7 +60,7 @@ public class EmailUtils {
         try {
             return Arrays.stream(mimeMessage.getFrom()).map(Address::toString).toArray(String[]::new);
         } catch (MessagingException e) {
-            throw new RetrieveFromException();
+            throw new RetrieveContentException();
         }
     }
 
@@ -122,4 +125,61 @@ public class EmailUtils {
     public static String getMimeMessageInCDATATag(EmailField emailField) {
         return String.format("<![CDATA[%s]]>", getMimeMessageOutputStream(emailField));
     }
+
+    public static byte[] getAttachmentFromMimeMessage(MimeMessage mimeMessage, String fileName) {
+        try {
+            Object content = mimeMessage.getContent();
+            if (content instanceof String) {
+                log.info("IL CONTENT E' STRING.");
+                return null;
+            }
+
+            if (content instanceof Multipart multipart) {
+
+                for (int i = 0; i < multipart.getCount(); i++) {
+                    InputStream result = getAttachmentFromBodyPart(multipart.getBodyPart(i), fileName);
+                    if (!Objects.isNull(result)) {
+                        log.info("RITORNO IL FILE TROVATO!");
+                        return result.readAllBytes();
+                    }
+                }
+            }
+            //Ritorno un'eccezione invece di null: non ci sono allegati.
+            return null;
+        } catch (IOException | MessagingException exception) {
+            log.error(exception.getMessage());
+            throw new ComposeMimeMessageException();
+        }
+    }
+
+    public static InputStream getAttachmentFromBodyPart(BodyPart part, String fileName) {
+        try {
+
+            Object content = part.getContent();
+            if (content instanceof InputStream || content instanceof String) {
+                if ((Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition()) || StringUtils.isNotBlank(part.getFileName())) && part.getFileName().equals(fileName)) {
+                    log.info("FILE TROVATO!");
+                    return part.getInputStream();
+                } else {
+                    log.info("NON E' IL FILE CHE CERCO.");
+                    return null;
+                }
+            }
+
+            if (content instanceof Multipart multipart) {
+                log.info("INDIVIDUATO MULTIPART: INIZIO RICORSIONE");
+                for (int i = 0; i < multipart.getCount(); i++) {
+                    BodyPart bodyPart = multipart.getBodyPart(i);
+                    getAttachmentFromBodyPart(bodyPart, fileName);
+                }
+            }
+
+            return null;
+
+        } catch (IOException | MessagingException exception) {
+            log.error(exception.getMessage());
+            throw new ComposeMimeMessageException();
+        }
+    }
+
 }

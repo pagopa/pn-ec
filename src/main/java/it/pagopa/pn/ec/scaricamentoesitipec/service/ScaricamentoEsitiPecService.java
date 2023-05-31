@@ -34,20 +34,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Random;
-import java.util.function.Predicate;
 
 import static it.pagopa.pn.ec.commons.constant.DocumentType.PN_EXTERNAL_LEGAL_FACTS;
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
-import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
-import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.createGeneratedMessageByStatus;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.decodePecStatusToMachineStateStatus;
 
@@ -101,7 +99,7 @@ public class ScaricamentoEsitiPecService {
         lavorazioneEsitiPec(ricezioneEsitiPecDto).doOnSuccess(result -> acknowledgment.acknowledge()).subscribe();
     }
 
-    Mono<String> lavorazioneEsitiPec(RicezioneEsitiPecDto ricezioneEsitiPecDto) {
+    Mono<SendMessageResponse> lavorazioneEsitiPec(RicezioneEsitiPecDto ricezioneEsitiPecDto) {
 
         log.info("<-- START LAVORAZIONE ESITI PEC -->");
 
@@ -116,7 +114,7 @@ public class ScaricamentoEsitiPecService {
                     var requestIdx = presaInCaricoInfo.getRequestIdx();
                     var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
 
-                    log.debug("PEC messageId - clientId is {}, requestId is {}", clientId, requestIdx);
+                    log.debug("PEC messageId - clientId is {}, requestId is {}, messageID is {}", clientId, requestIdx, messageID);
 
                     return Mono.zip(Mono.just(postacert),
                             gestoreRepositoryCall.getRichiesta(clientId, requestIdx),
@@ -196,7 +194,7 @@ public class ScaricamentoEsitiPecService {
                     CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT3();
                     String nextStatus = objects.getT4();
 
-                    var pecIdMessageId = getMessageIdFromMimeMessage(mimeMessage);
+                   // var pecIdMessageId = getMessageIdFromMimeMessage(mimeMessage);
                     var requestIdx = requestDto.getRequestIdx();
                     var xPagopaExtchCxId = requestDto.getxPagopaExtchCxId();
                     var eventDetails = postacert.getErrore();
@@ -210,11 +208,9 @@ public class ScaricamentoEsitiPecService {
 
                                 var generatedMessageDto = createGeneratedMessageByStatus(receiversDomain,
                                         senderDomain,
-                                        pecIdMessageId,
+                                        messageID,
                                         postacert.getTipo(),
                                         location);
-
-                                log.debug("PEC {} has {} requestId", pecIdMessageId, requestIdx);
 
                                 var digitalProgressStatusDto =
                                         new DigitalProgressStatusDto().eventTimestamp(cloudWatchPecMetricsInfo.getNextEventTimestamp())
@@ -233,12 +229,6 @@ public class ScaricamentoEsitiPecService {
                 //Pubblicazione sulla coda degli stati PEC
                 .flatMap(notificationTrackerQueueDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                         notificationTrackerQueueDto))
-
-                //Return un Mono contenente il messageId
-                .thenReturn(messageID)
-
-                //Se per qualche motivo questo daticert è da escludere tornare comunque il pecId
-                .switchIfEmpty(Mono.just(messageID))
 
                 //         Error logging
                 .doOnError(throwable -> {
@@ -264,6 +254,7 @@ public class ScaricamentoEsitiPecService {
 
         var checksumValue = generateSha256(fileBytes);
 
+        //TODO ESTERNALIZZARE API KEY
         return fileCall.postFile(xPagopaExtchCxId, "pn-external-channels_api_key", checksumValue, xPagopaExtchCxId + "~" + requestIdx, fileCreationRequest)
                 .flatMap(fileCreationResponse ->
                 {
