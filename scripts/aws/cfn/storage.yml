@@ -591,7 +591,6 @@ Resources:
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         DeduplicationScope: 'messageGroup'
-        DelaySeconds: 300
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'true'
@@ -950,7 +949,7 @@ Outputs:
   PnEcEventRuleArnNotificheExt1:
     Description: "[Event Rule - Tracker] ARN dell'evento relativo alla coda PnEcQueueNotificheExt1"
     Value: !GetAtt PnEcEventRuleNotificheExt1.Arn
-    
+
   ###### BATCH : SMS #######
 
   PnEcQueueNameBatchSMS:
@@ -1208,3 +1207,25 @@ Outputs:
   PnEcAlarmArnEventsDLQueuePnCoreTargetEventBus:
     Description: "ARN dell'allarme messaggi vecchi nella DLQ per forward degli eventi al bus PnCoreTargetEventBus"
     Value: !GetAtt PnEcEventsDLQueuePnCoreTargetEventBusStack.Outputs.SqsAgeAlarmArn
+
+###### SCARICAMENTO ESITI : PEC #######
+
+  PnEcQueueNameScaricamentoEsitiPEC:
+    Description: '[Canale SMS] Nome della Coda per lo scaricamento esiti PEC'
+    Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueName
+
+  PnEcQueueArnScaricamentoEsitiPEC:
+    Description: '[Canale SMS] ARN della Coda per lo scaricamento esiti PEC'
+    Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueARN
+
+  PnEcQueueUrlScaricamentoEsitiPEC:
+    Description: '[Canale SMS] URL della Coda per lo scaricamento esiti PEC'
+    Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueURL
+
+  PnEcAlarmArnQueueScaricamentoEsitiPEC:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueScaricamentoEsitiPEC"
+    Value: !GetAtt PnEcQueueScaricamentoEsitiPECStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueScaricamentoEsitiPEC:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueScaricamentoEsitiPEC"
+    Value: !GetAtt PnEcQueueScaricamentoEsitiPECStack.Outputs.SqsDLQAlarmArn
