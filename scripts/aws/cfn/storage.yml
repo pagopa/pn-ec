@@ -134,10 +134,13 @@ Resources:
         Statement:
           - Action:
               - 'sqs:*'
-            Effect: "Allow"
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueARN
             Principal:
               AWS: '*'
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref AWS::AccountId
 
   PnEcQueueTrackerErroriSMSStack:
     Type: AWS::CloudFormation::Stack
@@ -183,10 +186,13 @@ Resources:
         Statement:
           - Action:
               - 'sqs:*'
-            Effect: "Allow"
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.QueueARN
             Principal:
               AWS: '*'
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref AWS::AccountId
 
   PnEcQueueTrackerErroriPECStack:
     Type: AWS::CloudFormation::Stack
@@ -232,10 +238,13 @@ Resources:
         Statement:
           - Action:
               - 'sqs:*'
-            Effect: "Allow"
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.QueueARN
             Principal:
               AWS: '*'
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref AWS::AccountId
 
   PnEcQueueTrackerErroriEMAILStack:
     Type: AWS::CloudFormation::Stack
@@ -281,10 +290,13 @@ Resources:
         Statement:
           - Action:
               - 'sqs:*'
-            Effect: "Allow"
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.QueueARN
             Principal:
               AWS: '*'
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref AWS::AccountId
 
   PnEcQueueTrackerErroriCARTACEOStack:
     Type: AWS::CloudFormation::Stack
@@ -327,15 +339,15 @@ Resources:
         Statement: 
           - Sid: 'AllowAccessSameAccount'
             Action: 
-              - "SQS:*"
-            Effect: "Allow"
+              - 'sqs:*'
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.QueueARN
             Principal: 
               AWS: !Ref AWS::AccountId
           - Sid: 'AllowPutEventsFromEventRule'
             Action: 
-              - "sqs:SendMessage"
-            Effect: "Allow"
+              - 'sqs:SendMessage'
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.QueueARN
             Principal: 
               Service:
@@ -357,8 +369,8 @@ Resources:
       StatementId: 'PnEcCustomEventBusPolicyAllowECS1'
       Statement:
         Action: 
-          - "events:PutEvents"
-        Effect: "Allow"
+          - 'events:PutEvents'
+        Effect: 'Allow'
         Principal: 
           Service:
           - 'ecs.amazonaws.com'
@@ -491,10 +503,13 @@ Resources:
         Statement: 
           - Action: 
               - 'sqs:*'
-            Effect: "Allow"
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueInteractiveSMSStack.Outputs.QueueARN
             Principal:  
               AWS: '*'
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref AWS::AccountId
               
   PnEcQueueErroriSMSStack:
     Type: AWS::CloudFormation::Stack
@@ -557,10 +572,13 @@ Resources:
         Statement: 
           - Action: 
               - 'sqs:*'
-            Effect: "Allow"
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueInteractivePECStack.Outputs.QueueARN
             Principal:  
               AWS: '*'
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref AWS::AccountId
               
   PnEcQueueErroriPECStack:
     Type: AWS::CloudFormation::Stack
@@ -623,10 +641,13 @@ Resources:
         Statement: 
           - Action: 
               - 'sqs:*'
-            Effect: "Allow"
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.QueueARN
             Principal:  
               AWS: '*'
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref AWS::AccountId
               
   PnEcQueueErroriEMAILStack:
     Type: AWS::CloudFormation::Stack
