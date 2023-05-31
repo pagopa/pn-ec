@@ -16,6 +16,7 @@ import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.LegalMessageSentDetails;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
+import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.bridgews.*;
 import it.pec.daticert.Postacert;
@@ -23,9 +24,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import javax.mail.MessagingException;
 import java.time.Duration;
 import java.util.Random;
 import java.util.function.Predicate;
@@ -83,12 +87,83 @@ public class ScaricamentoEsitiPecScheduler {
     private final Predicate<Postacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
     private boolean isScaricamentoEsitiPecRunning = false;
 
-    private GetMessageID createGetMessageIdRequest(String pecId, boolean markSeen) {
+    private GetMessageID createGetMessageIdRequest(String pecId, Integer isuid, boolean markSeen) {
         var getMessageID = new GetMessageID();
         getMessageID.setMailid(pecId);
-        getMessageID.setIsuid(1);
+        getMessageID.setIsuid(isuid);
         getMessageID.setMarkseen(markSeen ? 1 : 0);
         return getMessageID;
+    }
+
+    @Scheduled(cron = "${cron.value.scaricamento-esiti-pec}")
+    public Flux<SendMessageResponse> scaricamentoEsitiPecScheduler() {
+
+        log.info("<-- SCARICAMENTO ESITI PEC SCHEDULER -->");
+
+        var getMessages = new GetMessages();
+        getMessages.setUnseen(1);
+        getMessages.setOuttype(2);
+        getMessages.setMarkseen(1);
+        getMessages.setLimit(Integer.valueOf(scaricamentoEsitiPecGetMessagesLimit));
+
+        return arubaCall.getMessages(getMessages)
+                .doOnError(ArubaCallMaxRetriesExceededException.class, e -> log.debug("Aruba non risponde. Circuit breaker"))
+                .onErrorComplete(ArubaCallMaxRetriesExceededException.class)
+                .flatMap(optionalGetMessagesResponse -> Mono.justOrEmpty(optionalGetMessagesResponse.getArrayOfMessages()))
+                .flatMapIterable(MesArrayOfMessages::getItem)
+                .flatMap(message -> {
+
+                    var mimeMessage = getMimeMessage(message);
+                    var messageID = getMessageIdFromMimeMessage(mimeMessage);
+                    var getAttach = new GetAttach();
+                    getAttach.setMailid(messageID);
+                    getAttach.setIsuid(2);
+                    getAttach.setMarkseen(0);
+                    getAttach.setNameattach("daticert.xml");
+
+                    log.debug("Try to download PEC {} daticert.xml", messageID);
+
+                    return arubaCall.getAttach(getAttach).flatMap(getAttachResponse -> {
+                        var attachBytes = getAttachResponse.getAttach();
+
+//                  Check se daticert.xml è presente controllando la lunghezza del byte[]
+                        if (attachBytes != null && attachBytes.length > 0) {
+                            log.debug("PEC {} has daticert.xml", messageID);
+
+//                      Deserialize daticert.xml. Start a new Mono inside the flatMap
+                            return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(getAttachResponse.getAttach()))
+
+//                                 Escludere questi daticert. Non sono delle 'comunicazione esiti'
+                                    .filter(isPostaCertificataPredicate.negate())
+
+//                                 msgid arriva all'interno di due angolari <msgid>. Eliminare il primo e l'ultimo carattere
+                                    .map(postacert -> {
+                                        var dati = postacert.getDati();
+                                        var msgId = dati.getMsgid();
+                                        dati.setMsgid(msgId.substring(1, msgId.length() - 1));
+                                        log.debug("PEC {} has {} msgId", messageID, msgId);
+                                        return postacert;
+                                    })
+
+//                                 Escludere questi daticert. Non avendo il msgid terminante con il dominio pago non sono state inviate
+//                                 da noi
+                                    .filter(endsWithDomainPredicate)
+
+//                                 Daticert filtrati
+                                    .doOnDiscard(Postacert.class, postacert -> {
+                                        if (isPostaCertificataPredicate.test(postacert)) {
+                                            log.debug("PEC {} discarded, is {}", messageID, POSTA_CERTIFICATA);
+                                        } else if (!endsWithDomainPredicate.test(postacert)) {
+                                            log.debug("PEC {} discarded, it was not sent by us", messageID);
+                                        }
+                                    })
+                                    .then(sqsService.send("", messageID, RicezioneEsitiPecDto.builder()
+                                            .message(message)
+                                            .daticert(attachBytes)
+                                            .build()));
+                        } else return Mono.empty();
+                    });
+                });
     }
 
     @Scheduled(cron = "${cron.value.scaricamento-esiti-pec}")
@@ -190,7 +265,7 @@ public class ScaricamentoEsitiPecScheduler {
                                                        gestoreRepositoryCall.getRichiesta(clientId, requestIdx),
                                                        statusPullService.pecPullService(requestIdx,
                                                                                         presaInCaricoInfo.getXPagopaExtchCxId()),
-                                                       arubaCall.getMessageId(createGetMessageIdRequest(pecId, false)));
+                                                       arubaCall.getMessageId(createGetMessageIdRequest(pecId,1, false)));
                                    })
 
 //                                 Validate status
@@ -304,7 +379,8 @@ public class ScaricamentoEsitiPecScheduler {
 
 //                                 Se avviene un errore all'interno di questa catena tornare un Mono.empty per non bloccare il flux
                                    .onErrorResume(throwable -> Mono.empty());
-                    } else {
+                    }
+                    else {
                         log.debug("PEC {} doesn't have daticert.xml", pecId);
 
 //                      Return un Mono contenente il pecId
@@ -314,7 +390,7 @@ public class ScaricamentoEsitiPecScheduler {
             })
 
 //          Chiamare getMessageID con markseen a uno per marcare il messaggio come letto e terminare il processo.
-            .flatMap(pecId -> arubaCall.getMessageId(createGetMessageIdRequest(pecId, true))
+            .flatMap(pecId -> arubaCall.getMessageId(createGetMessageIdRequest(pecId, 1, true))
                                        .doOnSuccess(getMessageIDResponse -> log.debug("PEC {} marked as seen", pecId)))
 
 //         Error logging
