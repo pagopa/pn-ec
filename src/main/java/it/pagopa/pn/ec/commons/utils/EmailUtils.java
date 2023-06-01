@@ -1,14 +1,10 @@
 package it.pagopa.pn.ec.commons.utils;
-
-import it.pagopa.pn.ec.commons.exception.email.ComposeMimeMessageException;
-import it.pagopa.pn.ec.commons.exception.email.RetrieveContentException;
-import it.pagopa.pn.ec.commons.exception.email.RetrieveFromException;
-import it.pagopa.pn.ec.commons.exception.email.RetrieveMessageIdException;
+import it.pagopa.pn.ec.commons.exception.email.*;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.pec.model.pojo.PagopaMimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-
+import org.apache.commons.mail.util.MimeMessageParser;
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.mail.*;
@@ -44,7 +40,7 @@ public class EmailUtils {
         try {
             return mimeMessage.getContent();
         } catch (IOException | MessagingException e) {
-            throw new ComposeMimeMessageException();
+            throw new RetrieveContentException();
         }
     }
 
@@ -60,7 +56,7 @@ public class EmailUtils {
         try {
             return Arrays.stream(mimeMessage.getFrom()).map(Address::toString).toArray(String[]::new);
         } catch (MessagingException e) {
-            throw new RetrieveContentException();
+            throw new RetrieveFromException();
         }
     }
 
@@ -126,6 +122,16 @@ public class EmailUtils {
         return String.format("<![CDATA[%s]]>", getMimeMessageOutputStream(emailField));
     }
 
+    public static byte[] findAttachmentByName(MimeMessage mimeMessage, String attachmentName) {
+        try {
+            MimeMessageParser mimeMessageParser = new MimeMessageParser(mimeMessage);
+            return mimeMessageParser.parse().findAttachmentByName(attachmentName).getInputStream().readAllBytes();
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new RetrieveAttachmentException();
+        }
+    }
+
     public static byte[] getAttachmentFromMimeMessage(MimeMessage mimeMessage, String fileName) {
         try {
             Object content = mimeMessage.getContent();
@@ -144,11 +150,10 @@ public class EmailUtils {
                     }
                 }
             }
-            //Ritorno un'eccezione invece di null: non ci sono allegati.
-            return null;
+            throw new RetrieveAttachmentException();
         } catch (IOException | MessagingException exception) {
             log.error(exception.getMessage());
-            throw new ComposeMimeMessageException();
+            throw new RetrieveAttachmentException();
         }
     }
 
@@ -178,7 +183,7 @@ public class EmailUtils {
 
         } catch (IOException | MessagingException exception) {
             log.error(exception.getMessage());
-            throw new ComposeMimeMessageException();
+            throw new RetrieveAttachmentException();
         }
     }
 

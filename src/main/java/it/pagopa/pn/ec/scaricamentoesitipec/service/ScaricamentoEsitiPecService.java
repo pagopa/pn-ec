@@ -46,8 +46,7 @@ import static it.pagopa.pn.ec.commons.constant.DocumentType.PN_EXTERNAL_LEGAL_FA
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
-import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.createGeneratedMessageByStatus;
-import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.decodePecStatusToMachineStateStatus;
+import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.*;
 
 @Slf4j
 public class ScaricamentoEsitiPecService {
@@ -75,16 +74,9 @@ public class ScaricamentoEsitiPecService {
     private FileCall fileCall;
     @Autowired
     private WebClient uploadWebClient;
-
-    @Autowired
-    private Random random;
-
-    @Value("${scaricamento-esiti-pec.get-messages.limit}")
-    private String scaricamentoEsitiPecGetMessagesLimit;
-
+    @Value("${ScaricamentoEsitiPecXApiKey:}")
+    private String xApiKey;
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
-
-    private static final String DESTINATARIO_ESTERNO = "esterno";
 
     private GetMessageID createGetMessageIdRequest(String pecId, boolean markSeen) {
         var getMessageID = new GetMessageID();
@@ -94,7 +86,7 @@ public class ScaricamentoEsitiPecService {
         return getMessageID;
     }
 
-    @SqsListener(value = "${sqs.queue.pec.ricezione-esiti-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    @SqsListener(value = "${sqs.queue.pec.scaricamento-esiti-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void lavorazioneEsitiPec(final RicezioneEsitiPecDto ricezioneEsitiPecDto, final Acknowledgment acknowledgment) {
         lavorazioneEsitiPec(ricezioneEsitiPecDto).doOnSuccess(result -> acknowledgment.acknowledge()).subscribe();
     }
@@ -194,7 +186,7 @@ public class ScaricamentoEsitiPecService {
                     CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT3();
                     String nextStatus = objects.getT4();
 
-                   // var pecIdMessageId = getMessageIdFromMimeMessage(mimeMessage);
+                    // var pecIdMessageId = getMessageIdFromMimeMessage(mimeMessage);
                     var requestIdx = requestDto.getRequestIdx();
                     var xPagopaExtchCxId = requestDto.getxPagopaExtchCxId();
                     var eventDetails = postacert.getErrore();
@@ -254,8 +246,7 @@ public class ScaricamentoEsitiPecService {
 
         var checksumValue = generateSha256(fileBytes);
 
-        //TODO ESTERNALIZZARE API KEY
-        return fileCall.postFile(xPagopaExtchCxId, "pn-external-channels_api_key", checksumValue, xPagopaExtchCxId + "~" + requestIdx, fileCreationRequest)
+        return fileCall.postFile(xPagopaExtchCxId, xApiKey, checksumValue, xPagopaExtchCxId + "~" + requestIdx, fileCreationRequest)
                 .flatMap(fileCreationResponse ->
                 {
                     String uploadUrl = fileCreationResponse.getUploadUrl();

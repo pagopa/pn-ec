@@ -47,15 +47,7 @@ public class ScaricamentoEsitiPecScheduler {
 
     private final ArubaCall arubaCall;
     private final DaticertService daticertService;
-    private final CallMacchinaStati callMacchinaStati;
-    private final GestoreRepositoryCall gestoreRepositoryCall;
-    private final StatusPullService statusPullService;
     private final SqsService sqsService;
-    private final CloudWatchPecMetrics cloudWatchPecMetrics;
-    private final NotificationTrackerSqsName notificationTrackerSqsName;
-    private final ArubaSecretValue arubaSecretValue;
-    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
-    private final Random random;
 
     @Value("${scaricamento-esiti-pec.get-messages.limit}")
     private String scaricamentoEsitiPecGetMessagesLimit;
@@ -63,28 +55,14 @@ public class ScaricamentoEsitiPecScheduler {
     @Value("${scaricamento-esiti-pec.maximum-delay-seconds}")
     private String maximumDelaySeconds;
 
-    public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, CallMacchinaStati callMacchinaStati,
-                                         GestoreRepositoryCall gestoreRepositoryCall, StatusPullService statusPullService,
-                                         SqsService sqsService, CloudWatchPecMetrics cloudWatchPecMetrics,
-                                         NotificationTrackerSqsName notificationTrackerSqsName, ArubaSecretValue arubaSecretValue,
-                                         TransactionProcessConfigurationProperties transactionProcessConfigurationProperties,
-                                         Random random) {
+    public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, SqsService sqsService) {
         this.arubaCall = arubaCall;
         this.daticertService = daticertService;
-        this.callMacchinaStati = callMacchinaStati;
-        this.gestoreRepositoryCall = gestoreRepositoryCall;
-        this.statusPullService = statusPullService;
         this.sqsService = sqsService;
-        this.cloudWatchPecMetrics = cloudWatchPecMetrics;
-        this.notificationTrackerSqsName = notificationTrackerSqsName;
-        this.arubaSecretValue = arubaSecretValue;
-        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
-        this.random = random;
     }
 
     private final Predicate<Postacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
     private final Predicate<Postacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
-    private boolean isScaricamentoEsitiPecRunning = false;
 
     private GetMessageID createGetMessageIdRequest(String pecId, Integer isuid, boolean markSeen) {
         var getMessageID = new GetMessageID();
@@ -113,7 +91,7 @@ public class ScaricamentoEsitiPecScheduler {
 
                     var mimeMessage = getMimeMessage(message);
                     var messageID = getMessageIdFromMimeMessage(mimeMessage);
-                    var attachBytes=getAttachmentFromMimeMessage(mimeMessage, "daticert.xml");
+                    var attachBytes = findAttachmentByName(mimeMessage, "daticert.xml");
 
 
                     log.debug("Try to download PEC {} daticert.xml", messageID);

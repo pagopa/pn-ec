@@ -27,23 +27,14 @@ public class EmailUtilsTest {
         Path resourceDirectory = Paths.get("src","test","resources","prova.txt");
         byte[] byteArray= Files.readAllBytes(resourceDirectory);
 
-        Path resourceDirectory2 = Paths.get("src","test","resources","prova-test.txt");
-        byte[] byteArray2= Files.readAllBytes(resourceDirectory2);
-
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(byteArray.length);
         byteArrayOutputStream.writeBytes(byteArray);
 
-        ByteArrayOutputStream byteArrayOutputStream2 = new ByteArrayOutputStream(byteArray2.length);
-        byteArrayOutputStream2.writeBytes(byteArray2);
-
-        var emailAttachment1=EmailAttachment.builder().nameWithExtension("prova1.txt").url("www.prova.it").content(byteArrayOutputStream).build();
-        var emailAttachment2=EmailAttachment.builder().nameWithExtension("prova2.txt").url("www.prova.it").content(byteArrayOutputStream).build();
-        var emailAttachment3=EmailAttachment.builder().nameWithExtension("prova3.txt").url("www.prova.it").content(byteArrayOutputStream2).build();
+        var emailAttachment=EmailAttachment.builder().nameWithExtension("prova.txt").url("www.prova.it").content(byteArrayOutputStream).build();
 
 
-        MimeMessage mimeMessage= EmailUtils.getMimeMessage(EmailField.builder().to("tizio").from("caio").msgId("fdadwdawa").text("TESTO DI PROVA.").contentType("multipart/mixed").subject("prova").emailAttachments(List.of(emailAttachment1, emailAttachment2, emailAttachment3)).build());
-
-        var attachBytes= EmailUtils.getAttachmentFromMimeMessage(mimeMessage, "prova3.txt");
+        MimeMessage mimeMessage= EmailUtils.getMimeMessage(EmailField.builder().to("tizio").from("caio").msgId("fdadwdawa").contentType("text/plain").text("").subject("prova").emailAttachments(List.of(emailAttachment)).build());
+        var attachBytes= EmailUtils.findAttachmentByName(mimeMessage, "prova.txt");
 
         Path savePath = Paths.get("src","test","resources","prova_retrieved.txt");
         assert attachBytes != null;
