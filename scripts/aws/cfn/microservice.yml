@@ -551,6 +551,9 @@ Parameters:
     Description: 'Default sender email address'
     Type: String
     
+  LogAlarmStrategy:
+    Type: String
+    Default: 'FATAL'
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
 
@@ -608,6 +611,7 @@ Resources:
         LoadbalancerRulePriority: !Ref MicroserviceNumber
         # CloudwatchLogKinesisStreamArn: !Ref LogsKinesisSourceStreamArn
         TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
+        LogAlarmStrategyV1: !Ref LogAlarmStrategy
         # HealthCheckPath: 
 
   PnEcManagedPolicy:
