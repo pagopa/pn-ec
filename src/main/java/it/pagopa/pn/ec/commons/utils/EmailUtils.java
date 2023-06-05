@@ -30,6 +30,7 @@ public class EmailUtils {
 
     public static MimeMessage getMimeMessage(byte[] bytes) {
         try {
+            log.info("---> Start getting MimeMessage from byte array with length '{}' <---", bytes.length);
             return new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(bytes));
         } catch (MessagingException e) {
             throw new ComposeMimeMessageException();
@@ -102,7 +103,6 @@ public class EmailUtils {
 
             return mimeMessage;
         } catch (MessagingException exception) {
-            log.error(exception.getMessage());
             throw new ComposeMimeMessageException();
         }
     }
@@ -113,7 +113,6 @@ public class EmailUtils {
             getMimeMessage(emailField).writeTo(output);
             return output;
         } catch (IOException | MessagingException exception) {
-            log.error(exception.getMessage());
             throw new ComposeMimeMessageException();
         }
     }
@@ -121,38 +120,25 @@ public class EmailUtils {
     public static String getMimeMessageInCDATATag(EmailField emailField) {
         return String.format("<![CDATA[%s]]>", getMimeMessageOutputStream(emailField));
     }
-
-    public static byte[] findAttachmentByName(MimeMessage mimeMessage, String attachmentName) {
+    public static byte[] getAttachmentFromMimeMessage(MimeMessage mimeMessage, String attachmentName) {
         try {
-            MimeMessageParser mimeMessageParser = new MimeMessageParser(mimeMessage);
-            return mimeMessageParser.parse().findAttachmentByName(attachmentName).getInputStream().readAllBytes();
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            throw new RetrieveAttachmentException();
-        }
-    }
-
-    public static byte[] getAttachmentFromMimeMessage(MimeMessage mimeMessage, String fileName) {
-        try {
+            log.info("---> Start retrieving attachment with name '{}' <---", attachmentName);
             Object content = mimeMessage.getContent();
             if (content instanceof String) {
-                log.info("IL CONTENT E' STRING.");
                 return null;
             }
 
             if (content instanceof Multipart multipart) {
 
                 for (int i = 0; i < multipart.getCount(); i++) {
-                    InputStream result = getAttachmentFromBodyPart(multipart.getBodyPart(i), fileName);
+                    InputStream result = getAttachmentFromBodyPart(multipart.getBodyPart(i), attachmentName);
                     if (!Objects.isNull(result)) {
-                        log.info("RITORNO IL FILE TROVATO!");
                         return result.readAllBytes();
                     }
                 }
             }
             throw new RetrieveAttachmentException();
-        } catch (IOException | MessagingException exception) {
-            log.error(exception.getMessage());
+        } catch (IOException | MessagingException e) {
             throw new RetrieveAttachmentException();
         }
     }
@@ -163,16 +149,13 @@ public class EmailUtils {
             Object content = part.getContent();
             if (content instanceof InputStream || content instanceof String) {
                 if ((Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition()) || StringUtils.isNotBlank(part.getFileName())) && part.getFileName().equals(fileName)) {
-                    log.info("FILE TROVATO!");
                     return part.getInputStream();
                 } else {
-                    log.info("NON E' IL FILE CHE CERCO.");
                     return null;
                 }
             }
 
             if (content instanceof Multipart multipart) {
-                log.info("INDIVIDUATO MULTIPART: INIZIO RICORSIONE");
                 for (int i = 0; i < multipart.getCount(); i++) {
                     BodyPart bodyPart = multipart.getBodyPart(i);
                     getAttachmentFromBodyPart(bodyPart, fileName);
@@ -182,7 +165,16 @@ public class EmailUtils {
             return null;
 
         } catch (IOException | MessagingException exception) {
-            log.error(exception.getMessage());
+            throw new RetrieveAttachmentException();
+        }
+    }
+
+    public static byte[] findAttachmentByName(MimeMessage mimeMessage, String attachmentName) {
+        try {
+            log.info("---> Start retrieving attachment with name '{}' <---", attachmentName);
+            MimeMessageParser mimeMessageParser = new MimeMessageParser(mimeMessage);
+            return mimeMessageParser.parse().findAttachmentByName(attachmentName).getInputStream().readAllBytes();
+        } catch (Exception e) {
             throw new RetrieveAttachmentException();
         }
     }

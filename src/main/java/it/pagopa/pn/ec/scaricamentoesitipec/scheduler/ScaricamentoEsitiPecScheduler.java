@@ -1,23 +1,10 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
-import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
-import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.commons.service.StatusPullService;
-import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
-import it.pagopa.pn.ec.rest.v1.dto.LegalMessageSentDetails;
-import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
-import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
-import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.bridgews.*;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
@@ -26,21 +13,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuples;
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
-import java.time.Duration;
 import java.util.Objects;
-import java.util.Random;
 import java.util.function.Predicate;
-
-import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
-import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
-import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.createGeneratedMessageByStatus;
-import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.decodePecStatusToMachineStateStatus;
-
 @Component
 @Slf4j
 public class ScaricamentoEsitiPecScheduler {
@@ -52,9 +29,6 @@ public class ScaricamentoEsitiPecScheduler {
     @Value("${scaricamento-esiti-pec.get-messages.limit}")
     private String scaricamentoEsitiPecGetMessagesLimit;
 
-    @Value("${scaricamento-esiti-pec.maximum-delay-seconds}")
-    private String maximumDelaySeconds;
-
     public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, SqsService sqsService) {
         this.arubaCall = arubaCall;
         this.daticertService = daticertService;
@@ -64,16 +38,16 @@ public class ScaricamentoEsitiPecScheduler {
     private final Predicate<Postacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
     private final Predicate<Postacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
 
-    private GetMessageID createGetMessageIdRequest(String pecId, Integer isuid, boolean markSeen) {
+    private GetMessageID createGetMessageIdRequest(String messageID, Integer isuid, boolean markSeen) {
         var getMessageID = new GetMessageID();
-        getMessageID.setMailid(pecId);
+        getMessageID.setMailid(messageID);
         getMessageID.setIsuid(isuid);
         getMessageID.setMarkseen(markSeen ? 1 : 0);
         return getMessageID;
     }
 
     @Scheduled(cron = "${cron.value.scaricamento-esiti-pec}")
-    public Flux<SendMessageResponse> scaricamentoEsitiPecScheduler() {
+    public Flux<GetMessageIDResponse> scaricamentoEsitiPecScheduler() {
 
         log.info("<-- SCARICAMENTO ESITI PEC SCHEDULER -->");
 
@@ -99,284 +73,45 @@ public class ScaricamentoEsitiPecScheduler {
 //                  Check se daticert.xml è presente controllando la lunghezza del byte[]
                     if (!Objects.isNull(attachBytes) && attachBytes.length > 0) {
 
-                            log.debug("PEC {} has daticert.xml", messageID);
+                        log.debug("PEC {} has daticert.xml", messageID);
 
 //                      Deserialize daticert.xml. Start a new Mono inside the flatMap
-                            return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(attachBytes))
+                        Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(attachBytes))
 
 //                                 Escludere questi daticert. Non sono delle 'comunicazione esiti'
-                                   .filter(isPostaCertificataPredicate.negate())
+                                .filter(isPostaCertificataPredicate.negate())
 
 //                                 msgid arriva all'interno di due angolari <msgid>. Eliminare il primo e l'ultimo carattere
-                                    .map(postacert -> {
-                                        var dati = postacert.getDati();
-                                        var msgId = dati.getMsgid();
-                                        dati.setMsgid(msgId.substring(1, msgId.length() - 1));
-                                        log.debug("PEC {} has {} msgId", messageID, msgId);
-                                        return postacert;
-                                    })
+                                .map(postacert -> {
+                                    var dati = postacert.getDati();
+                                    var msgId = dati.getMsgid();
+                                    dati.setMsgid(msgId.substring(1, msgId.length() - 1));
+                                    log.debug("PEC {} has {} msgId", messageID, msgId);
+                                    return postacert;
+                                })
 
-//                                 Escludere questi daticert. Non avendo il msgid terminante con il dominio pago non sono state inviate
-//                                 da noi
-                                    .filter(endsWithDomainPredicate)
+//                               Escludere questi daticert. Non avendo il msgid terminante con il dominio pago non sono state inviate
+//                               da noi
+                                .filter(endsWithDomainPredicate)
 
-//                                 Daticert filtrati
-                                    .doOnDiscard(Postacert.class, postacert -> {
-                                        if (isPostaCertificataPredicate.test(postacert)) {
-                                            log.debug("PEC {} discarded, is {}", messageID, POSTA_CERTIFICATA);
-                                        } else if (!endsWithDomainPredicate.test(postacert)) {
-                                            log.debug("PEC {} discarded, it was not sent by us", messageID);
-                                        }
-                                    })
-                                    .flatMap(postacert -> sqsService.send("", messageID, RicezioneEsitiPecDto.builder()
-                                            .message(message)
-                                            .daticert(attachBytes)
-                                            .build()));
-                        }
-                        else return Mono.empty();
-                });
+//                               Daticert filtrati
+                                .doOnDiscard(Postacert.class, postacert -> {
+                                    if (isPostaCertificataPredicate.test(postacert)) {
+                                        log.debug("PEC {} discarded, is {}", messageID, POSTA_CERTIFICATA);
+                                    } else if (!endsWithDomainPredicate.test(postacert)) {
+                                        log.debug("PEC {} discarded, it was not sent by us", messageID);
+                                    }
+                                })
+                                .flatMap(postacert -> sqsService.send("", messageID, RicezioneEsitiPecDto.builder()
+                                        .message(message)
+                                        .daticert(attachBytes)
+                                        .build()));
+                    }
+                    //Marca il messaggio come letto.
+                    return arubaCall.getMessageId(createGetMessageIdRequest(messageID, 2, true));
+                })
+                .doOnError(throwable -> log.error(throwable.getMessage(), throwable))
+                .onErrorResume(throwable -> Mono.empty());
     }
-
-//    @Scheduled(cron = "${cron.value.scaricamento-esiti-pec}")
-//    void scaricamentoEsitiPec() {
-//
-//        log.info("<-- SCARICAMENTO ESITI PEC SCHEDULER -->");
-//
-////      Prevent scaricamentoEsitiPec overlapping
-//        Mono.just(isScaricamentoEsitiPecRunning)
-//            .filter(aBoolean -> !aBoolean)
-//            .doOnNext(aBoolean -> isScaricamentoEsitiPecRunning = true)
-//
-////          Since this scheduled method could be launched simultaneously in multiple instances of the microservice, a random delay was
-////          added to avoid processing the same information multiple times
-//            .delayElement(Duration.ofSeconds(random.nextInt(Integer.parseInt(maximumDelaySeconds) + 1)))
-//
-////          Chiamata al servizio imap bridge getMessages per il recupero di tutti i messaggi non letti.
-//            .flatMap(aBoolean -> {
-//                var getMessages = new GetMessages();
-//                getMessages.setUnseen(1);
-//                getMessages.setLimit(Integer.valueOf(scaricamentoEsitiPecGetMessagesLimit));
-//                return arubaCall.getMessages(getMessages);
-//            })
-//            .doOnError(ArubaCallMaxRetriesExceededException.class, e -> log.debug("Aruba non risponde. Circuit breaker"))
-//            .onErrorComplete(ArubaCallMaxRetriesExceededException.class)
-//
-////          Lista di byte array. Ognuno di loro rappresenta l'id di un messaggio PEC
-//            .flatMap(optionalGetMessagesResponse -> Mono.justOrEmpty(optionalGetMessagesResponse.getArrayOfMessages()))
-//
-//            .doOnNext(mesArrayOfMessages -> log.debug("Retrieved {} unseen PEC", mesArrayOfMessages.getItem().size()))
-//
-////          Conversione a Flux di byte[]
-//            .flatMapIterable(MesArrayOfMessages::getItem)
-//
-////          Conversione a stringa
-//            .map(String::new)
-//
-//            .doOnNext(pecId -> log.debug("Processing PEC with id {}", pecId))
-//
-////          Per ogni messaggio trovato, chiamata a getAttach per il download di daticert.xml
-//            .flatMap(pecId -> {
-//                var getAttach = new GetAttach();
-//                getAttach.setMailid(pecId);
-//                getAttach.setIsuid(1);
-//                getAttach.setMarkseen(0);
-//                getAttach.setNameattach("daticert.xml");
-//
-//                log.debug("Try to download PEC {} daticert.xml", pecId);
-//
-//                return arubaCall.getAttach(getAttach).flatMap(getAttachResponse -> {
-//                    var attachBytes = getAttachResponse.getAttach();
-//
-////                  Check se daticert.xml è presente controllando la lunghezza del byte[]
-//                    if (attachBytes != null && attachBytes.length > 0) {
-//                        log.debug("PEC {} has daticert.xml", pecId);
-//
-////                      Deserialize daticert.xml. Start a new Mono inside the flatMap
-//                        return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(getAttachResponse.getAttach()))
-//
-////                                 Escludere questi daticert. Non sono delle 'comunicazione esiti'
-//                                   .filter(isPostaCertificataPredicate.negate())
-//
-////                                 msgid arriva all'interno di due angolari <msgid>. Eliminare il primo e l'ultimo carattere
-//                                   .map(postacert -> {
-//                                       var dati = postacert.getDati();
-//                                       var msgId = dati.getMsgid();
-//                                       dati.setMsgid(msgId.substring(1, msgId.length() - 1));
-//                                       log.debug("PEC {} has {} msgId", pecId, msgId);
-//                                       return postacert;
-//                                   })
-//
-////                                 Escludere questi daticert. Non avendo il msgid terminante con il dominio pago non sono state inviate
-////                                 da noi
-//                                   .filter(endsWithDomainPredicate)
-//
-////                                 Daticert filtrati
-//                                   .doOnDiscard(Postacert.class, postacert -> {
-//                                       if (isPostaCertificataPredicate.test(postacert)) {
-//                                           log.debug("PEC {} discarded, is {}", pecId, POSTA_CERTIFICATA);
-//                                       } else if (!endsWithDomainPredicate.test(postacert)) {
-//                                           log.debug("PEC {} discarded, it was not sent by us", pecId);
-//                                       }
-//                                   })
-//
-////                                 Mono.zip contenente:
-////                                 - Il daticert
-////                                 - La chiamata al ms del gestore repository per reperire la richiesta
-////                                 - La chiamata al ms PEC per reperire le info dell'ultimo evento di una richiesta (servirà per le
-////                                 metriche custom)
-////                                 - La chiamata ad Aruba per recuperare il messaggio della PEC
-//                                   .flatMap(postacert -> {
-//                                       var presaInCaricoInfo = decodeMessageId(postacert.getDati().getMsgid());
-//                                       var requestIdx = presaInCaricoInfo.getRequestIdx();
-//                                       var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
-//
-//                                       log.debug("PEC messageId - clientId is {}, requestId is {}", clientId, requestIdx);
-//
-//                                       return Mono.zip(Mono.just(postacert),
-//                                                       gestoreRepositoryCall.getRichiesta(clientId, requestIdx),
-//                                                       statusPullService.pecPullService(requestIdx,
-//                                                                                        presaInCaricoInfo.getXPagopaExtchCxId()),
-//                                                       arubaCall.getMessageId(createGetMessageIdRequest(pecId,1, false)));
-//                                   })
-//
-////                                 Validate status
-//                                   .flatMap(objects -> {
-//                                       Postacert postacert = objects.getT1();
-//                                       RequestDto requestDto = objects.getT2();
-//                                       LegalMessageSentDetails legalMessageSentDetails = objects.getT3();
-//                                       GetMessageIDResponse getMessageIDResponse = objects.getT4();
-//
-//                                       var nextStatus =
-//                                               decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
-//
-//                                       return callMacchinaStati.statusValidation(requestDto.getxPagopaExtchCxId(),
-//                                                                                 transactionProcessConfigurationProperties.pec(),
-//                                                                                 requestDto.getStatusRequest(),
-//                                                                                 nextStatus)
-//                                                               .map(unused -> Tuples.of(postacert,
-//                                                                                        requestDto,
-//                                                                                        legalMessageSentDetails,
-//                                                                                        getMessageIDResponse,
-//                                                                                        nextStatus))
-//                                                               .doOnError(CallMacchinaStati.StatusValidationBadRequestException.class,
-//                                                                          throwable -> log.debug(
-//                                                                                  "La chiamata al notification tracker della PEC {} " +
-//                                                                                  "associata alla richiesta {} ha tornato 400 come " +
-//                                                                                  "status",
-//                                                                                  pecId,
-//                                                                                  requestDto.getRequestIdx()))
-//                                                               .doOnError(InvalidNextStatusException.class,
-//                                                                          throwable -> log.debug(
-//                                                                                  "La PEC {} associata alla richiesta {} ha " +
-//                                                                                  "comunicato i propri" + " esiti in " +
-//                                                                                  "un ordine non corretto al notification tracker",
-//                                                                                  pecId,
-//                                                                                  requestDto.getRequestIdx()));
-//                                   })
-//
-////                                 Pubblicazione metriche custom su CloudWatch
-//                                   .flatMap(objects -> {
-//                                       Postacert postacert = objects.getT1();
-//                                       RequestDto requestDto = objects.getT2();
-//                                       LegalMessageSentDetails legalMessageSentDetails = objects.getT3();
-//                                       GetMessageIDResponse getMessageIDResponse = objects.getT4();
-//                                       String nextStatus = objects.getT5();
-//
-//                                       var nextEventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
-//                                       var cloudWatchPecMetricsInfo = CloudWatchPecMetricsInfo.builder()
-//                                                                                              .previousStatus(requestDto.getStatusRequest())
-//                                                                                              .previousEventTimestamp(
-//                                                                                                      legalMessageSentDetails.getEventTimestamp())
-//                                                                                              .nextStatus(nextStatus)
-//                                                                                              .nextEventTimestamp(nextEventTimestamp)
-//                                                                                              .build();
-//
-//                                       return cloudWatchPecMetrics.publishCustomPecMetrics(cloudWatchPecMetricsInfo)
-//                                                                  .thenReturn(Tuples.of(postacert,
-//                                                                                        requestDto,
-//                                                                                        getMessageIDResponse,
-//                                                                                        cloudWatchPecMetricsInfo,
-//                                                                                        nextStatus));
-//                                   })
-//
-////                                 Preparazione payload per la coda stati PEC
-//                                   .map(objects -> {
-//                                       Postacert postacert = objects.getT1();
-//                                       RequestDto requestDto = objects.getT2();
-//                                       GetMessageIDResponse getMessageIDResponse = objects.getT3();
-//                                       CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT4();
-//                                       String nextStatus = objects.getT5();
-//
-//                                       var mimeMessage = getMimeMessage(getMessageIDResponse.getMessage());
-//                                       var pecIdMessageId = getMessageIdFromMimeMessage(mimeMessage);
-//                                       var requestIdx = requestDto.getRequestIdx();
-//                                       var xPagopaExtchCxId = requestDto.getxPagopaExtchCxId();
-//                                       var eventDetails = postacert.getErrore();
-//                                       var senderDigitalAddress = arubaSecretValue.getPecUsername();
-//                                       var senderDomain = getDomainFromAddress(senderDigitalAddress);
-//                                       var receiversDomain = getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]);
-//                                       var generatedMessageDto = createGeneratedMessageByStatus(receiversDomain,
-//                                                                                                senderDomain,
-//                                                                                                pecIdMessageId,
-//                                                                                                postacert.getTipo(),
-//                                                                                                // TODO: COME RECUPERARE LOCATION ?
-//                                                                                                null);
-//
-//                                       log.debug("PEC {} has {} requestId", pecId, requestIdx);
-//
-//
-//                                       var digitalProgressStatusDto =
-//                                               new DigitalProgressStatusDto().eventTimestamp(cloudWatchPecMetricsInfo.getNextEventTimestamp())
-//                                                                             .eventDetails(eventDetails)
-//                                                                             .generatedMessage(generatedMessageDto);
-//
-//                                       return NotificationTrackerQueueDto.builder()
-//                                                                         .requestIdx(requestIdx)
-//                                                                         .xPagopaExtchCxId(xPagopaExtchCxId)
-//                                                                         .nextStatus(nextStatus)
-//                                                                         .digitalProgressStatusDto(digitalProgressStatusDto)
-//                                                                         .build();
-//                                   })
-//
-////                                 Pubblicazione sulla coda degli stati PEC
-//                                   .flatMap(notificationTrackerQueueDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
-//                                                                                           notificationTrackerQueueDto))
-//
-////                                 Return un Mono contenente il pecId
-//                                   .thenReturn(pecId)
-//
-////                                 Se per qualche motivo questo daticert è da escludere tornare comunque il pecId
-//                                   .switchIfEmpty(Mono.just(pecId))
-//
-////                                 Se avviene un errore all'interno di questa catena tornare un Mono.empty per non bloccare il flux
-//                                   .onErrorResume(throwable -> Mono.empty());
-//                    }
-//                    else {
-//                        log.debug("PEC {} doesn't have daticert.xml", pecId);
-//
-////                      Return un Mono contenente il pecId
-//                        return Mono.just(pecId);
-//                    }
-//                });
-//            })
-//
-////          Chiamare getMessageID con markseen a uno per marcare il messaggio come letto e terminare il processo.
-//            .flatMap(pecId -> arubaCall.getMessageId(createGetMessageIdRequest(pecId, 1, true))
-//                                       .doOnSuccess(getMessageIDResponse -> log.debug("PEC {} marked as seen", pecId)))
-//
-////         Error logging
-//            .doOnError(throwable -> {
-//                if (throwable instanceof CallMacchinaStati.StatusValidationBadRequestException ||
-//                    throwable instanceof InvalidNextStatusException) {
-//                    log.debug(throwable.getMessage());
-//                } else {
-//                    log.error(throwable.getMessage(), throwable);
-//                }
-//            })
-//
-//            .doOnComplete(() -> isScaricamentoEsitiPecRunning = false)
-//
-//            .subscribe();
-//    }
 
 }
