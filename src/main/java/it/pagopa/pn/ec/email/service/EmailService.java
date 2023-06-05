@@ -42,6 +42,7 @@ import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.commons.service.SesService.DEFAULT_RETRY_STRATEGY;
+import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromMonoUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.HTML;
@@ -171,7 +172,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     @Scheduled(cron = "${cron.value.lavorazione-batch-email}")
     public void lavorazioneRichiestaBatch() {
-        sqsService.getOneMessage(emailSqsQueueName.batchName(), EmailPresaInCaricoInfo.class)
+        sqsService.getMessages(emailSqsQueueName.batchName(), EmailPresaInCaricoInfo.class)
                   .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(emailSqsQueueName.batchName(),
                                                                                           emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                   .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(emailPresaInCaricoInfoSqsMessageWrapper.getMessage()),
@@ -179,7 +180,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                   .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(
                           emailPresaInCaricoInfoSqsMessageWrapper.getT1(),
                           emailSqsQueueName.batchName()))
-                  .transform(pullFromMonoUntilIsEmpty())
+                  .transform(pullFromFluxUntilIsEmpty())
                   .subscribe();
     }
 

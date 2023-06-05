@@ -8,10 +8,7 @@ import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
-import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
-import it.pagopa.pn.ec.rest.v1.dto.Problem;
-import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
+import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
@@ -65,6 +62,7 @@ class DigitalCourtesyMessagesApiControllerTest {
 
     private static final DigitalCourtesySmsRequest digitalCourtesySmsRequest = createSmsRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
+    private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
 
     private WebTestClient.ResponseSpec sendSmsTestCall(BodyInserter<DigitalCourtesySmsRequest, ReactiveHttpOutputMessage> bodyInserter,
                                                        String requestIdx) {
@@ -84,7 +82,7 @@ class DigitalCourtesyMessagesApiControllerTest {
     @Test
     void sendSmsOk() {
 
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus().isOk();
@@ -123,7 +121,7 @@ class DigitalCourtesyMessagesApiControllerTest {
     void sendSmsRequestWithSameContentAlreadyMade() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 
 //      Insert request -> Returns a 204 mapped to empty Mono, because a request with the same hash already exists
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.empty());
@@ -138,7 +136,7 @@ class DigitalCourtesyMessagesApiControllerTest {
     void sendSmsRequestWithDifferentContentAlreadyMade() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 
 //      Insert request -> Returns a 409 mapped to RestCallException.ResourceAlreadyExistsException error signal, because a request with
 //      same id but different hash already exists
@@ -154,7 +152,7 @@ class DigitalCourtesyMessagesApiControllerTest {
     void sendSmsNotificationTrackerKo() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
@@ -174,7 +172,7 @@ class DigitalCourtesyMessagesApiControllerTest {
     void sendSmsSmsQueueKo() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 

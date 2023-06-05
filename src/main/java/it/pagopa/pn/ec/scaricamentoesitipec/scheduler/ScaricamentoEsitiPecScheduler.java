@@ -194,12 +194,15 @@ public class ScaricamentoEsitiPecScheduler {
                                         var requestIdx = presaInCaricoInfo.getRequestIdx();
                                         var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
 
-                                        return Mono.zip(Mono.just(postacert),
-                                                gestoreRepositoryCall.getRichiesta(clientId, requestIdx),
-                                                statusPullService.pecPullService(requestIdx,
-                                                        presaInCaricoInfo.getXPagopaExtchCxId()),
-                                                arubaCall.getMessageId(createGetMessageIdRequest(pecId, false)));
-                                    })
+
+                                       log.debug("PEC messageId - clientId is {}, requestId is {}", clientId, requestIdx);
+
+                                       return Mono.zip(Mono.just(postacert),
+                                                       gestoreRepositoryCall.getRichiesta(clientId, requestIdx),
+                                                       statusPullService.pecPullService(requestIdx,
+                                                                                        presaInCaricoInfo.getXPagopaExtchCxId()),
+                                                       arubaCall.getMessageId(createGetMessageIdRequest(pecId, false)));
+                                   })
 
 //                                 Validate status
                                     .flatMap(objects -> {

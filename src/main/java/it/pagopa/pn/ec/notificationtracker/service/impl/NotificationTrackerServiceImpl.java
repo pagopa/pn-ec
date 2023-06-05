@@ -116,7 +116,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                                 legalMessageSentDetails.setRequestId(requestDto.getRequestIdx());
                                                 legalMessageSentDetails.setStatus(Enum.valueOf(ProgressEventCategory.class, macchinaStatiDecodeResponseDto.getExternalStatus()));
-                                                legalMessageSentDetails.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                                                legalMessageSentDetails.setEventCode(LegalMessageSentDetails.EventCodeEnum.fromValue(macchinaStatiDecodeResponseDto.getLogicStatus()));
                                                 legalMessageSentDetails.setEventDetails(lastEventUpdatedDigital.getEventDetails());
                                                 legalMessageSentDetails.setEventTimestamp(lastEventUpdatedDigital.getEventTimestamp());
                                                 legalMessageSentDetails.setGeneratedMessage(digitalMessageReference);
@@ -129,7 +129,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                                 courtesyMessageProgressEvent.setRequestId(requestDto.getRequestIdx());
                                                 courtesyMessageProgressEvent.setStatus(Enum.valueOf(ProgressEventCategory.class, macchinaStatiDecodeResponseDto.getExternalStatus()));
-                                                courtesyMessageProgressEvent.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                                                courtesyMessageProgressEvent.setEventCode(CourtesyMessageProgressEvent.EventCodeEnum.fromValue(macchinaStatiDecodeResponseDto.getLogicStatus()));
                                                 courtesyMessageProgressEvent.setEventDetails(lastEventUpdatedDigital.getEventDetails());
                                                 courtesyMessageProgressEvent.setEventTimestamp(lastEventUpdatedDigital.getEventTimestamp());
                                                 courtesyMessageProgressEvent.setGeneratedMessage(digitalMessageReference);
@@ -153,7 +153,6 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                             paperProgressStatusEvent.setStatusDateTime(lastEventUpdatedPaper.getStatusDateTime());
                                             paperProgressStatusEvent.setDeliveryFailureCause(lastEventUpdatedPaper.getDeliveryFailureCause());
 
-                                            var attachmentsDetails = new AttachmentDetails();
                                             var attachmentsDetailsList = new ArrayList<AttachmentDetails>();
 
                                             List<AttachmentsProgressEventDto> attachmentsProgressEventDtolist= new ArrayList<>();
@@ -162,6 +161,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                 attachmentsProgressEventDtolist = lastEventUpdatedPaper.getAttachments();
                                                 for (AttachmentsProgressEventDto attachmentsProgressEventDto :
                                                         attachmentsProgressEventDtolist) {
+                                                    var attachmentsDetails = new AttachmentDetails();
                                                     attachmentsDetails.setSha256(attachmentsProgressEventDto.getSha256());
                                                     attachmentsDetails.setId(attachmentsProgressEventDto.getId());
                                                     attachmentsDetails.setDocumentType(attachmentsProgressEventDto.getDocumentType());

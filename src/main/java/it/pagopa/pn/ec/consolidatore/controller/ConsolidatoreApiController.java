@@ -9,8 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
+import it.pagopa.pn.ec.commons.service.AuthService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import it.pagopa.pn.ec.consolidatore.service.impl.ConsolidatoreServiceImpl;
 import it.pagopa.pn.ec.consolidatore.service.RicezioneEsitiCartaceoService;
@@ -34,6 +38,8 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     private final RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService;
 
     private final SafeStorageEndpointProperties safeStorageEndpointProperties;
+    @Autowired
+    private AuthService authService;
 
     public ConsolidatoreApiController(ConsolidatoreServiceImpl consolidatoreServiceImpl
             , RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService,
@@ -83,70 +89,81 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     }
 
     @Override
-    public Mono<ResponseEntity<OperationResultCodeResponse>> sendPaperProgressStatusRequest(String xPagopaExtchServiceId
-            , String xApiKey
-            , Flux<ConsolidatoreIngressPaperProgressStatusEvent> consolidatoreIngressPaperProgressStatusEvent
-            , final ServerWebExchange exchange) {
-        return consolidatoreIngressPaperProgressStatusEvent
-                .flatMap(statusEvent -> {
-                    log.info(LOG_LABEL + "START for requestId {}", statusEvent.getRequestId());
-                    return ricezioneEsitiCartaceoService.verificaEsitoDaConsolidatore(xPagopaExtchServiceId, statusEvent);
-                })
-                .collectList()
-                .flatMap(listRicezioneEsitiDto -> {
-                    // ricerco errori
-                    var listErrorResponse = listRicezioneEsitiDto.stream()
-                            .filter(ricezioneEsito -> ricezioneEsito.getOperationResultCodeResponse() != null &&
-                                    ricezioneEsito.getOperationResultCodeResponse().getResultCode() != null &&
-                                    !ricezioneEsito.getOperationResultCodeResponse().getResultCode().equals(COMPLETED_OK_CODE))
-                            .toList();
+    public Mono<ResponseEntity<OperationResultCodeResponse>> sendPaperProgressStatusRequest(String xPagopaExtchServiceId,
+                                                                                            String xApiKey,
+                                                                                            Flux<ConsolidatoreIngressPaperProgressStatusEvent> consolidatoreIngressPaperProgressStatusEvent,
+                                                                                            final ServerWebExchange exchange) {
+        log.info("START sendPaperProgressStatusRequest, clientID: {}", xPagopaExtchServiceId);
+        return authService.clientAuth(xPagopaExtchServiceId)
+                .flatMap(clientConfiguration -> {
 
-                    if (listErrorResponse.isEmpty()) {
-                        log.debug(LOG_LABEL + "Non ci sono errori sintattici/semantici");
-
-                        // eventi
-                        var listEvents = new ArrayList<ConsolidatoreIngressPaperProgressStatusEvent>();
-                        listRicezioneEsitiDto.forEach(dto -> {
-                            if (dto.getPaperProgressStatusEvent() != null) {
-                                listEvents.add(dto.getPaperProgressStatusEvent());
-                            }
-                        });
-
-                        return publishOnQueue(listEvents,xPagopaExtchServiceId);
-
-                    } else {
-                        log.debug(LOG_LABEL + "errori sintattici/semantici : Sono stati individuati {} macro errori", listErrorResponse.size());
-                        // errori
-                        var listErrors = new ArrayList<OperationResultCodeResponse>();
-                        listErrorResponse.forEach(dto -> {
-                            if (dto.getOperationResultCodeResponse() != null) {
-                                listErrors.add(dto.getOperationResultCodeResponse());
-                            }
-                        });
-
-                        var errors = getAllErrors(listErrors);
-                        log.debug(LOG_LABEL + "errori sintattici/semantici : "
-                                        + "result code = \"{}\" : "
-                                        + "result description = \"{}\" : "
-                                        + "specifici errori individuati = {}",
-                                listErrors.get(0).getResultCode(),
-                                listErrors.get(0).getResultDescription(),
-                                errors);
-                        return Mono.just(ResponseEntity
-                                .badRequest()
-                                .body(getOperationResultCodeResponse(listErrors.get(0).getResultCode(),
-                                        listErrors.get(0).getResultDescription(),
-                                        errors)));
+                    if (clientConfiguration.getApiKey() == null || !clientConfiguration.getApiKey().equals(xApiKey)) {
+                        return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid API key"));
                     }
+                    return Mono.just(clientConfiguration);
                 })
-                .onErrorResume(RuntimeException.class, throwable -> {
-                    log.error(LOG_LABEL + "errore generico = {}", throwable.getMessage(), throwable);
-                    return Mono.just(ResponseEntity.internalServerError()
-                            .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
-                                    errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
-                                    List.of(throwable.getMessage()))));
-                });
+                .flatMap(clientConfiguration -> consolidatoreIngressPaperProgressStatusEvent
+                        .flatMap(statusEvent -> {
+                            log.debug(LOG_LABEL + "START for requestId {}", statusEvent.getRequestId());
+                            return ricezioneEsitiCartaceoService.verificaEsitoDaConsolidatore(xPagopaExtchServiceId, statusEvent);
+                        })
+                        .collectList()
+                        .flatMap(listRicezioneEsitiDto -> {
+                            // ricerco errori
+                            var listErrorResponse = listRicezioneEsitiDto.stream()
+                                    .filter(ricezioneEsito -> ricezioneEsito.getOperationResultCodeResponse() != null &&
+                                            ricezioneEsito.getOperationResultCodeResponse().getResultCode() != null &&
+                                            !ricezioneEsito.getOperationResultCodeResponse().getResultCode().equals(COMPLETED_OK_CODE))
+                                    .toList();
+
+                            if (listErrorResponse.isEmpty()) {
+                                log.debug(LOG_LABEL + "Non ci sono errori sintattici/semantici");
+
+                                // eventi
+                                var listEvents = new ArrayList<ConsolidatoreIngressPaperProgressStatusEvent>();
+                                listRicezioneEsitiDto.forEach(dto -> {
+                                    if (dto.getPaperProgressStatusEvent() != null) {
+                                        listEvents.add(dto.getPaperProgressStatusEvent());
+                                    }
+                                });
+
+                                return publishOnQueue(listEvents, xPagopaExtchServiceId);
+
+                            } else {
+                                log.debug(LOG_LABEL + "errori sintattici/semantici : Sono stati individuati {} macro errori", listErrorResponse.size());
+                                // errori
+                                var listErrors = new ArrayList<OperationResultCodeResponse>();
+                                listErrorResponse.forEach(dto -> {
+                                    if (dto.getOperationResultCodeResponse() != null) {
+                                        listErrors.add(dto.getOperationResultCodeResponse());
+                                    }
+                                });
+
+                                var errors = getAllErrors(listErrors);
+                                log.debug(LOG_LABEL + "errori sintattici/semantici : "
+                                                + "result code = \"{}\" : "
+                                                + "result description = \"{}\" : "
+                                                + "specifici errori individuati = {}",
+                                        listErrors.get(0).getResultCode(),
+                                        listErrors.get(0).getResultDescription(),
+                                        errors);
+                                return Mono.just(ResponseEntity
+                                        .badRequest()
+                                        .body(getOperationResultCodeResponse(listErrors.get(0).getResultCode(),
+                                                listErrors.get(0).getResultDescription(),
+                                                errors)));
+                            }
+                        })
+                        .onErrorResume(RuntimeException.class, throwable -> {
+                            log.error(LOG_LABEL + "errore generico = {}", throwable.getMessage(), throwable);
+                            return Mono.just(ResponseEntity.internalServerError()
+                                    .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
+                                            errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
+                                            List.of(throwable.getMessage()))));
+                        })
+                );
     }
+
 
     private Mono<ResponseEntity<OperationResultCodeResponse>> publishOnQueue(List<ConsolidatoreIngressPaperProgressStatusEvent> listEvents, String xPagopaExtchServiceId){
         return Flux.fromIterable(listEvents)

@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.commons.service;
 
 import it.pagopa.pn.ec.commons.exception.ClientNotFoundException;
 import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
+import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationInternalDto;
 import reactor.core.publisher.Mono;
 
 public interface AuthService {
@@ -15,5 +16,5 @@ public interface AuthService {
      * {@link ClientNotFoundException} se l'id
      * client non è stato trovato
      */
-    Mono<ClientConfigurationDto> clientAuth(final String idClient);
+    Mono<ClientConfigurationInternalDto> clientAuth(final String idClient);
 }

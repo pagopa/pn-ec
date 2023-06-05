@@ -74,6 +74,7 @@ public class DigitalNotificationRequestApiControllerTest {
     public static final String SEND_PEC_ENDPOINT = "/external-channels/v1/digital-deliveries/legal-full-message-requests" + "/{requestIdx}";
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
+    private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
     private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
 
     @BeforeAll
@@ -111,7 +112,7 @@ public class DigitalNotificationRequestApiControllerTest {
     //PECPIC.100.1 -> Test case positivo
     @Test
     void sendPecOk() {
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
@@ -151,7 +152,7 @@ public class DigitalNotificationRequestApiControllerTest {
     void sendSmsRequestWithSameContentAlreadyMade() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
 
 //      Insert request -> Returns a 204 mapped to empty Mono, because a request with the same hash already exists
@@ -167,7 +168,7 @@ public class DigitalNotificationRequestApiControllerTest {
     void sendPecRequestAlreadyMade() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
 
 //      Insert request -> Returns a 409 mapped to RestCallException.ResourceAlreadyExistsException error signal, because a request with
@@ -184,7 +185,7 @@ public class DigitalNotificationRequestApiControllerTest {
     void sendPecNotificationTrackerKo() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
@@ -204,7 +205,7 @@ public class DigitalNotificationRequestApiControllerTest {
     void sendPecQueueKo() {
 
 //      Client auth -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
@@ -222,7 +223,7 @@ public class DigitalNotificationRequestApiControllerTest {
     void sendPecWithoutValidAttachment() {
 
 //      Client auth call -> OK
-        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationDto));
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(
                 defaultAttachmentUrl)));

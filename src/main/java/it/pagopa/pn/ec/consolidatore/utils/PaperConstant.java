@@ -14,11 +14,9 @@ public class PaperConstant {
 
     public static final String STATUS_CODE_LABEL = "statusCode";
     public static final String PRODUCT_TYPE_LABEL = "productType";
-
+    public static final String IUN_LABEL = "iun";
     public static final String DELIVERY_FAILURE_CAUSE_LABEL = "deliveryFailureCause";
-
     public static final String ATTACHMENT_DOCUMENT_TYPE_LABEL = "attachment.documentType";
-
     public static final String ATTACHMENT_URI_LABEL = "attachment.uri";
 
 }
