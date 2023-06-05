@@ -28,7 +28,8 @@ public enum Status {
     DELIVERED("delivered"),
     INFECTED("infected"),
     NOT_DELIVERED("notDelivered"),
-    DELIVERY_WARNING("deliveryWarn");
+    DELIVERY_WARNING("deliveryWarn"),
+    NOT_PEC("nonPEC");
 
     final String statusTransactionTableCompliant;
 }

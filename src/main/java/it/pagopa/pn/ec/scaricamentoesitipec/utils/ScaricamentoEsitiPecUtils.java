@@ -13,6 +13,8 @@ public class ScaricamentoEsitiPecUtils {
         throw new IllegalStateException("ScaricamentoEsitiPecUtils is a utility class");
     }
 
+    public static String DESTINATARIO_ESTERNO = "esterno";
+
     public static Status decodePecStatusToMachineStateStatus(String tipoPostacert) {
         return switch (tipoPostacert) {
             case ACCETTAZIONE -> ACCEPTED;

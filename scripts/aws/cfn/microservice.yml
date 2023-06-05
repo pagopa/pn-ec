@@ -543,6 +543,26 @@ Parameters:
     Type: String
     Description: "ARN dell'allarme messaggi vecchi nella DLQ per forward degli eventi al bus PnCoreTargetEventBus"
 
+  PnEcQueueNameScaricamentoEsitiPEC:
+    Type: String
+    Description: '[Canale SMS] Nome della Coda per lo scaricamento esiti PEC'
+
+  PnEcQueueArnScaricamentoEsitiPEC:
+    Type: String
+    Description: '[Canale SMS] ARN della Coda per lo scaricamento esiti PEC'
+
+  PnEcQueueUrlScaricamentoEsitiPEC:
+    Type: String
+    Description: '[Canale SMS] URL della Coda per lo scaricamento esiti PEC'
+
+  PnEcAlarmArnQueueScaricamentoEsitiPEC:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueScaricamentoEsitiPEC"
+
+  PnEcAlarmArnDLQueueScaricamentoEsitiPEC:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueScaricamentoEsitiPEC"
+ 
   PnEcConsolidatoreBaseURL:
     Description: 'Base URL per accesso ai servizi del consolidatore'
     Type: String
@@ -592,6 +612,7 @@ Resources:
         ContainerEnvEntry23: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
         ContainerEnvEntry24: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
         ContainerEnvEntry25: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
+        ContainerEnvEntry26: !Sub 'PnEcQueueNameScaricamentoEsitiPEC=${PnEcQueueNameScaricamentoEsitiPEC}'
         ContainerEnvEntry30: 'SafeStorageClientId=pn-external-channels'
         ContainerEnvEntry31: 'SafeStorageClientApiKey=pn-external-channels_api_key'
         ContainerEnvEntry32: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
@@ -660,6 +681,7 @@ Resources:
               - !Sub '${PnEcQueueArnErroriEMAIL}'
               - !Sub '${PnEcQueueArnBatchCARTACEO}'
               - !Sub '${PnEcQueueArnErroriCARTACEO}'
+              - !Ref PnEcQueueArnScaricamentoEsitiPEC
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
@@ -945,6 +967,23 @@ Resources:
               AWS: 
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
+  PnEcQueuePolicyScaricamentoEsitiPEC:
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Ref PnEcQueueUrlScaricamentoEsitiPEC
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - Action: 
+              - 'SQS:*'
+            Effect: "Allow"
+            Resource: !Ref PnEcQueueArnScaricamentoEsitiPEC
+            Principal:  
+              AWS: 
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+
+
   ###########  CHANNEL EMAIL - QUEUE POLICIES  ###########
   
   PnEcQueuePolicyBatchEMAIL:
@@ -1045,7 +1084,7 @@ Resources:
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
       Parameters:
-        DashboardName: !Sub '${ProjectName}-external-channel'
+        DashboardName: !Sub '${ProjectName}-external-channel-channels'
         AlarmArns:
           !Join
           - ','
@@ -1061,6 +1100,8 @@ Resources:
             - !Ref PnEcAlarmArnDLQueueInteractivePEC
             - !Ref PnEcAlarmArnQueueErroriPEC
             - !Ref PnEcAlarmArnDLQueueErroriPEC
+            - !Ref PnEcAlarmArnQueueScaricamentoEsitiPEC
+            - !Ref PnEcAlarmArnDLQueueScaricamentoEsitiPEC
             - !Ref PnEcAlarmArnQueueBatchEMAIL
             - !Ref PnEcAlarmArnDLQueueBatchEMAIL
             - !Ref PnEcAlarmArnQueueInteractiveEMAIL
@@ -1088,6 +1129,7 @@ Resources:
             - !Ref PnEcQueueArnBatchPEC
             - !Ref PnEcQueueArnInteractivePEC
             - !Ref PnEcQueueArnErroriPEC
+            - !Ref PnEcQueueArnScaricamentoEsitiPEC
             - !Ref PnEcQueueArnBatchEMAIL
             - !Ref PnEcQueueArnInteractiveEMAIL
             - !Ref PnEcQueueArnErroriEMAIL
@@ -1101,7 +1143,7 @@ Resources:
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
       Parameters:
-        DashboardName: !Sub '${ProjectName}-external-channels'
+        DashboardName: !Sub '${ProjectName}-external-channel-notifications-tracker'
         AlarmArns:
           !Join
           - ','
@@ -1162,6 +1204,9 @@ Resources:
             Principal:
               Service: 
                 - 'events.amazonaws.com'
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref AWS::AccountId
       Policies:
         - PolicyName: 'PutEventsInlinePolicy'
           PolicyDocument: 

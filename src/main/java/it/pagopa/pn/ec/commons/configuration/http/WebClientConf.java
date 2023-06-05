@@ -48,6 +48,11 @@ public class WebClientConf {
     }
 
     @Bean
+    public WebClient uploadWebClient() {
+        return defaultWebClientBuilder().build();
+    }
+
+    @Bean
     public WebClient stateMachineWebClient(StateMachineEndpointProperties stateMachineEndpointProperties) {
         return defaultJsonWebClientBuilder().baseUrl(stateMachineEndpointProperties.containerBaseUrl()).build();
     }
