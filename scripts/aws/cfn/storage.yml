@@ -42,6 +42,23 @@ Conditions:
   IsDevEnv: !Equals [ !Ref EnvType, 'dev'] 
 
 Resources:
+  PCKmsEncDecDynamoDataKey:
+    Type: 'AWS::KMS::Key'
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Description: A symmetric encryption KMS key AES-256-GCM
+      KeySpec: SYMMETRIC_DEFAULT
+      KeyUsage: ENCRYPT_DECRYPT
+      KeyPolicy:
+        Version: 2012-10-17
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
 
   ######### DYNAMODB TABLES  ############
 
@@ -59,6 +76,7 @@ Resources:
       SSESpecification:
         SSEEnabled: true
         SSEType: 'KMS'
+        KMSMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
       TableClass: 'STANDARD'
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
@@ -79,6 +97,7 @@ Resources:
       SSESpecification:
         SSEEnabled: true
         SSEType: 'KMS'
+        KMSMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
       TableClass: 'STANDARD'
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
@@ -99,6 +118,7 @@ Resources:
       SSESpecification:
         SSEEnabled: true
         SSEType: 'KMS'
+        KMSMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
       TableClass: 'STANDARD'
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
@@ -1190,3 +1210,7 @@ Outputs:
   PnEcAlarmArnEventsDLQueuePnCoreTargetEventBus:
     Description: "ARN dell'allarme messaggi vecchi nella DLQ per forward degli eventi al bus PnCoreTargetEventBus"
     Value: !GetAtt PnEcEventsDLQueuePnCoreTargetEventBusStack.Outputs.SqsAgeAlarmArn
+
+  PCKmsEncDecDynamoDataKeyARN:
+    Description: Name of KMS Key for Dynamo encode/decode data
+    Value: !Sub '${PCKmsEncDecDynamoDataKey.Arn}'
