@@ -599,6 +599,23 @@ Resources:
         QueueHasAlarm: 'true'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName 
 
+  PnEcQueueScaricamentoEsitiPECStack:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-pec-scaricamento-esiti-queue'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        DeduplicationScope: 'messageGroup'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'true'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName 
+        
   ###### CHANNEL : EMAIL #######
   
   PnEcQueueBatchEMAILStack:
@@ -952,7 +969,7 @@ Outputs:
   PnEcEventRuleArnNotificheExt1:
     Description: "[Event Rule - Tracker] ARN dell'evento relativo alla coda PnEcQueueNotificheExt1"
     Value: !GetAtt PnEcEventRuleNotificheExt1.Arn
-    
+
   ###### BATCH : SMS #######
 
   PnEcQueueNameBatchSMS:
@@ -1214,3 +1231,25 @@ Outputs:
   PCKmsEncDecDynamoDataKeyARN:
     Description: Name of KMS Key for Dynamo encode/decode data
     Value: !Sub '${PCKmsEncDecDynamoDataKey.Arn}'
+
+###### SCARICAMENTO ESITI : PEC #######
+
+  PnEcQueueNameScaricamentoEsitiPEC:
+    Description: '[Canale SMS] Nome della Coda per lo scaricamento esiti PEC'
+    Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueName
+
+  PnEcQueueArnScaricamentoEsitiPEC:
+    Description: '[Canale SMS] ARN della Coda per lo scaricamento esiti PEC'
+    Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueARN
+
+  PnEcQueueUrlScaricamentoEsitiPEC:
+    Description: '[Canale SMS] URL della Coda per lo scaricamento esiti PEC'
+    Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueURL
+
+  PnEcAlarmArnQueueScaricamentoEsitiPEC:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueScaricamentoEsitiPEC"
+    Value: !GetAtt PnEcQueueScaricamentoEsitiPECStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueScaricamentoEsitiPEC:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueScaricamentoEsitiPEC"
+    Value: !GetAtt PnEcQueueScaricamentoEsitiPECStack.Outputs.SqsDLQAlarmArn

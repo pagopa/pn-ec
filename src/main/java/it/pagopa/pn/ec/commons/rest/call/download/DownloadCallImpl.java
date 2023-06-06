@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.commons.rest.call.download;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.stereotype.Component;
@@ -11,6 +12,7 @@ import java.io.OutputStream;
 import java.net.URI;
 
 @Component
+@Slf4j
 public class DownloadCallImpl implements DownloadCall {
 
     private final WebClient downloadWebClient;
@@ -24,6 +26,7 @@ public class DownloadCallImpl implements DownloadCall {
         OutputStream outputStream = new ByteArrayOutputStream();
         return DataBufferUtils.write(downloadWebClient.get().uri(URI.create(url)).retrieve().bodyToFlux(DataBuffer.class), outputStream)
                               .map(DataBufferUtils::release)
-                              .then(Mono.just(outputStream));
+                              .then(Mono.just(outputStream))
+                              .doOnError(e -> log.error("Error in downloadFile class: {}", e.getMessage()));
     }
 }

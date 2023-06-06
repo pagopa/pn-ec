@@ -424,7 +424,7 @@ components:
               documentType:
                 type: string
                 minLength: 2
-                maxLength: 10
+                maxLength: 50
                 description: >-
                   _La descrizione della tipologia di oggetto._
                   - __23L__ <br/>

@@ -215,6 +215,11 @@ components:
           readOnly: true
           description: >-
             Data stato con timezone
+        clientRequestTimeStamp:
+          type: string
+          format: date-time
+          description: >-
+            Timestamp della richiesta in UTC
         deliveryFailureCause:
           description: >-
             _Motivazione di mancata consegna_ obbligtorie negli stati di mancata consegna  <br/>
