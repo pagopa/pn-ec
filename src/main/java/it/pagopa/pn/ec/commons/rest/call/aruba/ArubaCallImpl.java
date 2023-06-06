@@ -27,7 +27,7 @@ public class ArubaCallImpl implements ArubaCall {
         GetMessagesResponse msgResp = null;
         try {
     		msgResp = pecImapBridge.getMessages(getMessages);
-        	log.debug("getMessages - {}", msgResp.toString());
+        	log.debug("getMessages - {}", msgResp.getArrayOfMessages().getItem().size());
 		} catch (Exception e) {
 			Mono.error(e);
 		}
