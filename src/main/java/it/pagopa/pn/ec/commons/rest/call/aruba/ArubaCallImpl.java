@@ -24,14 +24,22 @@ public class ArubaCallImpl implements ArubaCall {
         log.debug("---> START GET MESSAGES FROM ARUBA <--- Username : {}", arubaSecretValue.getPecUsername());
         getMessages.setUser(arubaSecretValue.getPecUsername());
         getMessages.setPass(arubaSecretValue.getPecPassword());
-        return Mono.create(sink -> pecImapBridge.getMessagesAsync(getMessages, outputFuture -> {
-        	log.debug("getMessages - {}", outputFuture.toString());
-            try {
-                sink.success(outputFuture.get());
-            } catch (Exception throwable) {
-                endSoapRequest(sink, throwable);
-            }
-        })).cast(GetMessagesResponse.class).retryWhen(ARUBA_CALL_RETRY_STRATEGY);
+        GetMessagesResponse msgResp = null;
+        try {
+    		msgResp = pecImapBridge.getMessages(getMessages);
+        	log.debug("getMessages - {}", msgResp.toString());
+		} catch (Exception e) {
+			Mono.error(e);
+		}
+        return Mono.just(msgResp);
+//        return Mono.create(sink -> pecImapBridge.getMessagesAsync(getMessages, outputFuture -> {
+//        	log.debug("getMessages - {}", outputFuture.toString());
+//            try {
+//                sink.success(outputFuture.get());
+//            } catch (Exception throwable) {
+//                endSoapRequest(sink, throwable);
+//            }
+//        })).cast(GetMessagesResponse.class).retryWhen(ARUBA_CALL_RETRY_STRATEGY);
     }
 
     @Override
