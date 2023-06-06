@@ -121,7 +121,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   PnEcTrackerStatoSMSQueuePolicy:
@@ -152,7 +152,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   ######### TRACKER : PEC  ##########
@@ -170,7 +170,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   PnEcTrackerStatoPECQueuePolicy:
@@ -201,7 +201,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   ######### TRACKER : EMAIL  #########
@@ -219,7 +219,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   PnEcTrackerStatoEMAILQueuePolicy:
@@ -250,7 +250,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   ######### TRACKER : CARTACEO  #########
@@ -268,7 +268,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   PnEcTrackerStatoCARTACEOQueuePolicy:
@@ -299,7 +299,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   ###########  TRACKER: EXTERNAL NOTIFICATION  ###########
@@ -315,7 +315,7 @@ Resources:
         SqsManagedSseEnabled: true
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   PnEcQueuePolicyNotificheExt1:
@@ -462,7 +462,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         
   PnEcQueueInteractiveSMSStack:
@@ -478,7 +478,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName      
 
   PnEcInteractiveSMSQueuePolicy:
@@ -510,7 +510,7 @@ Resources:
         DelaySeconds: 300
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName   
 
   ###### CHANNEL : PEC #######
@@ -528,7 +528,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         
   PnEcQueueInteractivePECStack:
@@ -544,7 +544,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName      
 
   PnEcInteractivePECQueuePolicy:
@@ -576,7 +576,7 @@ Resources:
         DelaySeconds: 300
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName 
 
   PnEcQueueScaricamentoEsitiPECStack:
@@ -593,7 +593,7 @@ Resources:
         DeduplicationScope: 'messageGroup'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName 
         
   ###### CHANNEL : EMAIL #######
@@ -611,7 +611,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         
   PnEcQueueInteractiveEMAILStack:
@@ -627,7 +627,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName  
 
   PnEcInteractiveEMAILQueuePolicy:
@@ -659,7 +659,7 @@ Resources:
         DelaySeconds: 300
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName 
 
   ###### CHANNEL : CARTACEO #######
@@ -677,7 +677,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
   
   PnEcQueueErroriCARTACEOStack:
@@ -694,7 +694,7 @@ Resources:
         DelaySeconds: 300
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName 
       
 #########  OUTPUTS  ##########
