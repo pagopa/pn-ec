@@ -251,11 +251,11 @@ components:
             - __RIS__: Raccomandata Internazionale Semplice,  <br/>
             - __RIR__: Raccomandata Internazionale con AR.  <br/>
           minLength: 2
-          maxLength: 3
+          maxLength: 50
           type: string
         iun:
           type: string
-          minLength: 10
+          minLength: 0
           maxLength: 50
           description: >-
             Identificativo Unico della Notifica. Proviene dalla richiesta originaria di PN.
@@ -393,7 +393,7 @@ components:
             - __F02__ - in caso di smarrimento  <br/>
             - __F03__  - in caso di deterioramento  <br/>
           type: string
-          minLength: 2
+          minLength: 0
           maxLength: 10
         attachments:
           description: >-
