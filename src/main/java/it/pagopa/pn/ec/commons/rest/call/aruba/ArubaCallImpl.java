@@ -24,22 +24,22 @@ public class ArubaCallImpl implements ArubaCall {
         log.debug("---> START GET MESSAGES FROM ARUBA <--- Username : {}", arubaSecretValue.getPecUsername());
         getMessages.setUser(arubaSecretValue.getPecUsername());
         getMessages.setPass(arubaSecretValue.getPecPassword());
-        GetMessagesResponse msgResp = null;
-        try {
-    		msgResp = pecImapBridge.getMessages(getMessages);
-        	log.debug("getMessages - {}", msgResp.getArrayOfMessages().getItem().size());
-		} catch (Exception e) {
-			Mono.error(e);
-		}
-        return Mono.just(msgResp);
-//        return Mono.create(sink -> pecImapBridge.getMessagesAsync(getMessages, outputFuture -> {
-//        	log.debug("getMessages - {}", outputFuture.toString());
-//            try {
-//                sink.success(outputFuture.get());
-//            } catch (Exception throwable) {
-//                endSoapRequest(sink, throwable);
-//            }
-//        })).cast(GetMessagesResponse.class).retryWhen(ARUBA_CALL_RETRY_STRATEGY);
+//        GetMessagesResponse msgResp = null;
+//        try {
+//    		msgResp = pecImapBridge.getMessages(getMessages);
+//        	log.debug("getMessages - {}", msgResp.getArrayOfMessages().getItem().size());
+//		} catch (Exception e) {
+//			Mono.error(e);
+//		}
+//        return Mono.just(msgResp);
+        return Mono.create(sink -> pecImapBridge.getMessagesAsync(getMessages, outputFuture -> {
+            try {
+            	log.debug("getMessages - {}", outputFuture.get().getArrayOfMessages().getItem().size());
+                sink.success(outputFuture.get());
+            } catch (Exception throwable) {
+                endSoapRequest(sink, throwable);
+            }
+        })).cast(GetMessagesResponse.class).retryWhen(ARUBA_CALL_RETRY_STRATEGY);
     }
 
     @Override
