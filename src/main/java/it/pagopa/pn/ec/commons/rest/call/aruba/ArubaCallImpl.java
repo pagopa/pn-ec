@@ -25,6 +25,7 @@ public class ArubaCallImpl implements ArubaCall {
         getMessages.setUser(arubaSecretValue.getPecUsername());
         getMessages.setPass(arubaSecretValue.getPecPassword());
         return Mono.create(sink -> pecImapBridge.getMessagesAsync(getMessages, outputFuture -> {
+        	log.debug("getMessages - {}", outputFuture.toString());
             try {
                 sink.success(outputFuture.get());
             } catch (Exception throwable) {
