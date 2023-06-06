@@ -59,7 +59,17 @@ public class ScaricamentoEsitiPecScheduler {
         return arubaCall.getMessages(getMessages)
                 .doOnError(ArubaCallMaxRetriesExceededException.class, e -> log.debug("Aruba non risponde. Circuit breaker"))
                 .onErrorComplete(ArubaCallMaxRetriesExceededException.class)
-                .flatMap(optionalGetMessagesResponse -> Mono.justOrEmpty(optionalGetMessagesResponse.getArrayOfMessages()))
+                .flatMap(getMessagesResponse ->
+                {
+                    var arrayOfMessages = getMessagesResponse.getArrayOfMessages();
+                    if (Objects.isNull(arrayOfMessages)) {
+                        log.debug("SCARICAMENTO ESITI PEC - There are no unseen messages!");
+                        return Mono.empty();
+                    } else {
+                        log.debug("SCARICAMENTO ESITI PEC - There are {} unseen messages!", arrayOfMessages.getItem().size());
+                        return Mono.just(arrayOfMessages);
+                    }
+                })
                 .flatMapIterable(MesArrayOfMessages::getItem)
                 .flatMap(message -> {
 
@@ -67,8 +77,7 @@ public class ScaricamentoEsitiPecScheduler {
                     var messageID = getMessageIdFromMimeMessage(mimeMessage);
                     var attachBytes = findAttachmentByName(mimeMessage, "daticert.xml");
 
-
-                    log.debug("Try to download PEC {} daticert.xml", messageID);
+                    log.debug("Try to download PEC '{}' daticert.xml", messageID);
 
 //                  Check se daticert.xml è presente controllando la lunghezza del byte[]
                     if (!Objects.isNull(attachBytes) && attachBytes.length > 0) {

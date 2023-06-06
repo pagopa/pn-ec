@@ -21,6 +21,7 @@ public class ArubaCallImpl implements ArubaCall {
 
     @Override
     public Mono<GetMessagesResponse> getMessages(GetMessages getMessages) {
+        log.debug("---> START GET MESSAGES FROM ARUBA <--- Username : {}", arubaSecretValue.getPecUsername());
         getMessages.setUser(arubaSecretValue.getPecUsername());
         getMessages.setPass(arubaSecretValue.getPecPassword());
         return Mono.create(sink -> pecImapBridge.getMessagesAsync(getMessages, outputFuture -> {
