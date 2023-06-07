@@ -679,7 +679,7 @@ Resources:
               - 'sqs:DeleteMessage'
               - 'sqs:PurgeQueue'
               - 'sqs:SendMessage'
-              - 'sqs:GetQueueUrl'
+              - 'sqs:Get*'
             Resource:
               - !Ref PnEcQueueArnTrackerStatoSMS
               - !Ref PnEcQueueArnTrackerErroriSMS
@@ -753,6 +753,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerStatoSMS
             Principal:  
@@ -770,6 +772,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerErroriSMS
             Principal:  
@@ -787,6 +791,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerStatoPEC
             Principal:  
@@ -804,6 +810,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerErroriPEC
             Principal:  
@@ -821,6 +829,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerStatoEMAIL
             Principal:  
@@ -838,6 +848,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerErroriEMAIL
             Principal:  
@@ -855,6 +867,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerStatoCARTACEO
             Principal:  
@@ -871,6 +885,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerErroriCARTACEO
             Principal:  
@@ -890,6 +906,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnBatchSMS
             Principal:  
@@ -907,6 +925,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnInteractiveSMS
             Principal:  
@@ -924,6 +944,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnErroriSMS
             Principal:  
@@ -943,6 +965,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnBatchPEC
             Principal:  
@@ -960,6 +984,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnInteractivePEC
             Principal:  
@@ -977,6 +1003,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnErroriPEC
             Principal:  
@@ -992,7 +1020,10 @@ Resources:
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'sqs:*'
+              - 'sqs:SendMessage'
+              - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: "Allow"
             Resource: !Ref PnEcQueueArnScaricamentoEsitiPEC
             Principal:  
@@ -1013,6 +1044,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnBatchEMAIL
             Principal:  
@@ -1030,6 +1063,8 @@ Resources:
           - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnInteractiveEMAIL
             Principal:  
@@ -1047,6 +1082,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnErroriEMAIL
             Principal:
@@ -1066,6 +1103,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnBatchCARTACEO
             Principal:  
@@ -1082,6 +1121,8 @@ Resources:
           - Action: 
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
+              - 'sqs:GetQueueAttributes'
+              - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnErroriCARTACEO
             Principal:  
