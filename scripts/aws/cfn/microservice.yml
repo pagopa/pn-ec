@@ -99,6 +99,8 @@ Parameters:
     Type: String
     Description: 'ARN del Event Bus per le notifiche verso le piattaforme esterne'
 
+  ######### TABLES  ############
+  
   PnEcTableNameAnagrafica:
     Type: String  
     Description: "Nome della Tabella DynamoDB relativa ad Anagrafica Client"
@@ -123,6 +125,9 @@ Parameters:
     Type: String
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
 
+  ######### QUEUES  ############
+  ######### TRACKER : SMS  ##########
+
   PnEcQueueNameTrackerStatoSMS:
     Type: String
     Description: '[Notification Tracker: canale SMS] Nome della Coda per aggiornamenti di stato afferenti al canale SMS'
@@ -142,6 +147,8 @@ Parameters:
   PnEcAlarmArnDLQueueTrackerStatoSMS:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoSMS"
+
+  ######### TRACKER : ERRORI SMS  ##########
 
   PnEcQueueNameTrackerErroriSMS:
     Type: String
@@ -163,6 +170,8 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriSMS"
 
+  ######### TRACKER : PEC  ##########
+
   PnEcQueueNameTrackerStatoPEC:
     Type: String
     Description: '[Notification Tracker: canale PEC] Nome della Coda per aggiornamenti di stato afferenti al canale PEC'
@@ -182,6 +191,8 @@ Parameters:
   PnEcAlarmArnDLQueueTrackerStatoPEC:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoPEC"
+
+  ######### TRACKER : ERRORI PEC  ##########
 
   PnEcQueueNameTrackerErroriPEC:
     Type: String
@@ -203,6 +214,8 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriPEC"
     
+  ######### TRACKER : EMAIL  ##########
+
   PnEcQueueNameTrackerStatoEMAIL:
     Type: String
     Description: '[Notification Tracker: canale EMAIL] Nome della Coda per aggiornamenti di stato afferenti al canale EMAIL'
@@ -222,6 +235,8 @@ Parameters:
   PnEcAlarmArnDLQueueTrackerStatoEMAIL:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoEMAIL"
+
+  ######### TRACKER : ERRORI EMAIL  ##########
 
   PnEcQueueNameTrackerErroriEMAIL:
     Type: String
@@ -243,6 +258,8 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriEMAIL"
 
+  ######### TRACKER : CARTACEO  ##########
+
   PnEcQueueNameTrackerStatoCARTACEO:
     Type: String
     Description: '[Notification Tracker: canale CARTACEO] Nome della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
@@ -262,6 +279,8 @@ Parameters:
   PnEcAlarmArnDLQueueTrackerStatoCARTACEO:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoCARTACEO"
+
+  ######### TRACKER : ERRORI CARTACEO  ##########
 
   PnEcQueueNameTrackerErroriCARTACEO:
     Type: String
@@ -283,29 +302,7 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriCARTACEO"
 
-  PnEcQueueNameNotificheExt1:
-    Type: String
-    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] Nome della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
-
-  PnEcQueueArnNotificheExt1:
-    Type: String
-    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] ARN della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
-
-  PnEcQueueUrlNotificheExt1:
-    Type: String
-    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] URL della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
-  
-  PnEcEventRuleArnNotificheExt1:
-    Type: String
-    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] ARN della Regola per le notifiche a PIATTAFORMA_ESTERNA_1'
-    
-  PnEcAlarmArnQueueNotificheExt1:
-    Type: String
-    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueNotificheExt1"
-
-  PnEcAlarmArnDLQueueNotificheExt1:
-    Type: String
-    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueNotificheExt1"
+ ###### BATCH : SMS #######
 
   PnEcQueueNameBatchSMS:
     Type: String
@@ -327,6 +324,8 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchSMS"
 
+ ###### INTERACTIVE : SMS #######
+
   PnEcQueueNameInteractiveSMS:
     Type: String
     Description: '[Canale SMS] Nome della Coda per la modalità SMS-Interactive'
@@ -346,6 +345,8 @@ Parameters:
   PnEcAlarmArnDLQueueInteractiveSMS:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractiveSMS"
+
+  ###### ERRORI : SMS #######
 
   PnEcQueueNameErroriSMS:
     Type: String
@@ -367,6 +368,8 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriSMS"
 
+  ###### BATCH : PEC #######
+
   PnEcQueueNameBatchPEC:
     Type: String
     Description: '[Canale PEC] Nome della Coda per la modalità PEC-Batch'
@@ -387,6 +390,8 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchPEC"
     
+  ###### INTERACTIVE : PEC #######
+
   PnEcQueueNameInteractivePEC:
     Type: String
     Description: '[Canale PEC] Nome della Coda per la modalità PEC-Interactive'
@@ -406,7 +411,9 @@ Parameters:
   PnEcAlarmArnDLQueueInteractivePEC:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractivePEC"
-    
+
+  ###### ERRORI : PEC #######
+
   PnEcQueueNameErroriPEC:
     Type: String
     Description: '[Canale PEC] Nome della Coda Errori PEC'
@@ -427,6 +434,8 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriPEC"
 
+  ###### BATCH : EMAIL #######
+
   PnEcQueueNameBatchEMAIL:
     Type: String
     Description: '[Canale EMAIL] Nome della Coda per la modalità EMAIL-Batch'
@@ -446,7 +455,9 @@ Parameters:
   PnEcAlarmArnDLQueueBatchEMAIL:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchEMAIL"
-    
+
+  ###### INTERACTIVE : EMAIL #######
+
   PnEcQueueNameInteractiveEMAIL:
     Type: String
     Description: '[Canale EMAIL] Nome della Coda per la modalità EMAIL-Interactive'
@@ -466,7 +477,9 @@ Parameters:
   PnEcAlarmArnDLQueueInteractiveEMAIL:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractiveEMAIL"
-    
+
+  ###### ERRORI : EMAIL #######
+
   PnEcQueueNameErroriEMAIL:
     Type: String
     Description: '[Canale EMAIL] Nome della Coda Errori EMAIL'
@@ -486,6 +499,8 @@ Parameters:
   PnEcAlarmArnDLQueueErroriEMAIL:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriEMAIL"
+
+  ###### BATCH : CARTACEO #######
 
   PnEcQueueNameBatchCARTACEO:
     Type: String
@@ -507,6 +522,8 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchCARTACEO"
     
+  ###### ERRORI : CARTACEO #######
+
   PnEcQueueNameErroriCARTACEO:
     Type: String
     Description: '[Canale CARTACEO] Nome della Coda Errori CARTACEO'
@@ -527,6 +544,8 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriCARTACEO"
  
+  ###### pn-core Event Bus #######
+
   PnEcQueueNameEventsDLQueuePnCoreTargetEventBus:
     Type: String
     Description: 'Nome DLQ per forward degli eventi al bus PnCoreTargetEventBus'
@@ -591,28 +610,27 @@ Resources:
         ContainerEnvEntry2: !Sub 'PnEcTableNameAnagrafica=${PnEcTableNameAnagrafica}'
         ContainerEnvEntry3: !Sub 'PnEcTableNameRichieste=${PnEcTableNameRichieste}'
         ContainerEnvEntry4: !Sub 'PnEcTableNameRichiesteMetadati=${PnEcTableNameRichiesteMetadati}'
-        ContainerEnvEntry5: !Sub 'PnEcQueueNameNotificheExt1=${PnEcQueueNameNotificheExt1}'
-        ContainerEnvEntry6: !Sub 'PnEcEventBusNameTrackerExternalNotification=${PnEcEventBusNameTrackerExternalNotification}'
-        ContainerEnvEntry7: !Sub 'PnEcQueueNameTrackerStatoSMS=${PnEcQueueNameTrackerStatoSMS}'
-        ContainerEnvEntry8: !Sub 'PnEcQueueNameTrackerErroriSMS=${PnEcQueueNameTrackerErroriSMS}'
-        ContainerEnvEntry9: !Sub 'PnEcQueueNameTrackerStatoPEC=${PnEcQueueNameTrackerStatoPEC}'
-        ContainerEnvEntry10: !Sub 'PnEcQueueNameTrackerErroriPEC=${PnEcQueueNameTrackerErroriPEC}'
-        ContainerEnvEntry11: !Sub 'PnEcQueueNameTrackerStatoEMAIL=${PnEcQueueNameTrackerStatoEMAIL}'
-        ContainerEnvEntry12: !Sub 'PnEcQueueNameTrackerErroriEMAIL=${PnEcQueueNameTrackerErroriEMAIL}'
-        ContainerEnvEntry13: !Sub 'PnEcQueueNameTrackerStatoCARTACEO=${PnEcQueueNameTrackerStatoCARTACEO}'
-        ContainerEnvEntry14: !Sub 'PnEcQueueNameTrackerErroriCARTACEO=${PnEcQueueNameTrackerErroriCARTACEO}'
-        ContainerEnvEntry15: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
-        ContainerEnvEntry16: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
-        ContainerEnvEntry17: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
-        ContainerEnvEntry18: !Sub 'PnEcQueueNameBatchPEC=${PnEcQueueNameBatchPEC}'
-        ContainerEnvEntry19: !Sub 'PnEcQueueNameInteractivePEC=${PnEcQueueNameInteractivePEC}'
-        ContainerEnvEntry20: !Sub 'PnEcQueueNameErroriPEC=${PnEcQueueNameErroriPEC}'
-        ContainerEnvEntry21: !Sub 'PnEcQueueNameBatchEMAIL=${PnEcQueueNameBatchEMAIL}'
-        ContainerEnvEntry22: !Sub 'PnEcQueueNameInteractiveEMAIL=${PnEcQueueNameInteractiveEMAIL}'
-        ContainerEnvEntry23: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
-        ContainerEnvEntry24: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
-        ContainerEnvEntry25: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
-        ContainerEnvEntry26: !Sub 'PnEcQueueNameScaricamentoEsitiPEC=${PnEcQueueNameScaricamentoEsitiPEC}'
+        ContainerEnvEntry5: !Sub 'PnEcEventBusNameTrackerExternalNotification=${PnEcEventBusNameTrackerExternalNotification}'
+        ContainerEnvEntry6: !Sub 'PnEcQueueNameTrackerStatoSMS=${PnEcQueueNameTrackerStatoSMS}'
+        ContainerEnvEntry7: !Sub 'PnEcQueueNameTrackerErroriSMS=${PnEcQueueNameTrackerErroriSMS}'
+        ContainerEnvEntry8: !Sub 'PnEcQueueNameTrackerStatoPEC=${PnEcQueueNameTrackerStatoPEC}'
+        ContainerEnvEntry9: !Sub 'PnEcQueueNameTrackerErroriPEC=${PnEcQueueNameTrackerErroriPEC}'
+        ContainerEnvEntry10: !Sub 'PnEcQueueNameTrackerStatoEMAIL=${PnEcQueueNameTrackerStatoEMAIL}'
+        ContainerEnvEntry11: !Sub 'PnEcQueueNameTrackerErroriEMAIL=${PnEcQueueNameTrackerErroriEMAIL}'
+        ContainerEnvEntry12: !Sub 'PnEcQueueNameTrackerStatoCARTACEO=${PnEcQueueNameTrackerStatoCARTACEO}'
+        ContainerEnvEntry13: !Sub 'PnEcQueueNameTrackerErroriCARTACEO=${PnEcQueueNameTrackerErroriCARTACEO}'
+        ContainerEnvEntry14: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
+        ContainerEnvEntry15: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
+        ContainerEnvEntry16: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
+        ContainerEnvEntry17: !Sub 'PnEcQueueNameBatchPEC=${PnEcQueueNameBatchPEC}'
+        ContainerEnvEntry18: !Sub 'PnEcQueueNameInteractivePEC=${PnEcQueueNameInteractivePEC}'
+        ContainerEnvEntry19: !Sub 'PnEcQueueNameErroriPEC=${PnEcQueueNameErroriPEC}'
+        ContainerEnvEntry20: !Sub 'PnEcQueueNameBatchEMAIL=${PnEcQueueNameBatchEMAIL}'
+        ContainerEnvEntry21: !Sub 'PnEcQueueNameInteractiveEMAIL=${PnEcQueueNameInteractiveEMAIL}'
+        ContainerEnvEntry22: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
+        ContainerEnvEntry23: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
+        ContainerEnvEntry24: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
+        ContainerEnvEntry25: !Sub 'PnEcQueueNameScaricamentoEsitiPEC=${PnEcQueueNameScaricamentoEsitiPEC}'
         ContainerEnvEntry30: 'SafeStorageClientId=pn-external-channels'
         ContainerEnvEntry31: 'SafeStorageClientApiKey=pn-external-channels_api_key'
         ContainerEnvEntry32: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
@@ -669,7 +687,6 @@ Resources:
               - !Ref PnEcQueueArnTrackerErroriPEC
               - !Ref PnEcQueueArnTrackerStatoEMAIL
               - !Ref PnEcQueueArnTrackerErroriEMAIL
-              - !Ref PnEcQueueArnNotificheExt1
               - !Ref PnEcQueueArnBatchSMS
               - !Ref PnEcQueueArnInteractiveSMS
               - !Ref PnEcQueueArnErroriSMS
@@ -722,22 +739,6 @@ Resources:
               - 'cloudwatch:PutMetricData'
             Resource:
               - '*'
-
-  PnEcQueuePolicyNotificheExt1:
-    Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
-        - !Ref PnEcQueueUrlNotificheExt1
-      PolicyDocument: 
-        Statement: 
-          - Action: 
-              - 'sqs:SendMessage'
-              - 'sqs:ReceiveMessage'
-            Effect: 'Allow'
-            Resource: !Ref PnEcQueueArnNotificheExt1
-            Principal:  
-              AWS: 
-                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   ###########  NOTIFICATION TRACKER - QUEUE POLICIES   ###########
 
@@ -1183,8 +1184,6 @@ Resources:
             - !Ref PnEcAlarmArnDLQueueTrackerStatoCARTACEO
             - !Ref PnEcAlarmArnQueueTrackerErroriCARTACEO
             - !Ref PnEcAlarmArnDLQueueTrackerErroriCARTACEO
-            - !Ref PnEcAlarmArnQueueNotificheExt1
-            - !Ref PnEcAlarmArnDLQueueNotificheExt1
         DynamoDBTableNames:
           !Join
           - ','
@@ -1204,11 +1203,6 @@ Resources:
             - !Ref PnEcQueueArnTrackerErroriEMAIL
             - !Ref PnEcQueueArnTrackerStatoCARTACEO
             - !Ref PnEcQueueArnTrackerErroriCARTACEO
-            - !Ref PnEcQueueArnNotificheExt1
-        # KinesisDataArns: 
-        # KinesisFirehoseArns: 
-        # EventRuleArns:
-        #   - !Ref PnEcEventRuleArnNotificheExt1
 
   #####    External notifications    #####
   PnEcRoleExternalNotifications:
