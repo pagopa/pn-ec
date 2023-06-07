@@ -16,6 +16,8 @@ import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 
@@ -85,11 +87,21 @@ public class SqsServiceImpl implements SqsService {
     public <T> Flux<SqsMessageWrapper<T>> getMessages(String queueName, Class<T> messageContentClass) {
 
         AtomicInteger actualMessages = new AtomicInteger();
-        BooleanSupplier maxExceeded = () -> (actualMessages.get() <= maxMessages);
+        AtomicBoolean listIsEmpty = new AtomicBoolean();
+        listIsEmpty.set(false);
+
+        BooleanSupplier condition = () -> (actualMessages.get() <= maxMessages && !listIsEmpty.get());
 
         return getQueueUrlFromName(queueName).flatMap(queueUrl -> Mono.fromCompletionStage(sqsAsyncClient.receiveMessage(builder -> builder.queueUrl(
                         queueUrl))))
-                .flatMap(receiveMessageResponse -> Mono.justOrEmpty(receiveMessageResponse.messages()))
+                .flatMap(receiveMessageResponse ->
+                        {
+                            var messages = receiveMessageResponse.messages();
+                            if (messages.isEmpty())
+                                listIsEmpty.set(true);
+                            return Mono.justOrEmpty(messages);
+                        }
+                )
                 .flatMapMany(Flux::fromIterable)
                 .map(message ->
                 {
@@ -102,7 +114,7 @@ public class SqsServiceImpl implements SqsService {
                     log.error(throwable.getMessage(), throwable);
                     return Mono.error(new SqsClientException(queueName));
                 })
-                .repeat(maxExceeded);
+                .repeat(condition);
     }
 
     @Override
