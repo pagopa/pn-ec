@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.commons.rest.call.aruba;
 
+import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallException;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pec.bridgews.*;
 import lombok.extern.slf4j.Slf4j;
@@ -21,21 +22,14 @@ public class ArubaCallImpl implements ArubaCall {
 
     @Override
     public Mono<GetMessagesResponse> getMessages(GetMessages getMessages) {
-        log.debug("---> START GET MESSAGES FROM ARUBA <--- Username : {}", arubaSecretValue.getPecUsername());
         getMessages.setUser(arubaSecretValue.getPecUsername());
         getMessages.setPass(arubaSecretValue.getPecPassword());
-//        GetMessagesResponse msgResp = null;
-//        try {
-//    		msgResp = pecImapBridge.getMessages(getMessages);
-//        	log.debug("getMessages - {}", msgResp.getArrayOfMessages().getItem().size());
-//		} catch (Exception e) {
-//			Mono.error(e);
-//		}
-//        return Mono.just(msgResp);
+        log.debug("---> START GET MESSAGES FROM ARUBA <--- Unseen : {} , Outtype : {} , Limit : {}", getMessages.getUnseen(), getMessages.getOuttype(), getMessages.getLimit());
         return Mono.create(sink -> pecImapBridge.getMessagesAsync(getMessages, outputFuture -> {
             try {
-            	log.debug("getMessages - {}", outputFuture.get().getArrayOfMessages().getItem().size());
-                sink.success(outputFuture.get());
+                var result = outputFuture.get();
+                checkErrors(result.getErrcode(), result.getErrstr());
+                sink.success(result);
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
@@ -46,9 +40,12 @@ public class ArubaCallImpl implements ArubaCall {
     public Mono<GetMessageIDResponse> getMessageId(GetMessageID getMessageID) {
         getMessageID.setUser(arubaSecretValue.getPecUsername());
         getMessageID.setPass(arubaSecretValue.getPecPassword());
+        log.debug("---> START GET MESSAGE ID FROM ARUBA <--- MailId : {} , Markseen : {}", getMessageID.getMailid(), getMessageID.getMarkseen());
         return Mono.create(sink -> pecImapBridge.getMessageIDAsync(getMessageID, outputFuture -> {
             try {
-                sink.success(outputFuture.get());
+                var result = outputFuture.get();
+                checkErrors(result.getErrcode(), result.getErrstr());
+                sink.success(result);
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
@@ -59,9 +56,12 @@ public class ArubaCallImpl implements ArubaCall {
     public Mono<SendMailResponse> sendMail(SendMail sendMail) {
         sendMail.setUser(arubaSecretValue.getPecUsername());
         sendMail.setPass(arubaSecretValue.getPecPassword());
+        log.debug("---> START SEND MAIL FROM {} <---", sendMail.getUser());
         return Mono.create(sink -> pecImapBridge.sendMailAsync(sendMail, outputFuture -> {
             try {
-                sink.success(outputFuture.get());
+                var result = outputFuture.get();
+                checkErrors(result.getErrcode(), result.getErrstr());
+                sink.success(result);
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
@@ -72,13 +72,21 @@ public class ArubaCallImpl implements ArubaCall {
     public Mono<GetAttachResponse> getAttach(GetAttach getAttach) {
         getAttach.setUser(arubaSecretValue.getPecUsername());
         getAttach.setPass(arubaSecretValue.getPecPassword());
+        log.debug("---> START GET ATTACH <--- MailId : {} , Markseen : {}", getAttach.getMailid(), getAttach.getMarkseen());
         return Mono.create(sink -> pecImapBridge.getAttachAsync(getAttach, outputFuture -> {
             try {
-                sink.success(outputFuture.get());
+                var result = outputFuture.get();
+                checkErrors(result.getErrcode(), result.getErrstr());
+                sink.success(result);
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
         })).cast(GetAttachResponse.class).retryWhen(ARUBA_CALL_RETRY_STRATEGY);
+    }
+
+    private void checkErrors(Integer errorCode, String errorStr) {
+        if (!errorCode.equals(0))
+            throw new ArubaCallException(errorStr);
     }
 
     private void endSoapRequest(MonoSink<Object> sink, Throwable throwable) {
@@ -86,4 +94,5 @@ public class ArubaCallImpl implements ArubaCall {
         sink.error(throwable);
         Thread.currentThread().interrupt();
     }
+
 }
