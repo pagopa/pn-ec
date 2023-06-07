@@ -34,13 +34,16 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+
 import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+
 import static it.pagopa.pn.ec.commons.constant.DocumentType.PN_EXTERNAL_LEGAL_FACTS;
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
+import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.*;
 
@@ -74,12 +77,16 @@ public class ScaricamentoEsitiPecService {
     private String xApiKey;
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
 
+    @Value("${sqs.queue.pec.scaricamento-esiti-name}")
+    private String scaricamentoEsitiPecQueue;
+
     @SqsListener(value = "${sqs.queue.pec.scaricamento-esiti-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void lavorazioneEsitiPec(final RicezioneEsitiPecDto ricezioneEsitiPecDto, final Acknowledgment acknowledgment) {
+        logIncomingMessage(scaricamentoEsitiPecQueue, ricezioneEsitiPecDto);
         lavorazioneEsitiPec(ricezioneEsitiPecDto).doOnSuccess(result -> acknowledgment.acknowledge()).subscribe();
     }
 
-    Mono<SendMessageResponse> lavorazioneEsitiPec(RicezioneEsitiPecDto ricezioneEsitiPecDto) {
+    Mono<SendMessageResponse> lavorazioneEsitiPec(final RicezioneEsitiPecDto ricezioneEsitiPecDto) {
 
         log.info("<-- START LAVORAZIONE ESITI PEC -->");
 
