@@ -239,7 +239,7 @@ public class ScaricamentoEsitiPecService {
 
     Mono<String> generateLocation(String requestIdx, String xPagopaExtchCxId, byte[] fileBytes) {
 
-        log.info("---> START GENERATING LOCATION <--- RequestId : {}", requestIdx);
+        log.info("---> START GENERATING LOCATION <--- RequestId: {}", requestIdx);
 
         FileCreationRequest fileCreationRequest = new FileCreationRequest().contentType(ContentTypes.APPLICATION_XML)
                 .documentType(PN_EXTERNAL_LEGAL_FACTS.getValue())
