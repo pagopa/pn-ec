@@ -571,6 +571,11 @@ Parameters:
     Description: 'Default sender email address'
     Type: String
     
+  # Log group parameters
+  EcsLogGroup:
+    Type: String
+    Description: 'Ecs log group name'
+
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
 
@@ -629,6 +634,7 @@ Resources:
         LoadbalancerRulePriority: !Ref MicroserviceNumber
         # CloudwatchLogKinesisStreamArn: !Ref LogsKinesisSourceStreamArn
         TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
+        EcsLogGroup: !Ref EcsLogGroup
         # HealthCheckPath: 
 
   PnEcManagedPolicy:
