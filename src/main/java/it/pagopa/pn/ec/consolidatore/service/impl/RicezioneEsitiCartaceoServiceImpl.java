@@ -289,11 +289,12 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				paperProgressStatusDto.setProductType(statusEvent.getProductType());
 	 			paperProgressStatusDto.setDiscoveredAddress(discoveredAddressDto);
 	 			paperProgressStatusDto.setAttachments(attachmentsDto);
+				 paperProgressStatusDto.setClientRequestTimeStamp(statusEvent.getClientRequestTimeStamp());
 
 				log.debug(LOG_PUB_LABEL + "paperProgressStatusDto = {}", paperProgressStatusDto);
 
 	 			return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
-	 								   NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(
+	 								   NotificationTrackerQueueDto.createNotificationTrackerQueueDtoRicezioneEsitiPaper(
 	 										   presaInCaricoInfo,
 	 										   paperProgressStatusDto.getStatusCode(),
 	 										   paperProgressStatusDto));

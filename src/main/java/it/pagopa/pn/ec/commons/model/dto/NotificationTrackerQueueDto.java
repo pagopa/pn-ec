@@ -48,4 +48,14 @@ public class NotificationTrackerQueueDto extends PresaInCaricoInfo {
         notificationTrackerQueueDto.setPaperProgressStatusDto(paperProgressStatusDto);
         return notificationTrackerQueueDto;
     }
+
+    public static NotificationTrackerQueueDto createNotificationTrackerQueueDtoRicezioneEsitiPaper(PresaInCaricoInfo presaInCaricoInfo,
+                                                                                     String nextStatus,
+                                                                                     PaperProgressStatusDto paperProgressStatusDto) {
+        var notificationTrackerQueueDto = createNotificationTrackerQueueDto(presaInCaricoInfo, nextStatus);
+        paperProgressStatusDto.setStatusDateTime(paperProgressStatusDto.getStatusDateTime());
+        notificationTrackerQueueDto.setPaperProgressStatusDto(paperProgressStatusDto);
+        return notificationTrackerQueueDto;
+    }
+
 }
