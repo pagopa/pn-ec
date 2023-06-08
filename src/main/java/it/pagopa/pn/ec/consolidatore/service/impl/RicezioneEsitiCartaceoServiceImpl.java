@@ -97,7 +97,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
 						errorList.add(String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
 					}
-
 					//TODO COMMENTATO PER UN CASO PARTICOLARE CHE ANDRA' GESTITO IN FUTURO.
 //					if (!progressStatusEvent.getProductType().equals(productType)) {
 //						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getStatusCode()));
