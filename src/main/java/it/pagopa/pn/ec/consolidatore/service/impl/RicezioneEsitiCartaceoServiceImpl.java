@@ -80,11 +80,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 					List<String> errorList = new ArrayList<>();
 
-					//TODO COMMENTATO PER UN CASO PARTICOLARE CHE ANDRA' GESTITO IN FUTURO.
-//					if (!progressStatusEvent.getProductType().equals(productType)) {
-//						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getStatusCode()));
-//						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, productType));
-//					}
 					//Iun
 					if (!StringUtils.isBlank(iun) && !progressStatusEvent.getIun().equals(iun)) {
 						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, IUN_LABEL, progressStatusEvent.getStatusCode()));
@@ -95,11 +90,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()));
 						errorList.add(String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()));
 					}
-					// ProductTypeMap
-					if (!productTypeMap().containsKey(progressStatusEvent.getProductType())) {
-						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
-						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
-					}
 					// DeliveryFailureCause non è un campo obbligatorio
 					if (progressStatusEvent.getDeliveryFailureCause() != null
 							&& !progressStatusEvent.getDeliveryFailureCause().isBlank()
@@ -107,6 +97,11 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
 						errorList.add(String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
 					}
+					//TODO COMMENTATO PER UN CASO PARTICOLARE CHE ANDRA' GESTITO IN FUTURO.
+//					if (!progressStatusEvent.getProductType().equals(productType)) {
+//						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getStatusCode()));
+//						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, productType));
+//					}
 					//TODO CHIARIRE SE VA RIMOSSO DEFINITIVAMENTE.
 //					// Attachments non e' una lista obbligatoria
 //					if (progressStatusEvent.getAttachments() != null && !progressStatusEvent.getAttachments().isEmpty()) {
@@ -117,6 +112,11 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 //							}
 //						}
 //					}
+					// ProductTypeMap
+//					if (!productTypeMap().containsKey(progressStatusEvent.getProductType())) {
+//						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
+//						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
+//					}
 						return Mono.just(errorList);
 					})
 				.handle((errorList, syncrhonousSink) ->
@@ -124,10 +124,13 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 					if (errorList.isEmpty()) {
 						log.debug(LOG_LABEL + "END without errors for requestId \"{}\"", progressStatusEvent.getRequestId());
 						syncrhonousSink.next(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null));
-					} else syncrhonousSink.error(new RicezioneEsitiCartaceoException(
-							SEMANTIC_ERROR_CODE,
-							errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-							errorList));
+					} else {
+						log.info("{}", errorList);
+						syncrhonousSink.error(new RicezioneEsitiCartaceoException(
+								SEMANTIC_ERROR_CODE,
+								errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
+								errorList));
+					}
 				});
 	}
 
