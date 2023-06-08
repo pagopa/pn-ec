@@ -97,7 +97,10 @@ public class ScaricamentoEsitiPecService {
                     return Mono.just(daticertService.getPostacertFromByteArray(daticert))
                             .flatMap(postacert -> {
 
-                                var presaInCaricoInfo = decodeMessageId(postacert.getDati().getMsgid());
+                                var msgId = postacert.getDati().getMsgid();
+                                msgId = msgId.substring(1, msgId.length() - 1);
+
+                                var presaInCaricoInfo = decodeMessageId(msgId);
                                 var requestIdx = presaInCaricoInfo.getRequestIdx();
                                 var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
 
