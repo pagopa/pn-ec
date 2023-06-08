@@ -116,6 +116,8 @@ public class ScaricamentoEsitiPecService {
                                 RequestDto requestDto = ricEsitiPecDto.getRequestDto();
                                 String nextStatus = ricEsitiPecDto.getNextStatus();
 
+                                log.debug("---> PUBLISH CUSTOM CLOUD WATCH METRICS <--- MessageID : {}", messageID);
+
                                 var nextEventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
                                 var cloudWatchPecMetricsInfo = CloudWatchPecMetricsInfo.builder()
                                         .previousStatus(requestDto.getStatusRequest())
@@ -138,6 +140,8 @@ public class ScaricamentoEsitiPecService {
                                 RequestDto requestDto = objects.getT2();
                                 CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT3();
                                 String nextStatus = objects.getT4();
+
+                                log.debug("---> BUILDING PEC QUEUE PAYLOAD <--- MessageID : {}", messageID);
 
                                 var requestIdx = requestDto.getRequestIdx();
                                 var xPagopaExtchCxId = requestDto.getxPagopaExtchCxId();
@@ -192,7 +196,7 @@ public class ScaricamentoEsitiPecService {
 
     Mono<String> generateLocation(String requestIdx, String xPagopaExtchCxId, byte[] fileBytes) {
 
-        log.info("---> START GENERATING LOCATION <--- RequestId: {}", requestIdx);
+        log.debug("---> START GENERATING LOCATION <--- RequestId: {}", requestIdx);
 
         FileCreationRequest fileCreationRequest = new FileCreationRequest().contentType(ContentTypes.APPLICATION_XML)
                 .documentType(PN_EXTERNAL_LEGAL_FACTS.getValue())
@@ -204,7 +208,7 @@ public class ScaricamentoEsitiPecService {
                 .flatMap(fileCreationResponse ->
                 {
                     String uploadUrl = fileCreationResponse.getUploadUrl();
-                    log.info(uploadUrl);
+                    log.debug("---> UPLOADING FILE USING URL {} <--- ", uploadUrl);
                     return uploadWebClient.put()
                             .uri(URI.create(uploadUrl))
                             .header("Content-Type", ContentTypes.APPLICATION_XML)
@@ -214,10 +218,11 @@ public class ScaricamentoEsitiPecService {
                             .retrieve()
                             .toBodilessEntity()
                             .thenReturn(SAFESTORAGE_PREFIX + fileCreationResponse.getKey());
-                });
+                }).doOnSuccess(location -> log.debug("---> LOCATION GENERATED : {} <--- ", location));
     }
 
     private String generateSha256(byte[] fileBytes) {
+        log.info("---> GENERATING SHA256 FROM FILE WITH LENGTH {} <---", fileBytes.length);
         MessageDigest md;
         try {
             md = MessageDigest.getInstance("SHA256");
