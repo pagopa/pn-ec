@@ -14,8 +14,9 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class RicezioneEsitiPecDto {
 
-    byte[] message;
+    String messageID;
     byte[] daticert;
+    String receiversDomain;
     String nextStatus;
     RequestDto requestDto;
 

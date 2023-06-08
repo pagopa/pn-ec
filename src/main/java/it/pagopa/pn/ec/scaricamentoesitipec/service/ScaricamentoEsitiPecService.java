@@ -88,8 +88,7 @@ public class ScaricamentoEsitiPecService {
                 .flatMap(ricEsitiPecDto ->
                 {
 
-                    var mimeMessage = getMimeMessage(ricEsitiPecDto.getMessage());
-                    var messageID = getMessageIdFromMimeMessage(mimeMessage);
+                    var messageID = ricEsitiPecDto.getMessageID();
                     var daticert = ricEsitiPecDto.getDaticert();
 
                     log.debug("---> LAVORAZIONE MESSAGGIO <--- MessageID : {} , Daticert : {}", messageID, new String(daticert));
@@ -140,13 +139,12 @@ public class ScaricamentoEsitiPecService {
                                 CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT3();
                                 String nextStatus = objects.getT4();
 
-                                // var pecIdMessageId = getMessageIdFromMimeMessage(mimeMessage);
                                 var requestIdx = requestDto.getRequestIdx();
                                 var xPagopaExtchCxId = requestDto.getxPagopaExtchCxId();
                                 var eventDetails = postacert.getErrore();
                                 var senderDigitalAddress = arubaSecretValue.getPecUsername();
                                 var senderDomain = getDomainFromAddress(senderDigitalAddress);
-                                var receiversDomain = getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]);
+                                var receiversDomain = ricEsitiPecDto.getReceiversDomain();
 
                                 return generateLocation(requestIdx, xPagopaExtchCxId, daticert)
                                         .map(location ->

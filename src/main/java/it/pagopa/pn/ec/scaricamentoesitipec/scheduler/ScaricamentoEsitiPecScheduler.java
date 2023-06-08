@@ -173,10 +173,11 @@ public class ScaricamentoEsitiPecScheduler {
 
                                 })
                                  .flatMap(tuple -> sqsService.send(scaricamentoEsitiPecQueue, finalMessageID, RicezioneEsitiPecDto.builder()
-                                         .message(message)
+                                         .messageID(messageID)
                                          .daticert(attachBytes)
                                          .requestDto(tuple.getT1())
                                          .nextStatus(tuple.getT2())
+                                         .receiversDomain(getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]))
                                          .build()))
                                  .thenReturn(finalMessageID);
                     }
