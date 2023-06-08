@@ -1,25 +1,35 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
+import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
+import it.pagopa.pn.ec.commons.constant.Status;
+import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
-import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
+import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
+import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.commons.utils.ReactorUtils;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pec.bridgews.*;
+import it.pec.daticert.Destinatari;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
+
 import java.util.Objects;
 import java.util.function.Predicate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
+import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
+import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.DESTINATARIO_ESTERNO;
+import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.decodePecStatusToMachineStateStatus;
+
 @Component
 @Slf4j
 public class ScaricamentoEsitiPecScheduler {
@@ -27,6 +37,10 @@ public class ScaricamentoEsitiPecScheduler {
     private final ArubaCall arubaCall;
     private final DaticertService daticertService;
     private final SqsService sqsService;
+    private final GestoreRepositoryCall gestoreRepositoryCall;
+    private final CallMacchinaStati callMacchinaStati;
+
+    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
     @Value("${scaricamento-esiti-pec.get-messages.limit}")
     private String scaricamentoEsitiPecGetMessagesLimit;
@@ -34,10 +48,13 @@ public class ScaricamentoEsitiPecScheduler {
     @Value("${sqs.queue.pec.scaricamento-esiti-name}")
     private String scaricamentoEsitiPecQueue;
 
-    public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, SqsService sqsService) {
+    public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
         this.arubaCall = arubaCall;
         this.daticertService = daticertService;
         this.sqsService = sqsService;
+        this.gestoreRepositoryCall = gestoreRepositoryCall;
+        this.callMacchinaStati = callMacchinaStati;
+        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
     private final Predicate<Postacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
@@ -67,6 +84,7 @@ public class ScaricamentoEsitiPecScheduler {
                 .flatMap(getMessagesResponse -> Mono.justOrEmpty(getMessagesResponse.getArrayOfMessages()))
                 .flatMapIterable(MesArrayOfMessages::getItem)
                 .flatMap(message -> {
+
 
                     var mimeMessage = getMimeMessage(message);
                     var messageID = getMessageIdFromMimeMessage(mimeMessage);
@@ -107,11 +125,60 @@ public class ScaricamentoEsitiPecScheduler {
                                         log.debug("PEC {} discarded, it was not sent by us", finalMessageID);
                                     }
                                 })
-                                .flatMap(postacert -> sqsService.send(scaricamentoEsitiPecQueue, finalMessageID, RicezioneEsitiPecDto.builder()
-                                        .message(message)
-                                        .daticert(attachBytes)
-                                        .build()))
-                                .thenReturn(finalMessageID);
+                                 .flatMap(postacert ->
+                                 {
+                                     var presaInCaricoInfo = decodeMessageId(postacert.getDati().getMsgid());
+                                     var requestIdx = presaInCaricoInfo.getRequestIdx();
+                                     var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
+
+                                     return Mono.zip(Mono.just(postacert),
+                                             gestoreRepositoryCall.getRichiesta(clientId, requestIdx));
+                                 })
+                                 .flatMap(objects ->
+                                 {
+                                     var postacert = objects.getT1();
+                                     var requestDto = objects.getT2();
+
+                                     Destinatari destinatario = postacert.getIntestazione().getDestinatari().get(0);
+                                     var tipoDestinatario = destinatario.getTipo();
+
+                                     var nextStatus = "";
+                                     if (tipoDestinatario.equals(DESTINATARIO_ESTERNO)) {
+                                         nextStatus = Status.NOT_PEC.getStatusTransactionTableCompliant();
+                                     } else {
+                                         nextStatus = decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
+                                     }
+
+                                     String finalNextStatus = nextStatus;
+
+                                     return callMacchinaStati.statusValidation(requestDto.getxPagopaExtchCxId(),
+                                                     transactionProcessConfigurationProperties.pec(),
+                                                     requestDto.getStatusRequest(),
+                                                     finalNextStatus)
+                                             .map(unused -> Tuples.of(requestDto, finalNextStatus))
+                                             .doOnError(CallMacchinaStati.StatusValidationBadRequestException.class,
+                                                     throwable -> log.debug(
+                                                             "La chiamata al notification tracker della PEC {} " +
+                                                                     "associata alla richiesta {} ha tornato 400 come " +
+                                                                     "status",
+                                                             messageID,
+                                                             requestDto.getRequestIdx()))
+                                             .doOnError(InvalidNextStatusException.class,
+                                                     throwable -> log.debug(
+                                                             "La PEC {} associata alla richiesta {} ha " +
+                                                                     "comunicato i propri" + " esiti in " +
+                                                                     "un ordine non corretto al notification tracker",
+                                                             messageID,
+                                                             requestDto.getRequestIdx()));
+
+                                })
+                                 .flatMap(tuple -> sqsService.send(scaricamentoEsitiPecQueue, finalMessageID, RicezioneEsitiPecDto.builder()
+                                         .message(message)
+                                         .daticert(attachBytes)
+                                         .requestDto(tuple.getT1())
+                                         .nextStatus(tuple.getT2())
+                                         .build()))
+                                 .thenReturn(finalMessageID);
                     }
                     else return Mono.just(finalMessageID);
                 })

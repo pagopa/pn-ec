@@ -54,17 +54,9 @@ public class ScaricamentoEsitiPecService {
     @Autowired
     private SqsService sqsService;
     @Autowired
-    private ArubaCall arubaCall;
-    @Autowired
     private DaticertService daticertService;
     @Autowired
-    private CallMacchinaStati callMacchinaStati;
-    @Autowired
-    private GestoreRepositoryCall gestoreRepositoryCall;
-    @Autowired
     private StatusPullService statusPullService;
-    @Autowired
-    private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
     @Autowired
     private CloudWatchPecMetrics cloudWatchPecMetrics;
     @Autowired
@@ -100,6 +92,8 @@ public class ScaricamentoEsitiPecService {
                     var messageID = getMessageIdFromMimeMessage(mimeMessage);
                     var daticert = ricEsitiPecDto.getDaticert();
 
+                    log.debug("---> LAVORAZIONE MESSAGGIO <--- MessageID : {} , Daticert : {}", messageID, new String(daticert));
+
                     return Mono.just(daticertService.getPostacertFromByteArray(daticert))
                             .flatMap(postacert -> {
 
@@ -110,59 +104,15 @@ public class ScaricamentoEsitiPecService {
                                 log.debug("PEC messageId - clientId is {}, requestId is {}, messageID is {}", clientId, requestIdx, messageID);
 
                                 return Mono.zip(Mono.just(postacert),
-                                        gestoreRepositoryCall.getRichiesta(clientId, requestIdx),
                                         statusPullService.pecPullService(requestIdx, presaInCaricoInfo.getXPagopaExtchCxId()));
-                            })
-
-                            //Validate status
-                            .flatMap(objects -> {
-                                Postacert postacert = objects.getT1();
-
-                                Destinatari destinatario = postacert.getIntestazione().getDestinatari().get(0);
-                                var tipoDestinatario = destinatario.getTipo();
-
-                                RequestDto requestDto = objects.getT2();
-                                LegalMessageSentDetails legalMessageSentDetails = objects.getT3();
-
-                                var nextStatus = "";
-                                if (tipoDestinatario.equals(DESTINATARIO_ESTERNO)) {
-                                    nextStatus = Status.NOT_PEC.getStatusTransactionTableCompliant();
-                                } else {
-                                    nextStatus = decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
-                                }
-
-                                String finalNextStatus = nextStatus;
-
-                                return callMacchinaStati.statusValidation(requestDto.getxPagopaExtchCxId(),
-                                                transactionProcessConfigurationProperties.pec(),
-                                                requestDto.getStatusRequest(),
-                                                finalNextStatus)
-                                        .map(unused -> Tuples.of(postacert,
-                                                requestDto,
-                                                legalMessageSentDetails,
-                                                finalNextStatus))
-                                        .doOnError(CallMacchinaStati.StatusValidationBadRequestException.class,
-                                                throwable -> log.debug(
-                                                        "La chiamata al notification tracker della PEC {} " +
-                                                                "associata alla richiesta {} ha tornato 400 come " +
-                                                                "status",
-                                                        messageID,
-                                                        requestDto.getRequestIdx()))
-                                        .doOnError(InvalidNextStatusException.class,
-                                                throwable -> log.debug(
-                                                        "La PEC {} associata alla richiesta {} ha " +
-                                                                "comunicato i propri" + " esiti in " +
-                                                                "un ordine non corretto al notification tracker",
-                                                        messageID,
-                                                        requestDto.getRequestIdx()));
                             })
 
                             //Pubblicazione metriche custom su CloudWatch
                             .flatMap(objects -> {
                                 Postacert postacert = objects.getT1();
-                                RequestDto requestDto = objects.getT2();
-                                LegalMessageSentDetails legalMessageSentDetails = objects.getT3();
-                                String nextStatus = objects.getT4();
+                                LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
+                                RequestDto requestDto = ricEsitiPecDto.getRequestDto();
+                                String nextStatus = ricEsitiPecDto.getNextStatus();
 
                                 var nextEventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
                                 var cloudWatchPecMetricsInfo = CloudWatchPecMetricsInfo.builder()
