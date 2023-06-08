@@ -30,6 +30,7 @@ import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
@@ -48,6 +49,7 @@ import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.*;
 
 @Slf4j
+@Service
 public class ScaricamentoEsitiPecService {
     @Autowired
     private SqsService sqsService;
