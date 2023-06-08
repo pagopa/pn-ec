@@ -133,7 +133,7 @@ public class ScaricamentoEsitiPecService {
                             })
 
                             //Preparazione payload per la coda stati PEC
-                            .map(objects -> {
+                            .flatMap(objects -> {
                                 Postacert postacert = objects.getT1();
                                 RequestDto requestDto = objects.getT2();
                                 CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT3();
