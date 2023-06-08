@@ -131,13 +131,13 @@ public class ScaricamentoEsitiPecScheduler {
                                      var requestIdx = presaInCaricoInfo.getRequestIdx();
                                      var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
 
-                                     return Mono.zip(Mono.just(postacert),
-                                             gestoreRepositoryCall.getRichiesta(clientId, requestIdx));
+                                     return gestoreRepositoryCall.getRichiesta(clientId, requestIdx)
+                                             .map(requestDto -> Tuples.of(postacert, requestDto));
                                  })
-                                 .flatMap(objects ->
+                                 .flatMap(tuple ->
                                  {
-                                     var postacert = objects.getT1();
-                                     var requestDto = objects.getT2();
+                                     var postacert = tuple.getT1();
+                                     var requestDto = tuple.getT2();
 
                                      Destinatari destinatario = postacert.getIntestazione().getDestinatari().get(0);
                                      var tipoDestinatario = destinatario.getTipo();
@@ -173,7 +173,7 @@ public class ScaricamentoEsitiPecScheduler {
 
                                 })
                                  .flatMap(tuple -> sqsService.send(scaricamentoEsitiPecQueue, finalMessageID, RicezioneEsitiPecDto.builder()
-                                         .messageID(messageID)
+                                         .messageID(finalMessageID)
                                          .daticert(attachBytes)
                                          .requestDto(tuple.getT1())
                                          .nextStatus(tuple.getT2())
