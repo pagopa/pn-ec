@@ -183,7 +183,7 @@ public class ScaricamentoEsitiPecScheduler {
                 .flatMap(finalMessageID -> arubaCall.getMessageId(createGetMessageIdRequest(finalMessageID, 2, true)))
                 .doOnError(throwable -> log.error(throwable.getMessage(), throwable))
                 .onErrorResume(throwable -> Mono.empty())
-                .transform(pullFromFluxUntilIsEmpty())
+                //.transform(pullFromFluxUntilIsEmpty())
                 .subscribe();
     }
 
