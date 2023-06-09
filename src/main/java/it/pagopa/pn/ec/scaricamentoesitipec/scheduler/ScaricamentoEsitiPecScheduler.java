@@ -9,12 +9,12 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pec.bridgews.*;
 import it.pec.daticert.Destinatari;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -39,21 +39,17 @@ public class ScaricamentoEsitiPecScheduler {
     private final SqsService sqsService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final CallMacchinaStati callMacchinaStati;
-
+    private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
-    @Value("${scaricamento-esiti-pec.get-messages.limit}")
-    private String scaricamentoEsitiPecGetMessagesLimit;
 
-    @Value("${sqs.queue.pec.scaricamento-esiti-name}")
-    private String scaricamentoEsitiPecQueue;
-
-    public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+    public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
         this.arubaCall = arubaCall;
         this.daticertService = daticertService;
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.callMacchinaStati = callMacchinaStati;
+        this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
@@ -76,7 +72,7 @@ public class ScaricamentoEsitiPecScheduler {
         var getMessages = new GetMessages();
         getMessages.setUnseen(1);
         getMessages.setOuttype(2);
-        getMessages.setLimit(Integer.valueOf(scaricamentoEsitiPecGetMessagesLimit));
+        getMessages.setLimit(Integer.valueOf(scaricamentoEsitiPecProperties.getMessagesLimit()));
 
         arubaCall.getMessages(getMessages)
                 .doOnError(ArubaCallMaxRetriesExceededException.class, e -> log.debug("Aruba non risponde. Circuit breaker"))
@@ -172,7 +168,7 @@ public class ScaricamentoEsitiPecScheduler {
                                                              requestDto.getRequestIdx()));
 
                                 })
-                                 .flatMap(tuple -> sqsService.send(scaricamentoEsitiPecQueue, finalMessageID, RicezioneEsitiPecDto.builder()
+                                 .flatMap(tuple -> sqsService.send(scaricamentoEsitiPecProperties.sqsQueueName(), finalMessageID, RicezioneEsitiPecDto.builder()
                                          .messageID(finalMessageID)
                                          .daticert(attachBytes)
                                          .requestDto(tuple.getT1())

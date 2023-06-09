@@ -3,14 +3,10 @@ package it.pagopa.pn.ec.scaricamentoesitipec.service;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
-import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
-import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.DaticertService;
@@ -22,14 +18,13 @@ import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.LegalMessageSentDetails;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
+import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
-import it.pec.daticert.Destinatari;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -67,16 +62,14 @@ public class ScaricamentoEsitiPecService {
     private FileCall fileCall;
     @Autowired
     private WebClient uploadWebClient;
-    @Value("${ScaricamentoEsitiPecXApiKey:}")
-    private String xApiKey;
+    @Autowired
+    private ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
+
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
 
-    @Value("${sqs.queue.pec.scaricamento-esiti-name}")
-    private String scaricamentoEsitiPecQueue;
-
-    @SqsListener(value = "${sqs.queue.pec.scaricamento-esiti-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    @SqsListener(value = "${scaricamento-esiti-pec.sqs-queue-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void lavorazioneEsitiPec(final RicezioneEsitiPecDto ricezioneEsitiPecDto, final Acknowledgment acknowledgment) {
-        logIncomingMessage(scaricamentoEsitiPecQueue, ricezioneEsitiPecDto);
+        logIncomingMessage(scaricamentoEsitiPecProperties.sqsQueueName(), ricezioneEsitiPecDto);
         lavorazioneEsitiPec(ricezioneEsitiPecDto).doOnSuccess(result -> acknowledgment.acknowledge()).subscribe();
     }
 
@@ -150,7 +143,7 @@ public class ScaricamentoEsitiPecService {
                                 var senderDomain = getDomainFromAddress(senderDigitalAddress);
                                 var receiversDomain = ricEsitiPecDto.getReceiversDomain();
 
-                                return generateLocation(requestIdx, xPagopaExtchCxId, daticert)
+                                return generateLocation(requestIdx, daticert)
                                         .map(location ->
                                         {
 
@@ -194,7 +187,7 @@ public class ScaricamentoEsitiPecService {
     }
 
 
-    Mono<String> generateLocation(String requestIdx, String xPagopaExtchCxId, byte[] fileBytes) {
+    Mono<String> generateLocation(String requestIdx, byte[] fileBytes) {
 
         log.debug("---> START GENERATING LOCATION <--- RequestId: {}", requestIdx);
 
@@ -203,8 +196,9 @@ public class ScaricamentoEsitiPecService {
                 .status("");
 
         var checksumValue = generateSha256(fileBytes);
+        var xPagopaExtchCxId = scaricamentoEsitiPecProperties.clientHeaderValue();
 
-        return fileCall.postFile(xPagopaExtchCxId, xApiKey, checksumValue, xPagopaExtchCxId + "~" + requestIdx, fileCreationRequest)
+        return fileCall.postFile(xPagopaExtchCxId, scaricamentoEsitiPecProperties.apiKeyHeaderValue(), checksumValue, xPagopaExtchCxId + "~" + requestIdx, fileCreationRequest)
                 .flatMap(fileCreationResponse ->
                 {
                     String uploadUrl = fileCreationResponse.getUploadUrl();
