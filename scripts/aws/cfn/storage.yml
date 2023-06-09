@@ -161,8 +161,8 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Action:
-              - 'SQS:*'
-            Effect: "Allow"
+              - 'sqs:*'
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueARN
             Principal:
               AWS: '*'
@@ -210,8 +210,8 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Action:
-              - 'SQS:*'
-            Effect: "Allow"
+              - 'sqs:*'
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueTrackerStatoPECStack.Outputs.QueueARN
             Principal:
               AWS: '*'
@@ -259,8 +259,8 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Action:
-              - 'SQS:*'
-            Effect: "Allow"
+              - 'sqs:*'
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueTrackerStatoEMAILStack.Outputs.QueueARN
             Principal:
               AWS: '*'
@@ -308,8 +308,8 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Action:
-              - 'SQS:*'
-            Effect: "Allow"
+              - 'sqs:*'
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueTrackerStatoCARTACEOStack.Outputs.QueueARN
             Principal:
               AWS: '*'
@@ -332,45 +332,47 @@ Resources:
 
   ###########  TRACKER: EXTERNAL NOTIFICATION  ###########
 
-  PnEcQueueNotificheExt1Stack:
+  PnEcQueueNotificheDebugDevStack:
     Type: AWS::CloudFormation::Stack
+    Condition: IsDevEnv
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-notifiche-esterne-piattaforma-1-queue'
+        QueueName: 'pn-ec-notifiche-esterne-dev-debug-queue'
         SqsManagedSseEnabled: true
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
-  PnEcQueuePolicyNotificheExt1:
+  PnEcQueuePolicyNotificheDebugDev:
     Type: AWS::SQS::QueuePolicy
+    Condition: IsDevEnv
     Properties: 
       Queues:
-        - !GetAtt PnEcQueueNotificheExt1Stack.Outputs.QueueURL
+        - !GetAtt PnEcQueueNotificheDebugDevStack.Outputs.QueueURL
       PolicyDocument: 
         Statement: 
           - Sid: 'AllowAccessSameAccount'
             Action: 
-              - "SQS:*"
-            Effect: "Allow"
-            Resource: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.QueueARN
+              - 'sqs:*'
+            Effect: 'Allow'
+            Resource: !GetAtt PnEcQueueNotificheDebugDevStack.Outputs.QueueARN
             Principal: 
-              AWS: !Sub ${AWS::AccountId}
+              AWS: !Ref AWS::AccountId
           - Sid: 'AllowPutEventsFromEventRule'
             Action: 
-              - "sqs:SendMessage"
-            Effect: "Allow"
-            Resource: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.QueueARN
+              - 'sqs:SendMessage'
+            Effect: 'Allow'
+            Resource: !GetAtt PnEcQueueNotificheDebugDevStack.Outputs.QueueARN
             Principal: 
               Service:
               - 'events.amazonaws.com'
             Condition: 
               ArnEquals:
-                aws:SourceArn: !GetAtt PnEcEventRuleNotificheExt1.Arn
+                aws:SourceArn: !GetAtt PnEcEventRuleNotificheDebugDev.Arn
 
       
   PnEcEventBusTrackerExternalNotification: 
@@ -385,8 +387,8 @@ Resources:
       StatementId: 'PnEcCustomEventBusPolicyAllowECS1'
       Statement:
         Action: 
-          - "events:PutEvents"
-        Effect: "Allow"
+          - 'events:PutEvents'
+        Effect: 'Allow'
         Principal: 
           Service:
           - 'ecs.amazonaws.com'
@@ -412,11 +414,11 @@ Resources:
           - 'events:ListTagsForResource'
         Effect: 'Allow'
         Principal: 
-          AWS: !Sub '${AWS::AccountId}'
+          AWS: !Ref AWS::AccountId
         Resource: !GetAtt PnEcEventBusTrackerExternalNotification.Arn
         Condition:
           StringEqualsIfExists:
-            events:creatorAccount: !Sub '${AWS::AccountId}'
+            events:creatorAccount: !Ref AWS::AccountId
 
   # ####### DENY POLICY FROM OUTSIDE ACCOUNT ########
   # PnEcEventBusPolicyDenyTrackerExternalNotification:
@@ -437,7 +439,7 @@ Resources:
   #           aws:SourceAccount: !Sub '${AWS::AccountId}'
 
 
-  PnEcEventRuleNotificheExt1:
+  PnEcEventRuleNotificheDebugDev:
     Type: AWS::Events::Rule
     Condition: IsDevEnv
     Properties:
@@ -447,13 +449,13 @@ Resources:
         source: 
           - 'NOTIFICATION TRACKER'
         account: 
-          - !Sub ${AWS::AccountId}
+          - !Ref AWS::AccountId
         region: 
-          - !Sub ${AWS::Region}
+          - !Ref AWS::Region
       State: 'ENABLED'
       Targets:
-        - Arn: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.QueueARN
-          Id: 'PnEcExt1QueueTargetForExtNotification'
+        - Arn: !GetAtt PnEcQueueNotificheDebugDevStack.Outputs.QueueARN
+          Id: 'PnEcDebugDevQueueTargetForExtNotification'
 
   PnEcEventsDLQueuePnCoreTargetEventBusStack:
     Type: AWS::CloudFormation::Stack
@@ -518,8 +520,8 @@ Resources:
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
+              - 'sqs:*'
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueInteractiveSMSStack.Outputs.QueueARN
             Principal:  
               AWS: '*'
@@ -584,8 +586,8 @@ Resources:
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
+              - 'sqs:*'
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueInteractivePECStack.Outputs.QueueARN
             Principal:  
               AWS: '*'
@@ -667,8 +669,8 @@ Resources:
         Version: '2012-10-17'
         Statement: 
           - Action: 
-              - 'SQS:*'
-            Effect: "Allow"
+              - 'sqs:*'
+            Effect: 'Allow'
             Resource: !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.QueueARN
             Principal:  
               AWS: '*'
@@ -953,43 +955,7 @@ Outputs:
   PnEcAlarmArnDLQueueTrackerErroriCARTACEO:
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriCARTACEO"
     Value: !GetAtt PnEcQueueTrackerErroriCARTACEOStack.Outputs.SqsDLQAlarmArn
-
-  ######### TRACKER : EXTERNAL NOTIFICATION 1 ##########
-
-  PnEcQueueNameNotificheExt1:
-    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] Nome della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
-    Value: !GetAtt  PnEcQueueNotificheExt1Stack.Outputs.QueueName
-
-  PnEcQueueArnNotificheExt1:
-    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] ARN della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
-    Value: !GetAtt  PnEcQueueNotificheExt1Stack.Outputs.QueueARN
-
-  PnEcQueueUrlNotificheExt1:
-    Description: '[Notification Tracker: PIATTAFORMA_ESTERNA_1] URL della Coda per le notifiche a PIATTAFORMA_ESTERNA_1'
-    Value: !GetAtt  PnEcQueueNotificheExt1Stack.Outputs.QueueURL
-
-  PnEcDLQueueNameNotificheExt1:
-    Description: '[DLQ di Servizio - Tracker] Nome della DLQ relativa alla coda PnEcQueueNotificheExt1'
-    Value: !GetAtt  PnEcQueueNotificheExt1Stack.Outputs.DeadLetterQueueName
-
-  PnEcDLQueueArnNotificheExt1:
-    Description: '[DLQ di Servizio - Tracker] ARN della DLQ relativa alla coda PnEcQueueNotificheExt1'
-    Value: !GetAtt  PnEcQueueNotificheExt1Stack.Outputs.DeadLetterQueueARN
     
-  PnEcAlarmArnQueueNotificheExt1:
-    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueNotificheExt1"
-    Value: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.SqsAgeAlarmArn
-
-  PnEcAlarmArnDLQueueNotificheExt1:
-    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueNotificheExt1"
-    Value: !GetAtt PnEcQueueNotificheExt1Stack.Outputs.SqsDLQAlarmArn
-    
-  ###### EVENT RULE #######
-    
-  PnEcEventRuleArnNotificheExt1:
-    Description: "[Event Rule - Tracker] ARN dell'evento relativo alla coda PnEcQueueNotificheExt1"
-    Value: !GetAtt PnEcEventRuleNotificheExt1.Arn
-
   ###### BATCH : SMS #######
 
   PnEcQueueNameBatchSMS:
@@ -1232,6 +1198,8 @@ Outputs:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriCARTACEO"
     Value: !GetAtt PnEcQueueErroriCARTACEOStack.Outputs.SqsDLQAlarmArn
   
+  ###### pn-core Event Bus #######
+
   PnEcQueueNameEventsDLQueuePnCoreTargetEventBus:
     Description: 'Nome DLQ per forward degli eventi al bus PnCoreTargetEventBus'
     Value: !GetAtt PnEcEventsDLQueuePnCoreTargetEventBusStack.Outputs.QueueName
