@@ -21,6 +21,8 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
@@ -74,10 +76,18 @@ public class ScaricamentoEsitiPecScheduler {
         getMessages.setOuttype(2);
         getMessages.setLimit(Integer.valueOf(scaricamentoEsitiPecProperties.getMessagesLimit()));
 
+        AtomicBoolean hasMessages = new AtomicBoolean();
+        hasMessages.set(true);
+
         arubaCall.getMessages(getMessages)
                 .doOnError(ArubaCallMaxRetriesExceededException.class, e -> log.debug("Aruba non risponde. Circuit breaker"))
                 .onErrorComplete(ArubaCallMaxRetriesExceededException.class)
-                .flatMap(getMessagesResponse -> Mono.justOrEmpty(getMessagesResponse.getArrayOfMessages()))
+                .flatMap(getMessagesResponse -> {
+                    var arrayOfMessages = getMessagesResponse.getArrayOfMessages();
+                    if (Objects.isNull(arrayOfMessages))
+                        hasMessages.set(false);
+                    return Mono.justOrEmpty(arrayOfMessages);
+                })
                 .flatMapIterable(MesArrayOfMessages::getItem)
                 .flatMap(message -> {
 
@@ -183,7 +193,7 @@ public class ScaricamentoEsitiPecScheduler {
                 .flatMap(finalMessageID -> arubaCall.getMessageId(createGetMessageIdRequest(finalMessageID, 2, true)))
                 .doOnError(throwable -> log.error(throwable.getMessage(), throwable))
                 .onErrorResume(throwable -> Mono.empty())
-                //.transform(pullFromFluxUntilIsEmpty())
+                .repeat(hasMessages::get)
                 .subscribe();
     }
 
