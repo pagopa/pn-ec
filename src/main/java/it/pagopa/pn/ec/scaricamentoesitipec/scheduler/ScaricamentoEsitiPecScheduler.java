@@ -57,8 +57,9 @@ public class ScaricamentoEsitiPecScheduler {
         getMessages.setLimit(Integer.valueOf(scaricamentoEsitiPecGetMessagesLimit));
 
         return arubaCall.getMessages(getMessages)
+                /* TO-DO: DA CHIARIRE
                 .doOnError(ArubaCallMaxRetriesExceededException.class, e -> log.debug("Aruba non risponde. Circuit breaker"))
-                .onErrorComplete(ArubaCallMaxRetriesExceededException.class)
+                .onErrorComplete(ArubaCallMaxRetriesExceededException.class)*/
                 .flatMap(optionalGetMessagesResponse -> Mono.justOrEmpty(optionalGetMessagesResponse.getArrayOfMessages()))
                 .flatMapIterable(MesArrayOfMessages::getItem)
                 .flatMap(message -> {
@@ -110,7 +111,7 @@ public class ScaricamentoEsitiPecScheduler {
                     //Marca il messaggio come letto.
                     return arubaCall.getMessageId(createGetMessageIdRequest(messageID, 2, true));
                 })
-                .doOnError(throwable -> log.error(throwable.getMessage(), throwable))
+                .doOnError(throwable -> log.error("* FATAL * {}, {}", throwable, throwable.getMessage()))
                 .onErrorResume(throwable -> Mono.empty());
     }
 
