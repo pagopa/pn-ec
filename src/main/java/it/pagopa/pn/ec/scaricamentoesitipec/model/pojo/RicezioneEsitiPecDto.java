@@ -17,7 +17,5 @@ public class RicezioneEsitiPecDto {
     String messageID;
     byte[] daticert;
     String receiversDomain;
-    String nextStatus;
-    RequestDto requestDto;
 
 }

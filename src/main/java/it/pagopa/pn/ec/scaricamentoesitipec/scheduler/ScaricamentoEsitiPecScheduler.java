@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
@@ -39,20 +40,13 @@ public class ScaricamentoEsitiPecScheduler {
     private final ArubaCall arubaCall;
     private final DaticertService daticertService;
     private final SqsService sqsService;
-    private final GestoreRepositoryCall gestoreRepositoryCall;
-    private final CallMacchinaStati callMacchinaStati;
     private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
-    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
-
-    public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+    public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties) {
         this.arubaCall = arubaCall;
         this.daticertService = daticertService;
         this.sqsService = sqsService;
-        this.gestoreRepositoryCall = gestoreRepositoryCall;
-        this.callMacchinaStati = callMacchinaStati;
         this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;
-        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
     private final Predicate<Postacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
@@ -131,58 +125,9 @@ public class ScaricamentoEsitiPecScheduler {
                                         log.debug("PEC {} discarded, it was not sent by us", finalMessageID);
                                     }
                                 })
-                                 .flatMap(postacert ->
-                                 {
-                                     var presaInCaricoInfo = decodeMessageId(postacert.getDati().getMsgid());
-                                     var requestIdx = presaInCaricoInfo.getRequestIdx();
-                                     var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
-
-                                     return gestoreRepositoryCall.getRichiesta(clientId, requestIdx)
-                                             .map(requestDto -> Tuples.of(postacert, requestDto));
-                                 })
-                                 .flatMap(tuple ->
-                                 {
-                                     var postacert = tuple.getT1();
-                                     var requestDto = tuple.getT2();
-
-                                     Destinatari destinatario = postacert.getIntestazione().getDestinatari().get(0);
-                                     var tipoDestinatario = destinatario.getTipo();
-
-                                     var nextStatus = "";
-                                     if (tipoDestinatario.equals(DESTINATARIO_ESTERNO)) {
-                                         nextStatus = Status.NOT_PEC.getStatusTransactionTableCompliant();
-                                     } else {
-                                         nextStatus = decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
-                                     }
-
-                                     String finalNextStatus = nextStatus;
-
-                                     return callMacchinaStati.statusValidation(requestDto.getxPagopaExtchCxId(),
-                                                     transactionProcessConfigurationProperties.pec(),
-                                                     requestDto.getStatusRequest(),
-                                                     finalNextStatus)
-                                             .map(unused -> Tuples.of(requestDto, finalNextStatus))
-                                             .doOnError(CallMacchinaStati.StatusValidationBadRequestException.class,
-                                                     throwable -> log.debug(
-                                                             "La chiamata al notification tracker della PEC {} " +
-                                                                     "associata alla richiesta {} ha tornato 400 come " +
-                                                                     "status",
-                                                             messageID,
-                                                             requestDto.getRequestIdx()))
-                                             .doOnError(InvalidNextStatusException.class,
-                                                     throwable -> log.debug(
-                                                             "La PEC {} associata alla richiesta {} ha " +
-                                                                     "comunicato i propri" + " esiti in " +
-                                                                     "un ordine non corretto al notification tracker",
-                                                             messageID,
-                                                             requestDto.getRequestIdx()));
-
-                                })
-                                 .flatMap(tuple -> sqsService.send(scaricamentoEsitiPecProperties.sqsQueueName(), finalMessageID, RicezioneEsitiPecDto.builder()
+                                 .flatMap(unused -> sqsService.send(scaricamentoEsitiPecProperties.sqsQueueName(), finalMessageID, RicezioneEsitiPecDto.builder()
                                          .messageID(finalMessageID)
                                          .daticert(attachBytes)
-                                         .requestDto(tuple.getT1())
-                                         .nextStatus(tuple.getT2())
                                          .receiversDomain(getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]))
                                          .build()))
                                  .thenReturn(finalMessageID);

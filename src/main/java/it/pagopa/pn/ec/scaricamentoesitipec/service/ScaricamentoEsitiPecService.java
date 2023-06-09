@@ -3,10 +3,13 @@ package it.pagopa.pn.ec.scaricamentoesitipec.service;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
+import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.DaticertService;
@@ -22,6 +25,7 @@ import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.Scaricamento
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
+import it.pec.daticert.Destinatari;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +68,12 @@ public class ScaricamentoEsitiPecService {
     private WebClient uploadWebClient;
     @Autowired
     private ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
+    @Autowired
+    private GestoreRepositoryCall gestoreRepositoryCall;
+    @Autowired
+    private CallMacchinaStati callMacchinaStati;
+    @Autowired
+    private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
 
@@ -101,13 +111,64 @@ public class ScaricamentoEsitiPecService {
                                 return Mono.zip(Mono.just(postacert),
                                         statusPullService.pecPullService(requestIdx, presaInCaricoInfo.getXPagopaExtchCxId()));
                             })
+                            .flatMap(objects->{
+                                Postacert postacert = objects.getT1();
+                                LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
+
+                                var presaInCaricoInfo = decodeMessageId(postacert.getDati().getMsgid());
+                                var requestIdx = presaInCaricoInfo.getRequestIdx();
+                                var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
+
+                                return gestoreRepositoryCall.getRichiesta(clientId, requestIdx)
+                                        .map(requestDto -> Tuples.of(postacert, legalMessageSentDetails, requestDto));
+
+                            })
+                            .flatMap(objects ->
+                            {
+                                Postacert postacert = objects.getT1();
+                                LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
+                                RequestDto requestDto = objects.getT3();
+
+                                //Se la validation è delivered->delivered, IGNORA STATUS VALIDATION E MARCA COME LETTO.
+                                Destinatari destinatario = postacert.getIntestazione().getDestinatari().get(0);
+                                var tipoDestinatario = destinatario.getTipo();
+
+                                var nextStatus = "";
+                                if (tipoDestinatario.equals(DESTINATARIO_ESTERNO)) {
+                                    nextStatus = Status.NOT_PEC.getStatusTransactionTableCompliant();
+                                } else {
+                                    nextStatus = decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
+                                }
+
+                                String finalNextStatus = nextStatus;
+
+                                return callMacchinaStati.statusValidation(requestDto.getxPagopaExtchCxId(),
+                                                transactionProcessConfigurationProperties.pec(),
+                                                requestDto.getStatusRequest(),
+                                                finalNextStatus)
+                                        .map(unused -> Tuples.of(postacert, legalMessageSentDetails, requestDto, finalNextStatus))
+                                        .doOnError(CallMacchinaStati.StatusValidationBadRequestException.class,
+                                                throwable -> log.debug(
+                                                        "La chiamata al notification tracker della PEC {} " +
+                                                                "associata alla richiesta {} ha tornato 400 come " +
+                                                                "status",
+                                                        messageID,
+                                                        requestDto.getRequestIdx()))
+                                        .doOnError(InvalidNextStatusException.class,
+                                                throwable -> log.debug(
+                                                        "La PEC {} associata alla richiesta {} ha " +
+                                                                "comunicato i propri" + " esiti in " +
+                                                                "un ordine non corretto al notification tracker",
+                                                        messageID,
+                                                        requestDto.getRequestIdx()));
+                            })
 
                             //Pubblicazione metriche custom su CloudWatch
                             .flatMap(objects -> {
                                 Postacert postacert = objects.getT1();
                                 LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
-                                RequestDto requestDto = ricEsitiPecDto.getRequestDto();
-                                String nextStatus = ricEsitiPecDto.getNextStatus();
+                                RequestDto requestDto = objects.getT3();
+                                String nextStatus = objects.getT4();
 
                                 log.debug("---> PUBLISH CUSTOM CLOUD WATCH METRICS <--- MessageID : {}", messageID);
 
@@ -180,9 +241,6 @@ public class ScaricamentoEsitiPecService {
                         log.error(throwable.getMessage(), throwable);
                     }
                 })
-
-                //Se avviene un errore all'interno di questa catena tornare un Mono.empty per non bloccare il flux
-                .onErrorResume(throwable -> Mono.empty())
                 .doOnSuccess(unused -> log.info("---> LAVORAZIONE ESITI PEC ENDED <---"));
     }
 
