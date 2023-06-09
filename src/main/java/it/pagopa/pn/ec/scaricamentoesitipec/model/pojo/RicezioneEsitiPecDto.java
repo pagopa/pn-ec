@@ -17,5 +17,6 @@ public class RicezioneEsitiPecDto {
     String messageID;
     byte[] daticert;
     String receiversDomain;
+    int retry;
 
 }

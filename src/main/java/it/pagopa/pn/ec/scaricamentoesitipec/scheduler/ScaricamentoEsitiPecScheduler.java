@@ -129,6 +129,7 @@ public class ScaricamentoEsitiPecScheduler {
                                          .messageID(finalMessageID)
                                          .daticert(attachBytes)
                                          .receiversDomain(getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]))
+                                         .retry(0)
                                          .build()))
                                  .thenReturn(finalMessageID);
                     }

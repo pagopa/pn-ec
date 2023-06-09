@@ -8,6 +8,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
@@ -78,12 +79,12 @@ public class ScaricamentoEsitiPecService {
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
 
     @SqsListener(value = "${scaricamento-esiti-pec.sqs-queue-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void lavorazioneEsitiPec(final RicezioneEsitiPecDto ricezioneEsitiPecDto, final Acknowledgment acknowledgment) {
+    public void lavorazioneEsitiPecInteractive(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
         logIncomingMessage(scaricamentoEsitiPecProperties.sqsQueueName(), ricezioneEsitiPecDto);
-        lavorazioneEsitiPec(ricezioneEsitiPecDto).doOnSuccess(result -> acknowledgment.acknowledge()).subscribe();
+        lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment).subscribe();
     }
 
-    Mono<SendMessageResponse> lavorazioneEsitiPec(final RicezioneEsitiPecDto ricezioneEsitiPecDto) {
+    Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
 
         log.info("<-- START LAVORAZIONE ESITI PEC -->");
 
@@ -153,13 +154,6 @@ public class ScaricamentoEsitiPecService {
                                                                 "associata alla richiesta {} ha tornato 400 come " +
                                                                 "status",
                                                         messageID,
-                                                        requestDto.getRequestIdx()))
-                                        .doOnError(InvalidNextStatusException.class,
-                                                throwable -> log.debug(
-                                                        "La PEC {} associata alla richiesta {} ha " +
-                                                                "comunicato i propri" + " esiti in " +
-                                                                "un ordine non corretto al notification tracker",
-                                                        messageID,
                                                         requestDto.getRequestIdx()));
                             })
 
@@ -207,7 +201,6 @@ public class ScaricamentoEsitiPecService {
                                 return generateLocation(requestIdx, daticert)
                                         .map(location ->
                                         {
-
                                             var generatedMessageDto = createGeneratedMessageByStatus(receiversDomain,
                                                     senderDomain,
                                                     messageID,
@@ -232,16 +225,20 @@ public class ScaricamentoEsitiPecService {
                             .flatMap(notificationTrackerQueueDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                     notificationTrackerQueueDto));
                 })
+                .doOnSuccess(result -> acknowledgment.acknowledge())
+                .then()
                 //         Error logging
-                .doOnError(throwable -> {
-                    if (throwable instanceof CallMacchinaStati.StatusValidationBadRequestException ||
-                            throwable instanceof InvalidNextStatusException) {
-                        log.debug(throwable.getMessage());
-                    } else {
-                        log.error(throwable.getMessage(), throwable);
-                    }
+                .doOnError(InvalidNextStatusException.class, throwable -> {
+                    log.debug("Invalid Next Status Exception: {}", throwable.getMessage());
+                    acknowledgment.acknowledge();
                 })
-                .doOnSuccess(unused -> log.info("---> LAVORAZIONE ESITI PEC ENDED <---"));
+                .onErrorResume(InvalidNextStatusException.class, e -> {
+                    var retry = ricezioneEsitiPecDto.getRetry();
+                    ricezioneEsitiPecDto.setRetry(retry + 1);
+                    if (retry < 5)
+                        return sqsService.send(scaricamentoEsitiPecProperties.sqsQueueName(), ricezioneEsitiPecDto).then();
+                    else return Mono.error(SqsMaxRetriesExceededException::new);
+                });
     }
 
 
