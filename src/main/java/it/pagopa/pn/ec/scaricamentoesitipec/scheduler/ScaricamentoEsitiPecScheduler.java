@@ -73,9 +73,11 @@ public class ScaricamentoEsitiPecScheduler {
         AtomicBoolean hasMessages = new AtomicBoolean();
         hasMessages.set(true);
 
-        arubaCall.getMessages(getMessages)
+
+        return arubaCall.getMessages(getMessages)
+                /* TO-DO: DA CHIARIRE
                 .doOnError(ArubaCallMaxRetriesExceededException.class, e -> log.debug("Aruba non risponde. Circuit breaker"))
-                .onErrorComplete(ArubaCallMaxRetriesExceededException.class)
+                .onErrorComplete(ArubaCallMaxRetriesExceededException.class)*/
                 .flatMap(getMessagesResponse -> {
                     var arrayOfMessages = getMessagesResponse.getArrayOfMessages();
                     if (Objects.isNull(arrayOfMessages))
@@ -137,10 +139,11 @@ public class ScaricamentoEsitiPecScheduler {
                 })
                 //Marca il messaggio come letto.
                 .flatMap(finalMessageID -> arubaCall.getMessageId(createGetMessageIdRequest(finalMessageID, 2, true)))
-                .doOnError(throwable -> log.error(throwable.getMessage(), throwable))
-                .onErrorResume(throwable -> Mono.empty())
+                .doOnError(throwable -> log.error("* FATAL * {}, {}", throwable, throwable.getMessage()))
+                .onErrorResume(throwable -> Mono.empty());
                 .repeat(hasMessages::get)
                 .subscribe();
+
     }
 
 }

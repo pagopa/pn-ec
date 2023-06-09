@@ -393,11 +393,14 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                                                                                                                                                                                              return deleteMessageFromErrorQueue(message);
                                                                                                                                                                                                          })
                                                                                                                                                                                                  .onErrorResume(
-                                                                                                                                                                                                         sqsPublishException -> checkTentativiEccessiviPec(
-                                                                                                                                                                                                                 requestIdx,
-                                                                                                                                                                                                                 requestDto,
-                                                                                                                                                                                                                 pecPresaInCaricoInfo,
-                                                                                                                                                                                                                 message));
+                                                                                                                                                                                                         sqsPublishException -> {
+                                                                                                                                                                                                             log.error("* FATAL * gestioneRetryPec {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                                                                                                                                                                                                             return checkTentativiEccessiviPec(
+                                                                                                                                                                                                                     requestIdx,
+                                                                                                                                                                                                                     requestDto,
+                                                                                                                                                                                                                     pecPresaInCaricoInfo,
+                                                                                                                                                                                                                     message);
+                                                                                                                                                                                                         });
                                                          } else {
                                                              //Gestisco il caso retry a partire dalla gestione allegati
                                                              log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
@@ -474,14 +477,17 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                                                                                    pecSqsQueueName.errorName());
                                                                                          return deleteMessageFromErrorQueue(message);
                                                                                      })
-                                                                                     .onErrorResume(sqsPublishException -> checkTentativiEccessiviPec(requestIdx,
-                                                                                                                                                      requestDto,
-                                                                                                                                                      pecPresaInCaricoInfo,
-                                                                                                                                                      message));
+                                                                                     .onErrorResume(sqsPublishException -> {
+                                                                                         log.error("* FATAL * gestioneRetryPec {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                                                                                         return checkTentativiEccessiviPec(requestIdx,
+                                                                                                 requestDto,
+                                                                                                 pecPresaInCaricoInfo,
+                                                                                                 message);
+                                                                                     });
                                                          }
 
                                                      })//              Catch errore tirato per lo stato toDelete
-                                                     .onErrorResume(RetryAttemptsExceededExeption.class, retryAttemptsExceededExeption -> {
+                                                     .onErrorResume(it.pagopa.pn.ec.commons.exception.StatusToDeleteException.class, statusToDeleteException -> {
                                                          log.debug(
                                                                  "Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}",
                                                                  pecSqsQueueName.errorName());
@@ -492,7 +498,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                                                  sendMessageResponse -> deleteMessageFromErrorQueue(message));
 
                                                      }).onErrorResume(internalError -> {
-                    log.error(internalError.getMessage());
+                    log.error("* FATAL * gestioneRetryPec {}, {}", internalError, internalError.getMessage());
                     return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                                                          INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                                                          new DigitalProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(

@@ -38,10 +38,35 @@ Parameters:
     Description: 'Deploy environment type'
     Default: 'dev'
 
+  LogsKinesisSourceStreamArn:
+    Type: String
+    Description: 'Where to send Logs'
+
+  LogRetention:
+    Type: Number
+    Default: 14
+
 Conditions:
   IsDevEnv: !Equals [ !Ref EnvType, 'dev'] 
 
 Resources:
+  PCKmsEncDecDynamoDataKey:
+    Type: 'AWS::KMS::Key'
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Description: A symmetric encryption KMS key AES-256-GCM
+      KeySpec: SYMMETRIC_DEFAULT
+      KeyUsage: ENCRYPT_DECRYPT
+      KeyPolicy:
+        Version: 2012-10-17
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
 
   ######### DYNAMODB TABLES  ############
 
@@ -59,6 +84,7 @@ Resources:
       SSESpecification:
         SSEEnabled: true
         SSEType: 'KMS'
+        KMSMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
       TableClass: 'STANDARD'
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
@@ -79,6 +105,7 @@ Resources:
       SSESpecification:
         SSEEnabled: true
         SSEType: 'KMS'
+        KMSMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
       TableClass: 'STANDARD'
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
@@ -99,6 +126,7 @@ Resources:
       SSESpecification:
         SSEEnabled: true
         SSEType: 'KMS'
+        KMSMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
       TableClass: 'STANDARD'
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
@@ -121,7 +149,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   PnEcTrackerStatoSMSQueuePolicy:
@@ -152,7 +180,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   ######### TRACKER : PEC  ##########
@@ -170,7 +198,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   PnEcTrackerStatoPECQueuePolicy:
@@ -201,7 +229,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   ######### TRACKER : EMAIL  #########
@@ -219,7 +247,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   PnEcTrackerStatoEMAILQueuePolicy:
@@ -250,7 +278,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   ######### TRACKER : CARTACEO  #########
@@ -268,7 +296,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   PnEcTrackerStatoCARTACEOQueuePolicy:
@@ -299,7 +327,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   ###########  TRACKER: EXTERNAL NOTIFICATION  ###########
@@ -316,7 +344,7 @@ Resources:
         SqsManagedSseEnabled: true
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   PnEcQueuePolicyNotificheDebugDev:
@@ -464,7 +492,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         
   PnEcQueueInteractiveSMSStack:
@@ -480,7 +508,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName      
 
   PnEcInteractiveSMSQueuePolicy:
@@ -512,7 +540,7 @@ Resources:
         DelaySeconds: 300
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName   
 
   ###### CHANNEL : PEC #######
@@ -530,7 +558,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         
   PnEcQueueInteractivePECStack:
@@ -546,7 +574,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName      
 
   PnEcInteractivePECQueuePolicy:
@@ -578,7 +606,7 @@ Resources:
         DelaySeconds: 300
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName 
 
   PnEcQueueScaricamentoEsitiPECStack:
@@ -595,7 +623,7 @@ Resources:
         DeduplicationScope: 'messageGroup'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName 
         
   ###### CHANNEL : EMAIL #######
@@ -613,7 +641,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         
   PnEcQueueInteractiveEMAILStack:
@@ -629,7 +657,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName  
 
   PnEcInteractiveEMAILQueuePolicy:
@@ -661,7 +689,7 @@ Resources:
         DelaySeconds: 300
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName 
 
   ###### CHANNEL : CARTACEO #######
@@ -679,7 +707,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
   
   PnEcQueueErroriCARTACEOStack:
@@ -696,9 +724,21 @@ Resources:
         DelaySeconds: 300
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'true'
+        QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName 
       
+  ####### ECS LOG GROUO ######
+  EcsLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain    
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub '${ProjectName}-external-channel'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+        LogGroupRetention: !Ref LogRetention
+
 #########  OUTPUTS  ##########
 
 Outputs:
@@ -1176,6 +1216,10 @@ Outputs:
     Description: "ARN dell'allarme messaggi vecchi nella DLQ per forward degli eventi al bus PnCoreTargetEventBus"
     Value: !GetAtt PnEcEventsDLQueuePnCoreTargetEventBusStack.Outputs.SqsAgeAlarmArn
 
+  PCKmsEncDecDynamoDataKeyARN:
+    Description: Name of KMS Key for Dynamo encode/decode data
+    Value: !Sub '${PCKmsEncDecDynamoDataKey.Arn}'
+
 ###### SCARICAMENTO ESITI : PEC #######
 
   PnEcQueueNameScaricamentoEsitiPEC:
@@ -1197,3 +1241,6 @@ Outputs:
   PnEcAlarmArnDLQueueScaricamentoEsitiPEC:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueScaricamentoEsitiPEC"
     Value: !GetAtt PnEcQueueScaricamentoEsitiPECStack.Outputs.SqsDLQAlarmArn
+
+  EcsLogGroup:
+    Value: !GetAtt EcsLogGroup.Outputs.LogGroupName
