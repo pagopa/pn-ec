@@ -53,7 +53,11 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
     @Override
     public Mono<RequestDto> getRichiesta(String clientId, String requestIdx) throws RestCallException.ResourceNotFoundException {
+<<<<<<< HEAD
     	log.debug("getRichiesta - clientId: {} requestIdx: {}", clientId, requestIdx);
+=======
+    	log.debug("getRichiesta - clientId: {} requestIdx: {}");
+>>>>>>> branch 'feature/refactorScaricamentoEsitiPEC' of git@github.com:pagopa/pn-ec.git
         return ecWebClient.get()
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(requestIdx))
                           .header(CLIENT_HEADER_NAME, clientId)
