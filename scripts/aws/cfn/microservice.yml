@@ -575,6 +575,11 @@ Parameters:
     Type: String
     Description: 'Name of KMS Key for Dynamo encode/decode data'
 
+  # Log group parameters
+  EcsLogGroup:
+    Type: String
+    Description: 'Ecs log group name'
+
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
 
@@ -633,6 +638,7 @@ Resources:
         LoadbalancerRulePriority: !Ref MicroserviceNumber
         # CloudwatchLogKinesisStreamArn: !Ref LogsKinesisSourceStreamArn
         TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
+        EcsLogGroup: !Ref EcsLogGroup
         # HealthCheckPath: 
 
   PnEcManagedPolicy:
