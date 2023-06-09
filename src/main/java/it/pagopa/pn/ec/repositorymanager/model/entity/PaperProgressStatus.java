@@ -19,7 +19,10 @@ public class PaperProgressStatus {
     String statusCode;
     String statusDescription;
     OffsetDateTime statusDateTime;
+    OffsetDateTime clientRequestTimeStamp;
     String deliveryFailureCause;
+    String productType;
+    String iun;
     List<PaperProgressStatusEventAttachments> attachments;
     DiscoveredAddress discoveredAddress;
 }
