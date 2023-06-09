@@ -571,6 +571,10 @@ Parameters:
     Description: 'Default sender email address'
     Type: String
     
+  PCKmsEncDecDynamoDataKeyARN:
+    Type: String
+    Description: 'Name of KMS Key for Dynamo encode/decode data'
+
   # Log group parameters
   EcsLogGroup:
     Type: String
@@ -661,6 +665,13 @@ Resources:
               - !Sub '${PnEcTableArnAnagrafica}'
               - !Sub '${PnEcTableArnRichieste}'
               - !Sub '${PnEcTableArnRichiesteMetadati}'
+          - Effect: Allow
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+            Resource:
+              - !Ref PCKmsEncDecDynamoDataKeyARN                   
           - Effect: Allow
             Action:
               - 'sqs:ReceiveMessage'
