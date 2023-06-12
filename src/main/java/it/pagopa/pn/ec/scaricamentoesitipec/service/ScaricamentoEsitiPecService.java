@@ -10,6 +10,7 @@ import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
+import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
@@ -95,7 +96,7 @@ public class ScaricamentoEsitiPecService {
                     var messageID = ricEsitiPecDto.getMessageID();
                     var daticert = ricEsitiPecDto.getDaticert();
 
-                    log.debug("---> LAVORAZIONE MESSAGGIO <--- MessageID : {} , Daticert : {}", messageID, new String(daticert));
+                    log.debug("---> LAVORAZIONE ESITI PEC - LAVORAZIONE MESSAGGIO <--- MessageID : {} , Daticert : {}", messageID, new String(daticert));
 
                     return Mono.just(daticertService.getPostacertFromByteArray(daticert))
                             .flatMap(postacert -> {
@@ -107,19 +108,21 @@ public class ScaricamentoEsitiPecService {
                                 var requestIdx = presaInCaricoInfo.getRequestIdx();
                                 var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
 
-                                log.debug("PEC messageId - clientId is {}, requestId is {}, messageID is {}", clientId, requestIdx, messageID);
+                                log.debug("LAVORAZIONE ESITI PEC - PEC messageId - clientId is {}, requestId is {}, messageID is {}", clientId, requestIdx, messageID);
 
-                                return Mono.zip(Mono.just(postacert),
-                                        statusPullService.pecPullService(requestIdx, presaInCaricoInfo.getXPagopaExtchCxId()));
+                                return statusPullService.pecPullService(requestIdx, clientId)
+                                        .map(legalMessageSentDetails -> Tuples.of(postacert, legalMessageSentDetails, presaInCaricoInfo));
                             })
                             .flatMap(objects -> {
 
                                 Postacert postacert = objects.getT1();
                                 LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
+                                PresaInCaricoInfo presaInCaricoInfo = objects.getT3();
 
-                                var presaInCaricoInfo = decodeMessageId(postacert.getDati().getMsgid());
                                 var requestIdx = presaInCaricoInfo.getRequestIdx();
                                 var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
+
+                                log.debug("LAVORAZIONE ESITI PEC - GET RICHIESTA - clientId is {}, requestId is {}, messageID is {}", clientId, requestIdx, messageID);
 
                                 return gestoreRepositoryCall.getRichiesta(clientId, requestIdx)
                                         .map(requestDto -> Tuples.of(postacert, legalMessageSentDetails, requestDto));
@@ -165,7 +168,7 @@ public class ScaricamentoEsitiPecService {
                                 RequestDto requestDto = objects.getT3();
                                 String nextStatus = objects.getT4();
 
-                                log.debug("---> PUBLISH CUSTOM CLOUD WATCH METRICS <--- MessageID : {}", messageID);
+                                log.debug("---> LAVORAZIONE ESITI PEC - PUBLISH CUSTOM CLOUD WATCH METRICS <--- MessageID : {}", messageID);
 
                                 var nextEventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
                                 var cloudWatchPecMetricsInfo = CloudWatchPecMetricsInfo.builder()
@@ -190,7 +193,7 @@ public class ScaricamentoEsitiPecService {
                                 CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT3();
                                 String nextStatus = objects.getT4();
 
-                                log.debug("---> BUILDING PEC QUEUE PAYLOAD <--- MessageID : {}", messageID);
+                                log.debug("---> LAVORAZIONE ESITI PEC - BUILDING PEC QUEUE PAYLOAD <--- MessageID : {}", messageID);
 
                                 var requestIdx = requestDto.getRequestIdx();
                                 var xPagopaExtchCxId = requestDto.getxPagopaExtchCxId();
@@ -250,7 +253,7 @@ public class ScaricamentoEsitiPecService {
 
     Mono<String> generateLocation(String requestIdx, byte[] fileBytes) {
 
-        log.debug("---> START GENERATING LOCATION <--- RequestId: {}", requestIdx);
+        log.debug("---> LAVORAZIONE ESITI PEC - START GENERATING LOCATION <--- RequestId: {}", requestIdx);
 
         FileCreationRequest fileCreationRequest = new FileCreationRequest().contentType(ContentTypes.APPLICATION_XML)
                 .documentType(PN_EXTERNAL_LEGAL_FACTS.getValue())
@@ -263,7 +266,7 @@ public class ScaricamentoEsitiPecService {
                 .flatMap(fileCreationResponse ->
                 {
                     String uploadUrl = fileCreationResponse.getUploadUrl();
-                    log.debug("---> UPLOADING FILE USING URL {} <--- ", uploadUrl);
+                    log.debug("---> LAVORAZIONE ESITI PEC - UPLOADING FILE USING URL {} <--- ", uploadUrl);
                     return uploadWebClient.put()
                             .uri(URI.create(uploadUrl))
                             .header("Content-Type", ContentTypes.APPLICATION_XML)
@@ -273,11 +276,11 @@ public class ScaricamentoEsitiPecService {
                             .retrieve()
                             .toBodilessEntity()
                             .thenReturn(SAFESTORAGE_PREFIX + fileCreationResponse.getKey());
-                }).doOnSuccess(location -> log.debug("---> LOCATION GENERATED : {} <--- ", location));
+                }).doOnSuccess(location -> log.debug("---> LAVORAZIONE ESITI PEC - LOCATION GENERATED : {} <--- ", location));
     }
 
     private String generateSha256(byte[] fileBytes) {
-        log.info("---> GENERATING SHA256 FROM FILE WITH LENGTH {} <---", fileBytes.length);
+        log.info("---> LAVORAZIONE ESITI PEC - GENERATING SHA256 FROM FILE WITH LENGTH {} <---", fileBytes.length);
         MessageDigest md;
         try {
             md = MessageDigest.getInstance("SHA256");

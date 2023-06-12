@@ -94,12 +94,12 @@ public class ScaricamentoEsitiPecScheduler {
                     var finalMessageID = messageID.substring(1, messageID.length() - 1);
                     var attachBytes = findAttachmentByName(mimeMessage, "daticert.xml");
 
-                    log.debug("Try to download PEC '{}' daticert.xml", finalMessageID);
+                    log.debug("SCARICAMENTO ESITI PEC - Try to download PEC '{}' daticert.xml", finalMessageID);
 
 //                  Check se daticert.xml è presente controllando la lunghezza del byte[]
                     if (!Objects.isNull(attachBytes) && attachBytes.length > 0) {
 
-                        log.debug("PEC {} has daticert.xml with content : {}", finalMessageID, new String(attachBytes));
+                        log.debug("SCARICAMENTO ESITI PEC - PEC {} has daticert.xml with content : {}", finalMessageID, new String(attachBytes));
 
 //                      Deserialize daticert.xml. Start a new Mono inside the flatMap
                          return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(attachBytes))
@@ -111,7 +111,7 @@ public class ScaricamentoEsitiPecScheduler {
                                     var dati = postacert.getDati();
                                     var msgId = dati.getMsgid();
                                     dati.setMsgid(msgId.substring(1, msgId.length() - 1));
-                                    log.debug("PEC {} has {} msgId", finalMessageID, msgId);
+                                    log.debug("SCARICAMENTO ESITI PEC - PEC {} has {} msgId", finalMessageID, msgId);
                                     return postacert;
                                 })
 
@@ -122,9 +122,9 @@ public class ScaricamentoEsitiPecScheduler {
 //                               Daticert filtrati
                                 .doOnDiscard(Postacert.class, postacert -> {
                                     if (isPostaCertificataPredicate.test(postacert)) {
-                                        log.debug("PEC {} discarded, is {}", finalMessageID, POSTA_CERTIFICATA);
+                                        log.debug("SCARICAMENTO ESITI PEC - PEC {} discarded, is {}", finalMessageID, POSTA_CERTIFICATA);
                                     } else if (!endsWithDomainPredicate.test(postacert)) {
-                                        log.debug("PEC {} discarded, it was not sent by us", finalMessageID);
+                                        log.debug("SCARICAMENTO ESITI PEC - PEC {} discarded, it was not sent by us", finalMessageID);
                                     }
                                 })
                                  .flatMap(unused -> sqsService.send(scaricamentoEsitiPecProperties.sqsQueueName(), finalMessageID, RicezioneEsitiPecDto.builder()
