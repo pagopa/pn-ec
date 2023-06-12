@@ -535,8 +535,6 @@ components:
             - __RIS__: Raccomandata Internazionale Semplice,  <br/>
             - __RIR__: Raccomandata Internazionale con AR.  <br/>
           type: string
-          minLength: 2
-          maxLength: 3
           example: 'AR'
         attachments:
           type: array
@@ -767,8 +765,6 @@ components:
             - __RS__: Raccomandata Semplice nazionale (per Avviso di mancato Recapito). <br/>
             - __RIS__: Raccomandata Internazionale Semplice,  <br/>
             - __RIR__: Raccomandata Internazionale con AR.  <br/>
-          minLength: 2
-          maxLength: 3
           type: string
         iun: 
           type: string
