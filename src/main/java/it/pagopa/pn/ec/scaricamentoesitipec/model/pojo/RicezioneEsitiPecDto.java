@@ -11,6 +11,7 @@ import lombok.experimental.SuperBuilder;
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@ToString
 @SuperBuilder
 public class RicezioneEsitiPecDto {
 

@@ -112,7 +112,8 @@ public class ScaricamentoEsitiPecService {
                                 return Mono.zip(Mono.just(postacert),
                                         statusPullService.pecPullService(requestIdx, presaInCaricoInfo.getXPagopaExtchCxId()));
                             })
-                            .flatMap(objects->{
+                            .flatMap(objects -> {
+
                                 Postacert postacert = objects.getT1();
                                 LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
 
@@ -228,16 +229,21 @@ public class ScaricamentoEsitiPecService {
                 .doOnSuccess(result -> acknowledgment.acknowledge())
                 .then()
                 //         Error logging
-                .doOnError(InvalidNextStatusException.class, throwable -> {
-                    log.debug("Invalid Next Status Exception: {}", throwable.getMessage());
-                    acknowledgment.acknowledge();
+                .doOnError(throwable -> {
+                    if (throwable instanceof CallMacchinaStati.StatusValidationBadRequestException ||
+                            throwable instanceof InvalidNextStatusException) {
+                        log.debug(throwable.getMessage());
+                    } else {
+                        log.error(throwable.getMessage(), throwable);
+                    }
                 })
                 .onErrorResume(InvalidNextStatusException.class, e -> {
                     var retry = ricezioneEsitiPecDto.getRetry();
                     ricezioneEsitiPecDto.setRetry(retry + 1);
-                    if (retry < 5)
+                    if (retry < 5) {
+                        acknowledgment.acknowledge();
                         return sqsService.send(scaricamentoEsitiPecProperties.sqsQueueName(), ricezioneEsitiPecDto).then();
-                    else return Mono.error(SqsMaxRetriesExceededException::new);
+                    } else return Mono.error(SqsMaxRetriesExceededException::new);
                 });
     }
 
