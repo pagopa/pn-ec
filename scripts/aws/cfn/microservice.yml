@@ -704,6 +704,8 @@ Resources:
               - !Ref PnEcQueueArnTrackerErroriPEC
               - !Ref PnEcQueueArnTrackerStatoEMAIL
               - !Ref PnEcQueueArnTrackerErroriEMAIL
+              - !Ref PnEcQueueArnTrackerStatoCARTACEO
+              - !Ref PnEcQueueArnTrackerErroriCARTACEO
               - !Ref PnEcQueueArnBatchSMS
               - !Ref PnEcQueueArnInteractiveSMS
               - !Ref PnEcQueueArnErroriSMS
