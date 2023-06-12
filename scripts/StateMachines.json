@@ -130,7 +130,8 @@
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"notAccepted"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"C002"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"notDelivered"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"C004"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"retry"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"error"}]}}
-{"processClientId":{"S":"PEC"},"currStatus":{"S":"sent"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"C000"},"targetStatus":{"L":[{"S":"infected"},{"S":"notAccepted"},{"S":"accepted"}]}}
+{"processClientId":{"S":"PEC"},"currStatus":{"S":"sent"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"C000"},"targetStatus":{"L":[{"S":"infected"},{"S":"notAccepted"},{"S":"accepted"},{"S":"nonPEC"}]}}
+{"processClientId":{"S":"PEC"},"currStatus":{"S":"nonPEC"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"C009"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"SMS"},"currStatus":{"S":"_any_"},"targetStatus":{"L":[{"S":"internalError"}]}}
 {"processClientId":{"S":"SMS"},"currStatus":{"S":"_start_"},"targetStatus":{"L":[{"S":"booked"}]}}
 {"processClientId":{"S":"SMS"},"currStatus":{"S":"booked"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"}]}}
