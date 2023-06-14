@@ -768,7 +768,7 @@ components:
           type: string
         iun: 
           type: string
-          minLength: 10 
+          minLength: 0
           maxLength: 50
           description: >-
             Identificativo Unico della Notifica. Proviene dalla richiesta originaria di PN.
