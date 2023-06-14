@@ -28,8 +28,6 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                                      .uri(paperMessagesEndpointProperties.putRequest())
                                      .bodyValue(paperEngageRequest)
                                      .retrieve()
-//                                     .onStatus(FORBIDDEN::equals,
-//                                               clientResponse -> Mono.error(new RestCallException.ResourceAlreadyInProgressException()))
                                      .bodyToMono(OperationResultCodeResponse.class);
     }
 

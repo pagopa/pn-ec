@@ -4,11 +4,13 @@ import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consoli
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.ExternalChannelEndpointProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.statemachine.StateMachineEndpointProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.JettyClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import static org.eclipse.jetty.util.URIUtil.HTTPS;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
@@ -25,8 +27,16 @@ public class WebClientConf {
         return WebClient.builder().clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()));
     }
 
+    private WebClient.Builder trustAllWebClientBuilder() {
+        return WebClient.builder().clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getTrustAllJettyHttpClient()));
+    }
+
     private WebClient.Builder defaultJsonWebClientBuilder() {
         return defaultWebClientBuilder().defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
+    }
+
+    private WebClient.Builder trustAllJsonWebClientBuilder() {
+        return trustAllWebClientBuilder().defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
     }
 
     @Bean
@@ -59,9 +69,26 @@ public class WebClientConf {
 
     @Bean
     public WebClient consolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties) {
+        String consolidatoreBaseUrl = consolidatoreEndpointProperties.baseUrl();
+
+        if (consolidatoreBaseUrl.startsWith(HTTPS) && consolidatoreEndpointProperties.trustAll()) {
+            return trustAllConsolidatoreWebClient(consolidatoreEndpointProperties);
+        } else return defaultConsolidatoreWebClient(consolidatoreEndpointProperties);
+    }
+
+    private WebClient defaultConsolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties)
+    {
         return defaultJsonWebClientBuilder().baseUrl(consolidatoreEndpointProperties.baseUrl()).defaultHeaders(httpHeaders -> {
             httpHeaders.set(consolidatoreEndpointProperties.clientHeaderName(), consolidatoreEndpointProperties.clientHeaderValue());
             httpHeaders.set(consolidatoreEndpointProperties.apiKeyHeaderName(), consolidatoreEndpointProperties.apiKeyHeaderValue());
         }).build();
     }
+
+    private WebClient trustAllConsolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties) {
+        return trustAllJsonWebClientBuilder().baseUrl(consolidatoreEndpointProperties.baseUrl()).defaultHeaders(httpHeaders -> {
+            httpHeaders.set(consolidatoreEndpointProperties.clientHeaderName(), consolidatoreEndpointProperties.clientHeaderValue());
+            httpHeaders.set(consolidatoreEndpointProperties.apiKeyHeaderName(), consolidatoreEndpointProperties.apiKeyHeaderValue());
+        }).build();
+    }
+
 }

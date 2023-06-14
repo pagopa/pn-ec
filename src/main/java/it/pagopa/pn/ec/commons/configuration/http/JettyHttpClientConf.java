@@ -1,5 +1,8 @@
 package it.pagopa.pn.ec.commons.configuration.http;
 
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.Request;
@@ -32,9 +35,29 @@ public class JettyHttpClientConf {
         };
     }
 
+    @Bean
+    public HttpClient getTrustAllJettyHttpClient() {
+
+        var context = new SslContextFactory.Client();
+        context.setTrustAll(true);
+
+        return new HttpClient(context) {
+            @Override
+            public Request newRequest(URI uri) {
+                Request request = super.newRequest(uri);
+                return enhance(request);
+            }
+        };
+
+    }
+
     private Request enhance(Request request) {
 
         request.onRequestBegin(theRequest -> log.debug("Start {} request to {}", theRequest.getMethod(), theRequest.getURI()));
+
+        request.onRequestFailure((theRequest, throwable) -> {
+            log.error("Request failure : {} , {}", throwable, throwable.getMessage());
+        });
 
         request.onRequestHeaders(theRequest -> {
             for (HttpField header : theRequest.getHeaders()) {
