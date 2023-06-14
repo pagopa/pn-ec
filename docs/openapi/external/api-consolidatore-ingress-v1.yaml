@@ -297,6 +297,8 @@ components:
             - __RECRS005B__		- [RS] - Compiuta giacenza - In Dematerializzazione <br/> 
             - __RECRS005C__		- [RS] - Compiuta giacenza - Fascicolo Chiuso <br/> 
             - __RECRS006__		- [RS] - Furto/Smarrimanto/deterioramento <br/> 
+            - __RECRS013__		- [RS] - Non rendicontabile <br/> 
+            - __RECRS015__		- [RS] - Causa di forza maggiore <br/> 
             - __RECRN010__		- [AR] - Inesito <br/> 
             - __RECRN011__		- [AR] - In giacenza <br/> 
             - __RECRN001A__		- [AR] - Consegnato - pre-esito <br/> 
@@ -318,6 +320,8 @@ components:
             - __RECRN005B__		- [AR] - Compiuta giacenza - In Dematerializzazione <br/> 
             - __RECRN005C__		- [AR] - Compiuta giacenza - Fascicolo Chiuso <br/> 
             - __RECRN006__		- [AR] - Furto/Smarrimanto/deterioramento <br/> 
+            - __RECRN013__		- [AR] - Non Rendicontabile <br/> 
+            - __RECRN015__		- [AR] - Causa Forza Maggiore <br/> 
             - __RECAG010__		- [890] - Inesito <br/> 
             - __RECAG011A__		- [890] - In giacenza <br/> 
             - __RECAG011B__		- [890] - In giacenza - In Dematerializzazione <br/> 
@@ -347,6 +351,8 @@ components:
             - __RECAG008A__		- [890] - Compiuta giacenza - pre-esito <br/> 
             - __RECAG008B__		- [890] - Compiuta giacenza - In Dematerializzazione <br/> 
             - __RECAG008C__		- [890] - Compiuta giacenza - Fascicolo Chiuso <br/> 
+            - __RECAG013__		- [890] - Non Rendicontabile <br/> 
+            - __RECAG015__		- [890] - Causa Forza Maggiore <br/> 
             - __RECRI001__		- [RIR] - Avviato all'estero <br/> 
             - __RECRI002__		- [RIR] - Ingresso nel paese estero <br/> 
             - __RECRI003A__		- [RIR] - Consegnato - pre-esito <br/> 
@@ -387,9 +393,11 @@ components:
             - __M06__ indirizzo inesatto <br/>
             - __M07__ indirizzo inesistente <br/>
             - __M08__ indirizzo insufficiente <br/>
+            - __M09__ altre motivazioni <br/>
             - __F01__ - in caso di furto  <br/>
             - __F02__ - in caso di smarrimento  <br/>
             - __F03__  - in caso di deterioramento  <br/>
+            - __F04__  - in caso di rapina  <br/>
           type: string
           minLength: 0
           maxLength: 10
