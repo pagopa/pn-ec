@@ -586,10 +586,6 @@ Parameters:
     Description: 'Base URL per accesso ai servizi del consolidatore'
     Type: String
   
-  ConsolidatoreClientApiKey:
-    Description: 'API key del consolidatore'
-    Type: String
-
   ConsolidatoreClientId:
     Description: 'Client ID del consolidatore'
     Type: String
