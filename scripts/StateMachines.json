@@ -106,6 +106,12 @@
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECRSI004C"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECRSI004C"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECRSI005"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECRSI005"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "REC090"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "REC090"},"targetStatus": {"L": [{"S": "_any_"}]}}
+{"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECRS013"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECRS013"},"targetStatus": {"L": [{"S": "_any_"}]}}
+{"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECRS015"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECRS015"},"targetStatus": {"L": [{"S": "_any_"}]}}
+{"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECRN013"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECRN013"},"targetStatus": {"L": [{"S": "_any_"}]}}
+{"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECRN015"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECRN015"},"targetStatus": {"L": [{"S": "_any_"}]}}
+{"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECAG013"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECAG013"},"targetStatus": {"L": [{"S": "_any_"}]}}
+{"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECAG015"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECAG015"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"_start_"},"targetStatus":{"L":[{"S":"booked"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"authenticationError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P013"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"booked"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"syntaxError"},{"S":"semanticError"},{"S":"authenticationError"},{"S":"duplicatedRequest"}]}}
