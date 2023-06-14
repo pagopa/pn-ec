@@ -655,8 +655,9 @@ Resources:
         ContainerEnvEntry36: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry37: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry38: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
-        ContainerEnvEntry39: !Sub 'ConsolidatoreClientApiKey=${ConsolidatoreClientApiKey}'
-        ContainerEnvEntry40: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
+        ContainerEnvEntry39: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
+        ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
+        MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
         ECSClusterName: !Ref ECSClusterName
         Subnets: !Ref VpcEgressSubnetsIds
