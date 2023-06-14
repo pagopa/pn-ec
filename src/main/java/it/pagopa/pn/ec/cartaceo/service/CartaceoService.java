@@ -384,7 +384,10 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
             log.debug("Il messaggio è stato gestito " + "correttamente e rimosso dalla " + "coda" + " d'errore {}",
                       cartaceoSqsQueueName.errorName());
             return deleteMessageFromErrorQueue(message);
-        }).onErrorResume(sqsPublishException -> checkTentativiEccessiviCartaceo(requestId, requestDto, cartaceoPresaInCaricoInfo, message));
+        }).onErrorResume(sqsPublishException -> {
+            log.error("* FATAL * gestioneRetryCartaceo {}, {}", sqsPublishException, sqsPublishException.getMessage());
+            return checkTentativiEccessiviCartaceo(requestId, requestDto, cartaceoPresaInCaricoInfo, message);
+        });
     } else {
         log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
         // Tentativo invio
@@ -401,11 +404,14 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                                                                                                                               return deleteMessageFromErrorQueue(message);
                                                                                                                                           })
                                                                                                                                   .onErrorResume(
-                                                                                                                                          sqsPublishException -> checkTentativiEccessiviCartaceo(
-                                                                                                                                                  requestId,
-                                                                                                                                                  requestDto,
-                                                                                                                                                  cartaceoPresaInCaricoInfo,
-                                                                                                                                                  message)));
+                                                                                                                                          sqsPublishException -> {
+                                                                                                                                              log.error("* FATAL * gestioneRetryCartaceo {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                                                                                                                                              return checkTentativiEccessiviCartaceo(
+                                                                                                                                                      requestId,
+                                                                                                                                                      requestDto,
+                                                                                                                                                      cartaceoPresaInCaricoInfo,
+                                                                                                                                                      message);
+                                                                                                                                          }));
     }
 })
 //              Catch errore tirato per lo stato toDelete

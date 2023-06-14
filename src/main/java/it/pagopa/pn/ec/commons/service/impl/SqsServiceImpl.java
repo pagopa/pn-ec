@@ -54,6 +54,20 @@ public class SqsServiceImpl implements SqsService {
                     return Mono.error(new SqsClientException(queueName));
                 });
     }
+    @Override
+    public <T> Mono<SendMessageResponse> send(final String queueName, final String messageGroupId, final T queuePayload) throws SqsClientException {
+        log.info("<-- START SENDING MESSAGE ON QUEUE  --> Queue name : {}", queueName);
+        return Mono.fromCallable(() -> objectMapper.writeValueAsString(queuePayload))
+                .doOnNext(sendMessageResponse -> log.debug("Try to publish on {} with payload {}", queueName, sendMessageResponse))
+                .zipWith(getQueueUrlFromName(queueName))
+                .flatMap(objects -> Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> builder.queueUrl(objects.getT2())
+                        .messageBody(objects.getT1())
+                        .messageGroupId(messageGroupId))))
+                .onErrorResume(throwable -> {
+                    log.error(throwable.getMessage(), throwable);
+                    return Mono.error(new SqsClientException(queueName));
+                });
+    }
 
     @Override
     public <T> Mono<SqsMessageWrapper<T>> getOneMessage(String queueName, Class<T> messageContentClass) {

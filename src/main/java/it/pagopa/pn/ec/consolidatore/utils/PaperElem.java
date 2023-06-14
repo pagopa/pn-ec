@@ -242,9 +242,11 @@ public class PaperElem {
 			Map.entry("M06","indirizzo inesatto"),
 			Map.entry("M07","indirizzo inesistente"),
 			Map.entry("M08","indirizzo insufficiente"),
+			Map.entry("M09","altre motivazioni"),
 			Map.entry("F01","in caso di furto"),
 			Map.entry("F02","in caso di smarrimento"),
-			Map.entry("F03","in caso di deterioramento"));
+			Map.entry("F03","in caso di deterioramento"),
+			Map.entry("F04","in caso di rapina"));
 	
 	public static Map<String, String> deliveryFailureCausemap() {
 		return deliveryFailureCauseMap;

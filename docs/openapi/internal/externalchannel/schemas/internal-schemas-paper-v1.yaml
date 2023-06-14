@@ -215,6 +215,11 @@ components:
           readOnly: true
           description: >-
             Data stato con timezone
+        clientRequestTimeStamp:
+          type: string
+          format: date-time
+          description: >-
+            Timestamp della richiesta in UTC
         deliveryFailureCause:
           description: >-
             _Motivazione di mancata consegna_ obbligtorie negli stati di mancata consegna  <br/>
@@ -236,8 +241,6 @@ components:
             - __RS__: Raccomandata Semplice nazionale (per Avviso di mancato Recapito). <br/>
             - __RIS__: Raccomandata Internazionale Semplice,  <br/>
             - __RIR__: Raccomandata Internazionale con AR.  <br/>
-          minLength: 2
-          maxLength: 3
           type: string
         iun:
           type: string

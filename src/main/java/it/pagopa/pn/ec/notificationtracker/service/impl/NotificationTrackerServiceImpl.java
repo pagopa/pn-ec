@@ -186,7 +186,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                 paperProgressStatusEvent.setDiscoveredAddress(discoveredAddress);
                                             }
 
-                                            paperProgressStatusEvent.setClientRequestTimeStamp(requestDto.getRequestTimeStamp());
+                                            paperProgressStatusEvent.setClientRequestTimeStamp(lastEventUpdatedPaper.getClientRequestTimeStamp());
 
                                             singleStatusUpdate.setAnalogMail(paperProgressStatusEvent);
                                         }
