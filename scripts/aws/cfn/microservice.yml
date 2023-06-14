@@ -585,6 +585,10 @@ Parameters:
   PnEcConsolidatoreBaseURL:
     Description: 'Base URL per accesso ai servizi del consolidatore'
     Type: String
+  
+  ConsolidatoreClientId:
+    Description: 'Client ID del consolidatore'
+    Type: String
     
   PnEcEmailDefaultSender:
     Description: 'Default sender email address'
@@ -647,6 +651,9 @@ Resources:
         ContainerEnvEntry36: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry37: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry38: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
+        ContainerEnvEntry39: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
+        ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
+        MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
         ECSClusterName: !Ref ECSClusterName
         Subnets: !Ref VpcEgressSubnetsIds
