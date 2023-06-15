@@ -18,16 +18,16 @@ public class CartaceoMapper {
     public PaperEngageRequest convert(final it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest srcPaperEngageRequest) {
         PaperEngageRequest dstPaperEngageRequest = null;
         if (srcPaperEngageRequest != null) {
-            OffsetDateTime srcClientRequestTimeStamp = srcPaperEngageRequest.getClientRequestTimeStamp();
-            OffsetDateTime dstClientRequestTimeStamp = null;
-            srcPaperEngageRequest.setClientRequestTimeStamp(null);
+            //OffsetDateTime srcClientRequestTimeStamp = srcPaperEngageRequest.getClientRequestTimeStamp();
+            //OffsetDateTime dstClientRequestTimeStamp = null;
+            //srcPaperEngageRequest.setClientRequestTimeStamp(null);
 
             dstPaperEngageRequest = objectMapper.convertValue(srcPaperEngageRequest, PaperEngageRequest.class);
 
-            if (srcClientRequestTimeStamp != null) {
-                dstClientRequestTimeStamp = OffsetDateTime.parse(srcClientRequestTimeStamp.toString());
-            }
-            dstPaperEngageRequest.setClientRequestTimeStamp(dstClientRequestTimeStamp);
+            //if (srcClientRequestTimeStamp != null) {
+            //    dstClientRequestTimeStamp = OffsetDateTime.parse(srcClientRequestTimeStamp.toString());
+            //}
+            //dstPaperEngageRequest.setClientRequestTimeStamp(dstClientRequestTimeStamp);
         }
         return dstPaperEngageRequest;
     }
