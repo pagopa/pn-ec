@@ -196,13 +196,13 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                  cartaceoPresaInCaricoInfo.getXPagopaExtchCxId());
 
         var paperEngageRequestSrc = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
-        PaperEngageRequest paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
+//        PaperEngageRequest paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
 
         return gestoreRepositoryCall.getRichiesta(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(),
                                                   cartaceoPresaInCaricoInfo.getRequestIdx()).flatMap(requestDto ->
                                                                                                              // Try to send PAPER
                                                                                                              paperMessageCall.putRequest(
-                                                                                                                                     paperEngageRequestDst)
+                                                                                                                                     paperEngageRequestSrc)
                                                                                                                              .retryWhen(
                                                                                                                                      DEFAULT_RETRY_STRATEGY)
                                                                                                                              // The PAPER
