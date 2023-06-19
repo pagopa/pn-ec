@@ -1,7 +1,11 @@
 package it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage;
 
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.PaperMessagesEndpointProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint .internal.consolidatore.PaperMessagesEndpointProperties;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
+import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperDeliveryProgressesResponse;
+import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicaRequest;
+import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicasProgressesResponse;
+import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;

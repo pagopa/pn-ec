@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.cartaceo.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
@@ -19,6 +20,7 @@ import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest;
 import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -31,6 +33,7 @@ import reactor.test.StepVerifierOptions;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import java.time.OffsetDateTime;
 import java.util.Objects;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
@@ -46,6 +49,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
+@Slf4j
 class CartaceoServiceTest {
 
     @SpyBean
@@ -97,7 +101,7 @@ class CartaceoServiceTest {
         when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));
 
         // Mock di una putRequest che ritorna un'eccezione.
-        when(paperMessageCall.putRequest(any(PaperEngageRequest.class)))
+        when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class)))
                 .thenReturn(Mono.error(new RestCallException.ResourceAlreadyInProgressException()));
 
         Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
@@ -203,6 +207,19 @@ class CartaceoServiceTest {
     void lavorazioneRichiestaRetryNotificationKo() {
         boolean testImplemented = true;
         assertTrue(testImplemented);
+    }
+
+    @Test
+    void provaMapper()
+    {
+        PaperEngageRequest paperEngageRequest=new PaperEngageRequest().clientRequestTimeStamp(OffsetDateTime.now());
+
+        CartaceoMapper cartaceoMapper = new CartaceoMapper(new ObjectMapper());
+        var paperEngageRequestConverted= cartaceoMapper.convert(paperEngageRequest);
+
+        log.info("{}", paperEngageRequestConverted.getClientRequestTimeStamp());
+        System.out.println(paperEngageRequestConverted.getClientRequestTimeStamp());
+
     }
 
 }

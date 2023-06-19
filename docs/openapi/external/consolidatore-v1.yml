@@ -523,7 +523,6 @@ components:
             recupero, da parte delle pubbliche amministrazioni, degli originali cartacei
         clientRequestTimeStamp:
           type: string
-          format: date-time
           description: >-
             Timestamp della richiesta in UTC
         productType:

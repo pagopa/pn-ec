@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.spedizionedocumenticartacei;
 
-
-import it.pagopa.pn.ec.rest.v1.dto.PaperDeliveryProgressesResponse;
+import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperDeliveryProgressesResponse;
 
 public class ProgressiviConsegnaRispostaCartacea {
 
