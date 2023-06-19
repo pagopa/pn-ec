@@ -202,6 +202,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                                                                                              // Try to send PAPER
                                                                                                              paperMessageCall.putRequest(
                                                                                                                                      paperEngageRequestDst)
+                                                                                                                             .doOnError(exception ->{
+                                                                                                                                log.error("* FATAL * lavorazioneRichiesta {] {}", exception, exception.getMessage());
+                                                                                                                             })
                                                                                                                              .retryWhen(
                                                                                                                                      DEFAULT_RETRY_STRATEGY)
                                                                                                                              // The PAPER
@@ -230,6 +233,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                                                                                                                              // ERRORI PAPER queue and
                                                                                                                                              // notify to retry
                                                                                                                                              // update status only
+                                                                                                                                             .doOnError(exception ->{
+                                                                                                                                                 log.error("* FATAL * lavorazioneRichiesta {] {}", exception, exception.getMessage());
+                                                                                                                                             })
                                                                                                                                              .onErrorResume(
                                                                                                                                                      SqsClientException.class,
                                                                                                                                                      sqsPublishException -> {
@@ -249,6 +255,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                                                                                                                                      })
 
                                                                                                                                      ))
+                                    .doOnError(exception ->{
+                                        log.error("* FATAL * lavorazioneRichiesta {] {}", exception, exception.getMessage());
+                                    })
                                     // The maximum number of retries has ended
                                     .onErrorResume(CartaceoSendException.CartaceoMaxRetriesExceededException.class//
                                             , cartaceoMaxRetriesExceeded ->
