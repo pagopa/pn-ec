@@ -285,10 +285,10 @@
                                 <reactive>true</reactive>
                                 <skipDefaultInterface>false</skipDefaultInterface>
                                 <useTags>true</useTags>
-                                <basePackage>${project.groupId}.rest.v1</basePackage>
-                                <modelPackage>${project.groupId}.rest.v1.dto</modelPackage>
-                                <apiPackage>${project.groupId}.rest.v1.api</apiPackage>
-                                <configPackage>${project.groupId}.rest.v1.config</configPackage>
+                                <basePackage>${project.groupId}.rest.v1.consolidatore</basePackage>
+                                <modelPackage>${project.groupId}.rest.v1.consolidatore.dto</modelPackage>
+                                <apiPackage>${project.groupId}.rest.v1.consolidatore.api</apiPackage>
+                                <configPackage>${project.groupId}.rest.v1.consolidatore.config</configPackage>
                             </configOptions>
                             <skipValidateSpec>true</skipValidateSpec>
                         </configuration>
