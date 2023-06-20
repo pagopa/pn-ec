@@ -4,8 +4,8 @@
     "PnEcConsolidatoreBaseURL":"http://internal-pn-in-Appli-1HXGA7HK0CJQ3-1346751104.eu-south-1.elb.amazonaws.com:8080",
     "PnEcEmailDefaultSender": "noreply@mail.dev.notifichedigitali.it",
     "ConsolidatoreClientId": "pn-cons-000",
-    "MinTasksNumber": "TBD",
-    "MaxTasksNumber": "TBD",
-    "AutoscalingThreshold": "TBD"
+    "MinTasksNumber": "1",
+    "MaxTasksNumber": "1",
+    "AutoscalingThreshold": "500000"
   }
 }
