@@ -582,6 +582,7 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueScaricamentoEsitiPEC"
  
+#### Parametri presenti nel file json di configurazione  ###
   PnEcConsolidatoreBaseURL:
     Description: 'Base URL per accesso ai servizi del consolidatore'
     Type: String
@@ -593,10 +594,27 @@ Parameters:
   PnEcEmailDefaultSender:
     Description: 'Default sender email address'
     Type: String
+
+  AutoscalingThreshold:
+    Default: 17500
+    Type: String
+
+  MinTasksNumber:
+    Default: 2
+    Type: Number
+    Description: minimum autoscaling number of tasks
+
+  MaxTasksNumber:
+    Default: 6
+    Type: Number
+    Description: maximum autoscaling number of tasks
     
+#### Altri parametri esterni ###
+
   LogAlarmStrategy:
     Type: String
     Default: 'FATAL'
+
   PCKmsEncDecDynamoDataKeyARN:
     Type: String
     Description: 'Name of KMS Key for Dynamo encode/decode data'
@@ -669,6 +687,10 @@ Resources:
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
         EcsLogGroup: !Ref EcsLogGroup
         LoadBalancingAlgorithm: round_robin
+        MinTasksNumber: !Ref MinTasksNumber
+        MaxTasksNumber: !Ref MaxTasksNumber
+        AutoscalingThreshold: !Ref AutoscalingThreshold
+        AutoscalingStrategy: REST-API
         # HealthCheckPath: 
 
   PnEcManagedPolicy:
