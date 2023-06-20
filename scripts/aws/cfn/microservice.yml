@@ -686,7 +686,7 @@ Resources:
         TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
         EcsLogGroup: !Ref EcsLogGroup
-        LoadBalancingAlgorithm: round_robin
+        # LoadBalancingAlgorithm: round_robin
         MinTasksNumber: !Ref MinTasksNumber
         MaxTasksNumber: !Ref MaxTasksNumber
         AutoscalingThreshold: !Ref AutoscalingThreshold
