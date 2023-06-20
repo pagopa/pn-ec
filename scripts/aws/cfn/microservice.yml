@@ -1351,3 +1351,28 @@ Resources:
           DeadLetterConfig:
             Arn: !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
 
+##############   CHANNEL SMS STRESS TEST    ###################
+  PnEcSMSStressTestQueue:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-sms-stress-test'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+  
+  PnEcSMSStressTestTopic:
+    DeletionPolicy: Delete
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription: 
+        - Endpoint: !GetAtt PnEcSMSStressTestQueue.Outputs.QueueARN
+          Protocol: 'SQS'
+      TopicName: 'pn-ec-sms-stress-test-topic'
+     
