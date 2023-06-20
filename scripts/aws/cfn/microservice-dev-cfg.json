@@ -1,7 +1,7 @@
 {
   "Parameters": {
     "PnEcIdentityPec":"pn/identity/pec",
-    "PnEcConsolidatoreBaseURL":"http://internal-pn-in-Appli-1HXGA7HK0CJQ3-1346751104.eu-south-1.elb.amazonaws.com:8080",
+    "PnEcConsolidatoreBaseURL":"http://internal-pn-re-Appli-17ZRKQ0S21KXS-1215481206.eu-south-1.elb.amazonaws.com:8080",
     "PnEcEmailDefaultSender": "noreply@mail.dev.notifichedigitali.it",
     "ConsolidatoreClientId": "pn-cons-000"
   }
