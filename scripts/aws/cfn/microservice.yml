@@ -637,7 +637,7 @@ Resources:
       Parameters:
         MicroServiceUniqueName: !Sub '${ProjectName}-external-channel'
         CpuValue: 4096
-        MemoryAmount: 16GB
+        MemoryAmount: 8GB
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Sub '${ContainerImageUri}'
         ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
