@@ -597,6 +597,7 @@ Parameters:
   LogAlarmStrategy:
     Type: String
     Default: 'FATAL'
+
   PCKmsEncDecDynamoDataKeyARN:
     Type: String
     Description: 'Name of KMS Key for Dynamo encode/decode data'
@@ -605,6 +606,11 @@ Parameters:
   EcsLogGroup:
     Type: String
     Description: 'Ecs log group name'
+
+  ### SMS STRESS TEST ###
+  PnVPCDefaultSecurityGroup:
+    Type: String
+    Description: 'VPC default Security Group'
 
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
@@ -1365,7 +1371,6 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        QueueHasAlarm: 'false'
   
   PnEcSMSStressTestTopic:
     DeletionPolicy: Delete
@@ -1375,4 +1380,96 @@ Resources:
         - Endpoint: !GetAtt PnEcSMSStressTestQueue.Outputs.QueueARN
           Protocol: 'SQS'
       TopicName: 'pn-ec-sms-stress-test-topic'
-     
+
+  PnEcSMSStressTestSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: 'SMSStressTestSecurityGroup'
+      GroupName: 'pnecsmsstresssecgroup'
+      SecurityGroupIngress: 
+        - IpProtocol: -1
+          SourceSecurityGroupId: !Ref PnVPCDefaultSecurityGroup
+      VpcId: !Ref VpcId
+
+  PnECSMSStressTestInputQueue:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties: 
+      BatchSize: 1000 # 10 is default
+      Enabled: True
+      EventSourceArn: !GetAtt PnEcSMSStressTestQueue.Outputs.QueueARN
+      FunctionName: !Ref PnEcSMSStressTestLambda
+      FunctionResponseTypes: 
+        - ReportBatchItemFailures
+      MaximumBatchingWindowInSeconds: 60 #default value
+      # ScalingConfig: 
+      #   MaximumConcurrency: 200
+
+  PnECSMSStressTestRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 'pn-ec-sms-stress-test-role-name'
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action:
+            - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'PnEcStressTestSMS'
+          PolicyDocument: 
+            Version: '2012-10-17'
+            Statement: 
+              - Sid: 'GetInvokeSQS'
+                Effect: 'Allow'
+                Action: 
+                  - 'sqs:ReceiveMessage'
+                  - 'sqs:DeleteMessage'
+                  - 'sqs:Get*'
+                  - 'sqs:List*'
+                  - 'sqs:SendMessage'
+                Resource:
+                  - !GetAtt PnEcSMSStressTestQueue.Outputs.QueueARN
+
+  PnEcSMSStressTestLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: 'pn-ec-sms-stress-test-lambda'
+      Handler: index.handler
+      MemorySize: 256
+      # ReservedConcurrentExecutions: !Ref PnSsGestoreBucketReservedConcurrentExecutions
+      Runtime: nodejs16.x
+      Role: !GetAtt PnECSMSStressTestRole.Arn
+      Timeout: 240
+      # DeadLetterConfig: 
+      #   TargetArn: !Ref PnSsQueueArnGestoreBucketInvokeErrors
+      VpcConfig:
+        SubnetIds:
+          - !Select [ 0, !Split [ ",", !Ref SubnetsIds ] ]
+          - !Select [ 1, !Split [ ",", !Ref SubnetsIds ] ]
+          - !Select [ 2, !Split [ ",", !Ref SubnetsIds ] ]
+        SecurityGroupIds:
+          - !GetAtt PnEcSMSStressTestSecurityGroup.GroupId
+      Code:
+        ZipFile: |
+          "use strict";
+          const AWS = require("aws-sdk");
+          const crypto = require("crypto");
+
+          exports.handler = async (event) => {
+            const batchItemFailures =[];
+            await Promise.allSettled(event.Records.map(async (record) => { 
+              try {
+                const bodyData = JSON.parse(record);
+                console.log(record);
+              } catch (error) {
+                console.log(error);
+                batchItemFailures.push({itemIdentifier: record.eventId});
+              }
+              console.log("Terminata la stampa dei record");
+              return { batchItemFailures };
+            )};
+          };
