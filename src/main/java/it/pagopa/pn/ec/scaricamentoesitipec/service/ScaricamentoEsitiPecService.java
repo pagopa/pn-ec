@@ -153,12 +153,10 @@ public class ScaricamentoEsitiPecService {
                                                 finalNextStatus)
                                         .map(unused -> Tuples.of(postacert, legalMessageSentDetails, requestDto, finalNextStatus))
                                         .doOnError(CallMacchinaStati.StatusValidationBadRequestException.class,
-                                                throwable -> log.debug(
-                                                        "La chiamata al notification tracker della PEC {} " +
-                                                                "associata alla richiesta {} ha tornato 400 come " +
-                                                                "status",
-                                                        messageID,
-                                                        requestDto.getRequestIdx()));
+                                                throwable -> log.error(
+                                                        "* FATAL * La chiamata alla macchina a stati non e' andata a buon fine {}, {}",
+                                                        throwable,
+                                                        throwable.getMessage()));
                             })
 
                             //Pubblicazione metriche custom su CloudWatch
@@ -233,11 +231,10 @@ public class ScaricamentoEsitiPecService {
                 .then()
                 //         Error logging
                 .doOnError(throwable -> {
-                    if (throwable instanceof CallMacchinaStati.StatusValidationBadRequestException ||
-                            throwable instanceof InvalidNextStatusException) {
-                        log.debug(throwable.getMessage());
+                    if (throwable instanceof InvalidNextStatusException) {
+                        log.debug("lavorazioneEsitiPec {}, {}", throwable, throwable.getMessage());
                     } else {
-                        log.error(throwable.getMessage(), throwable);
+                        log.error("* FATAL * lavorazioneEsitiPec {}, {}", throwable, throwable.getMessage());
                     }
                 })
                 .onErrorResume(InvalidNextStatusException.class, e -> {
