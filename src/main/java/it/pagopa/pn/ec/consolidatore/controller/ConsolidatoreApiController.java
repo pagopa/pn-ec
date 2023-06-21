@@ -1,5 +1,8 @@
 package it.pagopa.pn.ec.consolidatore.controller;
 
+import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.ERR_CONS_BAD_API_KEY;
+import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.ERR_CONS_BAD_JSON_FORMAT;
+import static it.pagopa.pn.ec.consolidatore.utils.LogUtils.INVALID_API_KEY;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_MESSAGE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_OK_CODE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.INTERNAL_SERVER_ERROR_CODE;
@@ -10,10 +13,13 @@ import java.util.List;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import it.pagopa.pn.ec.commons.service.AuthService;
+import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import it.pagopa.pn.ec.consolidatore.service.impl.ConsolidatoreServiceImpl;
@@ -78,6 +84,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     @Override
     public Mono<ResponseEntity<FileDownloadResponse>> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, final ServerWebExchange exchange) {
         return consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
+                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), xPagopaExtchServiceId))
                 .map(ResponseEntity::ok);
     }
 
@@ -85,6 +92,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     @Override
     public Mono<ResponseEntity<PreLoadResponseData>> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> preLoadRequestData, ServerWebExchange exchange) {
         return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
+                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), xPagopaExtchServiceId))
                 .map(ResponseEntity::ok);
     }
 
@@ -98,7 +106,8 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                 .flatMap(clientConfiguration -> {
 
                     if (clientConfiguration.getApiKey() == null || !clientConfiguration.getApiKey().equals(xApiKey)) {
-                        return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid API key"));
+                        log.error("{} - {}", ERR_CONS_BAD_API_KEY.getValue(), new ConsAuditLogEvent().clientId(xPagopaExtchServiceId).message(INVALID_API_KEY));
+                        return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, INVALID_API_KEY));
                     }
                     return Mono.just(clientConfiguration);
                 })
@@ -154,14 +163,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                 errors)));
                             }
                         })
-                        .onErrorResume(RuntimeException.class, throwable -> {
-                            log.error(LOG_LABEL + "errore generico = {}", throwable.getMessage(), throwable);
-                            return Mono.just(ResponseEntity.internalServerError()
-                                    .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
-                                            errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
-                                            List.of(throwable.getMessage()))));
-                        })
-                );
+                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), xPagopaExtchServiceId)));
     }
 
 
@@ -189,9 +191,15 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                     }
                 })
                 .onErrorResume(RuntimeException.class, throwable -> {
-                    log.error(LOG_LABEL + "errore generico interno = {}", throwable.getMessage(), throwable);
+                    log.error("* FATAL * publishOnQueue - {}, {}", throwable, throwable.getMessage());
                     return Mono.error(throwable);
                 });
+    }
+
+    private void fieldValidationAuditLog(List<FieldError> errors, String xPagopaExtchServiceId) {
+        for (FieldError error : errors) {
+            log.error("{} - {}", ERR_CONS_BAD_JSON_FORMAT, new ConsAuditLogEvent().clientId(xPagopaExtchServiceId).message(String.format("%s - %s", error.getField(), error.getDefaultMessage())));
+        }
     }
 
 }

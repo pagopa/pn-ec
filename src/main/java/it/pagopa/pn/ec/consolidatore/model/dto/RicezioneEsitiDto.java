@@ -1,6 +1,4 @@
-package it.pagopa.pn.ec.consolidatore.dto;
-
-import java.io.Serializable;
+package it.pagopa.pn.ec.consolidatore.model.dto;
 
 import it.pagopa.pn.ec.rest.v1.dto.ConsolidatoreIngressPaperProgressStatusEvent;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
