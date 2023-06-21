@@ -163,15 +163,14 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                 errors)));
                             }
                         })
-                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), xPagopaExtchServiceId)));
+                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), xPagopaExtchServiceId)))
                         .onErrorResume(RuntimeException.class, throwable -> {
                             log.error(LOG_LABEL + "* FATAL * errore generico = {}, {}", throwable, throwable.getMessage());
                             return Mono.just(ResponseEntity.internalServerError()
                                     .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
                                             errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
                                             List.of(throwable.getMessage()))));
-                        })
-                );
+                        });
     }
 
 
