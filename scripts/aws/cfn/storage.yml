@@ -468,7 +468,7 @@ Resources:
         SqsManagedSseEnabled: true
         HasDLQ: False
         QueueHasAlarm: 'true'
-        OncallDLQLimit: '1'
+        # OncallDLQLimit: '1'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
     
   # PnEcEventBusArchiveTrackerExternalNotification:
