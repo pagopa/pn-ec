@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: 'Example microservice deploy'
 
 Parameters:
-  ProjectName: 
+  ProjectName:
     Type: String
     Description: 'Usually pn can be pnXYZ where XYZ are the feature number, useful to create
       experimental environments without crash official development environment'
@@ -18,7 +18,7 @@ Parameters:
   # WebApiDnsName:
   #   Type: String
   #   Description: 'The DNS name used for WEB rest API.'
-  
+
   # CorsAllowedDomains:
   #   Type: String
   #   Description: 'Comma separated list of domains allowed to make cross origin request'
@@ -50,7 +50,7 @@ Parameters:
   VpcId:
     Type: String
     Description: 'VpcId where the microservice is going to be deployed'
-  
+
   EcsDefaultSecurityGroup:
     Type: String
     Description: 'Default security group required by infrastructure'
@@ -68,7 +68,7 @@ Parameters:
     Type: String
     Description: 'network load balancer link for API-GW'
     Default: ''
-  
+
   # LogsKinesisSourceStreamArn:
   #   Type: String
   #   Description: 'Kinesis stream that receive logs'
@@ -100,9 +100,9 @@ Parameters:
     Description: 'ARN del Event Bus per le notifiche verso le piattaforme esterne'
 
   ######### TABLES  ############
-  
+
   PnEcTableNameAnagrafica:
-    Type: String  
+    Type: String
     Description: "Nome della Tabella DynamoDB relativa ad Anagrafica Client"
 
   PnEcTableArnAnagrafica:
@@ -139,7 +139,7 @@ Parameters:
   PnEcQueueUrlTrackerStatoSMS:
     Type: String
     Description: '[Notification Tracker: canale SMS] URL della Coda per aggiornamenti di stato afferenti al canale SMS'
-    
+
   PnEcAlarmArnQueueTrackerStatoSMS:
     Type: String
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoSMS"
@@ -161,7 +161,7 @@ Parameters:
   PnEcQueueUrlTrackerErroriSMS:
     Type: String
     Description: '[Notification Tracker: canale SMS] URL della Coda Errori afferenti al canale SMS'
-    
+
   PnEcAlarmArnQueueTrackerErroriSMS:
     Type: String
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriSMS"
@@ -183,7 +183,7 @@ Parameters:
   PnEcQueueUrlTrackerStatoPEC:
     Type: String
     Description: '[Notification Tracker: canale PEC] URL della Coda per aggiornamenti di stato afferenti al canale PEC'
-    
+
   PnEcAlarmArnQueueTrackerStatoPEC:
     Type: String
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoPEC"
@@ -197,15 +197,15 @@ Parameters:
   PnEcQueueNameTrackerErroriPEC:
     Type: String
     Description: '[Notification Tracker: canale PEC] Nome della Coda Errori afferenti al canale PEC'
-    
+
   PnEcQueueArnTrackerErroriPEC:
     Type: String
     Description: '[Notification Tracker: canale PEC] ARN della Coda Errori afferenti al canale PEC'
-    
+
   PnEcQueueUrlTrackerErroriPEC:
     Type: String
     Description: '[Notification Tracker: canale PEC] URL della Coda Errori afferenti al canale PEC'
-    
+
   PnEcAlarmArnQueueTrackerErroriPEC:
     Type: String
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriPEC"
@@ -213,7 +213,7 @@ Parameters:
   PnEcAlarmArnDLQueueTrackerErroriPEC:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriPEC"
-    
+
   ######### TRACKER : EMAIL  ##########
 
   PnEcQueueNameTrackerStatoEMAIL:
@@ -227,7 +227,7 @@ Parameters:
   PnEcQueueUrlTrackerStatoEMAIL:
     Type: String
     Description: '[Notification Tracker: canale EMAIL] URL della Coda per aggiornamenti di stato afferenti al canale EMAIL'
-    
+
   PnEcAlarmArnQueueTrackerStatoEMAIL:
     Type: String
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoEMAIL"
@@ -241,15 +241,15 @@ Parameters:
   PnEcQueueNameTrackerErroriEMAIL:
     Type: String
     Description: '[Notification Tracker: canale EMAIL] Nome della Coda Errori afferenti al canale EMAIL'
-    
+
   PnEcQueueArnTrackerErroriEMAIL:
     Type: String
     Description: '[Notification Tracker: canale EMAIL] ARN della Coda Errori afferenti al canale EMAIL'
-    
+
   PnEcQueueUrlTrackerErroriEMAIL:
     Type: String
     Description: '[Notification Tracker: canale EMAIL] URL della Coda Errori afferenti al canale EMAIL'
-    
+
   PnEcAlarmArnQueueTrackerErroriEMAIL:
     Type: String
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriEMAIL"
@@ -271,7 +271,7 @@ Parameters:
   PnEcQueueUrlTrackerStatoCARTACEO:
     Type: String
     Description: '[Notification Tracker: canale CARTACEO] URL della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
-    
+
   PnEcAlarmArnQueueTrackerStatoCARTACEO:
     Type: String
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoCARTACEO"
@@ -285,15 +285,15 @@ Parameters:
   PnEcQueueNameTrackerErroriCARTACEO:
     Type: String
     Description: '[Notification Tracker: canale CARTACEO] Nome della Coda Errori afferenti al canale CARTACEO'
-    
+
   PnEcQueueArnTrackerErroriCARTACEO:
     Type: String
     Description: '[Notification Tracker: canale CARTACEO] ARN della Coda Errori afferenti al canale CARTACEO'
-    
+
   PnEcQueueUrlTrackerErroriCARTACEO:
     Type: String
     Description: '[Notification Tracker: canale CARTACEO] URL della Coda Errori afferenti al canale CARTACEO'
-    
+
   PnEcAlarmArnQueueTrackerErroriCARTACEO:
     Type: String
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriCARTACEO"
@@ -315,7 +315,7 @@ Parameters:
   PnEcQueueUrlBatchSMS:
     Type: String
     Description: '[Canale SMS] URL della Coda per la modalità SMS-Batch'
-    
+
   PnEcAlarmArnQueueBatchSMS:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchSMS"
@@ -337,7 +337,7 @@ Parameters:
   PnEcQueueUrlInteractiveSMS:
     Type: String
     Description: '[Canale SMS] URL della Coda per la modalità SMS-Interactive'
-    
+
   PnEcAlarmArnQueueInteractiveSMS:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractiveSMS"
@@ -359,7 +359,7 @@ Parameters:
   PnEcQueueUrlErroriSMS:
     Type: String
     Description: '[Canale SMS] URL della Coda Errori SMS'
-    
+
   PnEcAlarmArnQueueErroriSMS:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriSMS"
@@ -373,11 +373,11 @@ Parameters:
   PnEcQueueNameBatchPEC:
     Type: String
     Description: '[Canale PEC] Nome della Coda per la modalità PEC-Batch'
-    
+
   PnEcQueueArnBatchPEC:
     Type: String
     Description: '[Canale PEC] ARN della Coda per la modalità PEC-Batch'
-    
+
   PnEcQueueUrlBatchPEC:
     Type: String
     Description: '[Canale PEC] URL della Coda per la modalità PEC-Batch'
@@ -389,21 +389,21 @@ Parameters:
   PnEcAlarmArnDLQueueBatchPEC:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchPEC"
-    
+
   ###### INTERACTIVE : PEC #######
 
   PnEcQueueNameInteractivePEC:
     Type: String
     Description: '[Canale PEC] Nome della Coda per la modalità PEC-Interactive'
-    
+
   PnEcQueueArnInteractivePEC:
     Type: String
     Description: '[Canale PEC] ARN della Coda per la modalità PEC-Interactive'
-    
+
   PnEcQueueUrlInteractivePEC:
     Type: String
     Description: '[Canale PEC] URL della Coda per la modalità PEC-Interactive'
-    
+
   PnEcAlarmArnQueueInteractivePEC:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractivePEC"
@@ -417,15 +417,15 @@ Parameters:
   PnEcQueueNameErroriPEC:
     Type: String
     Description: '[Canale PEC] Nome della Coda Errori PEC'
-    
+
   PnEcQueueArnErroriPEC:
     Type: String
     Description: '[Canale PEC] ARN della Coda Errori PEC'
-    
+
   PnEcQueueUrlErroriPEC:
     Type: String
     Description: '[Canale PEC] URL della Coda Errori PEC'
- 
+
   PnEcAlarmArnQueueErroriPEC:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriPEC"
@@ -439,15 +439,15 @@ Parameters:
   PnEcQueueNameBatchEMAIL:
     Type: String
     Description: '[Canale EMAIL] Nome della Coda per la modalità EMAIL-Batch'
-    
+
   PnEcQueueArnBatchEMAIL:
     Type: String
     Description: '[Canale EMAIL] ARN della Coda per la modalità EMAIL-Batch'
-    
+
   PnEcQueueUrlBatchEMAIL:
     Type: String
     Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Batch'
-    
+
   PnEcAlarmArnQueueBatchEMAIL:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchEMAIL"
@@ -461,15 +461,15 @@ Parameters:
   PnEcQueueNameInteractiveEMAIL:
     Type: String
     Description: '[Canale EMAIL] Nome della Coda per la modalità EMAIL-Interactive'
-    
+
   PnEcQueueArnInteractiveEMAIL:
     Type: String
     Description: '[Canale EMAIL] ARN della Coda per la modalità EMAIL-Interactive'
-    
+
   PnEcQueueUrlInteractiveEMAIL:
     Type: String
     Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Interactive'
-    
+
   PnEcAlarmArnQueueInteractiveEMAIL:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractiveEMAIL"
@@ -483,11 +483,11 @@ Parameters:
   PnEcQueueNameErroriEMAIL:
     Type: String
     Description: '[Canale EMAIL] Nome della Coda Errori EMAIL'
-    
+
   PnEcQueueArnErroriEMAIL:
     Type: String
     Description: '[Canale EMAIL] ARN della Coda Errori EMAIL'
-    
+
   PnEcQueueUrlErroriEMAIL:
     Type: String
     Description: '[Canale EMAIL] URL della Coda Errori EMAIL'
@@ -505,15 +505,15 @@ Parameters:
   PnEcQueueNameBatchCARTACEO:
     Type: String
     Description: '[Canale CARTACEO] Nome della Coda per la modalità CARTACEO-Batch'
-    
+
   PnEcQueueArnBatchCARTACEO:
     Type: String
     Description: '[Canale CARTACEO] ARN della Coda per la modalità CARTACEO-Batch'
-    
+
   PnEcQueueUrlBatchCARTACEO:
     Type: String
     Description: '[Canale CARTACEO] URL della Coda per la modalità CARTACEO-Batch'
-    
+
   PnEcAlarmArnQueueBatchCARTACEO:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchCARTACEO"
@@ -521,21 +521,21 @@ Parameters:
   PnEcAlarmArnDLQueueBatchCARTACEO:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchCARTACEO"
-    
+
   ###### ERRORI : CARTACEO #######
 
   PnEcQueueNameErroriCARTACEO:
     Type: String
     Description: '[Canale CARTACEO] Nome della Coda Errori CARTACEO'
-    
+
   PnEcQueueArnErroriCARTACEO:
     Type: String
     Description: '[Canale CARTACEO] ARN della Coda Errori CARTACEO'
-    
+
   PnEcQueueUrlErroriCARTACEO:
     Type: String
     Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
- 
+
   PnEcAlarmArnQueueErroriCARTACEO:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriCARTACEO"
@@ -543,7 +543,7 @@ Parameters:
   PnEcAlarmArnDLQueueErroriCARTACEO:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriCARTACEO"
- 
+
   ###### pn-core Event Bus #######
 
   PnEcQueueNameEventsDLQueuePnCoreTargetEventBus:
@@ -581,19 +581,19 @@ Parameters:
   PnEcAlarmArnDLQueueScaricamentoEsitiPEC:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueScaricamentoEsitiPEC"
- 
+
   PnEcConsolidatoreBaseURL:
     Description: 'Base URL per accesso ai servizi del consolidatore'
     Type: String
-  
+
   ConsolidatoreClientId:
     Description: 'Client ID del consolidatore'
     Type: String
-    
+
   PnEcEmailDefaultSender:
     Description: 'Default sender email address'
     Type: String
-    
+
   LogAlarmStrategy:
     Type: String
     Default: 'FATAL'
@@ -698,14 +698,14 @@ Resources:
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
         EcsLogGroup: !Ref EcsLogGroup
         LoadBalancingAlgorithm: round_robin
-        # HealthCheckPath: 
+        # HealthCheckPath:
 
   PnEcManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
       Description: 'String'
       ManagedPolicyName: !Ref PnEcManagedPolicyName
-      PolicyDocument: 
+      PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
@@ -730,7 +730,7 @@ Resources:
               - kms:Decrypt
               - kms:ReEncrypt*
             Resource:
-              - !Ref PCKmsEncDecDynamoDataKeyARN                   
+              - !Ref PCKmsEncDecDynamoDataKeyARN
           - Effect: Allow
             Action:
               - 'sqs:ReceiveMessage'
@@ -804,322 +804,322 @@ Resources:
 
   PnEcQueuePolicyTrackerStatoSMS:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlTrackerStatoSMS
       PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerStatoSMS
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyTrackerErroriSMS:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlTrackerErroriSMS
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerErroriSMS
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyTrackerStatoPEC:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlTrackerStatoPEC
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerStatoPEC
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyTrackerErroriPEC:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlTrackerErroriPEC
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerErroriPEC
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyTrackerStatoEMAIL:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlTrackerStatoEMAIL
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerStatoEMAIL
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyTrackerErroriEMAIL:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlTrackerErroriEMAIL
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerErroriEMAIL
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-  
+
   PnEcQueuePolicyTrackerStatoCARTACEO:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlTrackerStatoCARTACEO
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerStatoCARTACEO
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyTrackerErroriCARTACEO:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlTrackerErroriCARTACEO
-      PolicyDocument: 
-        Statement: 
-          - Action: 
+      PolicyDocument:
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerErroriCARTACEO
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   ###########  CHANNEL SMS - QUEUE POLICIES  ###########
-  
+
   PnEcQueuePolicyBatchSMS:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlBatchSMS
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnBatchSMS
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyInteractiveSMS:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlInteractiveSMS
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnInteractiveSMS
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyErroriSMS:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlErroriSMS
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnErroriSMS
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   ###########  CHANNEL PEC - QUEUE POLICIES  ###########
-  
+
   PnEcQueuePolicyBatchPEC:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlBatchPEC
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnBatchPEC
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyInteractivePEC:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlInteractivePEC
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnInteractivePEC
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-  
+
   PnEcQueuePolicyErroriPEC:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlErroriPEC
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnErroriPEC
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyScaricamentoEsitiPEC:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlScaricamentoEsitiPEC
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: "Allow"
             Resource: !Ref PnEcQueueArnScaricamentoEsitiPEC
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
 
   ###########  CHANNEL EMAIL - QUEUE POLICIES  ###########
-  
+
   PnEcQueuePolicyBatchEMAIL:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlBatchEMAIL
       PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnBatchEMAIL
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   PnEcQueuePolicyInteractiveEMAIL:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlInteractiveEMAIL
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
+        Statement:
           - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
@@ -1127,19 +1127,19 @@ Resources:
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnInteractiveEMAIL
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-  
+
   PnEcQueuePolicyErroriEMAIL:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlErroriEMAIL
-      PolicyDocument: 
+      PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
@@ -1147,163 +1147,60 @@ Resources:
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnErroriEMAIL
             Principal:
-              AWS: 
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
 
   ###########  CHANNEL CARTACEO - QUEUE POLICIES  ###########
-  
+
   PnEcQueuePolicyBatchCARTACEO:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlBatchCARTACEO
-      PolicyDocument: 
-        Statement: 
-          - Action: 
+      PolicyDocument:
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnBatchCARTACEO
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-  
+
   PnEcQueuePolicyErroriCARTACEO:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlErroriCARTACEO
-      PolicyDocument: 
-        Statement: 
-          - Action: 
+      PolicyDocument:
+        Statement:
+          - Action:
               - 'sqs:SendMessage'
               - 'sqs:ReceiveMessage'
               - 'sqs:GetQueueAttributes'
               - 'sqs:GetQueueUrl'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnErroriCARTACEO
-            Principal:  
-              AWS: 
+            Principal:
+              AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
-                
+
   ########### METRICS AND ALARMS - MICROSERVICE ###########
-  
+
   ExternalChannelMicroserviceAlarm:
     Type: AWS::CloudFormation::Stack
-    Properties: 
+    Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-alarm.yaml"
       Parameters:
         MicroserviceName: !Sub '${ProjectName}-external-channel' # Must be identical to the one in the ecs-service stack
         EvaluationPeriod: '10'
         DatapointsToAlarm: '1'
         Threshold: '1'
-        
-  ExternalChannelMicroserviceAlarmDashboard:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
-      Parameters:
-        DashboardName: !Sub '${ProjectName}-external-channel-channels'
-        AlarmArns:
-          !Join
-          - ','
-          - - !Ref PnEcAlarmArnQueueBatchSMS
-            - !Ref PnEcAlarmArnDLQueueBatchSMS
-            - !Ref PnEcAlarmArnQueueInteractiveSMS
-            - !Ref PnEcAlarmArnDLQueueInteractiveSMS
-            - !Ref PnEcAlarmArnQueueErroriSMS
-            - !Ref PnEcAlarmArnDLQueueErroriSMS
-            - !Ref PnEcAlarmArnQueueBatchPEC
-            - !Ref PnEcAlarmArnDLQueueBatchPEC
-            - !Ref PnEcAlarmArnQueueInteractivePEC
-            - !Ref PnEcAlarmArnDLQueueInteractivePEC
-            - !Ref PnEcAlarmArnQueueErroriPEC
-            - !Ref PnEcAlarmArnDLQueueErroriPEC
-            - !Ref PnEcAlarmArnQueueScaricamentoEsitiPEC
-            - !Ref PnEcAlarmArnDLQueueScaricamentoEsitiPEC
-            - !Ref PnEcAlarmArnQueueBatchEMAIL
-            - !Ref PnEcAlarmArnDLQueueBatchEMAIL
-            - !Ref PnEcAlarmArnQueueInteractiveEMAIL
-            - !Ref PnEcAlarmArnDLQueueInteractiveEMAIL
-            - !Ref PnEcAlarmArnQueueErroriEMAIL
-            - !Ref PnEcAlarmArnDLQueueErroriEMAIL
-            - !Ref PnEcAlarmArnQueueBatchCARTACEO
-            - !Ref PnEcAlarmArnDLQueueBatchCARTACEO
-            - !Ref PnEcAlarmArnQueueErroriCARTACEO
-            - !Ref PnEcAlarmArnDLQueueErroriCARTACEO
-        DynamoDBTableNames:
-          !Join
-          - ','
-          - - !Ref PnEcTableNameAnagrafica
-            - !Ref PnEcTableNameRichieste
-            - !Ref PnEcTableNameRichiesteMetadati
-        # RestApiStageArns: 
-        # RestApiNames: 
-        QueueArns:
-          !Join
-          - ','
-          - - !Ref PnEcQueueArnBatchSMS
-            - !Ref PnEcQueueArnInteractiveSMS
-            - !Ref PnEcQueueArnErroriSMS
-            - !Ref PnEcQueueArnBatchPEC
-            - !Ref PnEcQueueArnInteractivePEC
-            - !Ref PnEcQueueArnErroriPEC
-            - !Ref PnEcQueueArnScaricamentoEsitiPEC
-            - !Ref PnEcQueueArnBatchEMAIL
-            - !Ref PnEcQueueArnInteractiveEMAIL
-            - !Ref PnEcQueueArnErroriEMAIL
-            - !Ref PnEcQueueArnBatchCARTACEO
-            - !Ref PnEcQueueArnErroriCARTACEO
-        # KinesisDataArns: 
-        # KinesisFirehoseArns: 
 
-  ExternalChannelChannelsMicroserviceAlarmDashboard:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
-      Parameters:
-        DashboardName: !Sub '${ProjectName}-external-channel-notifications-tracker'
-        AlarmArns:
-          !Join
-          - ','
-          - - !Ref PnEcAlarmArnQueueTrackerStatoSMS
-            - !Ref PnEcAlarmArnDLQueueTrackerStatoSMS
-            - !Ref PnEcAlarmArnQueueTrackerErroriSMS
-            - !Ref PnEcAlarmArnDLQueueTrackerErroriSMS
-            - !Ref PnEcAlarmArnQueueTrackerStatoPEC
-            - !Ref PnEcAlarmArnDLQueueTrackerStatoPEC
-            - !Ref PnEcAlarmArnQueueTrackerErroriPEC
-            - !Ref PnEcAlarmArnDLQueueTrackerErroriPEC
-            - !Ref PnEcAlarmArnQueueTrackerStatoEMAIL
-            - !Ref PnEcAlarmArnDLQueueTrackerStatoEMAIL
-            - !Ref PnEcAlarmArnQueueTrackerErroriEMAIL
-            - !Ref PnEcAlarmArnDLQueueTrackerErroriEMAIL
-            - !Ref PnEcAlarmArnQueueTrackerStatoCARTACEO
-            - !Ref PnEcAlarmArnDLQueueTrackerStatoCARTACEO
-            - !Ref PnEcAlarmArnQueueTrackerErroriCARTACEO
-            - !Ref PnEcAlarmArnDLQueueTrackerErroriCARTACEO
-        DynamoDBTableNames:
-          !Join
-          - ','
-          - - !Ref PnEcTableNameAnagrafica
-            - !Ref PnEcTableNameRichieste
-            - !Ref PnEcTableNameRichiesteMetadati
-        # RestApiStageArns: 
-        # RestApiNames: 
-        QueueArns:
-          !Join
-          - ','
-          - - !Ref PnEcQueueArnTrackerStatoSMS 
-            - !Ref PnEcQueueArnTrackerErroriSMS
-            - !Ref PnEcQueueArnTrackerStatoPEC
-            - !Ref PnEcQueueArnTrackerErroriPEC
-            - !Ref PnEcQueueArnTrackerStatoEMAIL
-            - !Ref PnEcQueueArnTrackerErroriEMAIL
-            - !Ref PnEcQueueArnTrackerStatoCARTACEO
-            - !Ref PnEcQueueArnTrackerErroriCARTACEO
 
   #####    External notifications    #####
   PnEcRoleExternalNotifications:
@@ -1317,14 +1214,14 @@ Resources:
             Action:
               - 'sts:AssumeRole'
             Principal:
-              Service: 
+              Service:
                 - 'events.amazonaws.com'
             Condition:
               StringEquals:
                 AWS:SourceAccount: !Ref AWS::AccountId
       Policies:
         - PolicyName: 'PutEventsInlinePolicy'
-          PolicyDocument: 
+          PolicyDocument:
             Version: '2012-10-17'
             Statement:
               - Sid: 'PutEventsOnTargetAccount'
@@ -1336,27 +1233,27 @@ Resources:
 
   PnEcQueuePolicyExternalNotifications:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
+    Properties:
+      Queues:
         - !Ref PnEcQueueUrlEventsDLQueuePnCoreTargetEventBus
-      PolicyDocument: 
-        Statement: 
+      PolicyDocument:
+        Statement:
           - Sid: 'AllowAccessSameAccount'
-            Action: 
+            Action:
               - 'sqs:*'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
-            Principal: 
+            Principal:
               AWS: !Ref AWS::AccountId
           - Sid: 'AllowPutEventsFromEventRule'
-            Action: 
+            Action:
               - 'sqs:SendMessage'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
-            Principal: 
+            Principal:
               Service:
               - 'events.amazonaws.com'
-            Condition: 
+            Condition:
               ArnEquals:
                 aws:SourceArn: !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
 
@@ -1366,11 +1263,11 @@ Resources:
       EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
       Description: 'Rule forwarding events to PnCoreTargetEventBus'
       EventPattern:
-        source: 
+        source:
           - 'NOTIFICATION TRACKER'
-        account: 
+        account:
           - !Ref AWS::AccountId
-        region: 
+        region:
           - !Ref AWS::Region
       State: 'ENABLED'
       Targets:
@@ -1384,10 +1281,10 @@ Resources:
   PnEcSMSStressTestSecurityGroup:
     Condition: SMSStressTestModeON
     Type: AWS::EC2::SecurityGroup
-    Properties: 
+    Properties:
       GroupDescription: 'SMSStressTestSecurityGroup'
       GroupName: 'pnecsmsstresssecgroup'
-      SecurityGroupIngress: 
+      SecurityGroupIngress:
         - IpProtocol: -1
           SourceSecurityGroupId: !Ref PnVPCDefaultSecurityGroup
       VpcId: !Ref VpcId
@@ -1395,12 +1292,12 @@ Resources:
   PnECSMSStressTestInputQueue:
     Condition: SMSStressTestModeON
     Type: AWS::Lambda::EventSourceMapping
-    Properties: 
+    Properties:
       BatchSize: 300 # 10 is default
       Enabled: True
       EventSourceArn: !Ref PnEcQueueArnSMSStressTestQueue
       FunctionName: !Ref PnEcSMSStressTestLambda
-      FunctionResponseTypes: 
+      FunctionResponseTypes:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 120 #default value
 
@@ -1460,7 +1357,7 @@ Resources:
 
           exports.handler = async (event) => {
             const batchItemFailures =[];
-            await Promise.allSettled(event.Records.map(async (record) => { 
+            await Promise.allSettled(event.Records.map(async (record) => {
               try {
                 const bodyData = JSON.parse(record);
                 console.log(record);
