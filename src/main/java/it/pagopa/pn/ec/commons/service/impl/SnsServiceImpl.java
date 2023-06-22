@@ -17,9 +17,9 @@ public class SnsServiceImpl implements SnsService {
 
     private final SnsAsyncClient snsAsyncClient;
 
-    @Value("sns.topic.sms.stress-test.mode")
+    @Value("${SMSStressTestMode:false}")
     private boolean smsStressTestMode;
-    @Value("sns.topic.sms.stress-test.topic-arn")
+    @Value("${SMSStressTestTopicArn}")
     private String smsStressTestTopicArn;
 
     public SnsServiceImpl(SnsAsyncClient snsAsyncClient) {
