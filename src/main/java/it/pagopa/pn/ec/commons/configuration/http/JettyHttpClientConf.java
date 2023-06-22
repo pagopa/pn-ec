@@ -23,7 +23,7 @@ import static org.springframework.http.MediaType.APPLICATION_XML_VALUE;
 @Slf4j
 public class JettyHttpClientConf {
 	
-    @Value("jetty.maxConnectionsPerDestination")
+    @Value("${jetty.maxConnectionsPerDestination}")
     private int maxConnections;
 
     private final SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
