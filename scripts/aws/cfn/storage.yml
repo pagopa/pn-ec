@@ -1285,7 +1285,6 @@ Outputs:
 ###### SMS STRESS TESTE MODE #######
 
   SMSStressTestMode:
-    Type: String
     Value: !Ref SMSStressTestMode
 
   PnEcQueueNameSMSStressTestQueue:
