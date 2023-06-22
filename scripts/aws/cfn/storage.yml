@@ -764,6 +764,7 @@ Resources:
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
+        VisibilityTimeout: 360
   
   PnEcSMSStressTestTopic:
     Condition: SMSStressTestModeON
