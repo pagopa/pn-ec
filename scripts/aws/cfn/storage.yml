@@ -46,8 +46,17 @@ Parameters:
     Type: Number
     Default: 14
 
+  ### SMS STRESS TEST ###
+  SMSStressTestMode:
+    Type: String
+
+  SMSStressTestTopicName:
+    Type: String
+    Default: 'pn-ec-sms-stress-test-topic'
+
 Conditions:
-  IsDevEnv: !Equals [ !Ref EnvType, 'dev'] 
+  IsDevEnv: !Equals [ !Ref EnvType, 'dev']
+  SMSStressTestModeON: !Equals [ !Ref SMSStressTestMode, 'true']
 
 Resources:
   PCKmsEncDecDynamoDataKey:
@@ -739,6 +748,33 @@ Resources:
         LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
         LogGroupRetention: !Ref LogRetention
 
+
+##############   CHANNEL SMS STRESS TEST    ###################
+  PnEcSMSStressTestQueue:
+    Condition: SMSStressTestModeON
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-sms-stress-test'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+  
+  PnEcSMSStressTestTopic:
+    Condition: SMSStressTestModeON
+    DeletionPolicy: Delete
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription: 
+        - Endpoint: !GetAtt PnEcSMSStressTestQueue.Outputs.QueueARN
+          Protocol: 'SQS'
+      TopicName: 'pn-ec-sms-stress-test-topic'
+
 #########  OUTPUTS  ##########
 
 Outputs:
@@ -1224,15 +1260,15 @@ Outputs:
 
   PnEcQueueNameScaricamentoEsitiPEC:
     Description: '[Canale SMS] Nome della Coda per lo scaricamento esiti PEC'
-    Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueName
+    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueName
 
   PnEcQueueArnScaricamentoEsitiPEC:
     Description: '[Canale SMS] ARN della Coda per lo scaricamento esiti PEC'
-    Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueARN
+    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueARN
 
   PnEcQueueUrlScaricamentoEsitiPEC:
     Description: '[Canale SMS] URL della Coda per lo scaricamento esiti PEC'
-    Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueURL
+    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueURL
 
   PnEcAlarmArnQueueScaricamentoEsitiPEC:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueScaricamentoEsitiPEC"
@@ -1244,3 +1280,25 @@ Outputs:
 
   EcsLogGroup:
     Value: !GetAtt EcsLogGroup.Outputs.LogGroupName
+
+###### SMS STRESS TESTE MODE #######
+
+  PnEcQueueNameSMSStressTestQueue:
+    Condition: SMSStressTestModeON
+    Description: '[Stress Test SMS] Nome della Coda per lo Stress Test SMS'
+    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueName
+
+  PnEcQueueArnSMSStressTestQueue:
+    Condition: SMSStressTestModeON
+    Description: '[Stress Test SMS] ARN della Coda per lo Stress Test SMS'
+    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueARN
+
+  PnEcQueueUrlSMSStressTestQueue:
+    Condition: SMSStressTestModeON
+    Description: '[Stress Test SMS] URL della Coda per lo Stress Test SMS'
+    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueURL
+
+  PnEcSMSStressTestTopicArn:
+    Condition: SMSStressTestModeON
+    Description: '[Stress Test SMS] ARN del Topic per lo Stress Test SMS'
+    Value: !Ref PnEcSMSStressTestTopic
