@@ -209,17 +209,4 @@ class CartaceoServiceTest {
         assertTrue(testImplemented);
     }
 
-    @Test
-    void provaMapper()
-    {
-        PaperEngageRequest paperEngageRequest=new PaperEngageRequest().clientRequestTimeStamp(OffsetDateTime.now());
-
-        CartaceoMapper cartaceoMapper = new CartaceoMapper(new ObjectMapper());
-        var paperEngageRequestConverted= cartaceoMapper.convert(paperEngageRequest);
-
-        log.info("{}", paperEngageRequestConverted.getClientRequestTimeStamp());
-        System.out.println(paperEngageRequestConverted.getClientRequestTimeStamp());
-
-    }
-
 }

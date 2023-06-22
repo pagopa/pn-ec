@@ -268,8 +268,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory>
                             <inputSpec>${project.basedir}/docs/openapi/external/consolidatore-v1.yml</inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -300,8 +301,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory>
                             <inputSpec>${project.basedir}/docs/openapi/external/api-internal-v1.yaml</inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -330,9 +332,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
-                            <inputSpec>
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory><inputSpec>
                                 ${project.basedir}/docs/openapi/internal/externalchannel/gestore-repository-v1.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
@@ -361,9 +363,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
-                            <inputSpec>${project.basedir}/docs/openapi/internal/safestorage/pn-safestorage-v1.1-api.yaml
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory><inputSpec>${project.basedir}/docs/openapi/internal/safestorage/pn-safestorage-v1.1-api.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -391,9 +393,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
-                            <inputSpec>${project.basedir}/docs/openapi/external/api-consolidatore-ingress-v1.yaml
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory> <inputSpec>${project.basedir}/docs/openapi/external/api-consolidatore-ingress-v1.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
