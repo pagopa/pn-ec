@@ -585,6 +585,7 @@ Parameters:
   LogAlarmStrategy:
     Type: String
     Default: 'FATAL'
+
   PCKmsEncDecDynamoDataKeyARN:
     Type: String
     Description: 'Name of KMS Key for Dynamo encode/decode data'
@@ -597,11 +598,37 @@ Parameters:
   ApplicationLoadBalancerMetricsDimensionName:
     Type: String
     Description: 'ALB name (used by alarm metrics)'
+
+  ### SMS STRESS TEST ###
+  PnVPCDefaultSecurityGroup:
+    Type: String
+    Description: 'VPC default Security Group'
+
+  SMSStressTestMode:
+    Type: String
+    Default: 'false'
+
+  PnEcQueueNameSMSStressTestQueue:
+    Type: String
+    Default: ''
+
+  PnEcQueueArnSMSStressTestQueue:
+    Type: String
+    Default: ''
+
+  PnEcQueueUrlSMSStressTestQueue:
+    Type: String
+    Default: ''
+
+  PnEcSMSStressTestTopicArn :
+    Type: String
     Default: ''
 
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
+  SMSStressTestModeON: !Equals [ !Ref SMSStressTestMode, 'true']
+
 Resources:
 
   # PN-TemplateBeMs microservice
@@ -648,6 +675,8 @@ Resources:
         ContainerEnvEntry37: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry38: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
         ContainerEnvEntry39: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
+        ContainerEnvEntry50: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
+        ContainerEnvEntry51: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -1152,6 +1181,7 @@ Resources:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   ########### METRICS AND ALARMS - MICROSERVICE ###########
+<<<<<<< HEAD
   ApplicationLoadBalancerOnCallAlarm:
     Type: AWS::CloudWatch::Alarm
     Condition: HasAlbDimensionName
@@ -1208,6 +1238,8 @@ Resources:
         - Id: e1
           Expression: IF(m3>=10 AND (m1/m3>=0.9 OR m2/m3>=0.1), 1, 0)
           Label: !Sub "${ProjectName}-external-channel-ALBAlarm-oncall-metric"
+=======
+>>>>>>> refs/remotes/origin/feature/performance-test-sms
 
   ExternalChannelMicroserviceAlarm:
     Type: AWS::CloudFormation::Stack
@@ -1218,6 +1250,7 @@ Resources:
         EvaluationPeriod: '10'
         DatapointsToAlarm: '1'
         Threshold: '1'
+<<<<<<< HEAD
 
   ExternalChannelMicroserviceAlarmDashboard:
     Type: AWS::CloudFormation::Stack
@@ -1274,7 +1307,10 @@ Resources:
             - !Ref PnEcQueueArnErroriEMAIL
             - !Ref PnEcQueueArnBatchCARTACEO
             - !Ref PnEcQueueArnErroriCARTACEO
+=======
+>>>>>>> refs/remotes/origin/feature/performance-test-sms
 
+<<<<<<< HEAD
   ExternalChannelChannelsMicroserviceAlarmDashboard:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -1317,6 +1353,8 @@ Resources:
             - !Ref PnEcQueueArnTrackerErroriEMAIL
             - !Ref PnEcQueueArnTrackerStatoCARTACEO
             - !Ref PnEcQueueArnTrackerErroriCARTACEO
+=======
+>>>>>>> refs/remotes/origin/feature/performance-test-sms
 
   #####    External notifications    #####
   PnEcRoleExternalNotifications:
@@ -1393,3 +1431,94 @@ Resources:
           DeadLetterConfig:
             Arn: !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
 
+##############   CHANNEL SMS STRESS TEST    #################
+  PnEcSMSStressTestSecurityGroup:
+    Condition: SMSStressTestModeON
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'SMSStressTestSecurityGroup'
+      GroupName: 'pnecsmsstresssecgroup'
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          SourceSecurityGroupId: !Ref PnVPCDefaultSecurityGroup
+      VpcId: !Ref VpcId
+
+  PnECSMSStressTestInputQueue:
+    Condition: SMSStressTestModeON
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 300 # 10 is default
+      Enabled: True
+      EventSourceArn: !Ref PnEcQueueArnSMSStressTestQueue
+      FunctionName: !Ref PnEcSMSStressTestLambda
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      MaximumBatchingWindowInSeconds: 120 #default value
+
+  PnECSMSStressTestRole:
+    Condition: SMSStressTestModeON
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 'pn-ec-sms-stress-test-role-name'
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action:
+            - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'PnEcStressTestSMS'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Sid: 'GetInvokeSQS'
+              Effect: 'Allow'
+              Action:
+                - 'sqs:ReceiveMessage'
+                - 'sqs:DeleteMessage'
+                - 'sqs:Get*'
+                - 'sqs:List*'
+                - 'sqs:SendMessage'
+              Resource:
+                - !Ref PnEcQueueArnSMSStressTestQueue
+
+  PnEcSMSStressTestLambda:
+    Condition: SMSStressTestModeON
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: 'pn-ec-sms-stress-test-lambda'
+      Handler: index.handler
+      MemorySize: 256
+      Runtime: nodejs16.x
+      Role: !GetAtt PnECSMSStressTestRole.Arn
+      Timeout: 240
+      VpcConfig:
+        SubnetIds:
+          - !Select [ 0, !Split [ ",", !Ref SubnetsIds ] ]
+          - !Select [ 1, !Split [ ",", !Ref SubnetsIds ] ]
+          - !Select [ 2, !Split [ ",", !Ref SubnetsIds ] ]
+        SecurityGroupIds:
+          - !GetAtt PnEcSMSStressTestSecurityGroup.GroupId
+      Code:
+        ZipFile: |
+          "use strict";
+          const AWS = require("aws-sdk");
+
+          exports.handler = async (event) => {
+            const batchItemFailures =[];
+            await Promise.allSettled(event.Records.map(async (record) => {
+              try {
+                const bodyData = JSON.parse(record.body);
+                console.log(bodyData);
+              } catch (error) {
+                console.log(error);
+                batchItemFailures.push({itemIdentifier: record.eventId});
+              }
+              console.log("Terminata la stampa dei record");
+              return { batchItemFailures} ;
+            }))
+          }
