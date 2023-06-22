@@ -38,8 +38,8 @@ public class JettyHttpClientConf {
                 return enhance(request);
             }
         };
-        myHC.setMaxConnectionsPerDestination(maxConnections);
-//        myHC.setMaxRequestsQueuedPerDestination(2048);
+//        myHC.setMaxConnectionsPerDestination(maxConnections);
+        myHC.setMaxRequestsQueuedPerDestination(200);
         return myHC;
     }
 
