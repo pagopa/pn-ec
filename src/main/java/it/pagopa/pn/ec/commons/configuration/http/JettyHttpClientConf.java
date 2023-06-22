@@ -23,8 +23,8 @@ import static org.springframework.http.MediaType.APPLICATION_XML_VALUE;
 @Slf4j
 public class JettyHttpClientConf {
 	
-    @Value("${jetty.maxConnectionsPerDestination}")
-    private int maxConnections;
+//    @Value("${jetty.maxConnectionsPerDestination}")
+//    private int maxConnections;
 
     private final SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
     private static final List<String> CONTENT_TYPE_OF_RESPONSE_BODY_TO_LOG = List.of(APPLICATION_JSON_VALUE, APPLICATION_XML_VALUE);
@@ -38,8 +38,8 @@ public class JettyHttpClientConf {
                 return enhance(request);
             }
         };
-        myHC.setMaxConnectionsPerDestination(maxConnections);
-//        myHC.setMaxRequestsQueuedPerDestination(2048);
+//        myHC.setMaxConnectionsPerDestination(maxConnections);
+        myHC.setMaxRequestsQueuedPerDestination(200);
         return myHC;
     }
 
