@@ -761,7 +761,6 @@ Resources:
       Parameters:
         QueueName: 'pn-ec-sms-stress-test'
         SqsManagedSseEnabled: true
-        FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
