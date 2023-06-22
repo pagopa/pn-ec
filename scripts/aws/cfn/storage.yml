@@ -49,6 +49,7 @@ Parameters:
   ### SMS STRESS TEST ###
   SMSStressTestMode:
     Type: String
+    Default: 'true'
 
   SMSStressTestTopicName:
     Type: String
@@ -1282,6 +1283,10 @@ Outputs:
     Value: !GetAtt EcsLogGroup.Outputs.LogGroupName
 
 ###### SMS STRESS TESTE MODE #######
+
+  SMSStressTestMode:
+    Type: String
+    Value: !Ref SMSStressTestMode
 
   PnEcQueueNameSMSStressTestQueue:
     Condition: SMSStressTestModeON
