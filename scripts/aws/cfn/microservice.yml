@@ -1353,19 +1353,18 @@ Resources:
         ZipFile: |
           "use strict";
           const AWS = require("aws-sdk");
-          const crypto = require("crypto");
 
           exports.handler = async (event) => {
             const batchItemFailures =[];
             await Promise.allSettled(event.Records.map(async (record) => {
               try {
-                const bodyData = JSON.parse(record);
-                console.log(record);
+                const bodyData = JSON.parse(record.body);
+                console.log(bodyData);
               } catch (error) {
                 console.log(error);
                 batchItemFailures.push({itemIdentifier: record.eventId});
               }
               console.log("Terminata la stampa dei record");
-              return { batchItemFailures };
-            )};
-          };
+              return { batchItemFailures} ;
+            }))
+          }
