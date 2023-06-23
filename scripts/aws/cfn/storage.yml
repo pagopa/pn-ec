@@ -161,6 +161,7 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
 
   PnEcTrackerStatoSMSQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -192,6 +193,7 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
 
   ######### TRACKER : PEC  ##########
 
@@ -210,6 +212,7 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
 
   PnEcTrackerStatoPECQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -241,6 +244,7 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
 
   ######### TRACKER : EMAIL  #########
 
@@ -259,6 +263,7 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
 
   PnEcTrackerStatoEMAILQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -290,6 +295,7 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
 
   ######### TRACKER : CARTACEO  #########
 
@@ -339,6 +345,7 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
 
   ###########  TRACKER: EXTERNAL NOTIFICATION  ###########
 
@@ -356,6 +363,7 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
 
   PnEcQueuePolicyNotificheDebugDev:
     Type: AWS::SQS::QueuePolicy
@@ -520,7 +528,8 @@ Resources:
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName      
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
 
   PnEcInteractiveSMSQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -552,7 +561,7 @@ Resources:
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName   
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
   ###### CHANNEL : PEC #######
   
@@ -586,7 +595,8 @@ Resources:
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName      
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0   
 
   PnEcInteractivePECQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -669,7 +679,8 @@ Resources:
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName  
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0  
 
   PnEcInteractiveEMAILQueuePolicy:
     Type: AWS::SQS::QueuePolicy
