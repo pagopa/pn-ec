@@ -1181,7 +1181,6 @@ Resources:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   ########### METRICS AND ALARMS - MICROSERVICE ###########
-<<<<<<< HEAD
   ApplicationLoadBalancerOnCallAlarm:
     Type: AWS::CloudWatch::Alarm
     Condition: HasAlbDimensionName
@@ -1238,8 +1237,6 @@ Resources:
         - Id: e1
           Expression: IF(m3>=10 AND (m1/m3>=0.9 OR m2/m3>=0.1), 1, 0)
           Label: !Sub "${ProjectName}-external-channel-ALBAlarm-oncall-metric"
-=======
->>>>>>> refs/remotes/origin/feature/performance-test-sms
 
   ExternalChannelMicroserviceAlarm:
     Type: AWS::CloudFormation::Stack
@@ -1250,111 +1247,6 @@ Resources:
         EvaluationPeriod: '10'
         DatapointsToAlarm: '1'
         Threshold: '1'
-<<<<<<< HEAD
-
-  ExternalChannelMicroserviceAlarmDashboard:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
-      Parameters:
-        DashboardName: !Sub '${ProjectName}-external-channel-channels'
-        AlarmArns:
-          !Join
-          - ','
-          - - !Ref PnEcAlarmArnQueueBatchSMS
-            - !Ref PnEcAlarmArnDLQueueBatchSMS
-            - !Ref PnEcAlarmArnQueueInteractiveSMS
-            - !Ref PnEcAlarmArnDLQueueInteractiveSMS
-            - !Ref PnEcAlarmArnQueueErroriSMS
-            - !Ref PnEcAlarmArnDLQueueErroriSMS
-            - !Ref PnEcAlarmArnQueueBatchPEC
-            - !Ref PnEcAlarmArnDLQueueBatchPEC
-            - !Ref PnEcAlarmArnQueueInteractivePEC
-            - !Ref PnEcAlarmArnDLQueueInteractivePEC
-            - !Ref PnEcAlarmArnQueueErroriPEC
-            - !Ref PnEcAlarmArnDLQueueErroriPEC
-            - !Ref PnEcAlarmArnQueueScaricamentoEsitiPEC
-            - !Ref PnEcAlarmArnDLQueueScaricamentoEsitiPEC
-            - !Ref PnEcAlarmArnQueueBatchEMAIL
-            - !Ref PnEcAlarmArnDLQueueBatchEMAIL
-            - !Ref PnEcAlarmArnQueueInteractiveEMAIL
-            - !Ref PnEcAlarmArnDLQueueInteractiveEMAIL
-            - !Ref PnEcAlarmArnQueueErroriEMAIL
-            - !Ref PnEcAlarmArnDLQueueErroriEMAIL
-            - !Ref PnEcAlarmArnQueueBatchCARTACEO
-            - !Ref PnEcAlarmArnDLQueueBatchCARTACEO
-            - !Ref PnEcAlarmArnQueueErroriCARTACEO
-            - !Ref PnEcAlarmArnDLQueueErroriCARTACEO
-            - !If [ HasAlbDimensionName, !GetAtt ApplicationLoadBalancerOnCallAlarm.Arn, '' ]
-        DynamoDBTableNames:
-          !Join
-          - ','
-          - - !Ref PnEcTableNameAnagrafica
-            - !Ref PnEcTableNameRichieste
-            - !Ref PnEcTableNameRichiesteMetadati
-        QueueArns:
-          !Join
-          - ','
-          - - !Ref PnEcQueueArnBatchSMS
-            - !Ref PnEcQueueArnInteractiveSMS
-            - !Ref PnEcQueueArnErroriSMS
-            - !Ref PnEcQueueArnBatchPEC
-            - !Ref PnEcQueueArnInteractivePEC
-            - !Ref PnEcQueueArnErroriPEC
-            - !Ref PnEcQueueArnScaricamentoEsitiPEC
-            - !Ref PnEcQueueArnBatchEMAIL
-            - !Ref PnEcQueueArnInteractiveEMAIL
-            - !Ref PnEcQueueArnErroriEMAIL
-            - !Ref PnEcQueueArnBatchCARTACEO
-            - !Ref PnEcQueueArnErroriCARTACEO
-=======
->>>>>>> refs/remotes/origin/feature/performance-test-sms
-
-<<<<<<< HEAD
-  ExternalChannelChannelsMicroserviceAlarmDashboard:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
-      Parameters:
-        DashboardName: !Sub '${ProjectName}-external-channel-notifications-tracker'
-        AlarmArns:
-          !Join
-          - ','
-          - - !Ref PnEcAlarmArnQueueTrackerStatoSMS
-            - !Ref PnEcAlarmArnDLQueueTrackerStatoSMS
-            - !Ref PnEcAlarmArnQueueTrackerErroriSMS
-            - !Ref PnEcAlarmArnDLQueueTrackerErroriSMS
-            - !Ref PnEcAlarmArnQueueTrackerStatoPEC
-            - !Ref PnEcAlarmArnDLQueueTrackerStatoPEC
-            - !Ref PnEcAlarmArnQueueTrackerErroriPEC
-            - !Ref PnEcAlarmArnDLQueueTrackerErroriPEC
-            - !Ref PnEcAlarmArnQueueTrackerStatoEMAIL
-            - !Ref PnEcAlarmArnDLQueueTrackerStatoEMAIL
-            - !Ref PnEcAlarmArnQueueTrackerErroriEMAIL
-            - !Ref PnEcAlarmArnDLQueueTrackerErroriEMAIL
-            - !Ref PnEcAlarmArnQueueTrackerStatoCARTACEO
-            - !Ref PnEcAlarmArnDLQueueTrackerStatoCARTACEO
-            - !Ref PnEcAlarmArnQueueTrackerErroriCARTACEO
-            - !Ref PnEcAlarmArnDLQueueTrackerErroriCARTACEO
-        DynamoDBTableNames:
-          !Join
-          - ','
-          - - !Ref PnEcTableNameAnagrafica
-            - !Ref PnEcTableNameRichieste
-            - !Ref PnEcTableNameRichiesteMetadati
-        QueueArns:
-          !Join
-          - ','
-          - - !Ref PnEcQueueArnTrackerStatoSMS
-            - !Ref PnEcQueueArnTrackerErroriSMS
-            - !Ref PnEcQueueArnTrackerStatoPEC
-            - !Ref PnEcQueueArnTrackerErroriPEC
-            - !Ref PnEcQueueArnTrackerStatoEMAIL
-            - !Ref PnEcQueueArnTrackerErroriEMAIL
-            - !Ref PnEcQueueArnTrackerStatoCARTACEO
-            - !Ref PnEcQueueArnTrackerErroriCARTACEO
-=======
->>>>>>> refs/remotes/origin/feature/performance-test-sms
 
   #####    External notifications    #####
   PnEcRoleExternalNotifications:
