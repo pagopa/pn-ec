@@ -154,7 +154,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			return Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null));
 		}
 		return Flux.fromIterable(attachments)
-			.switchIfEmpty(Mono.error(new AttachmentsEmptyRicezioneEsitiCartaceoException()))
 			.flatMap(attachment -> {
 				if (attachment.getUri().contains(SS_IN_URI)) {
 					String documentAttachmentKey = attachment.getUri().replace(SS_IN_URI, "");
@@ -175,13 +174,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				return Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null));
 			})
 			// ***
-			.onErrorResume(AttachmentsEmptyRicezioneEsitiCartaceoException.class,
-						   throwable -> {
-							   String logMessage = String.format("there aren't Attachments for requestId %s", requestId);
-							   log.error("{} - {}", ERR_CONS_EMPTY_ATTACH.getValue(), new ConsAuditLogEvent().requestId(requestId).clientId(xPagopaExtchServiceId).message(logMessage));
-
-							   return Mono.just(new OperationResultCodeResponse());
-			})
 			.onErrorResume(RicezioneEsitiCartaceoException.class,
 					   throwable -> {
 						   log.error("{} - {}", ERR_CONS_BAD_URI.getValue(), new ConsAuditLogEvent().requestId(requestId).clientId(xPagopaExtchServiceId).message("The attachment uri is not valid."));
