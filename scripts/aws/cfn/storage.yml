@@ -802,7 +802,7 @@ Outputs:
     Description: 'ARN del Event Bus per le notifiche verso le piattaforme esterne'
     Value: !GetAtt PnEcEventBusTrackerExternalNotification.Arn
     
-  ######### TABLES  ############
+  ######## TABLES  ############
 
   PnEcTableNameAnagrafica:
     Description: 'Nome della Tabella DynamoDB relativa ad Anagrafica Client'
