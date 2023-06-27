@@ -578,6 +578,10 @@ Parameters:
     Description: 'Client ID del consolidatore'
     Type: String
 
+  PnEcSmsDefaultSenderID:
+    Description: 'SMS default Sender ID'
+    Type: String
+
   PnEcEmailDefaultSender:
     Description: 'Default sender email address'
     Type: String
@@ -648,6 +652,7 @@ Resources:
         ContainerEnvEntry37: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry38: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
         ContainerEnvEntry39: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
+        ContainerEnvEntry40: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
