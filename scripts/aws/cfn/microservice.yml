@@ -570,6 +570,36 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueScaricamentoEsitiPEC"
 
+  #### CRON Rules ####
+  PnEcCronScaricamentoEsitiPec:
+    Type: String
+    
+  PnEcCronLavorazioneBatchSms:
+    Type: String
+
+  PnEcCronLavorazioneBatchEmail:
+    Type: String
+
+  PnEcCronLavorazioneBatchPec:
+    Type: String
+
+  PnEcCronLavorazioneBatchCartaceo:
+    Type: String
+
+  PnEcCronGestioneRetryEmail:
+    Type: String
+
+  PnEcCronGestioneRetryPec:
+    Type: String
+
+  PnEcCronGestioneRetrySms:
+    Type: String
+
+  PnEcCronGestioneRetryCartaceo:
+    Type: String
+
+  #### Parametri Indipendenti ####
+
   PnEcConsolidatoreBaseURL:
     Description: 'Base URL per accesso ai servizi del consolidatore'
     Type: String
@@ -589,9 +619,12 @@ Parameters:
   LogAlarmStrategy:
     Type: String
     Default: 'FATAL'
+
   PCKmsEncDecDynamoDataKeyARN:
     Type: String
     Description: 'Name of KMS Key for Dynamo encode/decode data'
+
+  ###### pn-core Event Bus #######
 
   # Log group parameters
   EcsLogGroup:
@@ -644,15 +677,24 @@ Resources:
         ContainerEnvEntry23: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
         ContainerEnvEntry24: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
         ContainerEnvEntry25: !Sub 'PnEcQueueNameScaricamentoEsitiPEC=${PnEcQueueNameScaricamentoEsitiPEC}'
-        ContainerEnvEntry30: 'SafeStorageClientId=pn-external-channels'
-        ContainerEnvEntry31: 'SafeStorageClientApiKey=pn-external-channels_api_key'
-        ContainerEnvEntry32: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
-        ContainerEnvEntry35: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry36: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry37: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry38: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
-        ContainerEnvEntry39: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
-        ContainerEnvEntry40: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
+        ContainerEnvEntry30: !Sub 'PnEcCronScaricamentoEsitiPec=${PnEcCronScaricamentoEsitiPec}'
+        ContainerEnvEntry31: !Sub 'PnEcCronLavorazioneBatchSms=${PnEcCronLavorazioneBatchSms}'
+        ContainerEnvEntry32: !Sub 'PnEcCronLavorazioneBatchEmail=${PnEcCronLavorazioneBatchEmail}'
+        ContainerEnvEntry33: !Sub 'PnEcCronLavorazioneBatchPec=${PnEcCronLavorazioneBatchPec}'
+        ContainerEnvEntry34: !Sub 'PnEcCronLavorazioneBatchCartaceo=${PnEcCronLavorazioneBatchCartaceo}'
+        ContainerEnvEntry35: !Sub 'PnEcCronGestioneRetryEmail=${PnEcCronGestioneRetryEmail}'
+        ContainerEnvEntry36: !Sub 'PnEcCronGestioneRetryPec=${PnEcCronGestioneRetryPec}'
+        ContainerEnvEntry37: !Sub 'PnEcCronGestioneRetrySms=${PnEcCronGestioneRetrySms}'
+        ContainerEnvEntry38: !Sub 'PnEcCronGestioneRetryCartaceo=${PnEcCronGestioneRetryCartaceo}'
+        ContainerEnvEntry40: 'SafeStorageClientId=pn-external-channels'
+        ContainerEnvEntry41: 'SafeStorageClientApiKey=pn-external-channels_api_key'
+        ContainerEnvEntry42: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
+        ContainerEnvEntry43: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry44: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry45: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry46: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
+        ContainerEnvEntry47: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
+        ContainerEnvEntry48: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
