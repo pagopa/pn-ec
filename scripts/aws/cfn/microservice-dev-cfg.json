@@ -3,6 +3,15 @@
     "PnEcIdentityPec":"pn/identity/pec",
     "PnEcConsolidatoreBaseURL":"http://internal-pn-re-Appli-17ZRKQ0S21KXS-1215481206.eu-south-1.elb.amazonaws.com:8080",
     "PnEcEmailDefaultSender": "noreply@mail.dev.notifichedigitali.it",
-    "ConsolidatoreClientId": "pn-cons-000"
+    "ConsolidatoreClientId": "pn-cons-000",
+    "PnEcCronScaricamentoEsitiPec": "0 */5 * * * *",
+    "PnEcCronLavorazioneBatchSms": "0 */5 * * * *",
+    "PnEcCronLavorazioneBatchEmail": "0 */5 * * * *",
+    "PnEcCronLavorazioneBatchPec": "0 */5 * * * *",
+    "PnEcCronLavorazioneBatchCartaceo": "0 */1 * * * *",
+    "PnEcCronGestioneRetryEmail": "0 */5 * * * *",
+    "PnEcCronGestioneRetryPec": "0 */5 * * * *",
+    "PnEcCronGestioneRetrySms": "0 */5 * * * *",
+    "PnEcCronGestioneRetryCartaceo": "0 */5 * * * *"
   }
 }
