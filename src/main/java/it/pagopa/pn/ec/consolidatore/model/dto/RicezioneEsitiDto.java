@@ -1,20 +1,24 @@
 package it.pagopa.pn.ec.consolidatore.model.dto;
 
+import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogError;
+import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogEvent;
 import it.pagopa.pn.ec.rest.v1.dto.ConsolidatoreIngressPaperProgressStatusEvent;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
 public class RicezioneEsitiDto {
 	ConsolidatoreIngressPaperProgressStatusEvent paperProgressStatusEvent;
 	OperationResultCodeResponse operationResultCodeResponse;
+	List<ConsAuditLogError> consAuditLogErrorList;
 	
 	public RicezioneEsitiDto paperProgressStatusEvent(ConsolidatoreIngressPaperProgressStatusEvent paperProgressStatusEvent) {
 		this.paperProgressStatusEvent = paperProgressStatusEvent;
@@ -23,6 +27,11 @@ public class RicezioneEsitiDto {
 	
 	public RicezioneEsitiDto operationResultCodeResponse(OperationResultCodeResponse operationResultCodeResponse) {
 		this.operationResultCodeResponse = operationResultCodeResponse;
+		return this;
+	}
+
+	public RicezioneEsitiDto consAuditLogErrorList(List<ConsAuditLogError> consAuditLogErrorList) {
+		this.consAuditLogErrorList = consAuditLogErrorList;
 		return this;
 	}
 

@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.consolidatore.controller;
 
-import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.ERR_CONS_BAD_API_KEY;
-import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.ERR_CONS_BAD_JSON_FORMAT;
+import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
 import static it.pagopa.pn.ec.consolidatore.utils.LogUtils.INVALID_API_KEY;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_MESSAGE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_OK_CODE;
@@ -13,6 +12,9 @@ import java.util.List;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import it.pagopa.pn.ec.commons.service.AuthService;
+import it.pagopa.pn.ec.consolidatore.exception.SemanticException;
+import it.pagopa.pn.ec.consolidatore.exception.SyntaxException;
+import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogError;
 import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -84,7 +86,9 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     @Override
     public Mono<ResponseEntity<FileDownloadResponse>> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, final ServerWebExchange exchange) {
         return consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
-                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), xPagopaExtchServiceId))
+                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(fileKey, e.getFieldErrors()))
+                .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(fileKey).errorList(e.getAuditLogErrorList())))
+                .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(fileKey).errorList(e.getAuditLogErrorList())))
                 .map(ResponseEntity::ok);
     }
 
@@ -92,7 +96,9 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     @Override
     public Mono<ResponseEntity<PreLoadResponseData>> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> preLoadRequestData, ServerWebExchange exchange) {
         return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
-                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), xPagopaExtchServiceId))
+                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(preLoadRequestData, e.getFieldErrors()))
+                .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(preLoadRequestData).errorList(e.getAuditLogErrorList())))
+                .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(preLoadRequestData).errorList(e.getAuditLogErrorList())))
                 .map(ResponseEntity::ok);
     }
 
@@ -106,7 +112,6 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                 .flatMap(clientConfiguration -> {
 
                     if (clientConfiguration.getApiKey() == null || !clientConfiguration.getApiKey().equals(xApiKey)) {
-                        log.error("{} - {}", ERR_CONS_BAD_API_KEY.getValue(), new ConsAuditLogEvent().clientId(xPagopaExtchServiceId).message(INVALID_API_KEY));
                         return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, INVALID_API_KEY));
                     }
                     return Mono.just(clientConfiguration);
@@ -142,11 +147,19 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                 log.debug(LOG_LABEL + "errori sintattici/semantici : Sono stati individuati {} macro errori", listErrorResponse.size());
                                 // errori
                                 var listErrors = new ArrayList<OperationResultCodeResponse>();
+                                var consAuditLogErrorList = new ArrayList<ConsAuditLogError>();
+
                                 listErrorResponse.forEach(dto -> {
+                                    if (dto.getConsAuditLogErrorList() != null) {
+                                        consAuditLogErrorList.addAll(dto.getConsAuditLogErrorList());
+                                    }
+
                                     if (dto.getOperationResultCodeResponse() != null) {
                                         listErrors.add(dto.getOperationResultCodeResponse());
                                     }
                                 });
+
+                                log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().errorList(consAuditLogErrorList).request(consolidatoreIngressPaperProgressStatusEvent).build());
 
                                 var errors = getAllErrors(listErrors);
                                 log.debug(LOG_LABEL + "errori sintattici/semantici : "
@@ -163,7 +176,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                 errors)));
                             }
                         })
-                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), xPagopaExtchServiceId)))
+                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(consolidatoreIngressPaperProgressStatusEvent, e.getFieldErrors())))
                         .onErrorResume(RuntimeException.class, throwable -> {
                             log.error(LOG_LABEL + "* FATAL * errore generico = {}, {}", throwable, throwable.getMessage());
                             return Mono.just(ResponseEntity.internalServerError()
@@ -203,10 +216,15 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                 });
     }
 
-    private void fieldValidationAuditLog(List<FieldError> errors, String xPagopaExtchServiceId) {
+    private void fieldValidationAuditLog(Object request, List<FieldError> errors) {
+        List<ConsAuditLogError> consAuditLogErrorList = new ArrayList<>();
+
         for (FieldError error : errors) {
-            log.error("{} - {}", ERR_CONS_BAD_JSON_FORMAT, new ConsAuditLogEvent().clientId(xPagopaExtchServiceId).message(String.format("%s - %s", error.getField(), error.getDefaultMessage())));
+            String description = String.format("%s - %s", error.getField(), error.getDefaultMessage());
+            var consAuditLogError = ConsAuditLogError.builder().description(description).error(ERR_CONS_BAD_JSON_FORMAT.getValue()).build();
+            consAuditLogErrorList.add(consAuditLogError);
         }
+        log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(request).errorList(consAuditLogErrorList));
     }
 
 }

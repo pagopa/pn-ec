@@ -12,9 +12,9 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
+import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogError;
 import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogEvent;
 import it.pagopa.pn.ec.consolidatore.model.dto.RicezioneEsitiDto;
-import it.pagopa.pn.ec.consolidatore.exception.AttachmentsEmptyRicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.consolidatore.exception.RicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.consolidatore.service.RicezioneEsitiCartaceoService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 
 import java.util.ArrayList;
@@ -77,29 +78,30 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 
 		return statusPullService.paperPullService(requestId, xPagopaExtchServiceId)
-				.flatMap(progressStatusEventToCheck ->
+				.map(progressStatusEventToCheck ->
 				{
 
 					var iun = progressStatusEventToCheck.getIun();
 					var productType = progressStatusEventToCheck.getProductType();
 
 					List<String> errorList = new ArrayList<>();
+					List<ConsAuditLogError> auditLogErrorList = new ArrayList<>();
 
 					//Iun
 					if (!StringUtils.isBlank(iun) && !progressStatusEvent.getIun().equals(iun)) {
-						log.error("{} - {}", ERR_CONS_BAD_IUN.getValue(), new ConsAuditLogEvent().requestId(requestId).clientId(xPagopaExtchServiceId).message("Iun is not valid."));
+						auditLogErrorList.add(ConsAuditLogError.builder().requestId(requestId).error(ERR_CONS_BAD_IUN.getValue()).description("Iun is not valid.").build());
 						errorList.add(String.format(UNRECOGNIZED_ERROR, IUN_LABEL, iun));
 					}
 					// StatusCode
 					if (!statusCodeDescriptionMap().containsKey(progressStatusEvent.getStatusCode())) {
-						log.error("{} - {}", ERR_CONS_BAD_STATUS_CODE.getValue(), new ConsAuditLogEvent().requestId(requestId).clientId(xPagopaExtchServiceId).message("Status code is not valid."));
+						auditLogErrorList.add(ConsAuditLogError.builder().requestId(requestId).error(ERR_CONS_BAD_STATUS_CODE.getValue()).description("Status code is not valid.").build());
 						errorList.add(String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()));
 					}
 					// DeliveryFailureCause non è un campo obbligatorio
 					if (progressStatusEvent.getDeliveryFailureCause() != null
 							&& !progressStatusEvent.getDeliveryFailureCause().isBlank()
 							&& !deliveryFailureCausemap().containsKey(progressStatusEvent.getDeliveryFailureCause())) {
-		            log.error("{} - {}", ERR_CONS_BAD_DEL_FAILURE_CAUSE.getValue(), new ConsAuditLogEvent().requestId(requestId).clientId(xPagopaExtchServiceId).message("DeliveryFailureCause is not valid."));
+						auditLogErrorList.add(ConsAuditLogError.builder().requestId(requestId).error(ERR_CONS_BAD_DEL_FAILURE_CAUSE.getValue()).description("DeliveryFailureCause is not valid.").build());
 						errorList.add(String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
 					}
 					//TODO COMMENTATO PER UN CASO PARTICOLARE CHE ANDRA' GESTITO IN FUTURO.
@@ -122,10 +124,13 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 //						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
 //						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
 //					}
-						return Mono.just(errorList);
+						return Tuples.of(errorList, auditLogErrorList);
 					})
-				.handle((errorList, syncrhonousSink) ->
+				.handle((tuple, syncrhonousSink) ->
 				{
+					var errorList = tuple.getT1();
+					var auditLogErrorList = tuple.getT2();
+
 					if (errorList.isEmpty()) {
 						log.debug(LOG_LABEL + "END without errors for requestId \"{}\"", progressStatusEvent.getRequestId());
 						syncrhonousSink.next(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null));
@@ -134,7 +139,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 						syncrhonousSink.error(new RicezioneEsitiCartaceoException(
 								SEMANTIC_ERROR_CODE,
 								errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-								errorList));
+								errorList, auditLogErrorList));
 					}
 				});
 	}
@@ -161,10 +166,11 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 					// se ok (httpstatus 200), continuo (verifica andata a buon fine)
 					return Mono.just(documentAttachmentKey);
 				}
+				var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_URI.getValue()).requestId(requestId).description("The attachment uri is not valid.").build();
 				return Mono.error(new RicezioneEsitiCartaceoException(
-										  SEMANTIC_ERROR_CODE,
-										  errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-										  List.of(String.format(UNRECOGNIZED_ERROR, ATTACHMENT_URI_LABEL, attachment.getUri()))));
+						SEMANTIC_ERROR_CODE,
+						errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
+						List.of(String.format(UNRECOGNIZED_ERROR, ATTACHMENT_URI_LABEL, attachment.getUri())), List.of(consAuditLogError)));
 			})
 			.flatMap(documentAttachmentKey -> fileCall.getFile(documentAttachmentKey, xPagopaExtchServiceId, true))
 			// se non si verificano errori, procedo e non mi interssa il risultato
@@ -173,12 +179,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				log.debug(LOG_LABEL + "END without errors");
 				return Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null));
 			})
-			// ***
-			.onErrorResume(RicezioneEsitiCartaceoException.class,
-					   throwable -> {
-						   log.error("{} - {}", ERR_CONS_BAD_URI.getValue(), new ConsAuditLogEvent().requestId(requestId).clientId(xPagopaExtchServiceId).message("The attachment uri is not valid."));
-						   return Mono.error(throwable);
-			})
 			.onErrorResume(Generic400ErrorException.class,
 					   throwable -> {
 							 log.debug(LOG_LABEL + "* FATAL * requestId = {}, errore attachment -> title = {}, details {}",
@@ -186,15 +186,15 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 							 return Mono.error(new RicezioneEsitiCartaceoException(
 												  SEMANTIC_ERROR_CODE,
 												  errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-												  List.of(String.format(UNRECOGNIZED_ERROR_NO_VALUE, ATTACHMENT_URI_LABEL))));
+												  List.of(String.format(UNRECOGNIZED_ERROR_NO_VALUE, ATTACHMENT_URI_LABEL)), null));
 			})
 			.onErrorResume(AttachmentNotAvailableException.class,
 					throwable -> {
-						log.error("{} - {}", ERR_CONS_ATTACH_NOT_FOUND.getValue(), new ConsAuditLogEvent().requestId(requestId).clientId(xPagopaExtchServiceId).message("The attachment has not been found."));
+						var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_ATTACH_NOT_FOUND.getValue()).requestId(requestId).description("The attachment has not been found.").build();
 						return Mono.error(new RicezioneEsitiCartaceoException(
 								SEMANTIC_ERROR_CODE,
 								errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-								List.of(String.format(UNRECOGNIZED_ERROR_NO_VALUE, ATTACHMENT_URI_LABEL))));
+								List.of(String.format(UNRECOGNIZED_ERROR_NO_VALUE, ATTACHMENT_URI_LABEL)), List.of(consAuditLogError)));
 			})
 			.onErrorResume(RuntimeException.class,
 					   throwable -> {
@@ -218,19 +218,18 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				 .flatMap(unused -> gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceId, progressStatusEvent.getRequestId()))
 			     .flatMap(unused -> verificaErroriSemantici(progressStatusEvent, xPagopaExtchServiceId))
 			     .flatMap(unused -> verificaAttachments(xPagopaExtchServiceId, requestId, progressStatusEvent.getAttachments()))
-			     .flatMap(unused -> Mono.just(new RicezioneEsitiDto(progressStatusEvent,
-											 			 		    getOperationResultCodeResponse(COMPLETED_OK_CODE,
-											 			 		    							   COMPLETED_MESSAGE,
-											 			 		    							   null)))
+				  .flatMap(unused -> Mono.just(new RicezioneEsitiDto(progressStatusEvent,
+						  getOperationResultCodeResponse(COMPLETED_OK_CODE,
+								  COMPLETED_MESSAGE,
+								  null), null))
 			     )
 			     // *** errore Request Id non trovata
 			     .onErrorResume(RestCallException.ResourceNotFoundException.class, throwable -> {
-		    		 log.error("{} - {}", ERR_CONS_REQ_ID_NOT_FOUND.getValue(), new ConsAuditLogEvent().requestId(requestId).clientId(xPagopaExtchServiceId).message("RequestId not found."));
-
+					 var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_REQ_ID_NOT_FOUND.getValue()).requestId(requestId).description("RequestId not found.").build();
 					 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
-			    			 								getOperationResultCodeResponse(REQUEST_ID_ERROR_CODE,
-																					       errorCodeDescriptionMap().get(REQUEST_ID_ERROR_CODE),
-																					       List.of(String.format("requestId '%s' unrecognized", requestId)))));
+							 getOperationResultCodeResponse(REQUEST_ID_ERROR_CODE,
+									 errorCodeDescriptionMap().get(REQUEST_ID_ERROR_CODE),
+									 List.of(String.format("requestId '%s' unrecognized", requestId))), List.of(consAuditLogError)));
 			     })
 			     // *** errore semantico
 			     .onErrorResume(RicezioneEsitiCartaceoException.class, throwable -> {
@@ -239,15 +238,15 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			    	 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 								    			 		    getOperationResultCodeResponse(throwable.getResultCode(),
 																						   throwable.getResultDescription(),
-																						   throwable.getErrorList())));
+																						   throwable.getErrorList()), throwable.getAuditLogErrorList()));
 			     })
 			     // *** errore generico
 			     .onErrorResume(RuntimeException.class, throwable -> {
 		    	     log.error("* FATAL * verificaEsitoDaConsolidatore - {}, {}", throwable, throwable.getMessage());
-			    	 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
-							    			 		       getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
-							    			 		    		   						  errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
-							    			 		    		   						  List.of(throwable.getMessage()))));
+					 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
+							 getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
+									 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
+									 List.of(throwable.getMessage())), null));
 			     });
 	}
 

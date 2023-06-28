@@ -7,6 +7,7 @@ import lombok.Getter;
 @Getter
 public enum ConsAuditLogEventType {
 
+    ERR_CONS("[ERR_CONS]"),
     ERR_CONS_BAD_IUN("[ERR_CONS_BAD_IUN]"),
     ERR_CONS_BAD_STATUS_CODE("[ERR_CONS_BAD_STATUS_CODE]"),
     ERR_CONS_BAD_DEL_FAILURE_CAUSE("[ERR_CONS_BAD_DEL_FAILURE_CAUSE]"),
