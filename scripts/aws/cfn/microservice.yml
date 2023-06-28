@@ -578,6 +578,10 @@ Parameters:
     Description: 'Client ID del consolidatore'
     Type: String
 
+  PnEcSmsDefaultSenderID:
+    Description: 'SMS default Sender ID'
+    Type: String
+
   PnEcEmailDefaultSender:
     Description: 'Default sender email address'
     Type: String
@@ -675,6 +679,7 @@ Resources:
         ContainerEnvEntry37: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
         ContainerEnvEntry38: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
         ContainerEnvEntry39: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
+        ContainerEnvEntry40: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
         ContainerEnvEntry50: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
         ContainerEnvEntry51: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
@@ -1181,7 +1186,6 @@ Resources:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   ########### METRICS AND ALARMS - MICROSERVICE ###########
-<<<<<<< HEAD
   ApplicationLoadBalancerOnCallAlarm:
     Type: AWS::CloudWatch::Alarm
     Condition: HasAlbDimensionName
@@ -1238,8 +1242,6 @@ Resources:
         - Id: e1
           Expression: IF(m3>=10 AND (m1/m3>=0.9 OR m2/m3>=0.1), 1, 0)
           Label: !Sub "${ProjectName}-external-channel-ALBAlarm-oncall-metric"
-=======
->>>>>>> refs/remotes/origin/feature/performance-test-sms
 
   ExternalChannelMicroserviceAlarm:
     Type: AWS::CloudFormation::Stack
@@ -1250,7 +1252,6 @@ Resources:
         EvaluationPeriod: '10'
         DatapointsToAlarm: '1'
         Threshold: '1'
-<<<<<<< HEAD
 
   ExternalChannelMicroserviceAlarmDashboard:
     Type: AWS::CloudFormation::Stack
@@ -1307,10 +1308,7 @@ Resources:
             - !Ref PnEcQueueArnErroriEMAIL
             - !Ref PnEcQueueArnBatchCARTACEO
             - !Ref PnEcQueueArnErroriCARTACEO
-=======
->>>>>>> refs/remotes/origin/feature/performance-test-sms
 
-<<<<<<< HEAD
   ExternalChannelChannelsMicroserviceAlarmDashboard:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -1353,8 +1351,6 @@ Resources:
             - !Ref PnEcQueueArnTrackerErroriEMAIL
             - !Ref PnEcQueueArnTrackerStatoCARTACEO
             - !Ref PnEcQueueArnTrackerErroriCARTACEO
-=======
->>>>>>> refs/remotes/origin/feature/performance-test-sms
 
   #####    External notifications    #####
   PnEcRoleExternalNotifications:
