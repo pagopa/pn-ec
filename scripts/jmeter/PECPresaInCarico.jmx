@@ -21,7 +21,7 @@
       <OpenModelThreadGroup guiclass="OpenModelThreadGroupGui" testclass="OpenModelThreadGroup" testname="PECPresaInCarico - Thread Group" enabled="true">
         <elementProp name="ThreadGroup.main_controller" elementType="OpenModelThreadGroupController"/>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <stringProp name="OpenModelThreadGroup.schedule">random_arrivals(30 s) rate(20/s) even_arrivals(15 min) random_arrivals(1 s) rate(0/s) </stringProp>
+        <stringProp name="OpenModelThreadGroup.schedule">random_arrivals(0 s) rate(5/s) even_arrivals(1 min) random_arrivals(1 s) rate(0/s) </stringProp>
         <stringProp name="OpenModelThreadGroup.random_seed"></stringProp>
       </OpenModelThreadGroup>
       <hashTree>
@@ -78,7 +78,7 @@
   &quot;subjectText&quot;: &quot;pn-ec-stressTestPEC&quot;,&#xd;
   &quot;messageContentType&quot;: &quot;text/plain&quot;,&#xd;
   &quot;attachmentUrls&quot;: [&#xd;
-    &quot;safestorage://PN_NOTIFICATION_ATTACHMENTS-100034c90b1849dabd729eef59fb452a.pdf&quot;&#xd;
+    &quot;safestorage://PN_EXTERNAL_LEGAL_FACTS-100e64792f4247f9b63367b77d8021d2.xml&quot;&#xd;
   ]&#xd;
 }&#xd;
 </stringProp>
