@@ -1272,16 +1272,16 @@ Outputs:
 ###### SCARICAMENTO ESITI : PEC #######
 
   PnEcQueueNameScaricamentoEsitiPEC:
-    Description: '[Canale SMS] Nome della Coda per lo scaricamento esiti PEC'
-    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueName
+    Description: '[Canale PEC] Nome della Coda per lo scaricamento esiti PEC'
+    Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueName
 
   PnEcQueueArnScaricamentoEsitiPEC:
-    Description: '[Canale SMS] ARN della Coda per lo scaricamento esiti PEC'
-    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueARN
+    Description: '[Canale PEC] ARN della Coda per lo scaricamento esiti PEC'
+    Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueARN
 
   PnEcQueueUrlScaricamentoEsitiPEC:
-    Description: '[Canale SMS] URL della Coda per lo scaricamento esiti PEC'
-    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueURL
+    Description: '[Canale PEC] URL della Coda per lo scaricamento esiti PEC'
+    Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueScaricamentoEsitiPEC:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueScaricamentoEsitiPEC"
