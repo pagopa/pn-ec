@@ -87,6 +87,11 @@ Parameters:
     Type: String
     Description: 'ARN del Event Bus per le notifiche verso le piattaforme esterne'
 
+  MinTasksNumber:
+    Default: 1
+    Type: Number
+    Description: minimum autoscaling number of tasks
+
   ######### TABLES  ############
 
   PnEcTableNameAnagrafica:
@@ -666,6 +671,7 @@ Resources:
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
         EcsLogGroup: !Ref EcsLogGroup
         LoadBalancingAlgorithm: round_robin
+        MinTasksNumber: !Ref MinTasksNumber        
 
   PnEcManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
