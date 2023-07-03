@@ -1,5 +1,8 @@
 package it.pagopa.pn.ec.commons.configuration.http;
 
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.Request;
@@ -7,13 +10,10 @@ import org.eclipse.jetty.http.HttpField;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
 import java.net.URI;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetDecoder;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_XML_VALUE;
@@ -21,8 +21,6 @@ import static org.springframework.http.MediaType.APPLICATION_XML_VALUE;
 @Configuration
 @Slf4j
 public class JettyHttpClientConf {
-
-    private final CharsetDecoder charsetDecoder = StandardCharsets.UTF_8.newDecoder();
     private final SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
     private static final List<String> CONTENT_TYPE_OF_RESPONSE_BODY_TO_LOG = List.of(APPLICATION_JSON_VALUE, APPLICATION_XML_VALUE);
 
@@ -37,9 +35,29 @@ public class JettyHttpClientConf {
         };
     }
 
+    @Bean
+    public HttpClient getTrustAllJettyHttpClient() {
+
+        var context = new SslContextFactory.Client();
+        context.setTrustAll(true);
+
+        return new HttpClient(context) {
+            @Override
+            public Request newRequest(URI uri) {
+                Request request = super.newRequest(uri);
+                return enhance(request);
+            }
+        };
+
+    }
+
     private Request enhance(Request request) {
 
         request.onRequestBegin(theRequest -> log.debug("Start {} request to {}", theRequest.getMethod(), theRequest.getURI()));
+
+        request.onRequestFailure((theRequest, throwable) -> {
+            log.error("Request failure : {} , {}", throwable, throwable.getMessage());
+        });
 
         request.onRequestHeaders(theRequest -> {
             for (HttpField header : theRequest.getHeaders()) {
@@ -49,8 +67,8 @@ public class JettyHttpClientConf {
 
         request.onRequestContent((theRequest, content) -> {
             try {
-                log.debug("Request body --> {}", charsetDecoder.decode(content));
-            } catch (CharacterCodingException e) {
+                log.debug("Request body --> {}", decodeContent(content));
+            } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }
         });
@@ -58,8 +76,8 @@ public class JettyHttpClientConf {
         request.onResponseContent((theResponse, content) -> {
             if (CONTENT_TYPE_OF_RESPONSE_BODY_TO_LOG.contains(theResponse.getHeaders().get(CONTENT_TYPE))) {
                 try {
-                    log.debug("Response body --> {}", charsetDecoder.decode(content));
-                } catch (CharacterCodingException e) {
+                    log.debug("Response body --> {}", decodeContent(content));
+                } catch (Exception e) {
                     log.error(e.getMessage(), e);
                 }
             }
@@ -67,4 +85,11 @@ public class JettyHttpClientConf {
 
         return request;
     }
+
+    private String decodeContent(ByteBuffer content) {
+        byte[] bytes = new byte[content.remaining()];
+        content.get(bytes);
+        return new String(bytes, StandardCharsets.UTF_8);
+    }
+
 }

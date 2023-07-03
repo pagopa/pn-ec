@@ -17,6 +17,7 @@ import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.*;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
+import it.pagopa.pn.ec.email.configurationproperties.EmailDefault;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -41,6 +42,7 @@ import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.commons.service.SesService.DEFAULT_RETRY_STRATEGY;
+import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromMonoUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.HTML;
@@ -59,6 +61,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     private final AttachmentServiceImpl attachmentService;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final EmailSqsQueueName emailSqsQueueName;
+    private final EmailDefault emailDefault;
     private final DownloadCall downloadCall;
 
     private String idSaved;
@@ -68,7 +71,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
                            SesService sesService, AttachmentServiceImpl attachmentService,
                            NotificationTrackerSqsName notificationTrackerSqsName, EmailSqsQueueName emailSqsQueueName,
-                           DownloadCall downloadCall) {
+                           DownloadCall downloadCall, EmailDefault emailDefault) {
         super(authService);
         this.sqsService = sqsService;
         this.sesService = sesService;
@@ -76,6 +79,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         this.attachmentService = attachmentService;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.emailSqsQueueName = emailSqsQueueName;
+        this.emailDefault = emailDefault;
         this.downloadCall = downloadCall;
     }
 
@@ -86,16 +90,19 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
+        var senderAddress= digitalNotificationRequest.getSenderDigitalAddress();
+        if(Objects.isNull(senderAddress) || senderAddress.isEmpty()) {
+            digitalNotificationRequest.setSenderDigitalAddress(emailDefault.defaultSenderAddress());
+        }
 
         log.info("<-- START PRESA IN CARICO EMAIL --> Request ID: {}, Client ID: {}", requestIdx, xPagopaExtchCxId);
 
         digitalNotificationRequest.setRequestId(requestIdx);
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest()
-                                                                                         .getAttachmentsUrls(), xPagopaExtchCxId, true)
+                                                                                         .getAttachmentUrls(), xPagopaExtchCxId, true)
 
-                                .flatMap(fileDownloadResponse -> insertRequestFromEmail(digitalNotificationRequest,
-                                                                                        emailPresaInCaricoInfo.getXPagopaExtchCxId()))
+                                .then(insertRequestFromEmail(digitalNotificationRequest, emailPresaInCaricoInfo.getXPagopaExtchCxId()))
 
                                 .flatMap(requestDto -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                                                                                      BOOKED.getStatusTransactionTableCompliant(),
@@ -139,7 +146,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             digitalRequestPersonalDto.setMessageText(digitalCourtesyMailRequest.getMessageText());
             digitalRequestPersonalDto.setSenderDigitalAddress(digitalCourtesyMailRequest.getSenderDigitalAddress());
             digitalRequestPersonalDto.setSubjectText(digitalCourtesyMailRequest.getSubjectText());
-            digitalRequestPersonalDto.setAttachmentsUrls(digitalCourtesyMailRequest.getAttachmentsUrls());
+            digitalRequestPersonalDto.setAttachmentsUrls(digitalCourtesyMailRequest.getAttachmentUrls());
             requestPersonalDto.setDigitalRequestPersonal(digitalRequestPersonalDto);
 
             var requestMetadataDto = new RequestMetadataDto();
@@ -165,7 +172,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     @Scheduled(cron = "${cron.value.lavorazione-batch-email}")
     public void lavorazioneRichiestaBatch() {
-        sqsService.getOneMessage(emailSqsQueueName.batchName(), EmailPresaInCaricoInfo.class)
+        sqsService.getMessages(emailSqsQueueName.batchName(), EmailPresaInCaricoInfo.class)
                   .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(emailSqsQueueName.batchName(),
                                                                                           emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                   .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(emailPresaInCaricoInfoSqsMessageWrapper.getMessage()),
@@ -173,7 +180,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                   .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(
                           emailPresaInCaricoInfoSqsMessageWrapper.getT1(),
                           emailSqsQueueName.batchName()))
-                  .transform(pullFromMonoUntilIsEmpty())
+                  .transform(pullFromFluxUntilIsEmpty())
                   .subscribe();
     }
 
@@ -190,7 +197,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
         // Try to send EMAIL
-        return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(), requestId, false)
+        return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentUrls(), requestId, false)
                                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
                                 .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
@@ -283,10 +290,10 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                  emailPresaInCaricoInfo.getXPagopaExtchCxId());
         logIncomingMessage(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-        if (!digitalCourtesyMailRequest.getAttachmentsUrls().isEmpty()) {
+        if (!digitalCourtesyMailRequest.getAttachmentUrls().isEmpty()) {
             return processWithAttachRetry(emailPresaInCaricoInfo, message);
         } else {
-            return processOnlyBodyRerty(emailPresaInCaricoInfo, message);
+            return processOnlyBodyRetry(emailPresaInCaricoInfo, message);
         }
     }
 
@@ -391,15 +398,18 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                                                                                                                                                                                    return deleteMessageFromErrorQueue(message);
                                                                                                                                                                                                                })
                                                                                                                                                                                                        .onErrorResume(
-                                                                                                                                                                                                               sqsPublishException -> checkTentativiEccessiviEmail(
-                                                                                                                                                                                                                       requestId,
-                                                                                                                                                                                                                       requestDto,
-                                                                                                                                                                                                                       emailPresaInCaricoInfo,
-                                                                                                                                                                                                                       message));
+                                                                                                                                                                                                               sqsPublishException -> {
+                                                                                                                                                                                                                   log.error("* FATAL * processWithAttachRetry {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                                                                                                                                                                                                                   return checkTentativiEccessiviEmail(
+                                                                                                                                                                                                                           requestId,
+                                                                                                                                                                                                                           requestDto,
+                                                                                                                                                                                                                           emailPresaInCaricoInfo,
+                                                                                                                                                                                                                           message);
+                                                                                                                                                                                                               });
                                                              } else {
                                                                  //                gestisco il caso retry a partire dalla gestione
                                                                  //                allegati e invio a ses
-                                                                 return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentsUrls(),
+                                                                 return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalCourtesyMailRequest.getAttachmentUrls(),
                                                                                                                             emailPresaInCaricoInfo.getXPagopaExtchCxId(),
                                                                                                                             false)
 
@@ -444,10 +454,13 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                                                                        emailSqsQueueName.errorName());
                                                                                              return deleteMessageFromErrorQueue(message);
                                                                                          })
-                                                                                         .onErrorResume(sqsPublishException -> checkTentativiEccessiviEmail(requestId,
-                                                                                                                                                            requestDto,
-                                                                                                                                                            emailPresaInCaricoInfo,
-                                                                                                                                                            message));
+                                                                                         .onErrorResume(sqsPublishException -> {
+                                                                                             log.error("* FATAL * processWithAttachRetry {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                                                                                             return checkTentativiEccessiviEmail(requestId,
+                                                                                                     requestDto,
+                                                                                                     emailPresaInCaricoInfo,
+                                                                                                     message);
+                                                                                         });
                                                              }
                                                          })//              Catch errore tirato per lo stato toDelete
                                                          .onErrorResume(RetryAttemptsExceededExeption.class,
@@ -479,7 +492,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         return gestoreRepositoryCall.patchRichiesta(requestDto.getxPagopaExtchCxId(), requestId, patchDto);
     }
 
-    private Mono<DeleteMessageResponse> processOnlyBodyRerty(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message) {
+    private Mono<DeleteMessageResponse> processOnlyBodyRetry(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message) {
 
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         var requestId = emailPresaInCaricoInfo.getRequestIdx();
@@ -515,10 +528,13 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                                                       return sqsService.deleteMessageFromQueue(message,
                                                                                                                                emailSqsQueueName.errorName());
                                                                                   })
-                                                                                  .onErrorResume(sqsPublishException -> checkTentativiEccessiviEmail(requestId,
-                                                                                                                                                     requestDto,
-                                                                                                                                                     emailPresaInCaricoInfo,
-                                                                                                                                                     message));
+                                                                                  .onErrorResume(sqsPublishException -> {
+                                                                                      log.error("* FATAL * processOnlyBodyRetry {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                                                                                      return checkTentativiEccessiviEmail(requestId,
+                                                                                              requestDto,
+                                                                                              emailPresaInCaricoInfo,
+                                                                                              message);
+                                                                                  });
                                                              } else {
                                                                  log.debug("requestDto Value: {}",
                                                                            requestDto.getRequestMetadata().getRetry());
@@ -540,15 +556,18 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                                                                 emailSqsQueueName.errorName());
                                                                                       return deleteMessageFromErrorQueue(message);
                                                                                   })
-                                                                                  .onErrorResume(sqsPublishException -> checkTentativiEccessiviEmail(requestId,
-                                                                                                                                                     requestDto,
-                                                                                                                                                     emailPresaInCaricoInfo,
-                                                                                                                                                     message));
+                                                                                  .onErrorResume(sqsPublishException -> {
+                                                                                      log.error("* FATAL * processOnlyBodyRetry {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                                                                                      return checkTentativiEccessiviEmail(requestId,
+                                                                                              requestDto,
+                                                                                              emailPresaInCaricoInfo,
+                                                                                              message);
+                                                                                  });
                                                              }
 
                                                          })
-                                                         .onErrorResume(RetryAttemptsExceededExeption.class,
-                                                                        retryAttemptsExceededExeption -> {
+                                                         .onErrorResume(it.pagopa.pn.ec.commons.exception.StatusToDeleteException.class,
+                                                                        statusToDeleteException -> {
                                                                             log.debug("Il messaggio è stato rimosso dalla coda d'errore " + "per status toDelete: {}",
                                                                                       emailSqsQueueName.errorName());
                                                                             return sendNotificationOnStatusQueue(emailPresaInCaricoInfo,

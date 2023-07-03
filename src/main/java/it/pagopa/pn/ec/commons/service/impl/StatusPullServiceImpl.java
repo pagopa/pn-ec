@@ -61,10 +61,10 @@ public class StatusPullServiceImpl implements StatusPullService {
             return callMacchinaStati.statusDecode(xPagopaExtchCxId, processId, digProgrStatus.getStatus().toLowerCase())
                                     .map(macchinaStatiDecodeResponseDto -> {
                                         event.setStatus(ProgressEventCategory.valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
-                                        event.setEventCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+                                        event.setEventCode(CourtesyMessageProgressEvent.EventCodeEnum.fromValue(macchinaStatiDecodeResponseDto.getLogicStatus()));
                                         return event;
                                     });
-        }).switchIfEmpty(Mono.just(new CourtesyMessageProgressEvent().eventCode("").eventDetails("").requestId("")));
+        }).switchIfEmpty(Mono.just(new CourtesyMessageProgressEvent().eventDetails("").requestId("")));
 
     }
 
@@ -95,11 +95,11 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                   digProgrStatus.getStatus().toLowerCase()).map(statiDecodeResponseDto -> {
                 if (statiDecodeResponseDto.getExternalStatus() != null) {
                     event.setStatus(ProgressEventCategory.valueOf(statiDecodeResponseDto.getExternalStatus()));
-                    event.setEventCode(statiDecodeResponseDto.getLogicStatus());
+                    event.setEventCode(LegalMessageSentDetails.EventCodeEnum.fromValue(statiDecodeResponseDto.getLogicStatus()));
                 }
                 return event;
             });
-        }).switchIfEmpty(Mono.just(new LegalMessageSentDetails().eventCode("").eventDetails("").requestId("")));
+        }).switchIfEmpty(Mono.just(new LegalMessageSentDetails().eventDetails("").requestId("")));
     }
 
     @Override
@@ -156,7 +156,8 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                        attachment.setDate(attachmentDTO.getDate());
                                                                        attachment.setDocumentType(attachmentDTO.getDocumentType());
                                                                        attachment.setId(attachmentDTO.getId());
-                                                                       attachment.setUrl(attachmentDTO.getUri());
+                                                                       attachment.setUri(attachmentDTO.getUri());
+                                                                       attachment.setSha256(attachmentDTO.getSha256());
 
                                                                        attachmentList.add(attachment);
                                                                    }

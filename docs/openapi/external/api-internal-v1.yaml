@@ -364,7 +364,8 @@ components:
       required: true
       schema:
         type: string
-        pattern: '[0-9A-Za-z_-]{5,100}'
+        minLength: 5
+        maxLength: 100
   
   responses:
     
@@ -448,6 +449,13 @@ components:
           $ref: '#/components/schemas/LegalMessageSentDetails'
         analogMail:
           $ref: '#/components/schemas/PaperProgressStatusEvent'
+        clientId: 
+          type: string
+        eventTimestamp: 
+          type: string
+          format: date-time
+          description: >-
+            Data di produzione dell'evento.
     
 
     ### - RIFERIMENTI AD ALTRI FILE

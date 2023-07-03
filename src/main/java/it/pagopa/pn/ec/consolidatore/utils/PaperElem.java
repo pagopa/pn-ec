@@ -108,7 +108,13 @@ public class PaperElem {
     public static final String RECRSI004C = "RECRSI004C";
     public static final String RECRSI005 = "RECRSI005";
     public static final String REC090 = "REC090";
-	
+    public static final String RECRS013 = "RECRS013";
+    public static final String RECRS015 = "RECRS015";
+    public static final String RECRN013 = "RECRN013";
+    public static final String RECRN015 = "RECRN015";
+    public static final String RECAG013 = "RECAG013";
+    public static final String RECAG015 = "RECAG015";
+
 	private static final Map<String, String> statusCodeDescriptionMap = Map.ofEntries(
 							// Eventi relativi alla fase di "Stampa/Postalizzazione"
 							Map.entry(CON998,"Scartato NODOC"),
@@ -209,7 +215,13 @@ public class PaperElem {
 				            Map.entry(RECRSI004B,"Non Consegnato - In Dematerializzazione"),
 				            Map.entry(RECRSI004C,"Non Consegnato - fascicolo Chiuso"),
 				            Map.entry(RECRSI005,"Furto/Smarrimanto/deterioramento"),
-				            Map.entry(REC090,"Archiviazione fisica materialità di ritorno")
+				            Map.entry(REC090,"Archiviazione fisica materialità di ritorno"),
+				            Map.entry(RECRS013,"Non rendicontabile"),
+				            Map.entry(RECRS015,"Causa di forza maggiore"),
+				            Map.entry(RECRN013,"Non Rendicontabile"),
+				            Map.entry(RECRN015,"Causa Forza Maggiore"),
+				            Map.entry(RECAG013,"Non Rendicontabile"),
+				            Map.entry(RECAG015,"Causa Forza Maggiore")
 						);
 	
 	public static Map<String, String> statusCodeDescriptionMap() {
@@ -242,9 +254,11 @@ public class PaperElem {
 			Map.entry("M06","indirizzo inesatto"),
 			Map.entry("M07","indirizzo inesistente"),
 			Map.entry("M08","indirizzo insufficiente"),
+			Map.entry("M09","altre motivazioni"),
 			Map.entry("F01","in caso di furto"),
 			Map.entry("F02","in caso di smarrimento"),
-			Map.entry("F03","in caso di deterioramento"));
+			Map.entry("F03","in caso di deterioramento"),
+			Map.entry("F04","in caso di rapina"));
 	
 	public static Map<String, String> deliveryFailureCausemap() {
 		return deliveryFailureCauseMap;

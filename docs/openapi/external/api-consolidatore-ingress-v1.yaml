@@ -13,8 +13,8 @@ tags:
     description: API del consolidatore.
 
 paths:
-  /consolidatore-ingress/v1/attachement-preload:
-    post:
+  /consolidatore-ingress/v1/attachment-preload:
+    put:
       summary: Richiesta di pre-caricamento dei documenti da comunicare a PN
       description: |-
         Operazione che richiede a Piattaforma Notifica le informazioni e le autorizzazioni necessarie 
@@ -70,8 +70,8 @@ paths:
                   summary: 'Errore semantico'
                   value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type' ], clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
 
-  /consolidatore-ingress/v1/push-progress-events/:
-    post:
+  /consolidatore-ingress/v1/push-progress-events:
+    put:
       operationId: sendPaperProgressStatusRequest
       summary: Webhook con cui PN riceve progressi postalizzazioni
       description: |-
@@ -250,12 +250,10 @@ components:
             - __RS__: Raccomandata Semplice nazionale (per Avviso di mancato Recapito). <br/>
             - __RIS__: Raccomandata Internazionale Semplice,  <br/>
             - __RIR__: Raccomandata Internazionale con AR.  <br/>
-          minLength: 2
-          maxLength: 3
           type: string
         iun:
           type: string
-          minLength: 30
+          minLength: 0
           maxLength: 50
           description: >-
             Identificativo Unico della Notifica. Proviene dalla richiesta originaria di PN.
@@ -299,6 +297,8 @@ components:
             - __RECRS005B__		- [RS] - Compiuta giacenza - In Dematerializzazione <br/> 
             - __RECRS005C__		- [RS] - Compiuta giacenza - Fascicolo Chiuso <br/> 
             - __RECRS006__		- [RS] - Furto/Smarrimanto/deterioramento <br/> 
+            - __RECRS013__		- [RS] - Non rendicontabile <br/> 
+            - __RECRS015__		- [RS] - Causa di forza maggiore <br/> 
             - __RECRN010__		- [AR] - Inesito <br/> 
             - __RECRN011__		- [AR] - In giacenza <br/> 
             - __RECRN001A__		- [AR] - Consegnato - pre-esito <br/> 
@@ -320,6 +320,8 @@ components:
             - __RECRN005B__		- [AR] - Compiuta giacenza - In Dematerializzazione <br/> 
             - __RECRN005C__		- [AR] - Compiuta giacenza - Fascicolo Chiuso <br/> 
             - __RECRN006__		- [AR] - Furto/Smarrimanto/deterioramento <br/> 
+            - __RECRN013__		- [AR] - Non Rendicontabile <br/> 
+            - __RECRN015__		- [AR] - Causa Forza Maggiore <br/> 
             - __RECAG010__		- [890] - Inesito <br/> 
             - __RECAG011A__		- [890] - In giacenza <br/> 
             - __RECAG011B__		- [890] - In giacenza - In Dematerializzazione <br/> 
@@ -349,6 +351,8 @@ components:
             - __RECAG008A__		- [890] - Compiuta giacenza - pre-esito <br/> 
             - __RECAG008B__		- [890] - Compiuta giacenza - In Dematerializzazione <br/> 
             - __RECAG008C__		- [890] - Compiuta giacenza - Fascicolo Chiuso <br/> 
+            - __RECAG013__		- [890] - Non Rendicontabile <br/> 
+            - __RECAG015__		- [890] - Causa Forza Maggiore <br/> 
             - __RECRI001__		- [RIR] - Avviato all'estero <br/> 
             - __RECRI002__		- [RIR] - Ingresso nel paese estero <br/> 
             - __RECRI003A__		- [RIR] - Consegnato - pre-esito <br/> 
@@ -389,11 +393,13 @@ components:
             - __M06__ indirizzo inesatto <br/>
             - __M07__ indirizzo inesistente <br/>
             - __M08__ indirizzo insufficiente <br/>
+            - __M09__ altre motivazioni <br/>
             - __F01__ - in caso di furto  <br/>
             - __F02__ - in caso di smarrimento  <br/>
             - __F03__  - in caso di deterioramento  <br/>
+            - __F04__  - in caso di rapina  <br/>
           type: string
-          minLength: 2
+          minLength: 0
           maxLength: 10
         attachments:
           description: >-
@@ -424,7 +430,7 @@ components:
               documentType:
                 type: string
                 minLength: 2
-                maxLength: 10
+                maxLength: 50
                 description: >-
                   _La descrizione della tipologia di oggetto._
                   - __23L__ <br/>
@@ -461,38 +467,47 @@ components:
             - city
           properties:
             name:
+              x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
               description: >-
                 Cognome e nome o ragione sociale del destinatario
             nameRow2:
+              x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
               description: >-
                 Seconda riga sulla busta.
             address:
+              x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
               description: >-
                 Indirizzo del destinatario.
             addressRow2:
+              x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
               description: >-
                 Specifica dell’indirizzo di residenza del destinatario (seconda riga indirizzo sulla busta).
             cap:
+              x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
               description: >-
                 Cap del destinatario; in caso di invio estero diventa facoltativo.
             city:
+              x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
               description: >-
                 Comune del destinatario.
             city2:
+              x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
               description: >-
                 Frazione del destinatario. Potrebbe essere utile se il chiamante non fornisce il cap.
             pr:
+              x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
               description: >-
                 Provincia del destinatario; in caso di invio estero diventa facoltativo.
             country:
+              x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
               description: >-
                 In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 

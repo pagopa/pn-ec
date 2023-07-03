@@ -55,8 +55,7 @@ public class AwsConfiguration {
     @Value("${test.aws.cloudwatch.endpoint:#{null}}")
     String cloudwatchLocalStackEndpoint;
 
-    private static final com.amazonaws.auth.DefaultAWSCredentialsProviderChain DEFAULT_AWS_CREDENTIALS_PROVIDER_CHAIN_V1 =
-            new com.amazonaws.auth.DefaultAWSCredentialsProviderChain();
+
 
     private static final DefaultCredentialsProvider DEFAULT_CREDENTIALS_PROVIDER_V2 = DefaultCredentialsProvider.create();
 
@@ -81,14 +80,6 @@ public class AwsConfiguration {
                                                                 new PayloadMethodArgumentResolver(converter, validator)));
 
         return queueMessageHandlerFactory;
-    }
-
-    @Bean
-    AmazonSQSAsync amazonSQS() {
-        return AmazonSQSAsyncClientBuilder.standard()
-                                          .withCredentials(DEFAULT_AWS_CREDENTIALS_PROVIDER_CHAIN_V1)
-                                          .withRegion(String.valueOf(Region.of(awsConfigurationProperties.regionCode())))
-                                          .build();
     }
 
 //  <-- AWS SDK for Java v2 -->

@@ -65,8 +65,6 @@ components:
             - __RIS__: Raccomandata Internazionale Semplice,  <br/>
             - __RIR__: Raccomandata Internazionale con AR.  <br/>
           type: string
-          minLength: 2
-          maxLength: 3
           example: 'AR'
         attachments:
           type: array
@@ -117,87 +115,106 @@ components:
           maxLength: 30
           example: 'BN_FRONTE_RETRO'
         receiverName:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Cognome e nome o ragione sociale del destinatario
           example: 'Mario Rossi'
         receiverNameRow2:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Seconda riga sulla busta.
           example: 'c/o famiglia Bianchi'
         receiverAddress:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Indirizzo del destinatario.
           example: 'via senza nome 610106'
         receiverAddressRow2:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Specifica dell’indirizzo di residenza del destinatario (seconda riga indirizzo sulla busta).
           example: 'scala Z interno 400'
         receiverCap:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Cap del destinatario; in caso di invio estero diventa facoltativo.
           example: '40050'
         receiverCity:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Comune del destinatario.
           example: Argelato
         receiverCity2:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Frazione del destinatario. Potrebbe essere utile se il chiamante non fornisce il cap.
           example: 'fraz. malacappa'
         receiverPr:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Provincia del destinatario; in caso di invio estero diventa facoltativo.
           example: 'BO'
         receiverCountry:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 
             in standard UPU o altro standard condiviso.
         receiverFiscalCode:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Potrebbe servire ai recapitisti in caso di offerte migliorative per i destinatari (servizi a valore aggiunto basati su cf).
         senderName:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Ragione sociale del mittente (PagoPA).
         senderAddress:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Indirizzo del mittente.
         senderCity:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Città del mittente
         senderPr:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Provincia del mittente.
         senderDigitalAddress:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Indirizzo PEC del mittente.
         arName:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Nominativo di riferimento per l’Avviso di Ritorno.
         arAddress:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Indirizzo per AR.
         arCap:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             CAP AR.
         arCity:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Città per AR.
@@ -245,8 +262,6 @@ components:
             - __RS__: Raccomandata Semplice nazionale (per Avviso di mancato Recapito). <br/>
             - __RIS__: Raccomandata Internazionale Semplice,  <br/>
             - __RIR__: Raccomandata Internazionale con AR.  <br/>
-          minLength: 2
-          maxLength: 3
           type: string
         iun:
           type: string
@@ -414,7 +429,8 @@ components:
       required:
         - id
         - documentType
-        - url
+        - uri
+        - sha256
         - date
       properties:
         id:
@@ -425,10 +441,14 @@ components:
           type: string
           description: >-
             La descrizione della tipologia di oggetto.
-        url:
+        uri:
           type: string
           description: >-
             Le coordinate del documento correlato allo stato.
+        sha256:
+          type: string
+          description: >-
+            sha256, codificato in base 64, del contenuto del file riferenziato dal campo uri
         date:
           type: string
           format: date-time
@@ -444,38 +464,47 @@ components:
         - city
       properties:
         name:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Cognome e nome o ragione sociale del destinatario
         nameRow2:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Seconda riga sulla busta.
         address:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Indirizzo del destinatario.
         addressRow2:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Specifica dell’indirizzo di residenza del destinatario (seconda riga indirizzo sulla busta).
         cap:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Cap del destinatario; in caso di invio estero diventa facoltativo.
         city:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Comune del destinatario.
         city2:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Frazione del destinatario. Potrebbe essere utile se il chiamante non fornisce il cap.
         pr:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             Provincia del destinatario; in caso di invio estero diventa facoltativo.
         country:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
           type: string
           description: >-
             In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 

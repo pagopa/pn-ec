@@ -10,9 +10,11 @@ import java.util.Properties;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
+import javax.mail.Message;
 import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
 import javax.mail.Session;
+import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
@@ -57,8 +59,9 @@ public class SesServiceImpl implements SesService {
 
         Session session = Session.getInstance(new Properties(System.getProperties()));
         MimeMessage mimeMessage = new MimeMessage(session);
-        mimeMessage.setFrom(field.getFrom());
-        mimeMessage.setRecipients(RecipientType.TO, field.getTo());
+
+        mimeMessage.setFrom(new InternetAddress(field.getFrom(), "", "UTF-8"));
+        mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(field.getTo(), "", "UTF-8"));
         mimeMessage.setSubject(field.getSubject(), "UTF-8");
 
         MimeBodyPart htmlPart = new MimeBodyPart();

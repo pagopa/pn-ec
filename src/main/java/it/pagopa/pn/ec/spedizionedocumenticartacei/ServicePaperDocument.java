@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperDeliveryProgressesResponse;
+import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperProgressStatusEventAttachments;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.rest.v1.dto.DiscoveredAddress;
 import org.springframework.stereotype.Service;
@@ -72,26 +74,26 @@ public class ServicePaperDocument {
 		pcrc.papDelProgrResp.setRequestId(param.getRequestId());
 		
 		ProgressivoStatoEventoCartaceo psec = new ProgressivoStatoEventoCartaceo();
-		psec.setPapProgStEv(new PaperProgressStatusEvent());
+		psec.setPapProgStEv(new it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperProgressStatusEvent());
 		
 		OffsetDateTime odt = OffsetDateTime.now();
 
-		AttachmentDetails apsrc1 = new AttachmentDetails();
+		PaperProgressStatusEventAttachments apsrc1 = new PaperProgressStatusEventAttachments();
 		
 //		NB: interfaccia con il consolidatore
 		apsrc1.getId();
 		apsrc1.setDocumentType("AR");
-		apsrc1.setUrl("https://www.eng.it/resources/whitepaper/doc/blockchain/Blockchain_whitepaper_it.pdf");
+		apsrc1.setUri("https://www.eng.it/resources/whitepaper/doc/blockchain/Blockchain_whitepaper_it.pdf");
 		apsrc1.setDate(odt);
-		
-		AttachmentDetails apsrc2 = new AttachmentDetails();
+
+		PaperProgressStatusEventAttachments apsrc2 = new PaperProgressStatusEventAttachments();
 		
 		apsrc2.setId("2");
 		apsrc2.setDocumentType("AR");
-		apsrc2.setUrl("https://assets.loescher.it/risorse/download/innovando/itastra/Scheda1_GliArticoli.pdf");
+		apsrc2.setUri("https://assets.loescher.it/risorse/download/innovando/itastra/Scheda1_GliArticoli.pdf");
 		apsrc2.setDate(odt);
 		
-		List<AttachmentDetails> attachments = new ArrayList<>();
+		List<PaperProgressStatusEventAttachments> attachments = new ArrayList<>();
 		attachments.add(apsrc1);
 		attachments.add(apsrc2);
 		
@@ -118,7 +120,7 @@ public class ServicePaperDocument {
 		psec.papProgStEv.setDiscoveredAddress(da);
 		psec.papProgStEv.setClientRequestTimeStamp(odt);
 		
-		List<PaperProgressStatusEvent> listEvents = new ArrayList<>();
+		List<it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperProgressStatusEvent> listEvents = new ArrayList<>();
 		listEvents.add(psec.papProgStEv);
 		
 		pcrc.papDelProgrResp.setEvents(listEvents);
@@ -133,14 +135,14 @@ public class ServicePaperDocument {
 		
 		List<String> atUrl = new ArrayList<>();
 		
-		String s1 = getProgessStatusEvent(hr).papDelProgrResp.getEvents().get(0).getAttachments().get(0).getUrl();
+		String s1 = getProgessStatusEvent(hr).papDelProgrResp.getEvents().get(0).getAttachments().get(0).getUri();
 		String s2 = getProgessStatusEvent(hr)
 				.papDelProgrResp
 				.getEvents()
 				.get(0)
 				.getAttachments()
 				.get(1)
-				.getUrl();
+				.getUri();
 		
 		atUrl.add(s1);
 		atUrl.add(s2);

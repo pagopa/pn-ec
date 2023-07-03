@@ -286,64 +286,22 @@ components:
           items:
             $ref: '#/components/schemas/AttachmentDetails'
         discoveredAddress:
-          description: >-
-            Indirizzo del destinatario desunto dalle indagini del personale postale.
-          required:
-            - name
-            - address
-            - city
-          properties:
-            name:
-              type: string
-              description: >-
-                Cognome e nome o ragione sociale del destinatario
-            nameRow2:
-              type: string
-              description: >-
-                Seconda riga sulla busta.
-            address:
-              type: string
-              description: >-
-                Indirizzo del destinatario.
-            addressRow2:
-              type: string
-              description: >-
-                Specifica dell’indirizzo di residenza del destinatario (seconda riga indirizzo sulla busta).
-            cap:
-              type: string
-              description: >-
-                Cap del destinatario; in caso di invio estero diventa facoltativo.
-            city:
-              type: string
-              description: >-
-                Comune del destinatario.
-            city2:
-              type: string
-              description: >-
-                Frazione del destinatario. Potrebbe essere utile se il chiamante non fornisce il cap.
-            pr:
-              type: string
-              description: >-
-                Provincia del destinatario; in caso di invio estero diventa facoltativo.
-            country:
-              type: string
-              description: >-
-                In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 
-                in standard UPU o altro standard condiviso.
+            $ref: '#/components/schemas/DiscoveredAddress'
         clientRequestTimeStamp:
           type: string
           format: date-time
           description: >-
             Timestamp della richiesta in UTC specificando la timezone
-    
-    
+	    
+	    
     AttachmentDetails:
       title: dettagli allegato a un evento del processo postale
       type: object
       required:
         - id
         - documentType
-        - url
+        - uri
+        - sha256
         - date
       properties:
         id:
@@ -354,12 +312,62 @@ components:
           type: string
           description: >-
             La descrizione della tipologia di oggetto.
-        url:
+        uri:
           type: string
           description: >-
             Le coordinate del documento correlato allo stato. 
+        sha256:
+          type: string 
+          description: >-
+            sha256, codificato in base 64, del contenuto del file riferenziato dal campo uri
         date:
           type: string
           format: date-time
           description: >-
             timestamp di produzione del documento specificando la timezone
+
+    DiscoveredAddress:
+      description: >-
+        Indirizzo del destinatario desunto dalle indagini del personale postale.
+      required:
+        - name
+        - address
+        - city
+      properties:
+        name:
+          type: string
+          description: >-
+            Cognome e nome o ragione sociale del destinatario
+        nameRow2:
+          type: string
+          description: >-
+            Seconda riga sulla busta.
+        address:
+          type: string
+          description: >-
+            Indirizzo del destinatario.
+        addressRow2:
+          type: string
+          description: >-
+            Specifica dell’indirizzo di residenza del destinatario (seconda riga indirizzo sulla busta).
+        cap:
+          type: string
+          description: >-
+            Cap del destinatario; in caso di invio estero diventa facoltativo.
+        city:
+          type: string
+          description: >-
+            Comune del destinatario.
+        city2:
+          type: string
+          description: >-
+            Frazione del destinatario. Potrebbe essere utile se il chiamante non fornisce il cap.
+        pr:
+          type: string
+          description: >-
+            Provincia del destinatario; in caso di invio estero diventa facoltativo.
+        country:
+          type: string
+          description: >-
+            In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 
+            in standard UPU o altro standard condiviso.

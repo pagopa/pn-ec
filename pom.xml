@@ -6,13 +6,13 @@
     <parent>
         <groupId>it.pagopa.pn</groupId>
         <artifactId>pn-parent</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>2.0.0</version>
         <relativePath/>
     </parent>
 
     <groupId>it.pagopa.pn.ec</groupId>
     <artifactId>pn-ec</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>2.0.0</version>
     <name>pn-ec</name>
     <description>External communication µService</description>
 
@@ -38,7 +38,7 @@
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-commons</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>2.0.0</version>
         </dependency>
 
         <!-- Start OpenApi dependencies -->
@@ -233,6 +233,11 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-email</artifactId>
+            <version>1.5</version>
+        </dependency>
         <!--prova generators-->
 
 
@@ -263,8 +268,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory>
                             <inputSpec>${project.basedir}/docs/openapi/external/consolidatore-v1.yml</inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -280,10 +286,10 @@
                                 <reactive>true</reactive>
                                 <skipDefaultInterface>false</skipDefaultInterface>
                                 <useTags>true</useTags>
-                                <basePackage>${project.groupId}.rest.v1</basePackage>
-                                <modelPackage>${project.groupId}.rest.v1.dto</modelPackage>
-                                <apiPackage>${project.groupId}.rest.v1.api</apiPackage>
-                                <configPackage>${project.groupId}.rest.v1.config</configPackage>
+                                <basePackage>${project.groupId}.rest.v1.consolidatore</basePackage>
+                                <modelPackage>${project.groupId}.rest.v1.consolidatore.dto</modelPackage>
+                                <apiPackage>${project.groupId}.rest.v1.consolidatore.api</apiPackage>
+                                <configPackage>${project.groupId}.rest.v1.consolidatore.config</configPackage>
                             </configOptions>
                             <skipValidateSpec>true</skipValidateSpec>
                         </configuration>
@@ -295,8 +301,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory>
                             <inputSpec>${project.basedir}/docs/openapi/external/api-internal-v1.yaml</inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -325,9 +332,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
-                            <inputSpec>
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory><inputSpec>
                                 ${project.basedir}/docs/openapi/internal/externalchannel/gestore-repository-v1.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
@@ -356,9 +363,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
-                            <inputSpec>${project.basedir}/docs/openapi/internal/safestorage/pn-safestorage-api.yaml
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory><inputSpec>${project.basedir}/docs/openapi/internal/safestorage/pn-safestorage-v1.1-api.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -386,9 +393,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
-                            <inputSpec>${project.basedir}/docs/openapi/external/api-consolidatore-ingress-v1.yaml
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory> <inputSpec>${project.basedir}/docs/openapi/external/api-consolidatore-ingress-v1.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>

@@ -26,13 +26,13 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
     //  <-- CLIENT CONFIGURATION -->
     @Override
-    public Mono<ClientConfigurationDto> getClientConfiguration(String xPagopaExtchCxId) {
+    public Mono<ClientConfigurationInternalDto> getClientConfiguration(String xPagopaExtchCxId) {
         return ecWebClient.get()
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getClientConfiguration())
                                                        .build(xPagopaExtchCxId))
                           .retrieve()
                           .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
-                          .bodyToMono(ClientConfigurationDto.class);
+                          .bodyToMono(ClientConfigurationInternalDto.class);
     }
 
     //  <-- REQUEST -->
@@ -53,6 +53,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
     @Override
     public Mono<RequestDto> getRichiesta(String clientId, String requestIdx) throws RestCallException.ResourceNotFoundException {
+    	log.debug("getRichiesta - clientId: {} requestIdx: {}", clientId, requestIdx);
         return ecWebClient.get()
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(requestIdx))
                           .header(CLIENT_HEADER_NAME, clientId)

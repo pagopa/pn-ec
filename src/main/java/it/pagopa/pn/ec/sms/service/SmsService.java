@@ -32,10 +32,9 @@ import java.util.Objects;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
-import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.commons.service.SnsService.DEFAULT_RETRY_STRATEGY;
-import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromMonoUntilIsEmpty;
+import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
@@ -147,14 +146,14 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     @Scheduled(cron = "${cron.value.lavorazione-batch-sms}")
     void lavorazioneRichiestaBatch() {
 
-        sqsService.getOneMessage(smsSqsQueueName.batchName(), SmsPresaInCaricoInfo.class)
+        sqsService.getMessages(smsSqsQueueName.batchName(), SmsPresaInCaricoInfo.class)
                   .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
                                                                                         smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                   .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(smsPresaInCaricoInfoSqsMessageWrapper.getMessage()),
                                                                              lavorazioneRichiesta(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
                   .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
                                                                                                       smsSqsQueueName.batchName()))
-                  .transform(pullFromMonoUntilIsEmpty())
+                  .transform(pullFromFluxUntilIsEmpty())
                   .subscribe();
     }
 
@@ -319,7 +318,10 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                 sendMessageResponse -> {
                     log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}", smsSqsQueueName.errorName());
                     return deleteMessageFromErrorQueue(message);
-                }).onErrorResume(sqsPublishException -> checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message));
+                }).onErrorResume(sqsPublishException -> {
+                    log.error("* FATAL * gestioneRetrySms {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                    return checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message);
+                });
     } else {
 //                gestisco il caso retry a partire dall'invio a sns
         log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
@@ -342,10 +344,13 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                        smsSqsQueueName.errorName());
                              return deleteMessageFromErrorQueue(message);
                          })
-                         .onErrorResume(sqsPublishException -> checkTentativiEccessiviSms(requestId,
-                                                                                          requestDto,
-                                                                                          smsPresaInCaricoInfo,
-                                                                                          message));
+                         .onErrorResume(sqsPublishException -> {
+                             log.error("* FATAL * gestioneRetrySms {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                             return checkTentativiEccessiviSms(requestId,
+                                     requestDto,
+                                     smsPresaInCaricoInfo,
+                                     message);
+                         });
     }
 })
 //                                   Catch errore tirato per lo stato toDelete

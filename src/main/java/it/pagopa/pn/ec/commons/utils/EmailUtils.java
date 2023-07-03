@@ -1,28 +1,20 @@
 package it.pagopa.pn.ec.commons.utils;
-
-import it.pagopa.pn.ec.commons.exception.email.ComposeMimeMessageException;
-import it.pagopa.pn.ec.commons.exception.email.RetrieveFromException;
-import it.pagopa.pn.ec.commons.exception.email.RetrieveMessageIdException;
+import it.pagopa.pn.ec.commons.exception.email.*;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.pec.model.pojo.PagopaMimeMessage;
 import lombok.extern.slf4j.Slf4j;
-
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.mail.util.MimeMessageParser;
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
-import javax.mail.Address;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.Properties;
+import java.io.*;
+import java.util.*;
 
 import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE;
 
@@ -39,9 +31,18 @@ public class EmailUtils {
 
     public static MimeMessage getMimeMessage(byte[] bytes) {
         try {
+            log.info("---> Start getting MimeMessage from byte array with length '{}' <---", bytes.length);
             return new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(bytes));
         } catch (MessagingException e) {
             throw new ComposeMimeMessageException();
+        }
+    }
+
+    public static Object getContentFromMimeMessage(MimeMessage mimeMessage) {
+        try {
+            return mimeMessage.getContent();
+        } catch (IOException | MessagingException e) {
+            throw new RetrieveContentException();
         }
     }
 
@@ -71,9 +72,9 @@ public class EmailUtils {
                 mimeMessage = new PagopaMimeMessage(session, emailField.getMsgId());
             }
 
-            mimeMessage.setFrom(emailField.getFrom());
-            mimeMessage.setRecipients(Message.RecipientType.TO, emailField.getTo());
-            mimeMessage.setSubject(emailField.getSubject());
+            mimeMessage.setFrom(new InternetAddress(emailField.getFrom(), "", "UTF-8"));
+            mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(emailField.getTo(), "", "UTF-8"));
+            mimeMessage.setSubject(emailField.getSubject(), "UTF-8");
 
             var htmlOrPlainTextPart = new MimeBodyPart();
             htmlOrPlainTextPart.setContent(emailField.getText(), emailField.getContentType());
@@ -103,8 +104,9 @@ public class EmailUtils {
 
             return mimeMessage;
         } catch (MessagingException exception) {
-            log.error(exception.getMessage());
             throw new ComposeMimeMessageException();
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -114,7 +116,6 @@ public class EmailUtils {
             getMimeMessage(emailField).writeTo(output);
             return output;
         } catch (IOException | MessagingException exception) {
-            log.error(exception.getMessage());
             throw new ComposeMimeMessageException();
         }
     }
@@ -122,4 +123,63 @@ public class EmailUtils {
     public static String getMimeMessageInCDATATag(EmailField emailField) {
         return String.format("<![CDATA[%s]]>", getMimeMessageOutputStream(emailField));
     }
+    public static byte[] getAttachmentFromMimeMessage(MimeMessage mimeMessage, String attachmentName) {
+        try {
+            log.info("---> Start retrieving attachment with name '{}' <---", attachmentName);
+            Object content = mimeMessage.getContent();
+            if (content instanceof String) {
+                return null;
+            }
+
+            if (content instanceof Multipart multipart) {
+
+                for (int i = 0; i < multipart.getCount(); i++) {
+                    InputStream result = getAttachmentFromBodyPart(multipart.getBodyPart(i), attachmentName);
+                    if (!Objects.isNull(result)) {
+                        return result.readAllBytes();
+                    }
+                }
+            }
+            throw new RetrieveAttachmentException();
+        } catch (IOException | MessagingException e) {
+            throw new RetrieveAttachmentException();
+        }
+    }
+
+    public static InputStream getAttachmentFromBodyPart(BodyPart part, String fileName) {
+        try {
+
+            Object content = part.getContent();
+            if (content instanceof InputStream || content instanceof String) {
+                if ((Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition()) || StringUtils.isNotBlank(part.getFileName())) && part.getFileName().equals(fileName)) {
+                    return part.getInputStream();
+                } else {
+                    return null;
+                }
+            }
+
+            if (content instanceof Multipart multipart) {
+                for (int i = 0; i < multipart.getCount(); i++) {
+                    BodyPart bodyPart = multipart.getBodyPart(i);
+                    getAttachmentFromBodyPart(bodyPart, fileName);
+                }
+            }
+
+            return null;
+
+        } catch (IOException | MessagingException exception) {
+            throw new RetrieveAttachmentException();
+        }
+    }
+
+    public static byte[] findAttachmentByName(MimeMessage mimeMessage, String attachmentName) {
+        try {
+            log.info("---> Start retrieving attachment with name '{}' <---", attachmentName);
+            MimeMessageParser mimeMessageParser = new MimeMessageParser(mimeMessage);
+            return mimeMessageParser.parse().findAttachmentByName(attachmentName).getInputStream().readAllBytes();
+        } catch (Exception e) {
+            throw new RetrieveAttachmentException();
+        }
+    }
+
 }
