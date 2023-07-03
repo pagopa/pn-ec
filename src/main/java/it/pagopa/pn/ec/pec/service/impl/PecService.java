@@ -216,12 +216,14 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
 
     private Flux<FileDownloadResponse> getAttachments(String xPagopaExtchCxId, DigitalNotificationRequest digitalNotificationRequest) {
+    	log.debug("reqId {} - getAttachments", digitalNotificationRequest.getRequestId());
         return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalNotificationRequest.getAttachmentUrls(), xPagopaExtchCxId, false)
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
                 .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null);
     }
 
     private Mono<EmailAttachment> downloadAttachment(FileDownloadResponse fileDownloadResponse) {
+    	log.debug("downloadAttachment", fileDownloadResponse.getKey());
         return downloadCall.downloadFile(fileDownloadResponse.getDownload().getUrl())
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
                 .map(outputStream -> EmailAttachment.builder()
@@ -232,6 +234,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private Mono<GeneratedMessageDto> sendMail(String xPagopaExtchCxId, String requestIdx, DigitalNotificationRequest digitalNotificationRequest, List<EmailAttachment> attachments) {
+    	log.debug("reqId {} - sendMail", requestIdx);
         return Mono.just(attachments).map(fileDownloadResponses -> EmailField.builder()
                         .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
                         .from(arubaSecretValue.getPecUsername())
@@ -267,12 +270,14 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private Mono<GeneratedMessageDto> setMessageIdInRequestMetadata(String xPagopaExtchCxId, String requestIdx, GeneratedMessageDto generatedMessageDto) {
+    	log.debug("reqId {} - setMessageIdInRequestMetadata - generatedMessageDto.id {}", requestIdx, generatedMessageDto.getId());
         return gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId, requestIdx)
                 .map(requestDto -> generatedMessageDto)
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
     }
 
     private Mono<SendMessageResponse> sendMessage(GeneratedMessageDto generatedMessageDto, PecPresaInCaricoInfo pecPresaInCaricoInfo) {
+    	log.debug("reqId {} - sendMessage", pecPresaInCaricoInfo.getRequestIdx());
         return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                 SENT.getStatusTransactionTableCompliant(),
                 new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
