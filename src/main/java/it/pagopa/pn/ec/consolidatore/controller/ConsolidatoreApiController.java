@@ -96,9 +96,9 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     @Override
     public Mono<ResponseEntity<PreLoadResponseData>> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> preLoadRequestData, ServerWebExchange exchange) {
         return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
-                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(preLoadRequestData, e.getFieldErrors()))
-                .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(preLoadRequestData).errorList(e.getAuditLogErrorList())))
-                .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(preLoadRequestData).errorList(e.getAuditLogErrorList())))
+                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(preLoadRequestData.map(PreLoadRequestData::getPreloads), e.getFieldErrors()))
+                .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(preLoadRequestData.map(PreLoadRequestData::getPreloads)).errorList(e.getAuditLogErrorList())))
+                .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(preLoadRequestData.map(PreLoadRequestData::getPreloads)).errorList(e.getAuditLogErrorList())))
                 .map(ResponseEntity::ok);
     }
 
@@ -159,7 +159,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                     }
                                 });
 
-                                log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().errorList(consAuditLogErrorList).request(consolidatoreIngressPaperProgressStatusEvent).build());
+                                log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().errorList(consAuditLogErrorList).request(consolidatoreIngressPaperProgressStatusEvent.collectList()).build());
 
                                 var errors = getAllErrors(listErrors);
                                 log.debug(LOG_LABEL + "errori sintattici/semantici : "
@@ -176,7 +176,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                 errors)));
                             }
                         })
-                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(consolidatoreIngressPaperProgressStatusEvent, e.getFieldErrors())))
+                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(consolidatoreIngressPaperProgressStatusEvent.collectList(), e.getFieldErrors())))
                         .onErrorResume(RuntimeException.class, throwable -> {
                             log.error(LOG_LABEL + "* FATAL * errore generico = {}, {}", throwable, throwable.getMessage());
                             return Mono.just(ResponseEntity.internalServerError()

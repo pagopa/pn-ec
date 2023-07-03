@@ -49,7 +49,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                 .flatMap(clientConfiguration -> {
                     if (!clientConfiguration.getApiKey().equals(xApiKey)) {
                         var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_API_KEY.getValue()).description(INVALID_API_KEY).build();
-                        log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(attachments).errorList(List.of(consAuditLogError)).build());
+                        log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(attachments.map(PreLoadRequestData::getPreloads)).errorList(List.of(consAuditLogError)).build());
                         return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, INVALID_API_KEY));
                     }
                     return Mono.just(clientConfiguration);
