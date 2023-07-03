@@ -178,7 +178,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                   .subscribe();
     }
 
-    private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
+    private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))
+            .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
 
     Mono<SendMessageResponse> lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
         log.info("<-- START LAVORAZIONE RICHIESTA PEC --> richiesta: {}", pecPresaInCaricoInfo.getRequestIdx());
