@@ -244,6 +244,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                                                                   SENT.getStatusTransactionTableCompliant(),
                                                                                   new DigitalProgressStatusDto().generatedMessage(objects.getT1()))
 
+                                .doOnError(throwable -> log.warn("WARN - PresaInCaricoInfo : {} , Message : {}", pecPresaInCaricoInfo, throwable.getMessage(), throwable))
+
 //                                                            An error occurred during PEC send, start retries
 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
