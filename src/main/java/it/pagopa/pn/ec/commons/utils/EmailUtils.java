@@ -176,7 +176,8 @@ public class EmailUtils {
         try {
             log.info("---> Start retrieving attachment with name '{}' <---", attachmentName);
             MimeMessageParser mimeMessageParser = new MimeMessageParser(mimeMessage);
-            return mimeMessageParser.parse().findAttachmentByName(attachmentName).getInputStream().readAllBytes();
+            DataSource attachment = mimeMessageParser.parse().findAttachmentByName(attachmentName);
+            return attachment == null ? null : attachment.getInputStream().readAllBytes();
         } catch (Exception e) {
             throw new RetrieveAttachmentException();
         }
