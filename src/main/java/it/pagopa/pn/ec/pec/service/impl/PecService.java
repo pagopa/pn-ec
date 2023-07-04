@@ -262,7 +262,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
                 .cast(SendMailResponse.class)
 
-                .map(this::sendMail)
+                .map(this::createGeneratedMessageDto)
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
     }
 
@@ -290,7 +290,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 });
     }
 
-    private GeneratedMessageDto sendMail(SendMailResponse sendMailResponse) {
+    private GeneratedMessageDto createGeneratedMessageDto(SendMailResponse sendMailResponse) {
         var errstr = sendMailResponse.getErrstr();
 //      Remove the last 2 char '\r\n'
         return new GeneratedMessageDto().id(errstr.substring(0, errstr.length() - 2))
@@ -483,7 +483,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
                                                                                      .cast(SendMailResponse.class)
 
-                                                                                     .map(this::sendMail)
+                                                                                     .map(this::createGeneratedMessageDto)
 
                                                                                      .zipWhen(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId,
                                                                                                                                                                          requestIdx))
