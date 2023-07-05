@@ -49,7 +49,7 @@ Parameters:
   ### SMS STRESS TEST ###
   SMSStressTestMode:
     Type: String
-    Default: 'true'
+    Default: 'false'
 
   SMSStressTestTopicName:
     Type: String
