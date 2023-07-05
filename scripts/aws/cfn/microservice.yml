@@ -102,6 +102,16 @@ Parameters:
     Description: 'Alarm threshold to trigger autoscaling of the microservice'
     Default: 10000
 
+  ArubaCallRetryStrategyMaxAttempts:
+    Type: String
+    Description: 'Retry strategy Aruba max attempts'
+    Default: ''
+
+  ArubaCallRetryStrategyMinBackoff:
+    Type: String
+    Description: 'Retry strategy Aruba min delay'
+    Default: ''
+
   ######### TABLES  ############
 
   PnEcTableNameAnagrafica:
@@ -695,6 +705,8 @@ Resources:
         ContainerEnvEntry38: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
         ContainerEnvEntry39: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
         ContainerEnvEntry40: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
+        ContainerEnvEntry41: !Sub 'ArubaCallRetryStrategyMaxAttempts=${ArubaCallRetryStrategyMaxAttempts}'
+        ContainerEnvEntry42: !Sub 'ArubaCallRetryStrategyMinBackoff=${ArubaCallRetryStrategyMinBackoff}'
         ContainerEnvEntry50: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
         ContainerEnvEntry51: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'

@@ -7,7 +7,7 @@
     "PnEcSmsDefaultSenderID": "PAGOPA",
     "MinTasksNumber": "6",
     "MaxTasksNumber": "12",
-    "AutoscalingThreshold": "10000"
+    "AutoscalingThreshold": "10000",
     "ArubaCallRetryStrategyMaxAttempts": "4",
     "ArubaCallRetryStrategyMinBackoff": "3"
   }
