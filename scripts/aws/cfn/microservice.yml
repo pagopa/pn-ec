@@ -88,9 +88,19 @@ Parameters:
     Description: 'ARN del Event Bus per le notifiche verso le piattaforme esterne'
 
   MinTasksNumber:
-    Default: 1
     Type: Number
-    Description: minimum autoscaling number of tasks
+    Description: 'Minimum number of running instances for the microservice'
+    Default: 6
+
+  MaxTasksNumber:
+    Type: Number
+    Description: 'Maximum number of running instances for the microservice'
+    Default: 12
+
+  AutoscalingThreshold:
+    Type: Number
+    Description: 'Alarm threshold to trigger autoscaling of the microservice'
+    Default: 10000
 
   ######### TABLES  ############
 
@@ -700,7 +710,10 @@ Resources:
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
         EcsLogGroup: !Ref EcsLogGroup
         LoadBalancingAlgorithm: round_robin
-        MinTasksNumber: !Ref MinTasksNumber        
+        AutoscalingThreshold: !Ref AutoscalingThreshold
+        AutoscalingStrategy: REST-API
+        MinTasksNumber: !Ref MinTasksNumber
+        MaxTasksNumber: !Ref MaxTasksNumber
 
   PnEcManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
