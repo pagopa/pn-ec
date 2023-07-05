@@ -1,14 +1,40 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.utils;
 
+import static it.pagopa.pn.ec.commons.constant.Status.ACCEPTED;
+import static it.pagopa.pn.ec.commons.constant.Status.DELIVERED;
+import static it.pagopa.pn.ec.commons.constant.Status.DELIVERY_WARNING;
+import static it.pagopa.pn.ec.commons.constant.Status.INFECTED;
+import static it.pagopa.pn.ec.commons.constant.Status.NOT_ACCEPTED;
+import static it.pagopa.pn.ec.commons.constant.Status.NOT_DELIVERED;
+import static it.pagopa.pn.ec.commons.utils.EmailUtils.getDomainFromAddress;
+import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.ACCETTAZIONE;
+import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.AVVENUTA_CONSEGNA;
+import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.ERRORE_CONSEGNA;
+import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.NON_ACCETTAZIONE;
+import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.PREAVVISO_ERRORE_CONSEGNA;
+import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.RILEVAZIONE_VIRUS;
+
+import java.util.Random;
+
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.rest.v1.dto.GeneratedMessageDto;
 
-import static it.pagopa.pn.ec.commons.constant.Status.*;
-import static it.pagopa.pn.ec.commons.utils.EmailUtils.getDomainFromAddress;
-import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.*;
-
 public class ScaricamentoEsitiPecUtils {
 
+	private static final Random RANDOM = new Random();
+
+	private static long getRandomSeconds() {
+		return RANDOM.nextInt(60) * 1000;
+	}
+
+	public static void sleepRandomSeconds() {
+		try {
+			Thread.sleep(getRandomSeconds());
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
+	}
+	 
     private ScaricamentoEsitiPecUtils() {
         throw new IllegalStateException("ScaricamentoEsitiPecUtils is a utility class");
     }
