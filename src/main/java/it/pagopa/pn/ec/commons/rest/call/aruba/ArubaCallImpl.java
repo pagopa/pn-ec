@@ -27,6 +27,7 @@ public class ArubaCallImpl implements ArubaCall {
         this.pecImapBridge = pecImapBridge;
         this.arubaSecretValue = arubaSecretValue;
         this.arubaCallProperties = arubaCallProperties;
+        log.debug("---> ARUBA CALL RETRY STRATEGY <--- MaxAttempts : {} , MinBackoff : {}", arubaCallProperties.maxAttempts(), arubaCallProperties.minBackoff());
     }
 
     private Retry getArubaCallRetryStrategy () {
