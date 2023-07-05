@@ -841,10 +841,7 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Action:
-              - 'sqs:SendMessage'
-              - 'sqs:ReceiveMessage'
-              - 'sqs:GetQueueAttributes'
-              - 'sqs:GetQueueUrl'
+              - 'sqs:*'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerStatoPEC
             Principal:
@@ -859,10 +856,7 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Action:
-              - 'sqs:SendMessage'
-              - 'sqs:ReceiveMessage'
-              - 'sqs:GetQueueAttributes'
-              - 'sqs:GetQueueUrl'
+              - 'sqs:*'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerStatoEMAIL
             Principal:
@@ -877,10 +871,7 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Action:
-              - 'sqs:SendMessage'
-              - 'sqs:ReceiveMessage'
-              - 'sqs:GetQueueAttributes'
-              - 'sqs:GetQueueUrl'
+              - 'sqs:*'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerStatoCARTACEO
             Principal:
