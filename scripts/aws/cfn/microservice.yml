@@ -88,9 +88,29 @@ Parameters:
     Description: 'ARN del Event Bus per le notifiche verso le piattaforme esterne'
 
   MinTasksNumber:
-    Default: 1
     Type: Number
-    Description: minimum autoscaling number of tasks
+    Description: 'Minimum number of running instances for the microservice'
+    Default: 6
+
+  MaxTasksNumber:
+    Type: Number
+    Description: 'Maximum number of running instances for the microservice'
+    Default: 12
+
+  AutoscalingThreshold:
+    Type: Number
+    Description: 'Alarm threshold to trigger autoscaling of the microservice'
+    Default: 10000
+
+  ArubaCallRetryStrategyMaxAttempts:
+    Type: String
+    Description: 'Retry strategy Aruba max attempts'
+    Default: ''
+
+  ArubaCallRetryStrategyMinBackoff:
+    Type: String
+    Description: 'Retry strategy Aruba min delay'
+    Default: ''
 
   ######### TABLES  ############
 
@@ -594,6 +614,7 @@ Parameters:
   LogAlarmStrategy:
     Type: String
     Default: 'FATAL'
+
   PCKmsEncDecDynamoDataKeyARN:
     Type: String
     Description: 'Name of KMS Key for Dynamo encode/decode data'
@@ -606,11 +627,37 @@ Parameters:
   ApplicationLoadBalancerMetricsDimensionName:
     Type: String
     Description: 'ALB name (used by alarm metrics)'
+
+  ### SMS STRESS TEST ###
+  PnVPCDefaultSecurityGroup:
+    Type: String
+    Description: 'VPC default Security Group'
+
+  SMSStressTestMode:
+    Type: String
+    Default: 'false'
+
+  PnEcQueueNameSMSStressTestQueue:
+    Type: String
+    Default: ''
+
+  PnEcQueueArnSMSStressTestQueue:
+    Type: String
+    Default: ''
+
+  PnEcQueueUrlSMSStressTestQueue:
+    Type: String
+    Default: ''
+
+  PnEcSMSStressTestTopicArn :
+    Type: String
     Default: ''
 
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
+  SMSStressTestModeON: !Equals [ !Ref SMSStressTestMode, 'true']
+
 Resources:
 
   # PN-TemplateBeMs microservice
@@ -620,7 +667,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/ecs-service.yaml"
       Parameters:
         MicroServiceUniqueName: !Sub '${ProjectName}-external-channel'
-        CpuValue: 1024
+        CpuValue: 4096
         MemoryAmount: 8GB
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Sub '${ContainerImageUri}'
@@ -658,6 +705,10 @@ Resources:
         ContainerEnvEntry38: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
         ContainerEnvEntry39: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
         ContainerEnvEntry40: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
+        ContainerEnvEntry41: !Sub 'ArubaCallRetryStrategyMaxAttempts=${ArubaCallRetryStrategyMaxAttempts}'
+        ContainerEnvEntry42: !Sub 'ArubaCallRetryStrategyMinBackoff=${ArubaCallRetryStrategyMinBackoff}'
+        ContainerEnvEntry50: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
+        ContainerEnvEntry51: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -671,7 +722,10 @@ Resources:
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
         EcsLogGroup: !Ref EcsLogGroup
         LoadBalancingAlgorithm: round_robin
-        MinTasksNumber: !Ref MinTasksNumber        
+        AutoscalingThreshold: !Ref AutoscalingThreshold
+        AutoscalingStrategy: REST-API
+        MinTasksNumber: !Ref MinTasksNumber
+        MaxTasksNumber: !Ref MaxTasksNumber
 
   PnEcManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -1124,3 +1178,94 @@ Resources:
           DeadLetterConfig:
             Arn: !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
 
+##############   CHANNEL SMS STRESS TEST    #################
+  PnEcSMSStressTestSecurityGroup:
+    Condition: SMSStressTestModeON
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'SMSStressTestSecurityGroup'
+      GroupName: 'pnecsmsstresssecgroup'
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          SourceSecurityGroupId: !Ref PnVPCDefaultSecurityGroup
+      VpcId: !Ref VpcId
+
+  PnECSMSStressTestInputQueue:
+    Condition: SMSStressTestModeON
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 300 # 10 is default
+      Enabled: True
+      EventSourceArn: !Ref PnEcQueueArnSMSStressTestQueue
+      FunctionName: !Ref PnEcSMSStressTestLambda
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      MaximumBatchingWindowInSeconds: 120 #default value
+
+  PnECSMSStressTestRole:
+    Condition: SMSStressTestModeON
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 'pn-ec-sms-stress-test-role-name'
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action:
+            - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'PnEcStressTestSMS'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Sid: 'GetInvokeSQS'
+              Effect: 'Allow'
+              Action:
+                - 'sqs:ReceiveMessage'
+                - 'sqs:DeleteMessage'
+                - 'sqs:Get*'
+                - 'sqs:List*'
+                - 'sqs:SendMessage'
+              Resource:
+                - !Ref PnEcQueueArnSMSStressTestQueue
+
+  PnEcSMSStressTestLambda:
+    Condition: SMSStressTestModeON
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: 'pn-ec-sms-stress-test-lambda'
+      Handler: index.handler
+      MemorySize: 256
+      Runtime: nodejs16.x
+      Role: !GetAtt PnECSMSStressTestRole.Arn
+      Timeout: 240
+      VpcConfig:
+        SubnetIds:
+          - !Select [ 0, !Split [ ",", !Ref SubnetsIds ] ]
+          - !Select [ 1, !Split [ ",", !Ref SubnetsIds ] ]
+          - !Select [ 2, !Split [ ",", !Ref SubnetsIds ] ]
+        SecurityGroupIds:
+          - !GetAtt PnEcSMSStressTestSecurityGroup.GroupId
+      Code:
+        ZipFile: |
+          "use strict";
+          const AWS = require("aws-sdk");
+
+          exports.handler = async (event) => {
+            const batchItemFailures =[];
+            await Promise.allSettled(event.Records.map(async (record) => {
+              try {
+                const bodyData = JSON.parse(record.body);
+                console.log(bodyData);
+              } catch (error) {
+                console.log(error);
+                batchItemFailures.push({itemIdentifier: record.eventId});
+              }
+              console.log("Terminata la stampa dei record");
+              return { batchItemFailures} ;
+            }))
+          }

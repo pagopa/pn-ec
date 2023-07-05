@@ -5,7 +5,9 @@
     "PnEcEmailDefaultSender": "noreply@mail.dev.notifichedigitali.it",
     "ConsolidatoreClientId": "pn-cons-000",
     "PnEcSmsDefaultSenderID": "PAGOPA",
-    "MinTasksNumber": "9",
+    "MinTasksNumber": "6",
+    "MaxTasksNumber": "12",
+    "AutoscalingThreshold": "10000",
     "ArubaCallRetryStrategyMaxAttempts": "4",
     "ArubaCallRetryStrategyMinBackoff": "3"
   }

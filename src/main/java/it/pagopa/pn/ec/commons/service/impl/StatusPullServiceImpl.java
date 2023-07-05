@@ -95,7 +95,8 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                   digProgrStatus.getStatus().toLowerCase()).map(statiDecodeResponseDto -> {
                 if (statiDecodeResponseDto.getExternalStatus() != null) {
                     event.setStatus(ProgressEventCategory.valueOf(statiDecodeResponseDto.getExternalStatus()));
-                    event.setEventCode(LegalMessageSentDetails.EventCodeEnum.fromValue(statiDecodeResponseDto.getLogicStatus()));
+                    var logicStatus=statiDecodeResponseDto.getLogicStatus();
+                    event.setEventCode(logicStatus != null ? LegalMessageSentDetails.EventCodeEnum.fromValue(logicStatus) : null);
                 }
                 return event;
             });
