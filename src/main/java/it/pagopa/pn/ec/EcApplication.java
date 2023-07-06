@@ -53,6 +53,7 @@ import org.springframework.context.annotation.PropertySource;
 //  <-- NOTIFICATION TRACKER -->
 // EVENTBRIDGE EVENT
 @PropertySource("classpath:notificationtracker/notificationtracker-eventbridge-eventbus.properties")
+
 public class EcApplication {
 
     public static void main(String[] args) {
