@@ -19,7 +19,9 @@ import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 public class StepError {
 
     public enum StepErrorEnum {
-        NOTIFICATION_TRACKER_STEP("NOTIFICATION_TRACKER_STEP");
+        NOTIFICATION_TRACKER_STEP("NOTIFICATION_TRACKER_STEP"),
+        ARUBA_SEND_MAIL_STEP("ARUBA_SEND_MAIL_STEP"),
+        SET_MESSAGE_ID_STEP("SET_MESSAGE_ID_STEP");
 
         private String value;
 
@@ -48,7 +50,7 @@ public class StepError {
         }
     }
 
-    StepErrorEnum notificationTrackerError;
+    StepErrorEnum step;
     GeneratedMessageDto generatedMessageDto;
     OperationResultCodeResponse operationResultCodeResponse;
 }

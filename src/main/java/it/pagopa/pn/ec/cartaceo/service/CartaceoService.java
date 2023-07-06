@@ -245,7 +245,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                                                                                                                                          cartaceoPresaInCaricoInfo.setStepError(
                                                                                                                                                                  stepError);
                                                                                                                                                          cartaceoPresaInCaricoInfo.getStepError()
-                                                                                                                                                                                  .setNotificationTrackerError(
+                                                                                                                                                                                  .setStep(
                                                                                                                                                                                           NOTIFICATION_TRACKER_STEP);
                                                                                                                                                          cartaceoPresaInCaricoInfo.getStepError()
                                                                                                                                                                                   .setOperationResultCodeResponse(
@@ -383,7 +383,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 //              check step error per evitare nuova chiamata verso consolidatore
 //              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The PAPER in sent, publish to
 //              Notification Tracker with next status
-    if (Objects.equals(cartaceoPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
+    if (Objects.equals(cartaceoPresaInCaricoInfo.getStepError().getStep(), NOTIFICATION_TRACKER_STEP)) {
         return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo,
                                              CODE_TO_STATUS_MAP.get(cartaceoPresaInCaricoInfo.getStepError()
                                                                                              .getOperationResultCodeResponse()

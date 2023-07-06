@@ -69,7 +69,7 @@ class CartaceoRetryTest {
             .build();
 
     private static final StepError STEP_ERROR = StepError.builder()
-            .notificationTrackerError(NOTIFICATION_TRACKER_STEP)
+            .step(NOTIFICATION_TRACKER_STEP)
             .operationResultCodeResponse(new OperationResultCodeResponse().resultCode(OK_CODE))
             .build();
 
