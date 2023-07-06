@@ -44,6 +44,7 @@ import org.springframework.context.annotation.PropertySource;
 
 //  <-- SCARICAMENTO ESITI PEC -->
 @PropertySource("classpath:scaricamentoesitipec/scaricamento-esiti-pec.properties")
+@PropertySource("classpath:scaricamentoesitipec/aruba-call-retry-strategy.properties")
 
 //  <-- CARTACEO -->
 // SQS QUEUE
