@@ -111,6 +111,21 @@ Parameters:
     Type: String
     Description: 'Retry strategy Aruba min delay'
     Default: ''
+  
+  LavorazionePecMaxThreadPoolSize:
+    Type: String
+    Description: 'Retry strategy Aruba max attempts'
+    Default: '50'
+
+  ScaricamentoEsitiPecMaxThreadPoolSize:
+    Type: String
+    Description: 'Retry strategy Aruba min delay'
+    Default: '50'
+
+  LavorazioneEsitiPecLimitRate:
+    Type: String
+    Description: 'Retry strategy Aruba max attempts'
+    Default: '15'
 
   ######### TABLES  ############
 
@@ -707,6 +722,9 @@ Resources:
         ContainerEnvEntry40: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
         ContainerEnvEntry41: !Sub 'ArubaCallRetryStrategyMaxAttempts=${ArubaCallRetryStrategyMaxAttempts}'
         ContainerEnvEntry42: !Sub 'ArubaCallRetryStrategyMinBackoff=${ArubaCallRetryStrategyMinBackoff}'
+        ContainerEnvEntry43: !Sub 'LavorazionePecMaxThreadPoolSize=${LavorazionePecMaxThreadPoolSize}'
+        ContainerEnvEntry44: !Sub 'ScaricamentoEsitiPecMaxThreadPoolSize=${ScaricamentoEsitiPecMaxThreadPoolSize}'
+        ContainerEnvEntry45: !Sub 'LavorazioneEsitiPecLimitRate=${LavorazioneEsitiPecLimitRate}'
         ContainerEnvEntry50: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
         ContainerEnvEntry51: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
