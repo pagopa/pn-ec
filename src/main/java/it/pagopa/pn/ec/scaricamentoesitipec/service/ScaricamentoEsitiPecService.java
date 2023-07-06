@@ -221,7 +221,7 @@ public class ScaricamentoEsitiPecService {
                 })
                 .doOnSuccess(result -> acknowledgment.acknowledge())
                 .then()
-                .doOnNext(unused->semaphore.release());
+                .doFinally(signalType -> semaphore.release());
     }
 
 

@@ -222,7 +222,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                                                                           new DigitalProgressStatusDto())
 
                                 .then(sendNotificationOnErrorQueue(pecPresaInCaricoInfo)))
-                                .doOnNext(unused->semaphore.release());
+                                .doFinally(signalType -> semaphore.release());
     }
 
 
