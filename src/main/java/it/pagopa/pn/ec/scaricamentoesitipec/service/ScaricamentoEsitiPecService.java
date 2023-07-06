@@ -128,6 +128,7 @@ public class ScaricamentoEsitiPecService {
                                         .map(requestDto -> Tuples.of(postacert, legalMessageSentDetails, requestDto));
 
                             })
+                            //Pubblicazione metriche custom su CloudWatch
                             .flatMap(objects ->
                             {
                                 Postacert postacert = objects.getT1();
@@ -145,27 +146,6 @@ public class ScaricamentoEsitiPecService {
                                     nextStatus = decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
                                 }
 
-                                String finalNextStatus = nextStatus;
-
-                                return callMacchinaStati.statusValidation(requestDto.getxPagopaExtchCxId(),
-                                                transactionProcessConfigurationProperties.pec(),
-                                                requestDto.getStatusRequest(),
-                                                finalNextStatus)
-                                        .map(unused -> Tuples.of(postacert, legalMessageSentDetails, requestDto, finalNextStatus))
-                                        .doOnError(CallMacchinaStati.StatusValidationBadRequestException.class,
-                                                throwable -> log.error(
-                                                        "* FATAL * La chiamata alla macchina a stati non e' andata a buon fine {}, {}",
-                                                        throwable,
-                                                        throwable.getMessage()));
-                            })
-
-                            //Pubblicazione metriche custom su CloudWatch
-                            .flatMap(objects -> {
-                                Postacert postacert = objects.getT1();
-                                LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
-                                RequestDto requestDto = objects.getT3();
-                                String nextStatus = objects.getT4();
-
                                 log.debug("---> LAVORAZIONE ESITI PEC - PUBLISH CUSTOM CLOUD WATCH METRICS <--- MessageID : {}", messageID);
 
                                 var nextEventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
@@ -182,8 +162,8 @@ public class ScaricamentoEsitiPecService {
                                                 requestDto,
                                                 cloudWatchPecMetricsInfo,
                                                 nextStatus));
-                            })
 
+                            })
                             //Preparazione payload per la coda stati PEC
                             .flatMap(objects -> {
                                 Postacert postacert = objects.getT1();
@@ -236,14 +216,6 @@ public class ScaricamentoEsitiPecService {
                     } else {
                         log.error("* FATAL * lavorazioneEsitiPec {}, {}", throwable, throwable.getMessage());
                     }
-                })
-                .onErrorResume(InvalidNextStatusException.class, e -> {
-                    var retry = ricezioneEsitiPecDto.getRetry();
-                    ricezioneEsitiPecDto.setRetry(retry + 1);
-                    if (retry < 5) {
-                        acknowledgment.acknowledge();
-                        return sqsService.send(scaricamentoEsitiPecProperties.sqsQueueName(), ricezioneEsitiPecDto).then();
-                    } else return Mono.error(SqsMaxRetriesExceededException::new);
                 });
     }
 
