@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.5">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="paperPresaInCarico" enabled="true">
+      <stringProp name="TestPlan.comments"></stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="request_id_counter" elementType="Argument">
+            <stringProp name="Argument.name">request_id_counter</stringProp>
+            <stringProp name="Argument.value">0</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+      <stringProp name="TestPlan.user_define_classpath"></stringProp>
+    </TestPlan>
+    <hashTree>
+      <OpenModelThreadGroup guiclass="OpenModelThreadGroupGui" testclass="OpenModelThreadGroup" testname="paperPresaInCarico - Thread Group" enabled="false">
+        <elementProp name="ThreadGroup.main_controller" elementType="OpenModelThreadGroupController"/>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <stringProp name="OpenModelThreadGroup.schedule">random_arrivals(30 s) rate(30/s) even_arrivals(15 min) random_arrivals(1 s) rate(0/s) </stringProp>
+        <stringProp name="OpenModelThreadGroup.random_seed"></stringProp>
+      </OpenModelThreadGroup>
+      <hashTree/>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <DebugSampler guiclass="TestBeanGUI" testclass="DebugSampler" testname="Debug Sampler" enabled="true">
+          <boolProp name="displayJMeterProperties">false</boolProp>
+          <boolProp name="displayJMeterVariables">true</boolProp>
+          <boolProp name="displaySystemProperties">false</boolProp>
+        </DebugSampler>
+        <hashTree/>
+        <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+          <collectionProp name="Arguments.arguments">
+            <elementProp name="server_name" elementType="Argument">
+              <stringProp name="Argument.name">server_name</stringProp>
+              <stringProp name="Argument.value">${__P(ALBBaseURL,internal-infra-Appli-UPD78WH5UJMP-959579080.eu-south-1.elb.amazonaws.com)}</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="server_port" elementType="Argument">
+              <stringProp name="Argument.name">server_port</stringProp>
+              <stringProp name="Argument.value">${__P(port,8080)}</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+            <elementProp name="requestIdx_list_path" elementType="Argument">
+              <stringProp name="Argument.name">requestIdx_list_path</stringProp>
+              <stringProp name="Argument.value">${__P(requestIdxListPath,requests.list)}</stringProp>
+              <stringProp name="Argument.metadata">=</stringProp>
+            </elementProp>
+          </collectionProp>
+        </Arguments>
+        <hashTree/>
+        <RandomVariableConfig guiclass="TestBeanGUI" testclass="RandomVariableConfig" testname="Random RequestIdx" enabled="true">
+          <stringProp name="maximumValue">9999999999</stringProp>
+          <stringProp name="minimumValue">1</stringProp>
+          <stringProp name="outputFormat">REQUESTPaper-${__RandomString(10,abcdefghijklmnopqrstuvwxyz,)}-0000000000</stringProp>
+          <boolProp name="perThread">true</boolProp>
+          <stringProp name="randomSeed"></stringProp>
+          <stringProp name="variableName">rand_requestIdx</stringProp>
+        </RandomVariableConfig>
+        <hashTree/>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="paper-deliveries-engagements" enabled="true">
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{&#xd;
+      &quot;iun&quot;: &quot;${rand_requestIdx}&quot;,&#xd;
+      &quot;requestId&quot;: &quot;${rand_requestIdx}&quot;,&#xd;
+      &quot;requestPaId&quot;: &quot;80016350821&quot;,&#xd;
+      &quot;clientRequestTimeStamp&quot;: &quot;2023-07-05T15:30:05.199454025+02:00&quot;,&#xd;
+      &quot;productType&quot;: &quot;890&quot;,&#xd;
+      &quot;attachments&quot;: [&#xd;
+         {&#xd;
+            &quot;uri&quot;: &quot;safestorage://PN_AAR-10002e51e8cd4e0eb920637eee8cf7e7.pdf&quot;,&#xd;
+            &quot;order&quot;: 0,&#xd;
+            &quot;documentType&quot;: &quot;AAR&quot;,&#xd;
+            &quot;sha256&quot;: &quot;pUXNTZE6LiqIovkuZT94ecbB79okjOdlw1DuyAL+BlA=&quot;&#xd;
+         }&#xd;
+      ],&#xd;
+      &quot;printType&quot;: &quot;BN_FRONTE_RETRO&quot;,&#xd;
+      &quot;receiverName&quot;: &quot;Ettore Fieramosca&quot;,&#xd;
+      &quot;receiverNameRow2&quot;: &quot;&quot;,&#xd;
+      &quot;receiverAddress&quot;: &quot;Via Milano 10 @OK-GiacenzaDelegato-lte10_890&quot;,&#xd;
+      &quot;receiverAddressRow2&quot;: &quot;&quot;,&#xd;
+      &quot;receiverCap&quot;: &quot;10121&quot;,&#xd;
+      &quot;receiverCity&quot;: &quot;Torino&quot;,&#xd;
+      &quot;receiverCity2&quot;: &quot;&quot;,&#xd;
+      &quot;receiverPr&quot;: &quot;TO&quot;,&#xd;
+      &quot;receiverCountry&quot;: &quot;ITALIA&quot;,&#xd;
+      &quot;receiverFiscalCode&quot;: &quot;FRMTTR76M06B715E&quot;,&#xd;
+      &quot;senderName&quot;: &quot;Marco Polo&quot;,&#xd;
+      &quot;senderAddress&quot;: &quot;Viale dell&apos;Agricoltura 6&quot;,&#xd;
+      &quot;senderCity&quot;: &quot;Roma&quot;,&#xd;
+      &quot;senderPr&quot;: &quot;RM&quot;,&#xd;
+      &quot;senderDigitalAddress&quot;: null,&#xd;
+      &quot;arName&quot;: &quot;Ettore Fieramosca&quot;,&#xd;
+      &quot;arAddress&quot;: &quot;Via Milano&quot;,&#xd;
+      &quot;arCap&quot;: &quot;20089&quot;,&#xd;
+      &quot;arCity&quot;: &quot;Milano&quot;,&#xd;
+      &quot;vas&quot;: null&#xd;
+   }&#xd;
+</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain">${server_name}</stringProp>
+          <stringProp name="HTTPSampler.port">${server_port}</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
+          <stringProp name="HTTPSampler.path">/external-channels/v1/paper-deliveries-engagements/${rand_requestIdx}</stringProp>
+          <stringProp name="HTTPSampler.method">PUT</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+          <stringProp name="HTTPSampler.response_timeout"></stringProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">x-pagopa-extch-cx-id</stringProp>
+                <stringProp name="Header.value">${__P(clientId,pn-delivery)}</stringProp>
+              </elementProp>
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Content-Type</stringProp>
+                <stringProp name="Header.value">application/json</stringProp>
+              </elementProp>
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Accept</stringProp>
+                <stringProp name="Header.value">application/json</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+        </hashTree>
+        <BeanShellListener guiclass="TestBeanGUI" testclass="BeanShellListener" testname="BeanShell Listener" enabled="true">
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <boolProp name="resetInterpreter">false</boolProp>
+          <stringProp name="script">if (prev.isSuccessful()){
+FileWriter f = new FileWriter(vars.get(&quot;requestIdx_list_path&quot;)+&quot;/requestIdx_list.csv&quot;, true);
+BufferedWriter out = new BufferedWriter(f);
+out.write(vars.get(&quot;rand_requestIdx&quot;) + &quot;\n&quot;);
+out.close();
+f.close();
+}</stringProp>
+        </BeanShellListener>
+        <hashTree/>
+        <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>false</xml>
+              <fieldNames>true</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+              <sentBytes>true</sentBytes>
+              <url>true</url>
+              <threadCounts>true</threadCounts>
+              <idleTime>true</idleTime>
+              <connectTime>true</connectTime>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>false</xml>
+              <fieldNames>true</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+              <sentBytes>true</sentBytes>
+              <url>true</url>
+              <threadCounts>true</threadCounts>
+              <idleTime>true</idleTime>
+              <connectTime>true</connectTime>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
