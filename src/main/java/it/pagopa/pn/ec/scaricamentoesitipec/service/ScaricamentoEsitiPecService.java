@@ -208,15 +208,7 @@ public class ScaricamentoEsitiPecService {
                                     notificationTrackerQueueDto));
                 })
                 .doOnSuccess(result -> acknowledgment.acknowledge())
-                .then()
-                //         Error logging
-                .doOnError(throwable -> {
-                    if (throwable instanceof InvalidNextStatusException) {
-                        log.debug("lavorazioneEsitiPec {}, {}", throwable, throwable.getMessage());
-                    } else {
-                        log.error("* FATAL * lavorazioneEsitiPec {}, {}", throwable, throwable.getMessage());
-                    }
-                });
+                .then();
     }
 
 
