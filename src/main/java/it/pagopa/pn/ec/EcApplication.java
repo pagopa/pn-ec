@@ -39,6 +39,8 @@ import org.springframework.context.annotation.PropertySource;
 //  <-- PEC -->
 // SQS QUEUE
 @PropertySource("classpath:pec/pec-sqs-queue.properties")
+// DEFAULT
+@PropertySource("classpath:pec/pec.properties")
 
 //  <-- SCARICAMENTO ESITI PEC -->
 @PropertySource("classpath:scaricamentoesitipec/scaricamento-esiti-pec.properties")

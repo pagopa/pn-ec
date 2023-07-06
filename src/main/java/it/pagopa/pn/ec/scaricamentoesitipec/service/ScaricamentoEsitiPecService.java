@@ -6,9 +6,8 @@ import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.constant.Status;
-import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
+import it.pagopa.pn.ec.commons.exception.SemaphoreException;
 import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
-import it.pagopa.pn.ec.commons.exception.sqs.SqsMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -31,16 +30,17 @@ import it.pec.daticert.Destinatari;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.concurrent.Semaphore;
 
 import static it.pagopa.pn.ec.commons.constant.DocumentType.PN_EXTERNAL_LEGAL_FACTS;
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
@@ -52,32 +52,38 @@ import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUti
 @Slf4j
 @Service
 public class ScaricamentoEsitiPecService {
-    @Autowired
-    private SqsService sqsService;
-    @Autowired
-    private DaticertService daticertService;
-    @Autowired
-    private StatusPullService statusPullService;
-    @Autowired
-    private CloudWatchPecMetrics cloudWatchPecMetrics;
-    @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
-    @Autowired
-    private ArubaSecretValue arubaSecretValue;
-    @Autowired
-    private FileCall fileCall;
-    @Autowired
-    private WebClient uploadWebClient;
-    @Autowired
-    private ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
-    @Autowired
-    private GestoreRepositoryCall gestoreRepositoryCall;
-    @Autowired
-    private CallMacchinaStati callMacchinaStati;
-    @Autowired
-    private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
+    private final SqsService sqsService;
+    private final DaticertService daticertService;
+    private final StatusPullService statusPullService;
+    private final CloudWatchPecMetrics cloudWatchPecMetrics;
+    private final NotificationTrackerSqsName notificationTrackerSqsName;
+    private final ArubaSecretValue arubaSecretValue;
+    private final FileCall fileCall;
+    private final WebClient uploadWebClient;
+    private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
+    private final GestoreRepositoryCall gestoreRepositoryCall;
+    private final CallMacchinaStati callMacchinaStati;
+    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+
+    private final Semaphore semaphore;
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
+
+    public ScaricamentoEsitiPecService(SqsService sqsService, DaticertService daticertService, StatusPullService statusPullService, CloudWatchPecMetrics cloudWatchPecMetrics, NotificationTrackerSqsName notificationTrackerSqsName, ArubaSecretValue arubaSecretValue, FileCall fileCall, WebClient uploadWebClient, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, @Value("${scaricamento-esiti-pec.max-thread-pool-size}") Integer maxThreadPoolSize) {
+        this.sqsService = sqsService;
+        this.daticertService = daticertService;
+        this.statusPullService = statusPullService;
+        this.cloudWatchPecMetrics = cloudWatchPecMetrics;
+        this.notificationTrackerSqsName = notificationTrackerSqsName;
+        this.arubaSecretValue = arubaSecretValue;
+        this.fileCall = fileCall;
+        this.uploadWebClient = uploadWebClient;
+        this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;
+        this.gestoreRepositoryCall = gestoreRepositoryCall;
+        this.callMacchinaStati = callMacchinaStati;
+        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+        this.semaphore = new Semaphore(maxThreadPoolSize);
+    }
 
     @SqsListener(value = "${scaricamento-esiti-pec.sqs-queue-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void lavorazioneEsitiPecInteractive(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
@@ -88,6 +94,12 @@ public class ScaricamentoEsitiPecService {
     Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
 
         log.info("<-- START LAVORAZIONE ESITI PEC -->");
+
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            throw new SemaphoreException(e.getMessage());
+        }
 
         return Mono.just(ricezioneEsitiPecDto)
                 .flatMap(ricEsitiPecDto ->
@@ -208,7 +220,8 @@ public class ScaricamentoEsitiPecService {
                                     notificationTrackerQueueDto));
                 })
                 .doOnSuccess(result -> acknowledgment.acknowledge())
-                .then();
+                .then()
+                .doOnNext(unused->semaphore.release());
     }
 
 

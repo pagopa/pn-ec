@@ -4,6 +4,7 @@ import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.exception.SemaphoreException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
@@ -29,6 +30,7 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -43,6 +45,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Semaphore;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
@@ -67,12 +70,12 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private final ArubaSecretValue arubaSecretValue;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final PecSqsQueueName pecSqsQueueName;
-
+    private final Semaphore semaphore;
     private String idSaved;
 
     protected PecService(AuthService authService, ArubaCall arubaCall, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
             , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, ArubaSecretValue arubaSecretValue,
-                         NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName) {
+                         NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName, @Value("${lavorazione-pec.max-thread-pool-size}") Integer maxThreadPoolSize) {
         super(authService);
         this.arubaCall = arubaCall;
         this.sqsService = sqsService;
@@ -82,6 +85,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         this.arubaSecretValue = arubaSecretValue;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.pecSqsQueueName = pecSqsQueueName;
+        this.semaphore = new Semaphore(maxThreadPoolSize);
     }
 
     @Override
@@ -188,6 +192,12 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
 
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            throw new SemaphoreException(e.getMessage());
+        }
+
 //      Get attachment presigned url Flux
         return getAttachments(xPagopaExtchCxId, digitalNotificationRequest)
 
@@ -211,7 +221,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                                                                           RETRY.getStatusTransactionTableCompliant(),
                                                                                           new DigitalProgressStatusDto())
 
-                                .then(sendNotificationOnErrorQueue(pecPresaInCaricoInfo)));
+                                .then(sendNotificationOnErrorQueue(pecPresaInCaricoInfo)))
+                                .doOnNext(unused->semaphore.release());
     }
 
 
@@ -223,7 +234,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private Mono<EmailAttachment> downloadAttachment(FileDownloadResponse fileDownloadResponse) {
-    	log.debug("downloadAttachment", fileDownloadResponse.getKey());
+    	log.debug("fileKey {} - downloadAttachment", fileDownloadResponse.getKey());
         return downloadCall.downloadFile(fileDownloadResponse.getDownload().getUrl())
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
                 .map(outputStream -> EmailAttachment.builder()
