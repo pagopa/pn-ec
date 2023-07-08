@@ -244,6 +244,16 @@
 
     <build>
         <plugins>
+					    <plugin>
+				        <groupId>org.springframework.boot</groupId>
+				        <artifactId>spring-boot-maven-plugin</artifactId>
+				        <configuration>
+				            <executable>true</executable>
+				            <jvmArguments>
+											-XX:MaxDirectMemorySize 100m
+				            </jvmArguments>
+				        </configuration>
+				    </plugin>
 
             <plugin>
                 <groupId>org.jacoco</groupId>
