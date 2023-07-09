@@ -204,7 +204,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         var retry = notificationTrackerQueueDto.getRetry();
                                         notificationTrackerQueueDto.setRetry(retry + 1);
                                         if (retry < 5) {
-                                            return sqsService.send(ntStatoQueueName, notificationTrackerQueueDto).then();
+                                            return sqsService.send(ntStatoQueueName, notificationTrackerQueueDto, 600).then();
                                         } else {
                                             return sqsService.send(ntStatoErroreQueueName, notificationTrackerQueueDto).then();
                                         }
