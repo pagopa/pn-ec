@@ -42,7 +42,7 @@ public class SqsServiceImpl implements SqsService {
 
     @Override
     public <T> Mono<SendMessageResponse> send(final String queueName, final T queuePayload) throws SqsClientException {
-    	return send(queueName, queuePayload, 0);
+    	return send(queueName, queuePayload, Integer.valueOf(0));
     }
     
     @Override
@@ -56,10 +56,20 @@ public class SqsServiceImpl implements SqsService {
         return Mono.fromCallable(() -> objectMapper.writeValueAsString(queuePayload))
                 .doOnNext(sendMessageResponse -> log.debug("Try to publish on {} with payload {}", queueName, sendMessageResponse))
                 .zipWith(getQueueUrlFromName(queueName))
-                .flatMap(objects -> Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> builder.queueUrl(objects.getT2())
-                        .messageBody(objects.getT1())
-                        .delaySeconds(iDelay)
-                        .messageGroupId(messageGroupId))))
+                .flatMap(objects -> {
+                	
+                	if( iDelay.intValue() == 0 ) {
+	                	return Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> builder.queueUrl(objects.getT2())
+	                            .messageBody(objects.getT1())
+	                            .messageGroupId(messageGroupId)));
+                	}
+                	else {
+	                	return Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> builder.queueUrl(objects.getT2())
+	                            .delaySeconds(iDelay)
+	                			.messageBody(objects.getT1())
+	                            .messageGroupId(messageGroupId)));
+                	}
+	            })
                 .onErrorResume(throwable -> {
                     log.error(throwable.getMessage(), throwable);
                     return Mono.error(new SqsClientException(queueName));
