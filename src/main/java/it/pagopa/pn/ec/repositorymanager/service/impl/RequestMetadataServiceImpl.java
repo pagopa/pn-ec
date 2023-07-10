@@ -55,7 +55,9 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     @Override
     public Mono<RequestMetadata> getRequestMetadata(String concatRequestId) {
-        return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(concatRequestId)))
+        return Mono.fromCompletionStage(()->requestMetadataDynamoDbTable.getItem(getKey(concatRequestId)))
+                   .doOnError(throwable -> log.warn("getRequestMetadata() - {}", throwable.getMessage()))
+                   .onErrorResume(e -> Mono.empty())
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(concatRequestId)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()));
     }
