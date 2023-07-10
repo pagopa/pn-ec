@@ -12,10 +12,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
-import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
-import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
-import software.amazon.awssdk.services.sqs.model.Message;
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+import software.amazon.awssdk.services.sqs.SqsClientBuilder;
+import software.amazon.awssdk.services.sqs.model.*;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,28 +39,29 @@ public class SqsServiceImpl implements SqsService {
     }
 
     @Override
+    public <T> Mono<SendMessageResponse> send(final String queueName, Integer delaySeconds, final T queuePayload) throws SqsClientException {
+        return send(queueName, RandomStringUtils.randomAlphanumeric(MESSAGE_GROUP_ID_LENGTH), delaySeconds, queuePayload);
+    }
+    @Override
     public <T> Mono<SendMessageResponse> send(final String queueName, final T queuePayload) throws SqsClientException {
-        log.info("<-- START SENDING MESSAGE ON QUEUE  --> Queue name : {}", queueName);
-        return Mono.fromCallable(() -> objectMapper.writeValueAsString(queuePayload))
-                .doOnNext(sendMessageResponse -> log.debug("Try to publish on {} with payload {}", queueName, sendMessageResponse))
-                .zipWith(getQueueUrlFromName(queueName))
-                .flatMap(objects -> Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> builder.queueUrl(objects.getT2())
-                        .messageBody(objects.getT1())
-                        .messageGroupId(RandomStringUtils.randomAlphanumeric(MESSAGE_GROUP_ID_LENGTH)))))
-                .onErrorResume(throwable -> {
-                    log.error(throwable.getMessage(), throwable);
-                    return Mono.error(new SqsClientException(queueName));
-                });
+        return send(queueName, RandomStringUtils.randomAlphanumeric(MESSAGE_GROUP_ID_LENGTH), queuePayload);
     }
     @Override
     public <T> Mono<SendMessageResponse> send(final String queueName, final String messageGroupId, final T queuePayload) throws SqsClientException {
+        return send(queueName, messageGroupId, 0, queuePayload);
+    }
+
+    @Override
+    public <T> Mono<SendMessageResponse> send(final String queueName, final String messageGroupId, Integer delaySeconds, final T queuePayload) throws SqsClientException {
         log.info("<-- START SENDING MESSAGE ON QUEUE  --> Queue name : {}", queueName);
+
         return Mono.fromCallable(() -> objectMapper.writeValueAsString(queuePayload))
                 .doOnNext(sendMessageResponse -> log.debug("Try to publish on {} with payload {}", queueName, sendMessageResponse))
                 .zipWith(getQueueUrlFromName(queueName))
                 .flatMap(objects -> Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> builder.queueUrl(objects.getT2())
                         .messageBody(objects.getT1())
-                        .messageGroupId(messageGroupId))))
+                        .messageGroupId(messageGroupId)
+                        .delaySeconds(delaySeconds))))
                 .onErrorResume(throwable -> {
                     log.error(throwable.getMessage(), throwable);
                     return Mono.error(new SqsClientException(queueName));
