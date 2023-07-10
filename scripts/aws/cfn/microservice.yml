@@ -618,6 +618,10 @@ Parameters:
   PCKmsEncDecDynamoDataKeyARN:
     Type: String
     Description: 'Name of KMS Key for Dynamo encode/decode data'
+  
+  JavaToolOptions:
+    Type: String
+    Description: 'System properties and parameters for the JVM'
 
   # Log group parameters
   EcsLogGroup:
@@ -726,6 +730,7 @@ Resources:
         AutoscalingStrategy: REST-API
         MinTasksNumber: !Ref MinTasksNumber
         MaxTasksNumber: !Ref MaxTasksNumber
+        JavaToolOptions: !Ref JavaToolOptions
 
   PnEcManagedPolicy:
     Type: AWS::IAM::ManagedPolicy

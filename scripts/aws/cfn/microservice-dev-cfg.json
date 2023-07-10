@@ -9,7 +9,8 @@
     "MaxTasksNumber": "12",
     "AutoscalingThreshold": "10000",
     "ArubaCallRetryStrategyMaxAttempts": "4",
-    "ArubaCallRetryStrategyMinBackoff": "3"
+    "ArubaCallRetryStrategyMinBackoff": "3",
+    "JavaToolOptions": "-XX:MaxDirectMemorySize=128M"
   }
 
 }
