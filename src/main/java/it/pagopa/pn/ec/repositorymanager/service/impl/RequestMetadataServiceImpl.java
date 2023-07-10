@@ -119,12 +119,15 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     }
 
     private void eventsCheck(Events event, List<Events> eventsList, String requestId) {
+        log.debug("---> START eventsCheck() <--- CheckedEvent : {}, EventsList : {}", event, eventsList);
         if (eventsList != null && eventsList.contains(event)) {
             // Event already exists
             var status = getStatusFromEvent(event);
             if (status instanceof DigitalProgressStatus digitalprogressstatus) {
+                log.debug("eventsCheck() - DIGITAL STATUS {} ALREADY EXISTS", status);
                 throw new RepositoryManagerException.EventAlreadyExistsException(requestId, digitalprogressstatus);
             } else {
+                log.debug("eventsCheck() - PAPER STATUS {} ALREADY EXISTS", status);
                 throw new RepositoryManagerException.EventAlreadyExistsException(requestId, (PaperProgressStatus) status);
             }
         }
