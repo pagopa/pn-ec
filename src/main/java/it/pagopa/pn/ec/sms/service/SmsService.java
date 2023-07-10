@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.sms.service;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
@@ -49,18 +49,18 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     private final SnsService snsService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final SmsSqsQueueName smsSqsQueueName;
-    private final NotificationTrackerSqsName notificationTrackerSqsName;
+    private final NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
 
     private String idSaved;
 
     protected SmsService(AuthService authService, SqsService sqsService, SnsService snsService,
-                         GestoreRepositoryCall gestoreRepositoryCall, NotificationTrackerSqsName notificationTrackerSqsName,
+                         GestoreRepositoryCall gestoreRepositoryCall, NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties,
                          SmsSqsQueueName smsSqsQueueName) {
         super(authService);
         this.sqsService = sqsService;
         this.snsService = snsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
-        this.notificationTrackerSqsName = notificationTrackerSqsName;
+        this.notificationTrackerSqsQueueProperties = notificationTrackerSqsQueueProperties;
         this.smsSqsQueueName = smsSqsQueueName;
     }
 
@@ -371,7 +371,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     @Override
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    DigitalProgressStatusDto digitalProgressStatusDto) {
-        return sqsService.send(notificationTrackerSqsName.statoSmsName(),
+        return sqsService.send(notificationTrackerSqsQueueProperties.statoSmsName(),
                                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
     }
 

@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.email.service;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
 import it.pagopa.pn.ec.commons.exception.RetryAttemptsExceededExeption;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
@@ -43,7 +43,6 @@ import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.crea
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.commons.service.SesService.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
-import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromMonoUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.HTML;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.PLAIN;
@@ -59,7 +58,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     private final SesService sesService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final AttachmentServiceImpl attachmentService;
-    private final NotificationTrackerSqsName notificationTrackerSqsName;
+    private final NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
     private final EmailSqsQueueName emailSqsQueueName;
     private final EmailDefault emailDefault;
     private final DownloadCall downloadCall;
@@ -70,14 +69,14 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
                            SesService sesService, AttachmentServiceImpl attachmentService,
-                           NotificationTrackerSqsName notificationTrackerSqsName, EmailSqsQueueName emailSqsQueueName,
+                           NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties, EmailSqsQueueName emailSqsQueueName,
                            DownloadCall downloadCall, EmailDefault emailDefault) {
         super(authService);
         this.sqsService = sqsService;
         this.sesService = sesService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.attachmentService = attachmentService;
-        this.notificationTrackerSqsName = notificationTrackerSqsName;
+        this.notificationTrackerSqsQueueProperties = notificationTrackerSqsQueueProperties;
         this.emailSqsQueueName = emailSqsQueueName;
         this.emailDefault = emailDefault;
         this.downloadCall = downloadCall;
@@ -513,7 +512,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                              if (Objects.equals(emailPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
                                                                  log.debug("requestDto Value: {}",
                                                                            requestDto.getRequestMetadata().getRetry());
-                                                                 return sqsService.send(notificationTrackerSqsName.statoEmailName(),
+                                                                 return sqsService.send(notificationTrackerSqsQueueProperties.statoEmailName(),
                                                                                         createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
                                                                                                                                  SENT.getStatusTransactionTableCompliant(),
                                                                                                                                  new DigitalProgressStatusDto().generatedMessage(
@@ -596,7 +595,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     @Override
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    DigitalProgressStatusDto digitalProgressStatusDto) {
-        return sqsService.send(notificationTrackerSqsName.statoEmailName(),
+        return sqsService.send(notificationTrackerSqsQueueProperties.statoEmailName(),
                                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
     }
 

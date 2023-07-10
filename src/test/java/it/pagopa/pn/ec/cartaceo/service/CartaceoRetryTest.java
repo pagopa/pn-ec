@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.cartaceo.service;
 
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
@@ -55,7 +55,7 @@ class CartaceoRetryTest {
     @SpyBean
     SqsService sqsService;
     @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
+    private NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
 
 
     Message message = Message.builder().build();

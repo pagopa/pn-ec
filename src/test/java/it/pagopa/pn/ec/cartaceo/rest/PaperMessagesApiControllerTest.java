@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.cartaceo.rest;
 
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -54,7 +54,7 @@ class PaperMessagesApiControllerTest {
     private CartaceoSqsQueueName cartaceoSqsQueueName;
 
     @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
+    private NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
 
     @MockBean
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
@@ -206,10 +206,10 @@ class PaperMessagesApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione throwata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()),
+        when(sqsService.send(eq(notificationTrackerSqsQueueProperties.statoCartaceoName()),
                              argThat((NotificationTrackerQueueDto notificationTrackerQueueDto) -> Objects.equals(notificationTrackerQueueDto.getNextStatus(),
                                                                                                                  BOOKED.getStatusTransactionTableCompliant())))).thenReturn(
-                Mono.error(new SqsClientException(notificationTrackerSqsName.statoCartaceoName())));
+                Mono.error(new SqsClientException(notificationTrackerSqsQueueProperties.statoCartaceoName())));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                               .isEqualTo(SERVICE_UNAVAILABLE)

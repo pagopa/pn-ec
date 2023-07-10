@@ -48,7 +48,7 @@ public class SqsServiceImpl implements SqsService {
     }
     @Override
     public <T> Mono<SendMessageResponse> send(final String queueName, final String messageGroupId, final T queuePayload) throws SqsClientException {
-        return send(queueName, messageGroupId, 0, queuePayload);
+        return send(queueName, messageGroupId, null, queuePayload);
     }
 
     @Override

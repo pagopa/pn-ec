@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.sms.rest;
 
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -46,7 +46,7 @@ class DigitalCourtesyMessagesApiControllerTest {
     private SmsSqsQueueName smsSqsQueueName;
 
     @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
+    private NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
 
     @MockBean
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
@@ -157,10 +157,10 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione throwata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()),
+        when(sqsService.send(eq(notificationTrackerSqsQueueProperties.statoSmsName()),
                              argThat((NotificationTrackerQueueDto notificationTrackerQueueDto) -> Objects.equals(notificationTrackerQueueDto.getNextStatus(),
                                                                                                                  BOOKED.getStatusTransactionTableCompliant())))).thenReturn(
-                Mono.error(new SqsClientException(notificationTrackerSqsName.statoSmsName())));
+                Mono.error(new SqsClientException(notificationTrackerSqsQueueProperties.statoSmsName())));
 
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)

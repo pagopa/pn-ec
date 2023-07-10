@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.testutils.localstack;
 
 
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
@@ -103,7 +103,7 @@ public class LocalStackTestConfig {
     private SqsClient sqsClient;
 
     @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
+    private NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
 
     @Autowired
     private SmsSqsQueueName smsSqsQueueName;
@@ -120,14 +120,14 @@ public class LocalStackTestConfig {
     private void initSqs() {
         log.info("<-- START initLocalStack.initSqs -->");
 
-        List<String> notificationTrackerQueueNames = List.of(notificationTrackerSqsName.statoSmsName(),
-                notificationTrackerSqsName.statoSmsErratoName(),
-                notificationTrackerSqsName.statoEmailName(),
-                notificationTrackerSqsName.statoEmailErratoName(),
-                notificationTrackerSqsName.statoPecName(),
-                notificationTrackerSqsName.statoPecErratoName(),
-                notificationTrackerSqsName.statoCartaceoName(),
-                notificationTrackerSqsName.statoCartaceoErratoName());
+        List<String> notificationTrackerQueueNames = List.of(notificationTrackerSqsQueueProperties.statoSmsName(),
+                notificationTrackerSqsQueueProperties.statoSmsErratoName(),
+                notificationTrackerSqsQueueProperties.statoEmailName(),
+                notificationTrackerSqsQueueProperties.statoEmailErratoName(),
+                notificationTrackerSqsQueueProperties.statoPecName(),
+                notificationTrackerSqsQueueProperties.statoPecErratoName(),
+                notificationTrackerSqsQueueProperties.statoCartaceoName(),
+                notificationTrackerSqsQueueProperties.statoCartaceoErratoName());
 
         List<String> smsQueueNames = List.of(smsSqsQueueName.interactiveName(), smsSqsQueueName.batchName(), smsSqsQueueName.errorName());
 

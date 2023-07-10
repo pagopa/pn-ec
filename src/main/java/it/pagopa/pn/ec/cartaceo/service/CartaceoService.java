@@ -4,7 +4,7 @@ package it.pagopa.pn.ec.cartaceo.service;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
 import it.pagopa.pn.ec.commons.exception.StatusToDeleteException;
 import it.pagopa.pn.ec.commons.exception.cartaceo.CartaceoSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
@@ -51,20 +51,20 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final SqsService sqsService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final AttachmentServiceImpl attachmentService;
-    private final NotificationTrackerSqsName notificationTrackerSqsName;
+    private final NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
     private final CartaceoSqsQueueName cartaceoSqsQueueName;
     private final PaperMessageCall paperMessageCall;
     private final CartaceoMapper cartaceoMapper;
     private String idSaved;
 
     protected CartaceoService(AuthService authService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall,
-                              AttachmentServiceImpl attachmentService, NotificationTrackerSqsName notificationTrackerSqsName,
+                              AttachmentServiceImpl attachmentService, NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties,
                               CartaceoSqsQueueName cartaceoSqsQueueName, PaperMessageCall paperMessageCall, CartaceoMapper cartaceoMapper) {
         super(authService);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.attachmentService = attachmentService;
-        this.notificationTrackerSqsName = notificationTrackerSqsName;
+        this.notificationTrackerSqsQueueProperties = notificationTrackerSqsQueueProperties;
         this.cartaceoSqsQueueName = cartaceoSqsQueueName;
         this.paperMessageCall = paperMessageCall;
         this.cartaceoMapper = cartaceoMapper;
@@ -446,7 +446,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     @Override
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    PaperProgressStatusDto paperProgressStatusDto) {
-        return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+        return sqsService.send(notificationTrackerSqsQueueProperties.statoCartaceoName(),
                                createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, status, paperProgressStatusDto));
     }
 

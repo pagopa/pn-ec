@@ -1,27 +1,20 @@
 package it.pagopa.pn.ec.cartaceo.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.exception.cartaceo.CartaceoSendException;
-import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
-import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
-import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest;
 import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,15 +22,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import reactor.test.StepVerifierOptions;
-import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
-import java.time.OffsetDateTime;
-import java.util.Objects;
-
 import static it.pagopa.pn.ec.commons.constant.Status.*;
-import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.*;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
@@ -66,7 +53,7 @@ class CartaceoServiceTest {
     private CartaceoSqsQueueName cartaceoSqsQueueName;
 
     @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
+    private NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
 
     @Mock
     private Acknowledgment acknowledgment;
