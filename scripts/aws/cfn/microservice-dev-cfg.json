@@ -12,7 +12,7 @@
     "ArubaCallRetryStrategyMinBackoff": "3",
     "LavorazionePecMaxThreadPoolSize": "50",
     "LavorazioneEsitiPecMaxThreadPoolSize" : "50",
-    "ScaricamentoEsitiPecLimitRate" : "15",
+    "ScaricamentoEsitiPecLimitRate" : "50",
     "JavaToolOptions": "-XX:MaxDirectMemorySize=128M"
   }
 }
