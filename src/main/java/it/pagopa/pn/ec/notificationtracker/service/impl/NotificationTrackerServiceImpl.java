@@ -71,7 +71,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                             PaperProgressStatusDto paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
                                             DigitalProgressStatusDto digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
 
-                                            isSameEvent = Objects.equals(lastEvent.getDigProgrStatus(), digitalProgressStatusDto) || Objects.equals(lastEvent.getPaperProgrStatus(), paperProgressStatusDto);
+                                            isSameEvent = isSameEvent(lastEvent.getDigProgrStatus(), digitalProgressStatusDto) || isSameEvent(lastEvent.getPaperProgrStatus(), paperProgressStatusDto);
                                         }
                                         return isSameEvent ? Mono.empty() : Mono.just(requestDto);
                                     })
@@ -231,4 +231,26 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         }
                                     });
     }
+
+    private boolean isSameEvent(DigitalProgressStatusDto event, DigitalProgressStatusDto eventToCompare) {
+        return event.getEventDetails().equals(eventToCompare.getEventDetails())
+                && event.getEventTimestamp().equals(eventToCompare.getEventTimestamp())
+                && event.getStatus().equals(eventToCompare.getStatus())
+                && event.getStatusCode().equals(eventToCompare.getStatusCode())
+                && event.getGeneratedMessage().equals(eventToCompare.getGeneratedMessage());
+    }
+
+    private boolean isSameEvent(PaperProgressStatusDto event, PaperProgressStatusDto eventToCompare) {
+        return event.getAttachments().equals(eventToCompare.getAttachments())
+                && event.getStatusDateTime().equals(eventToCompare.getStatusDateTime())
+                && event.getIun().equals(eventToCompare.getIun())
+                && event.getDiscoveredAddress().equals(eventToCompare.getDiscoveredAddress())
+                && event.getStatusCode().equals(eventToCompare.getStatusCode())
+                && event.getStatusDescription().equals(eventToCompare.getStatusDescription())
+                && event.getDeliveryFailureCause().equals(eventToCompare.getDeliveryFailureCause())
+                && event.getRegisteredLetterCode().equals(eventToCompare.getRegisteredLetterCode())
+                && event.getClientRequestTimeStamp().equals(eventToCompare.getClientRequestTimeStamp())
+                && event.getProductType().equals(eventToCompare.getProductType());
+    }
+
 }
