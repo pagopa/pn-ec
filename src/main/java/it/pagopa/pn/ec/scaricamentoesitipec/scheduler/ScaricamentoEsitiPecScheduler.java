@@ -142,9 +142,8 @@ public class ScaricamentoEsitiPecScheduler {
                     }
                     else return Mono.just(finalMessageID);
                 })
-                .limitRate(limitRate)
                 //Marca il messaggio come letto.
-                .flatMap(finalMessageID -> arubaCall.getMessageId(createGetMessageIdRequest(finalMessageID, 2, true)))
+                .flatMap(finalMessageID -> arubaCall.getMessageId(createGetMessageIdRequest(finalMessageID, 2, true)), limitRate)
                 .doOnError(throwable -> log.error("* FATAL * {}, {}", throwable, throwable.getMessage()))
                 .onErrorResume(throwable -> Mono.empty())
                 .repeat(hasMessages::get)
