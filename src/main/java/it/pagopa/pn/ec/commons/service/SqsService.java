@@ -12,11 +12,9 @@ public interface SqsService {
 
     <T> Mono<SendMessageResponse> send(final String queueName, final T queuePayload) throws SqsClientException;
 
-    <T> Mono<SendMessageResponse> send(final String queueName, final T queuePayload, Integer iDelay) throws SqsClientException;
-
-    <T> Mono<SendMessageResponse> send(final String queueName, final String messageGroupId, final T queuePayload, Integer iDelay) throws SqsClientException;
-
     <T> Mono<SendMessageResponse> send(final String queueName, Integer delaySeconds, final T queuePayload) throws SqsClientException;
+
+    <T> Mono<SendMessageResponse> send(final String queueName, String messageGroupId, final T queuePayload) throws SqsClientException;
 
     <T> Mono<SendMessageResponse> send(final String queueName, final String messageGroupId, Integer delaySeconds, final T queuePayload) throws SqsClientException;
 

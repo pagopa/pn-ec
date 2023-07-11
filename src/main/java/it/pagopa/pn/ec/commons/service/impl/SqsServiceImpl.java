@@ -12,8 +12,10 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
-import software.amazon.awssdk.services.sqs.SqsClientBuilder;
-import software.amazon.awssdk.services.sqs.model.*;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,22 +41,23 @@ public class SqsServiceImpl implements SqsService {
     }
 
     @Override
-    public <T> Mono<SendMessageResponse> send(final String queueName, Integer delaySeconds, final T queuePayload) throws SqsClientException {
+    public <T> Mono<SendMessageResponse> send(final String queueName, final T queuePayload) throws SqsClientException {
+        return send(queueName, (Integer) null, queuePayload);
+    }
+
+    @Override
+    public <T> Mono<SendMessageResponse> send(String queueName, Integer delaySeconds, T queuePayload) throws SqsClientException {
         return send(queueName, RandomStringUtils.randomAlphanumeric(MESSAGE_GROUP_ID_LENGTH), delaySeconds, queuePayload);
     }
+
     @Override
-    public <T> Mono<SendMessageResponse> send(final String queueName, final T queuePayload) throws SqsClientException {
-        return send(queueName, RandomStringUtils.randomAlphanumeric(MESSAGE_GROUP_ID_LENGTH), queuePayload);
-    }
-    @Override
-    public <T> Mono<SendMessageResponse> send(final String queueName, final String messageGroupId, final T queuePayload) throws SqsClientException {
+    public <T> Mono<SendMessageResponse> send(String queueName, String messageGroupId, T queuePayload) throws SqsClientException {
         return send(queueName, messageGroupId, null, queuePayload);
     }
 
     @Override
-    public <T> Mono<SendMessageResponse> send(final String queueName, final String messageGroupId, Integer delaySeconds, final T queuePayload) throws SqsClientException {
+    public <T> Mono<SendMessageResponse> send(String queueName, String messageGroupId, Integer delaySeconds, T queuePayload) throws SqsClientException {
         log.info("<-- START SENDING MESSAGE ON QUEUE  --> Queue name : {}", queueName);
-
         return Mono.fromCallable(() -> objectMapper.writeValueAsString(queuePayload))
                 .doOnNext(sendMessageResponse -> log.debug("Try to publish on {} with payload {}", queueName, sendMessageResponse))
                 .zipWith(getQueueUrlFromName(queueName))
@@ -67,6 +70,7 @@ public class SqsServiceImpl implements SqsService {
                     return Mono.error(new SqsClientException(queueName));
                 });
     }
+
 
     @Override
     public <T> Mono<SqsMessageWrapper<T>> getOneMessage(String queueName, Class<T> messageContentClass) {
