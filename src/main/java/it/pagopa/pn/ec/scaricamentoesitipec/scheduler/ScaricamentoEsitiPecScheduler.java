@@ -43,7 +43,7 @@ public class ScaricamentoEsitiPecScheduler {
     private final DaticertService daticertService;
     private final SqsService sqsService;
     private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
-    @Value("${lavorazione-esiti-pec.limit-rate}")
+    @Value("${scaricamento-esiti-pec.limit-rate}")
     private Integer limitRate;
 
     public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties) {

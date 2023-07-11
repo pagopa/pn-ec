@@ -114,17 +114,17 @@ Parameters:
   
   LavorazionePecMaxThreadPoolSize:
     Type: String
-    Description: 'Retry strategy Aruba max attempts'
+    Description: 'Lavorazione PEC max thread pool size'
     Default: '50'
 
-  ScaricamentoEsitiPecMaxThreadPoolSize:
+  LavorazioneEsitiPecMaxThreadPoolSize:
     Type: String
-    Description: 'Retry strategy Aruba min delay'
+    Description: 'Lavorazione esiti PEC max thread pool size'
     Default: '50'
 
-  LavorazioneEsitiPecLimitRate:
+  ScaricamentoEsitiPecLimitRate:
     Type: String
-    Description: 'Retry strategy Aruba max attempts'
+    Description: 'Scaricamento esiti PEC Aruba limit rate'
     Default: '15'
 
   ######### TABLES  ############
@@ -723,8 +723,8 @@ Resources:
         ContainerEnvEntry41: !Sub 'ArubaCallRetryStrategyMaxAttempts=${ArubaCallRetryStrategyMaxAttempts}'
         ContainerEnvEntry42: !Sub 'ArubaCallRetryStrategyMinBackoff=${ArubaCallRetryStrategyMinBackoff}'
         ContainerEnvEntry43: !Sub 'LavorazionePecMaxThreadPoolSize=${LavorazionePecMaxThreadPoolSize}'
-        ContainerEnvEntry44: !Sub 'ScaricamentoEsitiPecMaxThreadPoolSize=${ScaricamentoEsitiPecMaxThreadPoolSize}'
-        ContainerEnvEntry45: !Sub 'LavorazioneEsitiPecLimitRate=${LavorazioneEsitiPecLimitRate}'
+        ContainerEnvEntry44: !Sub 'LavorazioneEsitiPecMaxThreadPoolSize=${LavorazioneEsitiPecMaxThreadPoolSize}'
+        ContainerEnvEntry45: !Sub 'ScaricamentoEsitiPecLimitRate=${ScaricamentoEsitiPecLimitRate}'
         ContainerEnvEntry50: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
         ContainerEnvEntry51: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
