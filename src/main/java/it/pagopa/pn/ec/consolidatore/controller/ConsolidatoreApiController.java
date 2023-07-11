@@ -86,7 +86,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     @Override
     public Mono<ResponseEntity<FileDownloadResponse>> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, final ServerWebExchange exchange) {
         return consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
-                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(fileKey, e.getFieldErrors()))
+                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors()))
                 .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(fileKey).errorList(e.getAuditLogErrorList())))
                 .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(fileKey).errorList(e.getAuditLogErrorList())))
                 .map(ResponseEntity::ok);
@@ -96,9 +96,9 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     @Override
     public Mono<ResponseEntity<PreLoadResponseData>> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> preLoadRequestData, ServerWebExchange exchange) {
         return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
-                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(preLoadRequestData.map(PreLoadRequestData::getPreloads), e.getFieldErrors()))
-                .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(preLoadRequestData.map(PreLoadRequestData::getPreloads)).errorList(e.getAuditLogErrorList())))
-                .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(preLoadRequestData.map(PreLoadRequestData::getPreloads)).errorList(e.getAuditLogErrorList())))
+                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors()))
+                .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().errorList(e.getAuditLogErrorList())))
+                .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().errorList(e.getAuditLogErrorList())))
                 .map(ResponseEntity::ok);
     }
 
@@ -176,7 +176,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                 errors)));
                             }
                         })
-                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(consolidatoreIngressPaperProgressStatusEvent.collectList(), e.getFieldErrors())))
+                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors())))
                         .onErrorResume(RuntimeException.class, throwable -> {
                             log.error(LOG_LABEL + "* FATAL * errore generico = {}, {}", throwable, throwable.getMessage());
                             return Mono.just(ResponseEntity.internalServerError()
@@ -216,7 +216,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                 });
     }
 
-    private void fieldValidationAuditLog(Object request, List<FieldError> errors) {
+    private void fieldValidationAuditLog(List<FieldError> errors) {
         List<ConsAuditLogError> consAuditLogErrorList = new ArrayList<>();
 
         for (FieldError error : errors) {
@@ -224,7 +224,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
             var consAuditLogError = ConsAuditLogError.builder().description(description).error(ERR_CONS_BAD_JSON_FORMAT.getValue()).build();
             consAuditLogErrorList.add(consAuditLogError);
         }
-        log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(request).errorList(consAuditLogErrorList));
+        log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().errorList(consAuditLogErrorList));
     }
 
 }
