@@ -16,6 +16,10 @@ public interface SqsService {
 
     <T> Mono<SendMessageResponse> send(final String queueName, final String messageGroupId, final T queuePayload, Integer iDelay) throws SqsClientException;
 
+    <T> Mono<SendMessageResponse> send(final String queueName, Integer delaySeconds, final T queuePayload) throws SqsClientException;
+
+    <T> Mono<SendMessageResponse> send(final String queueName, final String messageGroupId, Integer delaySeconds, final T queuePayload) throws SqsClientException;
+
     <T> Mono<SqsMessageWrapper<T>> getOneMessage(final String queueName, final Class<T> messageContentClass);
 
     <T> Flux<SqsMessageWrapper<T>> getMessages(final String queueName, final Class<T> messageContentClass);

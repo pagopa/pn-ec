@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.notificationtracker.service.impl;
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -33,15 +34,17 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
     private final CallMacchinaStati callMachinaStati;
     private final SqsService sqsService;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private final NotificationTrackerSqsName notificationTrackerSqsName;
 
     public NotificationTrackerServiceImpl(PutEvents putEvents, GestoreRepositoryCall gestoreRepositoryCall,
                                           CallMacchinaStati callMachinaStati, SqsService sqsService,
-                                          TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+                                          TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, NotificationTrackerSqsName notificationTrackerSqsName) {
         this.putEvents = putEvents;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.callMachinaStati = callMachinaStati;
         this.sqsService = sqsService;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+        this.notificationTrackerSqsName = notificationTrackerSqsName;
     }
 
     @Override
@@ -54,6 +57,17 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
         return gestoreRepositoryCall.getRichiesta(notificationTrackerQueueDto.getXPagopaExtchCxId(),
                                                   notificationTrackerQueueDto.getRequestIdx())
+                                     // Check if the incoming event is equals to the last event that was worked on.
+                                    .flatMap(requestDto ->
+                                    {
+                                        List<EventsDto> eventsList = requestDto.getRequestMetadata().getEventsList();
+                                        EventsDto lastEvent = eventsList.get(eventsList.size() - 1);
+
+                                        PaperProgressStatusDto paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
+                                        DigitalProgressStatusDto digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
+
+                                        return Objects.equals(lastEvent.getDigProgrStatus(), digitalProgressStatusDto) || Objects.equals(lastEvent.getPaperProgrStatus(), paperProgressStatusDto) ? Mono.empty() : Mono.just(requestDto);
+                                    })
 //                                  Set status request to start status if is null
                                     .map(requestDto -> {
                                         if (requestDto.getStatusRequest() == null) {
@@ -204,7 +218,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         var retry = notificationTrackerQueueDto.getRetry();
                                         notificationTrackerQueueDto.setRetry(retry + 1);
                                         if (retry < 5) {
-                                            return sqsService.send(ntStatoQueueName, notificationTrackerQueueDto, 600).then();
+                                            return sqsService.send(ntStatoQueueName, notificationTrackerSqsName.delaySeconds(), notificationTrackerQueueDto).then();
                                         } else {
                                             return sqsService.send(ntStatoErroreQueueName, notificationTrackerQueueDto).then();
                                         }
