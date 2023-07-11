@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.notificationtracker.service.impl;
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -33,17 +33,17 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
     private final CallMacchinaStati callMachinaStati;
     private final SqsService sqsService;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
-    private final NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
+    private final NotificationTrackerSqsName notificationTrackerSqsName;
 
     public NotificationTrackerServiceImpl(PutEvents putEvents, GestoreRepositoryCall gestoreRepositoryCall,
                                           CallMacchinaStati callMachinaStati, SqsService sqsService,
-                                          TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties) {
+                                          TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, NotificationTrackerSqsName notificationTrackerSqsName) {
         this.putEvents = putEvents;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.callMachinaStati = callMachinaStati;
         this.sqsService = sqsService;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
-        this.notificationTrackerSqsQueueProperties = notificationTrackerSqsQueueProperties;
+        this.notificationTrackerSqsName = notificationTrackerSqsName;
     }
 
     @Override
@@ -217,7 +217,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         var retry = notificationTrackerQueueDto.getRetry();
                                         notificationTrackerQueueDto.setRetry(retry + 1);
                                         if (retry < 5) {
-                                            return sqsService.send(ntStatoQueueName, notificationTrackerSqsQueueProperties.delaySeconds(), notificationTrackerQueueDto).then();
+                                            return sqsService.send(ntStatoQueueName, notificationTrackerSqsName.delaySeconds(), notificationTrackerQueueDto).then();
                                         } else {
                                             return sqsService.send(ntStatoErroreQueueName, notificationTrackerQueueDto).then();
                                         }

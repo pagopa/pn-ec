@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.pec.service.impl;
 
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
@@ -45,7 +45,7 @@ import static org.mockito.Mockito.*;
 class PecRetryTest {
 
     @Autowired
-    private NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
+    private NotificationTrackerSqsName notificationTrackerSqsName;
     @Autowired
     private PecSqsQueueName pecSqsQueueName;
     @SpyBean

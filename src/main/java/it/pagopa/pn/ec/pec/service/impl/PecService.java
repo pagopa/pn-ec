@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.pec.service.impl;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
@@ -65,14 +65,14 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private final AttachmentServiceImpl attachmentService;
     private final DownloadCall downloadCall;
     private final ArubaSecretValue arubaSecretValue;
-    private final NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
+    private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final PecSqsQueueName pecSqsQueueName;
 
     private String idSaved;
 
     protected PecService(AuthService authService, ArubaCall arubaCall, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
             , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, ArubaSecretValue arubaSecretValue,
-                         NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties, PecSqsQueueName pecSqsQueueName) {
+                         NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName) {
         super(authService);
         this.arubaCall = arubaCall;
         this.sqsService = sqsService;
@@ -80,7 +80,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         this.attachmentService = attachmentService;
         this.downloadCall = downloadCall;
         this.arubaSecretValue = arubaSecretValue;
-        this.notificationTrackerSqsQueueProperties = notificationTrackerSqsQueueProperties;
+        this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.pecSqsQueueName = pecSqsQueueName;
     }
 
@@ -537,7 +537,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     @Override
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    DigitalProgressStatusDto digitalProgressStatusDto) {
-        return sqsService.send(notificationTrackerSqsQueueProperties.statoPecName(),
+        return sqsService.send(notificationTrackerSqsName.statoPecName(),
                                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
     }
 

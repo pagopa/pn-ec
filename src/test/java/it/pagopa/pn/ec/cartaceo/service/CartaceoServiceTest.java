@@ -5,7 +5,7 @@ import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -53,7 +53,7 @@ class CartaceoServiceTest {
     private CartaceoSqsQueueName cartaceoSqsQueueName;
 
     @Autowired
-    private NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
+    private NotificationTrackerSqsName notificationTrackerSqsName;
 
     @Mock
     private Acknowledgment acknowledgment;

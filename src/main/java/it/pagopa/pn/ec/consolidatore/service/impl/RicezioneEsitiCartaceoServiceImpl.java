@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.consolidatore.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -40,19 +40,19 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private final GestoreRepositoryCall gestoreRepositoryCall;
 	private final FileCall fileCall;
 	private final ObjectMapper objectMapper;
-	private final NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
+	private final NotificationTrackerSqsName notificationTrackerSqsName;
 	private final SqsService sqsService;
 
 	private final StatusPullService statusPullService;
 
 	public RicezioneEsitiCartaceoServiceImpl(GestoreRepositoryCall gestoreRepositoryCall,
-											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties,
+											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
 											 SqsService sqsService, StatusPullService statusPullService) {
 		super();
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.fileCall = fileCall;
 		this.objectMapper = objectMapper;
-		this.notificationTrackerSqsQueueProperties = notificationTrackerSqsQueueProperties;
+		this.notificationTrackerSqsName = notificationTrackerSqsName;
 		this.sqsService = sqsService;
 		this.statusPullService = statusPullService;
 	}
@@ -302,7 +302,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 				log.debug(LOG_PUB_LABEL + "paperProgressStatusDto = {}", paperProgressStatusDto);
 
-	 			return sqsService.send(notificationTrackerSqsQueueProperties.statoCartaceoName(),
+	 			return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
 	 								   NotificationTrackerQueueDto.createNotificationTrackerQueueDtoRicezioneEsitiPaper(
 	 										   presaInCaricoInfo,
 	 										   paperProgressStatusDto.getStatusCode(),

@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.DaticertService;
@@ -27,7 +27,7 @@ class ScaricamentoEsitiPecSchedulerTest {
     private SqsService sqsService;
 
     @Autowired
-    private NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
+    private NotificationTrackerSqsName notificationTrackerSqsName;
 
     @Autowired
     private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;

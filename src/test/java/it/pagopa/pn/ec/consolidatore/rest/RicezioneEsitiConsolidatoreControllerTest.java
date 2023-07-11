@@ -25,7 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -57,7 +57,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	private SqsServiceImpl sqsService;
     
     @Autowired
-    private NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
+    private NotificationTrackerSqsName notificationTrackerSqsName;
     
     private static final String RICEZIONE_ESITI_ENDPOINT = "/consolidatore-ingress/v1/push-progress-events/";
     
@@ -299,8 +299,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true)).thenReturn(Mono.just(fileDownloadResponse));
     	
     	// errore pubblicazione su coda cartaceo
-		when(sqsService.send(eq(notificationTrackerSqsQueueProperties.statoCartaceoName()), any(NotificationTrackerQueueDto.class)))
-			.thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsQueueProperties.statoCartaceoName())));
+		when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class)))
+			.thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName.statoCartaceoName())));
     	
     	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
     	events.add(getProgressStatusEventWithoutAttachments());

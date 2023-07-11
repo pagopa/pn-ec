@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.email.service;
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -51,7 +51,7 @@ class EmailServiceTest {
     private EmailSqsQueueName emailSqsQueueName;
 
     @Autowired
-    private NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
+    private NotificationTrackerSqsName notificationTrackerSqsName;
 
     @SpyBean
     private SqsServiceImpl sqsService;
@@ -218,7 +218,7 @@ class EmailServiceTest {
 
         when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().build()));
 
-        when(sqsService.send(eq(notificationTrackerSqsQueueProperties.statoEmailName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(new SqsClientException("")));
+        when(sqsService.send(eq(notificationTrackerSqsName.statoEmailName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(new SqsClientException("")));
 
         Mono<SendMessageResponse> lavorazioneRichiesta=emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();

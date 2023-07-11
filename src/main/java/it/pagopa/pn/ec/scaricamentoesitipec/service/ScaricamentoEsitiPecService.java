@@ -4,7 +4,7 @@ import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
@@ -60,7 +60,7 @@ public class ScaricamentoEsitiPecService {
     @Autowired
     private CloudWatchPecMetrics cloudWatchPecMetrics;
     @Autowired
-    private NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
+    private NotificationTrackerSqsName notificationTrackerSqsName;
     @Autowired
     private ArubaSecretValue arubaSecretValue;
     @Autowired
@@ -223,7 +223,7 @@ public class ScaricamentoEsitiPecService {
                             })
 
                             //Pubblicazione sulla coda degli stati PEC
-                            .flatMap(notificationTrackerQueueDto -> sqsService.send(notificationTrackerSqsQueueProperties.statoPecName(),
+                            .flatMap(notificationTrackerQueueDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                     notificationTrackerQueueDto));
                 })
                 .doOnSuccess(result -> acknowledgment.acknowledge())

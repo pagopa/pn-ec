@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.email.service;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.RetryAttemptsExceededExeption;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
@@ -58,7 +58,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     private final SesService sesService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final AttachmentServiceImpl attachmentService;
-    private final NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
+    private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final EmailSqsQueueName emailSqsQueueName;
     private final EmailDefault emailDefault;
     private final DownloadCall downloadCall;
@@ -69,14 +69,14 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
                            SesService sesService, AttachmentServiceImpl attachmentService,
-                           NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties, EmailSqsQueueName emailSqsQueueName,
+                           NotificationTrackerSqsName notificationTrackerSqsName, EmailSqsQueueName emailSqsQueueName,
                            DownloadCall downloadCall, EmailDefault emailDefault) {
         super(authService);
         this.sqsService = sqsService;
         this.sesService = sesService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.attachmentService = attachmentService;
-        this.notificationTrackerSqsQueueProperties = notificationTrackerSqsQueueProperties;
+        this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.emailSqsQueueName = emailSqsQueueName;
         this.emailDefault = emailDefault;
         this.downloadCall = downloadCall;
@@ -512,7 +512,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                              if (Objects.equals(emailPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
                                                                  log.debug("requestDto Value: {}",
                                                                            requestDto.getRequestMetadata().getRetry());
-                                                                 return sqsService.send(notificationTrackerSqsQueueProperties.statoEmailName(),
+                                                                 return sqsService.send(notificationTrackerSqsName.statoEmailName(),
                                                                                         createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
                                                                                                                                  SENT.getStatusTransactionTableCompliant(),
                                                                                                                                  new DigitalProgressStatusDto().generatedMessage(
@@ -595,7 +595,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     @Override
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    DigitalProgressStatusDto digitalProgressStatusDto) {
-        return sqsService.send(notificationTrackerSqsQueueProperties.statoEmailName(),
+        return sqsService.send(notificationTrackerSqsName.statoEmailName(),
                                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
     }
 

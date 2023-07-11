@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.email.rest;
 
 
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -57,7 +57,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     private WebTestClient webTestClient;
 
     @Autowired
-    private NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
+    private NotificationTrackerSqsName notificationTrackerSqsName;
 
     @Autowired
     private EmailSqsQueueName emailSqsQueueName;
@@ -194,10 +194,10 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione throwata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(notificationTrackerSqsQueueProperties.statoEmailName()),
+        when(sqsService.send(eq(notificationTrackerSqsName.statoEmailName()),
                              argThat((NotificationTrackerQueueDto notificationTrackerQueueDto) -> Objects.equals(notificationTrackerQueueDto.getNextStatus(),
                                                                                                                  BOOKED.getStatusTransactionTableCompliant())))).thenReturn(
-                Mono.error(new SqsClientException(notificationTrackerSqsQueueProperties.statoSmsName())));
+                Mono.error(new SqsClientException(notificationTrackerSqsName.statoSmsName())));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                    .isEqualTo(SERVICE_UNAVAILABLE)

@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.sms.service;
 
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsQueueProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -38,7 +38,7 @@ class SmsServiceTest {
     private SmsSqsQueueName smsSqsQueueName;
 
     @Autowired
-    private NotificationTrackerSqsQueueProperties notificationTrackerSqsQueueProperties;
+    private NotificationTrackerSqsName notificationTrackerSqsName;
 
     @SpyBean
     private SqsServiceImpl sqsService;
@@ -92,8 +92,8 @@ class SmsServiceTest {
     @Test
     void lavorazioneRichiestaNtKo() {
 
-        when(sqsService.send(eq(notificationTrackerSqsQueueProperties.statoSmsName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
-                new SqsClientException(notificationTrackerSqsQueueProperties.statoSmsName())));
+        when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
+                new SqsClientException(notificationTrackerSqsName.statoSmsName())));
 
         Mono<SendMessageResponse> response = smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();

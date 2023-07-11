@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.commons.configurationproperties.sqs;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "sqs.queue.notification-tracker")
-public record NotificationTrackerSqsQueueProperties(
+public record NotificationTrackerSqsName(
 
 //      SMS
         String statoSmsName, String statoSmsErratoName, String statoSmsDlqName,
