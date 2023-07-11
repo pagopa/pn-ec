@@ -573,30 +573,40 @@ Parameters:
   #### CRON Rules ####
   PnEcCronScaricamentoEsitiPec:
     Type: String
+    Default: ''
     
   PnEcCronLavorazioneBatchSms:
     Type: String
+    Default: ''
 
   PnEcCronLavorazioneBatchEmail:
     Type: String
+    Default: ''
 
   PnEcCronLavorazioneBatchPec:
     Type: String
+    Default: ''
 
   PnEcCronLavorazioneBatchCartaceo:
     Type: String
+    Default: ''
+    Default: ''
 
   PnEcCronGestioneRetryEmail:
     Type: String
+    Default: ''
 
   PnEcCronGestioneRetryPec:
     Type: String
+    Default: ''
 
   PnEcCronGestioneRetrySms:
     Type: String
+    Default: ''
 
   PnEcCronGestioneRetryCartaceo:
     Type: String
+    Default: ''
 
   #### Parametri Indipendenti ####
 
