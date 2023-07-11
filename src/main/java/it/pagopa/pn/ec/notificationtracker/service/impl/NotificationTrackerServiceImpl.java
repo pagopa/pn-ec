@@ -246,6 +246,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
     private boolean isSameEvent(DigitalProgressStatusDto lastEvent, DigitalProgressStatusDto newEvent, String nextStatus) {
         return lastEvent.getEventTimestamp().equals(newEvent.getEventTimestamp().truncatedTo(SECONDS))
                 && lastEvent.getStatus().equals(nextStatus)
+                && lastEvent.getGeneratedMessage() != null
                 && lastEvent.getGeneratedMessage().equals(newEvent.getGeneratedMessage());
     }
 
