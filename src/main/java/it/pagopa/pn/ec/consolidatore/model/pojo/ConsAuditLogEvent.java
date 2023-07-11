@@ -7,8 +7,7 @@ import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
-@Setter
+@Data
 @Builder
 public class ConsAuditLogEvent<T> {
 
