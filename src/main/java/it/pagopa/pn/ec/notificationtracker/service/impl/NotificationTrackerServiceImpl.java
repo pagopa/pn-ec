@@ -18,6 +18,7 @@ import reactor.core.publisher.Mono;
 import software.amazon.ion.Timestamp;
 
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -75,10 +76,10 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                             if (lastEvent.getDigProgrStatus() != null) {
                                                 log.debug("handleRequestStatusChange - LastEvent digitalProgressStatus : {}", lastEvent.getDigProgrStatus());
-                                                isSameEvent = isSameEvent(lastEvent.getDigProgrStatus(), digitalProgressStatusDto);
+                                                isSameEvent = isSameEvent(lastEvent.getDigProgrStatus(), digitalProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
                                             } else {
                                                 log.debug("handleRequestStatusChange - LastEvent paperProgressStatus : {}", lastEvent.getPaperProgrStatus());
-                                                isSameEvent = isSameEvent(lastEvent.getPaperProgrStatus(), paperProgressStatusDto);
+                                                isSameEvent = isSameEvent(lastEvent.getPaperProgrStatus(), paperProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
                                             }
                                         }
 
@@ -242,25 +243,14 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                     });
     }
 
-    private boolean isSameEvent(DigitalProgressStatusDto event, DigitalProgressStatusDto eventToCompare) {
-        return event.getEventDetails().equals(eventToCompare.getEventDetails())
-                && event.getEventTimestamp().equals(eventToCompare.getEventTimestamp())
-                && event.getStatus().equals(eventToCompare.getStatus())
-                && event.getStatusCode().equals(eventToCompare.getStatusCode())
-                && event.getGeneratedMessage().equals(eventToCompare.getGeneratedMessage());
+    private boolean isSameEvent(DigitalProgressStatusDto lastEvent, DigitalProgressStatusDto newEvent, String nextStatus) {
+        return lastEvent.getEventTimestamp().equals(newEvent.getEventTimestamp().truncatedTo(SECONDS))
+                && lastEvent.getStatus().equals(nextStatus)
+                && lastEvent.getGeneratedMessage().equals(newEvent.getGeneratedMessage());
     }
 
-    private boolean isSameEvent(PaperProgressStatusDto event, PaperProgressStatusDto eventToCompare) {
-        return event.getAttachments().equals(eventToCompare.getAttachments())
-                && event.getStatusDateTime().equals(eventToCompare.getStatusDateTime())
-                && event.getIun().equals(eventToCompare.getIun())
-                && event.getDiscoveredAddress().equals(eventToCompare.getDiscoveredAddress())
-                && event.getStatusCode().equals(eventToCompare.getStatusCode())
-                && event.getStatusDescription().equals(eventToCompare.getStatusDescription())
-                && event.getDeliveryFailureCause().equals(eventToCompare.getDeliveryFailureCause())
-                && event.getRegisteredLetterCode().equals(eventToCompare.getRegisteredLetterCode())
-                && event.getClientRequestTimeStamp().equals(eventToCompare.getClientRequestTimeStamp())
-                && event.getProductType().equals(eventToCompare.getProductType());
+    private boolean isSameEvent(PaperProgressStatusDto lastEvent, PaperProgressStatusDto newEvent, String nextStatus) {
+        return lastEvent.getStatusCode().equals(nextStatus) && lastEvent.getStatusDateTime().equals(newEvent.getStatusDateTime().truncatedTo(SECONDS));
     }
 
 }
