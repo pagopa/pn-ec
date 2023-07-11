@@ -19,6 +19,7 @@ import software.amazon.ion.Timestamp;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -57,16 +58,22 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
         return gestoreRepositoryCall.getRichiesta(notificationTrackerQueueDto.getXPagopaExtchCxId(),
                                                   notificationTrackerQueueDto.getRequestIdx())
+
                                      // Check if the incoming event is equals to the last event that was worked on.
                                     .flatMap(requestDto ->
                                     {
                                         List<EventsDto> eventsList = requestDto.getRequestMetadata().getEventsList();
-                                        EventsDto lastEvent = eventsList.get(eventsList.size() - 1);
+                                        boolean isSameEvent = false;
 
-                                        PaperProgressStatusDto paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
-                                        DigitalProgressStatusDto digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
+                                        if (!Objects.isNull(eventsList) && !eventsList.isEmpty()) {
 
-                                        return Objects.equals(lastEvent.getDigProgrStatus(), digitalProgressStatusDto) || Objects.equals(lastEvent.getPaperProgrStatus(), paperProgressStatusDto) ? Mono.empty() : Mono.just(requestDto);
+                                            EventsDto lastEvent = eventsList.get(eventsList.size() - 1);
+                                            PaperProgressStatusDto paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
+                                            DigitalProgressStatusDto digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
+
+                                            isSameEvent = Objects.equals(lastEvent.getDigProgrStatus(), digitalProgressStatusDto) || Objects.equals(lastEvent.getPaperProgrStatus(), paperProgressStatusDto);
+                                        }
+                                        return isSameEvent ? Mono.empty() : Mono.just(requestDto);
                                     })
 //                                  Set status request to start status if is null
                                     .map(requestDto -> {
