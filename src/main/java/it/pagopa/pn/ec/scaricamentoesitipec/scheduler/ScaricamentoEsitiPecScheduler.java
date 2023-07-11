@@ -11,6 +11,7 @@ import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
+import it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils;
 import it.pec.bridgews.*;
 import it.pec.daticert.Destinatari;
 import it.pec.daticert.Postacert;
@@ -64,6 +65,7 @@ public class ScaricamentoEsitiPecScheduler {
     public void scaricamentoEsitiPecScheduler() {
 
         log.info("<-- SCARICAMENTO ESITI PEC SCHEDULER -->");
+        ScaricamentoEsitiPecUtils.sleepRandomSeconds();
 
         var getMessages = new GetMessages();
         getMessages.setUnseen(1);
