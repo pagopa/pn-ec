@@ -633,6 +633,10 @@ Parameters:
   PCKmsEncDecDynamoDataKeyARN:
     Type: String
     Description: 'Name of KMS Key for Dynamo encode/decode data'
+  
+  JavaToolOptions:
+    Type: String
+    Description: 'System properties and parameters for the JVM'
 
   # Log group parameters
   EcsLogGroup:
@@ -744,6 +748,7 @@ Resources:
         AutoscalingStrategy: REST-API
         MinTasksNumber: !Ref MinTasksNumber
         MaxTasksNumber: !Ref MaxTasksNumber
+        JavaToolOptions: !Ref JavaToolOptions
 
   PnEcManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -1008,8 +1013,30 @@ Resources:
             Period: 60
             Stat: Sum
           ReturnData: False
+        - Id: m4
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: LoadBalancer
+                  Value: !Ref ApplicationLoadBalancerMetricsDimensionName
+              MetricName: HTTPCode_ELB_5XX_Count
+              Namespace: AWS/ApplicationELB
+            Period: 60
+            Stat: Sum
+          ReturnData: False       
+        - Id: m5
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: LoadBalancer
+                  Value: !Ref ApplicationLoadBalancerMetricsDimensionName
+              MetricName: RequestCount
+              Namespace: AWS/ApplicationELB
+            Period: 60
+            Stat: Sum
+          ReturnData: False                       
         - Id: e1
-          Expression: IF(m3>=10 AND (m1/m3>=0.9 OR m2/m3>=0.1), 1, 0)
+          Expression: IF((m5>=10 AND m4/m5>=0.1) OR (m3>=10 AND (m1/m3>=0.9 OR m2/m3>=0.1)), 1, 0)
           Label: !Sub "${ProjectName}-external-channel-ALBAlarm-oncall-metric"
 
   ExternalChannelMicroserviceAlarm:
