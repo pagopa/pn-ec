@@ -38,7 +38,7 @@ public class NettyLoggingFilter implements WebFilter {
                     try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
                         Channels.newChannel(byteArrayOutputStream).write(dataBuffer.asByteBuffer().asReadOnlyBuffer());
                         requestBody = byteArrayOutputStream.toString(StandardCharsets.UTF_8);
-                        log.info("{} {} - Request Body : {}", httpMethod, httpUrl, requestBody);
+                        log.info("{} {} - Request Body: {}", httpMethod, httpUrl, requestBody);
                     } catch (IOException e) {
                         log.error("Failed to log incoming http request");
                     }
