@@ -12,4 +12,9 @@ public class SqsUtils {
     public static <T> void logIncomingMessage(String queueName, T incomingPayload) {
         log.debug("Incoming message from '{}' queue with payload ↓\n{}", queueName, incomingPayload);
     }
+
+    public static <T> void logIncomingMessage(String queueName, String id, T incomingPayload) {
+        log.debug("Incoming message from '{}' queue with payload ↓\n{}", queueName, incomingPayload);
+    }
+
 }

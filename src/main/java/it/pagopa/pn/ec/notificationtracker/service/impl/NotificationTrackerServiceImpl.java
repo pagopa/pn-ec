@@ -3,7 +3,9 @@ package it.pagopa.pn.ec.notificationtracker.service.impl;
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsMaxTimeElapsedException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
@@ -17,7 +19,9 @@ import reactor.core.publisher.Mono;
 import software.amazon.ion.Timestamp;
 
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -33,15 +37,17 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
     private final CallMacchinaStati callMachinaStati;
     private final SqsService sqsService;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private final NotificationTrackerSqsName notificationTrackerSqsName;
 
     public NotificationTrackerServiceImpl(PutEvents putEvents, GestoreRepositoryCall gestoreRepositoryCall,
                                           CallMacchinaStati callMachinaStati, SqsService sqsService,
-                                          TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+                                          TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, NotificationTrackerSqsName notificationTrackerSqsName) {
         this.putEvents = putEvents;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.callMachinaStati = callMachinaStati;
         this.sqsService = sqsService;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+        this.notificationTrackerSqsName = notificationTrackerSqsName;
     }
 
     @Override
@@ -49,11 +55,38 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                 String ntStatoQueueName, String ntStatoErroreQueueName, Acknowledgment acknowledgment) {
         var nextStatus = notificationTrackerQueueDto.getNextStatus();
         var xPagopaExtchCxId = notificationTrackerQueueDto.getXPagopaExtchCxId();
+        String sRequestId = notificationTrackerQueueDto.getRequestIdx();
 
-        log.info("<-- Start handleRequestStatusChange --> info: {} request: {}", processId, notificationTrackerQueueDto.getRequestIdx());
+        log.info("<-- Start handleRequestStatusChange --> info: {} request: {}", processId, sRequestId);
 
-        return gestoreRepositoryCall.getRichiesta(notificationTrackerQueueDto.getXPagopaExtchCxId(),
-                                                  notificationTrackerQueueDto.getRequestIdx())
+        return gestoreRepositoryCall.getRichiesta(xPagopaExtchCxId, sRequestId)
+
+                                     // Check if the incoming event is equals to the last event that was worked on.
+                                    .flatMap(requestDto ->
+                                    {
+                                        List<EventsDto> eventsList = requestDto.getRequestMetadata().getEventsList();
+                                        boolean isSameEvent = false;
+
+                                        if (!Objects.isNull(eventsList) && !eventsList.isEmpty()) {
+
+                                            EventsDto lastEvent = eventsList.get(eventsList.size() - 1);
+                                            PaperProgressStatusDto paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
+                                            DigitalProgressStatusDto digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
+
+                                            log.debug("handleRequestStatusChange - eventsList : {} , paperProgressStatusDto : {}, digitalProgressStatusDto : {}", eventsList, paperProgressStatusDto, digitalProgressStatusDto);
+
+                                            if (lastEvent.getDigProgrStatus() != null) {
+                                                log.debug("handleRequestStatusChange - LastEvent digitalProgressStatus : {}", lastEvent.getDigProgrStatus());
+                                                isSameEvent = isSameEvent(lastEvent.getDigProgrStatus(), digitalProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
+                                            } else {
+                                                log.debug("handleRequestStatusChange - LastEvent paperProgressStatus : {}", lastEvent.getPaperProgrStatus());
+                                                isSameEvent = isSameEvent(lastEvent.getPaperProgrStatus(), paperProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
+                                            }
+                                        }
+
+                                        log.debug("handleRequestStatusChange - isSameEvent : {}", isSameEvent);
+                                        return isSameEvent ? Mono.empty() : Mono.just(requestDto);
+                                    })
 //                                  Set status request to start status if is null
                                     .map(requestDto -> {
                                         if (requestDto.getStatusRequest() == null) {
@@ -208,6 +241,47 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         } else {
                                             return sqsService.send(ntStatoErroreQueueName, notificationTrackerQueueDto).then();
                                         }
+                                    })
+                                    .doOnError(throwable -> {
+                                        log.error("* FATAL * in handleRequestStatusChange on request {}: {} - {}", sRequestId, throwable, throwable.getMessage());
                                     });
     }
+
+    @Override
+    public Mono<Void> handleMessageFromErrorQueue(NotificationTrackerQueueDto notificationTrackerQueueDto,
+                                                  String ntStatoQueueName, Acknowledgment acknowledgment) {
+
+        return Mono.just(notificationTrackerQueueDto)
+                .flatMap(payload -> {
+                    var digitalProgressStatusDto = payload.getDigitalProgressStatusDto();
+                    var paperProgressStatusDto = payload.getPaperProgressStatusDto();
+
+                    long elapsedTime = 0;
+                    var now = OffsetDateTime.now();
+
+                    if (digitalProgressStatusDto != null) {
+                        elapsedTime = SECONDS.between(digitalProgressStatusDto.getEventTimestamp(), now);
+
+                    } else elapsedTime = SECONDS.between(paperProgressStatusDto.getStatusDateTime(), now);
+
+                    return elapsedTime > notificationTrackerSqsName.elapsedTimeSeconds() ? Mono.error(new SqsMaxTimeElapsedException()) : Mono.just(payload);
+                })
+                .doOnNext(payload -> payload.setRetry(0))
+                .flatMap(payload -> sqsService.send(ntStatoQueueName, payload))
+                .doOnSuccess(result -> acknowledgment.acknowledge())
+                .doOnError(throwable -> log.error("* FATAL * in handleMessageFromErrorQueue on request {}: {} - {}", notificationTrackerQueueDto.getRequestIdx(), throwable, throwable.getMessage()))
+                .then();
+    }
+
+    private boolean isSameEvent(DigitalProgressStatusDto lastEvent, DigitalProgressStatusDto newEvent, String nextStatus) {
+        return lastEvent.getEventTimestamp().equals(newEvent.getEventTimestamp().truncatedTo(SECONDS))
+                && lastEvent.getStatus().equals(nextStatus)
+                && lastEvent.getGeneratedMessage() != null
+                && lastEvent.getGeneratedMessage().equals(newEvent.getGeneratedMessage());
+    }
+
+    private boolean isSameEvent(PaperProgressStatusDto lastEvent, PaperProgressStatusDto newEvent, String nextStatus) {
+        return lastEvent.getStatusCode().equals(nextStatus) && lastEvent.getStatusDateTime().equals(newEvent.getStatusDateTime().truncatedTo(SECONDS));
+    }
+
 }

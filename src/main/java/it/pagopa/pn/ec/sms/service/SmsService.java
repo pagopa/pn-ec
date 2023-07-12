@@ -180,7 +180,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 .onErrorResume(SqsClientException.class, sqsPublishException -> {
     var stepError = new StepError();
     smsPresaInCaricoInfo.setStepError(stepError);
-    smsPresaInCaricoInfo.getStepError().setNotificationTrackerError(NOTIFICATION_TRACKER_STEP);
+    smsPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
     smsPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
     return sendNotificationOnErrorQueue(smsPresaInCaricoInfo);
 }))
@@ -309,7 +309,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 //              check step error per evitare nuova chiamata verso sns
 //              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The SMS in sent, publish to Notification
 //              Tracker with next status -> SENT
-    if (Objects.equals(smsPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
+    if (Objects.equals(smsPresaInCaricoInfo.getStepError().getStep(), NOTIFICATION_TRACKER_STEP)) {
         log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
         return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                              SENT.getStatusTransactionTableCompliant(),
