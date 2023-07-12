@@ -194,8 +194,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
-        DelaySeconds: 0
-        VisibilityTimeout: 600
+        DelaySeconds: 300
+        VisibilityTimeout: 120
 
   ######### TRACKER : PEC  ##########
 
@@ -247,8 +247,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
-        DelaySeconds: 0
-        VisibilityTimeout: 600
+        DelaySeconds: 300
+        VisibilityTimeout: 120
 
   ######### TRACKER : EMAIL  #########
 
@@ -300,8 +300,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
-        DelaySeconds: 0
-        VisibilityTimeout: 600
+        DelaySeconds: 300
+        VisibilityTimeout: 120
 
   ######### TRACKER : CARTACEO  #########
 
@@ -352,8 +352,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
-        DelaySeconds: 0
-        VisibilityTimeout: 600
+        DelaySeconds: 300
+        VisibilityTimeout: 120
 
   ###########  TRACKER: EXTERNAL NOTIFICATION  ###########
 
