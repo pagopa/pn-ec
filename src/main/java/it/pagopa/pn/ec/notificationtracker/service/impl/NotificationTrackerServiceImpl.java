@@ -5,6 +5,7 @@ import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsMaxTimeElapsedException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
@@ -244,6 +245,32 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                     .doOnError(throwable -> {
                                         log.error("* FATAL * in handleRequestStatusChange on request {}: {} - {}", sRequestId, throwable, throwable.getMessage());
                                     });
+    }
+
+    @Override
+    public Mono<Void> handleMessageFromErrorQueue(NotificationTrackerQueueDto notificationTrackerQueueDto,
+                                                  String ntStatoQueueName, Acknowledgment acknowledgment) {
+
+        return Mono.just(notificationTrackerQueueDto)
+                .flatMap(payload -> {
+                    var digitalProgressStatusDto = payload.getDigitalProgressStatusDto();
+                    var paperProgressStatusDto = payload.getPaperProgressStatusDto();
+
+                    long elapsedTime = 0;
+                    var now = OffsetDateTime.now();
+
+                    if (digitalProgressStatusDto != null) {
+                        elapsedTime = SECONDS.between(now, digitalProgressStatusDto.getEventTimestamp());
+
+                    } else elapsedTime = SECONDS.between(now, paperProgressStatusDto.getStatusDateTime());
+
+                    return elapsedTime > notificationTrackerSqsName.elapsedTimeSeconds() ? Mono.error(new SqsMaxTimeElapsedException()) : Mono.just(payload);
+                })
+                .doOnNext(payload -> payload.setRetry(0))
+                .flatMap(payload -> sqsService.send(ntStatoQueueName, payload))
+                .doOnSuccess(result -> acknowledgment.acknowledge())
+                .doOnError(throwable -> log.error("* FATAL * in handleMessageFromErrorQueue on request {}: {} - {}", notificationTrackerQueueDto.getRequestIdx(), throwable, throwable.getMessage()))
+                .then();
     }
 
     private boolean isSameEvent(DigitalProgressStatusDto lastEvent, DigitalProgressStatusDto newEvent, String nextStatus) {

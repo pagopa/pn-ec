@@ -37,6 +37,12 @@ public class NotificationTrackerMessageReceiver {
                                                              acknowledgment).subscribe();
     }
 
+    @SqsListener(value = "${sqs.queue.notification-tracker.stato-sms-errato-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void receiveSMSObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+        logIncomingMessage(notificationTrackerSqsName.statoSmsErratoName(), notificationTrackerQueueDto);
+        notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoSmsName(), acknowledgment).subscribe();
+    }
+
     @SqsListener(value = "${sqs.queue.notification-tracker.stato-email-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void receiveEmailObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
         logIncomingMessage(notificationTrackerSqsName.statoEmailName(), notificationTrackerQueueDto);
@@ -45,6 +51,12 @@ public class NotificationTrackerMessageReceiver {
                                                              notificationTrackerSqsName.statoEmailName(),
                                                              notificationTrackerSqsName.statoEmailErratoName(),
                                                              acknowledgment).subscribe();
+    }
+
+    @SqsListener(value = "${sqs.queue.notification-tracker.stato-email-errato-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void receiveEmailObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+        logIncomingMessage(notificationTrackerSqsName.statoEmailErratoName(), notificationTrackerQueueDto);
+        notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoEmailName(), acknowledgment).subscribe();
     }
 
     @SqsListener(value = "${sqs.queue.notification-tracker.stato-pec-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
@@ -57,6 +69,12 @@ public class NotificationTrackerMessageReceiver {
                                                              acknowledgment).subscribe();
     }
 
+    @SqsListener(value = "${sqs.queue.notification-tracker.stato-pec-errato-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void receivePecObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+        logIncomingMessage(notificationTrackerSqsName.statoPecErratoName(), notificationTrackerQueueDto);
+        notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoPecName(), acknowledgment).subscribe();
+    }
+
     @SqsListener(value = "${sqs.queue.notification-tracker.stato-cartaceo-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void receiveCartaceoObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
         logIncomingMessage(notificationTrackerSqsName.statoCartaceoName(), notificationTrackerQueueDto);
@@ -66,4 +84,11 @@ public class NotificationTrackerMessageReceiver {
                                                              notificationTrackerSqsName.statoCartaceoErratoName(),
                                                              acknowledgment).subscribe();
     }
+
+    @SqsListener(value = "${sqs.queue.notification-tracker.stato-cartaceo-errato-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void receiveCartaceoObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+        logIncomingMessage(notificationTrackerSqsName.statoCartaceoErratoName(), notificationTrackerQueueDto);
+        notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoCartaceoName(), acknowledgment).subscribe();
+    }
+
 }

@@ -18,5 +18,5 @@ public record NotificationTrackerSqsName(
         String statoCartaceoName, String statoCartaceoErratoName, String statoCartaceoDlqName,
 
 //      COMMONS
-        Integer delaySeconds) {
+        Integer delaySeconds, Long elapsedTimeSeconds) {
 }
