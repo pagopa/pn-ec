@@ -31,9 +31,9 @@ public class ConsAuditLogError {
     @Override
     public String toString() {
         return "{" +
-                "error='" + error + '\'' +
-                ", description='" + description + '\'' +
-                ", requestId='" + requestId + '\'' +
+                "\"error\": \"" + error + "\"" +
+                ", \"description\": \"" + description + "\"" +
+                ", \"requestId\":\"" + requestId + "\"" +
                 '}';
     }
 }

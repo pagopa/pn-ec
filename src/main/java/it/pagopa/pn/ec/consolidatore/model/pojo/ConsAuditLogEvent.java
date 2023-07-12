@@ -28,8 +28,8 @@ public class ConsAuditLogEvent<T> {
     @Override
     public String toString() {
         return "{" +
-                "request=" + request +
-                ", errorList=" + errorList +
+                "\"request\":" + request +
+                ", \"errorList\":" + errorList +
                 '}';
     }
 }
