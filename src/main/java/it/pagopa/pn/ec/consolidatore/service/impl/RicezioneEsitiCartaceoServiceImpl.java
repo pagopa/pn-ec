@@ -89,19 +89,19 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 					//Iun
 					if (!StringUtils.isBlank(iun) && !progressStatusEvent.getIun().equals(iun)) {
-						auditLogErrorList.add(ConsAuditLogError.builder().requestId(requestId).error(ERR_CONS_BAD_IUN.getValue()).description("Iun is not valid.").build());
+						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_IUN.getValue()).description("Iun is not valid."));
 						errorList.add(String.format(UNRECOGNIZED_ERROR, IUN_LABEL, iun));
 					}
 					// StatusCode
 					if (!statusCodeDescriptionMap().containsKey(progressStatusEvent.getStatusCode())) {
-						auditLogErrorList.add(ConsAuditLogError.builder().requestId(requestId).error(ERR_CONS_BAD_STATUS_CODE.getValue()).description("Status code is not valid.").build());
+						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_STATUS_CODE.getValue()).description("Status code is not valid."));
 						errorList.add(String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()));
 					}
 					// DeliveryFailureCause non è un campo obbligatorio
 					if (progressStatusEvent.getDeliveryFailureCause() != null
 							&& !progressStatusEvent.getDeliveryFailureCause().isBlank()
 							&& !deliveryFailureCausemap().containsKey(progressStatusEvent.getDeliveryFailureCause())) {
-						auditLogErrorList.add(ConsAuditLogError.builder().requestId(requestId).error(ERR_CONS_BAD_DEL_FAILURE_CAUSE.getValue()).description("DeliveryFailureCause is not valid.").build());
+						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_DEL_FAILURE_CAUSE.getValue()).description("DeliveryFailureCause is not valid."));
 						errorList.add(String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
 					}
 					//TODO COMMENTATO PER UN CASO PARTICOLARE CHE ANDRA' GESTITO IN FUTURO.
@@ -166,7 +166,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 					// se ok (httpstatus 200), continuo (verifica andata a buon fine)
 					return Mono.just(documentAttachmentKey);
 				}
-				var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_URI.getValue()).requestId(requestId).description("The attachment uri is not valid.").build();
+				var consAuditLogError = new ConsAuditLogError().error(ERR_CONS_BAD_URI.getValue()).requestId(requestId).description("The attachment uri is not valid.");
 				return Mono.error(new RicezioneEsitiCartaceoException(
 						SEMANTIC_ERROR_CODE,
 						errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
@@ -190,7 +190,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			})
 			.onErrorResume(AttachmentNotAvailableException.class,
 					throwable -> {
-						var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_ATTACH_NOT_FOUND.getValue()).requestId(requestId).description("The attachment has not been found.").build();
+						var consAuditLogError = new ConsAuditLogError().error(ERR_CONS_ATTACH_NOT_FOUND.getValue()).requestId(requestId).description("The attachment has not been found.");
 						return Mono.error(new RicezioneEsitiCartaceoException(
 								SEMANTIC_ERROR_CODE,
 								errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
@@ -225,7 +225,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			     )
 			     // *** errore Request Id non trovata
 			     .onErrorResume(RestCallException.ResourceNotFoundException.class, throwable -> {
-					 var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_REQ_ID_NOT_FOUND.getValue()).requestId(requestId).description("RequestId not found.").build();
+					 var consAuditLogError = new ConsAuditLogError().error(ERR_CONS_REQ_ID_NOT_FOUND.getValue()).requestId(requestId).description("RequestId not found.");
 					 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 							 getOperationResultCodeResponse(REQUEST_ID_ERROR_CODE,
 									 errorCodeDescriptionMap().get(REQUEST_ID_ERROR_CODE),

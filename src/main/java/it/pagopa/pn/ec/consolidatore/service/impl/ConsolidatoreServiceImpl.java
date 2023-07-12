@@ -45,7 +45,8 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
 
     public Mono<PreLoadResponseData> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> attachments) {
         log.info("<-- START PRESIGNED UPLOAD REQUEST --> Client ID : {}", xPagopaExtchServiceId);
-        return authService.clientAuth(xPagopaExtchServiceId)
+        return checkHeaders(xPagopaExtchServiceId)
+                .then(authService.clientAuth(xPagopaExtchServiceId))
                 .flatMap(clientConfiguration -> {
                     if (!clientConfiguration.getApiKey().equals(xApiKey)) {
                         var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_API_KEY.getValue()).description(INVALID_API_KEY).build();
@@ -54,7 +55,6 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                     }
                     return Mono.just(clientConfiguration);
                 })
-                .then(checkHeaders(xPagopaExtchServiceId, xApiKey))
                 .then(attachments.map(PreLoadRequestData::getPreloads))
                 .flatMapMany(Flux::fromIterable)
                 .transform(checkSyntaxErrors())
@@ -114,24 +114,24 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId
             , String xApiKey) {
         log.info("<-- START GET FILE --> Client ID : {}", xPagopaExtchServiceId);
-        return authService.clientAuth(xPagopaExtchServiceId)
+        return checkHeaders(xPagopaExtchServiceId)
+                .then(authService.clientAuth(xPagopaExtchServiceId))
                 .flatMap(clientConfiguration -> {
                     if (!clientConfiguration.getApiKey().equals(xApiKey)) {
-                        var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_API_KEY.getValue()).description(INVALID_API_KEY).build();
-                        log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(fileKey).errorList(List.of(consAuditLogError)).build());
+                        var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_API_KEY.getValue()).requestId(fileKey).description(INVALID_API_KEY).build();
+                        log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().errorList(List.of(consAuditLogError)).build());
                         return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid API key"));
                     }
                     return Mono.just(clientConfiguration);
                 })
-                .then(checkHeaders(xPagopaExtchServiceId, xApiKey))
                 .then(fileCall.getFile(fileKey, xPagopaExtchServiceId, xApiKey, RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH)))
                 .doOnError(ConnectException.class, e -> log.error("* FATAL * getFile - {}, {}", e, e.getMessage()));
     }
 
-    private Mono<Void> checkHeaders(String xPagopaExtchServiceId, String xApiKey) {
+    private Mono<Void> checkHeaders(String xPagopaExtchServiceId) {
         if (StringUtils.isBlank(xPagopaExtchServiceId)) {
-            var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_SERVICE_ID.getValue()).description("ServiceID is blank or null").build();
-            return Mono.error(new SyntaxException().errorList(List.of("Field xPagopaExtchServiceId is required")).auditLogErrorList(List.of(consAuditLogError)));
+            var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_SERVICE_ID.getValue()).description("Header xPagopaExtchServiceId is blank").build();
+            return Mono.error(new SyntaxException().errorList(List.of("Missing xPagopaExtchServiceId header")).auditLogErrorList(List.of(consAuditLogError)));
         } else return Mono.empty();
     }
 
@@ -144,14 +144,19 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
             var auditLogErrorList= new ArrayList<ConsAuditLogError>();
 
             if (StringUtils.isBlank(preLoadRequest.getContentType())) {
-                auditLogErrorList.add(ConsAuditLogError.builder().requestId(requestId).error(ERR_CONS_BAD_CONTENT_TYPE.getValue()).description("Field contentType is required").build());
-                errorList.add("Field contentType is required");
-            } else if (StringUtils.isBlank(preLoadRequest.getPreloadIdx())) {
-                auditLogErrorList.add(ConsAuditLogError.builder().requestId(requestId).error(ERR_CONS_BAD_PRELOAD_IDX.getValue()).description("Field preloadIdX is required").build());
-                errorList.add("Field preloadIdX is required");
-            } else if (StringUtils.isBlank(preLoadRequest.getSha256())) {
-                auditLogErrorList.add(ConsAuditLogError.builder().requestId(requestId).error(ERR_CONS_BAD_SHA_256.getValue()).description("Field sha256 is required").build());
-                errorList.add("Field sha256 is required");
+                String errorMessage = "Field contentType is required";
+                auditLogErrorList.add(ConsAuditLogError.builder().requestId(requestId).error(ERR_CONS_BAD_CONTENT_TYPE.getValue()).description(errorMessage).build());
+                errorList.add(errorMessage);
+            }
+            if (StringUtils.isBlank(preLoadRequest.getPreloadIdx())) {
+                String errorMessage = "Field preloadIdX is required";
+                auditLogErrorList.add(ConsAuditLogError.builder().requestId(requestId).error(ERR_CONS_BAD_PRELOAD_IDX.getValue()).description(errorMessage).build());
+                errorList.add(errorMessage);
+            }
+            if (StringUtils.isBlank(preLoadRequest.getSha256())) {
+                String errorMessage = "Field sha256 is required";
+                auditLogErrorList.add(ConsAuditLogError.builder().requestId(requestId).error(ERR_CONS_BAD_SHA_256.getValue()).description(errorMessage).build());
+                errorList.add(errorMessage);
             }
 
             if (errorList.isEmpty()) {
