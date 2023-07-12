@@ -8,6 +8,7 @@ import org.apache.commons.mail.util.MimeMessageParser;
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.mail.*;
+import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
@@ -71,9 +72,9 @@ public class EmailUtils {
                 mimeMessage = new PagopaMimeMessage(session, emailField.getMsgId());
             }
 
-            mimeMessage.setFrom(emailField.getFrom());
-            mimeMessage.setRecipients(Message.RecipientType.TO, emailField.getTo());
-            mimeMessage.setSubject(emailField.getSubject());
+            mimeMessage.setFrom(new InternetAddress(emailField.getFrom(), "", "UTF-8"));
+            mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(emailField.getTo(), "", "UTF-8"));
+            mimeMessage.setSubject(emailField.getSubject(), "UTF-8");
 
             var htmlOrPlainTextPart = new MimeBodyPart();
             htmlOrPlainTextPart.setContent(emailField.getText(), emailField.getContentType());
@@ -104,6 +105,8 @@ public class EmailUtils {
             return mimeMessage;
         } catch (MessagingException exception) {
             throw new ComposeMimeMessageException();
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -173,7 +176,8 @@ public class EmailUtils {
         try {
             log.info("---> Start retrieving attachment with name '{}' <---", attachmentName);
             MimeMessageParser mimeMessageParser = new MimeMessageParser(mimeMessage);
-            return mimeMessageParser.parse().findAttachmentByName(attachmentName).getInputStream().readAllBytes();
+            DataSource attachment = mimeMessageParser.parse().findAttachmentByName(attachmentName);
+            return attachment == null ? null : attachment.getInputStream().readAllBytes();
         } catch (Exception e) {
             throw new RetrieveAttachmentException();
         }

@@ -2,17 +2,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>it.pagopa.pn</groupId>
         <artifactId>pn-parent</artifactId>
-        <version>2.0.0</version>
+        <version>2.1.1</version>
         <relativePath/>
     </parent>
 
     <groupId>it.pagopa.pn.ec</groupId>
     <artifactId>pn-ec</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>2.0.1-SNAPSHOT</version>
     <name>pn-ec</name>
     <description>External communication µService</description>
 
@@ -38,7 +37,7 @@
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-commons</artifactId>
-            <version>2.0.0</version>
+            <version>2.1.9</version>
         </dependency>
 
         <!-- Start OpenApi dependencies -->
@@ -268,8 +267,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory>
                             <inputSpec>${project.basedir}/docs/openapi/external/consolidatore-v1.yml</inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -300,8 +300,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory>
                             <inputSpec>${project.basedir}/docs/openapi/external/api-internal-v1.yaml</inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -330,9 +331,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
-                            <inputSpec>
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory><inputSpec>
                                 ${project.basedir}/docs/openapi/internal/externalchannel/gestore-repository-v1.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
@@ -361,9 +362,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
-                            <inputSpec>${project.basedir}/docs/openapi/internal/safestorage/pn-safestorage-v1.1-api.yaml
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory><inputSpec>${project.basedir}/docs/openapi/internal/safestorage/pn-safestorage-v1.1-api.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -391,9 +392,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <configuration>
-                            <inputSpec>${project.basedir}/docs/openapi/external/api-consolidatore-ingress-v1.yaml
+                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory> <inputSpec>${project.basedir}/docs/openapi/external/api-consolidatore-ingress-v1.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>

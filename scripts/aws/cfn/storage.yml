@@ -15,24 +15,24 @@ Parameters:
   TemplateBucketBaseUrl:
     Type: String
     Description: URL da cui caricare i frammenti di template di infrastruttura
-  
+
   Version:
     Type: String
     Description: 'keep track of used projects commitIds'
-  
+
   # CdcKinesisSourceStreamArn:
   #   Type: String
   #   Description: 'Where to send CDC'
 
   PnEcEventBusTrackerExternalNotificationName:
-    Type: String 
+    Type: String
     Description: 'Nome del Event Bus che raccoglie gli eventi del microservizio Gestore Disponibilita'
     Default: 'Pn-Ec-Tracker-Notifications-Bus'
 
   AlarmSNSTopicName:
     Type: String
     Description: 'Topic alarm'
-  
+
   EnvType:
     Type: String
     Description: 'Deploy environment type'
@@ -46,8 +46,18 @@ Parameters:
     Type: Number
     Default: 14
 
+  ### SMS STRESS TEST ###
+  SMSStressTestMode:
+    Type: String
+    Default: 'false'
+
+  SMSStressTestTopicName:
+    Type: String
+    Default: 'pn-ec-sms-stress-test-topic'
+
 Conditions:
-  IsDevEnv: !Equals [ !Ref EnvType, 'dev'] 
+  IsDevEnv: !Equals [ !Ref EnvType, 'dev']
+  SMSStressTestModeON: !Equals [ !Ref SMSStressTestMode, 'true']
 
 Resources:
   PCKmsEncDecDynamoDataKey:
@@ -77,7 +87,7 @@ Resources:
       AttributeDefinitions:
         - AttributeName: 'cxId'
           AttributeType: 'S'
-      KeySchema: 
+      KeySchema:
         - AttributeName: 'cxId'
           KeyType: 'HASH'
       BillingMode: 'PAY_PER_REQUEST'
@@ -98,7 +108,7 @@ Resources:
       AttributeDefinitions:
         - AttributeName: 'requestId'
           AttributeType: 'S'
-      KeySchema: 
+      KeySchema:
         - AttributeName: 'requestId'
           KeyType: 'HASH'
       BillingMode: 'PAY_PER_REQUEST'
@@ -119,7 +129,7 @@ Resources:
       AttributeDefinitions:
         - AttributeName: 'requestId'
           AttributeType: 'S'
-      KeySchema: 
+      KeySchema:
         - AttributeName: 'requestId'
           KeyType: 'HASH'
       BillingMode: 'PAY_PER_REQUEST'
@@ -151,6 +161,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
+        VisibilityTimeout: 600
 
   PnEcTrackerStatoSMSQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -182,6 +194,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
+        VisibilityTimeout: 600
 
   ######### TRACKER : PEC  ##########
 
@@ -200,6 +214,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
+        VisibilityTimeout: 600
 
   PnEcTrackerStatoPECQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -231,6 +247,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
+        VisibilityTimeout: 600
 
   ######### TRACKER : EMAIL  #########
 
@@ -249,6 +267,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
+        VisibilityTimeout: 600
 
   PnEcTrackerStatoEMAILQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -280,6 +300,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
+        VisibilityTimeout: 600
 
   ######### TRACKER : CARTACEO  #########
 
@@ -298,6 +320,7 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 600
 
   PnEcTrackerStatoCARTACEOQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -329,6 +352,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
+        VisibilityTimeout: 600
 
   ###########  TRACKER: EXTERNAL NOTIFICATION  ###########
 
@@ -346,50 +371,51 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
 
   PnEcQueuePolicyNotificheDebugDev:
     Type: AWS::SQS::QueuePolicy
     Condition: IsDevEnv
-    Properties: 
+    Properties:
       Queues:
         - !GetAtt PnEcQueueNotificheDebugDevStack.Outputs.QueueURL
-      PolicyDocument: 
-        Statement: 
+      PolicyDocument:
+        Statement:
           - Sid: 'AllowAccessSameAccount'
-            Action: 
+            Action:
               - 'sqs:*'
             Effect: 'Allow'
             Resource: !GetAtt PnEcQueueNotificheDebugDevStack.Outputs.QueueARN
-            Principal: 
+            Principal:
               AWS: !Ref AWS::AccountId
           - Sid: 'AllowPutEventsFromEventRule'
-            Action: 
+            Action:
               - 'sqs:SendMessage'
             Effect: 'Allow'
             Resource: !GetAtt PnEcQueueNotificheDebugDevStack.Outputs.QueueARN
-            Principal: 
+            Principal:
               Service:
               - 'events.amazonaws.com'
-            Condition: 
+            Condition:
               ArnEquals:
                 aws:SourceArn: !GetAtt PnEcEventRuleNotificheDebugDev.Arn
 
-      
-  PnEcEventBusTrackerExternalNotification: 
+
+  PnEcEventBusTrackerExternalNotification:
     Type: AWS::Events::EventBus
-    Properties: 
+    Properties:
         Name: !Ref PnEcEventBusTrackerExternalNotificationName
-  
+
   PnEcEventBusPolicyECSTrackerExternalNotification:
     Type: AWS::Events::EventBusPolicy
     Properties:
       EventBusName: !Ref PnEcEventBusTrackerExternalNotification
       StatementId: 'PnEcCustomEventBusPolicyAllowECS1'
       Statement:
-        Action: 
+        Action:
           - 'events:PutEvents'
         Effect: 'Allow'
-        Principal: 
+        Principal:
           Service:
           - 'ecs.amazonaws.com'
         Resource: !GetAtt PnEcEventBusTrackerExternalNotification.Arn
@@ -400,7 +426,7 @@ Resources:
       EventBusName: !Ref PnEcEventBusTrackerExternalNotification
       StatementId: 'PnEcCustomEventBusPolicyManage1'
       Statement:
-        Action: 
+        Action:
           - 'events:PutRule'
           - 'events:PutTargets'
           - 'events:DeleteRule'
@@ -413,7 +439,7 @@ Resources:
           - 'events:ListTargetsByRule'
           - 'events:ListTagsForResource'
         Effect: 'Allow'
-        Principal: 
+        Principal:
           AWS: !Ref AWS::AccountId
         Resource: !GetAtt PnEcEventBusTrackerExternalNotification.Arn
         Condition:
@@ -427,10 +453,10 @@ Resources:
   #     EventBusName: !Ref PnEcEventBusTrackerExternalNotification
   #     StatementId: 'PnEcCustomEventBusPolicyDenyCrossAccount'
   #     Statement:
-  #       Action: 
+  #       Action:
   #         - "events:*"
   #       Effect: 'Deny'
-  #       Principal: 
+  #       Principal:
   #         Service:
   #           - 'ecs.amazonaws.com'
   #       Resource: !GetAtt PnEcEventBusTrackerExternalNotification.Arn
@@ -445,12 +471,12 @@ Resources:
     Properties:
       Description: 'This Event rule is used to forward event on a dummy queue in addition to PnCoreTargetEventBus'
       EventBusName: !Ref PnEcEventBusTrackerExternalNotification
-      EventPattern:   
-        source: 
+      EventPattern:
+        source:
           - 'NOTIFICATION TRACKER'
-        account: 
+        account:
           - !Ref AWS::AccountId
-        region: 
+        region:
           - !Ref AWS::Region
       State: 'ENABLED'
       Targets:
@@ -470,16 +496,16 @@ Resources:
         QueueHasAlarm: 'true'
         OncallDLQLimit: '1'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
-    
+
   # PnEcEventBusArchiveTrackerExternalNotification:
   #   Type: AWS::Events::Archive
-  #   Properties: 
+  #   Properties:
   #     Description: 'Archive for storage of events to be delivered from Notification Tracker towards external platform'
   #     RetentionDays: 15
   #     SourceArn: !Ref PnEcEventBusTrackerExternalNotification
-  
+
   ###### CHANNEL : SMS #######
-  
+
   PnEcQueueBatchSMSStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
@@ -495,7 +521,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
-        
+        VisibilityTimeout: 600
+
   PnEcQueueInteractiveSMSStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
@@ -510,23 +537,25 @@ Resources:
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName      
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
+        VisibilityTimeout: 600
 
   PnEcInteractiveSMSQueuePolicy:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
+    Properties:
       Queues:
         - !GetAtt PnEcQueueInteractiveSMSStack.Outputs.QueueURL
       PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:*'
             Effect: 'Allow'
             Resource: !GetAtt PnEcQueueInteractiveSMSStack.Outputs.QueueARN
-            Principal:  
+            Principal:
               AWS: '*'
-              
+
   PnEcQueueErroriSMSStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
@@ -542,10 +571,11 @@ Resources:
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName   
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 600
 
   ###### CHANNEL : PEC #######
-  
+
   PnEcQueueBatchPECStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
@@ -561,7 +591,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
-        
+        VisibilityTimeout: 600
+
   PnEcQueueInteractivePECStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
@@ -576,23 +607,25 @@ Resources:
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName      
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
+        VisibilityTimeout: 600
 
   PnEcInteractivePECQueuePolicy:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
+    Properties:
       Queues:
         - !GetAtt PnEcQueueInteractivePECStack.Outputs.QueueURL
       PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:*'
             Effect: 'Allow'
             Resource: !GetAtt PnEcQueueInteractivePECStack.Outputs.QueueARN
-            Principal:  
+            Principal:
               AWS: '*'
-              
+
   PnEcQueueErroriPECStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
@@ -608,7 +641,8 @@ Resources:
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName 
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 600
 
   PnEcQueueScaricamentoEsitiPECStack:
     Type: AWS::CloudFormation::Stack
@@ -625,10 +659,11 @@ Resources:
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName 
-        
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 600
+
   ###### CHANNEL : EMAIL #######
-  
+
   PnEcQueueBatchEMAILStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
@@ -644,7 +679,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
-        
+        VisibilityTimeout: 600
+
   PnEcQueueInteractiveEMAILStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
@@ -659,23 +695,25 @@ Resources:
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName  
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
+        VisibilityTimeout: 600
 
   PnEcInteractiveEMAILQueuePolicy:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
+    Properties:
       Queues:
         - !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.QueueURL
       PolicyDocument:
         Version: '2012-10-17'
-        Statement: 
-          - Action: 
+        Statement:
+          - Action:
               - 'sqs:*'
             Effect: 'Allow'
             Resource: !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.QueueARN
-            Principal:  
+            Principal:
               AWS: '*'
-              
+
   PnEcQueueErroriEMAILStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
@@ -691,10 +729,11 @@ Resources:
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName 
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 600
 
   ###### CHANNEL : CARTACEO #######
-  
+
   PnEcQueueBatchCARTACEOStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
@@ -710,7 +749,8 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
-  
+        VisibilityTimeout: 600
+
   PnEcQueueErroriCARTACEOStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
@@ -726,19 +766,47 @@ Resources:
         HasDLQ: 'true'
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName 
-      
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 600
+
   ####### ECS LOG GROUO ######
   EcsLogGroup:
     Type: AWS::CloudFormation::Stack
     UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain    
+    DeletionPolicy: Retain
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
       Parameters:
         LogGroupName: !Sub '${ProjectName}-external-channel'
         LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
         LogGroupRetention: !Ref LogRetention
+
+
+##############   CHANNEL SMS STRESS TEST    ###################
+  PnEcSMSStressTestQueue:
+    Condition: SMSStressTestModeON
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-sms-stress-test'
+        SqsManagedSseEnabled: true
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        VisibilityTimeout: 360
+  
+  PnEcSMSStressTestTopic:
+    Condition: SMSStressTestModeON
+    DeletionPolicy: Delete
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription: 
+        - Endpoint: !GetAtt PnEcSMSStressTestQueue.Outputs.QueueARN
+          Protocol: 'SQS'
+      TopicName: 'pn-ec-sms-stress-test-topic'
 
 #########  OUTPUTS  ##########
 
@@ -753,7 +821,7 @@ Outputs:
   PnEcEventBusArnTrackerExternalNotification:
     Description: 'ARN del Event Bus per le notifiche verso le piattaforme esterne'
     Value: !GetAtt PnEcEventBusTrackerExternalNotification.Arn
-    
+
   ######### TABLES  ############
 
   PnEcTableNameAnagrafica:
@@ -779,7 +847,7 @@ Outputs:
   PnEcTableArnRichiesteMetadati:
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
     Value: !GetAtt PnEcTableRichiesteMetadati.Arn
-    
+
   ######### QUEUES  ############
   ######### TRACKER : SMS  ##########
 
@@ -860,7 +928,7 @@ Outputs:
   PnEcQueueUrlTrackerErroriPEC:
     Description: '[Notification Tracker: canale PEC] URL della Coda Errori afferenti al canale PEC'
     Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.QueueURL
-    
+
   PnEcAlarmArnQueueTrackerErroriPEC:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriPEC"
     Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.SqsAgeAlarmArn
@@ -904,7 +972,7 @@ Outputs:
   PnEcQueueUrlTrackerErroriEMAIL:
     Description: '[Notification Tracker: canale EMAIL] URL della Coda Errori afferenti al canale EMAIL'
     Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.QueueURL
-    
+
   PnEcAlarmArnQueueTrackerErroriEMAIL:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriEMAIL"
     Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.SqsAgeAlarmArn
@@ -956,7 +1024,7 @@ Outputs:
   PnEcAlarmArnDLQueueTrackerErroriCARTACEO:
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriCARTACEO"
     Value: !GetAtt PnEcQueueTrackerErroriCARTACEOStack.Outputs.SqsDLQAlarmArn
-    
+
   ###### BATCH : SMS #######
 
   PnEcQueueNameBatchSMS:
@@ -978,7 +1046,7 @@ Outputs:
   PnEcAlarmArnDLQueueBatchSMS:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchSMS"
     Value: !GetAtt PnEcQueueBatchSMSStack.Outputs.SqsDLQAlarmArn
-    
+
   ###### INTERACTIVE : SMS #######
 
   PnEcQueueNameInteractiveSMS:
@@ -1000,7 +1068,7 @@ Outputs:
   PnEcAlarmArnDLQueueInteractiveSMS:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractiveSMS"
     Value: !GetAtt PnEcQueueInteractiveSMSStack.Outputs.SqsDLQAlarmArn
-    
+
   ###### ERRORI : SMS #######
 
   PnEcQueueNameErroriSMS:
@@ -1022,7 +1090,7 @@ Outputs:
   PnEcAlarmArnDLQueueErroriSMS:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriSMS"
     Value: !GetAtt PnEcQueueErroriSMSStack.Outputs.SqsDLQAlarmArn
-    
+
   ###### BATCH : PEC #######
 
   PnEcQueueNameBatchPEC:
@@ -1044,7 +1112,7 @@ Outputs:
   PnEcAlarmArnDLQueueBatchPEC:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchPEC"
     Value: !GetAtt PnEcQueueBatchPECStack.Outputs.SqsDLQAlarmArn
-    
+
   ###### INTERACTIVE : PEC #######
 
   PnEcQueueNameInteractivePEC:
@@ -1066,7 +1134,7 @@ Outputs:
   PnEcAlarmArnDLQueueInteractivePEC:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractivePEC"
     Value: !GetAtt PnEcQueueInteractivePECStack.Outputs.SqsDLQAlarmArn
-    
+
   ###### ERRORI : PEC #######
 
   PnEcQueueNameErroriPEC:
@@ -1088,7 +1156,7 @@ Outputs:
   PnEcAlarmArnDLQueueErroriPEC:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriPEC"
     Value: !GetAtt PnEcQueueErroriPECStack.Outputs.SqsDLQAlarmArn
-    
+
   ###### BATCH : EMAIL #######
 
   PnEcQueueNameBatchEMAIL:
@@ -1102,7 +1170,7 @@ Outputs:
   PnEcQueueUrlBatchEMAIL:
     Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Batch'
     Value: !GetAtt  PnEcQueueBatchEMAILStack.Outputs.QueueURL
- 
+
   PnEcAlarmArnQueueBatchEMAIL:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchEMAIL"
     Value: !GetAtt PnEcQueueBatchEMAILStack.Outputs.SqsAgeAlarmArn
@@ -1110,7 +1178,7 @@ Outputs:
   PnEcAlarmArnDLQueueBatchEMAIL:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchEMAIL"
     Value: !GetAtt PnEcQueueBatchEMAILStack.Outputs.SqsDLQAlarmArn
-    
+
   ###### INTERACTIVE : EMAIL #######
 
   PnEcQueueNameInteractiveEMAIL:
@@ -1124,7 +1192,7 @@ Outputs:
   PnEcQueueUrlInteractiveEMAIL:
     Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Interactive'
     Value: !GetAtt  PnEcQueueInteractiveEMAILStack.Outputs.QueueURL
- 
+
   PnEcAlarmArnQueueInteractiveEMAIL:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractiveEMAIL"
     Value: !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.SqsAgeAlarmArn
@@ -1132,7 +1200,7 @@ Outputs:
   PnEcAlarmArnDLQueueInteractiveEMAIL:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractiveEMAIL"
     Value: !GetAtt PnEcQueueInteractiveEMAILStack.Outputs.SqsDLQAlarmArn
-    
+
   ###### ERRORI : EMAIL #######
 
   PnEcQueueNameErroriEMAIL:
@@ -1154,7 +1222,7 @@ Outputs:
   PnEcAlarmArnDLQueueErroriEMAIL:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriEMAIL"
     Value: !GetAtt PnEcQueueErroriEMAILStack.Outputs.SqsDLQAlarmArn
-    
+
   ###### BATCH : CARTACEO #######
 
   PnEcQueueNameBatchCARTACEO:
@@ -1176,7 +1244,7 @@ Outputs:
   PnEcAlarmArnDLQueueBatchCARTACEO:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchCARTACEO"
     Value: !GetAtt PnEcQueueBatchCARTACEOStack.Outputs.SqsDLQAlarmArn
-    
+
   ###### ERRORI : CARTACEO #######
 
   PnEcQueueNameErroriCARTACEO:
@@ -1198,7 +1266,7 @@ Outputs:
   PnEcAlarmArnDLQueueErroriCARTACEO:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriCARTACEO"
     Value: !GetAtt PnEcQueueErroriCARTACEOStack.Outputs.SqsDLQAlarmArn
-  
+
   ###### pn-core Event Bus #######
 
   PnEcQueueNameEventsDLQueuePnCoreTargetEventBus:
@@ -1245,3 +1313,28 @@ Outputs:
 
   EcsLogGroup:
     Value: !GetAtt EcsLogGroup.Outputs.LogGroupName
+
+###### SMS STRESS TESTE MODE #######
+
+  SMSStressTestMode:
+    Value: !Ref SMSStressTestMode
+
+  PnEcQueueNameSMSStressTestQueue:
+    Condition: SMSStressTestModeON
+    Description: '[Stress Test SMS] Nome della Coda per lo Stress Test SMS'
+    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueName
+
+  PnEcQueueArnSMSStressTestQueue:
+    Condition: SMSStressTestModeON
+    Description: '[Stress Test SMS] ARN della Coda per lo Stress Test SMS'
+    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueARN
+
+  PnEcQueueUrlSMSStressTestQueue:
+    Condition: SMSStressTestModeON
+    Description: '[Stress Test SMS] URL della Coda per lo Stress Test SMS'
+    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueURL
+
+  PnEcSMSStressTestTopicArn:
+    Condition: SMSStressTestModeON
+    Description: '[Stress Test SMS] ARN del Topic per lo Stress Test SMS'
+    Value: !Ref PnEcSMSStressTestTopic

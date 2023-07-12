@@ -42,6 +42,7 @@ import org.springframework.context.annotation.PropertySource;
 
 //  <-- SCARICAMENTO ESITI PEC -->
 @PropertySource("classpath:scaricamentoesitipec/scaricamento-esiti-pec.properties")
+@PropertySource("classpath:scaricamentoesitipec/aruba-call-retry-strategy.properties")
 
 //  <-- CARTACEO -->
 // SQS QUEUE
@@ -50,6 +51,7 @@ import org.springframework.context.annotation.PropertySource;
 //  <-- NOTIFICATION TRACKER -->
 // EVENTBRIDGE EVENT
 @PropertySource("classpath:notificationtracker/notificationtracker-eventbridge-eventbus.properties")
+
 public class EcApplication {
 
     public static void main(String[] args) {
