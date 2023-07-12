@@ -42,6 +42,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static it.pagopa.pn.ec.commons.constant.DocumentType.PN_EXTERNAL_LEGAL_FACTS;
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
@@ -103,6 +104,8 @@ public class ScaricamentoEsitiPecService {
             throw new SemaphoreException(e.getMessage());
         }
 
+        AtomicReference<String> requestIdx = new AtomicReference<>();
+
         return Mono.just(ricezioneEsitiPecDto)
                 .flatMap(ricEsitiPecDto ->
                 {
@@ -119,12 +122,12 @@ public class ScaricamentoEsitiPecService {
                                 msgId = msgId.substring(1, msgId.length() - 1);
 
                                 var presaInCaricoInfo = decodeMessageId(msgId);
-                                var requestIdx = presaInCaricoInfo.getRequestIdx();
+                                requestIdx.set(presaInCaricoInfo.getRequestIdx());
                                 var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
 
                                 log.debug("LAVORAZIONE ESITI PEC - PEC messageId - clientId is {}, requestId is {}, messageID is {}", clientId, requestIdx, messageID);
 
-                                return statusPullService.pecPullService(requestIdx, clientId)
+                                return statusPullService.pecPullService(requestIdx.get(), clientId)
                                         .map(legalMessageSentDetails -> Tuples.of(postacert, legalMessageSentDetails, presaInCaricoInfo));
                             })
                             .flatMap(objects -> {
@@ -133,12 +136,12 @@ public class ScaricamentoEsitiPecService {
                                 LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
                                 PresaInCaricoInfo presaInCaricoInfo = objects.getT3();
 
-                                var requestIdx = presaInCaricoInfo.getRequestIdx();
+                                requestIdx.set(presaInCaricoInfo.getRequestIdx());
                                 var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
 
                                 log.debug("LAVORAZIONE ESITI PEC - GET RICHIESTA - clientId is {}, requestId is {}, messageID is {}", clientId, requestIdx, messageID);
 
-                                return gestoreRepositoryCall.getRichiesta(clientId, requestIdx)
+                                return gestoreRepositoryCall.getRichiesta(clientId, requestIdx.get())
                                         .map(requestDto -> Tuples.of(postacert, legalMessageSentDetails, requestDto));
 
                             })
@@ -187,14 +190,14 @@ public class ScaricamentoEsitiPecService {
 
                                 log.debug("---> LAVORAZIONE ESITI PEC - BUILDING PEC QUEUE PAYLOAD <--- MessageID : {}", messageID);
 
-                                var requestIdx = requestDto.getRequestIdx();
+                                requestIdx.set(requestDto.getRequestIdx());
                                 var xPagopaExtchCxId = requestDto.getxPagopaExtchCxId();
                                 var eventDetails = postacert.getErrore();
                                 var senderDigitalAddress = arubaSecretValue.getPecUsername();
                                 var senderDomain = getDomainFromAddress(senderDigitalAddress);
                                 var receiversDomain = ricEsitiPecDto.getReceiversDomain();
 
-                                return generateLocation(requestIdx, daticert)
+                                return generateLocation(requestIdx.get(), daticert)
                                         .map(location ->
                                         {
                                             var generatedMessageDto = createGeneratedMessageByStatus(receiversDomain,
@@ -209,7 +212,7 @@ public class ScaricamentoEsitiPecService {
                                                             .generatedMessage(generatedMessageDto);
 
                                             return NotificationTrackerQueueDto.builder()
-                                                    .requestIdx(requestIdx)
+                                                    .requestIdx(requestIdx.get())
                                                     .xPagopaExtchCxId(xPagopaExtchCxId)
                                                     .nextStatus(nextStatus)
                                                     .digitalProgressStatusDto(digitalProgressStatusDto)
@@ -222,7 +225,7 @@ public class ScaricamentoEsitiPecService {
                                     notificationTrackerQueueDto));
                 })
                 .doOnSuccess(result -> acknowledgment.acknowledge())
-                .doOnError(throwable -> log.error("* FATAL * lavorazioneEsitiPec() - {}, {}", throwable, throwable.getMessage()))
+                .doOnError(throwable -> log.error("* FATAL * lavorazioneEsitiPec() - requestIdx: {} - {}, {}", requestIdx.get(), throwable, throwable.getMessage()))
                 .then()
                 .doFinally(signalType -> semaphore.release());
     }
