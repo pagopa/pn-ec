@@ -54,11 +54,11 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                 String ntStatoQueueName, String ntStatoErroreQueueName, Acknowledgment acknowledgment) {
         var nextStatus = notificationTrackerQueueDto.getNextStatus();
         var xPagopaExtchCxId = notificationTrackerQueueDto.getXPagopaExtchCxId();
+        String sRequestId = notificationTrackerQueueDto.getRequestIdx();
 
-        log.info("<-- Start handleRequestStatusChange --> info: {} request: {}", processId, notificationTrackerQueueDto.getRequestIdx());
+        log.info("<-- Start handleRequestStatusChange --> info: {} request: {}", processId, sRequestId);
 
-        return gestoreRepositoryCall.getRichiesta(notificationTrackerQueueDto.getXPagopaExtchCxId(),
-                                                  notificationTrackerQueueDto.getRequestIdx())
+        return gestoreRepositoryCall.getRichiesta(xPagopaExtchCxId, sRequestId)
 
                                      // Check if the incoming event is equals to the last event that was worked on.
                                     .flatMap(requestDto ->
@@ -240,6 +240,9 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         } else {
                                             return sqsService.send(ntStatoErroreQueueName, notificationTrackerQueueDto).then();
                                         }
+                                    })
+                                    .doOnError(throwable -> {
+                                        log.error("* FATAL * in handleRequestStatusChange on request {}: {} - {}", sRequestId, throwable, throwable.getMessage());
                                     });
     }
 
