@@ -260,9 +260,9 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                     var now = OffsetDateTime.now();
 
                     if (digitalProgressStatusDto != null) {
-                        elapsedTime = SECONDS.between(now, digitalProgressStatusDto.getEventTimestamp());
+                        elapsedTime = SECONDS.between(digitalProgressStatusDto.getEventTimestamp(), now);
 
-                    } else elapsedTime = SECONDS.between(now, paperProgressStatusDto.getStatusDateTime());
+                    } else elapsedTime = SECONDS.between(paperProgressStatusDto.getStatusDateTime(), now);
 
                     return elapsedTime > notificationTrackerSqsName.elapsedTimeSeconds() ? Mono.error(new SqsMaxTimeElapsedException()) : Mono.just(payload);
                 })
