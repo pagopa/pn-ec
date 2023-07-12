@@ -29,8 +29,9 @@ import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.daticert.Destinatari;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -87,8 +88,8 @@ public class ScaricamentoEsitiPecService {
     }
 
     @SqsListener(value = "${scaricamento-esiti-pec.sqs-queue-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void lavorazioneEsitiPecInteractive(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
-        logIncomingMessage(scaricamentoEsitiPecProperties.sqsQueueName(), ricezioneEsitiPecDto);
+    public void lavorazioneEsitiPecInteractive(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment, @Headers MessageHeaders headers) {
+        logIncomingMessage(scaricamentoEsitiPecProperties.sqsQueueName(), (String) headers.get("MessageId"), ricezioneEsitiPecDto);
         lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment).subscribe();
     }
 
@@ -221,6 +222,7 @@ public class ScaricamentoEsitiPecService {
                                     notificationTrackerQueueDto));
                 })
                 .doOnSuccess(result -> acknowledgment.acknowledge())
+                .doOnError(throwable -> log.error("* FATAL * lavorazioneEsitiPec() - {}, {}", throwable, throwable.getMessage()))
                 .then()
                 .doFinally(signalType -> semaphore.release());
     }
