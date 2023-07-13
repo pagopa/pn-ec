@@ -12,6 +12,7 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 import java.util.ArrayList;
 
@@ -106,9 +107,11 @@ public class StatusPullServiceImpl implements StatusPullService {
     @Override
     public Mono<PaperProgressStatusEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
         log.info("<-- START PULL OF PAPER REQUEST --> Request ID: {}, Client ID: {}", requestIdx, xPagopaExtchCxId);
-        return getRequest(xPagopaExtchCxId, requestIdx).flatMap(requestDto -> {
+        return getRequest(xPagopaExtchCxId, requestIdx).map(requestDto -> {
 
                                                            var eventsList = requestDto.getRequestMetadata().getEventsList();
+                                                           var event = new PaperProgressStatusEvent();
+                                                           var status="";
 
                                                            if (eventsList != null && !eventsList.isEmpty()) {
 
@@ -116,7 +119,6 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                var lastEventUpdated =
                                                                        requestDto.getRequestMetadata().getEventsList().get(lastIndex);
 
-                                                               var event = new PaperProgressStatusEvent();
                                                                var paperProgrStatus = lastEventUpdated.getPaperProgrStatus();
 
                                                                event.setRequestId(requestIdx);
@@ -169,23 +171,32 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                event.setIun(requestDto.getRequestMetadata().getPaperRequestMetadata().getIun());
                                                                event.setProductType(requestDto.getRequestMetadata().getPaperRequestMetadata().getProductType());
 
-                                                               return Mono.just(event);
-                                                           } else {
-                                                               return Mono.empty();
+                                                               status = lastEventUpdated.getPaperProgrStatus().getStatus();
                                                            }
+
+                                                         return Tuples.of(event, status);
+
                                                        })
-                                                       .flatMap(event ->
-                                                                        // Decodifica dello stato della richiesta.
-                                                                        callMacchinaStati.statusDecode(xPagopaExtchCxId,
-                                                                                                       transactionProcessConfigurationProperties.paper(),
-                                                                                                       event.getStatusDescription())
-                                                                                         .map(macchinaStatiDecodeResponseDto -> {
-                                                                                             event.setStatusDescription(
-                                                                                                     macchinaStatiDecodeResponseDto.getExternalStatus());
-                                                                                             event.setStatusCode(
-                                                                                                     macchinaStatiDecodeResponseDto.getLogicStatus());
-                                                                                             return event;
-                                                                                         }))
+                                                       .flatMap(objects ->
+                                                       {
+                                                           var event = objects.getT1();
+                                                           var status = objects.getT2();
+
+                                                           if (event.getRequestId() == null)
+                                                               return Mono.empty();
+
+                                                           // Decodifica dello stato della richiesta.
+                                                           return callMacchinaStati.statusDecode(xPagopaExtchCxId,
+                                                                           transactionProcessConfigurationProperties.paper(),
+                                                                           status)
+                                                                   .map(macchinaStatiDecodeResponseDto -> {
+                                                                       event.setStatusDescription(
+                                                                               macchinaStatiDecodeResponseDto.getExternalStatus());
+                                                                       event.setStatusCode(
+                                                                               macchinaStatiDecodeResponseDto.getLogicStatus());
+                                                                       return event;
+                                                                   });
+                                                       })
                                                        .switchIfEmpty(Mono.just(new PaperProgressStatusEvent().requestId(requestIdx)
                                                                                                               .statusDescription("")
                                                                                                               .deliveryFailureCause("")

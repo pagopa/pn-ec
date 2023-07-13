@@ -112,7 +112,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                                     .eventTimestamp(digitalProgressStatusDto.getEventTimestamp()
                                                                                                             .truncatedTo(SECONDS));
                                         } else if (paperProgressStatusDto != null) {
-                                            paperProgressStatusDto.statusDescription(nextStatus)
+                                            paperProgressStatusDto.status(nextStatus)
+                                                                  .statusDescription(paperProgressStatusDto.getStatusDescription())
                                                                   .statusCode(macchinaStatiDecodeResponseDto.getLogicStatus())
                                                                   .statusDateTime(paperProgressStatusDto.getStatusDateTime()
                                                                                                         .truncatedTo(SECONDS));

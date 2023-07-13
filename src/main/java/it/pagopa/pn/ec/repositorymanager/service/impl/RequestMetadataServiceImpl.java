@@ -114,7 +114,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                 retrieveRequestMetadata.setStatusRequest(event.getDigProgrStatus().getStatus());
             } else {
                 // Handle paper request event
-                retrieveRequestMetadata.setStatusRequest(event.getPaperProgrStatus().getStatusDescription());
+                retrieveRequestMetadata.setStatusRequest(event.getPaperProgrStatus().getStatus());
             }
         }
         return Mono.just(retrieveRequestMetadata);
