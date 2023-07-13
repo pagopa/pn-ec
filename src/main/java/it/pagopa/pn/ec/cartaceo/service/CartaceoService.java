@@ -198,7 +198,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         var paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
 
         return gestoreRepositoryCall.getRichiesta(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(),
-                        cartaceoPresaInCaricoInfo.getRequestIdx()).flatMap(requestDto ->
+                        cartaceoPresaInCaricoInfo.getRequestIdx())
+                .retryWhen(DEFAULT_RETRY_STRATEGY)
+                .flatMap(requestDto ->
                         // Try to send PAPER
                         paperMessageCall.putRequest(
                                         paperEngageRequestDst)
@@ -234,7 +236,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                                 // notify to retry
                                                 // update status only
                                                 .doOnError(exception -> {
-                                                    log.error("Exception in lavorazioneRichiesta {} {}", exception, exception.getMessage());
+                                                    log.warn("Exception in lavorazioneRichiesta {} {}", exception, exception.getMessage());
                                                 })
                                                 .onErrorResume(
                                                         SqsClientException.class,

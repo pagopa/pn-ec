@@ -225,7 +225,7 @@ public class ScaricamentoEsitiPecService {
                                     notificationTrackerQueueDto));
                 })
                 .doOnSuccess(result -> acknowledgment.acknowledge())
-                .doOnError(throwable -> log.error("* FATAL * lavorazioneEsitiPec() - requestIdx: {} - {}, {}", requestIdx.get(), throwable, throwable.getMessage()))
+                .doOnError(throwable -> log.warn("Exception in lavorazioneEsitiPec() - requestIdx: {} - {}, {}", requestIdx.get(), throwable, throwable.getMessage()))
                 .then()
                 .doFinally(signalType -> semaphore.release());
     }
