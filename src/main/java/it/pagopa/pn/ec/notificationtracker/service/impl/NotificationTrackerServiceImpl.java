@@ -282,7 +282,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
     }
 
     private boolean isSameEvent(PaperProgressStatusDto lastEvent, PaperProgressStatusDto newEvent, String nextStatus) {
-        return lastEvent.getStatusCode().equals(nextStatus) && lastEvent.getStatusDateTime().equals(newEvent.getStatusDateTime().truncatedTo(SECONDS));
+        return lastEvent.getStatus().equals(nextStatus) && lastEvent.getStatusDateTime().equals(newEvent.getStatusDateTime().truncatedTo(SECONDS));
     }
 
 }
