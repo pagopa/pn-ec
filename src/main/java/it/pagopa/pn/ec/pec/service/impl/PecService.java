@@ -289,6 +289,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .flatMap(mimeMessageInCdata -> {
                     var sendMail = new SendMail();
                     sendMail.setData(mimeMessageInCdata);
+                    log.debug("sendMail() - mimeMessage : {}", mimeMessageInCdata);
                     return arubaCall.sendMail(sendMail);
                 })
 
