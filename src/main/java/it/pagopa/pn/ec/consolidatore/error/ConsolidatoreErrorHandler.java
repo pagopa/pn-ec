@@ -23,7 +23,7 @@ public class ConsolidatoreErrorHandler {
         var response = new OperationResultCodeResponse();
         response.setResultDescription("Syntax Error");
         response.setResultCode("400.01");
-        response.setErrorList(List.of(ex.getMessage()));
+        response.setErrorList(ex.getErrorList());
         response.setClientResponseTimeStamp(OffsetDateTime.now());
         return new ResponseEntity<>(response, BAD_REQUEST);
     }
@@ -33,7 +33,7 @@ public class ConsolidatoreErrorHandler {
         var response = new OperationResultCodeResponse();
         response.setResultDescription("Semantic Error");
         response.setResultCode("400.02");
-        response.setErrorList(List.of(ex.getMessage()));
+        response.setErrorList(ex.getErrorList());
         response.setClientResponseTimeStamp(OffsetDateTime.now());
         return new ResponseEntity<>(response, BAD_REQUEST);
     }

@@ -3,36 +3,33 @@ package it.pagopa.pn.ec.consolidatore.model.pojo;
 import lombok.*;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.List;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
 @Builder
-public class ConsAuditLogEvent {
+public class ConsAuditLogEvent<T> {
 
-    String requestId;
-    String clientId;
-    String message;
+    T request;
+    List<ConsAuditLogError> errorList;
 
-    public ConsAuditLogEvent requestId(String requestId) {
-        this.requestId = requestId;
+    public ConsAuditLogEvent<T> request(T request) {
+        this.request = request;
         return this;
     }
 
-    public ConsAuditLogEvent clientId(String clientId) {
-        this.clientId = clientId;
-        return this;
-    }
-
-    public ConsAuditLogEvent message(String message) {
-        this.message = message;
+    public ConsAuditLogEvent<T> errorList(List<ConsAuditLogError> errorList) {
+        this.errorList = errorList;
         return this;
     }
 
     @Override
     public String toString() {
-        if (StringUtils.isNotBlank(requestId)) {
-            return String.format("requestId: %s , clientId: %s , message: %s", requestId, clientId, message);
-        } else return String.format("clientId: %s , message: %s", clientId, message);
+        return "{" +
+                "\"request\":" + request +
+                ", \"errorList\":" + errorList +
+                '}';
     }
 }
