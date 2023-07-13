@@ -181,7 +181,7 @@ components:
     PaperProgressStatusDto:
       title: Avanzamento di stato di una richiesta cartacea
       required:
-        - statusDescription
+        - status
         - statusDateTime
       type: object
       properties:
