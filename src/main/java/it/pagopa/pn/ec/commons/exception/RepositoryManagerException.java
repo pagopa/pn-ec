@@ -77,7 +77,7 @@ public class RepositoryManagerException extends RuntimeException {
 
         public EventAlreadyExistsException(String requestId, PaperProgressStatus paperProgressStatus) {
             super(String.format("The %s event registered at %s is already present in the list of events of paper request %s",
-                                paperProgressStatus.getStatusDescription(),
+                                paperProgressStatus.getStatus(),
                                 paperProgressStatus.getStatusDateTime(),
                                 requestId));
         }

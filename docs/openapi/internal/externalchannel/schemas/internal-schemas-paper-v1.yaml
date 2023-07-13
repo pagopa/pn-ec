@@ -190,6 +190,8 @@ components:
           description: >-
             Il codice di tracciatura obbligatorio per i prodotti di corrispondenza tracciata.
           example: '123456789abc'
+        status:
+          type: string
         statusCode:
           type: string
           description: >-

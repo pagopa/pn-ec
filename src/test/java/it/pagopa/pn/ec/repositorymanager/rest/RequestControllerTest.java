@@ -262,6 +262,7 @@ class RequestControllerTest {
         var paperProgressStatusDto = new PaperProgressStatusDto();
         paperProgressStatusDto.setRegisteredLetterCode("");
         paperProgressStatusDto.setStatusCode(null);
+        paperProgressStatusDto.setStatus("printed");
         paperProgressStatusDto.setStatusDescription("printed");
         paperProgressStatusDto.setStatusDateTime(OffsetDateTime.now());
         paperProgressStatusDto.setDeliveryFailureCause("");
