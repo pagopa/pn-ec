@@ -272,7 +272,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private Mono<GeneratedMessageDto> sendMail(String xPagopaExtchCxId, String requestIdx, DigitalNotificationRequest digitalNotificationRequest, List<EmailAttachment> attachments) {
-        log.debug("reqId {} - sendMail", requestIdx);
+        log.debug("sendMail() - from : {} , reqId : {}", arubaSecretValue.getPecUsername(), requestIdx);
         return Mono.just(attachments).map(fileDownloadResponses -> EmailField.builder()
                         .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
                         .from(arubaSecretValue.getPecUsername())
