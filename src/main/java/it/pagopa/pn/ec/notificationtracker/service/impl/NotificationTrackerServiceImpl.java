@@ -16,15 +16,11 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import software.amazon.ion.Timestamp;
-
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-
+import static it.pagopa.pn.ec.commons.utils.CompareUtils.*;
 import static java.time.temporal.ChronoUnit.SECONDS;
 
 
@@ -274,15 +270,5 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                 .then();
     }
 
-    private boolean isSameEvent(DigitalProgressStatusDto lastEvent, DigitalProgressStatusDto newEvent, String nextStatus) {
-        return lastEvent.getEventTimestamp().equals(newEvent.getEventTimestamp().truncatedTo(SECONDS))
-                && lastEvent.getStatus().equals(nextStatus)
-                && lastEvent.getGeneratedMessage() != null
-                && lastEvent.getGeneratedMessage().equals(newEvent.getGeneratedMessage());
-    }
-
-    private boolean isSameEvent(PaperProgressStatusDto lastEvent, PaperProgressStatusDto newEvent, String nextStatus) {
-        return lastEvent.getStatus().equals(nextStatus) && lastEvent.getStatusDateTime().equals(newEvent.getStatusDateTime().truncatedTo(SECONDS));
-    }
 
 }

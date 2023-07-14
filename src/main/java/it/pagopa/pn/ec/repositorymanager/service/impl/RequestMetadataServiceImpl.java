@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static it.pagopa.pn.ec.commons.utils.CompareUtils.isSameEvent;
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.DYNAMO_OPTIMISTIC_LOCKING_RETRY;
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
@@ -122,15 +123,24 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     private void eventsCheck(Events event, List<Events> eventsList, String requestId) {
         log.debug("---> START eventsCheck() <--- CheckedEvent : {}, EventsList : {}", event, eventsList);
-        if (eventsList != null && eventsList.contains(event)) {
+        if (eventsList != null) {
             // Event already exists
-            var status = getStatusFromEvent(event);
-            if (status instanceof DigitalProgressStatus digitalprogressstatus) {
-                log.debug("eventsCheck() - DIGITAL STATUS {} ALREADY EXISTS", status);
-                throw new RepositoryManagerException.EventAlreadyExistsException(requestId, digitalprogressstatus);
-            } else {
-                log.debug("eventsCheck() - PAPER STATUS {} ALREADY EXISTS", status);
-                throw new RepositoryManagerException.EventAlreadyExistsException(requestId, (PaperProgressStatus) status);
+            boolean gotSameEvent = false;
+
+            if (event.getDigProgrStatus() != null) {
+                gotSameEvent = eventsList.stream().map(Events::getDigProgrStatus).anyMatch(lastEvent -> isSameEvent(lastEvent, event.getDigProgrStatus()));
+            } else
+                gotSameEvent = eventsList.stream().map(Events::getPaperProgrStatus).anyMatch(lastEvent -> isSameEvent(lastEvent, event.getPaperProgrStatus()));
+
+            if (gotSameEvent) {
+                var status = getStatusFromEvent(event);
+                if (status instanceof DigitalProgressStatus digitalprogressstatus) {
+                    log.debug("eventsCheck() - DIGITAL STATUS {} ALREADY EXISTS", status);
+                    throw new RepositoryManagerException.EventAlreadyExistsException(requestId, digitalprogressstatus);
+                } else {
+                    log.debug("eventsCheck() - PAPER STATUS {} ALREADY EXISTS", status);
+                    throw new RepositoryManagerException.EventAlreadyExistsException(requestId, (PaperProgressStatus) status);
+                }
             }
         }
     }
