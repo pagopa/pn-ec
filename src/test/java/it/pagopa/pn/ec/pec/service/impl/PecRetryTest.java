@@ -84,16 +84,17 @@ class PecRetryTest {
         digitalNotificationRequest.setAttachmentUrls(defaultListAttachmentUrls);
         return digitalNotificationRequest;
     }
+
+    private static final StepError STEP_ERROR = StepError.builder()
+            .generatedMessageDto(new GeneratedMessageDto().id("1221313223"))
+            .step(NOTIFICATION_TRACKER_STEP)
+            .build();
     private static final PecPresaInCaricoInfo PEC_PRESA_IN_CARICO_INFO = PecPresaInCaricoInfo.builder()
             .requestIdx(DEFAULT_REQUEST_IDX)
             .xPagopaExtchCxId(
                     DEFAULT_ID_CLIENT_HEADER_VALUE)
+            .stepError(STEP_ERROR)
             .digitalNotificationRequest(createDigitalNotificationRequest())
-            .build();
-
-    private static final StepError STEP_ERROR = StepError.builder()
-            .generatedMessageDto(new GeneratedMessageDto().id("1221313223"))
-            .notificationTrackerError(NOTIFICATION_TRACKER_STEP)
             .build();
 
     private static final PecPresaInCaricoInfo PEC_PRESA_IN_CARICO_INFO_STEP_ERROR = PecPresaInCaricoInfo.builder()
@@ -106,7 +107,7 @@ class PecRetryTest {
 
     private static final FileDownloadResponse FILE_DOWNLOAD_RESPONSE = new FileDownloadResponse()
             .download(new FileDownloadInfo()
-                    .url("url"))
+            .url("url"))
             .key("key")
             .checksum("checksum")
             .contentLength(BigDecimal.TEN)

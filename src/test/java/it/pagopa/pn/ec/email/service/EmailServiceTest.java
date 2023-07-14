@@ -9,7 +9,6 @@ import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
-import it.pagopa.pn.ec.commons.service.AttachmentService;
 import it.pagopa.pn.ec.commons.service.SesService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
@@ -24,17 +23,14 @@ import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.List;
 
 import static it.pagopa.pn.ec.commons.constant.Status.RETRY;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
@@ -43,7 +39,6 @@ import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv

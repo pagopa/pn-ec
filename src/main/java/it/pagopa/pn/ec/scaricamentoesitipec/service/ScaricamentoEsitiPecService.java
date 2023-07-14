@@ -6,9 +6,8 @@ import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.constant.Status;
-import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
+import it.pagopa.pn.ec.commons.exception.SemaphoreException;
 import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
-import it.pagopa.pn.ec.commons.exception.sqs.SqsMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -30,17 +29,18 @@ import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.daticert.Destinatari;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static it.pagopa.pn.ec.commons.constant.DocumentType.PN_EXTERNAL_LEGAL_FACTS;
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
@@ -49,35 +49,42 @@ import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.*;
 
+
 @Slf4j
 @Service
 public class ScaricamentoEsitiPecService {
-    @Autowired
-    private SqsService sqsService;
-    @Autowired
-    private DaticertService daticertService;
-    @Autowired
-    private StatusPullService statusPullService;
-    @Autowired
-    private CloudWatchPecMetrics cloudWatchPecMetrics;
-    @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
-    @Autowired
-    private ArubaSecretValue arubaSecretValue;
-    @Autowired
-    private FileCall fileCall;
-    @Autowired
-    private WebClient uploadWebClient;
-    @Autowired
-    private ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
-    @Autowired
-    private GestoreRepositoryCall gestoreRepositoryCall;
-    @Autowired
-    private CallMacchinaStati callMacchinaStati;
-    @Autowired
-    private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
 
+    private final SqsService sqsService;
+    private final DaticertService daticertService;
+    private final StatusPullService statusPullService;
+    private final CloudWatchPecMetrics cloudWatchPecMetrics;
+    private final NotificationTrackerSqsName notificationTrackerSqsName;
+    private final ArubaSecretValue arubaSecretValue;
+    private final FileCall fileCall;
+    private final WebClient uploadWebClient;
+    private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
+    private final GestoreRepositoryCall gestoreRepositoryCall;
+    private final CallMacchinaStati callMacchinaStati;
+    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+
+    private final Semaphore semaphore;
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
+
+    public ScaricamentoEsitiPecService(SqsService sqsService, DaticertService daticertService, StatusPullService statusPullService, CloudWatchPecMetrics cloudWatchPecMetrics, NotificationTrackerSqsName notificationTrackerSqsName, ArubaSecretValue arubaSecretValue, FileCall fileCall, WebClient uploadWebClient, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, @Value("${lavorazione-esiti-pec.max-thread-pool-size}") Integer maxThreadPoolSize) {
+        this.sqsService = sqsService;
+        this.daticertService = daticertService;
+        this.statusPullService = statusPullService;
+        this.cloudWatchPecMetrics = cloudWatchPecMetrics;
+        this.notificationTrackerSqsName = notificationTrackerSqsName;
+        this.arubaSecretValue = arubaSecretValue;
+        this.fileCall = fileCall;
+        this.uploadWebClient = uploadWebClient;
+        this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;
+        this.gestoreRepositoryCall = gestoreRepositoryCall;
+        this.callMacchinaStati = callMacchinaStati;
+        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+        this.semaphore = new Semaphore(maxThreadPoolSize);
+    }
 
     @SqsListener(value = "${scaricamento-esiti-pec.sqs-queue-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void lavorazioneEsitiPecInteractive(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
@@ -88,6 +95,14 @@ public class ScaricamentoEsitiPecService {
     Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
 
         log.info("<-- START LAVORAZIONE ESITI PEC -->");
+
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            throw new SemaphoreException(e.getMessage());
+        }
+
+        AtomicReference<String> requestIdx = new AtomicReference<>();
 
         return Mono.just(ricezioneEsitiPecDto)
                 .flatMap(ricEsitiPecDto ->
@@ -105,12 +120,12 @@ public class ScaricamentoEsitiPecService {
                                 msgId = msgId.substring(1, msgId.length() - 1);
 
                                 var presaInCaricoInfo = decodeMessageId(msgId);
-                                var requestIdx = presaInCaricoInfo.getRequestIdx();
+                                requestIdx.set(presaInCaricoInfo.getRequestIdx());
                                 var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
 
                                 log.debug("LAVORAZIONE ESITI PEC - PEC messageId - clientId is {}, requestId is {}, messageID is {}", clientId, requestIdx, messageID);
 
-                                return statusPullService.pecPullService(requestIdx, clientId)
+                                return statusPullService.pecPullService(requestIdx.get(), clientId)
                                         .map(legalMessageSentDetails -> Tuples.of(postacert, legalMessageSentDetails, presaInCaricoInfo));
                             })
                             .flatMap(objects -> {
@@ -119,15 +134,16 @@ public class ScaricamentoEsitiPecService {
                                 LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
                                 PresaInCaricoInfo presaInCaricoInfo = objects.getT3();
 
-                                var requestIdx = presaInCaricoInfo.getRequestIdx();
+                                requestIdx.set(presaInCaricoInfo.getRequestIdx());
                                 var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
 
                                 log.debug("LAVORAZIONE ESITI PEC - GET RICHIESTA - clientId is {}, requestId is {}, messageID is {}", clientId, requestIdx, messageID);
 
-                                return gestoreRepositoryCall.getRichiesta(clientId, requestIdx)
+                                return gestoreRepositoryCall.getRichiesta(clientId, requestIdx.get())
                                         .map(requestDto -> Tuples.of(postacert, legalMessageSentDetails, requestDto));
 
                             })
+                            //Pubblicazione metriche custom su CloudWatch
                             .flatMap(objects ->
                             {
                                 Postacert postacert = objects.getT1();
@@ -145,27 +161,6 @@ public class ScaricamentoEsitiPecService {
                                     nextStatus = decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
                                 }
 
-                                String finalNextStatus = nextStatus;
-
-                                return callMacchinaStati.statusValidation(requestDto.getxPagopaExtchCxId(),
-                                                transactionProcessConfigurationProperties.pec(),
-                                                requestDto.getStatusRequest(),
-                                                finalNextStatus)
-                                        .map(unused -> Tuples.of(postacert, legalMessageSentDetails, requestDto, finalNextStatus))
-                                        .doOnError(CallMacchinaStati.StatusValidationBadRequestException.class,
-                                                throwable -> log.error(
-                                                        "* FATAL * La chiamata alla macchina a stati non e' andata a buon fine {}, {}",
-                                                        throwable,
-                                                        throwable.getMessage()));
-                            })
-
-                            //Pubblicazione metriche custom su CloudWatch
-                            .flatMap(objects -> {
-                                Postacert postacert = objects.getT1();
-                                LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
-                                RequestDto requestDto = objects.getT3();
-                                String nextStatus = objects.getT4();
-
                                 log.debug("---> LAVORAZIONE ESITI PEC - PUBLISH CUSTOM CLOUD WATCH METRICS <--- MessageID : {}", messageID);
 
                                 var nextEventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
@@ -182,8 +177,8 @@ public class ScaricamentoEsitiPecService {
                                                 requestDto,
                                                 cloudWatchPecMetricsInfo,
                                                 nextStatus));
-                            })
 
+                            })
                             //Preparazione payload per la coda stati PEC
                             .flatMap(objects -> {
                                 Postacert postacert = objects.getT1();
@@ -193,14 +188,14 @@ public class ScaricamentoEsitiPecService {
 
                                 log.debug("---> LAVORAZIONE ESITI PEC - BUILDING PEC QUEUE PAYLOAD <--- MessageID : {}", messageID);
 
-                                var requestIdx = requestDto.getRequestIdx();
+                                requestIdx.set(requestDto.getRequestIdx());
                                 var xPagopaExtchCxId = requestDto.getxPagopaExtchCxId();
                                 var eventDetails = postacert.getErrore();
                                 var senderDigitalAddress = arubaSecretValue.getPecUsername();
                                 var senderDomain = getDomainFromAddress(senderDigitalAddress);
                                 var receiversDomain = ricEsitiPecDto.getReceiversDomain();
 
-                                return generateLocation(requestIdx, daticert)
+                                return generateLocation(requestIdx.get(), daticert)
                                         .map(location ->
                                         {
                                             var generatedMessageDto = createGeneratedMessageByStatus(receiversDomain,
@@ -215,7 +210,7 @@ public class ScaricamentoEsitiPecService {
                                                             .generatedMessage(generatedMessageDto);
 
                                             return NotificationTrackerQueueDto.builder()
-                                                    .requestIdx(requestIdx)
+                                                    .requestIdx(requestIdx.get())
                                                     .xPagopaExtchCxId(xPagopaExtchCxId)
                                                     .nextStatus(nextStatus)
                                                     .digitalProgressStatusDto(digitalProgressStatusDto)
@@ -228,23 +223,9 @@ public class ScaricamentoEsitiPecService {
                                     notificationTrackerQueueDto));
                 })
                 .doOnSuccess(result -> acknowledgment.acknowledge())
+                .doOnError(throwable -> log.error("* FATAL * lavorazioneEsitiPec() - requestIdx: {} - {}, {}", requestIdx.get(), throwable, throwable.getMessage()))
                 .then()
-                //         Error logging
-                .doOnError(throwable -> {
-                    if (throwable instanceof InvalidNextStatusException) {
-                        log.debug("lavorazioneEsitiPec {}, {}", throwable, throwable.getMessage());
-                    } else {
-                        log.error("* FATAL * lavorazioneEsitiPec {}, {}", throwable, throwable.getMessage());
-                    }
-                })
-                .onErrorResume(InvalidNextStatusException.class, e -> {
-                    var retry = ricezioneEsitiPecDto.getRetry();
-                    ricezioneEsitiPecDto.setRetry(retry + 1);
-                    if (retry < 5) {
-                        acknowledgment.acknowledge();
-                        return sqsService.send(scaricamentoEsitiPecProperties.sqsQueueName(), ricezioneEsitiPecDto).then();
-                    } else return Mono.error(SqsMaxRetriesExceededException::new);
-                });
+                .doFinally(signalType -> semaphore.release());
     }
 
 

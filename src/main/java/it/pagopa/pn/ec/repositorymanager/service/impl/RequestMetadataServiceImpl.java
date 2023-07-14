@@ -55,7 +55,9 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     @Override
     public Mono<RequestMetadata> getRequestMetadata(String concatRequestId) {
-        return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(concatRequestId)))
+        return Mono.fromCompletionStage(()->requestMetadataDynamoDbTable.getItem(getKey(concatRequestId)))
+                   .doOnError(throwable -> log.warn("getRequestMetadata() - {}", throwable.getMessage()))
+                   .onErrorResume(e -> Mono.empty())
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(concatRequestId)))
                    .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()));
     }
@@ -112,19 +114,22 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                 retrieveRequestMetadata.setStatusRequest(event.getDigProgrStatus().getStatus());
             } else {
                 // Handle paper request event
-                retrieveRequestMetadata.setStatusRequest(event.getPaperProgrStatus().getStatusDescription());
+                retrieveRequestMetadata.setStatusRequest(event.getPaperProgrStatus().getStatus());
             }
         }
         return Mono.just(retrieveRequestMetadata);
     }
 
     private void eventsCheck(Events event, List<Events> eventsList, String requestId) {
+        log.debug("---> START eventsCheck() <--- CheckedEvent : {}, EventsList : {}", event, eventsList);
         if (eventsList != null && eventsList.contains(event)) {
             // Event already exists
             var status = getStatusFromEvent(event);
             if (status instanceof DigitalProgressStatus digitalprogressstatus) {
+                log.debug("eventsCheck() - DIGITAL STATUS {} ALREADY EXISTS", status);
                 throw new RepositoryManagerException.EventAlreadyExistsException(requestId, digitalprogressstatus);
             } else {
+                log.debug("eventsCheck() - PAPER STATUS {} ALREADY EXISTS", status);
                 throw new RepositoryManagerException.EventAlreadyExistsException(requestId, (PaperProgressStatus) status);
             }
         }

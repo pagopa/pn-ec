@@ -43,7 +43,6 @@ import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.crea
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.commons.service.SesService.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
-import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromMonoUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.HTML;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.PLAIN;
@@ -234,7 +233,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                 var stepError = new StepError();
                                                 emailPresaInCaricoInfo.setStepError(stepError);
                                                 emailPresaInCaricoInfo.getStepError()
-                                                                      .setNotificationTrackerError(NOTIFICATION_TRACKER_STEP);
+                                                                      .setStep(NOTIFICATION_TRACKER_STEP);
                                                 emailPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto.get());
                                                 return sendNotificationOnErrorQueue(emailPresaInCaricoInfo);
                                             });
@@ -387,7 +386,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 //                                        check step error per evitare nuova chiamata verso ses
 //              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The EMAIL in sent, publish to
 //              Notification Tracker with next status -> SENT
-                                                             if (Objects.equals(emailPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
+                                                             if (Objects.equals(emailPresaInCaricoInfo.getStepError().getStep(), NOTIFICATION_TRACKER_STEP)) {
                                                                  return sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                                                                                                       SENT.getStatusTransactionTableCompliant(),
                                                                                                       new DigitalProgressStatusDto().generatedMessage(emailPresaInCaricoInfo.getStepError()
@@ -510,7 +509,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                              //                                        chiamata verso ses
 //              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The EMAIL in sent, publish to
 //              Notification Tracker with next status -> SENT
-                                                             if (Objects.equals(emailPresaInCaricoInfo.getStepError().getNotificationTrackerError(), NOTIFICATION_TRACKER_STEP)) {
+                                                             if (Objects.equals(emailPresaInCaricoInfo.getStepError().getStep(), NOTIFICATION_TRACKER_STEP)) {
                                                                  log.debug("requestDto Value: {}",
                                                                            requestDto.getRequestMetadata().getRetry());
                                                                  return sqsService.send(notificationTrackerSqsName.statoEmailName(),

@@ -181,7 +181,7 @@ components:
     PaperProgressStatusDto:
       title: Avanzamento di stato di una richiesta cartacea
       required:
-        - statusDescription
+        - status
         - statusDateTime
       type: object
       properties:
@@ -190,6 +190,8 @@ components:
           description: >-
             Il codice di tracciatura obbligatorio per i prodotti di corrispondenza tracciata.
           example: '123456789abc'
+        status:
+          type: string
         statusCode:
           type: string
           description: >-

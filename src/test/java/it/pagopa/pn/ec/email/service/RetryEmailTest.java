@@ -87,7 +87,7 @@ class RetryEmailTest {
 
     private static final StepError STEP_ERROR = StepError.builder()
             .generatedMessageDto(new GeneratedMessageDto().id("1221313223"))
-            .notificationTrackerError(NOTIFICATION_TRACKER_STEP)
+            .step(NOTIFICATION_TRACKER_STEP)
             .build();
 
     private static final EmailPresaInCaricoInfo EMAIL_PRESA_IN_CARICO_INFO_STEP_ERROR = EmailPresaInCaricoInfo.builder()

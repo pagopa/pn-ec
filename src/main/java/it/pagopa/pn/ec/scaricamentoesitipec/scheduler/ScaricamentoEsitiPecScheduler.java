@@ -16,6 +16,7 @@ import it.pec.bridgews.*;
 import it.pec.daticert.Destinatari;
 import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -42,6 +43,8 @@ public class ScaricamentoEsitiPecScheduler {
     private final DaticertService daticertService;
     private final SqsService sqsService;
     private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
+    @Value("${scaricamento-esiti-pec.limit-rate}")
+    private Integer limitRate;
 
     public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties) {
         this.arubaCall = arubaCall;
@@ -140,7 +143,7 @@ public class ScaricamentoEsitiPecScheduler {
                     else return Mono.just(finalMessageID);
                 })
                 //Marca il messaggio come letto.
-                .flatMap(finalMessageID -> arubaCall.getMessageId(createGetMessageIdRequest(finalMessageID, 2, true)))
+                .flatMap(finalMessageID -> arubaCall.getMessageId(createGetMessageIdRequest(finalMessageID, 2, true)), limitRate)
                 .doOnError(throwable -> log.error("* FATAL * {}, {}", throwable, throwable.getMessage()))
                 .onErrorResume(throwable -> Mono.empty())
                 .repeat(hasMessages::get)

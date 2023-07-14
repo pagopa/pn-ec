@@ -16,6 +16,7 @@ import java.util.List;
 public class PaperProgressStatus {
 
     String registeredLetterCode;
+    String status;
     String statusCode;
     String statusDescription;
     OffsetDateTime statusDateTime;
