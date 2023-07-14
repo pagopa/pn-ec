@@ -64,7 +64,7 @@ public class ScaricamentoEsitiPecScheduler {
         return getMessageID;
     }
 
-    @Scheduled(cron = "${PnEcCronScaricamentoEsitiPec:0 */5 * * * *}")
+    @Scheduled(cron = "${PnEcCronScaricamentoEsitiPec ?:0 */5 * * * *}")
     public void scaricamentoEsitiPecScheduler() {
 
         log.info("<-- SCARICAMENTO ESITI PEC SCHEDULER -->");

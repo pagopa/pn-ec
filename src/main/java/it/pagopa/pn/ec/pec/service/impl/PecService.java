@@ -169,7 +169,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         lavorazioneRichiesta(pecPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
     }
 
-    @Scheduled(cron = "${PnEcCronLavorazioneBatchPec:0 */5 * * * *}")
+    @Scheduled(cron = "${PnEcCronLavorazioneBatchPec ?:0 */5 * * * *}")
     public void lavorazioneRichiestaBatch() {
 
         sqsService.getMessages(pecSqsQueueName.batchName(), PecPresaInCaricoInfo.class)
@@ -330,7 +330,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .system(getDomainFromAddress(arubaSecretValue.getPecUsername()));
     }
 
-    @Scheduled(cron = "${PnEcCronGestioneRetryPec:0 */5 * * * *}")
+    @Scheduled(cron = "${PnEcCronGestioneRetryPec ?:0 */5 * * * *}")
     void gestioneRetryPecScheduler() {
 
         idSaved = null;
