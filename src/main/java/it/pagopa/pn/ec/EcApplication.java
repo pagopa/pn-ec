@@ -18,7 +18,7 @@ import org.springframework.context.annotation.PropertySource;
 // TRANSACTION PROCESS
 @PropertySource("classpath:commons/transaction-process.properties")
 // SCHEDULED CRON VALUES
-@PropertySource("classpath:commons/scheduled-cron.properties")
+//@PropertySource("classpath:commons/scheduled-cron.properties")
 
 //  <-- REPOSITORY MANAGER -->
 // DYNAMO TABLES
