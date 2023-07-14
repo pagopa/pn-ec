@@ -11,8 +11,10 @@ import java.util.Objects;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
+@Builder
 @DynamoDbBean
 public class PaperProgressStatus {
 

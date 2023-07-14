@@ -121,7 +121,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
         return Mono.just(retrieveRequestMetadata);
     }
 
-    private void eventsCheck(Events event, List<Events> eventsList, String requestId) {
+     protected void eventsCheck(Events event, List<Events> eventsList, String requestId) {
         log.debug("---> START eventsCheck() <--- CheckedEvent : {}, EventsList : {}", event, eventsList);
         if (eventsList != null && eventsList.contains(event)) {
             // Event already exists
@@ -163,7 +163,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     @Override
     public Mono<RequestMetadata> getRequestMetadataByMessageId(String concatRequestId) {
-        var esaInCaricoInfo = decodeMessageId(concatRequestId);
+        var presaInCaricoInfo = decodeMessageId(concatRequestId);
         return getRequestMetadata(concatRequestId(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx()));
     }
 

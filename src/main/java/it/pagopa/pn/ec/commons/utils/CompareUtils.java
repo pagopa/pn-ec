@@ -20,15 +20,4 @@ public class CompareUtils {
         return lastEvent.getStatus().equals(nextStatus) && lastEvent.getStatusDateTime().equals(newEvent.getStatusDateTime().truncatedTo(SECONDS));
     }
 
-    public static boolean isSameEvent(DigitalProgressStatus lastEvent, DigitalProgressStatus newEvent) {
-        return lastEvent.getEventTimestamp().equals(newEvent.getEventTimestamp().truncatedTo(SECONDS))
-                && lastEvent.getStatus().equals(newEvent.getStatus())
-                && lastEvent.getGeneratedMessage() != null
-                && lastEvent.getGeneratedMessage().equals(newEvent.getGeneratedMessage());
-    }
-
-    public static boolean isSameEvent(PaperProgressStatus lastEvent, PaperProgressStatus newEvent) {
-        return lastEvent.getStatus().equals(newEvent.getStatus()) && lastEvent.getStatusDateTime().equals(newEvent.getStatusDateTime().truncatedTo(SECONDS));
-    }
-
 }
