@@ -123,25 +123,17 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     private void eventsCheck(Events event, List<Events> eventsList, String requestId) {
         log.debug("---> START eventsCheck() <--- CheckedEvent : {}, EventsList : {}", event, eventsList);
-        if (eventsList != null) {
+        if (eventsList != null && eventsList.contains(event)) {
             // Event already exists
-            boolean gotSameEvent = false;
-
-            if (event.getDigProgrStatus() != null) {
-                gotSameEvent = eventsList.stream().map(Events::getDigProgrStatus).anyMatch(lastEvent -> isSameEvent(lastEvent, event.getDigProgrStatus()));
-            } else
-                gotSameEvent = eventsList.stream().map(Events::getPaperProgrStatus).anyMatch(lastEvent -> isSameEvent(lastEvent, event.getPaperProgrStatus()));
-
-            if (gotSameEvent) {
-                var status = getStatusFromEvent(event);
-                if (status instanceof DigitalProgressStatus digitalprogressstatus) {
-                    log.debug("eventsCheck() - DIGITAL STATUS {} ALREADY EXISTS", status);
-                    throw new RepositoryManagerException.EventAlreadyExistsException(requestId, digitalprogressstatus);
-                } else {
-                    log.debug("eventsCheck() - PAPER STATUS {} ALREADY EXISTS", status);
-                    throw new RepositoryManagerException.EventAlreadyExistsException(requestId, (PaperProgressStatus) status);
-                }
+            var status = getStatusFromEvent(event);
+            if (status instanceof DigitalProgressStatus digitalProgressStatus) {
+                log.debug("eventsCheck() - DIGITAL STATUS {} ALREADY EXISTS", status);
+                throw new RepositoryManagerException.EventAlreadyExistsException(requestId, digitalProgressStatus);
+            } else {
+                log.debug("eventsCheck() - PAPER STATUS {} ALREADY EXISTS", status);
+                throw new RepositoryManagerException.EventAlreadyExistsException(requestId, (PaperProgressStatus) status);
             }
+
         }
     }
 
@@ -171,7 +163,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     @Override
     public Mono<RequestMetadata> getRequestMetadataByMessageId(String concatRequestId) {
-        var presaInCaricoInfo = decodeMessageId(concatRequestId);
+        var esaInCaricoInfo = decodeMessageId(concatRequestId);
         return getRequestMetadata(concatRequestId(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx()));
     }
 
