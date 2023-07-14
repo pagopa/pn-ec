@@ -630,7 +630,6 @@ Parameters:
   PnEcCronLavorazioneBatchCartaceo:
     Type: String
     Default: ''
-    Default: ''
 
   PnEcCronGestioneRetryEmail:
     Type: String
