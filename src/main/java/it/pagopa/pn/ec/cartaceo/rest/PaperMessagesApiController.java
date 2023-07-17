@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static org.springframework.http.HttpStatus.OK;
 
 @Slf4j
@@ -32,19 +33,25 @@ public class PaperMessagesApiController implements PaperMessagesApi {
     @Override
     public Mono<ResponseEntity<Void>> sendPaperEngageRequest(String requestIdx, String xPagopaExtchCxId,
                                                              Mono<PaperEngageRequest> paperEngageRequest, ServerWebExchange exchange) {
-        return paperEngageRequest.flatMap(request -> cartaceoService.presaInCarico(CartaceoPresaInCaricoInfo.builder()
-                                                                                                            .requestIdx(requestIdx)
-                                                                                                            .xPagopaExtchCxId(
-                                                                                                                    xPagopaExtchCxId)
-                                                                                                            .paperEngageRequest(request)
-                                                                                                            .build()))
+        log.info(STARTING_PROCESS_LABEL, SEND_PAPER_ENGAGE_REQUEST);
+        return paperEngageRequest.flatMap(request ->
+                        cartaceoService.presaInCarico(CartaceoPresaInCaricoInfo.builder()
+                                .requestIdx(requestIdx)
+                                .xPagopaExtchCxId(xPagopaExtchCxId)
+                                .paperEngageRequest(request)
+                                .build()))
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, SEND_PAPER_ENGAGE_REQUEST))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, SEND_PAPER_ENGAGE_REQUEST, throwable, throwable.getMessage()))
                 .thenReturn(new ResponseEntity<>(OK));
     }
 
     @Override
     public Mono<ResponseEntity<PaperProgressStatusEvent>> getPaperEngageProgresses(String requestIdx, String xPagopaExtchCxId,
                                                                                    ServerWebExchange exchange) {
+        log.info(STARTING_PROCESS_LABEL, GET_PAPER_ENGAGE_PROGRESSES);
         return paperService.paperPullService(requestIdx, xPagopaExtchCxId)
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, GET_PAPER_ENGAGE_PROGRESSES))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, GET_PAPER_ENGAGE_PROGRESSES, throwable, throwable.getMessage()))
                 .map(ResponseEntity::ok);
     }
 }

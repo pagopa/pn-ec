@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.consolidatore.controller;
 
 import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
-import static it.pagopa.pn.ec.consolidatore.utils.LogUtils.INVALID_API_KEY;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.INVALID_API_KEY;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_MESSAGE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_OK_CODE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.INTERNAL_SERVER_ERROR_CODE;

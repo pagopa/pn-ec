@@ -10,7 +10,6 @@ import it.pagopa.pn.ec.consolidatore.exception.SyntaxException;
 import it.pagopa.pn.ec.consolidatore.service.ConsolidatoreService;
 import it.pagopa.pn.ec.consolidatore.utils.ContentTypes;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import jdk.dynalink.Operation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -27,7 +26,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
-import static it.pagopa.pn.ec.consolidatore.utils.LogUtils.*;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Service
 @Slf4j
