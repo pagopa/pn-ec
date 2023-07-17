@@ -270,7 +270,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                 .doOnNext(payload -> payload.setRetry(0))
                 .flatMap(payload -> sqsService.send(ntStatoQueueName, payload))
                 .doOnSuccess(result -> acknowledgment.acknowledge())
-                .doOnError(throwable -> log.error("* FATAL * in handleMessageFromErrorQueue() on request {}: {} - {}", notificationTrackerQueueDto.getRequestIdx(), throwable, throwable.getMessage()))
+                .doOnError(throwable -> log.error("Exception in handleMessageFromErrorQueue() on request {}: {} - {}", notificationTrackerQueueDto.getRequestIdx(), throwable, throwable.getMessage()))
                 .then();
     }
 
