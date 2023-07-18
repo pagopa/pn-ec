@@ -192,7 +192,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                                                                                new DigitalProgressStatusDto())
 
 //                               Publish to ERRORI SMS queue
-.then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo)));
+                .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo)))
+                .doOnError(throwable -> log.error("* FATAL * lavorazioneRichiesta {}, {}", throwable, throwable.getMessage()));
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(PublishResponse publishResponse) {
@@ -319,7 +320,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                     log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}", smsSqsQueueName.errorName());
                     return deleteMessageFromErrorQueue(message);
                 }).onErrorResume(sqsPublishException -> {
-                    log.error("* FATAL * gestioneRetrySms {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                    log.warn("Exception in gestioneRetrySms {}, {}", sqsPublishException, sqsPublishException.getMessage());
                     return checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message);
                 });
     } else {
@@ -345,7 +346,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                              return deleteMessageFromErrorQueue(message);
                          })
                          .onErrorResume(sqsPublishException -> {
-                             log.error("* FATAL * gestioneRetrySms {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                             log.warn("Exception in gestioneRetrySms {}, {}", sqsPublishException, sqsPublishException.getMessage());
                              return checkTentativiEccessiviSms(requestId,
                                      requestDto,
                                      smsPresaInCaricoInfo,
@@ -365,7 +366,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 })
 .onErrorResume(internalError -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                                               INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                                              new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)));
+                                                              new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
+                .doOnError(throwable -> log.error("* FATAL * gestioneRetrySms {}, {}", throwable, throwable.getMessage()));
     }
 
     @Override

@@ -198,12 +198,14 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         var paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
 
         return gestoreRepositoryCall.getRichiesta(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(),
-                        cartaceoPresaInCaricoInfo.getRequestIdx()).flatMap(requestDto ->
+                        cartaceoPresaInCaricoInfo.getRequestIdx())
+                .retryWhen(DEFAULT_RETRY_STRATEGY)
+                .flatMap(requestDto ->
                         // Try to send PAPER
                         paperMessageCall.putRequest(
                                         paperEngageRequestDst)
                                 .doOnError(exception -> {
-                                    log.error("* FATAL * lavorazioneRichiesta {] {}", exception, exception.getMessage());
+                                    log.warn("Exception in lavorazioneRichiesta {} {}", exception, exception.getMessage());
                                 })
                                 .retryWhen(
                                         DEFAULT_RETRY_STRATEGY)
@@ -234,7 +236,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                                 // notify to retry
                                                 // update status only
                                                 .doOnError(exception -> {
-                                                    log.error("* FATAL * lavorazioneRichiesta {] {}", exception, exception.getMessage());
+                                                    log.warn("Exception in lavorazioneRichiesta {} {}", exception, exception.getMessage());
                                                 })
                                                 .onErrorResume(
                                                         SqsClientException.class,
@@ -255,9 +257,6 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                                         })
 
                                 ))
-                .doOnError(exception -> {
-                    log.error("* FATAL * lavorazioneRichiesta {] {}", exception, exception.getMessage());
-                })
                 // The maximum number of retries has ended
                 .onErrorResume(CartaceoSendException.CartaceoMaxRetriesExceededException.class//
                         , cartaceoMaxRetriesExceeded ->
@@ -267,7 +266,10 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                         new PaperProgressStatusDto())
 
                                         // Publish to ERRORI PAPER queue
-                                        .then(sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo)));
+                                        .then(sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo)))
+                .doOnError(exception -> {
+                    log.error("* FATAL * lavorazioneRichiesta {} {}", exception, exception.getMessage());
+                });
     }
 
     @Scheduled(cron = "${PnEcCronGestioneRetryCartaceo ?:0 */5 * * * *}")
@@ -393,7 +395,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                     cartaceoSqsQueueName.errorName());
                             return deleteMessageFromErrorQueue(message);
                         }).onErrorResume(sqsPublishException -> {
-                            log.error("* FATAL * gestioneRetryCartaceo {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                            log.warn("Exception in gestioneRetryCartaceo {}, {}", sqsPublishException, sqsPublishException.getMessage());
                             return checkTentativiEccessiviCartaceo(requestId, requestDto, cartaceoPresaInCaricoInfo, message);
                         });
                     } else {
@@ -413,7 +415,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                                 })
                                         .onErrorResume(
                                                 sqsPublishException -> {
-                                                    log.error("* FATAL * gestioneRetryCartaceo {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                                                    log.warn("Exception in gestioneRetryCartaceo {}, {}", sqsPublishException, sqsPublishException.getMessage());
                                                     return checkTentativiEccessiviCartaceo(
                                                             requestId,
                                                             requestDto,
@@ -435,6 +437,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo,
                             INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                             new PaperProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
+                })
+                .doOnError(exception -> {
+                    log.error("* FATAL * gestioneRetryCartaceo {} {}", exception, exception.getMessage());
                 });
     }
 
