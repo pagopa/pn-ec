@@ -15,8 +15,11 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
+import java.util.List;
+
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.DYNAMO_OPTIMISTIC_LOCKING_RETRY;
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Service
 @Slf4j
@@ -42,21 +45,23 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
 
     @Override
     public Flux<ClientConfiguration> getAllClient() {
-        log.info("Try to retrieve all clients");
-        return Flux.from(clientConfigurationDynamoDbTable.scan().items());
+        log.debug(INVOKED_OPERATION_LABEL_NO_ARGS, GET_ALL_CLIENT);
+        return Flux.from(clientConfigurationDynamoDbTable.scan().items())
+                .doOnComplete(()->log.info(SUCCESSFUL_OPERATION_NO_RESULT_LABEL, GET_ALL_CLIENT));
     }
 
     @Override
     public Mono<ClientConfigurationInternal> getClient(String cxId) {
-        log.info("Try to retrieve client with id -> {}", cxId);
+        log.debug(INVOKED_OPERATION_LABEL, GET_CLIENT, cxId);
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.getItem(getKey(cxId)))
                 .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(cxId)))
-                .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()));
+                .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, GET_CLIENT, result));
     }
 
     @Override
     public Mono<ClientConfigurationInternal> insertClient(ClientConfigurationInternal clientConfiguration) {
-        log.info("Try to insert client: {}", clientConfiguration.getCxId());
+        log.debug(INVOKED_OPERATION_LABEL, INSERT_CLIENT, clientConfiguration);
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.getItem(getKey(clientConfiguration.getCxId())))
                 .flatMap(foundedClientConfiguration -> Mono.error(new RepositoryManagerException.IdClientAlreadyPresent(
                         clientConfiguration.getCxId())))
@@ -64,12 +69,13 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
                 .switchIfEmpty(Mono.just(clientConfiguration))
                 .flatMap(unused -> Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.putItem(builder -> builder.item(
                         clientConfiguration))))
-                .thenReturn(clientConfiguration);
+                .thenReturn(clientConfiguration)
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_CLIENT, result));
     }
 
     @Override
     public Mono<ClientConfigurationInternal> updateClient(String cxId, ClientConfigurationInternal clientConfiguration) {
-        log.info("Try to update client: {}", clientConfiguration.getCxId());
+        log.debug(INVOKED_OPERATION_LABEL, UPDATE_CLIENT, cxId);
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.getItem(getKey(cxId)))
                 .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(cxId)))
                 .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
@@ -77,15 +83,17 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
                     clientConfiguration.setCxId(cxId);
                     return Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.updateItem(retrievedClientConfiguration))
                             .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
-                });
+                })
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, UPDATE_CLIENT, result));
     }
 
     @Override
     public Mono<ClientConfigurationInternal> deleteClient(String cxId) {
-        log.info("Try to delete client with id -> {}", cxId);
+        log.debug(INVOKED_OPERATION_LABEL, DELETE_CLIENT, cxId);
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.getItem(getKey(cxId)))
                 .switchIfEmpty(Mono.error(new RepositoryManagerException.IdClientNotFoundException(cxId)))
                 .doOnError(RepositoryManagerException.IdClientNotFoundException.class, throwable -> log.info(throwable.getMessage()))
-                .flatMap(clientToDelete -> Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.deleteItem(getKey(cxId))));
+                .flatMap(clientToDelete -> Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.deleteItem(getKey(cxId))))
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, DELETE_CLIENT, result));
     }
 }

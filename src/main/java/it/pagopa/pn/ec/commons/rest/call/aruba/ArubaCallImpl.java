@@ -14,6 +14,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 import reactor.util.retry.Retry;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+
 @Component
 @Slf4j
 public class ArubaCallImpl implements ArubaCall {
@@ -41,7 +43,7 @@ public class ArubaCallImpl implements ArubaCall {
     public Mono<GetMessagesResponse> getMessages(GetMessages getMessages) {
         getMessages.setUser(arubaSecretValue.getPecUsername());
         getMessages.setPass(arubaSecretValue.getPecPassword());
-        log.debug("---> START GET MESSAGES FROM ARUBA <--- Unseen : {} , Outtype : {} , Limit : {}", getMessages.getUnseen(), getMessages.getOuttype(), getMessages.getLimit());
+        log.debug(CLIENT_METHOD_INVOCATION, ARUBA_GET_MESSAGES, getMessages);
         return Mono.create(sink -> pecImapBridge.getMessagesAsync(getMessages, outputFuture -> {
             try {
                 var result = outputFuture.get();
@@ -50,14 +52,15 @@ public class ArubaCallImpl implements ArubaCall {
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
-        })).cast(GetMessagesResponse.class).retryWhen(getArubaCallRetryStrategy());
+        })).cast(GetMessagesResponse.class).retryWhen(getArubaCallRetryStrategy())
+           .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGES, result));
     }
 
     @Override
     public Mono<GetMessageIDResponse> getMessageId(GetMessageID getMessageID) {
         getMessageID.setUser(arubaSecretValue.getPecUsername());
         getMessageID.setPass(arubaSecretValue.getPecPassword());
-        log.debug("---> START GET MESSAGE ID FROM ARUBA <--- MailId : {} , Markseen : {}", getMessageID.getMailid(), getMessageID.getMarkseen());
+        log.debug(CLIENT_METHOD_INVOCATION, ARUBA_GET_MESSAGE_ID, getMessageID);
         return Mono.create(sink -> pecImapBridge.getMessageIDAsync(getMessageID, outputFuture -> {
             try {
                 var result = outputFuture.get();
@@ -66,14 +69,15 @@ public class ArubaCallImpl implements ArubaCall {
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
-        })).cast(GetMessageIDResponse.class).retryWhen(getArubaCallRetryStrategy());
+        })).cast(GetMessageIDResponse.class).retryWhen(getArubaCallRetryStrategy())
+           .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_ID, result));
     }
 
     @Override
     public Mono<SendMailResponse> sendMail(SendMail sendMail) {
         sendMail.setUser(arubaSecretValue.getPecUsername());
         sendMail.setPass(arubaSecretValue.getPecPassword());
-        log.debug("---> START SEND MAIL FROM {} <---", sendMail.getUser());
+        log.debug(CLIENT_METHOD_INVOCATION, ARUBA_SEND_MAIL, sendMail);
         return Mono.create(sink -> pecImapBridge.sendMailAsync(sendMail, outputFuture -> {
             try {
                 var result = outputFuture.get();
@@ -82,14 +86,15 @@ public class ArubaCallImpl implements ArubaCall {
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
-        })).cast(SendMailResponse.class).retryWhen(getArubaCallRetryStrategy());
+        })).cast(SendMailResponse.class).retryWhen(getArubaCallRetryStrategy())
+           .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_SEND_MAIL, result));
     }
 
     @Override
     public Mono<GetAttachResponse> getAttach(GetAttach getAttach) {
         getAttach.setUser(arubaSecretValue.getPecUsername());
         getAttach.setPass(arubaSecretValue.getPecPassword());
-        log.debug("---> START GET ATTACH <--- MailId : {} , Markseen : {}", getAttach.getMailid(), getAttach.getMarkseen());
+        log.debug(CLIENT_METHOD_INVOCATION, ARUBA_GET_ATTACH, getAttach);
         return Mono.create(sink -> pecImapBridge.getAttachAsync(getAttach, outputFuture -> {
             try {
                 var result = outputFuture.get();
@@ -98,7 +103,8 @@ public class ArubaCallImpl implements ArubaCall {
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
-        })).cast(GetAttachResponse.class).retryWhen(getArubaCallRetryStrategy());
+        })).cast(GetAttachResponse.class).retryWhen(getArubaCallRetryStrategy())
+           .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_ATTACH, result));
     }
 
     private void checkErrors(Integer errorCode, String errorStr) {

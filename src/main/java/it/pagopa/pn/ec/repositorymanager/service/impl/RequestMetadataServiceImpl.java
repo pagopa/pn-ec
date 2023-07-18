@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.DYNAMO_OPTIMISTIC_LOCKING_RETRY;
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.repositorymanager.service.impl.RequestServiceImpl.concatRequestId;
@@ -55,7 +57,12 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     @Override
     public Mono<RequestMetadata> getRequestMetadata(String concatRequestId) {
-        return Mono.fromCompletionStage(()->requestMetadataDynamoDbTable.getItem(getKey(concatRequestId)))
+        return Mono.fromCompletionStage(() -> {
+                    Key partitionKey = getKey(concatRequestId);
+                    log.debug(GETTING_DATA_FROM_DYNAMODB_TABLE, partitionKey, REQUEST_METADATA_TABLE);
+                    return requestMetadataDynamoDbTable.getItem(partitionKey);
+                })
+                   .doOnNext(result->log.info(GOT_DATA_FROM_DYNAMODB_TABLE, REQUEST_METADATA_TABLE))
                    .doOnError(throwable -> log.warn("getRequestMetadata() - {}", throwable.getMessage()))
                    .onErrorResume(e -> Mono.empty())
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(concatRequestId)))
@@ -64,8 +71,13 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     @Override
     public Mono<RequestMetadata> insertRequestMetadata(RequestMetadata requestMetadata) {
-        return Mono.fromCompletionStage(requestMetadataDynamoDbTable.getItem(getKey(requestMetadata.getRequestId())))
-                   .handle((foundedRequest, sink) -> {
+        return Mono.fromCompletionStage(() -> {
+                    Key partitionKey = getKey(requestMetadata.getRequestId());
+                    log.debug(GETTING_DATA_FROM_DYNAMODB_TABLE, partitionKey, REQUEST_METADATA_TABLE);
+                    return requestMetadataDynamoDbTable.getItem(partitionKey);
+                })
+                .doOnNext(result->log.info(GOT_DATA_FROM_DYNAMODB_TABLE, REQUEST_METADATA_TABLE))
+                .handle((foundedRequest, sink) -> {
                        var requestId = foundedRequest.getRequestId();
                        var foundedRequestHash = foundedRequest.getRequestHash();
                        if (!requestMetadata.getRequestHash().equals(foundedRequestHash)) {
@@ -81,7 +93,10 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                            return Mono.error(new RepositoryManagerException.RequestMalformedException(
                                    "Valorizzare solamente un tipologia di richiesta metadata"));
                        }
-                       return Mono.fromCompletionStage(requestMetadataDynamoDbTable.putItem(builder -> builder.item(requestMetadata)));
+                       return Mono.fromCompletionStage(() -> {
+                           log.debug(INSERTING_DATA_IN_DYNAMODB_TABLE, requestMetadata, REQUEST_METADATA_TABLE);
+                           return requestMetadataDynamoDbTable.putItem(builder -> builder.item(requestMetadata));
+                       }).doOnNext(result -> log.info(INSERTED_DATA_IN_DYNAMODB_TABLE, REQUEST_METADATA_TABLE));
                    })
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.error(throwable.getMessage()))
                    .doOnError(throwable -> log.info(throwable.getMessage()))

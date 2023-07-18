@@ -54,7 +54,9 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                     }
                     return Mono.just(clientConfiguration);
                 })
-                .then(attachments.map(PreLoadRequestData::getPreloads))
+                .then(attachments)
+                .doOnNext(preLoadRequestData -> log.debug(INVOKED_OPERATION_LABEL, PRESIGNED_UPLOAD_REQUEST, preLoadRequestData))
+                .map(PreLoadRequestData::getPreloads)
                 .flatMapMany(Flux::fromIterable)
                 .transform(checkSyntaxErrors())
                 .cast(PreLoadRequest.class)
@@ -106,13 +108,14 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                         preLoadResponseSchema.getPreloads().add(preLoadResponse);
                     }
                     return preLoadResponseSchema;
-                });
+                })
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PRESIGNED_UPLOAD_REQUEST, result));
     }
 
 
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId
             , String xApiKey) {
-        log.info("<-- START GET FILE --> Client ID : {}", xPagopaExtchServiceId);
+        log.debug(INVOKED_OPERATION_LABEL, GET_FILE, fileKey);
         return checkHeaders(xPagopaExtchServiceId)
                 .then(authService.clientAuth(xPagopaExtchServiceId))
                 .flatMap(clientConfiguration -> {
@@ -124,7 +127,8 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                     return Mono.just(clientConfiguration);
                 })
                 .then(fileCall.getFile(fileKey, xPagopaExtchServiceId, xApiKey, RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH)))
-                .doOnError(ConnectException.class, e -> log.error("* FATAL * getFile - {}, {}", e, e.getMessage()));
+                .doOnError(ConnectException.class, e -> log.error("* FATAL * getFile - {}, {}", e, e.getMessage()))
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, GET_FILE, result));
     }
 
     private Mono<Void> checkHeaders(String xPagopaExtchServiceId) {

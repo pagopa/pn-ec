@@ -20,6 +20,7 @@ import it.pagopa.pn.ec.consolidatore.service.RicezioneEsitiCartaceoService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -29,6 +30,7 @@ import reactor.util.function.Tuples;
 import java.util.ArrayList;
 import java.util.List;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperConstant.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.*;
@@ -207,14 +209,9 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	public Mono<RicezioneEsitiDto> verificaEsitoDaConsolidatore(
 			String xPagopaExtchServiceId, ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent)
 	{
+		  log.debug(INVOKED_OPERATION_LABEL, VERIFICA_ESITO_DA_CONSOLIDATORE, progressStatusEvent);
 		  var requestId = progressStatusEvent.getRequestId();
-
 		  return Mono.just(progressStatusEvent)
-			     .doOnNext(unused -> {
-			    	 log.info(LOG_VERIF_LABEL + "START for requestId \"{}\"", requestId);
-			    	 log.info(LOG_VERIF_LABEL + "xPagopaExtchServiceId = {} : progressStatusEvent = {}",
-			    			 xPagopaExtchServiceId, progressStatusEvent);
-			     })
 				 .flatMap(unused -> gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceId, progressStatusEvent.getRequestId()))
 			     .flatMap(unused -> verificaErroriSemantici(progressStatusEvent, xPagopaExtchServiceId))
 			     .flatMap(unused -> verificaAttachments(xPagopaExtchServiceId, requestId, progressStatusEvent.getAttachments()))
@@ -247,7 +244,8 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 							 getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
 									 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
 									 List.of(throwable.getMessage())), null));
-			     });
+			     })
+				 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, VERIFICA_ESITO_DA_CONSOLIDATORE, result));
 	}
 
 	@Override
@@ -255,11 +253,10 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			String xPagopaExtchServiceId,
 			ConsolidatoreIngressPaperProgressStatusEvent statusEvent)
 	{
+		log.debug(INVOKED_OPERATION_LABEL, PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER, statusEvent);
+
 		return statusPullService.paperPullService(statusEvent.getRequestId(), xPagopaExtchServiceId)
 			.flatMap(unused -> {
-
-				log.info(LOG_PUB_LABEL + "START : xPagopaExtchServiceId = {} : statusEvent = {}",
-						xPagopaExtchServiceId, statusEvent);
 
 				PresaInCaricoInfo presaInCaricoInfo = new PresaInCaricoInfo();
 	 			presaInCaricoInfo.setRequestIdx(statusEvent.getRequestId());
@@ -313,6 +310,48 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	    				 										 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
 	    				 										 List.of(throwable.getMessage())));
 			});
+	}
+
+	public Mono<ResponseEntity<OperationResultCodeResponse>> publishOnQueue(List<ConsolidatoreIngressPaperProgressStatusEvent> listEvents, String xPagopaExtchServiceId){
+		return Flux.fromIterable(listEvents)
+				// pubblicazione sulla coda
+				.flatMap(statusEvent -> pubblicaEsitoCodaNotificationTracker(xPagopaExtchServiceId, statusEvent))
+				.collectList()
+				// gestione errori oppure response ok
+				.flatMap(listSendResponse -> {
+					var listSendErrorResponse = listSendResponse.stream().filter(response -> response.getResultCode() != null && !response.getResultCode().equals(COMPLETED_OK_CODE)).toList();
+					if (listSendErrorResponse.isEmpty()) {
+						log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "OK END");
+						return Mono.just(ResponseEntity.ok()
+								.body(getOperationResultCodeResponse(COMPLETED_OK_CODE,
+										COMPLETED_MESSAGE,
+										null)));
+					} else {
+						var sendErrors = getAllErrors(listSendErrorResponse);
+						log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "pubblicazione coda : errori individuati = {}", sendErrors);
+						return Mono.just(ResponseEntity.internalServerError()
+								.body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
+										errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
+										sendErrors)));
+					}
+				})
+				.onErrorResume(RuntimeException.class, throwable -> {
+					log.error("* FATAL * publishOnQueue - {}, {}", throwable, throwable.getMessage());
+					return Mono.error(throwable);
+				});
+	}
+
+	 public static List<String> getAllErrors(List<OperationResultCodeResponse> responses) {
+		var errors = new ArrayList<String>();
+		if (responses == null) {
+			return errors;
+		}
+		responses.forEach(response -> {
+			if (!response.getResultCode().equals(COMPLETED_OK_CODE)) {
+				errors.addAll(response.getErrorList());
+			}
+		});
+		return errors;
 	}
 
 }

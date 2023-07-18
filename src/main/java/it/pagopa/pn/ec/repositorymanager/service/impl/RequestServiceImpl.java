@@ -21,6 +21,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.StreamUtils.getStreamOfNullableList;
 import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.createRequestFromPersonalAndMetadata;
 
@@ -87,16 +88,18 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Mono<Request> getRequest(String clientId, String requestIdx) {
         var concatRequest = concatRequestId(clientId, requestIdx);
+        log.debug(INVOKED_OPERATION_LABEL, GET_REQUEST, concatRequest);
         return Mono.zip(requestPersonalService.getRequestPersonal(concatRequest), requestMetadataService.getRequestMetadata(concatRequest))
                    .map(objects -> {
                        RequestPersonal retrievedRequestPersonal = objects.getT1();
                        RequestMetadata retrievedRequestMetadata = objects.getT2();
                        return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, retrievedRequestMetadata);
-                   });
+                   }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, GET_REQUEST, result));
     }
 
     @Override
     public Mono<Request> insertRequest(Request request) {
+        log.debug(INVOKED_OPERATION_LABEL, INSERT_REQUEST, request);
         return Mono.fromCallable(() -> {
                        var concatRequestId = concatRequestId(request.getXPagopaExtchCxId(), request.getRequestId());
                        var clientId = request.getXPagopaExtchCxId();
@@ -155,52 +158,56 @@ public class RequestServiceImpl implements RequestService {
                        var insertedRequestMetadata = objects.getT1();
                        var insertedRequestPersonal = objects.getT2();
                        return createRequestFromPersonalAndMetadata(insertedRequestPersonal, insertedRequestMetadata);
-                   });
+                   }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST, result));
     }
 
     @Override
     public Mono<Request> patchRequest(String clientId, String requestIdx, Patch patch) {
         var concatRequest = concatRequestId(clientId, requestIdx);
+        log.debug(INVOKED_OPERATION_LABEL, PATCH_REQUEST, concatRequest);
         return Mono.zip(requestPersonalService.getRequestPersonal(concatRequest),
                         requestMetadataService.patchRequestMetadata(concatRequest, patch)).map(objects -> {
             RequestPersonal retrievedRequestPersonal = objects.getT1();
             RequestMetadata updatedRequestMetadata = objects.getT2();
             return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, updatedRequestMetadata);
-        });
+        }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PATCH_REQUEST, result));
     }
 
     @Override
     public Mono<Request> deleteRequest(String clientId, String requestIdx) {
         var concatRequest = concatRequestId(clientId, requestIdx);
+        log.debug(INVOKED_OPERATION_LABEL, DELETE_REQUEST, concatRequest);
         return Mono.zip(requestPersonalService.deleteRequestPersonal(concatRequest),
                         requestMetadataService.deleteRequestMetadata(concatRequest)).map(objects -> {
             RequestPersonal deletedRequestPersonal = objects.getT1();
             RequestMetadata deletedRequestMetadata = objects.getT2();
             return createRequestFromPersonalAndMetadata(deletedRequestPersonal, deletedRequestMetadata);
-        });
+        }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, DELETE_REQUEST, result));
     }
 
     @Override
     public Mono<Request> getRequestByMessageId(String messageId) {
+        log.debug(INVOKED_OPERATION_LABEL, GET_REQUEST_BY_MESSAGE_ID, messageId);
         return requestMetadataService.getRequestMetadataByMessageId(messageId)
                                      .zipWhen(requestMetadata -> requestPersonalService.getRequestPersonal(requestMetadata.getRequestId()))
                                      .map(objects -> {
                                          RequestMetadata retrievedRequestMetadata = objects.getT1();
                                          RequestPersonal retrievedRequestPersonal = objects.getT2();
                                          return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, retrievedRequestMetadata);
-                                     });
+                                     }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, GET_REQUEST_BY_MESSAGE_ID, result));
     }
 
     @Override
     public Mono<Request> setMessageIdInRequestMetadata(String clientId, String requestIdx) {
         var concatRequest = concatRequestId(clientId, requestIdx);
+        log.debug(INVOKED_OPERATION_LABEL, SET_MESSAGE_ID_IN_REQUEST_METADATA, concatRequest);
         return requestMetadataService.setMessageIdInRequestMetadata(concatRequest)
                                      .zipWhen(requestMetadata -> requestPersonalService.getRequestPersonal(requestMetadata.getRequestId()))
                                      .map(objects -> {
                                          RequestMetadata retrievedRequestMetadata = objects.getT1();
                                          RequestPersonal retrievedRequestPersonal = objects.getT2();
                                          return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, retrievedRequestMetadata);
-                                     });
+                                     }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, SET_MESSAGE_ID_IN_REQUEST_METADATA, result));
     }
 
 }

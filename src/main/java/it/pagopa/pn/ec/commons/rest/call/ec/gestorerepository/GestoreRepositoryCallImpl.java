@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.INVOKING_EXTERNAL_SERVICE;
 import static org.springframework.http.HttpStatus.*;
 
 @Component

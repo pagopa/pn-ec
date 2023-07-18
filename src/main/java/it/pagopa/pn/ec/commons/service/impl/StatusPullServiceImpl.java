@@ -38,12 +38,7 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     @Override
     public Mono<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId, String processId) {
-
         log.debug(INVOKED_OPERATION_LABEL, DIGITAL_PULL_SERVICE, requestIdx);
-//        log.info("<-- START PULL OF DIGITAL REQUEST --> Request ID: {}, Client ID: {}, Process ID: {}",
-//                 requestIdx,
-//                 xPagopaExtchCxId,
-//                 processId);
 
         return getRequest(xPagopaExtchCxId, requestIdx).flatMap(this::getLastEvent).flatMap(eventDTO -> {
             var event = new CourtesyMessageProgressEvent();
@@ -76,7 +71,6 @@ public class StatusPullServiceImpl implements StatusPullService {
     @Override
     public Mono<LegalMessageSentDetails> pecPullService(String requestIdx, String xPagopaExtchCxId) {
         log.debug(INVOKED_OPERATION_LABEL, PEC_PULL_SERVICE, requestIdx);
-        //log.info("<-- START PULL OF PEC REQUEST --> Request ID: {}, Client ID: {}", requestIdx, xPagopaExtchCxId);
 
         return getRequest(xPagopaExtchCxId, requestIdx).flatMap(this::getLastEvent).flatMap(eventDTO -> {
             var event = new LegalMessageSentDetails();
@@ -113,7 +107,7 @@ public class StatusPullServiceImpl implements StatusPullService {
     @Override
     public Mono<PaperProgressStatusEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
         log.debug(INVOKED_OPERATION_LABEL, PAPER_PULL_SERVICE, requestIdx);
-        //log.info("<-- START PULL OF PAPER REQUEST --> Request ID: {}, Client ID: {}", requestIdx, xPagopaExtchCxId);
+
         return getRequest(xPagopaExtchCxId, requestIdx).map(requestDto -> {
 
                                                            var eventsList = requestDto.getRequestMetadata().getEventsList();
