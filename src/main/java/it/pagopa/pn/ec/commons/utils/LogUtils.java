@@ -14,6 +14,14 @@ public class LogUtils {
     public static final String PRESA_IN_CARICO = "PresaInCaricoService.presaInCarico()";
     public static final String DIGITAL_PULL_SERVICE = "StatusPullService.digitalPullService()";
 
+    //VALIDATION
+    public static final String CHECKING_VALIDATION_PROCESS = "Checking {}";
+    public static final String CHECKING_VALIDATION_PROCESS_ON = "Checking {} on {}";
+    public static final String VALIDATION_PROCESS_PASSED = "{} passed";
+    public static final String VALIDATION_PROCESS_FAILED = "{} failed error = {}";
+    public static final String CLIENT_AUTHENTICATION = "Client authentication";
+    public static final String X_API_KEY_VALIDATION = "XApiKey validation";
+
     //REPOSITORY MANAGER
     public static final String GET_REQUEST = "getRequest";
     public static final String INSERT_REQUEST = "insertRequest";
@@ -27,7 +35,6 @@ public class LogUtils {
     public static final String UPDATE_CLIENT = "updateClient";
     public static final String DELETE_CLIENT = "deleteClient";
     public static final String GET_ALL_CLIENT = "getAllClient";
-
 
 
     //PEC
@@ -51,6 +58,8 @@ public class LogUtils {
     //CONSOLIDATORE
     public static final String PRESIGNED_UPLOAD_REQUEST = "presignedUploadRequest";
     public static final String SEND_PAPER_PROGRESS_STATUS_REQUEST = "sendPaperProgressStatusRequest";
+    public static final String SEND_PAPER_REPLICAS_ENGAGEMENT_REQUEST = "sendPaperReplicasEngagementRequest";
+    public static final String GET_PAPER_REPLICAS_PROGRESSES_REQUEST = "getPaperReplicasProgressesRequest";
     public static final String VERIFICA_ESITO_DA_CONSOLIDATORE = "verificaEsitoDaConsolidatore";
     public static final String PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER = "pubblicaEsitoCodaNotificationTracker";
 
@@ -66,6 +75,8 @@ public class LogUtils {
     public static final String INVOKING_EXTERNAL_SERVICE = "Invoking external service {} {}. Waiting Sync response.";
     public static final String SAFE_STORAGE_SERVICE = "pn-safestorage";
     public static final String STATE_MACHINE_SERVICE = "pn-statemachinemanager";
+    public static final String GESTORE_REPOSITORY_SERVICE = "ec-repositorymanager";
+    public static final String CONSOLIDATORE_SERVICE = "consolidatore";
 
     //SERVIZI ESTERNI
     public static final String CLIENT_METHOD_INVOCATION = "Client method {} - args: {}";
@@ -89,5 +100,8 @@ public class LogUtils {
     public static final String PATCHING_DATA_IN_DYNAMODB_TABLE = "Patching data {} in DynamoDB table {}";
     public static final String PATCHED_DATA_IN_DYNAMODB_TABLE = "Patched data in DynamoDB table {}";
 
-    public static final String REQUEST_METADATA_TABLE="RequestMetadata";
+    //DOWNLOAD CALL
+    public static final String DOWNLOAD_FILE = "DownloadCall.downloadFile()";
+
+    public static final String REQUEST_METADATA_TABLE = "RequestMetadata";
 }

@@ -101,10 +101,12 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
         log.info(STARTING_PROCESS_LABEL, SEND_PAPER_PROGRESS_STATUS_REQUEST);
         return authService.clientAuth(xPagopaExtchServiceId)
                 .flatMap(clientConfiguration -> {
-
+                    log.info(CHECKING_VALIDATION_PROCESS_ON, X_API_KEY_VALIDATION, xPagopaExtchServiceId);
                     if (clientConfiguration.getApiKey() == null || !clientConfiguration.getApiKey().equals(xApiKey)) {
+                        log.warn(VALIDATION_PROCESS_FAILED, X_API_KEY_VALIDATION, INVALID_API_KEY);
                         return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, INVALID_API_KEY));
                     }
+                    log.info(VALIDATION_PROCESS_PASSED, X_API_KEY_VALIDATION);
                     return Mono.just(clientConfiguration);
                 })
                 .flatMap(clientConfiguration -> consolidatoreIngressPaperProgressStatusEvent

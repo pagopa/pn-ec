@@ -17,4 +17,6 @@ public interface AuthService {
      * client non è stato trovato
      */
     Mono<ClientConfigurationInternalDto> clientAuth(final String idClient);
+
+    Mono<ClientConfigurationInternalDto> validateApiKey(final String idClient, final String xApiKey);
 }

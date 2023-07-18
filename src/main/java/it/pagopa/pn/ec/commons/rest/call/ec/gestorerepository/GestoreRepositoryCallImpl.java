@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import static it.pagopa.pn.ec.commons.utils.LogUtils.INVOKING_EXTERNAL_SERVICE;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static org.springframework.http.HttpStatus.*;
 
 @Component
@@ -54,7 +54,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
     @Override
     public Mono<RequestDto> getRichiesta(String clientId, String requestIdx) throws RestCallException.ResourceNotFoundException {
-    	log.debug("getRichiesta - clientId: {} requestIdx: {}", clientId, requestIdx);
+        log.info(INVOKING_EXTERNAL_SERVICE, GESTORE_REPOSITORY_SERVICE, GET_REQUEST);
         return ecWebClient.get()
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(requestIdx))
                           .header(CLIENT_HEADER_NAME, clientId)
@@ -65,6 +65,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
     @Override
     public Mono<RequestDto> insertRichiesta(RequestDto requestDto) throws RestCallException.ResourceAlreadyExistsException {
+        log.info(INVOKING_EXTERNAL_SERVICE, GESTORE_REPOSITORY_SERVICE, INSERT_REQUEST);
         return ecWebClient.post()
                           .uri(gestoreRepositoryEndpointProperties.postRequest())
                           .bodyValue(requestDto)
@@ -95,6 +96,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     @Override
     public Mono<RequestDto> patchRichiesta(String clientId, String requestIdx, PatchDto patchDto)
             throws RestCallException.ResourceNotFoundException {
+        log.info(INVOKING_EXTERNAL_SERVICE, GESTORE_REPOSITORY_SERVICE, PATCH_REQUEST);
         return ecWebClient.patch()
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(requestIdx))
                           .header(CLIENT_HEADER_NAME, clientId)
@@ -114,6 +116,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     @Override
     public Mono<RequestDto> getRequestByMessageId(String messageId)
             throws RestCallException.ResourceNotFoundException, BadMessageIdProvidedException {
+        log.info(INVOKING_EXTERNAL_SERVICE, GESTORE_REPOSITORY_SERVICE, GET_REQUEST_BY_MESSAGE_ID);
         return ecWebClient.get()
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId()).build(messageId))
                           .retrieve()
@@ -132,6 +135,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     @Override
     public Mono<RequestDto> setMessageIdInRequestMetadata(String clientId, String requestIdx)
             throws RestCallException.ResourceNotFoundException, ISEForMessageIdCreationException {
+        log.info(INVOKING_EXTERNAL_SERVICE, GESTORE_REPOSITORY_SERVICE, SET_MESSAGE_ID_IN_REQUEST_METADATA);
         return ecWebClient.post()
                           .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
                                                        .build(requestIdx))

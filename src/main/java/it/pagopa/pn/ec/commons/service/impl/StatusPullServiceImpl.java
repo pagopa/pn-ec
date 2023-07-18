@@ -206,7 +206,7 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                                                               .statusDescription("")
                                                                                                               .iun("")
                                                                                                               .registeredLetterCode("")))
-                                                       .doOnNext(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PAPER_PULL_SERVICE, result));
+                                                       .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PAPER_PULL_SERVICE, result));
 
     }
 
