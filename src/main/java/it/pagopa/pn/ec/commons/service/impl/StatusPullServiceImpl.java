@@ -202,7 +202,6 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                                                               .deliveryFailureCause("")
                                                                                                               .productType("")
                                                                                                               .statusCode("")
-                                                                                                              .statusDescription("")
                                                                                                               .iun("")
                                                                                                               .registeredLetterCode("")));
 
