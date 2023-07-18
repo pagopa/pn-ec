@@ -672,6 +672,11 @@ Parameters:
     Type: String
     Default: ''
 
+  PnEcQueueElapsedTimeSeconds:
+    Type: Number
+    Default: 7200
+    Description: Value in seconds
+
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
@@ -731,6 +736,7 @@ Resources:
         ContainerEnvEntry45: !Sub 'ScaricamentoEsitiPecLimitRate=${ScaricamentoEsitiPecLimitRate}'
         ContainerEnvEntry50: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
         ContainerEnvEntry51: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
+        ContainerEnvEntry52: !Sub 'PnEcQueueElapsedTimeSeconds=${PnEcQueueElapsedTimeSeconds}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
