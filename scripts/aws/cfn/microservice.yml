@@ -610,6 +610,45 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueScaricamentoEsitiPEC"
 
+  #### CRON Rules ####
+  PnEcCronScaricamentoEsitiPec:
+    Type: String
+    Default: ''
+    
+  PnEcCronLavorazioneBatchSms:
+    Type: String
+    Default: ''
+
+  PnEcCronLavorazioneBatchEmail:
+    Type: String
+    Default: ''
+
+  PnEcCronLavorazioneBatchPec:
+    Type: String
+    Default: ''
+
+  PnEcCronLavorazioneBatchCartaceo:
+    Type: String
+    Default: ''
+
+  PnEcCronGestioneRetryEmail:
+    Type: String
+    Default: ''
+
+  PnEcCronGestioneRetryPec:
+    Type: String
+    Default: ''
+
+  PnEcCronGestioneRetrySms:
+    Type: String
+    Default: ''
+
+  PnEcCronGestioneRetryCartaceo:
+    Type: String
+    Default: ''
+
+  #### Parametri Indipendenti ####
+
   PnEcConsolidatoreBaseURL:
     Description: 'Base URL per accesso ai servizi del consolidatore'
     Type: String
@@ -630,6 +669,7 @@ Parameters:
     Type: String
     Default: 'FATAL'
 
+
   PCKmsEncDecDynamoDataKeyARN:
     Type: String
     Description: 'Name of KMS Key for Dynamo encode/decode data'
@@ -637,6 +677,8 @@ Parameters:
   JavaToolOptions:
     Type: String
     Description: 'System properties and parameters for the JVM'
+
+  ###### pn-core Event Bus #######
 
   # Log group parameters
   EcsLogGroup:
@@ -720,15 +762,24 @@ Resources:
         ContainerEnvEntry23: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
         ContainerEnvEntry24: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
         ContainerEnvEntry25: !Sub 'PnEcQueueNameScaricamentoEsitiPEC=${PnEcQueueNameScaricamentoEsitiPEC}'
-        ContainerEnvEntry30: 'SafeStorageClientId=pn-external-channels'
-        ContainerEnvEntry31: 'SafeStorageClientApiKey=pn-external-channels_api_key'
-        ContainerEnvEntry32: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
-        ContainerEnvEntry35: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry36: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry37: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry38: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
-        ContainerEnvEntry39: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
-        ContainerEnvEntry40: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
+        ContainerEnvEntry30: !Sub 'PnEcCronScaricamentoEsitiPec=${PnEcCronScaricamentoEsitiPec}'
+        ContainerEnvEntry31: !Sub 'PnEcCronLavorazioneBatchSms=${PnEcCronLavorazioneBatchSms}'
+        ContainerEnvEntry32: !Sub 'PnEcCronLavorazioneBatchEmail=${PnEcCronLavorazioneBatchEmail}'
+        ContainerEnvEntry33: !Sub 'PnEcCronLavorazioneBatchPec=${PnEcCronLavorazioneBatchPec}'
+        ContainerEnvEntry34: !Sub 'PnEcCronLavorazioneBatchCartaceo=${PnEcCronLavorazioneBatchCartaceo}'
+        ContainerEnvEntry35: !Sub 'PnEcCronGestioneRetryEmail=${PnEcCronGestioneRetryEmail}'
+        ContainerEnvEntry36: !Sub 'PnEcCronGestioneRetryPec=${PnEcCronGestioneRetryPec}'
+        ContainerEnvEntry37: !Sub 'PnEcCronGestioneRetrySms=${PnEcCronGestioneRetrySms}'
+        ContainerEnvEntry38: !Sub 'PnEcCronGestioneRetryCartaceo=${PnEcCronGestioneRetryCartaceo}'
+        ContainerEnvEntry40: 'SafeStorageClientId=pn-external-channels'
+        ContainerEnvEntry41: 'SafeStorageClientApiKey=pn-external-channels_api_key'
+        ContainerEnvEntry42: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
+        ContainerEnvEntry43: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry44: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry45: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry46: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
+        ContainerEnvEntry47: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
+        ContainerEnvEntry48: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
         ContainerEnvEntry41: !Sub 'ArubaCallRetryStrategyMaxAttempts=${ArubaCallRetryStrategyMaxAttempts}'
         ContainerEnvEntry42: !Sub 'ArubaCallRetryStrategyMinBackoff=${ArubaCallRetryStrategyMinBackoff}'
         ContainerEnvEntry43: !Sub 'LavorazionePecMaxThreadPoolSize=${LavorazionePecMaxThreadPoolSize}'

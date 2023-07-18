@@ -143,7 +143,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         lavorazioneRichiesta(smsPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
     }
 
-    @Scheduled(cron = "${cron.value.lavorazione-batch-sms}")
+    @Scheduled(cron = "${PnEcCronLavorazioneBatchSms ?:0 */5 * * * *}")
     void lavorazioneRichiestaBatch() {
 
         sqsService.getMessages(smsSqsQueueName.batchName(), SmsPresaInCaricoInfo.class)
@@ -199,7 +199,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         return new GeneratedMessageDto().id(publishResponse.messageId()).system("toBeDefined");
     }
 
-    @Scheduled(cron = "${cron.value.gestione-retry-sms}")
+    @Scheduled(cron = "${PnEcCronGestioneRetrySms ?:0 */5 * * * *}")
     public void gestioneRetrySmsScheduler() {
 
         idSaved = null;
