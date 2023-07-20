@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static it.pagopa.pn.ec.commons.utils.CompareUtils.isSameEvent;
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.DYNAMO_OPTIMISTIC_LOCKING_RETRY;
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
@@ -135,18 +136,19 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
         return Mono.just(retrieveRequestMetadata);
     }
 
-    private void eventsCheck(Events event, List<Events> eventsList, String requestId) {
+     protected void eventsCheck(Events event, List<Events> eventsList, String requestId) {
         log.debug("---> START eventsCheck() <--- CheckedEvent : {}, EventsList : {}", event, eventsList);
         if (eventsList != null && eventsList.contains(event)) {
             // Event already exists
             var status = getStatusFromEvent(event);
-            if (status instanceof DigitalProgressStatus digitalprogressstatus) {
+            if (status instanceof DigitalProgressStatus digitalProgressStatus) {
                 log.debug("eventsCheck() - DIGITAL STATUS {} ALREADY EXISTS", status);
-                throw new RepositoryManagerException.EventAlreadyExistsException(requestId, digitalprogressstatus);
+                throw new RepositoryManagerException.EventAlreadyExistsException(requestId, digitalProgressStatus);
             } else {
                 log.debug("eventsCheck() - PAPER STATUS {} ALREADY EXISTS", status);
                 throw new RepositoryManagerException.EventAlreadyExistsException(requestId, (PaperProgressStatus) status);
             }
+
         }
     }
 

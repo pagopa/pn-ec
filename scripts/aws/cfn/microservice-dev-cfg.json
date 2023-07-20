@@ -13,6 +13,7 @@
     "LavorazionePecMaxThreadPoolSize": "50",
     "LavorazioneEsitiPecMaxThreadPoolSize" : "50",
     "ScaricamentoEsitiPecLimitRate" : "50",
-    "JavaToolOptions": "-XX:MaxDirectMemorySize=128M"
+    "JavaToolOptions": "-XX:MaxDirectMemorySize=128M",
+    "PnEcQueueElapsedTimeSeconds": "7200"
   }
 }

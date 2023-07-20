@@ -169,7 +169,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         lavorazioneRichiesta(pecPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
     }
 
-    @Scheduled(cron = "${cron.value.lavorazione-batch-pec}")
+    @Scheduled(cron = "${PnEcCronLavorazioneBatchPec ?:0 */5 * * * *}")
     public void lavorazioneRichiestaBatch() {
 
         sqsService.getMessages(pecSqsQueueName.batchName(), PecPresaInCaricoInfo.class)
@@ -330,7 +330,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .system(getDomainFromAddress(arubaSecretValue.getPecUsername()));
     }
 
-    @Scheduled(cron = "${cron.value.gestione-retry-pec}")
+    @Scheduled(cron = "${PnEcCronGestioneRetryPec ?:0 */5 * * * *}")
     void gestioneRetryPecScheduler() {
 
         idSaved = null;
@@ -512,7 +512,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                     return deleteMessageFromErrorQueue(message);
                                 })
                                 .onErrorResume(sqsPublishException -> {
-                                    log.error("* FATAL * gestioneRetryPec {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                                    log.warn("Exception gestioneRetryPec {}, {}", sqsPublishException, sqsPublishException.getMessage());
                                     return checkTentativiEccessiviPec(requestIdx,
                                             requestDto,
                                             pecPresaInCaricoInfo,
@@ -532,12 +532,13 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                             sendMessageResponse -> deleteMessageFromErrorQueue(message));
 
                 }).onErrorResume(internalError -> {
-                    log.error("* FATAL * gestioneRetryPec {}, {}", internalError, internalError.getMessage());
+                    log.warn("Exception in gestioneRetryPec {}, {}", internalError, internalError.getMessage());
                     return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                             INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                             new DigitalProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(
                             message));
-                });
+                })
+                .doOnError(throwable -> log.error("* FATAL * gestioneRetryPec {}, {}", throwable, throwable.getMessage()));
     }
 
     @Override

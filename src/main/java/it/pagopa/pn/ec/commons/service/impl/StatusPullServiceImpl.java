@@ -203,7 +203,6 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                                                               .deliveryFailureCause("")
                                                                                                               .productType("")
                                                                                                               .statusCode("")
-                                                                                                              .statusDescription("")
                                                                                                               .iun("")
                                                                                                               .registeredLetterCode("")))
                                                        .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PAPER_PULL_SERVICE, result));

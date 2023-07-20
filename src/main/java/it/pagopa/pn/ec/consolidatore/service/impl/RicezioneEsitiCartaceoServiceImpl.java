@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.consolidatore.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -13,7 +14,6 @@ import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogError;
-import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogEvent;
 import it.pagopa.pn.ec.consolidatore.model.dto.RicezioneEsitiDto;
 import it.pagopa.pn.ec.consolidatore.exception.RicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.consolidatore.service.RicezioneEsitiCartaceoService;
@@ -80,6 +80,12 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 
 		return statusPullService.paperPullService(requestId, xPagopaExtchServiceId)
+				.onErrorResume(StatusNotFoundException.class, throwable ->
+				{
+					log.error(LOG_LABEL + "* FATAL * requestId = {}, errore status decode -> message : {}", requestId, throwable.getMessage());
+					ConsAuditLogError consAuditLogError = new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_STATUS.getValue()).description("Unable to decode last status");
+					return Mono.error(new RicezioneEsitiCartaceoException(SEMANTIC_ERROR_CODE, errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE), List.of("Unable to decode last status"), List.of(consAuditLogError)));
+				})
 				.map(progressStatusEventToCheck ->
 				{
 
@@ -183,7 +189,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			})
 			.onErrorResume(Generic400ErrorException.class,
 					   throwable -> {
-							 log.debug(LOG_LABEL + "* FATAL * requestId = {}, errore attachment -> title = {}, details {}",
+							 log.error(LOG_LABEL + "* FATAL * requestId = {}, errore attachment -> title = {}, details {}",
 									   requestId, throwable.getTitle(), throwable.getDetails(), throwable);
 							 return Mono.error(new RicezioneEsitiCartaceoException(
 												  SEMANTIC_ERROR_CODE,
@@ -253,9 +259,12 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			String xPagopaExtchServiceId,
 			ConsolidatoreIngressPaperProgressStatusEvent statusEvent)
 	{
+
+		var requestId=statusEvent.getRequestId();
+
 		log.debug(INVOKED_OPERATION_LABEL, PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER, statusEvent);
 
-		return statusPullService.paperPullService(statusEvent.getRequestId(), xPagopaExtchServiceId)
+		return statusPullService.paperPullService(requestId, xPagopaExtchServiceId)
 			.flatMap(unused -> {
 
 				PresaInCaricoInfo presaInCaricoInfo = new PresaInCaricoInfo();
@@ -303,6 +312,11 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	    		 return Mono.just(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
 	    				 										 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
 	    				 										 List.of(throwable.getMessage())));
+			})
+			.onErrorResume(StatusNotFoundException.class, throwable ->
+			{
+				ConsAuditLogError consAuditLogError = new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_STATUS.getValue()).description(throwable.getMessage());
+				return Mono.error(new RicezioneEsitiCartaceoException(SEMANTIC_ERROR_CODE,errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),List.of(throwable.getMessage()),List.of(consAuditLogError)));
 			})
 			.onErrorResume(RuntimeException.class, throwable -> {
 				 log.error("* FATAL * pubblicaEsitoCodaNotificationTracker - {}, {}", throwable, throwable.getMessage());
