@@ -36,7 +36,7 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
         return clientConfigurationService.getAllClient()
                 .map(retrievedClient -> restUtils.dtoToEntity(retrievedClient, ClientConfigurationDto.class))
                 .collectList()
-                .doOnNext(configurationDtoList -> log.info("Retrieved all clients ↓\n{}", configurationDtoList))
+                .doOnNext(configurationDtoList -> log.debug("Retrieved all clients ↓\n{}", configurationDtoList))
                 .map(configurationDtoList -> ResponseEntity.ok().body(Flux.fromIterable(configurationDtoList)))
                 .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, GET_CONFIGURATIONS))
                 .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, GET_CONFIGURATIONS, throwable, throwable.getMessage()));
@@ -44,11 +44,11 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
 
     @Override
     public Mono<ResponseEntity<ClientConfigurationInternalDto>> getClient(String xPagopaExtchCxId, ServerWebExchange exchange) {
-        log.info(STARTING_PROCESS_LABEL, GET_CLIENT);
+        log.info(STARTING_PROCESS_ON_LABEL, GET_CLIENT, xPagopaExtchCxId);
         return clientConfigurationService.getClient(xPagopaExtchCxId)
                 .map(retrievedClient -> restUtils.endReadRequest(retrievedClient, ClientConfigurationInternalDto.class))
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, GET_CLIENT))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, GET_CLIENT, throwable, throwable.getMessage()));
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, GET_CLIENT, xPagopaExtchCxId))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, GET_CLIENT, xPagopaExtchCxId, throwable, throwable.getMessage()));
     }
 
     @Override
@@ -68,7 +68,7 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
     public Mono<ResponseEntity<ClientConfigurationInternalDto>> updateClient(String xPagopaExtchCxId,
                                                                              Mono<ClientConfigurationDto> clientConfigurationPutDto,
                                                                              ServerWebExchange exchange) {
-        log.info(STARTING_PROCESS_LABEL, UPDATE_CLIENT);
+        log.info(STARTING_PROCESS_ON_LABEL, UPDATE_CLIENT, xPagopaExtchCxId);
         return clientConfigurationPutDto
                 .doOnNext(clientConfigurationDto -> log.info("Try to update client: {}", clientConfigurationDto.getxPagopaExtchCxId()))
                 .map(clientDtoToUpdate -> restUtils.startUpdateRequest(clientDtoToUpdate,
@@ -77,17 +77,17 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
                         clientToUpdate))
                 .map(updatedClient -> restUtils.endCreateOrUpdateRequest(updatedClient,
                         ClientConfigurationInternalDto.class))
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, UPDATE_CLIENT))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, UPDATE_CLIENT, throwable, throwable.getMessage()));
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, UPDATE_CLIENT, xPagopaExtchCxId))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, UPDATE_CLIENT, xPagopaExtchCxId, throwable, throwable.getMessage()));
     }
 
     @Override
     public Mono<ResponseEntity<Void>> deleteClient(String xPagopaExtchCxId, ServerWebExchange exchange) {
-        log.info(STARTING_PROCESS_LABEL, DELETE_CLIENT);
+        log.info(STARTING_PROCESS_ON_LABEL, DELETE_CLIENT, xPagopaExtchCxId);
         return clientConfigurationService.deleteClient(xPagopaExtchCxId)
                 .map(retrievedClient -> restUtils.endDeleteRequest(retrievedClient, ClientConfigurationDto.class))
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, DELETE_CLIENT))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, DELETE_CLIENT, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, DELETE_CLIENT, xPagopaExtchCxId))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, DELETE_CLIENT, xPagopaExtchCxId, throwable, throwable.getMessage()))
                 .thenReturn(new ResponseEntity<>(NO_CONTENT));
     }
 }

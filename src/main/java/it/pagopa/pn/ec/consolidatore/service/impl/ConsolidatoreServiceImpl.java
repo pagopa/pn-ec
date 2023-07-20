@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.consolidatore.service.impl;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.ConsolidatoreEndpointProperties;
+import it.pagopa.pn.ec.commons.exception.InvalidApiKeyException;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogError;
@@ -43,7 +44,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
 
 
     public Mono<PreLoadResponseData> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> attachments) {
-        log.info("<-- START PRESIGNED UPLOAD REQUEST --> Client ID : {}", xPagopaExtchServiceId);
+        log.debug(INVOKING_OPERATION_LABEL, PRESIGNED_UPLOAD_REQUEST);
         return checkHeaders(xPagopaExtchServiceId)
                 .then(authService.clientAuth(xPagopaExtchServiceId))
                 .flatMap(clientConfiguration -> {
@@ -58,7 +59,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                     return Mono.just(clientConfiguration);
                 })
                 .then(attachments)
-                .doOnNext(preLoadRequestData -> log.debug(INVOKED_OPERATION_LABEL, PRESIGNED_UPLOAD_REQUEST, preLoadRequestData))
+                .doOnNext(preLoadRequestData -> log.debug(INVOKING_OPERATION_LABEL, PRESIGNED_UPLOAD_REQUEST, preLoadRequestData))
                 .map(PreLoadRequestData::getPreloads)
                 .flatMapMany(Flux::fromIterable)
                 .transform(checkSyntaxErrors())
@@ -118,7 +119,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
 
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId
             , String xApiKey) {
-        log.debug(INVOKED_OPERATION_LABEL, GET_FILE, fileKey);
+        log.debug(INVOKING_OPERATION_LABEL, CONSOLIDATORE_GET_FILE, fileKey);
         return checkHeaders(xPagopaExtchServiceId)
                 .then(authService.clientAuth(xPagopaExtchServiceId))
                 .flatMap(clientConfiguration -> {
@@ -134,7 +135,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                 })
                 .then(fileCall.getFile(fileKey, xPagopaExtchServiceId, xApiKey, RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH)))
                 .doOnError(ConnectException.class, e -> log.error("* FATAL * getFile - {}, {}", e, e.getMessage()))
-                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, GET_FILE, result));
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, fileKey, GET_FILE, result));
     }
 
     private Mono<Void> checkHeaders(String xPagopaExtchServiceId) {

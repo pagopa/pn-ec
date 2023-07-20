@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec.pec.rest;
 
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.pec.service.impl.PecService;
@@ -33,25 +32,25 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
     public Mono<ResponseEntity<Void>> sendDigitalLegalMessage(String requestIdx, String xPagopaExtchCxId,
                                                               Mono<DigitalNotificationRequest> digitalNotificationRequest,
                                                               final ServerWebExchange exchange) {
-        log.info(STARTING_PROCESS_LABEL, SEND_DIGITAL_LEGAL_MESSAGE);
+        log.info(STARTING_PROCESS_ON_LABEL, SEND_DIGITAL_LEGAL_MESSAGE, requestIdx);
         return digitalNotificationRequest
                 .flatMap(request -> pecService.presaInCarico(PecPresaInCaricoInfo.builder()
                         .requestIdx(requestIdx)
                         .xPagopaExtchCxId(xPagopaExtchCxId)
                         .digitalNotificationRequest(request)
                         .build()))
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, SEND_DIGITAL_LEGAL_MESSAGE))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, SEND_DIGITAL_LEGAL_MESSAGE, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, SEND_DIGITAL_LEGAL_MESSAGE,  requestIdx))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, SEND_DIGITAL_LEGAL_MESSAGE, requestIdx, throwable, throwable.getMessage()))
                 .thenReturn(new ResponseEntity<>(OK));
     }
 
     @Override
     public Mono<ResponseEntity<LegalMessageSentDetails>> getDigitalLegalMessageStatus(String requestIdx, String xPagopaExtchCxId,
                                                                                       ServerWebExchange exchange) {
-        log.info(STARTING_PROCESS_LABEL, GET_DIGITAL_LEGAL_MESSAGE_STATUS);
+        log.info(STARTING_PROCESS_ON_LABEL, GET_DIGITAL_LEGAL_MESSAGE_STATUS, requestIdx);
         return statusPullService.pecPullService(requestIdx, xPagopaExtchCxId)
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, GET_DIGITAL_LEGAL_MESSAGE_STATUS))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, GET_DIGITAL_LEGAL_MESSAGE_STATUS, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, GET_DIGITAL_LEGAL_MESSAGE_STATUS, requestIdx))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, GET_DIGITAL_LEGAL_MESSAGE_STATUS, requestIdx, throwable, throwable.getMessage()))
                 .map(ResponseEntity::ok);
     }
 

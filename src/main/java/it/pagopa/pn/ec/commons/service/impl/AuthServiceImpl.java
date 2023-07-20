@@ -48,7 +48,7 @@ public class AuthServiceImpl implements AuthService {
     public Mono<ClientConfigurationInternalDto> validateApiKey(String idClient, String xApiKey) {
         return clientAuth(idClient).flatMap(clientConfiguration -> {
             log.info(CHECKING_VALIDATION_PROCESS_ON, X_API_KEY_VALIDATION, idClient);
-            if (clientConfiguration.getApiKey() == null || !clientConfiguration.getApiKey().equals(xApiKey)) {
+            if (!clientConfiguration.getApiKey().equals(xApiKey)) {
                 log.warn(VALIDATION_PROCESS_FAILED, X_API_KEY_VALIDATION, INVALID_API_KEY);
                 return Mono.error(new InvalidApiKeyException());
             }

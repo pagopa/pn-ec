@@ -33,25 +33,25 @@ public class PaperMessagesApiController implements PaperMessagesApi {
     @Override
     public Mono<ResponseEntity<Void>> sendPaperEngageRequest(String requestIdx, String xPagopaExtchCxId,
                                                              Mono<PaperEngageRequest> paperEngageRequest, ServerWebExchange exchange) {
-        log.info(STARTING_PROCESS_LABEL, SEND_PAPER_ENGAGE_REQUEST);
+        log.info(STARTING_PROCESS_ON_LABEL, SEND_PAPER_ENGAGE_REQUEST, requestIdx);
         return paperEngageRequest.flatMap(request ->
                         cartaceoService.presaInCarico(CartaceoPresaInCaricoInfo.builder()
                                 .requestIdx(requestIdx)
                                 .xPagopaExtchCxId(xPagopaExtchCxId)
                                 .paperEngageRequest(request)
                                 .build()))
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, SEND_PAPER_ENGAGE_REQUEST))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, SEND_PAPER_ENGAGE_REQUEST, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, SEND_PAPER_ENGAGE_REQUEST, requestIdx))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, requestIdx, SEND_PAPER_ENGAGE_REQUEST, throwable, throwable.getMessage()))
                 .thenReturn(new ResponseEntity<>(OK));
     }
 
     @Override
     public Mono<ResponseEntity<PaperProgressStatusEvent>> getPaperEngageProgresses(String requestIdx, String xPagopaExtchCxId,
                                                                                    ServerWebExchange exchange) {
-        log.info(STARTING_PROCESS_LABEL, GET_PAPER_ENGAGE_PROGRESSES);
+        log.info(STARTING_PROCESS_ON_LABEL, GET_PAPER_ENGAGE_PROGRESSES, requestIdx);
         return paperService.paperPullService(requestIdx, xPagopaExtchCxId)
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, GET_PAPER_ENGAGE_PROGRESSES))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, GET_PAPER_ENGAGE_PROGRESSES, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, GET_PAPER_ENGAGE_PROGRESSES, requestIdx))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, requestIdx, GET_PAPER_ENGAGE_PROGRESSES, throwable, throwable.getMessage()))
                 .map(ResponseEntity::ok);
     }
 }

@@ -18,10 +18,10 @@ public abstract class PresaInCaricoService {
     }
 
     public Mono<Void> presaInCarico(PresaInCaricoInfo presaInCaricoInfo) {
-        log.debug(INVOKED_OPERATION_LABEL, PRESA_IN_CARICO, presaInCaricoInfo);
+        log.debug(INVOKING_OPERATION_LABEL, PRESA_IN_CARICO, presaInCaricoInfo.getRequestIdx());
         return authService.clientAuth(presaInCaricoInfo.getXPagopaExtchCxId())
                 .flatMap(clientConfigurationDto -> specificPresaInCarico(presaInCaricoInfo))
-                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_NO_RESULT_LABEL, PRESA_IN_CARICO));
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, presaInCaricoInfo.getRequestIdx(), PRESA_IN_CARICO, result));
     }
 
     protected abstract Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo);

@@ -38,7 +38,7 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     @Override
     public Mono<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId, String processId) {
-        log.debug(INVOKED_OPERATION_LABEL, DIGITAL_PULL_SERVICE, requestIdx);
+        log.debug(INVOKING_OPERATION_LABEL, DIGITAL_PULL_SERVICE, requestIdx);
 
         return getRequest(xPagopaExtchCxId, requestIdx).flatMap(this::getLastEvent).flatMap(eventDTO -> {
             var event = new CourtesyMessageProgressEvent();
@@ -70,7 +70,7 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     @Override
     public Mono<LegalMessageSentDetails> pecPullService(String requestIdx, String xPagopaExtchCxId) {
-        log.debug(INVOKED_OPERATION_LABEL, PEC_PULL_SERVICE, requestIdx);
+        log.debug(INVOKING_OPERATION_LABEL, PEC_PULL_SERVICE, requestIdx);
 
         return getRequest(xPagopaExtchCxId, requestIdx).flatMap(this::getLastEvent).flatMap(eventDTO -> {
             var event = new LegalMessageSentDetails();
@@ -106,7 +106,7 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     @Override
     public Mono<PaperProgressStatusEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
-        log.debug(INVOKED_OPERATION_LABEL, PAPER_PULL_SERVICE, requestIdx);
+        log.debug(INVOKING_OPERATION_LABEL, PAPER_PULL_SERVICE, requestIdx);
 
         return getRequest(xPagopaExtchCxId, requestIdx).map(requestDto -> {
 
@@ -205,7 +205,7 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                                                               .statusCode("")
                                                                                                               .iun("")
                                                                                                               .registeredLetterCode("")))
-                                                       .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PAPER_PULL_SERVICE, result));
+                                                      .doOnNext(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PAPER_PULL_SERVICE, result));
 
     }
 

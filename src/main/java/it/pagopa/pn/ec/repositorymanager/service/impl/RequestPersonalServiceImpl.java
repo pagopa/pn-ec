@@ -27,6 +27,7 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
 
     @Override
     public Mono<RequestPersonal> getRequestPersonal(String concatRequestId) {
+
         return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(concatRequestId))).defaultIfEmpty(new RequestPersonal());
     }
 

@@ -3,7 +3,6 @@ package it.pagopa.pn.ec.consolidatore.controller;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
 import static it.pagopa.pn.ec.consolidatore.service.impl.RicezioneEsitiCartaceoServiceImpl.getAllErrors;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_MESSAGE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_OK_CODE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.INTERNAL_SERVER_ERROR_CODE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.errorCodeDescriptionMap;
@@ -70,10 +69,10 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 
     @Override
     public Mono<ResponseEntity<FileDownloadResponse>> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, final ServerWebExchange exchange) {
-        log.info(STARTING_PROCESS_LABEL, GET_FILE);
+        log.info(STARTING_PROCESS_ON_LABEL, GET_FILE, fileKey);
         return consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, GET_FILE))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, GET_FILE, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, GET_FILE, fileKey))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, GET_FILE, fileKey, throwable, throwable.getMessage()))
                 .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody")))
                 .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
                 .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
