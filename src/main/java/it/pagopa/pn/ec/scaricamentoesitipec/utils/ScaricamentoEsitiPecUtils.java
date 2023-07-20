@@ -60,7 +60,7 @@ public class ScaricamentoEsitiPecUtils {
         var generatedMessageDto = new GeneratedMessageDto().id(msgId);
         return switch (tipoPostacert) {
         case ACCETTAZIONE, NON_ACCETTAZIONE, AVVENUTA_CONSEGNA, RILEVAZIONE_VIRUS, ERRORE_CONSEGNA -> generatedMessageDto.system(getDomainFromAddress(receiverAddress)).location(ssLocation);
-        case PREAVVISO_ERRORE_CONSEGNA -> generatedMessageDto.system(getDomainFromAddress(senderAddress));
+        case PREAVVISO_ERRORE_CONSEGNA -> generatedMessageDto.system(getDomainFromAddress(senderAddress)).location(ssLocation);
         default -> null;
         };
     }
