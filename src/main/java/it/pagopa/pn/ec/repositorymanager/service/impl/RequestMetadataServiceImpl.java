@@ -23,7 +23,7 @@ import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
-import static it.pagopa.pn.ec.repositorymanager.service.impl.RequestServiceImpl.concatRequestId;
+import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.concatRequestId;
 
 @Service
 @Slf4j
@@ -58,26 +58,25 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     @Override
     public Mono<RequestMetadata> getRequestMetadata(String concatRequestId) {
+        log.debug(INVOKING_OPERATION_LABEL, GET_REQUEST_METADATA_OP, concatRequestId);
         return Mono.fromCompletionStage(() -> {
                     Key partitionKey = getKey(concatRequestId);
-                    log.debug(GETTING_DATA_FROM_DYNAMODB_TABLE, partitionKey, REQUEST_METADATA_TABLE);
                     return requestMetadataDynamoDbTable.getItem(partitionKey);
                 })
-                   .doOnNext(result->log.info(GOT_DATA_FROM_DYNAMODB_TABLE, REQUEST_METADATA_TABLE))
-                   .doOnError(throwable -> log.warn("getRequestMetadata() - {}", throwable.getMessage()))
                    .onErrorResume(e -> Mono.empty())
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(concatRequestId)))
-                   .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.info(throwable.getMessage()));
+                   .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.debug(throwable.getMessage()))
+                   .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL,concatRequestId, GET_REQUEST_OP, result));
     }
 
     @Override
     public Mono<RequestMetadata> insertRequestMetadata(RequestMetadata requestMetadata) {
+        String concatRequestId = concatRequestId(requestMetadata.getXPagopaExtchCxId(), requestMetadata.getRequestId());
+        log.debug(INVOKING_OPERATION_LABEL, INSERT_REQUEST_METADATA_OP, concatRequestId);
         return Mono.fromCompletionStage(() -> {
                     Key partitionKey = getKey(requestMetadata.getRequestId());
-                    log.debug(GETTING_DATA_FROM_DYNAMODB_TABLE, partitionKey, REQUEST_METADATA_TABLE);
                     return requestMetadataDynamoDbTable.getItem(partitionKey);
                 })
-                .doOnNext(result->log.info(GOT_DATA_FROM_DYNAMODB_TABLE, REQUEST_METADATA_TABLE))
                 .handle((foundedRequest, sink) -> {
                        var requestId = foundedRequest.getRequestId();
                        var foundedRequestHash = foundedRequest.getRequestHash();
@@ -94,14 +93,11 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                            return Mono.error(new RepositoryManagerException.RequestMalformedException(
                                    "Valorizzare solamente un tipologia di richiesta metadata"));
                        }
-                       return Mono.fromCompletionStage(() -> {
-                           log.debug(INSERTING_DATA_IN_DYNAMODB_TABLE, requestMetadata, REQUEST_METADATA_TABLE);
-                           return requestMetadataDynamoDbTable.putItem(builder -> builder.item(requestMetadata));
-                       }).doOnNext(result -> log.info(INSERTED_DATA_IN_DYNAMODB_TABLE, REQUEST_METADATA_TABLE));
+                       return insertRequestMetadataInDynamoDb(requestMetadata);
                    })
-                   .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.error(throwable.getMessage()))
-                   .doOnError(throwable -> log.info(throwable.getMessage()))
-                   .thenReturn(requestMetadata);
+                   .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.debug(throwable.getMessage()))
+                   .thenReturn(requestMetadata)
+                   .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, INSERT_REQUEST_METADATA_OP, result));
     }
 
     private Mono<RequestMetadata> managePatch(String requestId, Patch patch, RequestMetadata retrieveRequestMetadata) {
@@ -137,18 +133,14 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     }
 
      protected void eventsCheck(Events event, List<Events> eventsList, String requestId) {
-        log.debug("---> START eventsCheck() <--- CheckedEvent : {}, EventsList : {}", event, eventsList);
         if (eventsList != null && eventsList.contains(event)) {
             // Event already exists
             var status = getStatusFromEvent(event);
             if (status instanceof DigitalProgressStatus digitalProgressStatus) {
-                log.debug("eventsCheck() - DIGITAL STATUS {} ALREADY EXISTS", status);
                 throw new RepositoryManagerException.EventAlreadyExistsException(requestId, digitalProgressStatus);
             } else {
-                log.debug("eventsCheck() - PAPER STATUS {} ALREADY EXISTS", status);
                 throw new RepositoryManagerException.EventAlreadyExistsException(requestId, (PaperProgressStatus) status);
             }
-
         }
     }
 
@@ -158,22 +150,24 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     @Override
     public Mono<RequestMetadata> patchRequestMetadata(String concatRequestId, Patch patch) {
-        return getRequestMetadata(concatRequestId)//
-                                                  .doOnSuccess(retrievedRequest -> checkTipoPatchMetadata(retrievedRequest, patch))
-                                                  .doOnError(RepositoryManagerException.RequestMalformedException.class,
-                                                             throwable -> log.info(throwable.getMessage()))
-                                                  .flatMap(retrieveRequestMetadata -> managePatch(concatRequestId,
-                                                                                                  patch,
-                                                                                                  retrieveRequestMetadata))
-                                                  .flatMap(requestMetadataWithPatchUpdated -> Mono.fromCompletionStage(
-                                                          requestMetadataDynamoDbTable.updateItem(requestMetadataWithPatchUpdated)))
-                                                  .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
+        log.debug(INVOKING_OPERATION_LABEL, PATCH_REQUEST_METADATA_OP, concatRequestId);
+        return getRequestMetadata(concatRequestId)
+                .doOnSuccess(retrievedRequest -> checkTipoPatchMetadata(retrievedRequest, patch))
+                .doOnError(RepositoryManagerException.RequestMalformedException.class,
+                        throwable -> log.debug(throwable.getMessage()))
+                .flatMap(retrieveRequestMetadata -> managePatch(concatRequestId,
+                        patch,
+                        retrieveRequestMetadata))
+                .flatMap(this::updateRequestMetadataInDynamoDb)
+                .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY)
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, PATCH_REQUEST_METADATA_OP, result));
     }
 
     @Override
     public Mono<RequestMetadata> deleteRequestMetadata(String requestId) {
-        return getRequestMetadata(requestId).flatMap(requestToDelete -> Mono.fromCompletionStage(requestMetadataDynamoDbTable.deleteItem(
-                getKey(requestId))));
+        log.debug(INVOKING_OPERATION_LABEL, DELETE_REQUEST_METADATA_OP, requestId);
+        return getRequestMetadata(requestId).flatMap(requestToDelete -> deleteRequestMetadataFromDynamoDb(requestId))
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, requestId, DELETE_REQUEST_METADATA_OP, result));
     }
 
     @Override
@@ -189,4 +183,23 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
             return Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(retrievedRequestMetadata));
         }).retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
     }
+
+    private Mono<Void> insertRequestMetadataInDynamoDb(RequestMetadata requestMetadata) {
+        log.debug(INSERTING_DATA_IN_DYNAMODB_TABLE, requestMetadata, requestMetadataDynamoDbTable.tableName());
+        return Mono.fromCompletionStage(() -> requestMetadataDynamoDbTable.putItem(builder -> builder.item(requestMetadata)))
+                .doOnSuccess(result -> log.info(INSERTED_DATA_IN_DYNAMODB_TABLE, requestMetadataDynamoDbTable.tableName()));
+    }
+
+    private Mono<RequestMetadata> updateRequestMetadataInDynamoDb(RequestMetadata requestMetadata) {
+        log.debug(UPDATING_DATA_IN_DYNAMODB_TABLE, requestMetadata, requestMetadataDynamoDbTable.tableName());
+        return Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(requestMetadata))
+                .doOnNext(result -> log.info(UPDATED_DATA_IN_DYNAMODB_TABLE, requestMetadataDynamoDbTable.tableName()));
+    }
+
+    private Mono<RequestMetadata> deleteRequestMetadataFromDynamoDb(String requestId) {
+        log.debug(DELETING_DATA_FROM_DYNAMODB_TABLE, requestId, requestMetadataDynamoDbTable.tableName());
+        return Mono.fromCompletionStage(requestMetadataDynamoDbTable.deleteItem(getKey(requestId)))
+                .doOnNext(result -> log.info(DELETED_DATA_FROM_DYNAMODB_TABLE, requestMetadataDynamoDbTable.tableName()));
+    }
+
 }

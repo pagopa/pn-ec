@@ -34,8 +34,10 @@ import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.commons.service.SnsService.DEFAULT_RETRY_STRATEGY;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
+import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.concatRequestId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.SMS;
@@ -70,11 +72,12 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         var smsPresaInCaricoInfo = (SmsPresaInCaricoInfo) presaInCaricoInfo;
         var requestIdx = smsPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
+        log.debug(INVOKING_OPERATION_LABEL, PRESA_IN_CARICO_SMS, presaInCaricoInfo);
+
         var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
 
         digitalCourtesySmsRequest.setRequestId(requestIdx);
-
-        log.info("<-- Start presa in carico SMS --> richiesta: {}", requestIdx);
 
         return insertRequestFromSms(digitalCourtesySmsRequest, xPagopaExtchCxId).flatMap(requestDto -> sendNotificationOnStatusQueue(
                                                                                         smsPresaInCaricoInfo,
@@ -100,11 +103,14 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                                                                                        INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                                                                                                        new DigitalProgressStatusDto()).then(
                                                                                                        Mono.error(sqsClientException)))
-                                                                                .then();
+                                                                                .then()
+                                                                                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, PRESA_IN_CARICO_SMS, result));
     }
 
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromSms(final DigitalCourtesySmsRequest digitalCourtesySmsRequest, String xPagopaExtchCxId) {
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, digitalCourtesySmsRequest.getRequestId());
+        log.debug(INVOKING_OPERATION_LABEL, INSERT_REQUEST_FROM_SMS, digitalCourtesySmsRequest);
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
 
@@ -133,7 +139,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
             requestDto.setRequestPersonal(requestPersonalDto);
             requestDto.setRequestMetadata(requestMetadataDto);
             return requestDto;
-        }).flatMap(gestoreRepositoryCall::insertRichiesta);
+        }).flatMap(gestoreRepositoryCall::insertRichiesta)
+        .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, INSERT_REQUEST_FROM_SMS, result));
     }
 
     @SqsListener(value = "${sqs.queue.sms.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
@@ -158,7 +165,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     }
 
     Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
-        log.info("<-- START LAVORAZIONE RICHIESTA SMS --> richiesta : {}", smsPresaInCaricoInfo.getRequestIdx());
+        String concatRequestId = concatRequestId(smsPresaInCaricoInfo.getXPagopaExtchCxId(), smsPresaInCaricoInfo.getRequestIdx());
+        log.debug(INVOKING_OPERATION_LABEL, LAVORAZIONE_RICHIESTA_SMS, smsPresaInCaricoInfo);
 //      Try to send SMS
         return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
                                smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
@@ -193,7 +201,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
 //                               Publish to ERRORI SMS queue
                 .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo)))
-                .doOnError(throwable -> log.error("* FATAL * lavorazioneRichiesta {}, {}", throwable, throwable.getMessage()));
+                .doOnError(throwable -> log.error("* FATAL * lavorazioneRichiesta {}, {}", throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, LAVORAZIONE_RICHIESTA_SMS   , result));
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(PublishResponse publishResponse) {
@@ -218,7 +227,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private Mono<RequestDto> filterRequestSms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
-        log.info("<-- START GESTIONE RETRY SMS--> richiesta : {}", smsPresaInCaricoInfo.getRequestIdx());
+        String concatRequestId = concatRequestId(smsPresaInCaricoInfo.getXPagopaExtchCxId(), smsPresaInCaricoInfo.getRequestIdx());
+        log.debug(INVOKING_OPERATION_LABEL, FILTER_REQUEST_SMS, smsPresaInCaricoInfo);
         Policy retryPolicies = new Policy();
 
         String toDelete = "toDelete";
@@ -278,7 +288,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                         PatchDto patchDto = new PatchDto();
                                         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
                                         return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
-                                    });
+                                    })
+                                    .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, FILTER_REQUEST_SMS, result));
     }
 
     private Mono<DeleteMessageResponse> checkTentativiEccessiviSms(String requestId, RequestDto requestDto,
@@ -299,6 +310,9 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
     public Mono<DeleteMessageResponse> gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message) {
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
+        String concatRequestId = concatRequestId(smsPresaInCaricoInfo.getXPagopaExtchCxId(), requestId);
+        log.debug(INVOKING_OPERATION_LABEL, GESTIONE_RETRY_SMS, smsPresaInCaricoInfo);
+
         return filterRequestSms(smsPresaInCaricoInfo)
 //              Tentativo invio sms
 .flatMap(requestDto -> {
@@ -311,15 +325,14 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 //              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The SMS in sent, publish to Notification
 //              Tracker with next status -> SENT
     if (Objects.equals(smsPresaInCaricoInfo.getStepError().getStep(), NOTIFICATION_TRACKER_STEP)) {
-        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
         return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                              SENT.getStatusTransactionTableCompliant(),
                                              new DigitalProgressStatusDto().generatedMessage(smsPresaInCaricoInfo.getStepError()
-                                                                                                                 .getGeneratedMessageDto())).flatMap(
-                sendMessageResponse -> {
-                    log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}", smsSqsQueueName.errorName());
-                    return deleteMessageFromErrorQueue(message);
-                }).onErrorResume(sqsPublishException -> {
+                                                                                                                 .getGeneratedMessageDto()))
+                .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message)
+                        .doOnNext(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, smsSqsQueueName.errorName())))
+
+                .onErrorResume(sqsPublishException -> {
                     log.warn("Exception in gestioneRetrySms {}, {}", sqsPublishException, sqsPublishException.getMessage());
                     return checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message);
                 });
@@ -340,11 +353,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                                                                        SENT.getStatusTransactionTableCompliant(),
                                                                                        new DigitalProgressStatusDto().generatedMessage(
                                                                                                generatedMessageDto)))
-                         .flatMap(sendMessageResponse -> {
-                             log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}",
-                                       smsSqsQueueName.errorName());
-                             return deleteMessageFromErrorQueue(message);
-                         })
+                         .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
+                         .doOnNext(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, smsSqsQueueName.errorName()))
                          .onErrorResume(sqsPublishException -> {
                              log.warn("Exception in gestioneRetrySms {}, {}", sqsPublishException, sqsPublishException.getMessage());
                              return checkTentativiEccessiviSms(requestId,
@@ -355,19 +365,16 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     }
 })
 //                                   Catch errore tirato per lo stato toDelete
-.onErrorResume(StatusToDeleteException.class, exception -> {
-    log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", smsSqsQueueName.errorName());
-    return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
-                                         DELETED.getStatusTransactionTableCompliant(),
-                                         new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto())).flatMap(
-            sendMessageResponse -> deleteMessageFromErrorQueue(message));
-
-
-})
+.onErrorResume(StatusToDeleteException.class, exception -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
+                                     DELETED.getStatusTransactionTableCompliant(),
+                                     new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
+        .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
+        .doOnNext(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, smsSqsQueueName.errorName())))
 .onErrorResume(internalError -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                                               INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                                                               new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
-                .doOnError(throwable -> log.error("* FATAL * gestioneRetrySms {}, {}", throwable, throwable.getMessage()));
+                .doOnError(throwable -> log.error(FATAL_IN_PROCESS, GESTIONE_RETRY_SMS, concatRequestId, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, GESTIONE_RETRY_SMS, result));
     }
 
     @Override

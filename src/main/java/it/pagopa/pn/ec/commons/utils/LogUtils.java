@@ -1,5 +1,7 @@
 package it.pagopa.pn.ec.commons.utils;
 
+import java.util.Optional;
+
 public class LogUtils {
     public static final String INVALID_API_KEY = "Invalid API key";
     public static final String STARTING_PROCESS_LABEL = "Starting '{}' Process.";
@@ -8,6 +10,7 @@ public class LogUtils {
     public static final String ENDING_PROCESS_ON_LABEL = "Ending '{}' Process on '{}'.";
     public static final String ENDING_PROCESS_WITH_ERROR_LABEL = "Ending '{}' Process with error = {} - {}";
     public static final String ENDING_PROCESS_ON_WITH_ERROR_LABEL = "Ending '{}' Process on '{}' with error = {} - {}";
+
     public static final String INVOKING_OPERATION_LABEL = "Invoking operation '{}' with args: {}";
     public static final String INVOKING_OPERATION_LABEL_NO_ARGS = "Invoking operationId '{}'";
     public static final String SUCCESSFUL_OPERATION_LABEL = "Successful operation: '{}' = {}";
@@ -16,6 +19,15 @@ public class LogUtils {
     public static final String INSERTING_DATA_IN_SQS = "Inserting data {} in SQS '{}'";
     public static final String INSERTED_DATA_IN_SQS = "Inserted data in SQS '{}'";
     public static final String PRESA_IN_CARICO = "PresaInCaricoService.presaInCarico()";
+
+    public static final String MESSAGE_REMOVED_FROM_ERROR_QUEUE = "The message '{}' has been successfully handled and removed from the error queue '{}'";
+
+    public static final String EXCEPTION_IN_PROCESS = "Exception in '{}' for request '{}' - {}, {}";
+    public static final String FATAL_IN_PROCESS = "* FATAL * in '{}' for request '{}' - {}, {}";
+    public static final String SHORT_RETRY_ATTEMPT = "Short retry attempt number '{}' caused by : {} - {}";
+    public static final String RETRY_ATTEMPT = "{} - retry attempt number '{}' for request '{}'";
+    public static final String ARUBA_SEND_EXCEPTION = "ArubaSendException occurred during lavorazione PEC for request '{}' - Errcode: {}, Errstr: {}, Errblock: {}";
+
 
     //VALIDATION
     public static final String CHECKING_VALIDATION_PROCESS = "Checking {}";
@@ -38,6 +50,16 @@ public class LogUtils {
     public static final String GET_REQUEST_BY_MESSAGE_ID_OP = "RequestService.getRequestByMessageId()";
     public static final String SET_MESSAGE_ID_IN_REQUEST_METADATA = "setMessageIdInRequestMetadata";
     public static final String SET_MESSAGE_ID_IN_REQUEST_METADATA_OP = "RequestService.setMessageIdInRequestMetadata()";
+
+    public static final String GET_REQUEST_METADATA_OP = "RequestMetadataService.getRequestMetadata()";
+    public static final String INSERT_REQUEST_METADATA_OP = "RequestMetadataService.insertRequestMetadata()";
+    public static final String PATCH_REQUEST_METADATA_OP = "RequestMetadataService.patchRequestMetadata()";
+    public static final String DELETE_REQUEST_METADATA_OP = "RequestMetadataService.deleteRequestMetadata()";
+
+    public static final String GET_REQUEST_PERSONAL_OP = "RequestPersonalService.getRequestPersonal()";
+    public static final String INSERT_REQUEST_PERSONAL_OP = "RequestPersonalService.insertRequestPersonal()";
+    public static final String DELETE_REQUEST_PERSONAL_OP = "RequestPersonalService.deleteRequestPersonal()";
+
     public static final String GET_CONFIGURATIONS = "getConfigurations";
     public static final String GET_CONFIGURATIONS_OP = "RequestService.getConfigurations()";
     public static final String GET_CLIENT = "getClient";
@@ -66,6 +88,8 @@ public class LogUtils {
     public static final String FILTER_REQUEST_CARTACEO = "CartaceoService.filterRequestCartaceo()";
     public static final String GESTIONE_RETRY_CARTACEO = "CartaceoService.gestioneRetry()";
     public static final String PRESA_IN_CARICO_CARTACEO = "CartaceoService.presaInCarico()";
+    public static final String PROCESS_WITH_ATTACH_RETRY = "CartaceoService.processWithAttachRetry()";
+    public static final String PROCESS_ONLY_BODY_RETRY = "CartaceoService.processOnlyBodyRetry()";
 
     //EMAIL
     public static final String SEND_DIGITAL_COURTESY_MESSAGE = "sendDigitalCourtesyMessage";
@@ -80,6 +104,10 @@ public class LogUtils {
     public static final String SEND_COURTESY_SHORT_MESSAGE = "sendCourtesyShortMessage";
     public static final String GET_COURTESY_SHORT_MESSAGE_STATUS = "getCourtesyShortMessageStatus";
     public static final String PRESA_IN_CARICO_SMS = "SmsService.presaInCarico()";
+    public static final String INSERT_REQUEST_FROM_SMS = "SmsService.insertRequestFromSms()";
+    public static final String LAVORAZIONE_RICHIESTA_SMS = "SmsService.lavorazioneRichiesta()";
+    public static final String FILTER_REQUEST_SMS = "SmsService.filterRequestSms()";
+    public static final String GESTIONE_RETRY_SMS = "SmsService.gestioneRetry()";
 
     //CONSOLIDATORE
     public static final String PRESIGNED_UPLOAD_REQUEST = "ConsolidatoreService.presignedUploadRequest()";
@@ -127,16 +155,12 @@ public class LogUtils {
     public static final String ARUBA_GET_ATTACH = "ArubaCall.getAttach()";
 
     //DYNAMODB
-    public static final String GETTING_DATA_FROM_DYNAMODB_TABLE = "Getting data {} from DynamoDB table '{}'";
-    public static final String GOT_DATA_FROM_DYNAMODB_TABLE = "Got data from DynamoDB table '{}'";
     public static final String INSERTING_DATA_IN_DYNAMODB_TABLE = "Inserting data {} in DynamoDB table '{}'";
     public static final String INSERTED_DATA_IN_DYNAMODB_TABLE = "Inserted data in DynamoDB table '{}'";
     public static final String UPDATING_DATA_IN_DYNAMODB_TABLE = "Updating data {} in DynamoDB table '{}'";
     public static final String UPDATED_DATA_IN_DYNAMODB_TABLE = "Updated data in DynamoDB table '{}'";
     public static final String DELETING_DATA_FROM_DYNAMODB_TABLE = "Deleting data {} in DynamoDB table '{}'";
     public static final String DELETED_DATA_FROM_DYNAMODB_TABLE = "Deleted data in DynamoDB table '{}'";
-    public static final String PATCHING_DATA_IN_DYNAMODB_TABLE = "Patching data {} in DynamoDB table '{}'";
-    public static final String PATCHED_DATA_IN_DYNAMODB_TABLE = "Patched data in DynamoDB table '{}'";
 
     //DOWNLOAD CALL
     public static final String DOWNLOAD_FILE = "DownloadCall.downloadFile()";

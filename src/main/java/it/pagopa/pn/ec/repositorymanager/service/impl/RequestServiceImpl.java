@@ -17,12 +17,14 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.StreamUtils.getStreamOfNullableList;
+import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.concatRequestId;
 import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.createRequestFromPersonalAndMetadata;
 
 @Service
@@ -37,10 +39,6 @@ public class RequestServiceImpl implements RequestService {
     public RequestServiceImpl(RequestPersonalService requestPersonalService, RequestMetadataService requestMetadataService) {
         this.requestPersonalService = requestPersonalService;
         this.requestMetadataService = requestMetadataService;
-    }
-
-    public static String concatRequestId(String clientId, String requestId) {
-        return (String.format("%s%s%s", clientId, SEPARATORE, requestId));
     }
 
     private String createRequestHash(List<String> sourceStrings) {
@@ -94,12 +92,13 @@ public class RequestServiceImpl implements RequestService {
                        RequestPersonal retrievedRequestPersonal = objects.getT1();
                        RequestMetadata retrievedRequestMetadata = objects.getT2();
                        return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, retrievedRequestMetadata);
-                   }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, GET_REQUEST_OP, result));
+                   }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequest, GET_REQUEST_OP, result));
     }
 
     @Override
     public Mono<Request> insertRequest(Request request) {
-        log.debug(INVOKING_OPERATION_LABEL, INSERT_REQUEST_OP, request.getRequestId());
+        var concatRequest = concatRequestId(request.getXPagopaExtchCxId(), request.getRequestId());
+        log.debug(INVOKING_OPERATION_LABEL, INSERT_REQUEST_OP, concatRequest);
         return Mono.fromCallable(() -> {
                        var concatRequestId = concatRequestId(request.getXPagopaExtchCxId(), request.getRequestId());
                        var clientId = request.getXPagopaExtchCxId();
@@ -157,7 +156,7 @@ public class RequestServiceImpl implements RequestService {
                        var insertedRequestMetadata = objects.getT1();
                        var insertedRequestPersonal = objects.getT2();
                        return createRequestFromPersonalAndMetadata(insertedRequestPersonal, insertedRequestMetadata);
-                   }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_OP, result));
+                   }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequest, INSERT_REQUEST_OP, result));
     }
 
     @Override
@@ -169,7 +168,7 @@ public class RequestServiceImpl implements RequestService {
             RequestPersonal retrievedRequestPersonal = objects.getT1();
             RequestMetadata updatedRequestMetadata = objects.getT2();
             return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, updatedRequestMetadata);
-        }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PATCH_REQUEST_OP, result));
+        }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequest, PATCH_REQUEST_OP, result));
     }
 
     @Override
@@ -181,7 +180,7 @@ public class RequestServiceImpl implements RequestService {
             RequestPersonal deletedRequestPersonal = objects.getT1();
             RequestMetadata deletedRequestMetadata = objects.getT2();
             return createRequestFromPersonalAndMetadata(deletedRequestPersonal, deletedRequestMetadata);
-        }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, DELETE_REQUEST_OP, result));
+        }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequest, DELETE_REQUEST_OP, result));
     }
 
     @Override
@@ -193,7 +192,7 @@ public class RequestServiceImpl implements RequestService {
                                          RequestMetadata retrievedRequestMetadata = objects.getT1();
                                          RequestPersonal retrievedRequestPersonal = objects.getT2();
                                          return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, retrievedRequestMetadata);
-                                     }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, GET_REQUEST_BY_MESSAGE_ID_OP, result));
+                                     }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, messageId, GET_REQUEST_BY_MESSAGE_ID_OP, result));
     }
 
     @Override
@@ -206,7 +205,7 @@ public class RequestServiceImpl implements RequestService {
                                          RequestMetadata retrievedRequestMetadata = objects.getT1();
                                          RequestPersonal retrievedRequestPersonal = objects.getT2();
                                          return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, retrievedRequestMetadata);
-                                     }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, SET_MESSAGE_ID_IN_REQUEST_METADATA_OP, result));
+                                     }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequest, SET_MESSAGE_ID_IN_REQUEST_METADATA_OP, result));
     }
 
 }

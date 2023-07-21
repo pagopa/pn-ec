@@ -17,6 +17,7 @@ import reactor.util.function.Tuples;
 import java.util.ArrayList;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.concatRequestId;
 
 @Service
 @Slf4j
@@ -38,7 +39,8 @@ public class StatusPullServiceImpl implements StatusPullService {
 
     @Override
     public Mono<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId, String processId) {
-        log.debug(INVOKING_OPERATION_LABEL, DIGITAL_PULL_SERVICE, requestIdx);
+        String concatRequestId=concatRequestId(xPagopaExtchCxId, requestIdx);
+        log.debug(INVOKING_OPERATION_LABEL, DIGITAL_PULL_SERVICE, concatRequestId);
 
         return getRequest(xPagopaExtchCxId, requestIdx).flatMap(this::getLastEvent).flatMap(eventDTO -> {
             var event = new CourtesyMessageProgressEvent();
@@ -65,12 +67,13 @@ public class StatusPullServiceImpl implements StatusPullService {
                                         return event;
                                     });
                 }).switchIfEmpty(Mono.just(new CourtesyMessageProgressEvent().eventDetails("").requestId("")))
-                .doOnNext(result -> log.info(SUCCESSFUL_OPERATION_LABEL, DIGITAL_PULL_SERVICE, result));
+                .doOnNext(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, DIGITAL_PULL_SERVICE, result));
     }
 
     @Override
     public Mono<LegalMessageSentDetails> pecPullService(String requestIdx, String xPagopaExtchCxId) {
-        log.debug(INVOKING_OPERATION_LABEL, PEC_PULL_SERVICE, requestIdx);
+        String concatRequestId=concatRequestId(xPagopaExtchCxId, requestIdx);
+        log.debug(INVOKING_OPERATION_LABEL, PEC_PULL_SERVICE, concatRequestId);
 
         return getRequest(xPagopaExtchCxId, requestIdx).flatMap(this::getLastEvent).flatMap(eventDTO -> {
             var event = new LegalMessageSentDetails();
@@ -101,12 +104,13 @@ public class StatusPullServiceImpl implements StatusPullService {
                 return event;
             });
         }).switchIfEmpty(Mono.just(new LegalMessageSentDetails().eventDetails("").requestId("")))
-        .doOnNext(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_PULL_SERVICE, result));
+        .doOnNext(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, PEC_PULL_SERVICE, result));
     }
 
     @Override
     public Mono<PaperProgressStatusEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
-        log.debug(INVOKING_OPERATION_LABEL, PAPER_PULL_SERVICE, requestIdx);
+        String concatRequestId=concatRequestId(xPagopaExtchCxId, requestIdx);
+        log.debug(INVOKING_OPERATION_LABEL, PAPER_PULL_SERVICE, concatRequestId);
 
         return getRequest(xPagopaExtchCxId, requestIdx).map(requestDto -> {
 
@@ -205,7 +209,7 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                                                               .statusCode("")
                                                                                                               .iun("")
                                                                                                               .registeredLetterCode("")))
-                                                      .doOnNext(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PAPER_PULL_SERVICE, result));
+                                                      .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, PAPER_PULL_SERVICE, result));
 
     }
 

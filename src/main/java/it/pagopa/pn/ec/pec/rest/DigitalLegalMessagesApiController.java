@@ -13,6 +13,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.concatRequestId;
 import static org.springframework.http.HttpStatus.OK;
 
 
@@ -32,25 +33,27 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
     public Mono<ResponseEntity<Void>> sendDigitalLegalMessage(String requestIdx, String xPagopaExtchCxId,
                                                               Mono<DigitalNotificationRequest> digitalNotificationRequest,
                                                               final ServerWebExchange exchange) {
-        log.info(STARTING_PROCESS_ON_LABEL, SEND_DIGITAL_LEGAL_MESSAGE, requestIdx);
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
+        log.info(STARTING_PROCESS_ON_LABEL, SEND_DIGITAL_LEGAL_MESSAGE, concatRequestId);
         return digitalNotificationRequest
                 .flatMap(request -> pecService.presaInCarico(PecPresaInCaricoInfo.builder()
                         .requestIdx(requestIdx)
                         .xPagopaExtchCxId(xPagopaExtchCxId)
                         .digitalNotificationRequest(request)
                         .build()))
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, SEND_DIGITAL_LEGAL_MESSAGE,  requestIdx))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, SEND_DIGITAL_LEGAL_MESSAGE, requestIdx, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, SEND_DIGITAL_LEGAL_MESSAGE,  concatRequestId))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, SEND_DIGITAL_LEGAL_MESSAGE, concatRequestId, throwable, throwable.getMessage()))
                 .thenReturn(new ResponseEntity<>(OK));
     }
 
     @Override
     public Mono<ResponseEntity<LegalMessageSentDetails>> getDigitalLegalMessageStatus(String requestIdx, String xPagopaExtchCxId,
                                                                                       ServerWebExchange exchange) {
-        log.info(STARTING_PROCESS_ON_LABEL, GET_DIGITAL_LEGAL_MESSAGE_STATUS, requestIdx);
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
+        log.info(STARTING_PROCESS_ON_LABEL, GET_DIGITAL_LEGAL_MESSAGE_STATUS, concatRequestId);
         return statusPullService.pecPullService(requestIdx, xPagopaExtchCxId)
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, GET_DIGITAL_LEGAL_MESSAGE_STATUS, requestIdx))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, GET_DIGITAL_LEGAL_MESSAGE_STATUS, requestIdx, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, GET_DIGITAL_LEGAL_MESSAGE_STATUS, concatRequestId))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, GET_DIGITAL_LEGAL_MESSAGE_STATUS, concatRequestId, throwable, throwable.getMessage()))
                 .map(ResponseEntity::ok);
     }
 

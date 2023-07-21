@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.concatRequestId;
 import static org.springframework.http.HttpStatus.OK;
 
 @Slf4j
@@ -43,7 +44,6 @@ public class DigitalCourtesyMessagesEmailApiController implements DigitalCourtes
     public Mono<ResponseEntity<Void>> sendDigitalCourtesyMessage(String requestIdx, String xPagopaExtchCxId,
                                                                  Mono<DigitalCourtesyMailRequest> digitalCourtesyMailRequest,
                                                                  final ServerWebExchange exchange) {
-
         return digitalCourtesyMailRequest.flatMap(request -> service.presaInCarico(EmailPresaInCaricoInfo.builder()
                                                                                                          .requestIdx(requestIdx)
                                                                                                          .xPagopaExtchCxId(xPagopaExtchCxId)

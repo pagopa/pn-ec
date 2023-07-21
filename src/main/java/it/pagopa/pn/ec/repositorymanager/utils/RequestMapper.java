@@ -34,4 +34,9 @@ public class RequestMapper {
                       .requestMetadata(requestMetadata)
                       .build();
     }
+
+    public static String concatRequestId(String clientId, String requestId) {
+        return (String.format("%s%s%s", clientId, SEPARATORE, requestId));
+    }
+
 }

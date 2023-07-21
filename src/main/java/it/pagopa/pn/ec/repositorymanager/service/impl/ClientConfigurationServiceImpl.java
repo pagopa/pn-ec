@@ -58,7 +58,7 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
 
     @Override
     public Mono<ClientConfigurationInternal> insertClient(ClientConfigurationInternal clientConfiguration) {
-        log.debug(INVOKING_OPERATION_LABEL, INSERT_CLIENT, clientConfiguration);
+        log.debug(INVOKING_OPERATION_LABEL, INSERT_CLIENT, clientConfiguration.getCxId());
         return getClientConfigurationFromDynamoDb(clientConfiguration.getCxId())
                 .flatMap(foundedClientConfiguration -> Mono.error(new RepositoryManagerException.IdClientAlreadyPresent(clientConfiguration.getCxId())))
                 .switchIfEmpty(Mono.just(clientConfiguration))
@@ -90,9 +90,7 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
     }
 
     private Mono<ClientConfigurationInternal> getClientConfigurationFromDynamoDb(String cxId) {
-        log.debug(GETTING_DATA_FROM_DYNAMODB_TABLE, cxId, clientConfigurationDynamoDbTableInternal.tableName());
-        return Mono.fromCompletionStage(() -> clientConfigurationDynamoDbTableInternal.getItem(getKey(cxId)))
-                .doOnNext(result -> log.info(GOT_DATA_FROM_DYNAMODB_TABLE, clientConfigurationDynamoDbTableInternal.tableName()));
+        return Mono.fromCompletionStage(() -> clientConfigurationDynamoDbTableInternal.getItem(getKey(cxId)));
     }
 
     private Mono<Void> putClientConfigurationInDynamoDb(ClientConfigurationInternal clientConfiguration) {

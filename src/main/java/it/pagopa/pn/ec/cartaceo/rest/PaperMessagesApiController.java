@@ -14,6 +14,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.concatRequestId;
 import static org.springframework.http.HttpStatus.OK;
 
 @Slf4j
@@ -33,6 +34,7 @@ public class PaperMessagesApiController implements PaperMessagesApi {
     @Override
     public Mono<ResponseEntity<Void>> sendPaperEngageRequest(String requestIdx, String xPagopaExtchCxId,
                                                              Mono<PaperEngageRequest> paperEngageRequest, ServerWebExchange exchange) {
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
         log.info(STARTING_PROCESS_ON_LABEL, SEND_PAPER_ENGAGE_REQUEST, requestIdx);
         return paperEngageRequest.flatMap(request ->
                         cartaceoService.presaInCarico(CartaceoPresaInCaricoInfo.builder()
@@ -40,18 +42,19 @@ public class PaperMessagesApiController implements PaperMessagesApi {
                                 .xPagopaExtchCxId(xPagopaExtchCxId)
                                 .paperEngageRequest(request)
                                 .build()))
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, SEND_PAPER_ENGAGE_REQUEST, requestIdx))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, requestIdx, SEND_PAPER_ENGAGE_REQUEST, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, SEND_PAPER_ENGAGE_REQUEST, concatRequestId))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, concatRequestId, SEND_PAPER_ENGAGE_REQUEST, throwable, throwable.getMessage()))
                 .thenReturn(new ResponseEntity<>(OK));
     }
 
     @Override
     public Mono<ResponseEntity<PaperProgressStatusEvent>> getPaperEngageProgresses(String requestIdx, String xPagopaExtchCxId,
                                                                                    ServerWebExchange exchange) {
-        log.info(STARTING_PROCESS_ON_LABEL, GET_PAPER_ENGAGE_PROGRESSES, requestIdx);
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
+        log.info(STARTING_PROCESS_ON_LABEL, GET_PAPER_ENGAGE_PROGRESSES, concatRequestId);
         return paperService.paperPullService(requestIdx, xPagopaExtchCxId)
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, GET_PAPER_ENGAGE_PROGRESSES, requestIdx))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, requestIdx, GET_PAPER_ENGAGE_PROGRESSES, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, GET_PAPER_ENGAGE_PROGRESSES, concatRequestId))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, concatRequestId, GET_PAPER_ENGAGE_PROGRESSES, throwable, throwable.getMessage()))
                 .map(ResponseEntity::ok);
     }
 }
