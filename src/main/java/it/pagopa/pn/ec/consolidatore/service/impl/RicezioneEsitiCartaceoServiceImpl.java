@@ -156,7 +156,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			List<ConsolidatoreIngressPaperProgressStatusEventAttachments> attachments)
 				throws RicezioneEsitiCartaceoException // uri formalmente scorretto
 	{
-		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, VERIFICA_ATTACHMENTS, List.of(requestId, attachments));
+		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS + " - {}", VERIFICA_ATTACHMENTS, requestId, attachments);
 
 		if (attachments == null || attachments.isEmpty()) {
 			log.debug(VERIFICA_ATTACHMENTS + ": END without attachments");
@@ -212,7 +212,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				 .flatMap(unused -> gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceId, progressStatusEvent.getRequestId()))
 			     .flatMap(unused -> verificaErroriSemantici(progressStatusEvent, xPagopaExtchServiceId))
 			     .flatMap(unused -> verificaAttachments(xPagopaExtchServiceId, requestId, progressStatusEvent.getAttachments()))
-				  .flatMap(unused -> Mono.just(new RicezioneEsitiDto(progressStatusEvent,
+				 .flatMap(unused -> Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 						  getOperationResultCodeResponse(COMPLETED_OK_CODE,
 								  COMPLETED_MESSAGE,
 								  null), null))

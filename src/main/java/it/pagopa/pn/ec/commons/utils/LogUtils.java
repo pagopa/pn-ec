@@ -30,7 +30,7 @@ public class LogUtils {
 
     //VALIDATION
     public static final String CHECKING_VALIDATION_PROCESS = "Checking {}";
-    public static final String CHECKING_VALIDATION_PROCESS_ON = "Checking {} on {}";
+    public static final String CHECKING_VALIDATION_PROCESS_ON = "Checking {} on '{}'";
     public static final String VALIDATION_PROCESS_PASSED = "{} passed";
     public static final String VALIDATION_PROCESS_FAILED = "{} failed error = {}";
     public static final String CLIENT_AUTHENTICATION = "Client authentication";
