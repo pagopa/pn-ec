@@ -14,7 +14,7 @@ import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.DELETED_DATA_FROM_DYNAMODB_TABLE;
-import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.concatRequestId;
+import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 
 @Service
 @Slf4j

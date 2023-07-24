@@ -13,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.concatRequestId;
 import static org.springframework.http.HttpStatus.OK;
 
 @Slf4j

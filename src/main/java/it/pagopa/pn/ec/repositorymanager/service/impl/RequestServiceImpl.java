@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.StreamUtils.getStreamOfNullableList;
-import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.concatRequestId;
+import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.createRequestFromPersonalAndMetadata;
 
 @Service
