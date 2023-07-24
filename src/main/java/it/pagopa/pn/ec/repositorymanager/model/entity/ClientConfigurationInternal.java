@@ -21,7 +21,9 @@ public class ClientConfigurationInternal extends DocumentVersion {
     String sqsName;
     String pecReplyTo;
     String mailReplyTo;
+    @ToString.Exclude
     String apiKey;
+    @ToString.Exclude
     SenderPhysicalAddress senderPhysicalAddress;
 }
 

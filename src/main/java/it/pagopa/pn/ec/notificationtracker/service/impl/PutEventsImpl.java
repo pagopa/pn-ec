@@ -15,6 +15,8 @@ import software.amazon.awssdk.services.eventbridge.model.PutEventsResponse;
 import java.time.Duration;
 import java.util.Date;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+
 @Service
 @Slf4j
 public class PutEventsImpl implements PutEvents {
@@ -32,6 +34,7 @@ public class PutEventsImpl implements PutEvents {
 
     @Override
     public <T>Mono<PutEventsResponse> putEventExternal(final T objectToNotify, String processId) {
+        log.info(CLIENT_METHOD_INVOCATION_WITH_ARGS, EVENT_BRIDGE_PUT_EVENT_EXTERNAL, objectToNotify);
         return Mono.fromCallable(() -> PutEventsRequestEntry.builder()
                                                             .time(new Date().toInstant())
                                                             .source("NOTIFICATION TRACKER")
@@ -44,6 +47,6 @@ public class PutEventsImpl implements PutEvents {
                        .doOnError(throwable -> log.error( "EventBridgeClient error ---> {}", throwable.getMessage(), throwable.getCause()))
                        .retryWhen(Retry.backoff(3, Duration.ofSeconds(2)));
 
-        });
+        }).doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, EVENT_BRIDGE_PUT_EVENT_EXTERNAL, result));
     }
 }

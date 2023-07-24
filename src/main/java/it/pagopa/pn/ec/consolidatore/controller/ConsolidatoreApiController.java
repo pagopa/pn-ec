@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.consolidatore.controller;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
-import static it.pagopa.pn.ec.consolidatore.utils.LogUtils.INVALID_API_KEY;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_MESSAGE;
+import static it.pagopa.pn.ec.consolidatore.service.impl.RicezioneEsitiCartaceoServiceImpl.getAllErrors;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_OK_CODE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.INTERNAL_SERVER_ERROR_CODE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.errorCodeDescriptionMap;
@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import it.pagopa.pn.ec.commons.service.AuthService;
-import it.pagopa.pn.ec.consolidatore.exception.RicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.consolidatore.exception.SemanticException;
 import it.pagopa.pn.ec.consolidatore.exception.SyntaxException;
 import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogError;
@@ -40,7 +39,6 @@ import reactor.core.publisher.Mono;
 public class ConsolidatoreApiController implements ConsolidatoreApi {
 
     private static final Integer NRO_MAX_ERRORS = 50;
-    private static final String LOG_LABEL = "ConsolidatoreApiController.sendPaperProgressStatusRequest() : ";
     private final ConsolidatoreServiceImpl consolidatoreServiceImpl;
     private final RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService;
 
@@ -54,19 +52,6 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
         this.consolidatoreServiceImpl = consolidatoreServiceImpl;
         this.ricezioneEsitiCartaceoService = ricezioneEsitiCartaceoService;
         this.safeStorageEndpointProperties = safeStorageEndpointProperties;
-    }
-
-    private List<String> getAllErrors(List<OperationResultCodeResponse> responses) {
-        var errors = new ArrayList<String>();
-        if (responses == null) {
-            return errors;
-        }
-        responses.forEach(response -> {
-            if (!response.getResultCode().equals(COMPLETED_OK_CODE)) {
-                errors.addAll(response.getErrorList());
-            }
-        });
-        return errors;
     }
 
     private OperationResultCodeResponse getOperationResultCodeResponse(String resultCode, String resultDescription, List<String> errors) {
@@ -84,7 +69,10 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 
     @Override
     public Mono<ResponseEntity<FileDownloadResponse>> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, final ServerWebExchange exchange) {
+        log.info(STARTING_PROCESS_ON_LABEL, GET_FILE, fileKey);
         return consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, GET_FILE, fileKey))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, GET_FILE, fileKey, throwable, throwable.getMessage()))
                 .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody")))
                 .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
                 .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
@@ -94,8 +82,10 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 
     @Override
     public Mono<ResponseEntity<PreLoadResponseData>> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> preLoadRequestData, ServerWebExchange exchange) {
-
+        log.info(STARTING_PROCESS_LABEL, PRESIGNED_UPLOAD_REQUEST);
         return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, PRESIGNED_UPLOAD_REQUEST))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, PRESIGNED_UPLOAD_REQUEST, throwable, throwable.getMessage()))
                 .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody")))
                 .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
                 .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
@@ -107,18 +97,20 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                                                             String xApiKey,
                                                                                             Flux<ConsolidatoreIngressPaperProgressStatusEvent> consolidatoreIngressPaperProgressStatusEvent,
                                                                                             final ServerWebExchange exchange) {
-        log.info("START sendPaperProgressStatusRequest, clientID: {}", xPagopaExtchServiceId);
+        log.info(STARTING_PROCESS_LABEL, SEND_PAPER_PROGRESS_STATUS_REQUEST);
         return authService.clientAuth(xPagopaExtchServiceId)
                 .flatMap(clientConfiguration -> {
-
+                    log.info(CHECKING_VALIDATION_PROCESS_ON, X_API_KEY_VALIDATION, xPagopaExtchServiceId);
                     if (clientConfiguration.getApiKey() == null || !clientConfiguration.getApiKey().equals(xApiKey)) {
+                        log.warn(VALIDATION_PROCESS_FAILED, X_API_KEY_VALIDATION, INVALID_API_KEY);
                         return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, INVALID_API_KEY));
                     }
+                    log.info(VALIDATION_PROCESS_PASSED, X_API_KEY_VALIDATION);
                     return Mono.just(clientConfiguration);
                 })
                 .flatMap(clientConfiguration -> consolidatoreIngressPaperProgressStatusEvent
                         .flatMap(statusEvent -> {
-                            log.debug(LOG_LABEL + "START for requestId {}", statusEvent.getRequestId());
+                            log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "START for requestId {}", statusEvent.getRequestId());
                             return ricezioneEsitiCartaceoService.verificaEsitoDaConsolidatore(xPagopaExtchServiceId, statusEvent);
                         })
                         .collectList()
@@ -131,7 +123,6 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                     .toList();
 
                             if (listErrorResponse.isEmpty()) {
-                                log.debug(LOG_LABEL + "Non ci sono errori sintattici/semantici");
 
                                 // eventi
                                 var listEvents = new ArrayList<ConsolidatoreIngressPaperProgressStatusEvent>();
@@ -141,10 +132,10 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                     }
                                 });
 
-                                return publishOnQueue(listEvents, xPagopaExtchServiceId);
+                                return ricezioneEsitiCartaceoService.publishOnQueue(listEvents, xPagopaExtchServiceId);
 
                             } else {
-                                log.debug(LOG_LABEL + "errori sintattici/semantici : Sono stati individuati {} macro errori", listErrorResponse.size());
+                                log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + ": syntax/semantic errors : {} macro errors have been detected", listErrorResponse.size());
                                 // errori
                                 var listErrors = new ArrayList<OperationResultCodeResponse>();
                                 var consAuditLogErrorList = new ArrayList<ConsAuditLogError>();
@@ -162,10 +153,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                 log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(consAuditLogErrorList));
 
                                 var errors = getAllErrors(listErrors);
-                                log.debug(LOG_LABEL + "errori sintattici/semantici : "
-                                                + "result code = \"{}\" : "
-                                                + "result description = \"{}\" : "
-                                                + "specifici errori individuati = {}",
+                                log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "syntax/semantic errors : result code = '{}' : result description = '{}' : specific errors identified = {}",
                                         listErrors.get(0).getResultCode(),
                                         listErrors.get(0).getResultDescription(),
                                         errors);
@@ -176,49 +164,16 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                 errors)));
                             }
                         })
+                        .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, SEND_PAPER_PROGRESS_STATUS_REQUEST))
+                        .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, SEND_PAPER_PROGRESS_STATUS_REQUEST, throwable, throwable.getMessage()))
                         .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody"))))
-                        .onErrorResume(RicezioneEsitiCartaceoException.class, throwable -> {
-                            log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(throwable.getAuditLogErrorList()));
-                            return Mono.just(ResponseEntity.internalServerError()
-                                  .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
-                                    errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
-                                    List.of(throwable.getMessage()))));
-                         })
                         .onErrorResume(RuntimeException.class, throwable -> {
-                            log.error(LOG_LABEL + "* FATAL * errore generico = {}, {}", throwable, throwable.getMessage());
+                            log.error(FATAL_IN_PROCESS, SEND_PAPER_PROGRESS_STATUS_REQUEST, throwable, throwable.getMessage());
                             return Mono.just(ResponseEntity.internalServerError()
                                     .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
                                             errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
                                             List.of(throwable.getMessage()))));
                         });
-    }
-
-
-    private Mono<ResponseEntity<OperationResultCodeResponse>> publishOnQueue(List<ConsolidatoreIngressPaperProgressStatusEvent> listEvents, String xPagopaExtchServiceId){
-        return Flux.fromIterable(listEvents)
-                // pubblicazione sulla coda
-                .flatMap(statusEvent -> ricezioneEsitiCartaceoService.pubblicaEsitoCodaNotificationTracker(xPagopaExtchServiceId, statusEvent))
-                .collectList()
-                // gestione errori oppure response ok
-                .flatMap(listSendResponse -> {
-                    var listSendErrorResponse = listSendResponse.stream().filter(response -> response.getResultCode() != null && !response.getResultCode().equals(COMPLETED_OK_CODE)).toList();
-                    if (listSendErrorResponse.isEmpty()) {
-                        log.debug(LOG_LABEL + "OK END");
-                        return Mono.just(ResponseEntity.ok()
-                                .body(getOperationResultCodeResponse(COMPLETED_OK_CODE,
-                                        COMPLETED_MESSAGE,
-                                        null)));
-                    } else {
-                        var sendErrors = getAllErrors(listSendErrorResponse);
-                        log.debug(LOG_LABEL + "pubblicazione coda : errori individuati = {}", sendErrors);
-                        return Mono.just(ResponseEntity.internalServerError()
-                                .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
-                                        errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
-                                        sendErrors)));
-                    }
-                })
-                .doOnError(RuntimeException.class, throwable ->
-                        log.error("* FATAL * publishOnQueue - {}, {}", throwable, throwable.getMessage()));
     }
 
     private void fieldValidationAuditLog(List<FieldError> errors, Object request) {
