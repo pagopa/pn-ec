@@ -21,6 +21,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.INSERTED_DATA_IN_SQS;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.INSERTING_DATA_IN_SQS;
 import static it.pagopa.pn.ec.commons.utils.OptionalUtils.getFirstListElement;
 
 @Service
@@ -57,7 +59,7 @@ public class SqsServiceImpl implements SqsService {
 
     @Override
     public <T> Mono<SendMessageResponse> send(String queueName, String messageGroupId, Integer delaySeconds, T queuePayload) throws SqsClientException {
-        log.info("<-- START SENDING MESSAGE ON QUEUE  --> Queue name : {}", queueName);
+        log.debug(INSERTING_DATA_IN_SQS, queuePayload, queueName);
         return Mono.fromCallable(() -> objectMapper.writeValueAsString(queuePayload))
                 .doOnNext(sendMessageResponse -> log.debug("Try to publish on {} with payload {}", queueName, sendMessageResponse))
                 .zipWith(getQueueUrlFromName(queueName))
@@ -66,9 +68,10 @@ public class SqsServiceImpl implements SqsService {
                         .messageGroupId(messageGroupId)
                         .delaySeconds(delaySeconds))))
                 .onErrorResume(throwable -> {
-                    log.error(throwable.getMessage(), throwable);
+                    log.error("Error on sqs publish : {}", throwable.getMessage(), throwable);
                     return Mono.error(new SqsClientException(queueName));
-                });
+                })
+                .doOnNext(result->log.info(INSERTED_DATA_IN_SQS, queueName));
     }
 
 

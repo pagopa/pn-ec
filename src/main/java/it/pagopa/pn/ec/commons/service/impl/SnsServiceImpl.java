@@ -7,12 +7,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import software.amazon.awssdk.core.SdkRequest;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
 import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 import software.amazon.awssdk.services.sns.model.PublishResponse;
 import java.util.Map;
+
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Service
 @Slf4j
@@ -33,7 +34,7 @@ public class SnsServiceImpl implements SnsService {
 
     @Override
     public Mono<PublishResponse> send(String phoneNumber, String message) {
-        log.info("<-- START SENDING SMS  -->");
+        log.info(CLIENT_METHOD_INVOCATION, SNS_SEND);
         PublishRequest.Builder builder = PublishRequest.builder().message(message);
 
         if (smsStressTestMode) {
@@ -49,10 +50,10 @@ public class SnsServiceImpl implements SnsService {
                         .stringValue(snsTopicProperties.defaultSenderIdValue())
                         .build())).build()))
         .onErrorResume(throwable -> {
-            log.error(throwable.getMessage());
+            log.error(EXCEPTION_IN_PROCESS, SNS_SEND, throwable, throwable.getMessage());
             return Mono.error(new SnsSendException());
         })
-        .doOnSuccess(sendMessageResponse -> log.debug("Send SMS has returned a {} as status", sendMessageResponse.sdkHttpResponse().statusCode()));
+        .doOnSuccess(sendMessageResponse -> log.debug(CLIENT_METHOD_RETURN,SNS_SEND, sendMessageResponse));
     }
 
 }

@@ -31,7 +31,7 @@ public class EmailUtils {
 
     public static MimeMessage getMimeMessage(byte[] bytes) {
         try {
-            log.info("---> Start getting MimeMessage from byte array with length '{}' <---", bytes.length);
+            log.debug("Start getting MimeMessage from byte array with length '{}'", bytes.length);
             return new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(bytes));
         } catch (MessagingException e) {
             throw new ComposeMimeMessageException();
@@ -125,7 +125,7 @@ public class EmailUtils {
     }
     public static byte[] getAttachmentFromMimeMessage(MimeMessage mimeMessage, String attachmentName) {
         try {
-            log.info("---> Start retrieving attachment with name '{}' <---", attachmentName);
+            log.debug("Start retrieving attachment with name '{}'", attachmentName);
             Object content = mimeMessage.getContent();
             if (content instanceof String) {
                 return null;
@@ -174,7 +174,7 @@ public class EmailUtils {
 
     public static byte[] findAttachmentByName(MimeMessage mimeMessage, String attachmentName) {
         try {
-            log.info("---> Start retrieving attachment with name '{}' <---", attachmentName);
+            log.debug("Start retrieving attachment with name '{}'", attachmentName);
             MimeMessageParser mimeMessageParser = new MimeMessageParser(mimeMessage);
             DataSource attachment = mimeMessageParser.parse().findAttachmentByName(attachmentName);
             return attachment == null ? null : attachment.getInputStream().readAllBytes();
