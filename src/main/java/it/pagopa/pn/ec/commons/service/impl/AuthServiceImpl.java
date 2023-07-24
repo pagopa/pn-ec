@@ -40,8 +40,8 @@ public class AuthServiceImpl implements AuthService {
         log.info(CHECKING_VALIDATION_PROCESS_ON, CLIENT_AUTHENTICATION, xPagopaExtchCxId);
         return gestoreRepositoryCall.getClientConfiguration(xPagopaExtchCxId)
                 .onErrorResume(RestCallException.ResourceNotFoundException.class, throwable -> Mono.error(new ClientNotFoundException(xPagopaExtchCxId)))
-                .doOnNext(result->log.info(VALIDATION_PROCESS_PASSED, CLIENT_AUTHENTICATION))
-                .doOnError(throwable -> log.warn(VALIDATION_PROCESS_FAILED, CLIENT_AUTHENTICATION, throwable.getMessage()));
+                .doOnError(throwable -> log.warn(VALIDATION_PROCESS_FAILED, CLIENT_AUTHENTICATION, throwable.getMessage()))
+                .doOnNext(result->log.info(VALIDATION_PROCESS_PASSED, CLIENT_AUTHENTICATION));
     }
 
     @Override

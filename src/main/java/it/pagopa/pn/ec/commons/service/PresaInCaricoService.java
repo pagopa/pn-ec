@@ -20,7 +20,7 @@ public abstract class PresaInCaricoService {
 
     public Mono<Void> presaInCarico(PresaInCaricoInfo presaInCaricoInfo) {
         String concatRequestId = concatRequestId(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx());
-        log.debug(INVOKING_OPERATION_LABEL, PRESA_IN_CARICO, concatRequestId);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO, concatRequestId);
         return authService.clientAuth(presaInCaricoInfo.getXPagopaExtchCxId())
                 .flatMap(clientConfigurationDto -> specificPresaInCarico(presaInCaricoInfo))
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, PRESA_IN_CARICO, result));

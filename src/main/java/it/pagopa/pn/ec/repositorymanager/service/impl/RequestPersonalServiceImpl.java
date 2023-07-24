@@ -2,7 +2,6 @@ package it.pagopa.pn.ec.repositorymanager.service.impl;
 
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
-import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfigurationInternal;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.repositorymanager.service.RequestPersonalService;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +30,7 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
 
     @Override
     public Mono<RequestPersonal> getRequestPersonal(String concatRequestId) {
-        log.debug(INVOKING_OPERATION_LABEL, GET_REQUEST_PERSONAL_OP, concatRequestId);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GET_REQUEST_PERSONAL_OP, concatRequestId);
         return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(concatRequestId))).defaultIfEmpty(new RequestPersonal())
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, GET_REQUEST_PERSONAL_OP, result));
     }
@@ -39,7 +38,7 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
     @Override
     public Mono<RequestPersonal> insertRequestPersonal(RequestPersonal requestPersonal) {
         String concatRequestId = concatRequestId(requestPersonal.getXPagopaExtchCxId(), requestPersonal.getRequestId());
-        log.debug(INVOKING_OPERATION_LABEL, INSERT_REQUEST_PERSONAL_OP, concatRequestId);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_PERSONAL_OP, concatRequestId);
         return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(requestPersonal.getRequestId())))
                    .flatMap(foundedRequest -> Mono.error(new RepositoryManagerException.IdRequestAlreadyPresent(requestPersonal.getRequestId())))
                    .defaultIfEmpty(requestPersonal)
@@ -59,7 +58,7 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
 
     @Override
     public Mono<RequestPersonal> deleteRequestPersonal(String concatRequestId) {
-        log.debug(INVOKING_OPERATION_LABEL, DELETE_REQUEST_PERSONAL_OP, concatRequestId);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, DELETE_REQUEST_PERSONAL_OP, concatRequestId);
         return Mono.fromCompletionStage(requestPersonalDynamoDbTable.getItem(getKey(concatRequestId)))
                    .defaultIfEmpty(new RequestPersonal())
                    .flatMap(requestToDelete -> deleteRequestPersonalFromDynamoDb(concatRequestId))

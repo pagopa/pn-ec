@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.consolidatore.service.impl;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.ConsolidatoreEndpointProperties;
-import it.pagopa.pn.ec.commons.exception.InvalidApiKeyException;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogError;
@@ -59,7 +58,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                     return Mono.just(clientConfiguration);
                 })
                 .then(attachments)
-                .doOnNext(preLoadRequestData -> log.debug(INVOKING_OPERATION_LABEL, PRESIGNED_UPLOAD_REQUEST, preLoadRequestData))
+                .doOnNext(preLoadRequestData -> log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESIGNED_UPLOAD_REQUEST, preLoadRequestData))
                 .map(PreLoadRequestData::getPreloads)
                 .flatMapMany(Flux::fromIterable)
                 .transform(checkSyntaxErrors())
@@ -85,7 +84,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                     String xTraceId = RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH);
 
                     return fileCall.postFile(xPagopaExtchServiceId, xApiKey, preLoadRequest.getSha256(), xTraceId, fileCreationRequest)
-                            .doOnError(ConnectException.class, e -> log.error("* FATAL * presignedUploadRequest - {}, {}", e, e.getMessage()))
+                            .doOnError(ConnectException.class, e -> log.error(FATAL_IN_PROCESS_FOR, PRESIGNED_UPLOAD_REQUEST, preLoadRequest.getPreloadIdx(), e, e.getMessage()))
                             .flux()
                             .map(fileCreationResponse ->
                             {
@@ -119,7 +118,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
 
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId
             , String xApiKey) {
-        log.debug(INVOKING_OPERATION_LABEL, CONSOLIDATORE_GET_FILE, fileKey);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CONSOLIDATORE_GET_FILE, fileKey);
         return checkHeaders(xPagopaExtchServiceId)
                 .then(authService.clientAuth(xPagopaExtchServiceId))
                 .flatMap(clientConfiguration -> {
@@ -134,7 +133,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                     return Mono.just(clientConfiguration);
                 })
                 .then(fileCall.getFile(fileKey, xPagopaExtchServiceId, xApiKey, RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH)))
-                .doOnError(ConnectException.class, e -> log.error("* FATAL * getFile - {}, {}", e, e.getMessage()))
+                .doOnError(ConnectException.class, e -> log.error(FATAL_IN_PROCESS_FOR, GET_FILE, fileKey, e, e.getMessage()))
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, fileKey, GET_FILE, result));
     }
 

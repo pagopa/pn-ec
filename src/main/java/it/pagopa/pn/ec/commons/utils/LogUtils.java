@@ -1,7 +1,5 @@
 package it.pagopa.pn.ec.commons.utils;
 
-import java.util.Optional;
-
 public class LogUtils {
     public static final String INVALID_API_KEY = "Invalid API key";
     public static final String STARTING_PROCESS_LABEL = "Starting '{}' Process.";
@@ -11,19 +9,20 @@ public class LogUtils {
     public static final String ENDING_PROCESS_WITH_ERROR_LABEL = "Ending '{}' Process with error = {} - {}";
     public static final String ENDING_PROCESS_ON_WITH_ERROR_LABEL = "Ending '{}' Process on '{}' with error = {} - {}";
 
-    public static final String INVOKING_OPERATION_LABEL = "Invoking operation '{}' with args: {}";
-    public static final String INVOKING_OPERATION_LABEL_NO_ARGS = "Invoking operationId '{}'";
+    public static final String INVOKING_OPERATION_LABEL_WITH_ARGS = "Invoking operation '{}' with args: {}";
+    public static final String INVOKING_OPERATION_LABEL = "Invoking operation '{}'";
     public static final String SUCCESSFUL_OPERATION_LABEL = "Successful operation: '{}' = {}";
+
     public static final String SUCCESSFUL_OPERATION_ON_LABEL = "Successful operation on '{}' : '{}' = {}";
     public static final String SUCCESSFUL_OPERATION_NO_RESULT_LABEL = "Successful operation: '{}'";
     public static final String INSERTING_DATA_IN_SQS = "Inserting data {} in SQS '{}'";
     public static final String INSERTED_DATA_IN_SQS = "Inserted data in SQS '{}'";
     public static final String PRESA_IN_CARICO = "PresaInCaricoService.presaInCarico()";
-
     public static final String MESSAGE_REMOVED_FROM_ERROR_QUEUE = "The message '{}' has been successfully handled and removed from the error queue '{}'";
-
-    public static final String EXCEPTION_IN_PROCESS = "Exception in '{}' for request '{}' - {}, {}";
-    public static final String FATAL_IN_PROCESS = "* FATAL * in '{}' for request '{}' - {}, {}";
+    public static final String EXCEPTION_IN_PROCESS_FOR = "Exception in '{}' for request '{}' - {}, {}";
+    public static final String EXCEPTION_IN_PROCESS = "Exception in '{}' - {}, {}";
+    public static final String FATAL_IN_PROCESS_FOR = "* FATAL * in '{}' for request '{}' - {}, {}";
+    public static final String FATAL_IN_PROCESS = "* FATAL * in '{}' - {}, {}";
     public static final String SHORT_RETRY_ATTEMPT = "Short retry attempt number '{}' caused by : {} - {}";
     public static final String RETRY_ATTEMPT = "{} - retry attempt number '{}' for request '{}'";
     public static final String ARUBA_SEND_EXCEPTION = "ArubaSendException occurred during lavorazione PEC for request '{}' - Errcode: {}, Errstr: {}, Errblock: {}";
@@ -67,6 +66,10 @@ public class LogUtils {
     public static final String UPDATE_CLIENT = "updateClient";
     public static final String DELETE_CLIENT = "deleteClient";
     public static final String GET_ALL_CLIENT = "getAllClient";
+
+    //NOTIFICATION_TRACKER
+    public static final String NT_HANDLE_REQUEST_STATUS_CHANGE = "NotificationTrackerService.handleRequestStatusChange()";
+    public static final String NT_HANDLE_MESSAGE_FROM_ERROR_QUEUE = "NotificationTrackerService.handleMessageFromErrorQueue()";
 
 
     //PEC
@@ -145,7 +148,8 @@ public class LogUtils {
     public static final String CONSOLIDATORE_SERVICE = "Consolidatore";
 
     //SERVIZI ESTERNI
-    public static final String CLIENT_METHOD_INVOCATION = "Client method {} - args: {}";
+    public static final String CLIENT_METHOD_INVOCATION_WITH_ARGS = "Client method {} - args: {}";
+    public static final String CLIENT_METHOD_INVOCATION = "Client method {}";
     public static final String CLIENT_METHOD_RETURN = "Return client method: {} = {}";
 
     //ARUBA
@@ -153,6 +157,12 @@ public class LogUtils {
     public static final String ARUBA_GET_MESSAGE_ID = "ArubaCall.getMessageId()";
     public static final String ARUBA_SEND_MAIL = "ArubaCall.sendMail()";
     public static final String ARUBA_GET_ATTACH = "ArubaCall.getAttach()";
+
+    //SES
+    public static final String SES_SEND_MAIL = "SesService.sendMail()";
+
+    //SNS
+    public static final String SNS_SEND = "SnsService.send()";
 
     //DYNAMODB
     public static final String INSERTING_DATA_IN_DYNAMODB_TABLE = "Inserting data {} in DynamoDB table '{}'";
@@ -165,4 +175,23 @@ public class LogUtils {
     //DOWNLOAD CALL
     public static final String DOWNLOAD_FILE = "DownloadCall.downloadFile()";
     public static final String REQUEST_METADATA_TABLE = "RequestMetadata";
+
+    //SCARICAMENTO/LAVORAZIONE ESITI PEC
+    public static final String STARTING_SCHEDULED = "Starting scheduled process '{}'";
+    public static final String SCARICAMENTO_ESITI_PEC = "scaricamentoEsitiPecScheduler()";
+    public static final String PROCESSING_PEC = "Processing PEC '{}' in '{}' for request '{}' ";
+    public static final String BUILDING_PEC_QUEUE_PAYLOAD = "Building queue payload for PEC '{}' in '{}'";
+    public static final String PEC_DISCARDED = "PEC '{}' discarded in '{}' - reason : {}";
+    public static final String NOT_SENT_BY_US = "Not sent by us";
+    public static final String LAVORAZIONE_ESITI_PEC = "LavorazioneEsitiPecService.lavorazioneEsitiPec()";
+    public static final String GENERATE_LOCATION = "LavorazioneEsitiPecService.generateLocation()";
+    public static final String LOCATION_GENERATED = "Location generated in '{}' for request '{}'";
+
+
+    //CLOUD WATCH
+    public static final String PUBLISH_CUSTOM_PEC_METRICS = "CloudWatchPecMetrics.publishCustomPecMetrics()";
+
+    //EVENT BRIDGE
+    public static final String EVENT_BRIDGE_PUT_EVENT_EXTERNAL = "EventBridge - PutEvents.putEventExternal()";
+
 }

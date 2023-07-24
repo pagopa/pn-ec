@@ -101,7 +101,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
 
-        log.debug(INVOKING_OPERATION_LABEL, PRESA_IN_CARICO_PEC, presaInCaricoInfo);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_PEC, presaInCaricoInfo);
 
         digitalNotificationRequest.setRequestId(requestIdx);
 
@@ -136,7 +136,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromPec(final DigitalNotificationRequest digitalNotificationRequest, String xPagopaExtchCxId) {
         String concatRequestId = concatRequestId(xPagopaExtchCxId, digitalNotificationRequest.getRequestId());
-        log.debug(INVOKING_OPERATION_LABEL, INSERT_REQUEST_FROM_PEC, digitalNotificationRequest);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_PEC, digitalNotificationRequest);
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
             requestDto.setRequestIdx(digitalNotificationRequest.getRequestId());
@@ -196,7 +196,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
-        log.debug(INVOKING_OPERATION_LABEL, LAVORAZIONE_RICHIESTA_PEC, pecPresaInCaricoInfo);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, LAVORAZIONE_RICHIESTA_PEC, pecPresaInCaricoInfo);
 
         try {
             semaphore.acquire();
@@ -244,7 +244,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                             return sendNotificationOnErrorQueue(pecPresaInCaricoInfo);
                         }))
 
-                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, LAVORAZIONE_RICHIESTA_PEC, concatRequestId, throwable, throwable.getMessage()))
+                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS_FOR, LAVORAZIONE_RICHIESTA_PEC, concatRequestId, throwable, throwable.getMessage()))
 
                 .onErrorResume(throwable -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                         RETRY.getStatusTransactionTableCompliant(),
@@ -353,7 +353,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
         var clientId=pecPresaInCaricoInfo.getXPagopaExtchCxId();
         String concatRequestId = concatRequestId(clientId, requestIdx);
-        log.debug(INVOKING_OPERATION_LABEL, FILTER_REQUEST_PEC, pecPresaInCaricoInfo);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, FILTER_REQUEST_PEC, pecPresaInCaricoInfo);
 
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
         String toDelete = "toDelete";
@@ -433,7 +433,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
-        log.debug(INVOKING_OPERATION_LABEL, GESTIONE_RETRY_PEC, pecPresaInCaricoInfo);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GESTIONE_RETRY_PEC, pecPresaInCaricoInfo);
 
         return filterRequestPec(pecPresaInCaricoInfo).flatMap(requestDto -> {
 //            check step error per evitare null pointer
@@ -458,7 +458,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                         })
                                 .onErrorResume(
                                         sqsPublishException -> {
-                                            log.error(FATAL_IN_PROCESS, GESTIONE_RETRY_PEC, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
+                                            log.error(FATAL_IN_PROCESS_FOR, GESTIONE_RETRY_PEC, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
                                             return checkTentativiEccessiviPec(
                                                     requestIdx,
                                                     requestDto,
@@ -512,7 +512,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                     return deleteMessageFromErrorQueue(message);
                                 })
                                 .onErrorResume(sqsPublishException -> {
-                                    log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_PEC, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
+                                    log.warn(EXCEPTION_IN_PROCESS_FOR, GESTIONE_RETRY_PEC, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
                                     return checkTentativiEccessiviPec(requestIdx,
                                             requestDto,
                                             pecPresaInCaricoInfo,
@@ -531,13 +531,13 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                             sendMessageResponse -> deleteMessageFromErrorQueue(message));
 
                 }).onErrorResume(internalError -> {
-                    log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_PEC, concatRequestId, internalError, internalError.getMessage());
+                    log.warn(EXCEPTION_IN_PROCESS_FOR, GESTIONE_RETRY_PEC, concatRequestId, internalError, internalError.getMessage());
                     return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                             INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                             new DigitalProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(
                             message));
                 })
-                .doOnError(throwable -> log.error(FATAL_IN_PROCESS, GESTIONE_RETRY_PEC, concatRequestId, throwable, throwable.getMessage()))
+                .doOnError(throwable -> log.error(FATAL_IN_PROCESS_FOR, GESTIONE_RETRY_PEC, concatRequestId, throwable, throwable.getMessage()))
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, GESTIONE_RETRY_PEC, result));
     }
 

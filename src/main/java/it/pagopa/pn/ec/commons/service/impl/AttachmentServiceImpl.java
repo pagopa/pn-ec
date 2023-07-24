@@ -27,7 +27,7 @@ public class AttachmentServiceImpl implements AttachmentService {
 
     @Override
     public Mono<FileDownloadResponse> getAllegatiPresignedUrlOrMetadata(String attachmentUrls, String xPagopaExtchCxId, boolean metadataOnly) {
-        log.debug(INVOKING_OPERATION_LABEL, INSERT_REQUEST_OP, attachmentUrls);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_OP, attachmentUrls);
         return Mono.just(attachmentUrls)
                    .handle((attachmentUrl, synchronousSink) -> {
                        if (!attachmentUrl.startsWith(ATTACHMENT_PREFIX)) {
@@ -39,12 +39,12 @@ public class AttachmentServiceImpl implements AttachmentService {
                    .cast(String.class)
                    .flatMap(attachmentUrl -> uriBuilderCall.getFile(attachmentUrl.substring(ATTACHMENT_PREFIX.length()), xPagopaExtchCxId, metadataOnly))
                    .switchIfEmpty(Mono.just(new FileDownloadResponse()))
-                   .doOnNext(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, attachmentUrls, INSERT_REQUEST_OP, result));
+                   .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, attachmentUrls, INSERT_REQUEST_OP, result));
     }
 
     @Override
     public Flux<FileDownloadResponse> getAllegatiPresignedUrlOrMetadata(List<String> attachmentUrls, String xPagopaExtchCxId, boolean metadataOnly) {
-        log.debug(INVOKING_OPERATION_LABEL, INSERT_REQUEST_OP, attachmentUrls);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_OP, attachmentUrls);
         return Flux.fromIterable(Objects.isNull(attachmentUrls) ? List.of() : attachmentUrls)
                    .handle((attachmentUrl, synchronousSink) -> {
                        if (!attachmentUrl.startsWith(ATTACHMENT_PREFIX)) {
@@ -56,6 +56,6 @@ public class AttachmentServiceImpl implements AttachmentService {
                    .cast(String.class)
                    .flatMap(attachmentUrl -> uriBuilderCall.getFile(attachmentUrl.substring(ATTACHMENT_PREFIX.length()), xPagopaExtchCxId, metadataOnly))
                    .switchIfEmpty(Mono.just(new FileDownloadResponse()))
-                   .doOnNext(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, attachmentUrls, INSERT_REQUEST_OP, result));
+                   .doOnComplete(() -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, attachmentUrls, INSERT_REQUEST_OP));
     }
 }

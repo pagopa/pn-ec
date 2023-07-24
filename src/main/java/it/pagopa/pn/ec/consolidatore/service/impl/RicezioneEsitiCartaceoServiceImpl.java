@@ -74,13 +74,13 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			throws RicezioneEsitiCartaceoException
 	{
 		var requestId=progressStatusEvent.getRequestId();
-		log.debug(INVOKING_OPERATION_LABEL, VERIFICA_ERRORI_SEMANTICI, progressStatusEvent);
+		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, VERIFICA_ERRORI_SEMANTICI, progressStatusEvent);
 
 
 		return statusPullService.paperPullService(requestId, xPagopaExtchServiceId)
 				.onErrorResume(StatusNotFoundException.class, throwable ->
 				{
-					log.error(VERIFICA_ERRORI_SEMANTICI + ": * FATAL * requestId = {}, errore status decode -> message : {}", requestId, throwable.getMessage());
+					log.error(FATAL_IN_PROCESS_FOR, VERIFICA_ERRORI_SEMANTICI, requestId, throwable, throwable.getMessage());
 					ConsAuditLogError consAuditLogError = new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_STATUS.getValue()).description("Unable to decode last status");
 					return Mono.error(new RicezioneEsitiCartaceoException(SEMANTIC_ERROR_CODE, errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE), List.of("Unable to decode last status"), List.of(consAuditLogError)));
 				})
@@ -138,10 +138,8 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 					var auditLogErrorList = tuple.getT2();
 
 					if (errorList.isEmpty()) {
-						log.debug(VERIFICA_ERRORI_SEMANTICI + ": END without errors for requestId \"{}\"", progressStatusEvent.getRequestId());
 						syncrhonousSink.next(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null));
 					} else {
-						log.info("{}", errorList);
 						syncrhonousSink.error(new RicezioneEsitiCartaceoException(
 								SEMANTIC_ERROR_CODE,
 								errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
@@ -158,7 +156,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			List<ConsolidatoreIngressPaperProgressStatusEventAttachments> attachments)
 				throws RicezioneEsitiCartaceoException // uri formalmente scorretto
 	{
-		log.debug(INVOKING_OPERATION_LABEL, VERIFICA_ATTACHMENTS, List.of(requestId, attachments));
+		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, VERIFICA_ATTACHMENTS, List.of(requestId, attachments));
 
 		if (attachments == null || attachments.isEmpty()) {
 			log.debug(VERIFICA_ATTACHMENTS + ": END without attachments");
@@ -168,7 +166,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			.flatMap(attachment -> {
 				if (attachment.getUri().contains(SS_IN_URI)) {
 					String documentAttachmentKey = attachment.getUri().replace(SS_IN_URI, "");
-					log.debug(VERIFICA_ATTACHMENTS + ": attachment.uri = {} -> documentKey = {}", attachment.getUri(), documentAttachmentKey);
 					// se ok (httpstatus 200), continuo (verifica andata a buon fine)
 					return Mono.just(documentAttachmentKey);
 				}
@@ -182,13 +179,12 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			// se non si verificano errori, procedo e non mi interssa il risultato
 			.collectList()
 			.flatMap(unused -> {
-				log.debug(VERIFICA_ATTACHMENTS + ": END without errors");
+				log.debug(VERIFICA_ATTACHMENTS + ": END without errors for request '{}'", requestId);
 				return Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null));
 			})
 			.onErrorResume(Generic400ErrorException.class,
 					   throwable -> {
-							 log.error(VERIFICA_ATTACHMENTS + ": * FATAL * requestId = {}, errore attachment -> title = {}, details {}",
-									   requestId, throwable.getTitle(), throwable.getDetails(), throwable);
+							 log.error(FATAL_IN_PROCESS_FOR, VERIFICA_ATTACHMENTS, requestId, throwable, throwable.getMessage());
 							 return Mono.error(new RicezioneEsitiCartaceoException(
 												  SEMANTIC_ERROR_CODE,
 												  errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
@@ -202,11 +198,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 								errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
 								List.of(String.format(UNRECOGNIZED_ERROR_NO_VALUE, ATTACHMENT_URI_LABEL)), List.of(consAuditLogError)));
 			})
-			.onErrorResume(RuntimeException.class,
-					   throwable -> {
-						     log.error("* FATAL * verificaAttachments - {}, {}", throwable, throwable.getMessage());
-							 return Mono.error(throwable);
-			})
+			.doOnError(throwable -> log.error(FATAL_IN_PROCESS_FOR, VERIFICA_ATTACHMENTS, requestId, throwable, throwable.getMessage()))
 			.doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, requestId, VERIFICA_ATTACHMENTS, result));
 	}
 
@@ -214,7 +206,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	public Mono<RicezioneEsitiDto> verificaEsitoDaConsolidatore(
 			String xPagopaExtchServiceId, ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent)
 	{
-		  log.debug(INVOKING_OPERATION_LABEL, VERIFICA_ESITO_DA_CONSOLIDATORE, progressStatusEvent);
+		  log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, VERIFICA_ESITO_DA_CONSOLIDATORE, progressStatusEvent);
 		  var requestId = progressStatusEvent.getRequestId();
 		  return Mono.just(progressStatusEvent)
 				 .flatMap(unused -> gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceId, progressStatusEvent.getRequestId()))
@@ -235,8 +227,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			     })
 			     // *** errore semantico
 			     .onErrorResume(RicezioneEsitiCartaceoException.class, throwable -> {
-		    		 log.debug("RicezioneEsitiCartaceoServiceImpl.verificaEsitoDaConsolidatore() : errore ResultCode = {} : errore ResultDescription = {} :",
-		    				   throwable.getResultCode(), throwable.getResultDescription(), throwable);
+		    		 log.debug(EXCEPTION_IN_PROCESS_FOR, VERIFICA_ESITO_DA_CONSOLIDATORE, requestId, throwable, throwable.getMessage());
 			    	 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 								    			 		    getOperationResultCodeResponse(throwable.getResultCode(),
 																						   throwable.getResultDescription(),
@@ -244,7 +235,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			     })
 			     // *** errore generico
 			     .onErrorResume(RuntimeException.class, throwable -> {
-		    	     log.error("* FATAL * verificaEsitoDaConsolidatore - {}, {}", throwable, throwable.getMessage());
+					 log.error(FATAL_IN_PROCESS_FOR, VERIFICA_ESITO_DA_CONSOLIDATORE, requestId, throwable, throwable.getMessage());
 					 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 							 getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
 									 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
@@ -258,7 +249,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			String xPagopaExtchServiceId,
 			ConsolidatoreIngressPaperProgressStatusEvent statusEvent)
 	{
-		log.debug(INVOKING_OPERATION_LABEL, PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER, statusEvent);
+		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER, statusEvent);
 
 		var requestId=statusEvent.getRequestId();
 
@@ -295,8 +286,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	 			paperProgressStatusDto.setAttachments(attachmentsDto);
 				paperProgressStatusDto.setClientRequestTimeStamp(statusEvent.getClientRequestTimeStamp());
 
-				log.debug(LOG_PUB_LABEL + "paperProgressStatusDto = {}", paperProgressStatusDto);
-
 	 			return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
 	 								   NotificationTrackerQueueDto.createNotificationTrackerQueueDtoRicezioneEsitiPaper(
 	 										   presaInCaricoInfo,
@@ -305,8 +294,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			})
 			.flatMap(unused -> Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null)))
 			.onErrorResume(SqsClientException.class, throwable -> {
-	    		 log.error("* FATAL * RicezioneEsitiCartaceoServiceImpl.pubblicaEsitoCodaNotificationTracker() : errore pubblicazione coda : message = {} :",
-	    				   throwable.getMessage(), throwable);
+				 log.error(FATAL_IN_PROCESS_FOR, PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER, requestId, throwable, throwable.getMessage());
 	    		 return Mono.just(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
 	    				 										 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
 	    				 										 List.of(throwable.getMessage())));
@@ -317,7 +305,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				return Mono.error(new RicezioneEsitiCartaceoException(SEMANTIC_ERROR_CODE,errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),List.of(throwable.getMessage()),List.of(consAuditLogError)));
 			})
 			.onErrorResume(RuntimeException.class, throwable -> {
-				 log.error("* FATAL * pubblicaEsitoCodaNotificationTracker - {}, {}", throwable, throwable.getMessage());
+				 log.error(FATAL_IN_PROCESS_FOR, PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER, requestId, throwable, throwable.getMessage());
 	    		 return Mono.just(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
 	    				 										 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
 	    				 										 List.of(throwable.getMessage())));
@@ -326,7 +314,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	}
 
 	public Mono<ResponseEntity<OperationResultCodeResponse>> publishOnQueue(List<ConsolidatoreIngressPaperProgressStatusEvent> listEvents, String xPagopaExtchServiceId){
-		log.debug(INVOKING_OPERATION_LABEL, PUBLISH_ON_QUEUE, listEvents);
+		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PUBLISH_ON_QUEUE, listEvents);
 		return Flux.fromIterable(listEvents)
 				// pubblicazione sulla coda
 				.flatMap(statusEvent -> pubblicaEsitoCodaNotificationTracker(xPagopaExtchServiceId, statusEvent))
@@ -335,14 +323,13 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				.flatMap(listSendResponse -> {
 					var listSendErrorResponse = listSendResponse.stream().filter(response -> response.getResultCode() != null && !response.getResultCode().equals(COMPLETED_OK_CODE)).toList();
 					if (listSendErrorResponse.isEmpty()) {
-						log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "OK END");
 						return Mono.just(ResponseEntity.ok()
 								.body(getOperationResultCodeResponse(COMPLETED_OK_CODE,
 										COMPLETED_MESSAGE,
 										null)));
 					} else {
 						var sendErrors = getAllErrors(listSendErrorResponse);
-						log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "pubblicazione coda : errori individuati = {}", sendErrors);
+						log.debug(PUBLISH_ON_QUEUE + ": errors found = {}", sendErrors);
 						return Mono.just(ResponseEntity.internalServerError()
 								.body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
 										errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),

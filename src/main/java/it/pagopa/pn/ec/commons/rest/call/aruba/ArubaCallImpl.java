@@ -29,7 +29,6 @@ public class ArubaCallImpl implements ArubaCall {
         this.pecImapBridge = pecImapBridge;
         this.arubaSecretValue = arubaSecretValue;
         this.arubaCallProperties = arubaCallProperties;
-        log.debug("---> ARUBA CALL RETRY STRATEGY <--- MaxAttempts : {} , MinBackoff : {}", arubaCallProperties.maxAttempts(), arubaCallProperties.minBackoff());
     }
 
     private Retry getArubaCallRetryStrategy () {
@@ -43,7 +42,7 @@ public class ArubaCallImpl implements ArubaCall {
     public Mono<GetMessagesResponse> getMessages(GetMessages getMessages) {
         getMessages.setUser(arubaSecretValue.getPecUsername());
         getMessages.setPass(arubaSecretValue.getPecPassword());
-        log.debug(CLIENT_METHOD_INVOCATION, ARUBA_GET_MESSAGES, getMessages);
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGES, getMessages);
         return Mono.create(sink -> pecImapBridge.getMessagesAsync(getMessages, outputFuture -> {
             try {
                 var result = outputFuture.get();
@@ -60,7 +59,7 @@ public class ArubaCallImpl implements ArubaCall {
     public Mono<GetMessageIDResponse> getMessageId(GetMessageID getMessageID) {
         getMessageID.setUser(arubaSecretValue.getPecUsername());
         getMessageID.setPass(arubaSecretValue.getPecPassword());
-        log.debug(CLIENT_METHOD_INVOCATION, ARUBA_GET_MESSAGE_ID, getMessageID);
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGE_ID, getMessageID);
         return Mono.create(sink -> pecImapBridge.getMessageIDAsync(getMessageID, outputFuture -> {
             try {
                 var result = outputFuture.get();
@@ -77,7 +76,7 @@ public class ArubaCallImpl implements ArubaCall {
     public Mono<SendMailResponse> sendMail(SendMail sendMail) {
         sendMail.setUser(arubaSecretValue.getPecUsername());
         sendMail.setPass(arubaSecretValue.getPecPassword());
-        log.debug(CLIENT_METHOD_INVOCATION, ARUBA_SEND_MAIL, sendMail);
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_SEND_MAIL, sendMail);
         return Mono.create(sink -> pecImapBridge.sendMailAsync(sendMail, outputFuture -> {
             try {
                 var result = outputFuture.get();
@@ -94,7 +93,7 @@ public class ArubaCallImpl implements ArubaCall {
     public Mono<GetAttachResponse> getAttach(GetAttach getAttach) {
         getAttach.setUser(arubaSecretValue.getPecUsername());
         getAttach.setPass(arubaSecretValue.getPecPassword());
-        log.debug(CLIENT_METHOD_INVOCATION, ARUBA_GET_ATTACH, getAttach);
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_ATTACH, getAttach);
         return Mono.create(sink -> pecImapBridge.getAttachAsync(getAttach, outputFuture -> {
             try {
                 var result = outputFuture.get();

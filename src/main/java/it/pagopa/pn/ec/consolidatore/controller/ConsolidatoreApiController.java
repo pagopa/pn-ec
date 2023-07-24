@@ -123,7 +123,6 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                     .toList();
 
                             if (listErrorResponse.isEmpty()) {
-                                log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "Non ci sono errori sintattici/semantici");
 
                                 // eventi
                                 var listEvents = new ArrayList<ConsolidatoreIngressPaperProgressStatusEvent>();
@@ -136,7 +135,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                 return ricezioneEsitiCartaceoService.publishOnQueue(listEvents, xPagopaExtchServiceId);
 
                             } else {
-                                log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "errori sintattici/semantici : Sono stati individuati {} macro errori", listErrorResponse.size());
+                                log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + ": syntax/semantic errors : {} macro errors have been detected", listErrorResponse.size());
                                 // errori
                                 var listErrors = new ArrayList<OperationResultCodeResponse>();
                                 var consAuditLogErrorList = new ArrayList<ConsAuditLogError>();
@@ -154,10 +153,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                 log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(consAuditLogErrorList));
 
                                 var errors = getAllErrors(listErrors);
-                                log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "errori sintattici/semantici : "
-                                                + "result code = \"{}\" : "
-                                                + "result description = \"{}\" : "
-                                                + "specifici errori individuati = {}",
+                                log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "syntax/semantic errors : result code = '{}' : result description = '{}' : specific errors identified = {}",
                                         listErrors.get(0).getResultCode(),
                                         listErrors.get(0).getResultDescription(),
                                         errors);
@@ -172,7 +168,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                         .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, SEND_PAPER_PROGRESS_STATUS_REQUEST, throwable, throwable.getMessage()))
                         .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody"))))
                         .onErrorResume(RuntimeException.class, throwable -> {
-                            log.error(SEND_PAPER_PROGRESS_STATUS_REQUEST + "* FATAL * errore generico = {}, {}", throwable, throwable.getMessage());
+                            log.error(FATAL_IN_PROCESS, SEND_PAPER_PROGRESS_STATUS_REQUEST, throwable, throwable.getMessage());
                             return Mono.just(ResponseEntity.internalServerError()
                                     .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
                                             errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),

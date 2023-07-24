@@ -17,7 +17,6 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -86,7 +85,7 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Mono<Request> getRequest(String clientId, String requestIdx) {
         var concatRequest = concatRequestId(clientId, requestIdx);
-        log.debug(INVOKING_OPERATION_LABEL, GET_REQUEST_OP, concatRequest);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GET_REQUEST_OP, concatRequest);
         return Mono.zip(requestPersonalService.getRequestPersonal(concatRequest), requestMetadataService.getRequestMetadata(concatRequest))
                    .map(objects -> {
                        RequestPersonal retrievedRequestPersonal = objects.getT1();
@@ -98,7 +97,7 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Mono<Request> insertRequest(Request request) {
         var concatRequest = concatRequestId(request.getXPagopaExtchCxId(), request.getRequestId());
-        log.debug(INVOKING_OPERATION_LABEL, INSERT_REQUEST_OP, concatRequest);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_OP, concatRequest);
         return Mono.fromCallable(() -> {
                        var concatRequestId = concatRequestId(request.getXPagopaExtchCxId(), request.getRequestId());
                        var clientId = request.getXPagopaExtchCxId();
@@ -162,7 +161,7 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Mono<Request> patchRequest(String clientId, String requestIdx, Patch patch) {
         var concatRequest = concatRequestId(clientId, requestIdx);
-        log.debug(INVOKING_OPERATION_LABEL, PATCH_REQUEST_OP, concatRequest);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PATCH_REQUEST_OP, concatRequest);
         return Mono.zip(requestPersonalService.getRequestPersonal(concatRequest),
                         requestMetadataService.patchRequestMetadata(concatRequest, patch)).map(objects -> {
             RequestPersonal retrievedRequestPersonal = objects.getT1();
@@ -174,7 +173,7 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Mono<Request> deleteRequest(String clientId, String requestIdx) {
         var concatRequest = concatRequestId(clientId, requestIdx);
-        log.debug(INVOKING_OPERATION_LABEL, DELETE_REQUEST_OP, concatRequest);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, DELETE_REQUEST_OP, concatRequest);
         return Mono.zip(requestPersonalService.deleteRequestPersonal(concatRequest),
                         requestMetadataService.deleteRequestMetadata(concatRequest)).map(objects -> {
             RequestPersonal deletedRequestPersonal = objects.getT1();
@@ -185,7 +184,7 @@ public class RequestServiceImpl implements RequestService {
 
     @Override
     public Mono<Request> getRequestByMessageId(String messageId) {
-        log.debug(INVOKING_OPERATION_LABEL, GET_REQUEST_BY_MESSAGE_ID_OP, messageId);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GET_REQUEST_BY_MESSAGE_ID_OP, messageId);
         return requestMetadataService.getRequestMetadataByMessageId(messageId)
                                      .zipWhen(requestMetadata -> requestPersonalService.getRequestPersonal(requestMetadata.getRequestId()))
                                      .map(objects -> {
@@ -198,7 +197,7 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Mono<Request> setMessageIdInRequestMetadata(String clientId, String requestIdx) {
         var concatRequest = concatRequestId(clientId, requestIdx);
-        log.debug(INVOKING_OPERATION_LABEL, SET_MESSAGE_ID_IN_REQUEST_METADATA_OP, concatRequest);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, SET_MESSAGE_ID_IN_REQUEST_METADATA_OP, concatRequest);
         return requestMetadataService.setMessageIdInRequestMetadata(concatRequest)
                                      .zipWhen(requestMetadata -> requestPersonalService.getRequestPersonal(requestMetadata.getRequestId()))
                                      .map(objects -> {

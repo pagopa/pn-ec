@@ -58,7 +58,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     @Override
     public Mono<RequestMetadata> getRequestMetadata(String concatRequestId) {
-        log.debug(INVOKING_OPERATION_LABEL, GET_REQUEST_METADATA_OP, concatRequestId);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GET_REQUEST_METADATA_OP, concatRequestId);
         return Mono.fromCompletionStage(() -> {
                     Key partitionKey = getKey(concatRequestId);
                     return requestMetadataDynamoDbTable.getItem(partitionKey);
@@ -72,7 +72,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     @Override
     public Mono<RequestMetadata> insertRequestMetadata(RequestMetadata requestMetadata) {
         String concatRequestId = concatRequestId(requestMetadata.getXPagopaExtchCxId(), requestMetadata.getRequestId());
-        log.debug(INVOKING_OPERATION_LABEL, INSERT_REQUEST_METADATA_OP, concatRequestId);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_METADATA_OP, concatRequestId);
         return Mono.fromCompletionStage(() -> {
                     Key partitionKey = getKey(requestMetadata.getRequestId());
                     return requestMetadataDynamoDbTable.getItem(partitionKey);
@@ -150,7 +150,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     @Override
     public Mono<RequestMetadata> patchRequestMetadata(String concatRequestId, Patch patch) {
-        log.debug(INVOKING_OPERATION_LABEL, PATCH_REQUEST_METADATA_OP, concatRequestId);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PATCH_REQUEST_METADATA_OP, concatRequestId);
         return getRequestMetadata(concatRequestId)
                 .doOnSuccess(retrievedRequest -> checkTipoPatchMetadata(retrievedRequest, patch))
                 .doOnError(RepositoryManagerException.RequestMalformedException.class,
@@ -165,7 +165,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     @Override
     public Mono<RequestMetadata> deleteRequestMetadata(String requestId) {
-        log.debug(INVOKING_OPERATION_LABEL, DELETE_REQUEST_METADATA_OP, requestId);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, DELETE_REQUEST_METADATA_OP, requestId);
         return getRequestMetadata(requestId).flatMap(requestToDelete -> deleteRequestMetadataFromDynamoDb(requestId))
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, requestId, DELETE_REQUEST_METADATA_OP, result));
     }
