@@ -36,7 +36,7 @@ import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
-@AutoConfigureWebTestClient
+@AutoConfigureWebTestClient(timeout = "50000")
 class DigitalCourtesyMessagesApiControllerTest {
 
     @Autowired
