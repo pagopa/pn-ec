@@ -257,25 +257,27 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
 
     private Flux<FileDownloadResponse> getAttachments(String xPagopaExtchCxId, DigitalNotificationRequest digitalNotificationRequest) {
-        log.debug("PecService.getAttachments() for '{}'", digitalNotificationRequest.getRequestId());
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PEC_GET_ATTACHMENTS, digitalNotificationRequest);
         return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalNotificationRequest.getAttachmentUrls(), xPagopaExtchCxId, false)
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
-                .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null);
+                .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
+                .doOnComplete(() -> log.info(SUCCESSFUL_OPERATION_ON_NO_RESULT_LABEL, digitalNotificationRequest.getRequestId(), PEC_GET_ATTACHMENTS));
     }
 
     private Mono<EmailAttachment> downloadAttachment(FileDownloadResponse fileDownloadResponse) {
-        log.debug("fileKey {} - downloadAttachment", fileDownloadResponse.getKey());
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PEC_DOWNLOAD_ATTACHMENT, fileDownloadResponse);
         return downloadCall.downloadFile(fileDownloadResponse.getDownload().getUrl())
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
                 .map(outputStream -> EmailAttachment.builder()
                         .nameWithExtension(
                                 fileDownloadResponse.getKey())
                         .content(outputStream)
-                        .build());
+                        .build())
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, fileDownloadResponse.getKey(), PEC_DOWNLOAD_ATTACHMENT, result));
     }
 
     private Mono<GeneratedMessageDto> sendMail(String xPagopaExtchCxId, String requestIdx, DigitalNotificationRequest digitalNotificationRequest, List<EmailAttachment> attachments) {
-        log.debug("PecService.sendMail() - from : {} for '{}'", arubaSecretValue.getPecUsername(), requestIdx);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS + " - {}", PEC_SEND_MAIL, digitalNotificationRequest, attachments);
         return Mono.just(attachments).map(fileDownloadResponses -> EmailField.builder()
                         .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
                         .from(arubaSecretValue.getPecUsername())
@@ -307,22 +309,25 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .cast(SendMailResponse.class)
 
                 .map(this::createGeneratedMessageDto)
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
+                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, requestIdx, PEC_SEND_MAIL, result));
     }
 
     private Mono<GeneratedMessageDto> setMessageIdInRequestMetadata(String xPagopaExtchCxId, String requestIdx, GeneratedMessageDto generatedMessageDto) {
-        log.debug("PecService.setMessageIdInRequestMetadata() for '{}' - generatedMessageDto.id : {}", requestIdx, generatedMessageDto.getId());
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS + " - {}", PEC_SET_MESSAGE_ID_IN_REQUEST_METADATA, requestIdx, generatedMessageDto);
         return gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId, requestIdx)
                 .map(requestDto -> generatedMessageDto)
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
+                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, requestIdx, PEC_SET_MESSAGE_ID_IN_REQUEST_METADATA, result));
     }
 
     private Mono<SendMessageResponse> sendMessage(GeneratedMessageDto generatedMessageDto, PecPresaInCaricoInfo pecPresaInCaricoInfo) {
-        log.debug("PecService.sendMessage() for '{}'", pecPresaInCaricoInfo.getRequestIdx());
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PEC_SEND_MESSAGE, pecPresaInCaricoInfo);
         return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                 SENT.getStatusTransactionTableCompliant(),
                 new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
+                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, pecPresaInCaricoInfo.getRequestIdx(), PEC_SEND_MESSAGE, result));
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(SendMailResponse sendMailResponse) {
