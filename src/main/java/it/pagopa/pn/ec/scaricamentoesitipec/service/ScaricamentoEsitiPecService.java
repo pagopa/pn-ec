@@ -9,6 +9,7 @@ import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.SemaphoreException;
 import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
+import it.pagopa.pn.ec.commons.model.pojo.pec.PnPostacert;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
@@ -27,7 +28,6 @@ import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.daticert.Destinatari;
-import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -130,7 +130,7 @@ public class ScaricamentoEsitiPecService {
                             })
                             .flatMap(objects -> {
 
-                                Postacert postacert = objects.getT1();
+                                PnPostacert postacert = objects.getT1();
                                 LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
                                 PresaInCaricoInfo presaInCaricoInfo = objects.getT3();
 
@@ -146,7 +146,7 @@ public class ScaricamentoEsitiPecService {
                             //Pubblicazione metriche custom su CloudWatch
                             .flatMap(objects ->
                             {
-                                Postacert postacert = objects.getT1();
+                                PnPostacert postacert = objects.getT1();
                                 LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
                                 RequestDto requestDto = objects.getT3();
 
@@ -181,7 +181,7 @@ public class ScaricamentoEsitiPecService {
                             })
                             //Preparazione payload per la coda stati PEC
                             .flatMap(objects -> {
-                                Postacert postacert = objects.getT1();
+                                PnPostacert postacert = objects.getT1();
                                 RequestDto requestDto = objects.getT2();
                                 CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT3();
                                 String nextStatus = objects.getT4();
