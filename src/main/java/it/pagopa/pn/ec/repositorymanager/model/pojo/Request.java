@@ -23,8 +23,6 @@ public class Request {
     String statusRequest;
     OffsetDateTime clientRequestTimeStamp;
     OffsetDateTime requestTimeStamp;
-    @ToString.Exclude
     RequestPersonal requestPersonal;
-    @ToString.Exclude
     RequestMetadata requestMetadata;
 }
