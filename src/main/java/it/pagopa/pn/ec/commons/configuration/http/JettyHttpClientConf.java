@@ -73,24 +73,6 @@ public class JettyHttpClientConf {
             }
         });
 
-        request.onRequestContent((theRequest, content) -> {
-            try {
-                log.debug("Request body --> {}", decodeContent(content));
-            } catch (Exception e) {
-                log.error(e.getMessage(), e);
-            }
-        });
-
-        request.onResponseContent((theResponse, content) -> {
-            if (CONTENT_TYPE_OF_RESPONSE_BODY_TO_LOG.contains(theResponse.getHeaders().get(CONTENT_TYPE))) {
-                try {
-                    log.debug("Response body --> {}", decodeContent(content));
-                } catch (Exception e) {
-                    log.error(e.getMessage(), e);
-                }
-            }
-        });
-
         return request;
     }
 
