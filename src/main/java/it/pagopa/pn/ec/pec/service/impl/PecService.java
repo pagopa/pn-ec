@@ -196,7 +196,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         try {
             semaphore.acquire();
         } catch (InterruptedException e) {
-            throw new SemaphoreException(e.getMessage());
+            Thread.currentThread().interrupt();
         }
 
 //      Get attachment presigned url Flux
