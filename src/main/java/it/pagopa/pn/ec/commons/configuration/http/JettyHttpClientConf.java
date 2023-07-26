@@ -67,12 +67,6 @@ public class JettyHttpClientConf {
             log.error("Request failure : {} , {}", throwable, throwable.getMessage());
         });
 
-        request.onRequestHeaders(theRequest -> {
-            for (HttpField header : theRequest.getHeaders()) {
-                log.debug("Header {} --> {}", header.getName(), header.getValue());
-            }
-        });
-
         return request;
     }
 
