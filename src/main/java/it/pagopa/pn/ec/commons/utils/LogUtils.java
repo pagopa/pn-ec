@@ -14,6 +14,7 @@ public class LogUtils {
     public static final String SUCCESSFUL_OPERATION_LABEL = "Successful operation: '{}' = {}";
 
     public static final String SUCCESSFUL_OPERATION_ON_LABEL = "Successful operation on '{}' : '{}' = {}";
+    public static final String SUCCESSFUL_OPERATION_ON_NO_RESULT_LABEL = "Successful operation on '{}': '{}'";
     public static final String SUCCESSFUL_OPERATION_NO_RESULT_LABEL = "Successful operation: '{}'";
     public static final String INSERTING_DATA_IN_SQS = "Inserting data {} in SQS '{}'";
     public static final String INSERTED_DATA_IN_SQS = "Inserted data in SQS '{}'";
@@ -81,6 +82,12 @@ public class LogUtils {
     public static final String PRESA_IN_CARICO_PEC = "PecService.presaInCarico()";
     public static final String GESTIONE_RETRY_PEC = "PecService.gestioneRetry()";
     public static final String INSERT_REQUEST_FROM_PEC = "PecService.insertRequestFromPec()";
+    public static final String PEC_GET_ATTACHMENTS = "PecService.getAttachments()";
+    public static final String PEC_DOWNLOAD_ATTACHMENT = "PecService.downloadAttachment()";
+    public static final String PEC_SEND_MAIL = "PecService.sendMail()";
+    public static final String PEC_SEND_MESSAGE = "PecService.sendMessage()";
+    public static final String PEC_SET_MESSAGE_ID_IN_REQUEST_METADATA = "PecService.setMessageIdInRequestMetadata()";
+
 
     //PAPER
     public static final String SEND_PAPER_ENGAGE_REQUEST = "sendPaperEngageRequest";
