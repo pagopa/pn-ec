@@ -99,7 +99,7 @@ public class ScaricamentoEsitiPecService {
         try {
             semaphore.acquire();
         } catch (InterruptedException e) {
-            throw new SemaphoreException(e.getMessage());
+            Thread.currentThread().interrupt();
         }
 
         AtomicReference<String> requestIdx = new AtomicReference<>();

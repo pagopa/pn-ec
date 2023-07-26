@@ -176,7 +176,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         try {
             semaphore.acquire();
         } catch (InterruptedException e) {
-            throw new SemaphoreException(e.getMessage());
+            Thread.currentThread().interrupt();
         }
 
 //      Try to send SMS

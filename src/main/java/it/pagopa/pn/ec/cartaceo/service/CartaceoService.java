@@ -212,7 +212,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         try {
             semaphore.acquire();
         } catch (InterruptedException e) {
-            throw new SemaphoreException(e.getMessage());
+            Thread.currentThread().interrupt();
         }
 
         var paperEngageRequestSrc = cartaceoPresaInCaricoInfo.getPaperEngageRequest();

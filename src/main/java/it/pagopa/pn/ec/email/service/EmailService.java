@@ -202,7 +202,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         try {
             semaphore.acquire();
         } catch (InterruptedException e) {
-            throw new SemaphoreException(e.getMessage());
+            Thread.currentThread().interrupt();
         }
 
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
