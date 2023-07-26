@@ -60,7 +60,7 @@ public class StatusPullServiceImpl implements StatusPullService {
 
                 event.setGeneratedMessage(digitalMessageReference);
             }
-            return callMacchinaStati.statusDecode(xPagopaExtchCxId, processId, digProgrStatus.getStatus())
+            return callMacchinaStati.statusDecode(xPagopaExtchCxId, processId, digProgrStatus.getStatus().toLowerCase())
                                     .map(macchinaStatiDecodeResponseDto -> {
                                         event.setStatus(ProgressEventCategory.valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
                                         event.setEventCode(CourtesyMessageProgressEvent.EventCodeEnum.fromValue(macchinaStatiDecodeResponseDto.getLogicStatus()));
@@ -95,7 +95,7 @@ public class StatusPullServiceImpl implements StatusPullService {
             }
             return callMacchinaStati.statusDecode(xPagopaExtchCxId,
                                                   transactionProcessConfigurationProperties.pec(),
-                                                  digProgrStatus.getStatus()).map(statiDecodeResponseDto -> {
+                                                  digProgrStatus.getStatus().toLowerCase()).map(statiDecodeResponseDto -> {
                 if (statiDecodeResponseDto.getExternalStatus() != null) {
                     event.setStatus(ProgressEventCategory.valueOf(statiDecodeResponseDto.getExternalStatus()));
                     var logicStatus=statiDecodeResponseDto.getLogicStatus();
