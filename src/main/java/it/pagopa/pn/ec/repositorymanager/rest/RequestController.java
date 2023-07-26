@@ -34,7 +34,7 @@ public class RequestController implements GestoreRequestApi {
     @Override
     public Mono<ResponseEntity<RequestDto>> getRequest(String clientId, String requestIdx, ServerWebExchange exchange) {
         String id = concatRequestId(clientId, requestIdx);
-        log.info(STARTING_PROCESS_ON_LABEL, SEND_PAPER_ENGAGE_REQUEST, id);
+        log.info(STARTING_PROCESS_ON_LABEL, GET_REQUEST, id);
         return requestService.getRequest(clientId, requestIdx).map(retrievedClient -> restUtils.endReadRequest(retrievedClient, RequestDto.class))
                 .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, GET_REQUEST, id))
                 .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, GET_REQUEST, id, throwable, throwable.getMessage()));
