@@ -33,6 +33,7 @@ public class CartaceoMapper {
 
             if (srcClientRequestTimeStamp != null) {
                 dstClientRequestTimeStamp = srcClientRequestTimeStamp.format(DATE_TIME_FORMATTER);
+                srcPaperEngageRequest.setClientRequestTimeStamp(srcClientRequestTimeStamp);
             }
             dstPaperEngageRequest.setClientRequestTimeStamp(dstClientRequestTimeStamp);
         }
