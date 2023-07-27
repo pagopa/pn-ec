@@ -127,6 +127,21 @@ Parameters:
     Description: 'Scaricamento esiti PEC Aruba limit rate'
     Default: '15'
 
+  LavorazioneSMSMaxThreadPoolSize:
+    Type: String
+    Description: 'Lavorazione SMS max thread pool size'
+    Default: '75'
+
+  LavorazioneEmailMaxThreadPoolSize:
+    Type: String
+    Description: 'Lavorazione Email max thread pool size'
+    Default: '75'
+
+  LavorazioneCartaceoMaxThreadPoolSize:
+    Type: String
+    Description: 'Lavorazione Cartaceo max thread pool size'
+    Default: '100'
+
   ######### TABLES  ############
 
   PnEcTableNameAnagrafica:
@@ -788,6 +803,9 @@ Resources:
         ContainerEnvEntry49: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
         ContainerEnvEntry50: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
         ContainerEnvEntry51: !Sub 'PnEcQueueElapsedTimeSeconds=${PnEcQueueElapsedTimeSeconds}'
+        ContainerEnvEntry52: !Sub 'LavorazioneSMSMaxThreadPoolSize=${LavorazioneSMSMaxThreadPoolSize}'
+        ContainerEnvEntry53: !Sub 'LavorazioneEmailMaxThreadPoolSize=${LavorazioneEmailMaxThreadPoolSize}'
+        ContainerEnvEntry54: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
