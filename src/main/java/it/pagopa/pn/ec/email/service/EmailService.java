@@ -5,6 +5,7 @@ import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.RetryAttemptsExceededExeption;
+import it.pagopa.pn.ec.commons.exception.SemaphoreException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
 import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
@@ -22,6 +23,7 @@ import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -36,6 +38,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
@@ -62,7 +65,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     private final EmailSqsQueueName emailSqsQueueName;
     private final EmailDefault emailDefault;
     private final DownloadCall downloadCall;
-
+    private final Semaphore semaphore;
     private String idSaved;
 
     private static final String GENERIC_ERROR = "Errore generico";
@@ -70,7 +73,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
                            SesService sesService, AttachmentServiceImpl attachmentService,
                            NotificationTrackerSqsName notificationTrackerSqsName, EmailSqsQueueName emailSqsQueueName,
-                           DownloadCall downloadCall, EmailDefault emailDefault) {
+                           DownloadCall downloadCall, EmailDefault emailDefault, @Value("${lavorazione-email.max-thread-pool-size}") Integer maxThreadPoolSize) {
         super(authService);
         this.sqsService = sqsService;
         this.sesService = sesService;
@@ -80,7 +83,11 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         this.emailSqsQueueName = emailSqsQueueName;
         this.emailDefault = emailDefault;
         this.downloadCall = downloadCall;
+        this.semaphore=new Semaphore(maxThreadPoolSize);
     }
+
+    private final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
+            .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
 
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
@@ -100,20 +107,20 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(emailPresaInCaricoInfo.getDigitalCourtesyMailRequest()
                                                                                          .getAttachmentUrls(), xPagopaExtchCxId, true)
-
+                                .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
                                 .then(insertRequestFromEmail(digitalNotificationRequest, emailPresaInCaricoInfo.getXPagopaExtchCxId()))
 
                                 .flatMap(requestDto -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                                                                                      BOOKED.getStatusTransactionTableCompliant(),
-                                                                                     new DigitalProgressStatusDto()))
+                                                                                     new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY))
 
                                 .flatMap(sendMessageResponse -> {
                                     DigitalCourtesyMailRequest.QosEnum qos =
                                             emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getQos();
                                     if (qos == INTERACTIVE) {
-                                        return sendNotificationOnInteractiveQueue(emailPresaInCaricoInfo);
+                                        return sendNotificationOnInteractiveQueue(emailPresaInCaricoInfo).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY);
                                     } else if (qos == BATCH) {
-                                        return sendNotificationOnBatchQueue(emailPresaInCaricoInfo);
+                                        return sendNotificationOnBatchQueue(emailPresaInCaricoInfo).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY);
                                     } else {
                                         return Mono.empty();
                                     }
@@ -121,8 +128,9 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                 .onErrorResume(SqsClientException.class,
                                                sqsClientException -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                                                                                                    INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                                                                                   new DigitalProgressStatusDto()).then(Mono.error(
-                                                       sqsClientException)))
+                                                                                                   new DigitalProgressStatusDto())
+                                                       .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
+                                                       .then(Mono.error(sqsClientException)))
                                 .then();
     }
 
@@ -160,7 +168,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             requestDto.setRequestPersonal(requestPersonalDto);
             requestDto.setRequestMetadata(requestMetadataDto);
             return requestDto;
-        }).flatMap(gestoreRepositoryCall::insertRichiesta);
+        }).flatMap(gestoreRepositoryCall::insertRichiesta).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY);
     }
 
     @SqsListener(value = "${sqs.queue.email.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
@@ -183,13 +191,19 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                   .subscribe();
     }
 
-    private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
+    private final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
 
     Mono<SendMessageResponse> lavorazioneRichiesta(final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
         log.info("<-- START LAVORAZIONE RICHIESTA EMAIL --> Request ID : {}, Client ID : {}, QOS : {}",
                  emailPresaInCaricoInfo.getRequestIdx(),
                  emailPresaInCaricoInfo.getXPagopaExtchCxId(),
                  emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getQos());
+
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
 
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         var requestId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
@@ -246,7 +260,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                                                      new DigitalProgressStatusDto())
 
                                                                // Publish to ERRORI EMAIL queue
-                                                               .then(sendNotificationOnErrorQueue(emailPresaInCaricoInfo)));
+                                                               .then(sendNotificationOnErrorQueue(emailPresaInCaricoInfo)))
+                                .doFinally(signalType -> semaphore.release());
     }
 
     private EmailField compilaMail(DigitalCourtesyMailRequest req) {
