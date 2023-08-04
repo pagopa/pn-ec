@@ -31,7 +31,7 @@ public class ArubaCallImpl implements ArubaCall {
     }
 
     private Retry getArubaCallRetryStrategy () {
-    	return Retry.backoff(Long.parseLong(arubaCallProperties.maxAttempts()), Duration.ofSeconds(Long.parseLong(arubaCallProperties.minBackoff())))
+    	return Retry.backoff(Long.parseLong(arubaCallProperties.maxAttempts()), Duration.ofSeconds(Long.parseLong(arubaCallProperties.minBackoff()))).jitter(0)
         		.onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
             throw new ArubaCallMaxRetriesExceededException();
         });
