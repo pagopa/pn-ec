@@ -289,7 +289,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                         // Publish to ERRORI PAPER queue
                                         .then(sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo)))
                 .doOnError(exception -> {
-                    log.error("* FATAL * lavorazioneRichiesta {} {}", exception, exception.getMessage());
+                    log.warn("lavorazioneRichiesta {} {}", exception, exception.getMessage());
                 })
                 .doFinally(signalType -> semaphore.release());
     }
@@ -462,7 +462,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                             new PaperProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 })
                 .doOnError(exception -> {
-                    log.error("* FATAL * gestioneRetryCartaceo {} {}", exception, exception.getMessage());
+                    log.warn("gestioneRetryCartaceo {} {}", exception, exception.getMessage());
                 });
     }
 
