@@ -4,6 +4,7 @@ import it.pagopa.pn.ec.commons.exception.XmlParserException;
 import it.pagopa.pn.ec.commons.model.pojo.pec.PnPostacert;
 import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pec.daticert.Data;
+import it.pec.daticert.Postacert;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +35,7 @@ public class DatiCertServiceImpl implements DaticertService {
 //          https://javaee.github.io/jaxb-v2/doc/user-guide/ch06.html#d0e6879
 //          https://stackoverflow.com/questions/7400422/jaxb-creating-context-and-marshallers-cost
 
-            return (PnPostacert) jaxbContext.createUnmarshaller().unmarshal(new ByteArrayInputStream(bytes));
+            return new PnPostacert((Postacert) jaxbContext.createUnmarshaller().unmarshal(new ByteArrayInputStream(bytes)));
         } catch (JAXBException e) {
             throw new XmlParserException("JAXBException during input stream unmarshalling");
         }
