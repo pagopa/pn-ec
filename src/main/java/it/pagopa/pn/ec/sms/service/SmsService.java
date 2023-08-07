@@ -213,7 +213,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
 //                               Publish to ERRORI SMS queue
                 .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo)))
-                .doOnError(throwable -> log.error("* FATAL * lavorazioneRichiesta {}, {}", throwable, throwable.getMessage()))
+                .doOnError(throwable -> log.warn("lavorazioneRichiesta {}, {}", throwable, throwable.getMessage()))
                 .doFinally(signalType -> semaphore.release());
     }
 
@@ -389,7 +389,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 .onErrorResume(internalError -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                                               INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                                                               new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
-                .doOnError(throwable -> log.error("* FATAL * gestioneRetrySms {}, {}", throwable, throwable.getMessage()));
+                .doOnError(throwable -> log.warn("gestioneRetrySms {}, {}", throwable, throwable.getMessage()));
     }
 
     @Override

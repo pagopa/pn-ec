@@ -460,7 +460,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                         })
                                 .onErrorResume(
                                         sqsPublishException -> {
-                                            log.error("* FATAL * gestioneRetryPec {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                                            log.warn("gestioneRetryPec {}, {}", sqsPublishException, sqsPublishException.getMessage());
                                             return checkTentativiEccessiviPec(
                                                     requestIdx,
                                                     requestDto,
@@ -544,7 +544,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                             new DigitalProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(
                             message));
                 })
-                .doOnError(throwable -> log.error("* FATAL * gestioneRetryPec {}, {}", throwable, throwable.getMessage()));
+                .doOnError(throwable -> log.warn("gestioneRetryPec {}, {}", throwable, throwable.getMessage()));
     }
 
     @Override
