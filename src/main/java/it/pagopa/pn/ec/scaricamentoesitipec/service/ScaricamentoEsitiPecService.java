@@ -251,7 +251,7 @@ public class ScaricamentoEsitiPecService {
                     log.debug("---> LAVORAZIONE ESITI PEC - UPLOADING FILE USING URL {} <--- ", uploadUrl);
                     return uploadWebClient.put()
                             .uri(URI.create(uploadUrl))
-                            .header("Content-Type", ContentTypes.APPLICATION_XML)
+                            .header("Content-Type", MESSAGE_RFC822)
                             .header("x-amz-meta-secret", fileCreationResponse.getSecret())
                             .header("x-amz-checksum-sha256", checksumValue)
                             .bodyValue(fileBytes)
