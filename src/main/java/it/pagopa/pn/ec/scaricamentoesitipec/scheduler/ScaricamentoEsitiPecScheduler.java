@@ -133,7 +133,7 @@ public class ScaricamentoEsitiPecScheduler {
                                 })
                                  .flatMap(unused -> sqsService.send(scaricamentoEsitiPecProperties.sqsQueueName(), finalMessageID, RicezioneEsitiPecDto.builder()
                                          .messageID(finalMessageID)
-                                         .daticert(attachBytes)
+                                         .message(message)
                                          .receiversDomain(getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]))
                                          .retry(0)
                                          .build()))

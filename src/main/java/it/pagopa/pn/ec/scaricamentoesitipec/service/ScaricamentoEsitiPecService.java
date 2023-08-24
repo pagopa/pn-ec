@@ -46,6 +46,7 @@ import static it.pagopa.pn.ec.commons.constant.DocumentType.PN_EXTERNAL_LEGAL_FA
 import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTimestampFromDaticertDate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
+import static it.pagopa.pn.ec.consolidatore.utils.ContentTypes.MESSAGE_RFC822;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.*;
 
@@ -109,7 +110,9 @@ public class ScaricamentoEsitiPecService {
                 {
 
                     var messageID = ricEsitiPecDto.getMessageID();
-                    var daticert = ricEsitiPecDto.getDaticert();
+                    var message = ricEsitiPecDto.getMessage();
+                    var mimeMessage = getMimeMessage(message);
+                    var daticert = findAttachmentByName(mimeMessage, "daticert.xml");
 
                     log.debug("---> LAVORAZIONE ESITI PEC - LAVORAZIONE MESSAGGIO <--- MessageID : {} , Daticert : {}", messageID, new String(daticert));
 
@@ -195,7 +198,7 @@ public class ScaricamentoEsitiPecService {
                                 var senderDomain = getDomainFromAddress(senderDigitalAddress);
                                 var receiversDomain = ricEsitiPecDto.getReceiversDomain();
 
-                                return generateLocation(requestIdx.get(), daticert)
+                                return generateLocation(requestIdx.get(), message)
                                         .map(location ->
                                         {
                                             var generatedMessageDto = createGeneratedMessageByStatus(receiversDomain,
@@ -233,7 +236,8 @@ public class ScaricamentoEsitiPecService {
 
         log.debug("---> LAVORAZIONE ESITI PEC - START GENERATING LOCATION <--- RequestId: {}", requestIdx);
 
-        FileCreationRequest fileCreationRequest = new FileCreationRequest().contentType(ContentTypes.APPLICATION_XML)
+        FileCreationRequest fileCreationRequest = new FileCreationRequest()
+                .contentType(MESSAGE_RFC822)
                 .documentType(PN_EXTERNAL_LEGAL_FACTS.getValue())
                 .status("");
 
@@ -247,7 +251,7 @@ public class ScaricamentoEsitiPecService {
                     log.debug("---> LAVORAZIONE ESITI PEC - UPLOADING FILE USING URL {} <--- ", uploadUrl);
                     return uploadWebClient.put()
                             .uri(URI.create(uploadUrl))
-                            .header("Content-Type", ContentTypes.APPLICATION_XML)
+                            .header("Content-Type", MESSAGE_RFC822)
                             .header("x-amz-meta-secret", fileCreationResponse.getSecret())
                             .header("x-amz-checksum-sha256", checksumValue)
                             .bodyValue(fileBytes)

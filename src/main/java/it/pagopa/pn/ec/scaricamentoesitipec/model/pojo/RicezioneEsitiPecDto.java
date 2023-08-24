@@ -14,7 +14,7 @@ import lombok.experimental.SuperBuilder;
 public class RicezioneEsitiPecDto {
 
     String messageID;
-    byte[] daticert;
+    byte[] message;
     String receiversDomain;
     int retry;
 
