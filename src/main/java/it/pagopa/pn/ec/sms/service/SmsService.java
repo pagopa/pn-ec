@@ -338,7 +338,6 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     public Mono<DeleteMessageResponse> gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message) {
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
         return filterRequestSms(smsPresaInCaricoInfo)
-
                 .map(requestDto -> {
                     if (smsPresaInCaricoInfo.getStepError() == null) {
                         var stepError = new StepError();
@@ -363,14 +362,13 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
     private Mono<RequestDto> chooseStep(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, RequestDto requestDto, String requestId, Message message) {
         return Mono.just(smsPresaInCaricoInfo.getStepError().getStep())
-                .flatMap(step -> switch (smsPresaInCaricoInfo.getStepError().getStep()) {
-                    case SNS_SEND_STEP, default -> {
-                        log.debug("Retrying all steps");
-                        yield snsSendStep(requestDto, smsPresaInCaricoInfo, requestId, message).flatMap(result -> Mono.empty());
-                    }
-                    case NOTIFICATION_TRACKER_STEP -> {
-                        log.debug("Retrying NotificationTracker step");
-                        yield notificationTrackerStep(requestDto, smsPresaInCaricoInfo);
+                .flatMap(step -> {
+                    if (smsPresaInCaricoInfo.getStepError().getStep().equals(NOTIFICATION_TRACKER_STEP)) {
+                        log.debug("Retrying NotificationTracker step for request {}", smsPresaInCaricoInfo.getRequestIdx());
+                        return notificationTrackerStep(requestDto, smsPresaInCaricoInfo);
+                    } else {
+                        log.debug("Retrying all steps for request {}", smsPresaInCaricoInfo.getRequestIdx());
+                        return snsSendStep(requestDto, smsPresaInCaricoInfo, requestId, message).flatMap(result -> Mono.empty());
                     }
                 });
     }

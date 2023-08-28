@@ -1,8 +1,5 @@
 package it.pagopa.pn.ec.sms.service;
 
-import io.awspring.cloud.messaging.config.annotation.EnableSqs;
-import io.awspring.cloud.test.sqs.AutoConfigureSqs;
-import io.awspring.cloud.test.sqs.SqsTest;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
@@ -39,7 +36,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
-@AutoConfigureSqs
 class SmsRetryTest {
 
     @Autowired
