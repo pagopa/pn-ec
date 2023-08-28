@@ -5,6 +5,7 @@ import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.SemaphoreException;
+import it.pagopa.pn.ec.commons.exception.sms.SmsRetryException;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
@@ -14,6 +15,7 @@ import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.policy.Policy;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.*;
+import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
@@ -21,8 +23,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
+import software.amazon.awssdk.services.dynamodb.model.Delete;
 import software.amazon.awssdk.services.sns.model.PublishResponse;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
@@ -33,10 +37,12 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
+import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.SNS_SEND_STEP;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.BATCH;
@@ -65,7 +71,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.smsSqsQueueName = smsSqsQueueName;
-        this.semaphore=new Semaphore(maxThreadPoolSize);
+        this.semaphore = new Semaphore(maxThreadPoolSize);
     }
 
     private final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
@@ -84,30 +90,30 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         log.info("<-- Start presa in carico SMS --> richiesta: {}", requestIdx);
 
         return insertRequestFromSms(digitalCourtesySmsRequest, xPagopaExtchCxId).flatMap(requestDto -> sendNotificationOnStatusQueue(
-                                                                                        smsPresaInCaricoInfo,
-                                                                                        BOOKED.getStatusTransactionTableCompliant(),
-                                                                                        new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY))
-                                                                                .flatMap(sendMessageResponse -> {
-                                                                                    DigitalCourtesySmsRequest.QosEnum qos =
-                                                                                            smsPresaInCaricoInfo.getDigitalCourtesySmsRequest()
-                                                                                                                .getQos();
-                                                                                    if (qos == INTERACTIVE) {
-                                                                                        return sendNotificationOnInteractiveQueue(
-                                                                                                smsPresaInCaricoInfo).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY);
-                                                                                    } else if (qos == BATCH) {
-                                                                                        return sendNotificationOnBatchQueue(
-                                                                                                smsPresaInCaricoInfo).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY);
-                                                                                    } else {
-                                                                                        return Mono.empty();
-                                                                                    }
-                                                                                })
-                                                                                .onErrorResume(SqsClientException.class,
-                                                                                               sqsClientException -> sendNotificationOnStatusQueue(
-                                                                                                       smsPresaInCaricoInfo,
-                                                                                                       INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                                                                                       new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
-                                                                                                       .then(Mono.error(sqsClientException)))
-                                                                                .then();
+                        smsPresaInCaricoInfo,
+                        BOOKED.getStatusTransactionTableCompliant(),
+                        new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY))
+                .flatMap(sendMessageResponse -> {
+                    DigitalCourtesySmsRequest.QosEnum qos =
+                            smsPresaInCaricoInfo.getDigitalCourtesySmsRequest()
+                                    .getQos();
+                    if (qos == INTERACTIVE) {
+                        return sendNotificationOnInteractiveQueue(
+                                smsPresaInCaricoInfo).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY);
+                    } else if (qos == BATCH) {
+                        return sendNotificationOnBatchQueue(
+                                smsPresaInCaricoInfo).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY);
+                    } else {
+                        return Mono.empty();
+                    }
+                })
+                .onErrorResume(SqsClientException.class,
+                        sqsClientException -> sendNotificationOnStatusQueue(
+                                smsPresaInCaricoInfo,
+                                INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                                new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
+                                .then(Mono.error(sqsClientException)))
+                .then();
     }
 
     @SuppressWarnings("Duplicates")
@@ -154,14 +160,14 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     void lavorazioneRichiestaBatch() {
 
         sqsService.getMessages(smsSqsQueueName.batchName(), SmsPresaInCaricoInfo.class)
-                  .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
-                                                                                        smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
-                  .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(smsPresaInCaricoInfoSqsMessageWrapper.getMessage()),
-                                                                             lavorazioneRichiesta(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
-                  .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
-                                                                                                      smsSqsQueueName.batchName()))
-                  .transform(pullFromFluxUntilIsEmpty())
-                  .subscribe();
+                .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
+                        smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
+                .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(smsPresaInCaricoInfoSqsMessageWrapper.getMessage()),
+                        lavorazioneRichiesta(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
+                .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
+                        smsSqsQueueName.batchName()))
+                .transform(pullFromFluxUntilIsEmpty())
+                .subscribe();
     }
 
     Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))
@@ -170,7 +176,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
             })
             .doBeforeRetry(retrySignal -> log.info("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
 
-    Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
+    public Mono<SendMessageResponse> lavorazioneRichiesta(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
         log.info("<-- START LAVORAZIONE RICHIESTA SMS --> richiesta : {}", smsPresaInCaricoInfo.getRequestIdx());
 
         try {
@@ -181,38 +187,41 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
 //      Try to send SMS
         return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
-                               smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
+                        smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
 
 //                       Retry to send SMS if fails
-                         .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
 
 //                        Set message id after send
-                         .map(this::createGeneratedMessageDto)
+                .map(this::createGeneratedMessageDto)
 
 //                       The SMS in sent, publish to Notification Tracker with next status -> SENT
-                         .flatMap(generatedMessageDto -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
-                                                                                       SENT.getStatusTransactionTableCompliant(),
-                                                                                       new DigitalProgressStatusDto().generatedMessage(
-                                                                                               generatedMessageDto))
+                .flatMap(generatedMessageDto -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
+                        SENT.getStatusTransactionTableCompliant(),
+                        new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
 
-//                                                                An error occurred during SQS publishing to the Notification Tracker ->
-//                                                                Publish to Errori SMS queue and notify to retry update status only
-.onErrorResume(SqsClientException.class, sqsPublishException -> {
-    var stepError = new StepError();
-    smsPresaInCaricoInfo.setStepError(stepError);
-    smsPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
-    smsPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
-    return sendNotificationOnErrorQueue(smsPresaInCaricoInfo);
-}))
+                        //The maximum number of retries has ended
+                        .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
+                                snsMaxRetriesExceeded -> {
+                                    var stepError = new StepError();
+                                    smsPresaInCaricoInfo.setStepError(stepError);
+                                    smsPresaInCaricoInfo.getStepError().setStep(SNS_SEND_STEP);
+                                    return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
+                                            RETRY.getStatusTransactionTableCompliant(),
+                                            new DigitalProgressStatusDto())
+                                            //Publish to ERRORI SMS queue
+                                            .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo));
+                                })
 
-//                       The maximum number of retries has ended
-                         .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
-                                        snsMaxRetriesExceeded -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
-                                                                                               RETRY.getStatusTransactionTableCompliant(),
-                                                                                               new DigitalProgressStatusDto())
-
-//                               Publish to ERRORI SMS queue
-                .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo)))
+//              An error occurred during SQS publishing to the Notification Tracker ->
+//              Publish to Errori SMS queue and notify to retry update status only
+                        .onErrorResume(SqsClientException.class, sqsPublishException -> {
+                            var stepError = new StepError();
+                            smsPresaInCaricoInfo.setStepError(stepError);
+                            smsPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
+                            smsPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
+                            return sendNotificationOnErrorQueue(smsPresaInCaricoInfo);
+                        }))
                 .doOnError(throwable -> log.warn("lavorazioneRichiesta {}, {}", throwable, throwable.getMessage()))
                 .doFinally(signalType -> semaphore.release());
     }
@@ -226,16 +235,16 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
         idSaved = null;
         sqsService.getOneMessage(smsSqsQueueName.errorName(), SmsPresaInCaricoInfo.class)
-                  .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.errorName(),
-                                                                                        smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
-                  .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> gestioneRetrySms(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent(),
-                                                                                     smsPresaInCaricoInfoSqsMessageWrapper.getMessage()))
-                  .map(MonoResultWrapper::new)
+                .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.errorName(),
+                        smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
+                .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> gestioneRetrySms(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent(),
+                        smsPresaInCaricoInfoSqsMessageWrapper.getMessage()))
+                .map(MonoResultWrapper::new)
 
-                  .defaultIfEmpty(new MonoResultWrapper<>(null))
-                  .repeat()
-                  .takeWhile(MonoResultWrapper::isNotEmpty)
-                  .subscribe();
+                .defaultIfEmpty(new MonoResultWrapper<>(null))
+                .repeat()
+                .takeWhile(MonoResultWrapper::isNotEmpty)
+                .subscribe();
     }
 
     private Mono<RequestDto> filterRequestSms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
@@ -249,57 +258,57 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
         return gestoreRepositoryCall.getRichiesta(clientId, requestId)
 //              check status toDelete
-                                    .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
+                .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
 //              se status toDelete throw Error
-                                    .switchIfEmpty(Mono.error(new StatusToDeleteException(requestId)))
+                .switchIfEmpty(Mono.error(new StatusToDeleteException(requestId)))
 //              check Id per evitare loop
-                                    .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
+                .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
 //              se il primo step, inizializza l'attributo retry
-                                    .flatMap(requestDto -> {
-                                        if (requestDto.getRequestMetadata().getRetry() == null) {
-                                            log.debug("Primo tentativo di Retry");
-                                            RetryDto retryDto = new RetryDto();
-                                            log.debug("policy" + retryPolicies.getPolicy().get("SMS"));
-                                            retryDto.setRetryPolicy(retryPolicies.getPolicy().get("SMS"));
-                                            retryDto.setRetryStep(BigDecimal.ZERO);
-                                            retryDto.setLastRetryTimestamp(OffsetDateTime.now());
-                                            requestDto.getRequestMetadata().setRetry(retryDto);
-                                            PatchDto patchDto = new PatchDto();
-                                            patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                                            return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
+                .flatMap(requestDto -> {
+                    if (requestDto.getRequestMetadata().getRetry() == null) {
+                        log.debug("Primo tentativo di Retry");
+                        RetryDto retryDto = new RetryDto();
+                        log.debug("policy" + retryPolicies.getPolicy().get("SMS"));
+                        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("SMS"));
+                        retryDto.setRetryStep(BigDecimal.ZERO);
+                        retryDto.setLastRetryTimestamp(OffsetDateTime.now());
+                        requestDto.getRequestMetadata().setRetry(retryDto);
+                        PatchDto patchDto = new PatchDto();
+                        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                        return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
 
-                                        }
+                    }
 
-                                        var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
-                                        log.debug(retryNumber + " tentativo di Retry");
-                                        return Mono.just(requestDto);
+                    var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
+                    log.debug(retryNumber + " tentativo di Retry");
+                    return Mono.just(requestDto);
 
-                                    })
+                })
 //              check retry policies
-                                    .filter(requestDto -> {
+                .filter(requestDto -> {
 
-                                        var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();
-                                        var dateTime2 = OffsetDateTime.now();
-                                        Duration duration = Duration.between(dateTime1, dateTime2);
-                                        int step = requestDto.getRequestMetadata().getRetry().getRetryStep().intValueExact();
-                                        long minutes = duration.toMinutes();
-                                        long minutesToCheck =
-                                                requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
-                                        return minutes >= minutesToCheck;
-                                    })
+                    var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();
+                    var dateTime2 = OffsetDateTime.now();
+                    Duration duration = Duration.between(dateTime1, dateTime2);
+                    int step = requestDto.getRequestMetadata().getRetry().getRetryStep().intValueExact();
+                    long minutes = duration.toMinutes();
+                    long minutesToCheck =
+                            requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
+                    return minutes >= minutesToCheck;
+                })
 //              patch con orario attuale e dello step retry
-                                    .flatMap(requestDto -> {
-                                        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
-                                        requestDto.getRequestMetadata()
-                                                  .getRetry()
-                                                  .setRetryStep(requestDto.getRequestMetadata()
-                                                                          .getRetry()
-                                                                          .getRetryStep()
-                                                                          .add(BigDecimal.ONE));
-                                        PatchDto patchDto = new PatchDto();
-                                        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                                        return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
-                                    });
+                .flatMap(requestDto -> {
+                    requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
+                    requestDto.getRequestMetadata()
+                            .getRetry()
+                            .setRetryStep(requestDto.getRequestMetadata()
+                                    .getRetry()
+                                    .getRetryStep()
+                                    .add(BigDecimal.ONE));
+                    PatchDto patchDto = new PatchDto();
+                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                    return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
+                });
     }
 
     private Mono<DeleteMessageResponse> checkTentativiEccessiviSms(String requestId, RequestDto requestDto,
@@ -312,91 +321,84 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
             // operazioni per la rimozione del messaggio
             log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi " + "tentativi: {}", smsSqsQueueName.errorName());
             return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
-                                                 ERROR.getStatusTransactionTableCompliant(),
-                                                 new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto())).flatMap(
-                    sendMessageResponse -> deleteMessageFromErrorQueue(message));
+                    ERROR.getStatusTransactionTableCompliant(),
+                    new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
+                    .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
         }
-        return Mono.empty();
+        return sendNotificationOnErrorQueue(smsPresaInCaricoInfo).then(deleteMessageFromErrorQueue(message));
     }
+
+    Retry GESTIONE_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))
+            .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
+                throw new SmsRetryException();
+            })
+            .doBeforeRetry(retrySignal -> log.info("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
+
 
     public Mono<DeleteMessageResponse> gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message) {
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
         return filterRequestSms(smsPresaInCaricoInfo)
-//              Tentativo invio sms
-.flatMap(requestDto -> {
-//              check step error per evitare null pointer
-    if (smsPresaInCaricoInfo.getStepError() == null) {
-        var stepError = new StepError();
-        smsPresaInCaricoInfo.setStepError(stepError);
+
+                .map(requestDto -> {
+                    if (smsPresaInCaricoInfo.getStepError() == null) {
+                        var stepError = new StepError();
+                        stepError.setStep(SNS_SEND_STEP);
+                        smsPresaInCaricoInfo.setStepError(stepError);
+                    }
+                    return requestDto;
+                })
+                .flatMap(requestDto -> chooseStep(smsPresaInCaricoInfo, requestDto, requestId, message)
+                        .repeatWhenEmpty(o -> o.doOnNext(iteration -> log.debug("Step repeated {} times for request {}", iteration, requestId)))
+                        .then(deleteMessageFromErrorQueue(message))
+                        .onErrorResume(SmsRetryException.class, throwable -> checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message)))
+                .onErrorResume(StatusToDeleteException.class, exception -> {
+                    log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", smsSqsQueueName.errorName());
+                    return sendNotificationOnStatusQueue(smsPresaInCaricoInfo, DELETED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
+                            .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
+                })
+                .onErrorResume(internalError -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
+                        .then(deleteMessageFromErrorQueue(message)))
+                .doOnError(throwable -> log.warn("gestioneRetrySms {}, {}", throwable, throwable.getMessage()));
     }
-//              check step error per evitare nuova chiamata verso sns
-//              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The SMS in sent, publish to Notification
-//              Tracker with next status -> SENT
-    if (Objects.equals(smsPresaInCaricoInfo.getStepError().getStep(), NOTIFICATION_TRACKER_STEP)) {
-        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
-        return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
-                                             SENT.getStatusTransactionTableCompliant(),
-                                             new DigitalProgressStatusDto().generatedMessage(smsPresaInCaricoInfo.getStepError()
-                                                                                                                 .getGeneratedMessageDto())).flatMap(
-                sendMessageResponse -> {
-                    log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}", smsSqsQueueName.errorName());
-                    return deleteMessageFromErrorQueue(message);
-                }).onErrorResume(sqsPublishException -> {
-                    log.warn("Exception in gestioneRetrySms {}, {}", sqsPublishException, sqsPublishException.getMessage());
-                    return checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message);
+
+    private Mono<RequestDto> chooseStep(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, RequestDto requestDto, String requestId, Message message) {
+        return Mono.just(smsPresaInCaricoInfo.getStepError().getStep())
+                .flatMap(step -> switch (smsPresaInCaricoInfo.getStepError().getStep()) {
+                    case SNS_SEND_STEP, default -> {
+                        log.debug("Retrying all steps");
+                        yield snsSendStep(requestDto, smsPresaInCaricoInfo, requestId, message).flatMap(result -> Mono.empty());
+                    }
+                    case NOTIFICATION_TRACKER_STEP -> {
+                        log.debug("Retrying NotificationTracker step");
+                        yield notificationTrackerStep(requestDto, smsPresaInCaricoInfo);
+                    }
                 });
-    } else {
-//                gestisco il caso retry a partire dall'invio a sns
+    }
+
+    private Mono<RequestDto> notificationTrackerStep(RequestDto requestDto, final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
+        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
+        return sendNotificationOnStatusQueue(smsPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(smsPresaInCaricoInfo.getStepError().getGeneratedMessageDto()))
+        .map(sendMessageResponse -> requestDto).retryWhen(GESTIONE_RETRY_STRATEGY);
+    }
+
+    private Mono<RequestDto> snsSendStep(RequestDto requestDto, SmsPresaInCaricoInfo smsPresaInCaricoInfo, String requestId, Message message) {
         log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
         return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
-                               smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
-
-                         //                       Retry to send SMS if fails
-                         .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
-
-                         //                        Set message id after send
-                         .map(this::createGeneratedMessageDto)
-
-                         //                       The SMS in sent, publish to Notification Tracker with next status -> SENT
-                         .flatMap(generatedMessageDto -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
-                                                                                       SENT.getStatusTransactionTableCompliant(),
-                                                                                       new DigitalProgressStatusDto().generatedMessage(
-                                                                                               generatedMessageDto)))
-                         .flatMap(sendMessageResponse -> {
-                             log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore: {}",
-                                       smsSqsQueueName.errorName());
-                             return deleteMessageFromErrorQueue(message);
-                         })
-                         .onErrorResume(sqsPublishException -> {
-                             log.warn("Exception in gestioneRetrySms {}, {}", sqsPublishException, sqsPublishException.getMessage());
-                             return checkTentativiEccessiviSms(requestId,
-                                     requestDto,
-                                     smsPresaInCaricoInfo,
-                                     message);
-                         });
-    }
-})
-//                                   Catch errore tirato per lo stato toDelete
-.onErrorResume(StatusToDeleteException.class, exception -> {
-    log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", smsSqsQueueName.errorName());
-    return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
-                                         DELETED.getStatusTransactionTableCompliant(),
-                                         new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto())).flatMap(
-            sendMessageResponse -> deleteMessageFromErrorQueue(message));
-
-
-})
-.onErrorResume(internalError -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
-                                                              INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                                              new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
-                .doOnError(throwable -> log.warn("gestioneRetrySms {}, {}", throwable, throwable.getMessage()));
+                        smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
+                .retryWhen(GESTIONE_RETRY_STRATEGY)
+                .map(this::createGeneratedMessageDto)
+                .map(generatedMessageDto -> {
+                    smsPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
+                    smsPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
+                    return requestDto;
+                });
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    DigitalProgressStatusDto digitalProgressStatusDto) {
         return sqsService.send(notificationTrackerSqsName.statoSmsName(),
-                               createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
+                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
     }
 
     @Override

@@ -20,6 +20,7 @@ public class StepError {
 
     public enum StepErrorEnum {
         NOTIFICATION_TRACKER_STEP("NOTIFICATION_TRACKER_STEP"),
+        SNS_SEND_STEP("SNS_SEND_STEP"),
         ARUBA_SEND_MAIL_STEP("ARUBA_SEND_MAIL_STEP"),
         SET_MESSAGE_ID_STEP("SET_MESSAGE_ID_STEP");
 
