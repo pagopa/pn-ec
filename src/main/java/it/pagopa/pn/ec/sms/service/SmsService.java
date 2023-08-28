@@ -200,19 +200,6 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                         SENT.getStatusTransactionTableCompliant(),
                         new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
 
-                        //The maximum number of retries has ended
-                        .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
-                                snsMaxRetriesExceeded -> {
-                                    var stepError = new StepError();
-                                    smsPresaInCaricoInfo.setStepError(stepError);
-                                    smsPresaInCaricoInfo.getStepError().setStep(SNS_SEND_STEP);
-                                    return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
-                                            RETRY.getStatusTransactionTableCompliant(),
-                                            new DigitalProgressStatusDto())
-                                            //Publish to ERRORI SMS queue
-                                            .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo));
-                                })
-
 //              An error occurred during SQS publishing to the Notification Tracker ->
 //              Publish to Errori SMS queue and notify to retry update status only
                         .onErrorResume(SqsClientException.class, sqsPublishException -> {
@@ -222,6 +209,18 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                             smsPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
                             return sendNotificationOnErrorQueue(smsPresaInCaricoInfo);
                         }))
+                //The maximum number of retries has ended
+                .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
+                        snsMaxRetriesExceeded -> {
+                            var stepError = new StepError();
+                            smsPresaInCaricoInfo.setStepError(stepError);
+                            smsPresaInCaricoInfo.getStepError().setStep(SNS_SEND_STEP);
+                            return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
+                                    RETRY.getStatusTransactionTableCompliant(),
+                                    new DigitalProgressStatusDto())
+                                    //Publish to ERRORI SMS queue
+                                    .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo));
+                        })
                 .doOnError(throwable -> log.warn("lavorazioneRichiesta {}, {}", throwable, throwable.getMessage()))
                 .doFinally(signalType -> semaphore.release());
     }

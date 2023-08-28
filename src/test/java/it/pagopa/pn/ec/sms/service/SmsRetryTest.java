@@ -170,7 +170,7 @@ class SmsRetryTest {
         Mockito.doReturn(Mono.error(new SnsSendException.SnsMaxRetriesExceededException())).when(snsService).send(anyString(),anyString());
 
         Mono<DeleteMessageResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
-        StepVerifier.create(response).expectNextCount(0).verifyComplete();
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
     }
     @Test
     void gestioneRetrySms_SqsSendKo() {
