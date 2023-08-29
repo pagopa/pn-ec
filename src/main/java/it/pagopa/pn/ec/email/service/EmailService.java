@@ -408,7 +408,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                     if (!attList.isEmpty()) {
                         mailFld.setEmailAttachments(attList);
                     }
-                    return sesService.send(mailFld);
+                    return sesService.send(mailFld).retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
                 })
                 .map(this::createGeneratedMessageDto);
     }
