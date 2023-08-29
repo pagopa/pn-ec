@@ -11,6 +11,8 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 
+import java.math.BigDecimal;
+
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,7 +27,8 @@ public class StepError {
         SET_MESSAGE_ID_STEP("SET_MESSAGE_ID_STEP"),
         GET_ALLEGATI_STEP("GET_ALLEGATI_STEP"),
         DOWNLOAD_FILE_STEP("GET_ALLEGATI_STEP"),
-        SES_SEND_STEP("SES_SEND_STEP");
+        SES_SEND_STEP("SES_SEND_STEP"),
+        PUT_REQUEST_STEP("PUT_REQUEST_STEP");
 
         private String value;
 
@@ -55,6 +58,7 @@ public class StepError {
     }
 
     StepErrorEnum step;
+    BigDecimal retryStep;
     GeneratedMessageDto generatedMessageDto;
     OperationResultCodeResponse operationResultCodeResponse;
 }

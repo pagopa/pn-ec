@@ -305,7 +305,9 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                         .add(BigDecimal.ONE));
                     }
                     PatchDto patchDto = new PatchDto();
-                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                    RetryDto retryDto = requestDto.getRequestMetadata().getRetry();
+                    patchDto.setRetry(retryDto);
+                    smsPresaInCaricoInfo.getStepError().setRetryStep(retryDto.getRetryStep());
                     return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
                 });
     }
