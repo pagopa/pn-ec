@@ -256,6 +256,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
         var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
 
+        AtomicBoolean canIncrementRetryStep = new AtomicBoolean(false);
+
         return gestoreRepositoryCall.getRichiesta(clientId, requestId)
 //              check status toDelete
                 .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
@@ -264,9 +266,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 //              check Id per evitare loop
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
 //              se il primo step, inizializza l'attributo retry
-                .flatMap(requestDto -> {
+                .map(requestDto -> {
                     if (requestDto.getRequestMetadata().getRetry() == null) {
-                        log.debug("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
                         log.debug("policy" + retryPolicies.getPolicy().get("SMS"));
                         retryDto.setRetryPolicy(retryPolicies.getPolicy().get("SMS"));
@@ -278,38 +279,31 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                 .map(eventsDto -> eventsDto.getDigProgrStatus().getEventTimestamp()).get();
                         retryDto.setLastRetryTimestamp(lastRetryTimestamp);
                         requestDto.getRequestMetadata().setRetry(retryDto);
-                        PatchDto patchDto = new PatchDto();
-                        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                        return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
-
+                        return requestDto;
                     }
-
-                    var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
-                    log.debug(retryNumber + " tentativo di Retry");
-                    return Mono.just(requestDto);
-
+                    canIncrementRetryStep.set(true);
+                    return requestDto;
                 })
 //              check retry policies
                 .filter(requestDto -> {
-
                     var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();
                     var dateTime2 = OffsetDateTime.now();
                     Duration duration = Duration.between(dateTime1, dateTime2);
                     int step = requestDto.getRequestMetadata().getRetry().getRetryStep().intValueExact();
                     long minutes = duration.toMinutes();
-                    long minutesToCheck =
-                            requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
+                    long minutesToCheck = requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
                     return minutes >= minutesToCheck;
                 })
 //              patch con orario attuale e dello step retry
                 .flatMap(requestDto -> {
-                    requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
-                    requestDto.getRequestMetadata()
-                            .getRetry()
-                            .setRetryStep(requestDto.getRequestMetadata()
-                                    .getRetry()
-                                    .getRetryStep()
-                                    .add(BigDecimal.ONE));
+                    if (canIncrementRetryStep.get()) {
+                        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
+                        requestDto.getRequestMetadata().getRetry()
+                                .setRetryStep(requestDto.getRequestMetadata()
+                                        .getRetry()
+                                        .getRetryStep()
+                                        .add(BigDecimal.ONE));
+                    }
                     PatchDto patchDto = new PatchDto();
                     patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
                     return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
