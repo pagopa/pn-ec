@@ -35,6 +35,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -270,7 +271,12 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                         log.debug("policy" + retryPolicies.getPolicy().get("SMS"));
                         retryDto.setRetryPolicy(retryPolicies.getPolicy().get("SMS"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
-                        retryDto.setLastRetryTimestamp(OffsetDateTime.now());
+                        var eventsList = requestDto.getRequestMetadata().getEventsList();
+                        var lastRetryTimestamp = eventsList.stream()
+                                .filter(eventsDto -> eventsDto.getDigProgrStatus().getStatus().equals(RETRY.getStatusTransactionTableCompliant()))
+                                .max(Comparator.comparing(eventsDto -> eventsDto.getDigProgrStatus().getEventTimestamp()))
+                                .map(eventsDto -> eventsDto.getDigProgrStatus().getEventTimestamp()).get();
+                        retryDto.setLastRetryTimestamp(lastRetryTimestamp);
                         requestDto.getRequestMetadata().setRetry(retryDto);
                         PatchDto patchDto = new PatchDto();
                         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
@@ -349,6 +355,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                         .repeatWhenEmpty(o -> o.doOnNext(iteration -> log.debug("Step repeated {} times for request {}", iteration, requestId)))
                         .then(deleteMessageFromErrorQueue(message))
                         .onErrorResume(SmsRetryException.class, throwable -> checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message)))
+                .switchIfEmpty(sendNotificationOnErrorQueue(smsPresaInCaricoInfo).then(deleteMessageFromErrorQueue(message)))
                 .onErrorResume(StatusToDeleteException.class, exception -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", smsSqsQueueName.errorName());
                     return sendNotificationOnStatusQueue(smsPresaInCaricoInfo, DELETED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
