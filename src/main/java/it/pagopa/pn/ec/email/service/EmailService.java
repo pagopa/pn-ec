@@ -345,7 +345,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .map(requestDto -> {
                     if (emailPresaInCaricoInfo.getStepError() == null) {
                         var stepError = new StepError();
-                        stepError.setStep(GET_ALLEGATI_STEP);
+                        stepError.setStep(SES_SEND_STEP);
                         emailPresaInCaricoInfo.setStepError(stepError);
                     }
                     return requestDto;

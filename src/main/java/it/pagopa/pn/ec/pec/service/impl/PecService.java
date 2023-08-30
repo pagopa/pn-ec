@@ -4,8 +4,7 @@ import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.exception.SemaphoreException;
-import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
+import it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
@@ -34,13 +33,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
-
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -51,7 +48,6 @@ import java.util.concurrent.Semaphore;
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.*;
-import static it.pagopa.pn.ec.commons.service.SesService.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.getDomainFromAddress;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
@@ -189,6 +185,9 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))
+            .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
+                throw new MaxRetriesExceededException();
+            })
             .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
 
     Mono<SendMessageResponse> lavorazioneRichiesta(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
@@ -204,128 +203,35 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
             Thread.currentThread().interrupt();
         }
 
-//      Get attachment presigned url Flux
-        return getAttachments(xPagopaExtchCxId, digitalNotificationRequest)
-
-                .flatMap(this::downloadAttachment)
-
-//                              Convert to Mono<List>
-                .collectList()
-
-//                              Create EmailField object with request info and attachments
-
-                .flatMap(emailAttachments -> sendMail(xPagopaExtchCxId, requestIdx, digitalNotificationRequest, emailAttachments)
-                        .onErrorResume(ArubaCallMaxRetriesExceededException.class, throwable -> {
-                            log.error("An error occurred during Aruba send mail - Message: {}", throwable.getMessage());
+        return arubaSendMailStep(xPagopaExtchCxId, digitalNotificationRequest).doOnError(MaxRetriesExceededException.class, throwable -> {
+                    log.error("An error occurred during Aruba send mail - Message: {}", throwable.getMessage());
+                    var stepError = new StepError();
+                    stepError.setStep(ARUBA_SEND_MAIL_STEP);
+                    pecPresaInCaricoInfo.setStepError(stepError);
+                })
+                .flatMap(generatedMessageDto -> setMessageIdInRequestMetadataStep(xPagopaExtchCxId, requestIdx, generatedMessageDto)
+                        .doOnError(MaxRetriesExceededException.class, throwable -> {
+                            log.error("An error occurred during setMessageIdInRequestMetadata step - Message: {}", throwable.getMessage());
                             var stepError = new StepError();
+                            stepError.setStep(SET_MESSAGE_ID_STEP);
+                            stepError.setGeneratedMessageDto(generatedMessageDto);
                             pecPresaInCaricoInfo.setStepError(stepError);
-                            pecPresaInCaricoInfo.getStepError().setStep(ARUBA_SEND_MAIL_STEP);
-                            return Mono.error(throwable);
                         }))
-
-                .flatMap(generatedMessageDto -> gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId, requestIdx)
-                        .onErrorResume(throwable -> {
-                            log.error("An error occurred during SetMessageIdInRequestMetadata call - Message: {}", throwable.getMessage());
-                            var stepError = new StepError();
-                            pecPresaInCaricoInfo.setStepError(stepError);
-                            pecPresaInCaricoInfo.getStepError().setStep(SET_MESSAGE_ID_STEP);
-                            pecPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
-                            return Mono.error(throwable);
-                        })
-                        .map(requestDto -> generatedMessageDto))
-
-                .flatMap(generatedMessageDto -> sendMessage(generatedMessageDto, pecPresaInCaricoInfo)
-
-//                                    An error occurred during SQS publishing to the Notification Tracker ->
-//                                    Publish to Errori PEC queue and notify to retry update status only
-                        .onErrorResume(SqsClientException.class, sqsPublishException -> {
+                .flatMap(generatedMessageDto -> notificationTrackerStep(generatedMessageDto, pecPresaInCaricoInfo)
+                        .doOnError(MaxRetriesExceededException.class, sqsPublishException -> {
                             log.error("An error occurred during SQS publishing to the Notification Tracker - Message: {}", sqsPublishException.getMessage());
                             var stepError = new StepError();
+                            stepError.setStep(NOTIFICATION_TRACKER_STEP);
+                            stepError.setGeneratedMessageDto(generatedMessageDto);
                             pecPresaInCaricoInfo.setStepError(stepError);
-                            pecPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
-                            pecPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
-                            return sendNotificationOnErrorQueue(pecPresaInCaricoInfo);
                         }))
 
                 .doOnError(throwable -> log.error("An error occurred during lavorazione PEC {}", throwable.getMessage()))
 
                 .onErrorResume(throwable -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                         RETRY.getStatusTransactionTableCompliant(),
-                        new DigitalProgressStatusDto())
-
-                        .then(sendNotificationOnErrorQueue(pecPresaInCaricoInfo)))
+                        new DigitalProgressStatusDto()).then(sendNotificationOnErrorQueue(pecPresaInCaricoInfo)))
                 .doFinally(signalType -> semaphore.release());
-    }
-
-
-    private Flux<FileDownloadResponse> getAttachments(String xPagopaExtchCxId, DigitalNotificationRequest digitalNotificationRequest) {
-        log.debug("reqId {} - getAttachments", digitalNotificationRequest.getRequestId());
-        return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalNotificationRequest.getAttachmentUrls(), xPagopaExtchCxId, false)
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
-                .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null);
-    }
-
-    private Mono<EmailAttachment> downloadAttachment(FileDownloadResponse fileDownloadResponse) {
-        log.debug("fileKey {} - downloadAttachment", fileDownloadResponse.getKey());
-        return downloadCall.downloadFile(fileDownloadResponse.getDownload().getUrl())
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
-                .map(outputStream -> EmailAttachment.builder()
-                        .nameWithExtension(
-                                fileDownloadResponse.getKey())
-                        .content(outputStream)
-                        .build());
-    }
-
-    private Mono<GeneratedMessageDto> sendMail(String xPagopaExtchCxId, String requestIdx, DigitalNotificationRequest digitalNotificationRequest, List<EmailAttachment> attachments) {
-        log.debug("sendMail() - from : {} , reqId : {}", arubaSecretValue.getPecUsername(), requestIdx);
-        return Mono.just(attachments).map(fileDownloadResponses -> EmailField.builder()
-                        .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
-                        .from(arubaSecretValue.getPecUsername())
-                        .to(digitalNotificationRequest.getReceiverDigitalAddress())
-                        .subject(digitalNotificationRequest.getSubjectText())
-                        .text(digitalNotificationRequest.getMessageText())
-                        .contentType(digitalNotificationRequest.getMessageContentType()
-                                .getValue())
-                        .emailAttachments(fileDownloadResponses)
-                        .build())
-
-                .map(EmailUtils::getMimeMessageInCDATATag)
-
-                .flatMap(mimeMessageInCdata -> {
-                    var sendMail = new SendMail();
-                    sendMail.setData(mimeMessageInCdata);
-                    log.debug("sendMail() - mimeMessage : {}", mimeMessageInCdata);
-                    return arubaCall.sendMail(sendMail);
-                })
-
-                .handle((sendMailResponse, sink) -> {
-                    if (sendMailResponse.getErrcode() != 0) {
-                        log.error("ArubaSendException occurred during lavorazione PEC - Errcode: {}, Errstr: {}, Errblock: {}", sendMailResponse.getErrcode(), sendMailResponse.getErrstr(), sendMailResponse.getErrblock());
-                        sink.error(new ArubaSendException());
-                    } else {
-                        sink.next(sendMailResponse);
-                    }
-                })
-
-                .cast(SendMailResponse.class)
-
-                .map(this::createGeneratedMessageDto)
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
-    }
-
-    private Mono<GeneratedMessageDto> setMessageIdInRequestMetadata(String xPagopaExtchCxId, String requestIdx, GeneratedMessageDto generatedMessageDto) {
-        log.debug("reqId {} - setMessageIdInRequestMetadata - generatedMessageDto.id {}", requestIdx, generatedMessageDto.getId());
-        return gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId, requestIdx)
-                .map(requestDto -> generatedMessageDto)
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
-    }
-
-    private Mono<SendMessageResponse> sendMessage(GeneratedMessageDto generatedMessageDto, PecPresaInCaricoInfo pecPresaInCaricoInfo) {
-        log.debug("reqId {} - sendMessage", pecPresaInCaricoInfo.getRequestIdx());
-        return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                SENT.getStatusTransactionTableCompliant(),
-                new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(SendMailResponse sendMailResponse) {
@@ -436,107 +342,22 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
 
-        return filterRequestPec(pecPresaInCaricoInfo).flatMap(requestDto -> {
-//            check step error per evitare null pointer
-                    if (pecPresaInCaricoInfo.getStepError() == null) {
-                        var stepError = new StepError();
-                        pecPresaInCaricoInfo.setStepError(stepError);
-                    }
+        if (pecPresaInCaricoInfo.getStepError() == null) {
+            var stepError = new StepError();
+            stepError.setStep(ARUBA_SEND_MAIL_STEP);
+            pecPresaInCaricoInfo.setStepError(stepError);
+        }
 
-                    var step = pecPresaInCaricoInfo.getStepError().getStep();
-
-//            check step error per evitare nuova chiamata verso aruba
-//              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The PEC in sent, publish to Notification
-//              Tracker with next status -> SENT
-                    if (Objects.equals(pecPresaInCaricoInfo.getStepError().getStep(), NOTIFICATION_TRACKER_STEP)) {
-                        return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                                SENT.getStatusTransactionTableCompliant(),
-                                new DigitalProgressStatusDto().generatedMessage(pecPresaInCaricoInfo.getStepError()
-                                        .getGeneratedMessageDto())).flatMap(
-                                        sendMessageResponse -> {
-                                            log.debug("Il messaggio è stato gestito correttamente e rimosso dalla coda d'errore '{}'",
-                                                    pecSqsQueueName.errorName());
-                                            return deleteMessageFromErrorQueue(message);
-                                        })
-                                .onErrorResume(
-                                        sqsPublishException -> {
-                                            log.warn("gestioneRetryPec {}, {}", sqsPublishException, sqsPublishException.getMessage());
-                                            return checkTentativiEccessiviPec(
-                                                    requestIdx,
-                                                    requestDto,
-                                                    pecPresaInCaricoInfo,
-                                                    message);
-                                        });
-                    } else {
-                        //Gestisco il caso retry a partire dalla gestione allegati
-                        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
-                        //Get attachment presigned url Flux
-                        return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest()
-                                                .getAttachmentUrls(),
-                                        xPagopaExtchCxId,
-                                        false)
-                                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
-
-                                .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
-
-                                .flatMap(fileDownloadResponse -> downloadCall.downloadFile(fileDownloadResponse.getDownload()
-                                                .getUrl())
-                                        .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
-                                        .map(outputStream -> EmailAttachment.builder()
-                                                .nameWithExtension(
-                                                        fileDownloadResponse.getKey())
-                                                .content(
-                                                        outputStream)
-                                                .build()))
-
-//                              Convert to Mono<List>
-                                .collectList()
-
-//                              Create EmailField object with request info and attachments
-                                .flatMap(attachments -> {
-                                    if (step == null || Objects.equals(step, ARUBA_SEND_MAIL_STEP))
-                                        return sendMail(xPagopaExtchCxId, requestIdx, pecPresaInCaricoInfo.getDigitalNotificationRequest(), attachments);
-                                    else return Mono.just(pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto());
-                                })
-
-                                .zipWhen(generatedMessageDto -> {
-                                    if (step == null || Objects.equals(step, SET_MESSAGE_ID_STEP))
-                                        return gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId, requestIdx);
-                                    else return Mono.just(pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto());
-                                })
-
-                                .flatMap(objects -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                                        SENT.getStatusTransactionTableCompliant(),
-                                        new DigitalProgressStatusDto().generatedMessage(
-                                                objects.getT1())))
-
-                                .flatMap(sendMessageResponse -> {
-                                    log.debug("Il messaggio è stato gestito " +
-                                                    "correttamente e rimosso dalla coda " +
-                                                    "d'errore '{}'",
-                                            pecSqsQueueName.errorName());
-                                    return deleteMessageFromErrorQueue(message);
-                                })
-                                .onErrorResume(sqsPublishException -> {
-                                    log.warn("Exception gestioneRetryPec {}, {}", sqsPublishException, sqsPublishException.getMessage());
-                                    return checkTentativiEccessiviPec(requestIdx,
-                                            requestDto,
-                                            pecPresaInCaricoInfo,
-                                            message);
-                                });
-                    }
-
-                })//              Catch errore tirato per lo stato toDelete
+        return filterRequestPec(pecPresaInCaricoInfo).flatMap(requestDto -> chooseStep(pecPresaInCaricoInfo, requestDto)
+                        .repeatWhenEmpty(o -> o.doOnNext(iteration -> log.debug("Step repeated {} times for request {}", iteration, requestIdx)))
+                        .then(deleteMessageFromErrorQueue(message))
+                        .onErrorResume(MaxRetriesExceededException.class, throwable -> checkTentativiEccessiviPec(requestIdx, requestDto, pecPresaInCaricoInfo, message)))
                 .onErrorResume(it.pagopa.pn.ec.commons.exception.StatusToDeleteException.class, statusToDeleteException -> {
-                    log.debug(
-                            "Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}",
-                            pecSqsQueueName.errorName());
+                    log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", pecSqsQueueName.errorName());
                     return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                             DELETED.getStatusTransactionTableCompliant(),
-                            new DigitalProgressStatusDto().generatedMessage(
-                                    new GeneratedMessageDto())).flatMap(
-                            sendMessageResponse -> deleteMessageFromErrorQueue(message));
-
+                            new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
+                            .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 }).onErrorResume(internalError -> {
                     log.warn("Exception in gestioneRetryPec {}, {}", internalError, internalError.getMessage());
                     return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
@@ -545,6 +366,101 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                             message));
                 })
                 .doOnError(throwable -> log.warn("gestioneRetryPec {}, {}", throwable, throwable.getMessage()));
+    }
+
+    private Mono<SendMessageResponse> chooseStep(final PecPresaInCaricoInfo pecPresaInCaricoInfo, RequestDto requestDto) {
+
+        var digitalNotificationRequest=pecPresaInCaricoInfo.getDigitalNotificationRequest();
+        var xPagopaExtchCxId=pecPresaInCaricoInfo.getXPagopaExtchCxId();
+
+        return Mono.just(pecPresaInCaricoInfo.getStepError().getStep())
+                .flatMap(step ->
+                        switch (step) {
+                            case NOTIFICATION_TRACKER_STEP ->
+                                    notificationTrackerStep(pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto(), pecPresaInCaricoInfo);
+                            case SET_MESSAGE_ID_STEP ->
+                                    setMessageIdInRequestMetadataStep(xPagopaExtchCxId, digitalNotificationRequest.getRequestId(), pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto())
+                                            .flatMap(generatedMessageDto -> {
+                                                pecPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
+                                                pecPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
+                                                return Mono.empty();
+                                            });
+                            default ->
+                                    arubaSendMailStep(xPagopaExtchCxId, digitalNotificationRequest).flatMap(generatedMessageDto -> {
+                                        pecPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
+                                        pecPresaInCaricoInfo.getStepError().setStep(SET_MESSAGE_ID_STEP);
+                                        return Mono.empty();
+                                    });
+                        });
+
+    }
+
+    private Mono<GeneratedMessageDto> arubaSendMailStep(String xPagopaExtchCxId, DigitalNotificationRequest digitalNotificationRequest) {
+        log.debug("reqId {} - getAttachments", digitalNotificationRequest.getRequestId());
+        return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalNotificationRequest.getAttachmentUrls(), xPagopaExtchCxId, false)
+                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
+                .flatMap(fileDownloadResponse -> downloadCall.downloadFile(fileDownloadResponse.getDownload().getUrl())
+                        .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                        .map(outputStream -> EmailAttachment.builder()
+                                .nameWithExtension(
+                                        fileDownloadResponse.getKey())
+                                .content(outputStream)
+                                .build()))
+                .collectList()
+                .flatMap(attachments -> sendMail(xPagopaExtchCxId, digitalNotificationRequest.getRequestId(), digitalNotificationRequest, attachments));
+    }
+
+    private Mono<GeneratedMessageDto> sendMail(String xPagopaExtchCxId, String requestIdx, DigitalNotificationRequest digitalNotificationRequest, List<EmailAttachment> attachments) {
+        log.debug("sendMail() - from : {} , reqId : {}", arubaSecretValue.getPecUsername(), requestIdx);
+        return Mono.just(attachments).map(fileDownloadResponses -> EmailField.builder()
+                        .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
+                        .from(arubaSecretValue.getPecUsername())
+                        .to(digitalNotificationRequest.getReceiverDigitalAddress())
+                        .subject(digitalNotificationRequest.getSubjectText())
+                        .text(digitalNotificationRequest.getMessageText())
+                        .contentType(digitalNotificationRequest.getMessageContentType()
+                                .getValue())
+                        .emailAttachments(fileDownloadResponses)
+                        .build())
+
+                .map(EmailUtils::getMimeMessageInCDATATag)
+
+                .flatMap(mimeMessageInCdata -> {
+                    var sendMail = new SendMail();
+                    sendMail.setData(mimeMessageInCdata);
+                    log.debug("sendMail() - mimeMessage : {}", mimeMessageInCdata);
+                    return arubaCall.sendMail(sendMail);
+                })
+
+                .handle((sendMailResponse, sink) -> {
+                    if (sendMailResponse.getErrcode() != 0) {
+                        log.error("ArubaSendException occurred during lavorazione PEC - Errcode: {}, Errstr: {}, Errblock: {}", sendMailResponse.getErrcode(), sendMailResponse.getErrstr(), sendMailResponse.getErrblock());
+                        sink.error(new ArubaSendException());
+                    } else {
+                        sink.next(sendMailResponse);
+                    }
+                })
+
+                .cast(SendMailResponse.class)
+
+                .map(this::createGeneratedMessageDto)
+                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
+    }
+
+    private Mono<GeneratedMessageDto> setMessageIdInRequestMetadataStep(String xPagopaExtchCxId, String requestIdx, GeneratedMessageDto generatedMessageDto) {
+        log.debug("reqId {} - setMessageIdInRequestMetadata - generatedMessageDto.id {}", requestIdx, generatedMessageDto.getId());
+        return gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId, requestIdx)
+                .map(requestDto -> generatedMessageDto)
+                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
+    }
+
+    private Mono<SendMessageResponse> notificationTrackerStep(GeneratedMessageDto generatedMessageDto, PecPresaInCaricoInfo pecPresaInCaricoInfo) {
+        log.debug("reqId {} - sendMessage", pecPresaInCaricoInfo.getRequestIdx());
+        return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
+                SENT.getStatusTransactionTableCompliant(),
+                new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
+                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
     }
 
     @Override
