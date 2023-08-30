@@ -23,10 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
-import software.amazon.awssdk.services.dynamodb.model.Delete;
 import software.amazon.awssdk.services.sns.model.PublishResponse;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
@@ -36,10 +34,10 @@ import software.amazon.awssdk.services.sqs.model.SqsResponse;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
@@ -291,7 +289,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                     var dateTime2 = OffsetDateTime.now();
                     Duration duration = Duration.between(dateTime1, dateTime2);
                     int step = requestDto.getRequestMetadata().getRetry().getRetryStep().intValueExact();
-                    long minutes = duration.toMinutes();
+                    long minutes = duration.toSecondsPart() > 30 ? duration.truncatedTo(ChronoUnit.SECONDS).plusMinutes(1).toMinutes() : duration.toMinutes();
                     long minutesToCheck = requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
                     return minutes >= minutesToCheck;
                 })
@@ -347,7 +345,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                         .then(deleteMessageFromErrorQueue(message))
                         .onErrorResume(SmsRetryException.class, throwable -> checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message)))
                 .cast(SqsResponse.class)
-                .switchIfEmpty(sqsService.changeMessageVisibility(smsSqsQueueName.errorName(), retryPolicies.getPolicy().get("SMS").get(0).intValueExact() * 60, message.receiptHandle()))
+                .switchIfEmpty(sqsService.changeMessageVisibility(smsSqsQueueName.errorName(), retryPolicies.getPolicy().get("SMS").get(0).intValueExact() * 54, message.receiptHandle()))
                 .onErrorResume(StatusToDeleteException.class, exception -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", smsSqsQueueName.errorName());
                     return sendNotificationOnStatusQueue(smsPresaInCaricoInfo, DELETED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
