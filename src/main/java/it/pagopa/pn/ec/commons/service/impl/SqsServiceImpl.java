@@ -12,10 +12,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
-import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
-import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
-import software.amazon.awssdk.services.sqs.model.Message;
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+import software.amazon.awssdk.services.sqs.model.*;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -84,6 +81,12 @@ public class SqsServiceImpl implements SqsService {
                     log.error(throwable.getMessage(), throwable);
                     return Mono.error(new SqsClientException(queueName));
                 });
+    }
+
+    @Override
+    public Mono<ChangeMessageVisibilityResponse> changeMessageVisibility(String queueName, Integer visibilityTimeout, String receiptHandle) {
+        return getQueueUrlFromName(queueName).flatMap(queueUrl -> Mono.fromCompletionStage(sqsAsyncClient.changeMessageVisibility(builder -> builder.queueUrl(
+                queueUrl).visibilityTimeout(visibilityTimeout).receiptHandle(receiptHandle))));
     }
 
     @Override
