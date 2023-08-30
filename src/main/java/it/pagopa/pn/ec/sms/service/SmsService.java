@@ -256,8 +256,6 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
         var clientId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
 
-        AtomicBoolean canIncrementRetryStep = new AtomicBoolean(false);
-
         return gestoreRepositoryCall.getRichiesta(clientId, requestId)
 //              check status toDelete
                 .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
@@ -279,9 +277,11 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                 .map(eventsDto -> eventsDto.getDigProgrStatus().getEventTimestamp()).get();
                         retryDto.setLastRetryTimestamp(lastRetryTimestamp);
                         requestDto.getRequestMetadata().setRetry(retryDto);
-                        return requestDto;
-                    }
-                    canIncrementRetryStep.set(true);
+                    } else requestDto.getRequestMetadata().getRetry()
+                            .setRetryStep(requestDto.getRequestMetadata()
+                                    .getRetry()
+                                    .getRetryStep()
+                                    .add(BigDecimal.ONE));
                     return requestDto;
                 })
 //              check retry policies
@@ -296,14 +296,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                 })
 //              patch con orario attuale e dello step retry
                 .flatMap(requestDto -> {
-                    if (canIncrementRetryStep.get()) {
-                        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
-                        requestDto.getRequestMetadata().getRetry()
-                                .setRetryStep(requestDto.getRequestMetadata()
-                                        .getRetry()
-                                        .getRetryStep()
-                                        .add(BigDecimal.ONE));
-                    }
+                    requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
                     PatchDto patchDto = new PatchDto();
                     RetryDto retryDto = requestDto.getRequestMetadata().getRetry();
                     patchDto.setRetry(retryDto);
