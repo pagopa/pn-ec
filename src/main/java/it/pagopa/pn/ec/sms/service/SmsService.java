@@ -271,7 +271,6 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         var eventsList = requestDto.getRequestMetadata().getEventsList();
                         var lastRetryTimestamp = eventsList.stream()
-                                .filter(eventsDto -> eventsDto.getDigProgrStatus().getStatus().equals(RETRY.getStatusTransactionTableCompliant()))
                                 .max(Comparator.comparing(eventsDto -> eventsDto.getDigProgrStatus().getEventTimestamp()))
                                 .map(eventsDto -> eventsDto.getDigProgrStatus().getEventTimestamp()).get();
                         retryDto.setLastRetryTimestamp(lastRetryTimestamp);
