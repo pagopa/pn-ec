@@ -331,15 +331,14 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
     public Mono<DeleteMessageResponse> gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message) {
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
+
+        if (smsPresaInCaricoInfo.getStepError() == null) {
+            var stepError = new StepError();
+            stepError.setStep(SNS_SEND_STEP);
+            smsPresaInCaricoInfo.setStepError(stepError);
+        }
+
         return filterRequestSms(smsPresaInCaricoInfo)
-                .map(requestDto -> {
-                    if (smsPresaInCaricoInfo.getStepError() == null) {
-                        var stepError = new StepError();
-                        stepError.setStep(SNS_SEND_STEP);
-                        smsPresaInCaricoInfo.setStepError(stepError);
-                    }
-                    return requestDto;
-                })
                 .flatMap(requestDto -> chooseStep(smsPresaInCaricoInfo, requestDto, requestId, message)
                         .repeatWhenEmpty(o -> o.doOnNext(iteration -> log.debug("Step repeated {} times for request {}", iteration, requestId)))
                         .then(deleteMessageFromErrorQueue(message))

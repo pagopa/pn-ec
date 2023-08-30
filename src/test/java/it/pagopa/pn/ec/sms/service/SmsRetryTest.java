@@ -4,6 +4,7 @@ import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
+import it.pagopa.pn.ec.commons.policy.Policy;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SnsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
@@ -26,8 +27,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.pagopa.pn.ec.commons.constant.Status.INTERNAL_ERROR;
-import static it.pagopa.pn.ec.commons.constant.Status.SENT;
+import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.SNS_SEND_STEP;
 import static it.pagopa.pn.ec.sms.testutils.DigitalCourtesySmsRequestFactory.createSmsRequest;
@@ -91,14 +91,10 @@ class SmsRetryTest {
 
     private static RequestDto buildRequestDto()
     {
+        Policy retryPolicies = new Policy();
         //RetryDTO
         RetryDto retryDto=new RetryDto();
-        List<BigDecimal> retries = new ArrayList<>();
-        retries.add(0, BigDecimal.valueOf(5));
-        retries.add(1, BigDecimal.valueOf(10));
-        retryDto.setRetryPolicy(retries);
-        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
-        retryDto.setRetryStep(BigDecimal.valueOf(0));
+        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("SMS"));
 
         //RequestMetadataDTO
         RequestMetadataDto requestMetadata = new RequestMetadataDto();
@@ -129,8 +125,14 @@ class SmsRetryTest {
 
     @Test
     void gestioneRetrySms_Retry_Ok() {
+//        requestDto.getRequestMetadata().setEventsList(new ArrayList<>());
+//        EventsDto eventsDto = new EventsDto().digProgrStatus(new DigitalProgressStatusDto().eventTimestamp(OffsetDateTime.now().minusMinutes(15)).status(RETRY.getStatusTransactionTableCompliant()));
+//        requestDto.getRequestMetadata().getEventsList().add(eventsDto);
 
         var requestDto=buildRequestDto();
+
+        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(15));
+        requestDto.getRequestMetadata().getRetry().setRetryStep(BigDecimal.valueOf(0));
 
         var clientId = requestDto.getxPagopaExtchCxId();
         var requestId = requestDto.getRequestIdx();
@@ -149,7 +151,6 @@ class SmsRetryTest {
 
         verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
   }
-
     @Test
     void gestioneRetrySms_SnsSendKo() {
 
