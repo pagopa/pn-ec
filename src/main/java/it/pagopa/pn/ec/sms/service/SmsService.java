@@ -4,6 +4,7 @@ import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.SemaphoreException;
 import it.pagopa.pn.ec.commons.exception.sms.SmsRetryException;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
@@ -41,8 +42,7 @@ import java.util.concurrent.Semaphore;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
-import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
-import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.SNS_SEND_STEP;
+import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.*;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.BATCH;
@@ -172,7 +172,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
     Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))
             .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
-                throw new SnsSendException.SnsMaxRetriesExceededException();
+                throw new MaxRetriesExceededException();
             })
             .doBeforeRetry(retrySignal -> log.info("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
 
@@ -186,41 +186,32 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         }
 
 //      Try to send SMS
-        return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
-                        smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
-
-//                       Retry to send SMS if fails
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
-
-//                        Set message id after send
-                .map(this::createGeneratedMessageDto)
-
+        return snsSendStep(smsPresaInCaricoInfo)
+                .doOnError(MaxRetriesExceededException.class, throwable -> {
+                    log.error("An error occurred during Sns sendMessage - Message: {}", throwable.getMessage());
+                    var stepError = new StepError();
+                    stepError.setStep(SNS_SEND_STEP);
+                    smsPresaInCaricoInfo.setStepError(stepError);
+                })
 //                       The SMS in sent, publish to Notification Tracker with next status -> SENT
-                .flatMap(generatedMessageDto -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
-                        SENT.getStatusTransactionTableCompliant(),
-                        new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
+                .flatMap(generatedMessageDto -> notificationTrackerStep(smsPresaInCaricoInfo)
 
 //              An error occurred during SQS publishing to the Notification Tracker ->
 //              Publish to Errori SMS queue and notify to retry update status only
-                        .onErrorResume(SqsClientException.class, sqsPublishException -> {
+                        .doOnError(MaxRetriesExceededException.class, throwable -> {
+                            log.error("An error occurred during Sqs send - Message: {}", throwable.getMessage());
                             var stepError = new StepError();
+                            stepError.setStep(NOTIFICATION_TRACKER_STEP);
+                            stepError.setGeneratedMessageDto(generatedMessageDto);
                             smsPresaInCaricoInfo.setStepError(stepError);
-                            smsPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
-                            smsPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
-                            return sendNotificationOnErrorQueue(smsPresaInCaricoInfo);
                         }))
                 //The maximum number of retries has ended
-                .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
-                        snsMaxRetriesExceeded -> {
-                            var stepError = new StepError();
-                            smsPresaInCaricoInfo.setStepError(stepError);
-                            smsPresaInCaricoInfo.getStepError().setStep(SNS_SEND_STEP);
-                            return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
-                                    RETRY.getStatusTransactionTableCompliant(),
-                                    new DigitalProgressStatusDto())
-                                    //Publish to ERRORI SMS queue
-                                    .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo));
-                        })
+                .onErrorResume(MaxRetriesExceededException.class,
+                        maxRetriesExceededException -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
+                                RETRY.getStatusTransactionTableCompliant(),
+                                new DigitalProgressStatusDto())
+                                //Publish to ERRORI SMS queue
+                                .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo)))
                 .doOnError(throwable -> log.warn("lavorazioneRichiesta {}, {}", throwable, throwable.getMessage()))
                 .doFinally(signalType -> semaphore.release());
     }
@@ -266,7 +257,6 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                 .map(requestDto -> {
                     if (requestDto.getRequestMetadata().getRetry() == null) {
                         RetryDto retryDto = new RetryDto();
-                        log.debug("policy" + retryPolicies.getPolicy().get("SMS"));
                         retryDto.setRetryPolicy(retryPolicies.getPolicy().get("SMS"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         var eventsList = requestDto.getRequestMetadata().getEventsList();
@@ -320,13 +310,6 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         return sendNotificationOnErrorQueue(smsPresaInCaricoInfo).then(deleteMessageFromErrorQueue(message));
     }
 
-    Retry GESTIONE_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))
-            .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
-                throw new SmsRetryException();
-            })
-            .doBeforeRetry(retrySignal -> log.info("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
-
-
     public Mono<SqsResponse> gestioneRetrySms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message) {
         var requestId = smsPresaInCaricoInfo.getRequestIdx();
 
@@ -342,7 +325,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                 .flatMap(requestDto -> chooseStep(smsPresaInCaricoInfo, requestDto, requestId, message)
                         .repeatWhenEmpty(o -> o.doOnNext(iteration -> log.debug("Step repeated {} times for request {}", iteration, requestId)))
                         .then(deleteMessageFromErrorQueue(message))
-                        .onErrorResume(SmsRetryException.class, throwable -> checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message)))
+                        .onErrorResume(MaxRetriesExceededException.class, throwable -> checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message)))
                 .cast(SqsResponse.class)
                 .switchIfEmpty(sqsService.changeMessageVisibility(smsSqsQueueName.errorName(), retryPolicies.getPolicy().get("SMS").get(0).intValueExact() * 54, message.receiptHandle()))
                 .onErrorResume(StatusToDeleteException.class, exception -> {
@@ -355,36 +338,34 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                 .doOnError(throwable -> log.warn("gestioneRetrySms {}, {}", throwable, throwable.getMessage()));
     }
 
-    private Mono<RequestDto> chooseStep(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, RequestDto requestDto, String requestId, Message message) {
+    private Mono<SendMessageResponse> chooseStep(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, RequestDto requestDto, String requestId, Message message) {
         return Mono.just(smsPresaInCaricoInfo.getStepError().getStep())
                 .flatMap(step -> {
                     if (smsPresaInCaricoInfo.getStepError().getStep().equals(NOTIFICATION_TRACKER_STEP)) {
                         log.debug("Retrying NotificationTracker step for request {}", smsPresaInCaricoInfo.getRequestIdx());
-                        return notificationTrackerStep(requestDto, smsPresaInCaricoInfo);
+                        return notificationTrackerStep(smsPresaInCaricoInfo);
                     } else {
                         log.debug("Retrying all steps for request {}", smsPresaInCaricoInfo.getRequestIdx());
-                        return snsSendStep(requestDto, smsPresaInCaricoInfo, requestId, message).flatMap(result -> Mono.empty());
+                        return snsSendStep(smsPresaInCaricoInfo).flatMap(generatedMessageDto -> {
+                            smsPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
+                            smsPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
+                            return Mono.empty();
+                        });
                     }
                 });
     }
 
-    private Mono<RequestDto> notificationTrackerStep(RequestDto requestDto, final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
-        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
+    private Mono<SendMessageResponse> notificationTrackerStep(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
+        log.debug("Starting notification tracker step - request : {}", smsPresaInCaricoInfo.getRequestIdx());
         return sendNotificationOnStatusQueue(smsPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(smsPresaInCaricoInfo.getStepError().getGeneratedMessageDto()))
-        .map(sendMessageResponse -> requestDto).retryWhen(GESTIONE_RETRY_STRATEGY);
+                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
     }
 
-    private Mono<RequestDto> snsSendStep(RequestDto requestDto, SmsPresaInCaricoInfo smsPresaInCaricoInfo, String requestId, Message message) {
-        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
-        return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
-                        smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
-                .retryWhen(GESTIONE_RETRY_STRATEGY)
-                .map(this::createGeneratedMessageDto)
-                .map(generatedMessageDto -> {
-                    smsPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
-                    smsPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
-                    return requestDto;
-                });
+    private Mono<GeneratedMessageDto> snsSendStep(SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
+        log.debug("Starting SNS send step - request : {}", smsPresaInCaricoInfo.getRequestIdx());
+        return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(), smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getMessageText())
+                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                .map(this::createGeneratedMessageDto);
     }
 
     @Override

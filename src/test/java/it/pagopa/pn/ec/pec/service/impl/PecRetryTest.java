@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.pec.service.impl;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
+import it.pagopa.pn.ec.commons.policy.Policy;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -15,6 +16,8 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
@@ -22,6 +25,8 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.SqsResponse;
+
 import java.io.ByteArrayOutputStream;
 
 import java.math.BigDecimal;
@@ -119,14 +124,10 @@ class PecRetryTest {
 
     private static RequestDto buildRequestDto()
     {
-        //RetryDto
+        Policy retryPolicies = new Policy();
+        //RetryDTO
         RetryDto retryDto=new RetryDto();
-        List<BigDecimal> retries = new ArrayList<>();
-        retries.add(0, BigDecimal.valueOf(5));
-        retries.add(1, BigDecimal.valueOf(10));
-        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
-        retryDto.setRetryStep(BigDecimal.valueOf(0));
-        retryDto.setRetryPolicy(retries);
+        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PEC"));
 
         //RequestMetadataDto
         RequestMetadataDto requestMetadata = new RequestMetadataDto();
@@ -177,19 +178,23 @@ class PecRetryTest {
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
-        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message);
+        Mono<SqsResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
     }
 
-    @Test
-    void gestionreRetryPec_Retry_Ok(){
+    @ParameterizedTest
+    @CsvSource({"0,15", "1,25", "2,45"})
+    void gestionreRetryPec_Retry_Ok(BigDecimal retryStep, long timeElapsed){
 
         String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
         String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
         var requestDto=buildRequestDto();
+
+        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(timeElapsed));
+        requestDto.getRequestMetadata().getRetry().setRetryStep(retryStep);
 
         PatchDto patchDto = new PatchDto();
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
@@ -209,7 +214,7 @@ class PecRetryTest {
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
-        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message);
+        Mono<SqsResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message);
 //        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 

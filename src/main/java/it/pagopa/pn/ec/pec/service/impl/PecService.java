@@ -38,9 +38,13 @@ import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+import software.amazon.awssdk.services.sqs.model.SqsResponse;
+
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
@@ -203,7 +207,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
             Thread.currentThread().interrupt();
         }
 
-        return arubaSendMailStep(xPagopaExtchCxId, digitalNotificationRequest).doOnError(MaxRetriesExceededException.class, throwable -> {
+        return arubaSendMailStep(xPagopaExtchCxId, digitalNotificationRequest)
+                .doOnError(MaxRetriesExceededException.class, throwable -> {
                     log.error("An error occurred during Aruba send mail - Message: {}", throwable.getMessage());
                     var stepError = new StepError();
                     stepError.setStep(ARUBA_SEND_MAIL_STEP);
@@ -225,12 +230,10 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                             stepError.setGeneratedMessageDto(generatedMessageDto);
                             pecPresaInCaricoInfo.setStepError(stepError);
                         }))
-
+                .onErrorResume(MaxRetriesExceededException.class, throwable -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
+                        RETRY.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
+                        .then(sendNotificationOnErrorQueue(pecPresaInCaricoInfo)))
                 .doOnError(throwable -> log.error("An error occurred during lavorazione PEC {}", throwable.getMessage()))
-
-                .onErrorResume(throwable -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                        RETRY.getStatusTransactionTableCompliant(),
-                        new DigitalProgressStatusDto()).then(sendNotificationOnErrorQueue(pecPresaInCaricoInfo)))
                 .doFinally(signalType -> semaphore.release());
     }
 
@@ -273,48 +276,44 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 //              check Id per evitare loop
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
 //              se il primo step, inizializza l'attributo retry
-                .flatMap(requestDto -> {
+                .map(requestDto -> {
                     if (requestDto.getRequestMetadata().getRetry() == null) {
                         log.debug("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        log.debug("policy" + retryPolicies.getPolicy().get("PEC"));
                         retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PEC"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
-                        retryDto.setLastRetryTimestamp(OffsetDateTime.now());
+                        var eventsList = requestDto.getRequestMetadata().getEventsList();
+                        var lastRetryTimestamp = eventsList.stream()
+                                .max(Comparator.comparing(eventsDto -> eventsDto.getDigProgrStatus().getEventTimestamp()))
+                                .map(eventsDto -> eventsDto.getDigProgrStatus().getEventTimestamp()).get();
+                        retryDto.setLastRetryTimestamp(lastRetryTimestamp);
                         requestDto.getRequestMetadata().setRetry(retryDto);
-                        PatchDto patchDto = new PatchDto();
-                        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-                        return gestoreRepositoryCall.patchRichiesta(xPagopaExtchCxId, requestIdx, patchDto);
 
-                    } else {
-                        var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
-                        log.debug(retryNumber + " tentativo di Retry");
-                        return Mono.just(requestDto);
-                    }
+                    } else
+                        requestDto.getRequestMetadata().getRetry()
+                                .setRetryStep(requestDto.getRequestMetadata()
+                                        .getRetry()
+                                        .getRetryStep()
+                                        .add(BigDecimal.ONE));
+                    return requestDto;
                 })
 //              check retry policies
                 .filter(requestDto -> {
-
                     var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();
                     var dateTime2 = OffsetDateTime.now();
                     Duration duration = Duration.between(dateTime1, dateTime2);
                     int step = requestDto.getRequestMetadata().getRetry().getRetryStep().intValueExact();
-                    long minutes = duration.toMinutes();
-                    long minutesToCheck =
-                            requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
+                    long minutes = duration.toSecondsPart() > 30 ? duration.truncatedTo(ChronoUnit.SECONDS).plusMinutes(1).toMinutes() : duration.toMinutes();
+                    long minutesToCheck = requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
                     return minutes >= minutesToCheck;
                 })
 //              patch con orario attuale e dello step retry
                 .flatMap(requestDto -> {
                     requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
-                    requestDto.getRequestMetadata()
-                            .getRetry()
-                            .setRetryStep(requestDto.getRequestMetadata()
-                                    .getRetry()
-                                    .getRetryStep()
-                                    .add(BigDecimal.ONE));
                     PatchDto patchDto = new PatchDto();
-                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                    RetryDto retryDto = requestDto.getRequestMetadata().getRetry();
+                    patchDto.setRetry(retryDto);
+                    pecPresaInCaricoInfo.getStepError().setRetryStep(retryDto.getRetryStep());
                     return gestoreRepositoryCall.patchRichiesta(xPagopaExtchCxId, requestIdx, patchDto);
                 });
     }
@@ -325,7 +324,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
             idSaved = requestIdx;
         }
         var retry = requestDto.getRequestMetadata().getRetry();
-        if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size())) > 0) {
+        if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size() - 1)) >= 0) {
             // operazioni per la rimozione del messaggio
             log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: " + "{}", pecSqsQueueName.errorName());
             return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
@@ -337,10 +336,11 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         return Mono.empty();
     }
 
-    public Mono<DeleteMessageResponse> gestioneRetryPec(final PecPresaInCaricoInfo pecPresaInCaricoInfo, Message message) {
+    public Mono<SqsResponse> gestioneRetryPec(final PecPresaInCaricoInfo pecPresaInCaricoInfo, Message message) {
 
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
-        var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
+
+        Policy retryPolicies = new Policy();
 
         if (pecPresaInCaricoInfo.getStepError() == null) {
             var stepError = new StepError();
@@ -352,6 +352,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                         .repeatWhenEmpty(o -> o.doOnNext(iteration -> log.debug("Step repeated {} times for request {}", iteration, requestIdx)))
                         .then(deleteMessageFromErrorQueue(message))
                         .onErrorResume(MaxRetriesExceededException.class, throwable -> checkTentativiEccessiviPec(requestIdx, requestDto, pecPresaInCaricoInfo, message)))
+                .cast(SqsResponse.class)
+                .switchIfEmpty(sqsService.changeMessageVisibility(pecSqsQueueName.errorName(), retryPolicies.getPolicy().get("PEC").get(0).intValueExact() * 54, message.receiptHandle()))
                 .onErrorResume(it.pagopa.pn.ec.commons.exception.StatusToDeleteException.class, statusToDeleteException -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", pecSqsQueueName.errorName());
                     return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
@@ -396,7 +398,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private Mono<GeneratedMessageDto> arubaSendMailStep(String xPagopaExtchCxId, DigitalNotificationRequest digitalNotificationRequest) {
-        log.debug("reqId {} - getAttachments", digitalNotificationRequest.getRequestId());
+        log.debug("reqId {} - Aruba sendMail step", digitalNotificationRequest.getRequestId());
         return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalNotificationRequest.getAttachmentUrls(), xPagopaExtchCxId, false)
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
                 .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)

@@ -4,6 +4,7 @@ import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.email.EmailException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
@@ -31,10 +32,14 @@ import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+import software.amazon.awssdk.services.sqs.model.SqsResponse;
+
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
@@ -190,7 +195,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     private final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))
             .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
-                throw new EmailException.EmailMaxRetriesExceededException();
+                throw new MaxRetriesExceededException();
             })
             .doBeforeRetry(retrySignal -> log.info("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));;
 
@@ -206,25 +211,20 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             Thread.currentThread().interrupt();
         }
 
-        AtomicReference<GeneratedMessageDto> generatedMessageDtoAtomic = new AtomicReference<>();
-
         return sesSendStep(emailPresaInCaricoInfo)
-                .doOnError(EmailException.EmailMaxRetriesExceededException.class, throwable -> {
+                .doOnError(MaxRetriesExceededException.class, throwable -> {
                     var stepError = new StepError();
                     emailPresaInCaricoInfo.setStepError(stepError);
                     emailPresaInCaricoInfo.getStepError().setStep(SNS_SEND_STEP);
                 })
-                .flatMap(generatedMessageDto -> {
-                    generatedMessageDtoAtomic.set(generatedMessageDto);
-                    return notificationTrackerStep(generatedMessageDto, emailPresaInCaricoInfo)
-                            .doOnError(EmailException.EmailMaxRetriesExceededException.class, throwable -> {
-                                var stepError = new StepError();
-                                emailPresaInCaricoInfo.setStepError(stepError);
-                                emailPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
-                                emailPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDtoAtomic.get());
-                            });
-                })
-                .onErrorResume(EmailException.EmailMaxRetriesExceededException.class, throwable ->
+                .flatMap(generatedMessageDto -> notificationTrackerStep(generatedMessageDto, emailPresaInCaricoInfo)
+                        .doOnError(MaxRetriesExceededException.class, throwable -> {
+                            var stepError = new StepError();
+                            emailPresaInCaricoInfo.setStepError(stepError);
+                            emailPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
+                            emailPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
+                        }))
+                .onErrorResume(MaxRetriesExceededException.class, throwable ->
                         sendNotificationOnStatusQueue(emailPresaInCaricoInfo, RETRY.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
                                 .then(sendNotificationOnErrorQueue(emailPresaInCaricoInfo)))
                 .doOnError(throwable -> log.warn("lavorazioneRichiesta {}, {}", throwable, throwable.getMessage()))
@@ -281,42 +281,44 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 //              check Id per evitare loop
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
 //              se il primo step, inizializza l'attributo retry
-                .flatMap(requestDto -> {
+                .map(requestDto -> {
                     if (requestDto.getRequestMetadata().getRetry() == null) {
                         log.debug("Primo tentativo di Retry");
                         RetryDto retryDto = new RetryDto();
-                        log.debug("policy" + retryPolicies.getPolicy().get("EMAIL"));
-                        return getMono(requestId, retryPolicies, requestDto, retryDto);
+                        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("EMAIL"));
+                        retryDto.setRetryStep(BigDecimal.ZERO);
+                        var eventsList = requestDto.getRequestMetadata().getEventsList();
+                        var lastRetryTimestamp = eventsList.stream()
+                                .max(Comparator.comparing(eventsDto -> eventsDto.getDigProgrStatus().getEventTimestamp()))
+                                .map(eventsDto -> eventsDto.getDigProgrStatus().getEventTimestamp()).get();
+                        retryDto.setLastRetryTimestamp(lastRetryTimestamp);
+                        requestDto.getRequestMetadata().setRetry(retryDto);
 
-                    } else {
-                        var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
-                        log.debug(retryNumber + " tentativo di Retry");
-                        return Mono.just(requestDto);
-                    }
+                    } else
+                        requestDto.getRequestMetadata().getRetry()
+                                .setRetryStep(requestDto.getRequestMetadata()
+                                        .getRetry()
+                                        .getRetryStep()
+                                        .add(BigDecimal.ONE));
+                    return requestDto;
                 })
 //              check retry policies
                 .filter(requestDto -> {
-
                     var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();
                     var dateTime2 = OffsetDateTime.now();
                     Duration duration = Duration.between(dateTime1, dateTime2);
                     int step = requestDto.getRequestMetadata().getRetry().getRetryStep().intValueExact();
-                    long minutes = duration.toMinutes();
-                    long minutesToCheck =
-                            requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
+                    long minutes = duration.toSecondsPart() > 30 ? duration.truncatedTo(ChronoUnit.SECONDS).plusMinutes(1).toMinutes() : duration.toMinutes();
+                    long minutesToCheck = requestDto.getRequestMetadata().getRetry().getRetryPolicy().get(step).longValue();
                     return minutes >= minutesToCheck;
                 })
 //              patch con orario attuale e dello step retry
                 .flatMap(requestDto -> {
                     requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now());
-                    requestDto.getRequestMetadata()
-                            .getRetry()
-                            .setRetryStep(requestDto.getRequestMetadata()
-                                    .getRetry()
-                                    .getRetryStep()
-                                    .add(BigDecimal.ONE));
                     PatchDto patchDto = new PatchDto();
-                    patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+                    RetryDto retryDto = requestDto.getRequestMetadata().getRetry();
+                    patchDto.setRetry(retryDto);
+                    emailPresaInCaricoInfo.getStepError().setRetryStep(retryDto.getRetryStep());
                     return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
                 });
     }
@@ -327,7 +329,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             idSaved = requestId;
         }
         var retry = requestDto.getRequestMetadata().getRetry();
-        if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size())) > 0) {
+        if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size() - 1)) >= 0) {
             // operazioni per la rimozione del messaggio
             log.debug("Il messaggio è stato rimosso dalla coda d'errore" + " per eccessivi tentativi: {}", emailSqsQueueName.errorName());
             return sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
@@ -339,37 +341,31 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         return sendNotificationOnErrorQueue(emailPresaInCaricoInfo).then(deleteMessageFromErrorQueue(message));
     }
 
-    public Mono<DeleteMessageResponse> gestioneRetryEmail(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message) {
+    public Mono<SqsResponse> gestioneRetryEmail(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message) {
+
+        Policy retryPolicies = new Policy();
+
+        if (emailPresaInCaricoInfo.getStepError() == null) {
+            var stepError = new StepError();
+            stepError.setStep(SES_SEND_STEP);
+            emailPresaInCaricoInfo.setStepError(stepError);
+        }
 
         return filterRequestEmail(emailPresaInCaricoInfo)
-                .map(requestDto -> {
-                    if (emailPresaInCaricoInfo.getStepError() == null) {
-                        var stepError = new StepError();
-                        stepError.setStep(SES_SEND_STEP);
-                        emailPresaInCaricoInfo.setStepError(stepError);
-                    }
-                    return requestDto;
-                })
                 .flatMap(requestDto -> chooseStep(emailPresaInCaricoInfo, requestDto)
                         .repeatWhenEmpty(o -> o.doOnNext(iteration -> log.debug("Step repeated {} times for request {}", iteration, emailPresaInCaricoInfo.getRequestIdx())))
                         .then(deleteMessageFromErrorQueue(message))
-                        .onErrorResume(EmailException.EmailMaxRetriesExceededException.class, throwable -> checkTentativiEccessiviEmail(emailPresaInCaricoInfo.getRequestIdx(), requestDto, emailPresaInCaricoInfo, message)))
-                .onErrorResume(StatusToDeleteException.class,
-                        statusToDeleteException -> {
-                            log.debug(
-                                    "Il messaggio è stato rimosso dalla coda d'errore per" +
-                                            " status toDelete: {}", emailSqsQueueName.errorName());
-                            return sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
-                                    DELETED.getStatusTransactionTableCompliant(),
-                                    new DigitalProgressStatusDto()).flatMap(
-                                    sendMessageResponse -> deleteMessageFromErrorQueue(
-                                            message));
-                        })
-                .onErrorResume(internalError -> sendNotificationOnStatusQueue(
-                        emailPresaInCaricoInfo,
-                        INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                        .onErrorResume(MaxRetriesExceededException.class, throwable -> checkTentativiEccessiviEmail(emailPresaInCaricoInfo.getRequestIdx(), requestDto, emailPresaInCaricoInfo, message)))
+                .cast(SqsResponse.class)
+                .switchIfEmpty(sqsService.changeMessageVisibility(emailSqsQueueName.errorName(), retryPolicies.getPolicy().get("EMAIL").get(0).intValueExact() * 54, message.receiptHandle()))
+                .onErrorResume(StatusToDeleteException.class, statusToDeleteException -> {
+                    log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", emailSqsQueueName.errorName());
+                    return sendNotificationOnStatusQueue(emailPresaInCaricoInfo, DELETED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
+                            .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
+                })
+                .onErrorResume(internalError -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                         new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
-                .doOnError(throwable -> log.warn("processWithAttachRetry {}, {}", throwable, throwable.getMessage()));
+                .doOnError(throwable -> log.warn("gestionRetryEmail {}, {}", throwable, throwable.getMessage()));
     }
 
     private Mono<SendMessageResponse> chooseStep(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, RequestDto requestDto) {
@@ -418,16 +414,6 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 SENT.getStatusTransactionTableCompliant(),
                 new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
-    }
-
-    private Mono<? extends RequestDto> getMono(String requestId, Policy retryPolicies, RequestDto requestDto, RetryDto retryDto) {
-        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("EMAIL"));
-        retryDto.setRetryStep(BigDecimal.ZERO);
-        retryDto.setLastRetryTimestamp(OffsetDateTime.now());
-        requestDto.getRequestMetadata().setRetry(retryDto);
-        PatchDto patchDto = new PatchDto();
-        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-        return gestoreRepositoryCall.patchRichiesta(requestDto.getxPagopaExtchCxId(), requestId, patchDto);
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(SendRawEmailResponse publishResponse) {

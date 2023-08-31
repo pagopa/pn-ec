@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.email.service;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
+import it.pagopa.pn.ec.commons.policy.Policy;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
@@ -13,6 +14,8 @@ import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
@@ -21,6 +24,7 @@ import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.SqsResponse;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
@@ -102,14 +106,10 @@ class RetryEmailTest {
 
     private static RequestDto buildRequestDto()
     {
-        //RetryDto
+        Policy retryPolicies = new Policy();
+        //RetryDTO
         RetryDto retryDto=new RetryDto();
-        List<BigDecimal> retries = new ArrayList<>();
-        retries.add(0, BigDecimal.valueOf(5));
-        retries.add(1, BigDecimal.valueOf(10));
-        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
-        retryDto.setRetryStep(BigDecimal.valueOf(0));
-        retryDto.setRetryPolicy(retries);
+        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("EMAIL"));
 
         //RequestMetadataDto
         RequestMetadataDto requestMetadata = new RequestMetadataDto();
@@ -138,13 +138,54 @@ class RetryEmailTest {
         verify(mockSqsService, never()).deleteMessageFromQueue(eq(message), anyString());
 
     }
-    @Test
-    void gestionreRetryEmail_Retry_Ok(){
+
+    @ParameterizedTest
+    @CsvSource({"0,15", "1,25", "2,45"})
+    void gestionreRetryEmailAttachment_Retry_Ok(BigDecimal retryStep, long timeElapsed){
+
+        String clientId = EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH.getXPagopaExtchCxId();
+        String requestId=EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH.getRequestIdx();
+
+        var requestDto=buildRequestDto();
+        requestDto.setRequestIdx(requestId);
+        requestDto.setxPagopaExtchCxId(clientId);
+
+        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(timeElapsed));
+        requestDto.getRequestMetadata().getRetry().setRetryStep(retryStep);
+
+        PatchDto patchDto = new PatchDto();
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
+        when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().messageId("messageId").build()));
+
+        //Gestore repository mocks.
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
+
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mono<SqsResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+
+    }
+    @ParameterizedTest
+    @CsvSource({"0,15", "1,25", "2,45"})
+    void gestionreRetryEmailNoAttachment_Retry_Ok(BigDecimal retryStep, long timeElapsed){
 
         String clientId = EMAIL_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
         String requestId=EMAIL_PRESA_IN_CARICO_INFO.getRequestIdx();
 
         var requestDto=buildRequestDto();
+
+        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(timeElapsed));
+        requestDto.getRequestMetadata().getRetry().setRetryStep(retryStep);
 
         PatchDto patchDto = new PatchDto();
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
@@ -164,7 +205,7 @@ class RetryEmailTest {
         when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
         //when(gestoreRepositoryCall.patchRichiesta(eq(requestId), eq(patchDto)).thenReturn(Mono.just(requestDto)));
 
-        Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message);
+        Mono<SqsResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message);
 //        Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
@@ -197,45 +238,12 @@ class RetryEmailTest {
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
 
-        Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message);
+        Mono<SqsResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
     }
-    @Test
-    void gestionreRetryEmailAttachment_Retry_Ok(){
-
-        String clientId = EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH.getXPagopaExtchCxId();
-        String requestId=EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH.getRequestIdx();
-
-        var requestDto=buildRequestDto();
-        requestDto.setRequestIdx(requestId);
-        requestDto.setxPagopaExtchCxId(clientId);
-
-        PatchDto patchDto = new PatchDto();
-        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-
-
-        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
-        when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().messageId("messageId").build()));
-
-        //Gestore repository mocks.
-        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
-
-        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
-
-        Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message);
-        StepVerifier.create(response).expectNextCount(1).verifyComplete();
-
-        verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-
-    }
-
     @Test
     void gestionreRetryEmailAttachment_GenericError(){
 
@@ -260,7 +268,7 @@ class RetryEmailTest {
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
-        Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message);
+        Mono<SqsResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));

@@ -85,8 +85,13 @@ public class SqsServiceImpl implements SqsService {
 
     @Override
     public Mono<ChangeMessageVisibilityResponse> changeMessageVisibility(String queueName, Integer visibilityTimeout, String receiptHandle) {
+        log.info("<-- START CHANGE MESSAGE VISIBILITY  --> Queue name : {} , Receipt handle : {}", queueName, receiptHandle);
         return getQueueUrlFromName(queueName).flatMap(queueUrl -> Mono.fromCompletionStage(sqsAsyncClient.changeMessageVisibility(builder -> builder.queueUrl(
-                queueUrl).visibilityTimeout(visibilityTimeout).receiptHandle(receiptHandle))));
+                        queueUrl).visibilityTimeout(visibilityTimeout).receiptHandle(receiptHandle))))
+                .onErrorResume(throwable -> {
+                    log.error(throwable.getMessage(), throwable);
+                    return Mono.error(new SqsClientException(queueName));
+                });
     }
 
     @Override
