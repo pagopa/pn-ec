@@ -194,7 +194,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                     smsPresaInCaricoInfo.setStepError(stepError);
                 })
 //                       The SMS in sent, publish to Notification Tracker with next status -> SENT
-                .flatMap(generatedMessageDto -> notificationTrackerStep(smsPresaInCaricoInfo)
+                .flatMap(generatedMessageDto -> notificationTrackerStep(smsPresaInCaricoInfo, generatedMessageDto)
 
 //              An error occurred during SQS publishing to the Notification Tracker ->
 //              Publish to Errori SMS queue and notify to retry update status only
@@ -343,7 +343,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                 .flatMap(step -> {
                     if (smsPresaInCaricoInfo.getStepError().getStep().equals(NOTIFICATION_TRACKER_STEP)) {
                         log.debug("Retrying NotificationTracker step for request {}", smsPresaInCaricoInfo.getRequestIdx());
-                        return notificationTrackerStep(smsPresaInCaricoInfo);
+                        return notificationTrackerStep(smsPresaInCaricoInfo, smsPresaInCaricoInfo.getStepError().getGeneratedMessageDto());
                     } else {
                         log.debug("Retrying all steps for request {}", smsPresaInCaricoInfo.getRequestIdx());
                         return snsSendStep(smsPresaInCaricoInfo).flatMap(generatedMessageDto -> {
@@ -355,9 +355,9 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                 });
     }
 
-    private Mono<SendMessageResponse> notificationTrackerStep(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
+    private Mono<SendMessageResponse> notificationTrackerStep(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, GeneratedMessageDto generatedMessageDto) {
         log.debug("Starting notification tracker step - request : {}", smsPresaInCaricoInfo.getRequestIdx());
-        return sendNotificationOnStatusQueue(smsPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(smsPresaInCaricoInfo.getStepError().getGeneratedMessageDto()))
+        return sendNotificationOnStatusQueue(smsPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
     }
 
