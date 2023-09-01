@@ -352,14 +352,14 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         return filterRequestPec(pecPresaInCaricoInfo).flatMap(requestDto -> chooseStep(pecPresaInCaricoInfo)
                         .repeatWhenEmpty(o -> o.doOnNext(iteration -> log.debug("gestioneRetryPec() - Repeating step {} for request {} - iteration number {}", pecPresaInCaricoInfo.getStepError().getStep().getValue(), requestIdx, iteration)))
                         .then(deleteMessageFromErrorQueue(message))
-                        .onErrorResume(MaxRetriesExceededException.class, throwable -> checkTentativiEccessiviPec(requestIdx, requestDto, pecPresaInCaricoInfo, message)))
+                        .onErrorResume(MaxRetriesExceededException.class, throwable -> checkTentativiEccessiviPec(pecPresaInCaricoInfo.getRequestIdx(), requestDto, pecPresaInCaricoInfo, message)))
                 .cast(SqsResponse.class)
                 .switchIfEmpty(sqsService.changeMessageVisibility(pecSqsQueueName.errorName(), retryPolicies.getPolicy().get("PEC").get(0).intValueExact() * 54, message.receiptHandle()))
                 .onErrorResume(it.pagopa.pn.ec.commons.exception.StatusToDeleteException.class, statusToDeleteException -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", pecSqsQueueName.errorName());
                     return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                             DELETED.getStatusTransactionTableCompliant(),
-                            new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
+                            new DigitalProgressStatusDto())
                             .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 }).onErrorResume(internalError -> {
                     log.warn("Exception in gestioneRetryPec {}, {}", internalError, internalError.getMessage());

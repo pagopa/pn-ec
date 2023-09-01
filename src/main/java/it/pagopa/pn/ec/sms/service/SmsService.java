@@ -330,7 +330,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                 .switchIfEmpty(sqsService.changeMessageVisibility(smsSqsQueueName.errorName(), retryPolicies.getPolicy().get("SMS").get(0).intValueExact() * 54, message.receiptHandle()))
                 .onErrorResume(StatusToDeleteException.class, exception -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", smsSqsQueueName.errorName());
-                    return sendNotificationOnStatusQueue(smsPresaInCaricoInfo, DELETED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
+                    return sendNotificationOnStatusQueue(smsPresaInCaricoInfo, DELETED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
                             .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 })
                 .onErrorResume(internalError -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
