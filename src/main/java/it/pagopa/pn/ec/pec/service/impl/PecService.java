@@ -365,6 +365,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .doOnError(throwable -> log.warn("gestioneRetryPec {}, {}", throwable, throwable.getMessage()));
     }
 
+
     private Mono<SendMessageResponse> chooseStep(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
 
         var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
