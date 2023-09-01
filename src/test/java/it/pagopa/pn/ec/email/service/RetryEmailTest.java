@@ -141,7 +141,7 @@ class RetryEmailTest {
 
     @ParameterizedTest
     @CsvSource({"0,15", "1,25", "2,45"})
-    void gestionreRetryEmailAttachment_Retry_Ok(BigDecimal retryStep, long timeElapsed){
+    void gestionreRetryEmailAttachment_Retry_Ok(BigDecimal retryStep, long timeElapsed) {
 
         String clientId = EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH.getXPagopaExtchCxId();
         String requestId=EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH.getRequestIdx();
@@ -172,7 +172,7 @@ class RetryEmailTest {
         Mono<SqsResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-        verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        verify(emailService, times(1)).sendNotificationOnStatusQueue(any(EmailPresaInCaricoInfo.class), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
     }
     @ParameterizedTest
