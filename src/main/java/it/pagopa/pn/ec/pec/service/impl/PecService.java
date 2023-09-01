@@ -330,7 +330,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
             log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: " + "{}", pecSqsQueueName.errorName());
             return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                     ERROR.getStatusTransactionTableCompliant(),
-                    new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto())).flatMap(
+                    new DigitalProgressStatusDto()).flatMap(
                     sendMessageResponse -> deleteMessageFromErrorQueue(message));
 
         }
@@ -380,25 +380,25 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .flatMap(step ->
                 {
                     log.debug("chooseStep() - Starting {} step for request {}.", step.getValue(), pecPresaInCaricoInfo.getDigitalNotificationRequest().getRequestId());
-                    return switch (step) {
+                     switch (step) {
                         case NOTIFICATION_TRACKER_STEP:
-                            yield notificationTrackerStep(pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto(), pecPresaInCaricoInfo);
+                            return notificationTrackerStep(pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto(), pecPresaInCaricoInfo);
                         case SET_MESSAGE_ID_STEP:
-                            yield setMessageIdInRequestMetadataStep(xPagopaExtchCxId, digitalNotificationRequest.getRequestId(), pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto())
+                            return setMessageIdInRequestMetadataStep(xPagopaExtchCxId, digitalNotificationRequest.getRequestId(), pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto())
                                     .flatMap(generatedMessageDto -> {
                                         pecPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
                                         pecPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
                                         return Mono.empty();
                                     });
                         case ARUBA_SEND_MAIL_STEP:
-                            yield arubaSendMailStep(xPagopaExtchCxId, digitalNotificationRequest).flatMap(generatedMessageDto -> {
+                            return arubaSendMailStep(xPagopaExtchCxId, digitalNotificationRequest).flatMap(generatedMessageDto -> {
                                 pecPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
                                 pecPresaInCaricoInfo.getStepError().setStep(SET_MESSAGE_ID_STEP);
                                 return Mono.empty();
                             });
                         default:
-                            yield Mono.error(new ChooseStepException(step.getValue()));
-                    };
+                            return Mono.error(new ChooseStepException(step.getValue()));
+                    }
                 });
     }
 
