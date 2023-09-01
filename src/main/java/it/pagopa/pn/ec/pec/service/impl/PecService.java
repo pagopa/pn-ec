@@ -328,8 +328,9 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size() - 1)) >= 0) {
             // operazioni per la rimozione del messaggio
             log.debug("Il messaggio è stato rimosso dalla coda d'errore per eccessivi tentativi: " + "{}", pecSqsQueueName.errorName());
-            return sendNotificationOnDlqErrorQueue(pecPresaInCaricoInfo).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
-
+            return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
+                    .then(sendNotificationOnDlqErrorQueue(pecPresaInCaricoInfo))
+                    .then(deleteMessageFromErrorQueue(message));
         }
         return Mono.empty();
     }
@@ -360,7 +361,9 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                             .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 }).onErrorResume(internalError -> {
                     log.warn("Exception in gestioneRetryPec {}, {}", internalError, internalError.getMessage());
-                    return sendNotificationOnDlqErrorQueue(pecPresaInCaricoInfo).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
+                    return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
+                            .then(sendNotificationOnDlqErrorQueue(pecPresaInCaricoInfo))
+                            .then(deleteMessageFromErrorQueue(message));
                 })
                 .doOnError(throwable -> log.warn("gestioneRetryPec {}, {}", throwable, throwable.getMessage()));
     }
