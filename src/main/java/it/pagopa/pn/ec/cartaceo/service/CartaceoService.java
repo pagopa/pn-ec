@@ -331,7 +331,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
             // messaggio
             log.debug("Il messaggio è stato rimosso " + "dalla coda d'errore per " + "eccessivi tentativi: {}",
                     cartaceoSqsQueueName.errorName());
-            return sendNotificationOnDlqErrorQueue(cartaceoPresaInCaricoInfo).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
+            return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, ERROR.getStatusTransactionTableCompliant(), new PaperProgressStatusDto())
+                    .then(sendNotificationOnDlqErrorQueue(cartaceoPresaInCaricoInfo))
+                    .then(deleteMessageFromErrorQueue(message));
 
         }
         return sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo).then(deleteMessageFromErrorQueue(message));
@@ -365,7 +367,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 })
                 .onErrorResume(throwable -> {
                     log.error("Internal Error -> {}", throwable.getMessage());
-                    return sendNotificationOnDlqErrorQueue(cartaceoPresaInCaricoInfo).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
+                    return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new PaperProgressStatusDto())
+                            .then(sendNotificationOnDlqErrorQueue(cartaceoPresaInCaricoInfo))
+                            .then(deleteMessageFromErrorQueue(message));
                 })
                 .doOnError(exception -> log.warn("gestioneRetryCartaceo {} {}", exception, exception.getMessage()));
     }
