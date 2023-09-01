@@ -332,10 +332,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size() - 1)) >= 0) {
             // operazioni per la rimozione del messaggio
             log.debug("Il messaggio è stato rimosso dalla coda d'errore" + " per eccessivi tentativi: {}", emailSqsQueueName.errorName());
-            return sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
-                    ERROR.getStatusTransactionTableCompliant(),
-                    new DigitalProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(
-                    message));
+            return sendNotificationOnDlqErrorQueue(emailPresaInCaricoInfo).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
 
         }
         return sendNotificationOnErrorQueue(emailPresaInCaricoInfo).then(deleteMessageFromErrorQueue(message));
@@ -363,8 +360,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                     return sendNotificationOnStatusQueue(emailPresaInCaricoInfo, DELETED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
                             .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 })
-                .onErrorResume(internalError -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                        new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
+                .onErrorResume(internalError -> sendNotificationOnDlqErrorQueue(emailPresaInCaricoInfo).then(deleteMessageFromErrorQueue(message)))
                 .doOnError(throwable -> log.warn("gestionRetryEmail {}, {}", throwable, throwable.getMessage()));
     }
 
@@ -435,6 +431,11 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     @Override
     public Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
         return sqsService.send(emailSqsQueueName.errorName(), presaInCaricoInfo);
+    }
+
+    @Override
+    public Mono<SendMessageResponse> sendNotificationOnDlqErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return sqsService.send(emailSqsQueueName.dlqErrorName(), presaInCaricoInfo);
     }
 
     @Override
