@@ -403,6 +403,10 @@ Parameters:
     Type: String
     Description: '[Canale SMS] URL della Coda Errori SMS'
 
+  PnEcDLQueueNameErroriSMS:
+    Type: String
+    Description: '[Canale SMS] Nome della DLQ Errori SMS'
+
   PnEcAlarmArnQueueErroriSMS:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriSMS"
@@ -468,6 +472,10 @@ Parameters:
   PnEcQueueUrlErroriPEC:
     Type: String
     Description: '[Canale PEC] URL della Coda Errori PEC'
+
+  PnEcDLQueueNameErroriPEC:
+    Type: String
+    Description: '[Canale PEC] Nome della DLQ Errori PEC'
 
   PnEcAlarmArnQueueErroriPEC:
     Type: String
@@ -535,6 +543,10 @@ Parameters:
     Type: String
     Description: '[Canale EMAIL] URL della Coda Errori EMAIL'
 
+  PnEcDLQueueNameErroriEMAIL:
+    Type: String
+    Description: '[Canale EMAIL] Nome della DLQ Errori EMAIL'
+
   PnEcAlarmArnQueueErroriEMAIL:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriEMAIL"
@@ -578,6 +590,10 @@ Parameters:
   PnEcQueueUrlErroriCARTACEO:
     Type: String
     Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
+
+  PnEcDLQueueNameErroriCARTACEO:
+    Type: String
+    Description: '[Canale CARTACEO] Nome della DLQ Errori CARTACEO'
 
   PnEcAlarmArnQueueErroriCARTACEO:
     Type: String
@@ -629,7 +645,7 @@ Parameters:
   PnEcCronScaricamentoEsitiPec:
     Type: String
     Default: ''
-    
+
   PnEcCronLavorazioneBatchSms:
     Type: String
     Default: ''
@@ -688,7 +704,7 @@ Parameters:
   PCKmsEncDecDynamoDataKeyARN:
     Type: String
     Description: 'Name of KMS Key for Dynamo encode/decode data'
-  
+
   JavaToolOptions:
     Type: String
     Description: 'System properties and parameters for the JVM'
@@ -806,6 +822,10 @@ Resources:
         ContainerEnvEntry52: !Sub 'LavorazioneSMSMaxThreadPoolSize=${LavorazioneSMSMaxThreadPoolSize}'
         ContainerEnvEntry53: !Sub 'LavorazioneEmailMaxThreadPoolSize=${LavorazioneEmailMaxThreadPoolSize}'
         ContainerEnvEntry54: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
+        ContainerEnvEntry55: !Sub 'PnEcDLQueueNameErroriSMS=${PnEcDLQueueNameErroriSMS}'
+        ContainerEnvEntry56: !Sub 'PnEcDLQueueNameErroriPEC=${PnEcDLQueueNameErroriPEC}'
+        ContainerEnvEntry57: !Sub 'PnEcDLQueueNameErroriEMAIL=${PnEcDLQueueNameErroriEMAIL}'
+        ContainerEnvEntry58: !Sub 'PnEcDLQueueNameErroriCARTACEO=${PnEcDLQueueNameErroriCARTACEO}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'

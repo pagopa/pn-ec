@@ -1083,6 +1083,10 @@ Outputs:
     Description: '[Canale SMS] URL della Coda Errori SMS'
     Value: !GetAtt  PnEcQueueErroriSMSStack.Outputs.QueueURL
 
+  PnEcDLQueueNameErroriSMS:
+    Description: '[Canale SMS] URL della DLQ Errori SMS'
+    Value: !GetAtt PnEcQueueErroriSMSStack.Outputs.DeadLetterQueueName
+
   PnEcAlarmArnQueueErroriSMS:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriSMS"
     Value: !GetAtt PnEcQueueErroriSMSStack.Outputs.SqsAgeAlarmArn
@@ -1148,6 +1152,10 @@ Outputs:
   PnEcQueueUrlErroriPEC:
     Description: '[Canale PEC] URL della Coda Errori PEC'
     Value: !GetAtt  PnEcQueueErroriPECStack.Outputs.QueueURL
+
+  PnEcDLQueueNameErroriPEC:
+    Description: '[Canale PEC] URL della DLQ Errori PEC'
+    Value: !GetAtt PnEcQueueErroriPECStack.Outputs.DeadLetterQueueName
 
   PnEcAlarmArnQueueErroriPEC:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriPEC"
@@ -1215,6 +1223,10 @@ Outputs:
     Description: '[Canale EMAIL] URL della Coda Errori EMAIL'
     Value: !GetAtt  PnEcQueueErroriEMAILStack.Outputs.QueueURL
 
+  PnEcDLQueueNameErroriEMAIL:
+    Description: '[Canale EMAIL] URL della DLQ Errori EMAIL'
+    Value: !GetAtt PnEcQueueErroriEMAILStack.Outputs.DeadLetterQueueName
+
   PnEcAlarmArnQueueErroriEMAIL:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriEMAIL"
     Value: !GetAtt PnEcQueueErroriEMAILStack.Outputs.SqsAgeAlarmArn
@@ -1258,6 +1270,10 @@ Outputs:
   PnEcQueueUrlErroriCARTACEO:
     Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
     Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.QueueURL
+
+  PnEcDLQueueNameErroriCARTACEO:
+    Description: '[Canale CARTACEO] URL della DLQ Errori CARTACEO'
+    Value: !GetAtt PnEcQueueErroriCARTACEOStack.Outputs.DeadLetterQueueName
 
   PnEcAlarmArnQueueErroriCARTACEO:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriCARTACEO"
