@@ -349,13 +349,14 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         return filterRequestPec(pecPresaInCaricoInfo).flatMap(requestDto -> chooseStep(pecPresaInCaricoInfo)
                         .repeatWhenEmpty(o -> o.doOnNext(iteration -> log.debug("gestioneRetryPec() - Repeating step {} for request {} - iteration number {}", pecPresaInCaricoInfo.getStepError().getStep().getValue(), requestIdx, iteration)))
                         .then(deleteMessageFromErrorQueue(message))
-                        .onErrorResume(MaxRetriesExceededException.class, throwable -> checkTentativiEccessiviPec(requestIdx, requestDto, pecPresaInCaricoInfo, message)))
+                        .onErrorResume(MaxRetriesExceededException.class, throwable -> checkTentativiEccessiviPec(pecPresaInCaricoInfo.getRequestIdx(), requestDto, pecPresaInCaricoInfo, message)))
                 .cast(SqsResponse.class)
                 .switchIfEmpty(sqsService.changeMessageVisibility(pecSqsQueueName.errorName(), retryPolicies.getPolicy().get("PEC").get(0).intValueExact() * 54, message.receiptHandle()))
                 .onErrorResume(it.pagopa.pn.ec.commons.exception.StatusToDeleteException.class, statusToDeleteException -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", pecSqsQueueName.errorName());
-                    return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, DELETED.getStatusTransactionTableCompliant(),
-                            new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
+                    return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
+                            DELETED.getStatusTransactionTableCompliant(),
+                            new DigitalProgressStatusDto())
                             .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 }).onErrorResume(internalError -> {
                     log.warn("Exception in gestioneRetryPec {}, {}", internalError, internalError.getMessage());
@@ -370,24 +371,25 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
 
         log.debug("chooseStep() - Starting {} step for request {}.", pecPresaInCaricoInfo.getStepError().getStep().getValue(), pecPresaInCaricoInfo.getDigitalNotificationRequest().getRequestId());
-        return switch (pecPresaInCaricoInfo.getStepError().getStep()) {
-            case NOTIFICATION_TRACKER_STEP ->
-                    notificationTrackerStep(pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto(), pecPresaInCaricoInfo);
-            case SET_MESSAGE_ID_STEP ->
-                    setMessageIdInRequestMetadataStep(xPagopaExtchCxId, digitalNotificationRequest.getRequestId(), pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto())
-                            .flatMap(generatedMessageDto -> {
-                                pecPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
-                                pecPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
-                                return Mono.empty();
-                            });
-            case ARUBA_SEND_MAIL_STEP ->
-                    arubaSendMailStep(xPagopaExtchCxId, digitalNotificationRequest).flatMap(generatedMessageDto -> {
-                        pecPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
-                        pecPresaInCaricoInfo.getStepError().setStep(SET_MESSAGE_ID_STEP);
-                        return Mono.empty();
-                    });
-            default -> Mono.error(new ChooseStepException(pecPresaInCaricoInfo.getStepError().getStep().getValue()));
-        };
+        return Mono.just(pecPresaInCaricoInfo.getStepError().getStep())
+                .flatMap(unused -> {
+                    if (pecPresaInCaricoInfo.getStepError().getStep().equals(NOTIFICATION_TRACKER_STEP))
+                        return notificationTrackerStep(pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto(), pecPresaInCaricoInfo);
+                    else if (pecPresaInCaricoInfo.getStepError().getStep().equals(SET_MESSAGE_ID_STEP))
+                        return setMessageIdInRequestMetadataStep(xPagopaExtchCxId, digitalNotificationRequest.getRequestId(), pecPresaInCaricoInfo.getStepError().getGeneratedMessageDto())
+                                .flatMap(generatedMessageDto -> {
+                                    pecPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
+                                    pecPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
+                                    return Mono.empty();
+                                });
+                    else if (pecPresaInCaricoInfo.getStepError().getStep().equals(ARUBA_SEND_MAIL_STEP))
+                        return arubaSendMailStep(xPagopaExtchCxId, digitalNotificationRequest).flatMap(generatedMessageDto -> {
+                            pecPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
+                            pecPresaInCaricoInfo.getStepError().setStep(SET_MESSAGE_ID_STEP);
+                            return Mono.empty();
+                        });
+                    else return Mono.error(new ChooseStepException(pecPresaInCaricoInfo.getStepError().getStep().getValue()));
+                });
     }
 
     private Mono<GeneratedMessageDto> arubaSendMailStep(String xPagopaExtchCxId, DigitalNotificationRequest digitalNotificationRequest) {
