@@ -129,13 +129,13 @@ public class LocalStackTestConfig {
                 notificationTrackerSqsName.statoCartaceoName(),
                 notificationTrackerSqsName.statoCartaceoErratoName());
 
-        List<String> smsQueueNames = List.of(smsSqsQueueName.interactiveName(), smsSqsQueueName.batchName(), smsSqsQueueName.errorName());
+        List<String> smsQueueNames = List.of(smsSqsQueueName.interactiveName(), smsSqsQueueName.batchName(), smsSqsQueueName.errorName(), smsSqsQueueName.dlqErrorName());
 
         List<String> emailQueueNames =
-                List.of(emailSqsQueueName.interactiveName(), emailSqsQueueName.batchName(), emailSqsQueueName.errorName());
-        List<String> cartceoQueueNames = List.of(cartaceoSqsQueueName.batchName(), cartaceoSqsQueueName.errorName());
+                List.of(emailSqsQueueName.interactiveName(), emailSqsQueueName.batchName(), emailSqsQueueName.errorName(), emailSqsQueueName.dlqErrorName());
+        List<String> cartceoQueueNames = List.of(cartaceoSqsQueueName.batchName(), cartaceoSqsQueueName.errorName(), cartaceoSqsQueueName.dlqErrorName());
 //        cartaceoSqsQueueName.interactiveName(),
-        List<String> pecQueueNames = List.of(pecSqsQueueName.interactiveName(), pecSqsQueueName.batchName(), pecSqsQueueName.errorName());
+        List<String> pecQueueNames = List.of(pecSqsQueueName.interactiveName(), pecSqsQueueName.batchName(), pecSqsQueueName.errorName(), pecSqsQueueName.dlqErrorName());
 
 
         List<String> allQueueName = new ArrayList<>();

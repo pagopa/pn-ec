@@ -181,7 +181,7 @@ class PecRetryTest {
         Mono<SqsResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        verify(pecService, times(1)).sendNotificationOnDlqErrorQueue(eq(PEC_PRESA_IN_CARICO_INFO));
 
     }
 

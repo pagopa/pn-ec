@@ -223,8 +223,7 @@ class SmsRetryTest {
         Mono<SqsResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-    }
+        verify(smsService, times(1)).sendNotificationOnDlqErrorQueue(eq(SMS_PRESA_IN_CARICO_INFO)); }
 
     @Test
     void gestioneRetrySchedulerOk()

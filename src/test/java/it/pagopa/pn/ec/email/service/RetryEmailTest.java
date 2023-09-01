@@ -241,7 +241,7 @@ class RetryEmailTest {
         Mono<SqsResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-        verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        verify(emailService, times(1)).sendNotificationOnDlqErrorQueue(eq(EMAIL_PRESA_IN_CARICO_INFO));
 
     }
     @Test
@@ -271,8 +271,7 @@ class RetryEmailTest {
         Mono<SqsResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-        verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-
+        verify(emailService, times(1)).sendNotificationOnDlqErrorQueue(eq(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH));
     }
     @Test
     void testGestioneRetryEmailSchedulerBach_NoMessages() {

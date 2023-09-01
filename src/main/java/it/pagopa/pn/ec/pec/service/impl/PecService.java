@@ -354,8 +354,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .switchIfEmpty(sqsService.changeMessageVisibility(pecSqsQueueName.errorName(), retryPolicies.getPolicy().get("PEC").get(0).intValueExact() * 54, message.receiptHandle()))
                 .onErrorResume(it.pagopa.pn.ec.commons.exception.StatusToDeleteException.class, statusToDeleteException -> {
                     log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", pecSqsQueueName.errorName());
-                    return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                            DELETED.getStatusTransactionTableCompliant(),
+                    return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, DELETED.getStatusTransactionTableCompliant(),
                             new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
                             .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 }).onErrorResume(internalError -> {
@@ -468,6 +467,11 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     @Override
     public Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
         return sqsService.send(pecSqsQueueName.errorName(), presaInCaricoInfo);
+    }
+
+    @Override
+    public Mono<SendMessageResponse> sendNotificationOnDlqErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return sqsService.send(pecSqsQueueName.dlqErrorName(), presaInCaricoInfo);
     }
 
     @Override

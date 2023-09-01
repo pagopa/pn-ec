@@ -349,7 +349,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         }
 
         return filterRequestEmail(emailPresaInCaricoInfo)
-                .flatMap(requestDto -> chooseStep(emailPresaInCaricoInfo, requestDto)
+                .flatMap(requestDto -> chooseStep(emailPresaInCaricoInfo)
                         .repeatWhenEmpty(o -> o.doOnNext(iteration -> log.debug("Step repeated {} times for request {}", iteration, emailPresaInCaricoInfo.getRequestIdx())))
                         .then(deleteMessageFromErrorQueue(message))
                         .onErrorResume(MaxRetriesExceededException.class, throwable -> checkTentativiEccessiviEmail(emailPresaInCaricoInfo.getRequestIdx(), requestDto, emailPresaInCaricoInfo, message)))
@@ -364,7 +364,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .doOnError(throwable -> log.warn("gestionRetryEmail {}, {}", throwable, throwable.getMessage()));
     }
 
-    private Mono<SendMessageResponse> chooseStep(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, RequestDto requestDto) {
+    private Mono<SendMessageResponse> chooseStep(final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
         return Mono.just(emailPresaInCaricoInfo.getStepError().getStep())
                 .flatMap(step -> {
                     if (emailPresaInCaricoInfo.getStepError().getStep().equals(NOTIFICATION_TRACKER_STEP)) {

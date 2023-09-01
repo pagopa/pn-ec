@@ -319,7 +319,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         }
 
         return filterRequestSms(smsPresaInCaricoInfo)
-                .flatMap(requestDto -> chooseStep(smsPresaInCaricoInfo, requestDto, requestId, message)
+                .flatMap(requestDto -> chooseStep(smsPresaInCaricoInfo)
                         .repeatWhenEmpty(o -> o.doOnNext(iteration -> log.debug("Step repeated {} times for request {}", iteration, requestId)))
                         .then(deleteMessageFromErrorQueue(message))
                         .onErrorResume(MaxRetriesExceededException.class, throwable -> checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message)))
@@ -334,7 +334,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                 .doOnError(throwable -> log.warn("gestioneRetrySms {}, {}", throwable, throwable.getMessage()));
     }
 
-    private Mono<SendMessageResponse> chooseStep(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, RequestDto requestDto, String requestId, Message message) {
+    private Mono<SendMessageResponse> chooseStep(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
         return Mono.just(smsPresaInCaricoInfo.getStepError().getStep())
                 .flatMap(step -> {
                     if (smsPresaInCaricoInfo.getStepError().getStep().equals(NOTIFICATION_TRACKER_STEP)) {
