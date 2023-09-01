@@ -2,8 +2,8 @@
 {"processClientId":{"S":"EMAIL"},"currStatus":{"S":"_start_"},"targetStatus":{"L":[{"S":"booked"}]}}
 {"processClientId":{"S":"EMAIL"},"currStatus":{"S":"booked"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"compError"}]}}
 {"processClientId":{"S":"EMAIL"},"currStatus":{"S":"compError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"M011"},"targetStatus":{"L":[{"S":"_end_"}]}}
-{"processClientId":{"S":"EMAIL"},"currStatus":{"S":"error"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"compError"}]}}
-{"processClientId":{"S":"EMAIL"},"currStatus":{"S":"internalError"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"compError"}]}}
+{"processClientId":{"S":"EMAIL"},"currStatus":{"S":"error"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"compError"}]}}
+{"processClientId":{"S":"EMAIL"},"currStatus":{"S":"internalError"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"compError"}]}}
 {"processClientId":{"S":"EMAIL"},"currStatus":{"S":"retry"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"error"}]}}
 {"processClientId":{"S":"EMAIL"},"currStatus":{"S":"sent"},"externalStatus":{"S":"OK"},"logicStatus":{"S":"M003"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "sent"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "P000"},"targetStatus": {"L": [{"S": "_any_"}]}}
@@ -116,9 +116,9 @@
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"authenticationError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P013"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"booked"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"syntaxError"},{"S":"semanticError"},{"S":"authenticationError"},{"S":"duplicatedRequest"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"duplicatedRequest"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P014"},"targetStatus":{"L":[{"S":"_end_"}]}}
-{"processClientId":{"S":"PAPER"},"currStatus":{"S":"error"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"syntaxError"},{"S":"semanticError"},{"S":"authenticationError"},{"S":"duplicatedRequest"}]}}
+{"processClientId":{"S":"PAPER"},"currStatus":{"S":"error"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"syntaxError"},{"S":"semanticError"},{"S":"authenticationError"},{"S":"duplicatedRequest"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"inprogress"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"P001"},"targetStatus":{"L":[{"S":"inprogress"}]}}
-{"processClientId":{"S":"PAPER"},"currStatus":{"S":"internalError"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"syntaxError"},{"S":"semanticError"},{"S":"authenticationError"},{"S":"duplicatedRequest"}]}}
+{"processClientId":{"S":"PAPER"},"currStatus":{"S":"internalError"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"syntaxError"},{"S":"semanticError"},{"S":"authenticationError"},{"S":"duplicatedRequest"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"retry"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"error"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"semanticError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P012"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"sent"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"P000"},"targetStatus":{"L":[{"S":"_any_"}]}}
@@ -130,9 +130,9 @@
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"compError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"C011"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"delivered"},"externalStatus":{"S":"OK"},"logicStatus":{"S":"C003"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"deliveryWarn"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"C007"},"targetStatus":{"L":[{"S":"notDelivered"},{"S":"delivered"},{"S":"deliveryWarn"}]}}
-{"processClientId":{"S":"PEC"},"currStatus":{"S":"error"},"targetStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"compError"}]}}
+{"processClientId":{"S":"PEC"},"currStatus":{"S":"error"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"compError"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"infected"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"C006"},"targetStatus":{"L":[{"S":"_end_"}]}}
-{"processClientId":{"S":"PEC"},"currStatus":{"S":"internalError"},"targetStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"compError"}]}}
+{"processClientId":{"S":"PEC"},"currStatus":{"S":"internalError"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"compError"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"notAccepted"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"C002"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"notDelivered"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"C004"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"retry"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"error"}]}}
@@ -141,7 +141,7 @@
 {"processClientId":{"S":"SMS"},"currStatus":{"S":"_any_"},"targetStatus":{"L":[{"S":"internalError"}]}}
 {"processClientId":{"S":"SMS"},"currStatus":{"S":"_start_"},"targetStatus":{"L":[{"S":"booked"}]}}
 {"processClientId":{"S":"SMS"},"currStatus":{"S":"booked"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"}]}}
-{"processClientId":{"S":"SMS"},"currStatus":{"S":"error"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"}]}}
-{"processClientId":{"S":"SMS"},"currStatus":{"S":"internalError"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"}]}}
+{"processClientId":{"S":"SMS"},"currStatus":{"S":"error"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"}]}}
+{"processClientId":{"S":"SMS"},"currStatus":{"S":"internalError"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"}]}}
 {"processClientId":{"S":"SMS"},"currStatus":{"S":"retry"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"error"}]}}
 {"processClientId":{"S":"SMS"},"currStatus":{"S":"sent"},"externalStatus":{"S":"OK"},"logicStatus":{"S":"S003"},"targetStatus":{"L":[{"S":"_end_"}]}}
