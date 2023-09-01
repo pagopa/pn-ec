@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.commons.rest.call.aruba;
 
+import it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallException;
-import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pec.bridgews.*;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +33,7 @@ public class ArubaCallImpl implements ArubaCall {
     private Retry getArubaCallRetryStrategy () {
     	return Retry.backoff(Long.parseLong(arubaCallProperties.maxAttempts()), Duration.ofSeconds(Long.parseLong(arubaCallProperties.minBackoff())))
         		.onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
-            throw new ArubaCallMaxRetriesExceededException();
+            throw new MaxRetriesExceededException();
         });
     }
 

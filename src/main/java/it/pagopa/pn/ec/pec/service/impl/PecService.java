@@ -446,8 +446,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
                 .cast(SendMailResponse.class)
 
-                .map(this::createGeneratedMessageDto)
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
+                .map(this::createGeneratedMessageDto);
     }
 
     private Mono<GeneratedMessageDto> setMessageIdInRequestMetadataStep(String xPagopaExtchCxId, String requestIdx, GeneratedMessageDto generatedMessageDto) {
