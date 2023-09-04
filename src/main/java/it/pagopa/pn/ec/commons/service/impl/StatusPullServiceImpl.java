@@ -62,7 +62,8 @@ public class StatusPullServiceImpl implements StatusPullService {
             return callMacchinaStati.statusDecode(xPagopaExtchCxId, processId, digProgrStatus.getStatus())
                                     .map(macchinaStatiDecodeResponseDto -> {
                                         event.setStatus(ProgressEventCategory.valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
-                                        event.setEventCode(CourtesyMessageProgressEvent.EventCodeEnum.fromValue(macchinaStatiDecodeResponseDto.getLogicStatus()));
+                                        var logicStatus=macchinaStatiDecodeResponseDto.getLogicStatus();
+                                        event.setEventCode(logicStatus != null ? CourtesyMessageProgressEvent.EventCodeEnum.fromValue(logicStatus) : null);
                                         return event;
                                     });
         }).switchIfEmpty(Mono.just(new CourtesyMessageProgressEvent().eventDetails("").requestId("")));
