@@ -46,12 +46,12 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
-import static it.pagopa.pn.ec.commons.constant.Status.SENT;
+import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static org.mockito.Mockito.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -79,7 +79,6 @@ public class NotificationTrackerMessageReceiverTest {
     Acknowledgment acknowledgment;
     @Autowired
     RestUtils restUtils;
-    private final ObjectMapper mapper = new ObjectMapper();
     private static final String SMS_REQUEST_IDX = "SMS_REQUEST_IDX";
     private static final String EMAIL_REQUEST_IDX = "EMAIL_REQUEST_IDX";
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
@@ -173,11 +172,11 @@ public class NotificationTrackerMessageReceiverTest {
 
     @ParameterizedTest
     @MethodSource("provideArguments")
-    void digitalHandleRequestStatusChangeOk(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+    void digitalNtOk(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
 
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(requestId).xPagopaExtchCxId(CLIENT_ID).build();
-        DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto().status(BOOKED.getStatusTransactionTableCompliant()).generatedMessage(new GeneratedMessageDto().id("id").system("system").location("location"));
+        DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).generatedMessage(new GeneratedMessageDto().id("id").system("system").location("location"));
         NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), digitalProgressStatusDto);
 
         //WHEN
@@ -200,11 +199,11 @@ public class NotificationTrackerMessageReceiverTest {
 
     @ParameterizedTest
     @MethodSource("provideArguments")
-    void digitalHandleRequestStatusChangeKo(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+    void digitalNtStatusValidationKo(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
 
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(requestId).xPagopaExtchCxId(CLIENT_ID).build();
-        DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto().status(BOOKED.getStatusTransactionTableCompliant()).generatedMessage(new GeneratedMessageDto().id("id").system("system").location("location"));
+        DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).generatedMessage(new GeneratedMessageDto().id("id").system("system").location("location"));
         NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), digitalProgressStatusDto);
 
         //WHEN
@@ -226,11 +225,11 @@ public class NotificationTrackerMessageReceiverTest {
     }
 
     @Test
-    void paperHandleRequestStatusChangeOk() {
+    void paperNtOk() {
 
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
-        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(BOOKED.getStatusTransactionTableCompliant());
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant());
         NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), paperProgressStatusDto);
 
         //WHEN
@@ -244,11 +243,11 @@ public class NotificationTrackerMessageReceiverTest {
     }
 
     @Test
-    void paperHandleRequestStatusChangeKo() {
+    void paperNtStatusValidationKo() {
 
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
-        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(BOOKED.getStatusTransactionTableCompliant());
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant());
         NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), paperProgressStatusDto);
 
         //WHEN
@@ -263,25 +262,29 @@ public class NotificationTrackerMessageReceiverTest {
     private static void insertSmsRequest() {
         var concatRequestId = CLIENT_ID + "~" + SMS_REQUEST_IDX;
         requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestPersonal(DigitalRequestPersonal.builder().build()).build()));
-        requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("SMS").build()).build()));
+        Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(OffsetDateTime.now()).build()).build();
+        requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("SMS").build()).build()));
     }
 
     private static void insertEmailRequest() {
         var concatRequestId = CLIENT_ID + "~" + EMAIL_REQUEST_IDX;
         requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestPersonal(DigitalRequestPersonal.builder().build()).build()));
-        requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("EMAIL").build()).build()));
+        Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(OffsetDateTime.now()).build()).build();
+        requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("EMAIL").build()).build()));
     }
 
     private static void insertPecRequest() {
         var concatRequestId = CLIENT_ID + "~" + PEC_REQUEST_IDX;
         requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestPersonal(DigitalRequestPersonal.builder().build()).build()));
-        requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("PEC").build()).build()));
+        Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(OffsetDateTime.now()).build()).build();
+        requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("PEC").build()).build()));
     }
 
     private static void insertPaperRequest() {
         var concatRequestId = CLIENT_ID + "~" + PAPER_REQUEST_IDX;
         requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).paperRequestPersonal(PaperRequestPersonal.builder().build()).build()));
-        requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).paperRequestMetadata(PaperRequestMetadata.builder().build()).build()));
+        Events event = Events.builder().paperProgrStatus(PaperProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).statusDateTime(OffsetDateTime.now()).build()).build();
+        requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).paperRequestMetadata(PaperRequestMetadata.builder().build()).build()));
     }
 
     private static void buildStateMachine() throws IOException, JSONException {
