@@ -17,6 +17,7 @@ import it.pagopa.pn.ec.commons.utils.RestUtils;
 import it.pagopa.pn.ec.notificationtracker.service.impl.NotificationTrackerMessageReceiver;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.*;
+import it.pagopa.pn.ec.repositorymanager.model.entity.DiscoveredAddress;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Patch;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.service.RequestService;
@@ -309,7 +310,12 @@ public class NotificationTrackerMessageReceiverTest {
     private static void insertPaperRequest() {
         var concatRequestId = CLIENT_ID + "~" + PAPER_REQUEST_IDX;
         requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).paperRequestPersonal(PaperRequestPersonal.builder().build()).build()));
-        Events event = Events.builder().paperProgrStatus(PaperProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).statusDateTime(OffsetDateTime.now()).build()).build();
+        Events event = Events.builder().paperProgrStatus(PaperProgressStatus.builder()
+                .status(BOOKED.getStatusTransactionTableCompliant())
+                .statusDateTime(OffsetDateTime.now())
+                // .attachments(List.of(new PaperProgressStatusEventAttachments()))
+                .discoveredAddress(new DiscoveredAddress())
+                .build()).build();
         requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).paperRequestMetadata(PaperRequestMetadata.builder().build()).build()));
     }
 
