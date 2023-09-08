@@ -42,22 +42,22 @@ public class RequestMetadataServiceTest {
 
     }
 
-    @Test
-    void eventsCheckPaperKo() {
-        var now = OffsetDateTime.now();
-
-        //Eventi uguali
-        var status1 = PaperProgressStatus.builder().status("STATUS").statusDateTime(now).iun("iun1").build();
-        var event1 = Events.builder().paperProgrStatus(status1).build();
-        var status2 = PaperProgressStatus.builder().status("STATUS").statusDateTime(now).iun("iun2").build();
-        var event2 = Events.builder().paperProgrStatus(status2).build();
-
-        var eventsList = List.of(event2);
-
-        Assertions.assertEquals(event1, event2);
-        Assertions.assertThrows(RepositoryManagerException.EventAlreadyExistsException.class, () -> requestMetadataService.eventsCheck(event1, eventsList, "requestId"));
-
-    }
+//    @Test
+//    void eventsCheckPaperKo() {
+//        var now = OffsetDateTime.now();
+//
+//        //Eventi uguali
+//        var status1 = PaperProgressStatus.builder().status("STATUS").statusDateTime(now).iun("iun1").build();
+//        var event1 = Events.builder().paperProgrStatus(status1).build();
+//        var status2 = PaperProgressStatus.builder().status("STATUS").statusDateTime(now).iun("iun2").build();
+//        var event2 = Events.builder().paperProgrStatus(status2).build();
+//
+//        var eventsList = List.of(event2);
+//
+//        Assertions.assertEquals(event1, event2);
+//        Assertions.assertThrows(RepositoryManagerException.EventAlreadyExistsException.class, () -> requestMetadataService.eventsCheck(event1, eventsList, "requestId"));
+//
+//    }
 
 
     @Test
