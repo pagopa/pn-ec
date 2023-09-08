@@ -66,18 +66,19 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         if (!Objects.isNull(eventsList) && !eventsList.isEmpty()) {
 
                                             EventsDto lastEvent = eventsList.get(eventsList.size() - 1);
-                                            PaperProgressStatusDto paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
+                                            //PaperProgressStatusDto paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
                                             DigitalProgressStatusDto digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
 
-                                            log.debug("handleRequestStatusChange - eventsList : {} , paperProgressStatusDto : {}, digitalProgressStatusDto : {}", eventsList, paperProgressStatusDto, digitalProgressStatusDto);
+                                            log.debug("handleRequestStatusChange - eventsList : {}, digitalProgressStatusDto : {}", eventsList, digitalProgressStatusDto);
 
                                             if (lastEvent.getDigProgrStatus() != null) {
                                                 log.debug("handleRequestStatusChange - LastEvent digitalProgressStatus : {}", lastEvent.getDigProgrStatus());
                                                 isSameEvent = isSameEvent(lastEvent.getDigProgrStatus(), digitalProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
-                                            } else {
-                                                log.debug("handleRequestStatusChange - LastEvent paperProgressStatus : {}", lastEvent.getPaperProgrStatus());
-                                                isSameEvent = isSameEvent(lastEvent.getPaperProgrStatus(), paperProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
                                             }
+//                                            else {
+//                                                log.debug("handleRequestStatusChange - LastEvent paperProgressStatus : {}", lastEvent.getPaperProgrStatus());
+//                                                isSameEvent = isSameEvent(lastEvent.getPaperProgrStatus(), paperProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
+//                                            }
                                         }
 
                                         log.debug("handleRequestStatusChange - isSameEvent : {}", isSameEvent);
