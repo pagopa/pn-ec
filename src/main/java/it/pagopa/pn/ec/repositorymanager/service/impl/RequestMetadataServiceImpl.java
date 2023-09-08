@@ -129,9 +129,13 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
             if (status instanceof DigitalProgressStatus digitalProgressStatus) {
                 log.debug("eventsCheck() - DIGITAL STATUS {} ALREADY EXISTS", status);
                 throw new RepositoryManagerException.EventAlreadyExistsException(requestId, digitalProgressStatus);
-            } else {
-                log.debug("eventsCheck() - PAPER STATUS {} ALREADY EXISTS", status);
-                throw new RepositoryManagerException.EventAlreadyExistsException(requestId, (PaperProgressStatus) status);
+            /**
+             * FIXME: pn-7745 rimossa verifica di uguaglianza troppo lasca. 
+             *  } else {
+             * log.debug("eventsCheck() - PAPER STATUS {} ALREADY EXISTS", status);
+             * throw new RepositoryManagerException.EventAlreadyExistsException(requestId, (PaperProgressStatus) status);
+             */
+               
             }
 
         }
