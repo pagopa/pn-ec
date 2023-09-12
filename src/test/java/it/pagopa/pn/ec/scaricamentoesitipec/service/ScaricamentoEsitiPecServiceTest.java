@@ -36,6 +36,7 @@ import java.util.Random;
 
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.scaricamentoesitipec.utils.PecUtils.generateDaticertAccettazione;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -95,45 +96,8 @@ public class ScaricamentoEsitiPecServiceTest {
         return new RequestDto().requestIdx(PEC_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).requestPersonal(requestPersonal).requestMetadata(requestMetadata);
     }
 
-    public static StringBuffer generateDaticertAccettazione(String from, String receiver, String replyTo, String subject, String gestoreMittente, String data, String orario, String messageId, String tipoDestinatario) {
-
-        //Costruzione del daticert
-        StringBuffer stringBufferContent = new StringBuffer();
-        stringBufferContent.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");//popolare con daticert su note
-        stringBufferContent.append("<postacert tipo=\"accettazione\" errore=\"nessuno\">");
-        stringBufferContent.append("<intestazione>");
-        stringBufferContent.append("<mittente>").append(from).append("</mittente>"); //mittente dell'email, sta nella mappa
-        stringBufferContent.append("<destinatari tipo=").append("\"").append(tipoDestinatario).append("\"").append(">").append(receiver).append("</destinatari>"); //destinatario dell'email, sta nella mappa
-        stringBufferContent.append("<risposte>").append(replyTo).append("</risposte>"); //nel messaggio che uso per popolare la mappa c'è un reply-to
-        stringBufferContent.append("<oggetto>").append(subject).append("</oggetto>"); //oggetto dell'email, sta nella mappa
-        stringBufferContent.append("</intestazione>");
-        stringBufferContent.append("<dati>");
-        stringBufferContent.append("<gestore-emittente>").append(gestoreMittente).append("</gestore-emittente>"); //da inventare = "mock-pec" costante
-        stringBufferContent.append("<data zona=\"+0200\">"); //lasciare così
-        stringBufferContent.append("<giorno>").append(data).append("</giorno>"); //impostare in base all'ora
-        stringBufferContent.append("<ora>").append(orario).append("</ora>"); //impostare in base all'ora
-        stringBufferContent.append("</data>");
-        stringBufferContent.append("<identificativo>").append(generateRandomString(64)).append("</identificativo>"); //stringa random 64 caratteri
-        stringBufferContent.append("<msgid>").append(messageId).append("</msgid>"); //msgid della mappa, nella forma url encoded. fare url encode della stringa
-        stringBufferContent.append("</dati>");
-        stringBufferContent.append("</postacert>");
-
-        return stringBufferContent;
-    }
-
-    public static String generateRandomString(int length) {
-        Random random = new Random();
-
-        // Use the nextBytes() method to generate a random sequence of bytes.
-        byte[] bytes = new byte[length];
-        random.nextBytes(bytes);
-
-        // Convert the bytes to a string using the Base64 encoding.
-        return Base64.getEncoder().encodeToString(bytes);
-    }
-
     private RicezioneEsitiPecDto buildRicezioneEsitiPecDto(String tipoDestinatario) throws MessagingException, IOException {
-        String msgId = "-"+encodeMessageId(CLIENT_ID, PEC_REQUEST_IDX)+"-";
+        String msgId = "-" + encodeMessageId(CLIENT_ID, PEC_REQUEST_IDX) + "-";
         var daticertBytes = generateDaticertAccettazione("from", "receiverAddress@pagopa.it", "replyTo", "subject", "gestoreMittente", "03/11/1999", "00:00:00", msgId, tipoDestinatario).toString().getBytes();
         ByteArrayOutputStream daticertOutput = new ByteArrayOutputStream();
         daticertOutput.write(daticertBytes);

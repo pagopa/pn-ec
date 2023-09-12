@@ -11,6 +11,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.service.AuthService;
@@ -18,6 +19,11 @@ import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -38,6 +44,7 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
 @Slf4j
@@ -128,8 +135,13 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		requestDto.setxPagopaExtchCxId(xPagopaExtchServiceIdHeaderValue);
     	return requestDto;
     }
-	@Test
-	/** Test CRCRE.100.1 */
+
+	private Stream<Arguments> provideArguments() {
+		return Stream.of(Arguments.of(getProgressStatusEventWithAttachments()), Arguments.of(getProgressStatusEventWithoutAttachments()));
+	}
+
+	@ParameterizedTest
+	@MethodSource("provideArguments")
 	void ricezioneEsitiOk() {
 		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiOk() : START");
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
