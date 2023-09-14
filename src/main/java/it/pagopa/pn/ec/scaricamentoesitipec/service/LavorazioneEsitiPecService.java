@@ -9,6 +9,7 @@ import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.SemaphoreException;
 import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
+import it.pagopa.pn.ec.commons.model.pojo.pec.PnPostacert;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
@@ -27,7 +28,6 @@ import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.daticert.Destinatari;
-import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -47,6 +47,7 @@ import static it.pagopa.pn.ec.commons.service.impl.DatiCertServiceImpl.createTim
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
+import static it.pagopa.pn.ec.consolidatore.utils.ContentTypes.MESSAGE_RFC822;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.*;
@@ -111,7 +112,9 @@ public class LavorazioneEsitiPecService {
                 {
 
                     var messageID = ricEsitiPecDto.getMessageID();
-                    var daticert = ricEsitiPecDto.getDaticert();
+                    var message = ricEsitiPecDto.getMessage();
+                    var mimeMessage = getMimeMessage(message);
+                    var daticert = findAttachmentByName(mimeMessage, "daticert.xml");
 
                     return Mono.just(daticertService.getPostacertFromByteArray(daticert))
                             .flatMap(postacert -> {
@@ -131,7 +134,7 @@ public class LavorazioneEsitiPecService {
                             })
                             .flatMap(objects -> {
 
-                                Postacert postacert = objects.getT1();
+                                PnPostacert postacert = objects.getT1();
                                 LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
                                 PresaInCaricoInfo presaInCaricoInfo = objects.getT3();
 
@@ -145,7 +148,7 @@ public class LavorazioneEsitiPecService {
                             //Pubblicazione metriche custom su CloudWatch
                             .flatMap(objects ->
                             {
-                                Postacert postacert = objects.getT1();
+                                PnPostacert postacert = objects.getT1();
                                 LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
                                 RequestDto requestDto = objects.getT3();
 
@@ -179,7 +182,7 @@ public class LavorazioneEsitiPecService {
                             })
                             //Preparazione payload per la coda stati PEC
                             .flatMap(objects -> {
-                                Postacert postacert = objects.getT1();
+                                PnPostacert postacert = objects.getT1();
                                 RequestDto requestDto = objects.getT2();
                                 CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT3();
                                 String nextStatus = objects.getT4();
@@ -193,7 +196,7 @@ public class LavorazioneEsitiPecService {
                                 var senderDomain = getDomainFromAddress(senderDigitalAddress);
                                 var receiversDomain = ricEsitiPecDto.getReceiversDomain();
 
-                                return generateLocation(requestIdx.get(), daticert)
+                                return generateLocation(requestIdx.get(), message)
                                         .map(location ->
                                         {
                                             var generatedMessageDto = createGeneratedMessageByStatus(receiversDomain,
@@ -231,7 +234,8 @@ public class LavorazioneEsitiPecService {
 
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GENERATE_LOCATION, requestIdx);
 
-        FileCreationRequest fileCreationRequest = new FileCreationRequest().contentType(ContentTypes.APPLICATION_XML)
+        FileCreationRequest fileCreationRequest = new FileCreationRequest()
+                .contentType(MESSAGE_RFC822)
                 .documentType(PN_EXTERNAL_LEGAL_FACTS.getValue())
                 .status("");
 
@@ -244,7 +248,7 @@ public class LavorazioneEsitiPecService {
                     String uploadUrl = fileCreationResponse.getUploadUrl();
                     return uploadWebClient.put()
                             .uri(URI.create(uploadUrl))
-                            .header("Content-Type", ContentTypes.APPLICATION_XML)
+                            .header("Content-Type", MESSAGE_RFC822)
                             .header("x-amz-meta-secret", fileCreationResponse.getSecret())
                             .header("x-amz-checksum-sha256", checksumValue)
                             .bodyValue(fileBytes)

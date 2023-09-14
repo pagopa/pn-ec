@@ -27,18 +27,21 @@ import org.springframework.context.annotation.PropertySource;
 @PropertySource("classpath:sms/sms-sqs-queue.properties")
 // SNS TOPIC
 @PropertySource("classpath:sms/sms-sns-topic.properties")
+// LAVORAZIONE
+@PropertySource("classpath:sms/lavorazione-sms.properties")
+
 
 //  <-- EMAIL -->
 // SQS QUEUE
 @PropertySource("classpath:email/email-sqs-queue.properties")
-// DEFAULT
-@PropertySource("classpath:email/email.properties")
+// LAVORAZIONE
+@PropertySource("classpath:email/lavorazione-email.properties")
 
 //  <-- PEC -->
 // SQS QUEUE
 @PropertySource("classpath:pec/pec-sqs-queue.properties")
-// DEFAULT
-@PropertySource("classpath:pec/pec.properties")
+// LAVORAZIONE
+@PropertySource("classpath:pec/lavorazione-pec.properties")
 
 //  <-- SCARICAMENTO ESITI PEC -->
 @PropertySource("classpath:scaricamentoesitipec/scaricamento-esiti-pec.properties")
@@ -47,6 +50,8 @@ import org.springframework.context.annotation.PropertySource;
 //  <-- CARTACEO -->
 // SQS QUEUE
 @PropertySource("classpath:cartaceo/cartaceo-sqs-queue.properties")
+// LAVORAZIONE
+@PropertySource("classpath:cartaceo/lavorazione-cartaceo.properties")
 
 //  <-- NOTIFICATION TRACKER -->
 // EVENTBRIDGE EVENT

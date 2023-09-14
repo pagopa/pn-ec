@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.commons.service.impl;
 
 import it.pagopa.pn.ec.commons.exception.XmlParserException;
+import it.pagopa.pn.ec.commons.model.pojo.pec.PnPostacert;
 import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pec.daticert.Data;
 import it.pec.daticert.Postacert;
@@ -25,7 +26,7 @@ public class DatiCertServiceImpl implements DaticertService {
     }
 
     @Override
-    public Postacert getPostacertFromByteArray(byte[] bytes) {
+    public PnPostacert getPostacertFromByteArray(byte[] bytes) {
         try {
 
 //          This method could be called in a non-thread safe context; is good to create for each unmarshall operation a jakarta.xml.bind
@@ -34,7 +35,7 @@ public class DatiCertServiceImpl implements DaticertService {
 //          https://javaee.github.io/jaxb-v2/doc/user-guide/ch06.html#d0e6879
 //          https://stackoverflow.com/questions/7400422/jaxb-creating-context-and-marshallers-cost
 
-            return (Postacert) jaxbContext.createUnmarshaller().unmarshal(new ByteArrayInputStream(bytes));
+            return new PnPostacert((Postacert) jaxbContext.createUnmarshaller().unmarshal(new ByteArrayInputStream(bytes)));
         } catch (JAXBException e) {
             throw new XmlParserException("JAXBException during input stream unmarshalling");
         }
