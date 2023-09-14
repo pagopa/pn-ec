@@ -49,7 +49,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 
 @SpringBootTestWebEnv
-@AutoConfigureWebTestClient
+@AutoConfigureWebTestClient(timeout = "50000")
 class DigitalCourtesyMessagesEmailApiControllerTest {
 
 

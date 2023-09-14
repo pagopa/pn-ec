@@ -16,13 +16,6 @@ import reactor.util.retry.Retry;
 
 public interface PaperMessageCall {
 
-	//  Spiegazione per jitter https://www.baeldung.com/resilience4j-backoff-jitter#jitter
-	Retry DEFAULT_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))
-			//                                        .jitter(0.75)
-			.onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
-				throw new CartaceoSendException.CartaceoMaxRetriesExceededException();
-			});
-
 	//  <-- ENGAGEMENT -->
 	Mono<OperationResultCodeResponse> putRequest(PaperEngageRequest paperEngageRequest) throws RestCallException.ResourceAlreadyInProgressException;
 
