@@ -176,34 +176,6 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                         });
     }
 
-
-    private Mono<ResponseEntity<OperationResultCodeResponse>> publishOnQueue(List<ConsolidatoreIngressPaperProgressStatusEvent> listEvents, String xPagopaExtchServiceId){
-        return Flux.fromIterable(listEvents)
-                // pubblicazione sulla coda
-                .flatMap(statusEvent -> ricezioneEsitiCartaceoService.pubblicaEsitoCodaNotificationTracker(xPagopaExtchServiceId, statusEvent))
-                .collectList()
-                // gestione errori oppure response ok
-                .flatMap(listSendResponse -> {
-                    var listSendErrorResponse = listSendResponse.stream().filter(response -> response.getResultCode() != null && !response.getResultCode().equals(COMPLETED_OK_CODE)).toList();
-                    if (listSendErrorResponse.isEmpty()) {
-                        log.debug(LOG_LABEL + "OK END");
-                        return Mono.just(ResponseEntity.ok()
-                                .body(getOperationResultCodeResponse(COMPLETED_OK_CODE,
-                                        COMPLETED_MESSAGE,
-                                        null)));
-                    } else {
-                        var sendErrors = getAllErrors(listSendErrorResponse);
-                        log.debug(LOG_LABEL + "pubblicazione coda : errori individuati = {}", sendErrors);
-                        return Mono.just(ResponseEntity.internalServerError()
-                                .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
-                                        errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
-                                        sendErrors)));
-                    }
-                })
-                .doOnError(RuntimeException.class, throwable ->
-                        log.warn("publishOnQueue - {}, {}", throwable, throwable.getMessage()));
-    }
-
     private void fieldValidationAuditLog(List<FieldError> errors, Object request) {
         List<ConsAuditLogError> consAuditLogErrorList = new ArrayList<>();
         for (FieldError error : errors) {
