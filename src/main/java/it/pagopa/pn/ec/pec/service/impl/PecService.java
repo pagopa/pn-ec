@@ -51,6 +51,7 @@ import java.util.concurrent.Semaphore;
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.*;
+import static it.pagopa.pn.ec.commons.service.SesService.DEFAULT_RETRY_STRATEGY;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.getDomainFromAddress;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
@@ -91,6 +92,10 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         this.semaphore = new Semaphore(maxThreadPoolSize);
     }
 
+    private final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
+            .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
+
+
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
 
@@ -107,12 +112,12 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(pecPresaInCaricoInfo.getDigitalNotificationRequest()
                         .getAttachmentUrls(), xPagopaExtchCxId, true)
-
+                .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
                 .then(insertRequestFromPec(digitalNotificationRequest, xPagopaExtchCxId))
 
                 .flatMap(requestDto -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                         BOOKED.getStatusTransactionTableCompliant(),
-                        new DigitalProgressStatusDto()))
+                        new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY))
 
                 .flatMap(sendMessageResponse -> {
                     DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
@@ -127,7 +132,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .onErrorResume(SqsClientException.class,
                         sqsClientException -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                                 INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                new DigitalProgressStatusDto()).then(Mono.error(
+                                new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY).then(Mono.error(
                                 sqsClientException)))
                 .then()
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, PRESA_IN_CARICO_PEC, result));
@@ -165,7 +170,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
             requestDto.setRequestPersonal(requestPersonalDto);
             requestDto.setRequestMetadata(requestMetadataDto);
             return requestDto;
-        }).flatMap(gestoreRepositoryCall::insertRichiesta)
+        }).flatMap(gestoreRepositoryCall::insertRichiesta).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
         .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, INSERT_REQUEST_FROM_PEC, result));
     }
 
@@ -201,7 +206,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         try {
             semaphore.acquire();
         } catch (InterruptedException e) {
-            throw new SemaphoreException(e.getMessage());
+            Thread.currentThread().interrupt();
         }
 
 //      Get attachment presigned url Flux
@@ -421,7 +426,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         if (idSaved == null) {
             idSaved = requestIdx;
         }
-        if (requestDto.getRequestMetadata().getRetry().getRetryStep().compareTo(BigDecimal.valueOf(3)) > 0) {
+        var retry = requestDto.getRequestMetadata().getRetry();
+        if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size())) > 0) {
             // operazioni per la rimozione del messaggio
             return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                     ERROR.getStatusTransactionTableCompliant(),
@@ -463,7 +469,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                         })
                                 .onErrorResume(
                                         sqsPublishException -> {
-                                            log.error(FATAL_IN_PROCESS_FOR, GESTIONE_RETRY_PEC, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
+                                            log.warn(FATAL_IN_PROCESS_FOR, GESTIONE_RETRY_PEC, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
                                             return checkTentativiEccessiviPec(
                                                     requestIdx,
                                                     requestDto,
@@ -542,7 +548,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                             new DigitalProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(
                             message));
                 })
-                .doOnError(throwable -> log.error(FATAL_IN_PROCESS_FOR, GESTIONE_RETRY_PEC, concatRequestId, throwable, throwable.getMessage()))
+                .doOnError(throwable -> log.warn(FATAL_IN_PROCESS_FOR, GESTIONE_RETRY_PEC, concatRequestId, throwable, throwable.getMessage()))
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, GESTIONE_RETRY_PEC, result));
     }
 

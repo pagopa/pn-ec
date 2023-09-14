@@ -218,7 +218,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                     }
                 })
                 .doOnError(RuntimeException.class, throwable ->
-                        log.error("* FATAL * publishOnQueue - {}, {}", throwable, throwable.getMessage()));
+                        log.warn("* FATAL * publishOnQueue - {}, {}", throwable, throwable.getMessage()));
     }
 
     private void fieldValidationAuditLog(List<FieldError> errors, Object request) {

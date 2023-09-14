@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.commons.service;
 
-import it.pec.daticert.Postacert;
+import it.pagopa.pn.ec.commons.model.pojo.pec.PnPostacert;
 
 public interface DaticertService {
 
-    Postacert getPostacertFromByteArray(byte[] bytes);
+    PnPostacert getPostacertFromByteArray(byte[] bytes);
 }

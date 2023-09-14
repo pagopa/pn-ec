@@ -4,6 +4,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigu
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
+import it.pagopa.pn.ec.commons.model.pojo.pec.PnPostacert;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
@@ -13,8 +14,6 @@ import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.Scaricamento
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils;
 import it.pec.bridgews.*;
-import it.pec.daticert.Destinatari;
-import it.pec.daticert.Postacert;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -53,8 +52,8 @@ public class ScaricamentoEsitiPecScheduler {
         this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;
     }
 
-    private final Predicate<Postacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
-    private final Predicate<Postacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
+    private final Predicate<PnPostacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
+    private final Predicate<PnPostacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
 
     private GetMessageID createGetMessageIdRequest(String messageID, Integer isuid, boolean markSeen) {
         var getMessageID = new GetMessageID();
@@ -125,7 +124,7 @@ public class ScaricamentoEsitiPecScheduler {
                                 .filter(endsWithDomainPredicate)
 
 //                               Daticert filtrati
-                                .doOnDiscard(Postacert.class, postacert -> {
+                                .doOnDiscard(PnPostacert.class, postacert -> {
                                     if (isPostaCertificataPredicate.test(postacert)) {
                                         log.debug("SCARICAMENTO ESITI PEC - PEC {} discarded, is {}", finalMessageID, POSTA_CERTIFICATA);
                                     } else if (!endsWithDomainPredicate.test(postacert)) {
@@ -134,7 +133,7 @@ public class ScaricamentoEsitiPecScheduler {
                                 })
                                  .flatMap(unused -> sqsService.send(scaricamentoEsitiPecProperties.sqsQueueName(), finalMessageID, RicezioneEsitiPecDto.builder()
                                          .messageID(finalMessageID)
-                                         .daticert(attachBytes)
+                                         .message(message)
                                          .receiversDomain(getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]))
                                          .retry(0)
                                          .build()))

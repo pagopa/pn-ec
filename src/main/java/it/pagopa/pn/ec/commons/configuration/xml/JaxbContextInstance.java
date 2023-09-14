@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.commons.configuration.xml;
 
-import it.pec.daticert.Postacert;
+import it.pagopa.pn.ec.commons.model.pojo.pec.PnPostacert;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import org.springframework.context.annotation.Bean;
@@ -11,6 +11,6 @@ public class JaxbContextInstance {
 
     @Bean
     public JAXBContext getJaxbContextUnmarshaller() throws JAXBException {
-        return JAXBContext.newInstance(Postacert.class);
+        return JAXBContext.newInstance(PnPostacert.class);
     }
 }
