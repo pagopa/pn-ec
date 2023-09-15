@@ -320,6 +320,7 @@ Resources:
         MaxReceiveCount: 10
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
         VisibilityTimeout: 600
 
   PnEcTrackerStatoCARTACEOQueuePolicy:
