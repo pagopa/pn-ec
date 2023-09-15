@@ -380,7 +380,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
             return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo,
                     ERROR.getStatusTransactionTableCompliant(),
                     new PaperProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message)
-                    .doOnNext(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, requestId, cartaceoSqsQueueName.errorName())));
+                    .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, requestId, cartaceoSqsQueueName.errorName())));
 
         }
         return Mono.empty();
@@ -411,7 +411,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                         .getOperationResultCodeResponse()
                                         .getResultCode()),
                                 new PaperProgressStatusDto()).flatMap(sendMessageResponse -> {
-                            return deleteMessageFromErrorQueue(message).doOnNext(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, cartaceoSqsQueueName.errorName()));
+                            return deleteMessageFromErrorQueue(message).doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, cartaceoSqsQueueName.errorName()));
                         }).onErrorResume(sqsPublishException -> {
                             log.warn(EXCEPTION_IN_PROCESS_FOR, GESTIONE_RETRY_CARTACEO, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
                             return checkTentativiEccessiviCartaceo(requestId, requestDto, cartaceoPresaInCaricoInfo, message);
@@ -424,7 +424,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                 .flatMap(operationResultCodeResponse -> sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo,
                                         CODE_TO_STATUS_MAP.get(operationResultCodeResponse.getResultCode()),
                                         new PaperProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
-                                        .doOnNext(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, cartaceoSqsQueueName.errorName()))
+                                        .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, cartaceoSqsQueueName.errorName()))
                                         .onErrorResume(sqsPublishException -> {
                                                     log.warn(EXCEPTION_IN_PROCESS_FOR, GESTIONE_RETRY_CARTACEO, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
                                                     return checkTentativiEccessiviCartaceo(

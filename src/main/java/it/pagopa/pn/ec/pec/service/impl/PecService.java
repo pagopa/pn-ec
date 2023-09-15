@@ -433,7 +433,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                     ERROR.getStatusTransactionTableCompliant(),
                     new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto())).flatMap(
                     sendMessageResponse -> deleteMessageFromErrorQueue(message)
-                            .doOnNext(result -> log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, requestIdx, pecSqsQueueName.errorName())));
+                            .doOnSuccess(result -> log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, requestIdx, pecSqsQueueName.errorName())));
 
         }
         return Mono.empty();

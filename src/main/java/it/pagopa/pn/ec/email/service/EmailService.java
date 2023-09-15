@@ -471,7 +471,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                         new DigitalProgressStatusDto().generatedMessage(
                                                 generatedMessageDto.get())))
                                 .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
-                                .doOnNext(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, emailSqsQueueName.errorName()))
+                                .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, emailSqsQueueName.errorName()))
                                 .onErrorResume(sqsPublishException -> {
                                     log.warn(EXCEPTION_IN_PROCESS_FOR, PROCESS_WITH_ATTACH_RETRY, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
                                     return checkTentativiEccessiviEmail(requestId,
@@ -487,7 +487,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                     DELETED.getStatusTransactionTableCompliant(),
                                     new DigitalProgressStatusDto()).flatMap(
                                     sendMessageResponse -> deleteMessageFromErrorQueue(message)
-                                            .doOnNext(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, emailSqsQueueName.errorName()))))
+                                            .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, emailSqsQueueName.errorName()))))
                 .onErrorResume(internalError -> sendNotificationOnStatusQueue(
                         emailPresaInCaricoInfo,
                         INTERNAL_ERROR.getStatusTransactionTableCompliant(),
@@ -536,7 +536,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                                 .getGeneratedMessageDto())))
 
                                 .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()))
-                                .doOnNext(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, emailSqsQueueName.errorName()))
+                                .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, emailSqsQueueName.errorName()))
                                 .onErrorResume(sqsPublishException -> {
                                     log.warn(EXCEPTION_IN_PROCESS_FOR, PROCESS_ONLY_BODY_RETRY, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
                                     return checkTentativiEccessiviEmail(requestId,
@@ -557,7 +557,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                 generatedMessageDto.get())))
 
                                 .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
-                                .doOnNext(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, emailSqsQueueName.errorName()))
+                                .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, emailSqsQueueName.errorName()))
                                 .onErrorResume(sqsPublishException -> {
                                     log.warn(EXCEPTION_IN_PROCESS_FOR, PROCESS_ONLY_BODY_RETRY, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
                                     return checkTentativiEccessiviEmail(requestId,
@@ -575,7 +575,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                             new GeneratedMessageDto())).flatMap(
                                     sendMessageResponse -> deleteMessageFromErrorQueue(
                                             message)))
-                .doOnNext(result -> log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, emailSqsQueueName.errorName()))
+                .doOnSuccess(result -> log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, emailSqsQueueName.errorName()))
                 .onErrorResume(internalError -> sendNotificationOnStatusQueue(
                         emailPresaInCaricoInfo,
                         INTERNAL_ERROR.getStatusTransactionTableCompliant(),

@@ -352,7 +352,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                              new DigitalProgressStatusDto().generatedMessage(smsPresaInCaricoInfo.getStepError()
                                                                                                                  .getGeneratedMessageDto()))
                 .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message)
-                        .doOnNext(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, smsSqsQueueName.errorName())))
+                        .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, smsSqsQueueName.errorName())))
 
                 .onErrorResume(sqsPublishException -> {
                     log.warn(EXCEPTION_IN_PROCESS_FOR, GESTIONE_RETRY_SMS, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
@@ -375,7 +375,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                                                                        new DigitalProgressStatusDto().generatedMessage(
                                                                                                generatedMessageDto)))
                          .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
-                         .doOnNext(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, smsSqsQueueName.errorName()))
+                         .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, smsSqsQueueName.errorName()))
                          .onErrorResume(sqsPublishException -> {
                              log.warn(EXCEPTION_IN_PROCESS_FOR, GESTIONE_RETRY_SMS, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
                              return checkTentativiEccessiviSms(requestId,
@@ -390,7 +390,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                      DELETED.getStatusTransactionTableCompliant(),
                                      new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
         .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
-        .doOnNext(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, smsSqsQueueName.errorName())))
+        .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, smsSqsQueueName.errorName())))
 .onErrorResume(internalError -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                                               INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                                                               new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
