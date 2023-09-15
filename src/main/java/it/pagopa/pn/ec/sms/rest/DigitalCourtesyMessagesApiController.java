@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static org.springframework.http.HttpStatus.OK;
 
 @RestController
@@ -39,23 +41,29 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
     @Override
     public Mono<ResponseEntity<CourtesyMessageProgressEvent>> getCourtesyShortMessageStatus(String requestIdx, String xPagopaExtchCxId,
                                                                                             ServerWebExchange exchange) {
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
+        log.info(STARTING_PROCESS_ON_LABEL, GET_COURTESY_SHORT_MESSAGE_STATUS, concatRequestId);
         return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.sms())
-                                .map(ResponseEntity::ok);
-
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, GET_COURTESY_SHORT_MESSAGE_STATUS, concatRequestId))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, GET_COURTESY_SHORT_MESSAGE_STATUS, concatRequestId, throwable, throwable.getMessage()))
+                .map(ResponseEntity::ok);
     }
 
     @Override
     public Mono<ResponseEntity<Void>> sendCourtesyShortMessage(String requestIdx, String xPagopaExtchCxId,
                                                                Mono<DigitalCourtesySmsRequest> digitalCourtesySmsRequest,
                                                                final ServerWebExchange exchange) {
-
-        return digitalCourtesySmsRequest.flatMap(request -> smsService.presaInCarico(SmsPresaInCaricoInfo.builder()
-                                                                                                         .requestIdx(requestIdx)
-                                                                                                         .xPagopaExtchCxId(xPagopaExtchCxId)
-                                                                                                         .digitalCourtesySmsRequest(request)
-                                                                                                         .build()))
-                                        .thenReturn(new ResponseEntity<>(OK));
-
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
+        log.info(STARTING_PROCESS_ON_LABEL, SEND_COURTESY_SHORT_MESSAGE, concatRequestId);
+        return digitalCourtesySmsRequest.flatMap(request ->
+                        smsService.presaInCarico(SmsPresaInCaricoInfo.builder()
+                                .requestIdx(requestIdx)
+                                .xPagopaExtchCxId(xPagopaExtchCxId)
+                                .digitalCourtesySmsRequest(request)
+                                .build()))
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, SEND_COURTESY_SHORT_MESSAGE, concatRequestId))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, SEND_COURTESY_SHORT_MESSAGE, concatRequestId, throwable, throwable.getMessage()))
+                .thenReturn(new ResponseEntity<>(OK));
     }
 
     /*
@@ -70,22 +78,27 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
     public Mono<ResponseEntity<Void>> sendDigitalCourtesyMessage(String requestIdx, String xPagopaExtchCxId,
                                                                  Mono<DigitalCourtesyMailRequest> digitalCourtesyMailRequest,
                                                                  final ServerWebExchange exchange) {
-
-        return digitalCourtesyMailRequest.flatMap(request -> emailService.presaInCarico(EmailPresaInCaricoInfo.builder()
-                                                                                                              .requestIdx(requestIdx)
-                                                                                                              .xPagopaExtchCxId(
-                                                                                                                      xPagopaExtchCxId)
-                                                                                                              .digitalCourtesyMailRequest(
-                                                                                                                      request)
-                                                                                                              .build()))
-                                         .thenReturn(new ResponseEntity<>(OK));
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
+        log.info(STARTING_PROCESS_ON_LABEL, SEND_DIGITAL_COURTESY_MESSAGE, concatRequestId);
+        return digitalCourtesyMailRequest.flatMap(request ->
+                        emailService.presaInCarico(EmailPresaInCaricoInfo.builder()
+                                .requestIdx(requestIdx)
+                                .xPagopaExtchCxId(xPagopaExtchCxId)
+                                .digitalCourtesyMailRequest(request)
+                                .build()))
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, SEND_DIGITAL_COURTESY_MESSAGE, concatRequestId))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, SEND_DIGITAL_COURTESY_MESSAGE, concatRequestId, throwable, throwable.getMessage()))
+                .thenReturn(new ResponseEntity<>(OK));
     }
 
     @Override
     public Mono<ResponseEntity<CourtesyMessageProgressEvent>> getDigitalCourtesyMessageStatus(String requestIdx, String xPagopaExtchCxId,
                                                                                               ServerWebExchange exchange) {
-
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
+        log.info(STARTING_PROCESS_ON_LABEL, GET_DIGITAL_COURTESY_MESSAGE_STATUS, concatRequestId);
         return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.email())
-                                .map(ResponseEntity::ok);
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL,  GET_DIGITAL_COURTESY_MESSAGE_STATUS, concatRequestId))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, GET_DIGITAL_COURTESY_MESSAGE_STATUS, concatRequestId, throwable, throwable.getMessage()))
+                .map(ResponseEntity::ok);
     }
 }
