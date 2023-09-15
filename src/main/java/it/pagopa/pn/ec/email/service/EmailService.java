@@ -492,7 +492,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                         emailPresaInCaricoInfo,
                         INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                         new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
-                .doOnError(throwable -> log.error(FATAL_IN_PROCESS_FOR, PROCESS_WITH_ATTACH_RETRY, concatRequestId, throwable, throwable.getMessage()));
+                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS_FOR, PROCESS_WITH_ATTACH_RETRY, concatRequestId, throwable, throwable.getMessage()));
     }
 
     private Mono<? extends RequestDto> getMono(String requestId, Policy retryPolicies, RequestDto requestDto, RetryDto retryDto) {
@@ -580,7 +580,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                         emailPresaInCaricoInfo,
                         INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                         new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
-                .doOnError(throwable -> log.error(FATAL_IN_PROCESS_FOR, PROCESS_ONLY_BODY_RETRY, concatRequestId, throwable, throwable.getMessage()));
+                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS_FOR, PROCESS_ONLY_BODY_RETRY, concatRequestId, throwable, throwable.getMessage()));
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(SendRawEmailResponse publishResponse) {

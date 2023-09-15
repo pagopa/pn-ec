@@ -240,7 +240,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         }
                                     })
                                     .doOnError(throwable -> {
-                                        log.warn("* FATAL * in handleRequestStatusChange on request {}: {} - {}", sRequestId, throwable, throwable.getMessage());
+                                        log.warn("handleRequestStatusChange on request {}: {} - {}", sRequestId, throwable, throwable.getMessage());
                                     });
     }
 

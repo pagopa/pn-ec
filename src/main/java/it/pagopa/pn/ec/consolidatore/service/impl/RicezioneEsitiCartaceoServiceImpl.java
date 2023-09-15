@@ -187,7 +187,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			})
 			.onErrorResume(Generic400ErrorException.class,
 					   throwable -> {
-							 log.warn(LOG_LABEL + "* FATAL * requestId = {}, errore attachment -> title = {}, details {}",
+							 log.warn(LOG_LABEL + "requestId = {}, errore attachment -> title = {}, details {}",
 									   requestId, throwable.getTitle(), throwable.getDetails(), throwable);
 							 return Mono.error(new RicezioneEsitiCartaceoException(
 												  SEMANTIC_ERROR_CODE,
@@ -204,7 +204,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			})
 			.onErrorResume(RuntimeException.class,
 					   throwable -> {
-						     log.warn("* FATAL * verificaAttachments - {}, {}", throwable, throwable.getMessage());
+						     log.warn("verificaAttachments - {}, {}", throwable, throwable.getMessage());
 							 return Mono.error(throwable);
 			});
 	}
@@ -248,7 +248,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			     })
 			     // *** errore generico
 			     .onErrorResume(RuntimeException.class, throwable -> {
-		    	     log.warn("* FATAL * verificaEsitoDaConsolidatore - {}, {}", throwable, throwable.getMessage());
+		    	     log.warn("verificaEsitoDaConsolidatore - {}, {}", throwable, throwable.getMessage());
 					 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 							 getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
 									 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
@@ -310,7 +310,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			})
 			.flatMap(unused -> Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null)))
 			.onErrorResume(SqsClientException.class, throwable -> {
-	    		 log.warn("* FATAL * RicezioneEsitiCartaceoServiceImpl.pubblicaEsitoCodaNotificationTracker() : errore pubblicazione coda : message = {} :",
+	    		 log.warn("RicezioneEsitiCartaceoServiceImpl.pubblicaEsitoCodaNotificationTracker() : errore pubblicazione coda : message = {} :",
 	    				   throwable.getMessage(), throwable);
 	    		 return Mono.just(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
 	    				 										 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
@@ -322,7 +322,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				return Mono.error(new RicezioneEsitiCartaceoException(SEMANTIC_ERROR_CODE,errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),List.of(throwable.getMessage()),List.of(consAuditLogError)));
 			})
 			.onErrorResume(RuntimeException.class, throwable -> {
-				 log.warn("* FATAL * pubblicaEsitoCodaNotificationTracker - {}, {}", throwable, throwable.getMessage());
+				 log.warn("pubblicaEsitoCodaNotificationTracker - {}, {}", throwable, throwable.getMessage());
 	    		 return Mono.just(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
 	    				 										 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
 	    				 										 List.of(throwable.getMessage())));
