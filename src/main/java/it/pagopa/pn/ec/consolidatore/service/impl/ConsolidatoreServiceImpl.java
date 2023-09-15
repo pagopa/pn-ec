@@ -80,7 +80,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                     String xTraceId = RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH);
 
                     return fileCall.postFile(xPagopaExtchServiceId, xApiKey, preLoadRequest.getSha256(), xTraceId, fileCreationRequest)
-                            .doOnError(ConnectException.class, e -> log.error("presignedUploadRequest - {}, {}", e, e.getMessage()))
+                            .doOnError(ConnectException.class, e -> log.error("* FATAL * presignedUploadRequest - {}, {}", e, e.getMessage()))
                             .flux()
                             .map(fileCreationResponse ->
                             {

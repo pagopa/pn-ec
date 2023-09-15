@@ -80,7 +80,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		return statusPullService.paperPullService(requestId, xPagopaExtchServiceId)
 				.onErrorResume(StatusNotFoundException.class, throwable ->
 				{
-					log.warn(LOG_LABEL + "* FATAL * requestId = {}, errore status decode -> message : {}", requestId, throwable.getMessage());
+					log.warn(LOG_LABEL + "requestId = {}, errore status decode -> message : {}", requestId, throwable.getMessage());
 					ConsAuditLogError consAuditLogError = new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_STATUS.getValue()).description("Unable to decode last status");
 					return Mono.error(new RicezioneEsitiCartaceoException(SEMANTIC_ERROR_CODE, errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE), List.of("Unable to decode last status"), List.of(consAuditLogError)));
 				})
