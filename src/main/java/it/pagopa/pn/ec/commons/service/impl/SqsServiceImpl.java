@@ -61,7 +61,7 @@ public class SqsServiceImpl implements SqsService {
     public <T> Mono<SendMessageResponse> send(String queueName, String messageGroupId, Integer delaySeconds, T queuePayload) throws SqsClientException {
         log.debug(INSERTING_DATA_IN_SQS, queuePayload, queueName);
         return Mono.fromCallable(() -> objectMapper.writeValueAsString(queuePayload))
-                .doOnNext(sendMessageResponse -> log.info("Try to publish on {} with payload {}", queueName, sendMessageResponse))
+                .doOnSuccess(sendMessageResponse -> log.info("Try to publish on {} with payload {}", queueName, sendMessageResponse))
                 .zipWith(getQueueUrlFromName(queueName))
                 .flatMap(objects -> Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> builder.queueUrl(objects.getT2())
                         .messageBody(objects.getT1())
@@ -71,7 +71,7 @@ public class SqsServiceImpl implements SqsService {
                     log.error("Error on sqs publish : {}", throwable.getMessage(), throwable);
                     return Mono.error(new SqsClientException(queueName));
                 })
-                .doOnNext(result->log.info(INSERTED_DATA_IN_SQS, queueName));
+                .doOnSuccess(result->log.info(INSERTED_DATA_IN_SQS, queueName));
     }
 
 
@@ -125,7 +125,7 @@ public class SqsServiceImpl implements SqsService {
 
     @Override
     public Mono<DeleteMessageResponse> deleteMessageFromQueue(final Message message, final String queueName) {
-        return getQueueUrlFromName(queueName).doOnNext(queueUrl -> log.debug("Delete message with id {} from {} queue",
+        return getQueueUrlFromName(queueName).doOnSuccess(queueUrl -> log.debug("Delete message with id {} from {} queue",
                         message.messageId(),
                         queueName))
                 .flatMap(queueUrl -> Mono.fromCompletionStage(sqsAsyncClient.deleteMessage(builder -> builder.queueUrl(
