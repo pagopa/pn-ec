@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.commons.service.impl;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE;
 
 import java.io.ByteArrayOutputStream;
@@ -11,7 +12,6 @@ import java.util.Properties;
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.mail.Message;
-import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
@@ -45,14 +45,14 @@ public class SesServiceImpl implements SesService {
 
     @Override
     public Mono<SendRawEmailResponse> send(EmailField field) {
-        log.info("<-- START SENDING EMAIL  -->");
+        log.info(CLIENT_METHOD_INVOCATION_WITH_ARGS, SES_SEND_MAIL, field);
         return Mono.fromCallable(() -> composeSendRawEmailRequest(field))
                    .flatMap(sendRawEmailRequest -> Mono.fromCompletionStage(sesAsyncClient.sendRawEmail(sendRawEmailRequest)))
                    .onErrorResume(throwable -> {
                        log.error(throwable.getMessage());
                        return Mono.error(new SesSendException());
                    })
-                   .doOnSuccess(sendMessageResponse -> log.debug("Send MAIL has returned a {} as status", sendMessageResponse.sdkHttpResponse().statusCode()));
+                   .doOnSuccess(sendMessageResponse -> log.debug(CLIENT_METHOD_RETURN, SES_SEND_MAIL, sendMessageResponse));
     }
 
     private SendRawEmailRequest composeSendRawEmailRequest(EmailField field) throws IOException, MessagingException {

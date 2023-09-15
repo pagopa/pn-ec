@@ -7,14 +7,17 @@ import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicaRequest;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicasProgressesResponse;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Component
+@Slf4j
 public class PaperMessageCallImpl implements PaperMessageCall {
 
     private final WebClient consolidatoreWebClient;
@@ -28,6 +31,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
     @Override
     public Mono<OperationResultCodeResponse> putRequest(PaperEngageRequest paperEngageRequest)
             throws RestCallException.ResourceAlreadyInProgressException {
+        log.info(INVOKING_EXTERNAL_SERVICE, CONSOLIDATORE_SERVICE, SEND_PAPER_ENGAGE_REQUEST);
         return consolidatoreWebClient.post()
                                      .uri(paperMessagesEndpointProperties.putRequest())
                                      .bodyValue(paperEngageRequest)
@@ -38,6 +42,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
     @Override
     public Mono<OperationResultCodeResponse> putDuplicateRequest(PaperReplicaRequest paperReplicaRequest)
             throws RestCallException.ResourceAlreadyInProgressException {
+        log.info(INVOKING_EXTERNAL_SERVICE, CONSOLIDATORE_SERVICE, SEND_PAPER_REPLICAS_ENGAGEMENT_REQUEST);
         return consolidatoreWebClient.put()
                                      .uri(paperMessagesEndpointProperties.putDuplicateRequest())
                                      .bodyValue(paperReplicaRequest)
@@ -49,6 +54,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
 
     @Override
     public Mono<PaperDeliveryProgressesResponse> getProgress(String requestId) throws RestCallException.ResourceNotFoundException {
+        log.info(INVOKING_EXTERNAL_SERVICE, CONSOLIDATORE_SERVICE, GET_PAPER_ENGAGE_PROGRESSES);
         return consolidatoreWebClient.get()
                                      .uri(uriBuilder -> uriBuilder.path(paperMessagesEndpointProperties.getRequest()).build(requestId))
                                      .retrieve()
@@ -59,6 +65,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
 
     @Override
     public Mono<PaperReplicasProgressesResponse> getDuplicateProgress(String requestId) throws RestCallException.ResourceNotFoundException {
+        log.info(INVOKING_EXTERNAL_SERVICE, CONSOLIDATORE_SERVICE, GET_PAPER_REPLICAS_PROGRESSES_REQUEST);
         return consolidatoreWebClient.get()
                                      .uri(uriBuilder -> uriBuilder.path(paperMessagesEndpointProperties.getDuplicateRequest()).build(requestId))
                                      .retrieve()

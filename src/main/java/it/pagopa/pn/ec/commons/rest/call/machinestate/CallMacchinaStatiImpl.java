@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -31,51 +32,43 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
     public Mono<MacchinaStatiValidateStatoResponseDto> statusValidation(String xPagopaExtchCxId, String processId, String currentStatus,
                                                                         String nextStatus)
             throws InvalidNextStatusException {
-        log.info("<-- START STATUS VALIDATION --> Client id: {}, Process id: {}, Current status : {}, Next status: {}",
-                 xPagopaExtchCxId,
-                 processId,
-                 currentStatus,
-                 nextStatus);
+        log.info(INVOKING_EXTERNAL_SERVICE, STATE_MACHINE_SERVICE, STATUS_VALIDATION);
         return stateMachineWebClient.get()
-                                    .uri(uriBuilder -> uriBuilder.path(stateMachineEndpointProperties.validate())
-                                                                 .queryParam(CLIENT_ID_QUERY_PARAM, xPagopaExtchCxId)
-                                                                 .queryParam("nextStatus", nextStatus)
-                                                                 .build(processId, currentStatus))
-                                    .retrieve()
-                                    .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new StatusValidationBadRequestException()))
-                                    .bodyToMono(MacchinaStatiValidateStatoResponseDto.class)
-                                    .handle((macchinaStatiValidateStatoResponseDto, sink) -> {
-                                        if (!macchinaStatiValidateStatoResponseDto.isAllowed()) {
-                                            sink.error(new InvalidNextStatusException(currentStatus,
-                                                                                      nextStatus,
-                                                                                      xPagopaExtchCxId,
-                                                                                      processId));
-                                        } else {
-                                            sink.next(macchinaStatiValidateStatoResponseDto);
-                                        }
-                                    });
+                .uri(uriBuilder -> uriBuilder.path(stateMachineEndpointProperties.validate())
+                        .queryParam(CLIENT_ID_QUERY_PARAM, xPagopaExtchCxId)
+                        .queryParam("nextStatus", nextStatus)
+                        .build(processId, currentStatus))
+                .retrieve()
+                .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new StatusValidationBadRequestException()))
+                .bodyToMono(MacchinaStatiValidateStatoResponseDto.class)
+                .handle((macchinaStatiValidateStatoResponseDto, sink) -> {
+                    if (!macchinaStatiValidateStatoResponseDto.isAllowed()) {
+                        sink.error(new InvalidNextStatusException(currentStatus,
+                                nextStatus,
+                                xPagopaExtchCxId,
+                                processId));
+                    } else {
+                        sink.next(macchinaStatiValidateStatoResponseDto);
+                    }
+                });
     }
 
     @Override
     public Mono<MacchinaStatiDecodeResponseDto> statusDecode(String xPagopaExtchCxId, String processId, String statusToDecode) {
-        log.info("<-- START STATUS DECODE --> Status to decode : {}, Client id: {}, Process id: {}",
-                 statusToDecode,
-                 xPagopaExtchCxId,
-                 processId);
-
+        log.info(INVOKING_EXTERNAL_SERVICE, STATE_MACHINE_SERVICE, STATUS_DECODE);
         return stateMachineWebClient.get()
-                                    .uri(uriBuilder -> uriBuilder.path(stateMachineEndpointProperties.decode())
-                                                                 .queryParam(CLIENT_ID_QUERY_PARAM, xPagopaExtchCxId)
-                                                                 .build(processId, statusToDecode))
-                                    .retrieve()
-                                    .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new StatusNotFoundException(statusToDecode)))
-                                    .bodyToMono(MacchinaStatiDecodeResponseDto.class)
-                                    .handle((macchinaStatiDecodeResponseDto, sink) -> {
-                                        if (macchinaStatiDecodeResponseDto.getExternalStatus() == null) {
-                                            sink.error(new StatusNotFoundException(statusToDecode));
-                                        } else {
-                                            sink.next(macchinaStatiDecodeResponseDto);
-                                        }
-                                    });
+                .uri(uriBuilder -> uriBuilder.path(stateMachineEndpointProperties.decode())
+                        .queryParam(CLIENT_ID_QUERY_PARAM, xPagopaExtchCxId)
+                        .build(processId, statusToDecode))
+                .retrieve()
+                .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new StatusNotFoundException(statusToDecode)))
+                .bodyToMono(MacchinaStatiDecodeResponseDto.class)
+                .handle((macchinaStatiDecodeResponseDto, sink) -> {
+                    if (macchinaStatiDecodeResponseDto.getExternalStatus() == null) {
+                        sink.error(new StatusNotFoundException(statusToDecode));
+                    } else {
+                        sink.next(macchinaStatiDecodeResponseDto);
+                    }
+                });
     }
 }

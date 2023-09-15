@@ -19,6 +19,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Component
@@ -44,6 +45,7 @@ public class FileCallImpl implements FileCall {
 
     @Override
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchCxId, boolean metadataOnly) {
+        log.info(INVOKING_EXTERNAL_SERVICE, SAFE_STORAGE_SERVICE, GET_FILE);
         return ssWebClient.get()
                 .uri(uriBuilder -> uriBuilder.path(filesEndpointProperties.getFile())
                         .queryParam("metadataOnly", metadataOnly)
@@ -63,6 +65,7 @@ public class FileCallImpl implements FileCall {
 
     @Override
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, String xTraceId) {
+        log.info(INVOKING_EXTERNAL_SERVICE, SAFE_STORAGE_SERVICE, GET_FILE);
         return ssWebClient.get()
                 .uri(uriBuilder -> uriBuilder.path(filesEndpointProperties.getFile())
                         .build(fileKey))
@@ -78,6 +81,7 @@ public class FileCallImpl implements FileCall {
 
     @Override
     public Mono<FileCreationResponse> postFile(String xPagopaExtchServiceId, String xApiKey, String checksumValue, String xTraceId, FileCreationRequest fileCreationRequest) {
+        log.info(INVOKING_EXTERNAL_SERVICE, SAFE_STORAGE_SERVICE, POST_FILE);
         return ssWebClient.post().uri(filesEndpointProperties.postFile())
                 .header(safeStorageEndpointProperties.clientHeaderName(), xPagopaExtchServiceId)
                 .header(safeStorageEndpointProperties.apiKeyHeaderName(), xApiKey)
