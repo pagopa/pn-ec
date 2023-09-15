@@ -74,7 +74,7 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
     private Mono<RequestPersonal> deleteRequestPersonalFromDynamoDb(String concatRequestId) {
         log.debug(DELETING_DATA_FROM_DYNAMODB_TABLE, concatRequestId, requestPersonalDynamoDbTable.tableName());
         return Mono.fromCompletionStage(requestPersonalDynamoDbTable.deleteItem(getKey(concatRequestId)))
-                .doOnNext(result -> log.info(DELETED_DATA_FROM_DYNAMODB_TABLE, requestPersonalDynamoDbTable.tableName()));
+                .doOnSuccess(result -> log.info(DELETED_DATA_FROM_DYNAMODB_TABLE, requestPersonalDynamoDbTable.tableName()));
     }
 
 }

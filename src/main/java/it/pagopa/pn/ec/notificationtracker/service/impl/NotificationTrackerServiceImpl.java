@@ -239,7 +239,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         }
                                     })
                                     .doOnError(throwable -> {
-                                        log.warn(FATAL_IN_PROCESS_FOR, NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId, throwable, throwable.getMessage());
+                                        log.warn(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId, throwable, throwable.getMessage());
                                     })
                                    .doOnSuccess(result->log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, NT_HANDLE_REQUEST_STATUS_CHANGE, result));
     }

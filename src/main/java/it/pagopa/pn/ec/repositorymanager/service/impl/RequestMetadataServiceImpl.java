@@ -193,13 +193,13 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     private Mono<RequestMetadata> updateRequestMetadataInDynamoDb(RequestMetadata requestMetadata) {
         log.debug(UPDATING_DATA_IN_DYNAMODB_TABLE, requestMetadata, requestMetadataDynamoDbTable.tableName());
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(requestMetadata))
-                .doOnNext(result -> log.info(UPDATED_DATA_IN_DYNAMODB_TABLE, requestMetadataDynamoDbTable.tableName()));
+                .doOnSuccess(result -> log.info(UPDATED_DATA_IN_DYNAMODB_TABLE, requestMetadataDynamoDbTable.tableName()));
     }
 
     private Mono<RequestMetadata> deleteRequestMetadataFromDynamoDb(String requestId) {
         log.debug(DELETING_DATA_FROM_DYNAMODB_TABLE, requestId, requestMetadataDynamoDbTable.tableName());
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.deleteItem(getKey(requestId)))
-                .doOnNext(result -> log.info(DELETED_DATA_FROM_DYNAMODB_TABLE, requestMetadataDynamoDbTable.tableName()));
+                .doOnSuccess(result -> log.info(DELETED_DATA_FROM_DYNAMODB_TABLE, requestMetadataDynamoDbTable.tableName()));
     }
 
 }

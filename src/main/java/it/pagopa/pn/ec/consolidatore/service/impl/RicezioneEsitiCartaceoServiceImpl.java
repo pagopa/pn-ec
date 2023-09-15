@@ -80,7 +80,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		return statusPullService.paperPullService(requestId, xPagopaExtchServiceId)
 				.onErrorResume(StatusNotFoundException.class, throwable ->
 				{
-					log.warn(FATAL_IN_PROCESS_FOR, VERIFICA_ERRORI_SEMANTICI, requestId, throwable, throwable.getMessage());
+					log.warn(EXCEPTION_IN_PROCESS_FOR, VERIFICA_ERRORI_SEMANTICI, requestId, throwable, throwable.getMessage());
 					ConsAuditLogError consAuditLogError = new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_STATUS.getValue()).description("Unable to decode last status");
 					return Mono.error(new RicezioneEsitiCartaceoException(SEMANTIC_ERROR_CODE, errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE), List.of("Unable to decode last status"), List.of(consAuditLogError)));
 				})
@@ -184,7 +184,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			})
 			.onErrorResume(Generic400ErrorException.class,
 					   throwable -> {
-							 log.warn(FATAL_IN_PROCESS_FOR, VERIFICA_ATTACHMENTS, requestId, throwable, throwable.getMessage());
+							 log.warn(EXCEPTION_IN_PROCESS_FOR, VERIFICA_ATTACHMENTS, requestId, throwable, throwable.getMessage());
 							 return Mono.error(new RicezioneEsitiCartaceoException(
 												  SEMANTIC_ERROR_CODE,
 												  errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
@@ -198,7 +198,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 								errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
 								List.of(String.format(UNRECOGNIZED_ERROR_NO_VALUE, ATTACHMENT_URI_LABEL)), List.of(consAuditLogError)));
 			})
-			.doOnError(throwable -> log.warn(FATAL_IN_PROCESS_FOR, VERIFICA_ATTACHMENTS, requestId, throwable, throwable.getMessage()))
+			.doOnError(throwable -> log.warn(EXCEPTION_IN_PROCESS_FOR, VERIFICA_ATTACHMENTS, requestId, throwable, throwable.getMessage()))
 			.doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, requestId, VERIFICA_ATTACHMENTS, result));
 	}
 
@@ -235,7 +235,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			     })
 			     // *** errore generico
 			     .onErrorResume(RuntimeException.class, throwable -> {
-					 log.warn(FATAL_IN_PROCESS_FOR, VERIFICA_ESITO_DA_CONSOLIDATORE, requestId, throwable, throwable.getMessage());
+					 log.warn(EXCEPTION_IN_PROCESS_FOR, VERIFICA_ESITO_DA_CONSOLIDATORE, requestId, throwable, throwable.getMessage());
 					 return Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 							 getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
 									 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
@@ -294,7 +294,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			})
 			.flatMap(unused -> Mono.just(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null)))
 			.onErrorResume(SqsClientException.class, throwable -> {
-				 log.warn(FATAL_IN_PROCESS_FOR, PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER, requestId, throwable, throwable.getMessage());
+				 log.warn(EXCEPTION_IN_PROCESS_FOR, PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER, requestId, throwable, throwable.getMessage());
 	    		 return Mono.just(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
 	    				 										 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
 	    				 										 List.of(throwable.getMessage())));
@@ -305,7 +305,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				return Mono.error(new RicezioneEsitiCartaceoException(SEMANTIC_ERROR_CODE,errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),List.of(throwable.getMessage()),List.of(consAuditLogError)));
 			})
 			.onErrorResume(RuntimeException.class, throwable -> {
-				 log.warn(FATAL_IN_PROCESS_FOR, PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER, requestId, throwable, throwable.getMessage());
+				 log.warn(EXCEPTION_IN_PROCESS_FOR, PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER, requestId, throwable, throwable.getMessage());
 	    		 return Mono.just(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
 	    				 										 errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
 	    				 										 List.of(throwable.getMessage())));

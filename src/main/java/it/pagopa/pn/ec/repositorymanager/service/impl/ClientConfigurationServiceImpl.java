@@ -96,19 +96,19 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
     private Mono<Void> putClientConfigurationInDynamoDb(ClientConfigurationInternal clientConfiguration) {
         log.debug(INSERTING_DATA_IN_DYNAMODB_TABLE, clientConfiguration, clientConfigurationDynamoDbTableInternal.tableName());
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.putItem(builder -> builder.item(clientConfiguration)))
-                .doOnNext(result -> log.info(INSERTED_DATA_IN_DYNAMODB_TABLE, clientConfigurationDynamoDbTableInternal.tableName()));
+                .doOnSuccess(result -> log.info(INSERTED_DATA_IN_DYNAMODB_TABLE, clientConfigurationDynamoDbTableInternal.tableName()));
     }
 
     private Mono<ClientConfigurationInternal> updateClientConfigurationInDynamoDb(ClientConfigurationInternal clientConfiguration) {
         log.debug(UPDATING_DATA_IN_DYNAMODB_TABLE, clientConfiguration, clientConfigurationDynamoDbTableInternal.tableName());
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.updateItem(clientConfiguration))
-                .doOnNext(result -> log.info(UPDATED_DATA_IN_DYNAMODB_TABLE, clientConfigurationDynamoDbTableInternal.tableName()));
+                .doOnSuccess(result -> log.info(UPDATED_DATA_IN_DYNAMODB_TABLE, clientConfigurationDynamoDbTableInternal.tableName()));
     }
 
     private Mono<ClientConfigurationInternal> deleteClientConfigurationFromDynamoDb(String cxId) {
         log.debug(DELETING_DATA_FROM_DYNAMODB_TABLE, cxId, clientConfigurationDynamoDbTableInternal.tableName());
         return Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.deleteItem(getKey(cxId)))
-                .doOnNext(result -> log.info(DELETED_DATA_FROM_DYNAMODB_TABLE, clientConfigurationDynamoDbTableInternal.tableName()));
+                .doOnSuccess(result -> log.info(DELETED_DATA_FROM_DYNAMODB_TABLE, clientConfigurationDynamoDbTableInternal.tableName()));
     }
 
 }

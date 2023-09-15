@@ -36,7 +36,7 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
         return clientConfigurationService.getAllClient()
                 .map(retrievedClient -> restUtils.dtoToEntity(retrievedClient, ClientConfigurationDto.class))
                 .collectList()
-                .doOnNext(configurationDtoList -> log.debug("Retrieved all clients ↓\n{}", configurationDtoList))
+                .doOnSuccess(configurationDtoList -> log.debug("Retrieved all clients ↓\n{}", configurationDtoList))
                 .map(configurationDtoList -> ResponseEntity.ok().body(Flux.fromIterable(configurationDtoList)))
                 .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, GET_CONFIGURATIONS))
                 .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, GET_CONFIGURATIONS, throwable, throwable.getMessage()));
