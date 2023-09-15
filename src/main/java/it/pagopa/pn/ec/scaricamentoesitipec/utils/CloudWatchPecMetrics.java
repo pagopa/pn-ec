@@ -17,6 +17,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Component
 @Slf4j
@@ -36,6 +37,7 @@ public class CloudWatchPecMetrics {
      * In order not to block the chain with an error, the method emits onComplete() even if an error occurred while publishing the metric
      */
     public Mono<Void> publishCustomPecMetrics(CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo) {
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_CUSTOM_PEC_METRICS, cloudWatchPecMetricsInfo);
         return Mono.fromCallable(() -> {
             var previousStatus = cloudWatchPecMetricsInfo.getPreviousStatus();
             var nextStatus = cloudWatchPecMetricsInfo.getNextStatus();
@@ -64,7 +66,7 @@ public class CloudWatchPecMetrics {
                                                                                                           .timestamp(instant)
                                                                                                           .build()).build()));
         }).onErrorResume(throwable -> {
-            log.error("Error publishing a custom PEC metric to CloudWatch -> {}", throwable.getMessage());
+            log.error(EXCEPTION_IN_PROCESS, PUBLISH_CUSTOM_PEC_METRICS, throwable, throwable.getMessage());
             return Mono.empty();
         }).then();
     }

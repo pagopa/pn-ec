@@ -10,7 +10,6 @@ import it.pagopa.pn.ec.consolidatore.exception.SyntaxException;
 import it.pagopa.pn.ec.consolidatore.service.ConsolidatoreService;
 import it.pagopa.pn.ec.consolidatore.utils.ContentTypes;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import jdk.dynalink.Operation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -27,7 +26,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
-import static it.pagopa.pn.ec.consolidatore.utils.LogUtils.*;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Service
 @Slf4j
@@ -44,18 +43,23 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
 
 
     public Mono<PreLoadResponseData> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> attachments) {
-        log.info("<-- START PRESIGNED UPLOAD REQUEST --> Client ID : {}", xPagopaExtchServiceId);
+        log.debug(INVOKING_OPERATION_LABEL, PRESIGNED_UPLOAD_REQUEST);
         return checkHeaders(xPagopaExtchServiceId)
                 .then(authService.clientAuth(xPagopaExtchServiceId))
                 .flatMap(clientConfiguration -> {
+                    log.info(CHECKING_VALIDATION_PROCESS_ON, X_API_KEY_VALIDATION, xPagopaExtchServiceId);
                     if (!clientConfiguration.getApiKey().equals(xApiKey)) {
-                        var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_API_KEY.getValue()).description(INVALID_API_KEY).build();
+                        ConsAuditLogError consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_API_KEY.getValue()).description(INVALID_API_KEY).build();
                         log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(attachments.map(PreLoadRequestData::getPreloads)).errorList(List.of(consAuditLogError)).build());
+                        log.warn(VALIDATION_PROCESS_FAILED, X_API_KEY_VALIDATION, INVALID_API_KEY);
                         return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, INVALID_API_KEY));
                     }
+                    log.info(VALIDATION_PROCESS_PASSED, X_API_KEY_VALIDATION);
                     return Mono.just(clientConfiguration);
                 })
-                .then(attachments.map(PreLoadRequestData::getPreloads))
+                .then(attachments)
+                .doOnNext(preLoadRequestData -> log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESIGNED_UPLOAD_REQUEST, preLoadRequestData))
+                .map(PreLoadRequestData::getPreloads)
                 .flatMapMany(Flux::fromIterable)
                 .transform(checkSyntaxErrors())
                 .cast(PreLoadRequest.class)
@@ -80,7 +84,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                     String xTraceId = RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH);
 
                     return fileCall.postFile(xPagopaExtchServiceId, xApiKey, preLoadRequest.getSha256(), xTraceId, fileCreationRequest)
-                            .doOnError(ConnectException.class, e -> log.error("* FATAL * presignedUploadRequest - {}, {}", e, e.getMessage()))
+                            .doOnError(ConnectException.class, e -> log.error(FATAL_IN_PROCESS_FOR, PRESIGNED_UPLOAD_REQUEST, preLoadRequest.getPreloadIdx(), e, e.getMessage()))
                             .flux()
                             .map(fileCreationResponse ->
                             {
@@ -107,25 +111,30 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                         preLoadResponseSchema.getPreloads().add(preLoadResponse);
                     }
                     return preLoadResponseSchema;
-                });
+                })
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PRESIGNED_UPLOAD_REQUEST, result));
     }
 
 
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId
             , String xApiKey) {
-        log.info("<-- START GET FILE --> Client ID : {}", xPagopaExtchServiceId);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CONSOLIDATORE_GET_FILE, fileKey);
         return checkHeaders(xPagopaExtchServiceId)
                 .then(authService.clientAuth(xPagopaExtchServiceId))
                 .flatMap(clientConfiguration -> {
+                    log.info(CHECKING_VALIDATION_PROCESS_ON, X_API_KEY_VALIDATION, xPagopaExtchServiceId);
                     if (!clientConfiguration.getApiKey().equals(xApiKey)) {
                         var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_API_KEY.getValue()).requestId(fileKey).description(INVALID_API_KEY).build();
                         log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().errorList(List.of(consAuditLogError)).build());
-                        return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid API key"));
+                        log.warn(VALIDATION_PROCESS_FAILED, X_API_KEY_VALIDATION, INVALID_API_KEY);
+                        return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, INVALID_API_KEY));
                     }
+                    log.info(VALIDATION_PROCESS_PASSED, X_API_KEY_VALIDATION);
                     return Mono.just(clientConfiguration);
                 })
                 .then(fileCall.getFile(fileKey, xPagopaExtchServiceId, xApiKey, RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH)))
-                .doOnError(ConnectException.class, e -> log.error("* FATAL * getFile - {}, {}", e, e.getMessage()));
+                .doOnError(ConnectException.class, e -> log.error(FATAL_IN_PROCESS_FOR, GET_FILE, fileKey, e, e.getMessage()))
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, fileKey, GET_FILE, result));
     }
 
     private Mono<Void> checkHeaders(String xPagopaExtchServiceId) {
