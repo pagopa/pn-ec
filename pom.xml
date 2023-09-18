@@ -27,7 +27,7 @@
         <java.version>17</java.version>
         <awssdkv1.version>1.12.386</awssdkv1.version>
         <logbackjackson.version>0.1.5</logbackjackson.version>
-        <openapi-generator-version>5.4.0</openapi-generator-version>
+        <openapi-generator-version>7.0.1</openapi-generator-version>
         <sonar.coverage.exclusions>
       		src/test/java/**
     		</sonar.coverage.exclusions>
