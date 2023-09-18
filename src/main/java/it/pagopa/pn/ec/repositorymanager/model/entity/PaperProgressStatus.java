@@ -12,8 +12,7 @@ import java.util.Objects;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
-@Setter
+@Data
 @Builder
 @DynamoDbBean
 public class PaperProgressStatus {
@@ -29,18 +28,5 @@ public class PaperProgressStatus {
     String iun;
     List<PaperProgressStatusEventAttachments> attachments;
     DiscoveredAddress discoveredAddress;
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        PaperProgressStatus that = (PaperProgressStatus) o;
-        return Objects.equals(getStatus(), that.getStatus()) && Objects.equals(getStatusDateTime().truncatedTo(ChronoUnit.SECONDS), that.getStatusDateTime().truncatedTo(ChronoUnit.SECONDS));
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(getStatus(), getStatusDateTime().truncatedTo(ChronoUnit.SECONDS));
-    }
 
 }

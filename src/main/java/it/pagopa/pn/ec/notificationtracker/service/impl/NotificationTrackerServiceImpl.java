@@ -69,14 +69,16 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         if (!Objects.isNull(eventsList) && !eventsList.isEmpty()) {
 
                                             EventsDto lastEvent = eventsList.get(eventsList.size() - 1);
-                                            PaperProgressStatusDto paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
+                                            //PaperProgressStatusDto paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
                                             DigitalProgressStatusDto digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
 
                                             if (lastEvent.getDigProgrStatus() != null) {
                                                 isSameEvent = isSameEvent(lastEvent.getDigProgrStatus(), digitalProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
-                                            } else {
-                                                isSameEvent = isSameEvent(lastEvent.getPaperProgrStatus(), paperProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
                                             }
+//                                            else {
+//                                                log.debug("handleRequestStatusChange - LastEvent paperProgressStatus : {}", lastEvent.getPaperProgrStatus());
+//                                                isSameEvent = isSameEvent(lastEvent.getPaperProgrStatus(), paperProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
+//                                            }
                                         }
 
                                         log.debug(NT_HANDLE_REQUEST_STATUS_CHANGE + "'{}' - isSameEvent : {}", concatRequestId, isSameEvent);
