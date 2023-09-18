@@ -91,7 +91,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     }
 
     private final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
-            .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
+            .doBeforeRetry(retrySignal -> log.debug(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure(), retrySignal.failure().getMessage()));
 
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
@@ -202,7 +202,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
                 throw new MaxRetriesExceededException();
             })
-            .doBeforeRetry(retrySignal -> log.info("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));;
+            .doBeforeRetry(retrySignal -> log.debug(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure(), retrySignal.failure().getMessage()));;
 
     Mono<SendMessageResponse> lavorazioneRichiesta(final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
 
@@ -236,7 +236,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .onErrorResume(MaxRetriesExceededException.class, throwable ->
                         sendNotificationOnStatusQueue(emailPresaInCaricoInfo, RETRY.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
                                 .then(sendNotificationOnErrorQueue(emailPresaInCaricoInfo)))
-                .doOnError(throwable -> log.warn("lavorazioneRichiesta {}, {}", throwable, throwable.getMessage()))
+                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS_FOR, LAVORAZIONE_RICHIESTA_EMAIL, concatRequestId, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, LAVORAZIONE_RICHIESTA_EMAIL, result))
                 .doFinally(signalType -> semaphore.release());
     }
 
@@ -342,7 +343,6 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var retry = requestDto.getRequestMetadata().getRetry();
         if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size() - 1)) >= 0) {
             // operazioni per la rimozione del messaggio
-            log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, requestId, emailSqsQueueName.errorName());
             return sendNotificationOnStatusQueue(emailPresaInCaricoInfo, ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
                     .then(sendNotificationOnDlqErrorQueue(emailPresaInCaricoInfo))
                     .then(deleteMessageFromErrorQueue(message));
@@ -351,6 +351,11 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     }
 
     public Mono<SqsResponse> gestioneRetryEmail(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message) {
+
+        var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
+        var xPagopaExtchCxId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GESTIONE_RETRY_EMAIL, emailPresaInCaricoInfo);
 
         Policy retryPolicies = new Policy();
 
@@ -368,24 +373,23 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .cast(SqsResponse.class)
                 .switchIfEmpty(sqsService.changeMessageVisibility(emailSqsQueueName.errorName(), retryPolicies.getPolicy().get("EMAIL").get(0).intValueExact() * 54, message.receiptHandle()))
                 .onErrorResume(StatusToDeleteException.class, statusToDeleteException -> {
-                    log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", emailSqsQueueName.errorName());
+                    log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, emailSqsQueueName.errorName());
                     return sendNotificationOnStatusQueue(emailPresaInCaricoInfo, DELETED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
                             .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 })
                 .onErrorResume(internalError -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo, INTERNAL_ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
                         .then(sendNotificationOnDlqErrorQueue(emailPresaInCaricoInfo))
                         .then(deleteMessageFromErrorQueue(message)))
-                .doOnError(throwable -> log.warn("gestionRetryEmail {}, {}", throwable, throwable.getMessage()));
+                .doOnError(throwable -> log.warn(EXCEPTION_IN_PROCESS_FOR, GESTIONE_RETRY_EMAIL, concatRequestId, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, GESTIONE_RETRY_EMAIL, result));
     }
 
     private Mono<SendMessageResponse> chooseStep(final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
         return Mono.just(emailPresaInCaricoInfo.getStepError().getStep())
                 .flatMap(step -> {
                     if (emailPresaInCaricoInfo.getStepError().getStep().equals(NOTIFICATION_TRACKER_STEP)) {
-                        log.debug("Retrying NotificationTracker step for request {}", emailPresaInCaricoInfo.getRequestIdx());
                         return notificationTrackerStep(emailPresaInCaricoInfo.getStepError().getGeneratedMessageDto(), emailPresaInCaricoInfo);
                     } else {
-                        log.debug("Retrying all steps for request {}", emailPresaInCaricoInfo.getRequestIdx());
                         return sesSendStep(emailPresaInCaricoInfo).flatMap(generatedMessageDto -> {
                             emailPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto);
                             emailPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
@@ -396,6 +400,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     }
 
     private Mono<GeneratedMessageDto> sesSendStep(EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, EMAIL_SES_SEND_STEP, emailPresaInCaricoInfo);
         DigitalCourtesyMailRequest digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         return Mono.justOrEmpty(digitalCourtesyMailRequest.getAttachmentUrls())
                 .flatMap(attachmentUrls ->
@@ -416,14 +421,17 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                     }
                     return sesService.send(mailFld).retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
                 })
-                .map(this::createGeneratedMessageDto);
+                .map(this::createGeneratedMessageDto)
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, emailPresaInCaricoInfo.getRequestIdx(), EMAIL_SES_SEND_STEP, result));
     }
 
     private Mono<SendMessageResponse> notificationTrackerStep(GeneratedMessageDto generatedMessageDto, final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, NOTIFICATION_TRACKER_STEP_EMAIL, emailPresaInCaricoInfo);
         return sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                 SENT.getStatusTransactionTableCompliant(),
                 new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY);
+                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, emailPresaInCaricoInfo.getRequestIdx(), NOTIFICATION_TRACKER_STEP_EMAIL, result));
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(SendRawEmailResponse publishResponse) {

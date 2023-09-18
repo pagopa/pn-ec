@@ -86,8 +86,9 @@ public class LogUtils {
     public static final String PEC_DOWNLOAD_ATTACHMENT = "PecService.downloadAttachment()";
     public static final String PEC_SEND_MAIL = "PecService.sendMail()";
     public static final String PEC_SEND_MESSAGE = "PecService.sendMessage()";
-    public static final String PEC_SET_MESSAGE_ID_IN_REQUEST_METADATA = "PecService.setMessageIdInRequestMetadata()";
-
+    public static final String PEC_SET_MESSAGE_ID_IN_REQUEST_METADATA_STEP = "PecService.setMessageIdInRequestMetadataStep()";
+    public static final String NOTIFICATION_TRACKER_STEP_PEC = "PecService.notificationTrackerStep()";
+    public static final String ARUBA_SEND_MAIL_STEP_PEC = "PecService.arubaSendMailStep()";
 
     //PAPER
     public static final String SEND_PAPER_ENGAGE_REQUEST = "sendPaperEngageRequest";
@@ -100,7 +101,8 @@ public class LogUtils {
     public static final String PRESA_IN_CARICO_CARTACEO = "CartaceoService.presaInCarico()";
     public static final String PROCESS_WITH_ATTACH_RETRY = "CartaceoService.processWithAttachRetry()";
     public static final String PROCESS_ONLY_BODY_RETRY = "CartaceoService.processOnlyBodyRetry()";
-
+    public static final String NOTIFICATION_TRACKER_STEP_CARTACEO = "CartaceoService.notificationTrackerStep()";
+    public static final String CARTACEO_PUT_REQUEST_STEP = "CartaceoService.putRequestStep()";
     //EMAIL
     public static final String SEND_DIGITAL_COURTESY_MESSAGE = "sendDigitalCourtesyMessage";
     public static final String GET_DIGITAL_COURTESY_MESSAGE_STATUS = "getDigitalCourtesyMessageStatus";
@@ -109,6 +111,9 @@ public class LogUtils {
     public static final String GESTIONE_RETRY_EMAIL = "EmailService.gestioneRetry()";
     public static final String FILTER_REQUEST_EMAIL = "EmailService.filterRequestEmail()";
     public static final String PRESA_IN_CARICO_EMAIL = "EmailService.presaInCarico()";
+    public static final String NOTIFICATION_TRACKER_STEP_EMAIL = "EmailService.notificationTrackerStep()";
+    public static final String EMAIL_SES_SEND_STEP = "EmailService.sesSendStep()";
+
 
     //SMS
     public static final String SEND_COURTESY_SHORT_MESSAGE = "sendCourtesyShortMessage";
@@ -118,6 +123,8 @@ public class LogUtils {
     public static final String LAVORAZIONE_RICHIESTA_SMS = "SmsService.lavorazioneRichiesta()";
     public static final String FILTER_REQUEST_SMS = "SmsService.filterRequestSms()";
     public static final String GESTIONE_RETRY_SMS = "SmsService.gestioneRetry()";
+    public static final String NOTIFICATION_TRACKER_STEP_SMS = "SmsService.notificationTrackerStep()";
+    public static final String SNS_SEND_STEP_SMS = "SmsService.snsSendStep()";
 
     //CONSOLIDATORE
     public static final String PRESIGNED_UPLOAD_REQUEST = "ConsolidatoreService.presignedUploadRequest()";
