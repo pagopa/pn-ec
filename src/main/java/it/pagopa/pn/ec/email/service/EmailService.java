@@ -47,8 +47,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.*;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
+import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.HTML;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.BATCH;
@@ -85,7 +87,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         this.emailSqsQueueName = emailSqsQueueName;
         this.emailDefault = emailDefault;
         this.downloadCall = downloadCall;
-        this.semaphore = new Semaphore(maxThreadPoolSize);
+        this.semaphore=new Semaphore(maxThreadPoolSize);
     }
 
     private final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
@@ -95,15 +97,18 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
 
         var emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
+        var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
+        String concatRequestId = concatRequestId(clientId, requestIdx);
+
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_EMAIL, presaInCaricoInfo);
+
         var xPagopaExtchCxId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-        var senderAddress = digitalNotificationRequest.getSenderDigitalAddress();
-        if (Objects.isNull(senderAddress) || senderAddress.isEmpty()) {
+        var senderAddress= digitalNotificationRequest.getSenderDigitalAddress();
+        if(Objects.isNull(senderAddress) || senderAddress.isEmpty()) {
             digitalNotificationRequest.setSenderDigitalAddress(emailDefault.defaultSenderAddress());
         }
-
-        log.info("<-- START PRESA IN CARICO EMAIL --> Request ID: {}, Client ID: {}", requestIdx, xPagopaExtchCxId);
 
         digitalNotificationRequest.setRequestId(requestIdx);
 
@@ -133,15 +138,14 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                 new DigitalProgressStatusDto())
                                 .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
                                 .then(Mono.error(sqsClientException)))
-                .then();
+                .then()
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, PRESA_IN_CARICO_EMAIL, result));
     }
 
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromEmail(final DigitalCourtesyMailRequest digitalCourtesyMailRequest, String xPagopaExtchCxId) {
-        log.info("<-- START INSERT REQUEST FROM EMAIL --> Request ID: {}, Client ID: {}",
-                digitalCourtesyMailRequest.getRequestId(),
-                xPagopaExtchCxId);
-
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, digitalCourtesyMailRequest.getRequestId());
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_EMAIL, digitalCourtesyMailRequest);
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
             requestDto.setRequestIdx(digitalCourtesyMailRequest.getRequestId());
@@ -170,7 +174,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             requestDto.setRequestPersonal(requestPersonalDto);
             requestDto.setRequestMetadata(requestMetadataDto);
             return requestDto;
-        }).flatMap(gestoreRepositoryCall::insertRichiesta).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY);
+        }).flatMap(gestoreRepositoryCall::insertRichiesta).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
+        .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, INSERT_REQUEST_FROM_EMAIL, result));
     }
 
     @SqsListener(value = "${sqs.queue.email.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
@@ -182,15 +187,15 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     @Scheduled(cron = "${PnEcCronLavorazioneBatchEmail ?:0 */5 * * * *}")
     public void lavorazioneRichiestaBatch() {
         sqsService.getMessages(emailSqsQueueName.batchName(), EmailPresaInCaricoInfo.class)
-                .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(emailSqsQueueName.batchName(),
-                        emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
-                .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(emailPresaInCaricoInfoSqsMessageWrapper.getMessage()),
-                        lavorazioneRichiesta(emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
-                .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(
-                        emailPresaInCaricoInfoSqsMessageWrapper.getT1(),
-                        emailSqsQueueName.batchName()))
-                .transform(pullFromFluxUntilIsEmpty())
-                .subscribe();
+                  .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(emailSqsQueueName.batchName(),
+                                                                                          emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
+                  .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(emailPresaInCaricoInfoSqsMessageWrapper.getMessage()),
+                                                                               lavorazioneRichiesta(emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
+                  .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(
+                          emailPresaInCaricoInfoSqsMessageWrapper.getT1(),
+                          emailSqsQueueName.batchName()))
+                  .transform(pullFromFluxUntilIsEmpty())
+                  .subscribe();
     }
 
     private final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))
@@ -200,16 +205,20 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             .doBeforeRetry(retrySignal -> log.info("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));;
 
     Mono<SendMessageResponse> lavorazioneRichiesta(final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
-        log.info("<-- START LAVORAZIONE RICHIESTA EMAIL --> Request ID : {}, Client ID : {}, QOS : {}",
-                emailPresaInCaricoInfo.getRequestIdx(),
-                emailPresaInCaricoInfo.getXPagopaExtchCxId(),
-                emailPresaInCaricoInfo.getDigitalCourtesyMailRequest().getQos());
 
         try {
             semaphore.acquire();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+
+        var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
+        var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
+        var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
+        String concatRequestId = concatRequestId(clientId, requestIdx);
+
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, LAVORAZIONE_RICHIESTA_EMAIL, concatRequestId);
+
 
         return sesSendStep(emailPresaInCaricoInfo)
                 .doOnError(MaxRetriesExceededException.class, throwable -> {
@@ -233,12 +242,12 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     private EmailField compilaMail(DigitalCourtesyMailRequest req) {
         var ret = EmailField.builder()
-                .from(req.getSenderDigitalAddress())
-                .to(req.getReceiverDigitalAddress())
-                .subject(req.getSubjectText())
-                .text(req.getMessageText())
-                .emailAttachments(new ArrayList<>())
-                .build();
+                            .from(req.getSenderDigitalAddress())
+                            .to(req.getReceiverDigitalAddress())
+                            .subject(req.getSubjectText())
+                            .text(req.getMessageText())
+                            .emailAttachments(new ArrayList<>())
+                            .build();
         if (req.getMessageContentType() == PLAIN) {
             ret.setContentType("text/plain; charset=UTF-8");
         } else if (req.getMessageContentType() == HTML) {
@@ -251,39 +260,37 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     void gestioneRetryEmailScheduler() {
         idSaved = null;
         sqsService.getOneMessage(emailSqsQueueName.errorName(), EmailPresaInCaricoInfo.class)
-                .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(emailSqsQueueName.errorName(),
-                        emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
-                .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(emailPresaInCaricoInfoSqsMessageWrapper.getMessage()),
-                        gestioneRetryEmail(emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent(),
-                                emailPresaInCaricoInfoSqsMessageWrapper.getMessage())))
-                .map(MonoResultWrapper::new)
-                .doOnError(throwable -> log.error(GENERIC_ERROR, throwable))
-                .defaultIfEmpty(new MonoResultWrapper<>(null))
-                .repeat()
-                .takeWhile(MonoResultWrapper::isNotEmpty)
-                .subscribe();
+                  .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(emailSqsQueueName.errorName(),
+                                                                                          emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
+                  .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(emailPresaInCaricoInfoSqsMessageWrapper.getMessage()),
+                                                                               gestioneRetryEmail(emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent(),
+                                                                                                  emailPresaInCaricoInfoSqsMessageWrapper.getMessage())))
+                  .map(MonoResultWrapper::new)
+                  .doOnError(throwable -> log.error(GENERIC_ERROR, throwable))
+                  .defaultIfEmpty(new MonoResultWrapper<>(null))
+                  .repeat()
+                  .takeWhile(MonoResultWrapper::isNotEmpty)
+                  .subscribe();
     }
 
     private Mono<RequestDto> filterRequestEmail(final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
-        log.info("<-- START PROCESS WITH ATTACH RETRY--> Request ID : {}, Client ID : {}",
-                emailPresaInCaricoInfo.getRequestIdx(),
-                emailPresaInCaricoInfo.getXPagopaExtchCxId());
         var requestId = emailPresaInCaricoInfo.getRequestIdx();
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, FILTER_REQUEST_EMAIL, requestId);
         var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         Policy retryPolicies = new Policy();
         String toDelete = "toDelete";
 
         return gestoreRepositoryCall.getRichiesta(clientId, requestId)
 //              check status toDelete
-                .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
+                                    .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
 //              se status toDelete throw Error
-                .switchIfEmpty(Mono.error(new StatusToDeleteException(requestId)))
+                                    .switchIfEmpty(Mono.error(new StatusToDeleteException(requestId)))
 //              check Id per evitare loop
-                .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
+                                    .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
 //              se il primo step, inizializza l'attributo retry
                 .map(requestDto -> {
                     if (requestDto.getRequestMetadata().getRetry() == null) {
-                        log.debug("Primo tentativo di Retry");
+                        log.debug(RETRY_ATTEMPT, FILTER_REQUEST_EMAIL, 0, requestId);
                         RetryDto retryDto = new RetryDto();
                         retryDto.setRetryPolicy(retryPolicies.getPolicy().get("EMAIL"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
@@ -294,12 +301,15 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                         retryDto.setLastRetryTimestamp(lastRetryTimestamp);
                         requestDto.getRequestMetadata().setRetry(retryDto);
 
-                    } else
+                    } else {
                         requestDto.getRequestMetadata().getRetry()
                                 .setRetryStep(requestDto.getRequestMetadata()
                                         .getRetry()
                                         .getRetryStep()
                                         .add(BigDecimal.ONE));
+                        var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
+                        log.debug(RETRY_ATTEMPT, FILTER_REQUEST_EMAIL, retryNumber, requestId);
+                    }
                     return requestDto;
                 })
 //              check retry policies
@@ -320,7 +330,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                     patchDto.setRetry(retryDto);
                     emailPresaInCaricoInfo.getStepError().setRetryStep(retryDto.getRetryStep());
                     return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
-                });
+                })
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, requestId, FILTER_REQUEST_EMAIL, result));
     }
 
     private Mono<DeleteMessageResponse> checkTentativiEccessiviEmail(String requestId, RequestDto requestDto,
@@ -331,7 +342,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var retry = requestDto.getRequestMetadata().getRetry();
         if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size() - 1)) >= 0) {
             // operazioni per la rimozione del messaggio
-            log.debug("Il messaggio è stato rimosso dalla coda d'errore" + " per eccessivi tentativi: {}", emailSqsQueueName.errorName());
+            log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, requestId, emailSqsQueueName.errorName());
             return sendNotificationOnStatusQueue(emailPresaInCaricoInfo, ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
                     .then(sendNotificationOnDlqErrorQueue(emailPresaInCaricoInfo))
                     .then(deleteMessageFromErrorQueue(message));
@@ -428,7 +439,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    DigitalProgressStatusDto digitalProgressStatusDto) {
         return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
+                               createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
     }
 
     @Override

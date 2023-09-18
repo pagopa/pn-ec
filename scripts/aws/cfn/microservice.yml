@@ -1065,9 +1065,9 @@ Resources:
         - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
       OKActions:
         - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
-      DatapointsToAlarm: 1
+      DatapointsToAlarm: 2
       ComparisonOperator: GreaterThanOrEqualToThreshold
-      EvaluationPeriods: 5
+      EvaluationPeriods: 6
       Threshold: 1
       TreatMissingData: notBreaching
       Metrics:
@@ -1081,7 +1081,7 @@ Resources:
                   Value: !GetAtt ExternalChannelMicroservice.Outputs.TargetGroupName
               MetricName: HTTPCode_Target_4XX_Count
               Namespace: AWS/ApplicationELB
-            Period: 60
+            Period: 300
             Stat: Sum
           ReturnData: False
         - Id: m2
@@ -1094,7 +1094,7 @@ Resources:
                   Value: !GetAtt ExternalChannelMicroservice.Outputs.TargetGroupName
               MetricName: HTTPCode_Target_5XX_Count
               Namespace: AWS/ApplicationELB
-            Period: 60
+            Period: 300
             Stat: Sum
           ReturnData: False
         - Id: m3
@@ -1105,7 +1105,7 @@ Resources:
                   Value: !GetAtt ExternalChannelMicroservice.Outputs.TargetGroupName
               MetricName: RequestCountPerTarget
               Namespace: AWS/ApplicationELB
-            Period: 60
+            Period: 300
             Stat: Sum
           ReturnData: False
         - Id: m4
@@ -1116,7 +1116,7 @@ Resources:
                   Value: !Ref ApplicationLoadBalancerMetricsDimensionName
               MetricName: HTTPCode_ELB_5XX_Count
               Namespace: AWS/ApplicationELB
-            Period: 60
+            Period: 300
             Stat: Sum
           ReturnData: False       
         - Id: m5
@@ -1127,11 +1127,11 @@ Resources:
                   Value: !Ref ApplicationLoadBalancerMetricsDimensionName
               MetricName: RequestCount
               Namespace: AWS/ApplicationELB
-            Period: 60
+            Period: 300
             Stat: Sum
           ReturnData: False                       
         - Id: e1
-          Expression: IF((m5>=10 AND m4/m5>=0.1) OR (m3>=10 AND (m1/m3>=0.9 OR m2/m3>=0.1)), 1, 0)
+          Expression: IF((m5>=30 AND m4/m5>=0.1) OR (m3>=30 AND (m1/m3>=0.9 OR m2/m3>=0.1)), 1, 0)
           Label: !Sub "${ProjectName}-external-channel-ALBAlarm-oncall-metric"
 
   ExternalChannelMicroserviceAlarm:
