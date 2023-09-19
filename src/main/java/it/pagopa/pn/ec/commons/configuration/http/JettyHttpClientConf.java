@@ -27,7 +27,6 @@ public class JettyHttpClientConf {
     private int maxConnections;
 
     private final SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
-    private static final List<String> CONTENT_TYPE_OF_RESPONSE_BODY_TO_LOG = List.of(APPLICATION_JSON_VALUE, APPLICATION_XML_VALUE);
 
     @Bean
     public HttpClient getJettyHttpClient() {
@@ -39,7 +38,6 @@ public class JettyHttpClientConf {
             }
         };
         myHC.setMaxConnectionsPerDestination(maxConnections);
-//        myHC.setMaxRequestsQueuedPerDestination(200);
         return myHC;
     }
 
@@ -63,17 +61,9 @@ public class JettyHttpClientConf {
 
         request.onRequestBegin(theRequest -> log.debug("Start {} request to {}", theRequest.getMethod(), theRequest.getURI()));
 
-        request.onRequestFailure((theRequest, throwable) -> {
-            log.error("Request failure : {} , {}", throwable, throwable.getMessage());
-        });
+        request.onRequestFailure((theRequest, throwable) -> log.error("Request failure : {} , {}", throwable, throwable.getMessage()));
 
         return request;
-    }
-
-    private String decodeContent(ByteBuffer content) {
-        byte[] bytes = new byte[content.remaining()];
-        content.get(bytes);
-        return new String(bytes, StandardCharsets.UTF_8);
     }
 
 }

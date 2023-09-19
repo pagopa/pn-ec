@@ -1,12 +1,8 @@
 package it.pagopa.pn.ec.cartaceo.mapper;
 
-import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest;
 import org.springframework.stereotype.Service;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.RequiredArgsConstructor;
-
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -18,7 +14,7 @@ public class CartaceoMapper {
 
     private final ObjectMapper objectMapper;
 
-    private final String PATTERN_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+    private final static String PATTERN_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
     private final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(PATTERN_FORMAT).withZone(ZoneId.from(ZoneOffset.UTC));
 
 

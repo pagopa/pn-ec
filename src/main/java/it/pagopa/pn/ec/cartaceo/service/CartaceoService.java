@@ -5,7 +5,6 @@ import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.exception.SemaphoreException;
 import it.pagopa.pn.ec.commons.exception.StatusToDeleteException;
 import it.pagopa.pn.ec.commons.exception.cartaceo.CartaceoSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
@@ -410,9 +409,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                 CODE_TO_STATUS_MAP.get(cartaceoPresaInCaricoInfo.getStepError()
                                         .getOperationResultCodeResponse()
                                         .getResultCode()),
-                                new PaperProgressStatusDto()).flatMap(sendMessageResponse -> {
-                            return deleteMessageFromErrorQueue(message).doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, cartaceoSqsQueueName.errorName()));
-                        }).onErrorResume(sqsPublishException -> {
+                                new PaperProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message).doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, cartaceoSqsQueueName.errorName()))).onErrorResume(sqsPublishException -> {
                             log.warn(EXCEPTION_IN_PROCESS_FOR, GESTIONE_RETRY_CARTACEO, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
                             return checkTentativiEccessiviCartaceo(requestId, requestDto, cartaceoPresaInCaricoInfo, message);
                         });
@@ -448,9 +445,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                             INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                             new PaperProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 })
-                .doOnError(exception -> {
-                    log.warn(EXCEPTION_IN_PROCESS_FOR,GESTIONE_RETRY_CARTACEO, concatRequestId, exception, exception.getMessage());
-                })
+                .doOnError(exception -> log.warn(EXCEPTION_IN_PROCESS_FOR,GESTIONE_RETRY_CARTACEO, concatRequestId, exception, exception.getMessage()))
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, GESTIONE_RETRY_CARTACEO, result));
     }
 

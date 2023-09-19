@@ -1,7 +1,5 @@
 package it.pagopa.pn.ec.commons.configuration.aws;
 
-import com.amazonaws.services.sqs.AmazonSQSAsync;
-import com.amazonaws.services.sqs.AmazonSQSAsyncClientBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.messaging.config.QueueMessageHandlerFactory;
 import io.awspring.cloud.messaging.listener.support.AcknowledgmentHandlerMethodArgumentResolver;
