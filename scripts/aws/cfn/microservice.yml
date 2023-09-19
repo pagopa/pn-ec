@@ -808,7 +808,7 @@ Resources:
         ContainerEnvEntry54: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
-        MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
+        MappedPaths: '/external-channels/*,/external-channel/*'
         ECSClusterName: !Ref ECSClusterName
         Subnets: !Ref VpcEgressSubnetsIds
         VpcId: !Ref VpcId
@@ -824,6 +824,47 @@ Resources:
         MinTasksNumber: !Ref MinTasksNumber
         MaxTasksNumber: !Ref MaxTasksNumber
         JavaToolOptions: !Ref JavaToolOptions
+
+  # Load balancer forward rule; forward only path pattern defined with MappedPaths
+  LambdaLoggerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      TargetType: lambda
+      Targets:
+        - Id: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-lambda-logger
+
+  LambdaProxyLoadBalancerRoutingRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ApplicationLoadBalancerListenerArn
+      Priority: 1010 # performed last
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /consolidatore-ingress/*
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref LambdaLoggerTargetGroup
+          Order: 1
+
+  EcsLoadBalancerRoutingRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ApplicationLoadBalancerListenerArn
+      Priority: 1001 # performed first
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /consolidatore-ingress/*
+        - Field: http-header
+          HttpHeaderConfig: 
+            HttpHeaderName: 'x-pagopa-pn-direct-to-destination'
+            Values:
+              - true          
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Sub arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:${ExternalChannelMicroservice.Outputs.TargetGroupName}
+          Order: 1
 
   PnEcManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
