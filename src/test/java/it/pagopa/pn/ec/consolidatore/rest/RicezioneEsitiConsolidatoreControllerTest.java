@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
+import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -128,6 +129,22 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	progressStatusEvent.setAttachments(attachments);
     	return progressStatusEvent;
     }
+
+	private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithInvalidAttachmentUri() {
+		ConsolidatoreIngressPaperProgressStatusEventAttachments attachment = new ConsolidatoreIngressPaperProgressStatusEventAttachments();
+		attachment.setId(attachmentId);
+		attachment.setDocumentType(documentType);
+		attachment.setUri("invalidUri");
+		attachment.setSha256(sha256Id);
+		attachment.setDate(now);
+
+		List<ConsolidatoreIngressPaperProgressStatusEventAttachments> attachments = new ArrayList<>();
+		attachments.add(attachment);
+
+		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();
+		progressStatusEvent.setAttachments(attachments);
+		return progressStatusEvent;
+	}
     
     private RequestDto getRequestDto() {
     	RequestDto requestDto = new RequestDto();
@@ -142,7 +159,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 
 	@ParameterizedTest
 	@MethodSource("provideArguments")
-	void ricezioneEsitiOk() {
+	void ricezioneEsitiOk(ConsolidatoreIngressPaperProgressStatusEvent consolidatoreIngressPaperProgressStatusEvent) {
 		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiOk() : START");
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
@@ -154,7 +171,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true)).thenReturn(Mono.just(fileDownloadResponse));
 
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
-		events.add(getProgressStatusEventWithoutAttachments());
+		events.add(consolidatoreIngressPaperProgressStatusEvent);
 
 		webClient.put()
 				.uri(RICEZIONE_ESITI_ENDPOINT)
@@ -166,6 +183,104 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.exchange()
 				.expectStatus()
 				.isOk();
+	}
+
+	@Test
+	void ricezioneEsitiInvalidAttachmentUri() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiOk() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
+		fileDownloadResponse.setKey(documentKey);
+
+		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true)).thenReturn(Mono.just(fileDownloadResponse));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithInvalidAttachmentUri());
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isBadRequest();
+	}
+
+	@Test
+	void ricezioneEsitiAttachmentNotAvailable() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiOk() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true)).thenReturn(Mono.error(new AttachmentNotAvailableException(documentKey)));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithAttachments());
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isBadRequest();
+	}
+
+	@Test
+	void ricezioneEsitiAttachmentGeneric400() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiOk() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true))
+		 .thenReturn(Mono.error(new Generic400ErrorException("Chiamata a safestorage non valida", "Resource is no longer available. It may have been removed or deleted.")));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithAttachments());
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isBadRequest();
+	}
+
+	@Test
+	void ricezioneEsitiInternalError() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiOk() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.error(new RuntimeException()));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithAttachments());
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.is5xxServerError();
 	}
 
 	@Test
@@ -299,33 +414,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	        .expectStatus()
 	        .isBadRequest();
     }
-    
-    @Test
-    /** Test CRCRE.100.4 */
-    void ricezioneEsitiErroreValidazioneAttachments() {
-		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
-    	log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneAttachments() : START");
-    	
-    	when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
-    	
-    	when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true))
-    		.thenReturn(Mono.error(new AttachmentNotAvailableException(documentKey)));
-    	
-    	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
-    	events.add(getProgressStatusEventWithAttachments());
-    	
-        webClient.put()
-	        .uri(RICEZIONE_ESITI_ENDPOINT)
-	        .accept(APPLICATION_JSON)
-	        .contentType(APPLICATION_JSON)
-	        .header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
-	        .header(xApiKeyHeaderaName, xApiKeyHeaderValue)
-	        .body(BodyInserters.fromValue(events))
-	        .exchange()
-	        .expectStatus()
-	        .isBadRequest();
-    }
-    
+
     @Test
     /** Test CRCRE.100.4 */
     void ricezioneEsitiErrorePubblicazioneCodaNotificationTracker() {
