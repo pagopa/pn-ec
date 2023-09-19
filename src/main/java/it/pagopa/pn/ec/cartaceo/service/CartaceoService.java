@@ -42,9 +42,11 @@ import java.util.concurrent.Semaphore;
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.CODE_TO_STATUS_MAP;
+import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 
 @Service
 @Slf4j
@@ -86,8 +88,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         var xPagopaExtchCxId = cartaceoPresaInCaricoInfo.getXPagopaExtchCxId();
         var attachmentsUri = getPaperUri(cartaceoPresaInCaricoInfo.getPaperEngageRequest().getAttachments());
         var paperNotificationRequest = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
 
-        log.info("<-- START PRESA IN CARICO CARTACEO --> Request ID: {}, Client ID: {}", requestIdx, xPagopaExtchCxId);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_CARTACEO, presaInCaricoInfo);
 
         paperNotificationRequest.setRequestId(requestIdx);
 
@@ -104,7 +107,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                 INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                                 new PaperProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY).then(Mono.error(
                                 sqsClientException)))
-                .then();
+                .then()
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, PRESA_IN_CARICO_CARTACEO, result));
     }
 
     private ArrayList<String> getPaperUri(List<PaperEngageRequestAttachments> paperEngageRequestAttachments) {
@@ -118,9 +122,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     }
 
     private Mono<RequestDto> insertRequestFromCartaceo(PaperEngageRequest paperNotificationRequest, String xPagopaExtchCxId) {
-        log.info("<-- START INSERT REQUEST FROM CARTACEO --> Request ID: {}, Client ID: {}",
-                paperNotificationRequest.getRequestId(),
-                xPagopaExtchCxId);
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, paperNotificationRequest.getRequestId());
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_CARTACEO, paperNotificationRequest);
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
             requestDto.setRequestIdx(paperNotificationRequest.getRequestId());
@@ -177,7 +180,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
             requestDto.setRequestPersonal(requestPersonalDto);
             requestDto.setRequestMetadata(requestMetadataDto);
             return requestDto;
-        }).flatMap(gestoreRepositoryCall::insertRichiesta).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY);
+        }).flatMap(gestoreRepositoryCall::insertRichiesta).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
+        .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, INSERT_REQUEST_FROM_CARTACEO, result));
     }
 
     @Scheduled(cron = "${PnEcCronLavorazioneBatchPec ?:0 */5 * * * *}")
@@ -204,10 +208,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
             });
 
     Mono<SendMessageResponse> lavorazioneRichiesta(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo) {
-
-        log.info("<-- START LAVORAZIONE RICHIESTA CARTACEO --> Request ID : {}, Client ID : {}",
-                cartaceoPresaInCaricoInfo.getRequestIdx(),
-                cartaceoPresaInCaricoInfo.getXPagopaExtchCxId());
+        String concatRequestId = concatRequestId(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(), cartaceoPresaInCaricoInfo.getRequestIdx());
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, LAVORAZIONE_RICHIESTA_CARTACEO, cartaceoPresaInCaricoInfo);
 
         try {
             semaphore.acquire();
@@ -223,13 +225,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
                 .flatMap(requestDto ->
                         // Try to send PAPER
-                        paperMessageCall.putRequest(
-                                        paperEngageRequestDst)
-                                .doOnError(exception -> {
-                                    log.warn("Exception in lavorazioneRichiesta {} {}", exception, exception.getMessage());
-                                })
-                                .retryWhen(
-                                        LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                        paperMessageCall.putRequest(paperEngageRequestDst)
+                                .doOnError(exception -> log.warn(EXCEPTION_IN_PROCESS_FOR, LAVORAZIONE_RICHIESTA_CARTACEO, concatRequestId, exception, exception.getMessage()))
+                                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
                                 // The PAPER
                                 // in sent,
                                 // publish
@@ -256,9 +254,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                                 // ERRORI PAPER queue and
                                                 // notify to retry
                                                 // update status only
-                                                .doOnError(exception -> {
-                                                    log.warn("Exception in lavorazioneRichiesta {} {}", exception, exception.getMessage());
-                                                })
+                                                .doOnError(exception -> log.warn(EXCEPTION_IN_PROCESS_FOR, LAVORAZIONE_RICHIESTA_CARTACEO, concatRequestId, exception, exception.getMessage()))
                                                 .onErrorResume(
                                                         SqsClientException.class,
                                                         sqsPublishException -> {
@@ -288,9 +284,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
                                         // Publish to ERRORI PAPER queue
                                         .then(sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo)))
-                .doOnError(exception -> {
-                    log.warn("lavorazioneRichiesta {} {}", exception, exception.getMessage());
-                })
+                .doOnError(exception -> log.error(EXCEPTION_IN_PROCESS_FOR, LAVORAZIONE_RICHIESTA_CARTACEO, concatRequestId, exception, exception.getMessage()))
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, LAVORAZIONE_RICHIESTA_CARTACEO, result))
                 .doFinally(signalType -> semaphore.release());
     }
 
@@ -310,13 +305,13 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     }
 
     private Mono<RequestDto> filterRequestCartaceo(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo) {
-        log.info("<-- START GESTIONE RETRY CARTACEO--> Request ID : {}, Client ID : {}",
-                cartaceoPresaInCaricoInfo.getRequestIdx(),
-                cartaceoPresaInCaricoInfo.getXPagopaExtchCxId());
         String toDelete = "toDelete";
         var requestId = cartaceoPresaInCaricoInfo.getRequestIdx();
         var clientId = cartaceoPresaInCaricoInfo.getXPagopaExtchCxId();
+        String concatRequestId = concatRequestId(clientId, requestId);
         Policy retryPolicies = new Policy();
+
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, FILTER_REQUEST_CARTACEO, cartaceoPresaInCaricoInfo);
 
         return gestoreRepositoryCall.getRichiesta(clientId, requestId)
 //              check status toDelete
@@ -328,7 +323,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 //              se il primo step, inizializza l'attributo retry
                 .flatMap(requestDto -> {
                     if (requestDto.getRequestMetadata().getRetry() == null) {
-                        log.debug("Primo tentativo di Retry");
+                        log.debug(RETRY_ATTEMPT, FILTER_REQUEST_CARTACEO, 0, concatRequestId);
                         RetryDto retryDto = new RetryDto();
                         retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PAPER"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
@@ -340,7 +335,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
-                        log.debug(retryNumber + " tentativo di Retry");
+                        log.debug(RETRY_ATTEMPT, FILTER_REQUEST_CARTACEO, retryNumber, concatRequestId);
                         return Mono.just(requestDto);
                     }
                 })
@@ -368,7 +363,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     PatchDto patchDto = new PatchDto();
                     patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
                     return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
-                });
+                })
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, FILTER_REQUEST_CARTACEO, result));
     }
 
     private Mono<DeleteMessageResponse> checkTentativiEccessiviCartaceo(String requestId, RequestDto requestDto,
@@ -381,20 +377,21 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size())) > 0) {
             // operazioni per la rimozione del
             // messaggio
-            log.debug("Il messaggio è stato rimosso " + "dalla coda d'errore per " + "eccessivi tentativi: {}",
-                    cartaceoSqsQueueName.errorName());
             return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo,
                     ERROR.getStatusTransactionTableCompliant(),
-                    new PaperProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(
-                    message));
+                    new PaperProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message)
+                    .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, requestId, cartaceoSqsQueueName.errorName())));
 
         }
         return Mono.empty();
     }
 
-    public Mono<DeleteMessageResponse> gestioneRetryCartaceo(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo//
-            , Message message) {
+    public Mono<DeleteMessageResponse> gestioneRetryCartaceo(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, Message message) {
         var requestId = cartaceoPresaInCaricoInfo.getRequestIdx();
+        var clientId=cartaceoPresaInCaricoInfo.getXPagopaExtchCxId();
+        String concatRequestId = concatRequestId(clientId, requestId);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GESTIONE_RETRY_CARTACEO, cartaceoPresaInCaricoInfo);
+
         var paperEngageRequestSrc = cartaceoPresaInCaricoInfo.getPaperEngageRequest();
         var paperEngageRequestDst = cartaceoMapper.convert(paperEngageRequestSrc);
         return filterRequestCartaceo(cartaceoPresaInCaricoInfo)
@@ -414,56 +411,47 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                         .getOperationResultCodeResponse()
                                         .getResultCode()),
                                 new PaperProgressStatusDto()).flatMap(sendMessageResponse -> {
-                            log.debug("Il messaggio è stato gestito " + "correttamente e rimosso dalla " + "coda" + " d'errore {}",
-                                    cartaceoSqsQueueName.errorName());
-                            return deleteMessageFromErrorQueue(message);
+                            return deleteMessageFromErrorQueue(message).doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, cartaceoSqsQueueName.errorName()));
                         }).onErrorResume(sqsPublishException -> {
-                            log.warn("Exception in gestioneRetryCartaceo {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                            log.warn(EXCEPTION_IN_PROCESS_FOR, GESTIONE_RETRY_CARTACEO, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
                             return checkTentativiEccessiviCartaceo(requestId, requestDto, cartaceoPresaInCaricoInfo, message);
                         });
                     } else {
-                        log.debug("requestDto Value: {}", requestDto.getRequestMetadata().getRetry());
                         // Tentativo invio
                         return paperMessageCall.putRequest(paperEngageRequestDst)
                                 // The PAPER in sent, publish to Notification Tracker with next status ->
                                 // SENT
                                 .flatMap(operationResultCodeResponse -> sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo,
-                                        CODE_TO_STATUS_MAP.get(
-                                                operationResultCodeResponse.getResultCode()),
-                                        new PaperProgressStatusDto()).flatMap(
-                                                sendMessageResponse -> {
-                                                    log.debug("Il messaggio è stato gestito " + "correttamente e rimosso dalla " + "coda" +
-                                                            " d'errore {}", cartaceoSqsQueueName.errorName());
-                                                    return deleteMessageFromErrorQueue(message);
-                                                })
-                                        .onErrorResume(
-                                                sqsPublishException -> {
-                                                    log.warn("Exception in gestioneRetryCartaceo {}, {}", sqsPublishException, sqsPublishException.getMessage());
+                                        CODE_TO_STATUS_MAP.get(operationResultCodeResponse.getResultCode()),
+                                        new PaperProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
+                                        .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, cartaceoSqsQueueName.errorName()))
+                                        .onErrorResume(sqsPublishException -> {
+                                                    log.warn(EXCEPTION_IN_PROCESS_FOR, GESTIONE_RETRY_CARTACEO, concatRequestId, sqsPublishException, sqsPublishException.getMessage());
                                                     return checkTentativiEccessiviCartaceo(
                                                             requestId,
                                                             requestDto,
                                                             cartaceoPresaInCaricoInfo,
-                                                            message);
-                                                }));
+                                                            message);}));
                     }
                 })
 //              Catch errore tirato per lo stato toDelete
                 .onErrorResume(StatusToDeleteException.class, exception -> {
-                    log.debug("Il messaggio è stato rimosso dalla coda d'errore per status toDelete: {}", cartaceoSqsQueueName.errorName());
+                    log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, concatRequestId, cartaceoSqsQueueName.errorName());
                     return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo,
                             ERROR.getStatusTransactionTableCompliant(),
                             new PaperProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 })
 //Catch errore interno, pubblicazione sul notification tracker ed eliminazione dalla coda di errore.
                 .onErrorResume(throwable -> {
-                    log.error("Internal Error -> {}", throwable.getMessage());
+                    log.warn(EXCEPTION_IN_PROCESS_FOR, GESTIONE_RETRY_CARTACEO, concatRequestId, throwable, throwable.getMessage());
                     return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo,
                             INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                             new PaperProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
                 })
                 .doOnError(exception -> {
-                    log.warn("gestioneRetryCartaceo {} {}", exception, exception.getMessage());
-                });
+                    log.warn(EXCEPTION_IN_PROCESS_FOR,GESTIONE_RETRY_CARTACEO, concatRequestId, exception, exception.getMessage());
+                })
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, GESTIONE_RETRY_CARTACEO, result));
     }
 
     @Override

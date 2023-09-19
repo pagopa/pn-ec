@@ -8,6 +8,9 @@ import reactor.util.retry.Retry;
 
 import java.time.Duration;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
+
 @Service
 @Slf4j
 public abstract class PresaInCaricoService {
@@ -19,7 +22,7 @@ public abstract class PresaInCaricoService {
 
     public Mono<Void> presaInCarico(PresaInCaricoInfo presaInCaricoInfo) {
         return authService.clientAuth(presaInCaricoInfo.getXPagopaExtchCxId())
-                          .flatMap(clientConfigurationDto -> specificPresaInCarico(presaInCaricoInfo));
+                .flatMap(clientConfigurationDto -> specificPresaInCarico(presaInCaricoInfo));
     }
 
     protected abstract Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo);

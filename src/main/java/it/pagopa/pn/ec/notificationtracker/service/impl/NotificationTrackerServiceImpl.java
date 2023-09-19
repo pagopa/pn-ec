@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import static it.pagopa.pn.ec.commons.utils.CompareUtils.*;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static java.time.temporal.ChronoUnit.SECONDS;
 
 
@@ -52,8 +54,9 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
         var nextStatus = notificationTrackerQueueDto.getNextStatus();
         var xPagopaExtchCxId = notificationTrackerQueueDto.getXPagopaExtchCxId();
         String sRequestId = notificationTrackerQueueDto.getRequestIdx();
+        var concatRequestId=concatRequestId(xPagopaExtchCxId, nextStatus);
 
-        log.info("<-- Start handleRequestStatusChange --> info: {} request: {}", processId, sRequestId);
+        log.info(INVOKING_OPERATION_LABEL_WITH_ARGS,NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId);
 
         return gestoreRepositoryCall.getRichiesta(xPagopaExtchCxId, sRequestId)
 
@@ -66,21 +69,19 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         if (!Objects.isNull(eventsList) && !eventsList.isEmpty()) {
 
                                             EventsDto lastEvent = eventsList.get(eventsList.size() - 1);
-                                            PaperProgressStatusDto paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
+                                            //PaperProgressStatusDto paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
                                             DigitalProgressStatusDto digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
 
-                                            log.debug("handleRequestStatusChange - eventsList : {} , paperProgressStatusDto : {}, digitalProgressStatusDto : {}", eventsList, paperProgressStatusDto, digitalProgressStatusDto);
-
                                             if (lastEvent.getDigProgrStatus() != null) {
-                                                log.debug("handleRequestStatusChange - LastEvent digitalProgressStatus : {}", lastEvent.getDigProgrStatus());
                                                 isSameEvent = isSameEvent(lastEvent.getDigProgrStatus(), digitalProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
-                                            } else {
-                                                log.debug("handleRequestStatusChange - LastEvent paperProgressStatus : {}", lastEvent.getPaperProgrStatus());
-                                                isSameEvent = isSameEvent(lastEvent.getPaperProgrStatus(), paperProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
                                             }
+//                                            else {
+//                                                log.debug("handleRequestStatusChange - LastEvent paperProgressStatus : {}", lastEvent.getPaperProgrStatus());
+//                                                isSameEvent = isSameEvent(lastEvent.getPaperProgrStatus(), paperProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
+//                                            }
                                         }
 
-                                        log.debug("handleRequestStatusChange - isSameEvent : {}", isSameEvent);
+                                        log.debug(NT_HANDLE_REQUEST_STATUS_CHANGE + "'{}' - isSameEvent : {}", concatRequestId, isSameEvent);
                                         return isSameEvent ? Mono.empty() : Mono.just(requestDto);
                                     })
 //                                  Set status request to start status if is null
@@ -225,7 +226,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                     .doOnSuccess(result -> acknowledgment.acknowledge())
                                     .then()
                                     .doOnError(InvalidNextStatusException.class, throwable -> {
-                                        log.debug("Invalid Next Status Exception: {}", throwable.getMessage());
+                                        log.debug(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId, throwable, throwable.getMessage());
                                         acknowledgment.acknowledge();
                                     })
                                     .onErrorResume(InvalidNextStatusException.class, e -> {
@@ -238,14 +239,15 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         }
                                     })
                                     .doOnError(throwable -> {
-                                        log.warn("handleRequestStatusChange on request {}: {} - {}", sRequestId, throwable, throwable.getMessage());
-                                    });
+                                        log.warn(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId, throwable, throwable.getMessage());
+                                    })
+                                   .doOnSuccess(result->log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, NT_HANDLE_REQUEST_STATUS_CHANGE, result));
     }
 
     @Override
     public Mono<Void> handleMessageFromErrorQueue(NotificationTrackerQueueDto notificationTrackerQueueDto,
                                                   String ntStatoQueueName, Acknowledgment acknowledgment) {
-
+        var concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         return Mono.just(notificationTrackerQueueDto)
                 .flatMap(payload -> {
                     var digitalProgressStatusDto = payload.getDigitalProgressStatusDto();
@@ -264,7 +266,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                 .doOnNext(payload -> payload.setRetry(0))
                 .flatMap(payload -> sqsService.send(ntStatoQueueName, payload))
                 .doOnSuccess(result -> acknowledgment.acknowledge())
-                .doOnError(throwable -> log.warn("Exception in handleMessageFromErrorQueue() on request {}: {} - {}", notificationTrackerQueueDto.getRequestIdx(), throwable, throwable.getMessage()))
+                .doOnError(throwable -> log.warn(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_MESSAGE_FROM_ERROR_QUEUE, concatRequestId, throwable, throwable.getMessage()))
                 .then();
     }
 

@@ -13,10 +13,15 @@ import java.util.List;
 public class EmailField {
 
     String msgId;
+    @ToString.Exclude
     String from;
+    @ToString.Exclude
     String to;
+    @ToString.Exclude
     String subject;
+    @ToString.Exclude
     String text;
     String contentType;
+    @ToString.Exclude
     List<EmailAttachment> emailAttachments;
 }

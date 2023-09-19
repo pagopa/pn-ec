@@ -14,7 +14,9 @@ import lombok.experimental.SuperBuilder;
 public class RicezioneEsitiPecDto {
 
     String messageID;
+    @ToString.Exclude
     byte[] message;
+    @ToString.Exclude
     String receiversDomain;
     int retry;
 

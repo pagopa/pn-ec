@@ -43,7 +43,6 @@ public class DigitalCourtesyMessagesEmailApiController implements DigitalCourtes
     public Mono<ResponseEntity<Void>> sendDigitalCourtesyMessage(String requestIdx, String xPagopaExtchCxId,
                                                                  Mono<DigitalCourtesyMailRequest> digitalCourtesyMailRequest,
                                                                  final ServerWebExchange exchange) {
-
         return digitalCourtesyMailRequest.flatMap(request -> service.presaInCarico(EmailPresaInCaricoInfo.builder()
                                                                                                          .requestIdx(requestIdx)
                                                                                                          .xPagopaExtchCxId(xPagopaExtchCxId)
