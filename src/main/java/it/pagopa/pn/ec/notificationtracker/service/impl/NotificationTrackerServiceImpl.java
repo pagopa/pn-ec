@@ -117,10 +117,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         }
                                         return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getXPagopaExtchCxId(),
                                                                                          notificationTrackerQueueDto.getRequestIdx(),
-                                                                                         new EventsDto().digProgrStatus(
-                                                                                                                digitalProgressStatusDto)
-                                                                                                        .paperProgrStatus(
-                                                                                                                paperProgressStatusDto));
+                                                                                         new EventsDto().digProgrStatus(digitalProgressStatusDto)
+                                                                                                        .paperProgrStatus(paperProgressStatusDto));
                                     })
                                     .filter(objects -> objects.getT1().getLogicStatus() != null)
                                     .flatMap(objects -> {

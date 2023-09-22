@@ -11,8 +11,10 @@ import java.util.List;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
+@AllArgsConstructor
 @Data
 @DynamoDbBean
+@Builder
 @EqualsAndHashCode(callSuper = true)
 public class RequestMetadata extends DocumentVersion {
 

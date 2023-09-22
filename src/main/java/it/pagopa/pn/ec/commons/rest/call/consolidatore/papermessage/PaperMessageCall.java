@@ -1,10 +1,5 @@
 package it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage;
 
-import java.time.Duration;
-
-
-
-import it.pagopa.pn.ec.commons.exception.cartaceo.CartaceoSendException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperDeliveryProgressesResponse;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicaRequest;
@@ -12,7 +7,6 @@ import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicasProgressesResponse
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 
 public interface PaperMessageCall {
 

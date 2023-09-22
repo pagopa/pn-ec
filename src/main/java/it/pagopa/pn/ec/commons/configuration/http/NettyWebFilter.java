@@ -25,9 +25,6 @@ public class NettyWebFilter implements WebFilter {
     public @NotNull Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         ServerHttpRequest httpRequest = exchange.getRequest();
 
-        final String httpUrl = httpRequest.getURI().toString();
-        String httpMethod=httpRequest.getMethodValue();
-
         ServerHttpRequestDecorator loggingServerHttpRequestDecorator = new ServerHttpRequestDecorator(exchange.getRequest()) {
             String requestBody = "";
 

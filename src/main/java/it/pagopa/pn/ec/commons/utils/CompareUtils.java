@@ -1,13 +1,15 @@
 package it.pagopa.pn.ec.commons.utils;
 
-import it.pagopa.pn.ec.repositorymanager.model.entity.DigitalProgressStatus;
-import it.pagopa.pn.ec.repositorymanager.model.entity.PaperProgressStatus;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
 
 import static java.time.temporal.ChronoUnit.SECONDS;
 
 public class CompareUtils {
+
+    private CompareUtils() {
+        throw new IllegalStateException("CompareUtils is utility class");
+    }
 
     public static boolean isSameEvent(DigitalProgressStatusDto lastEvent, DigitalProgressStatusDto newEvent, String nextStatus) {
         return lastEvent.getEventTimestamp().equals(newEvent.getEventTimestamp().truncatedTo(SECONDS))

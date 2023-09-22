@@ -11,6 +11,10 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.apache.commons.compress.archivers.sevenz.CLI;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -19,6 +23,8 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Mono;
+
+import java.util.stream.Stream;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
@@ -47,9 +53,10 @@ public class PushAttachmentsPreloadTest {
     private static final String FILE_KEY = "PN_NOTIFICATION_ATTACHMENTS-1a1f2a2430a4494e96d39081c132d21c";
     private static final String X_API_KEY = "X_API_KEY";
     private static final String X_CHECKSUM_VALUE = "dffe706eb6fd101590f88f4f02e07f6bb6940c7a3998ff6";
+    private static final String APPLICATION_PDF = "application/pdf";
 
     private static final String URI = "/consolidatore-ingress/v1/attachment-preload";
-    private static final String URI_GET = "/consolidatore-ingress/v1/get-attachment/"+FILE_KEY;
+    private static final String URI_GET = "/consolidatore-ingress/v1/get-attachment/" + FILE_KEY;
 
     private static final PreLoadRequest preLoadRequest = new PreLoadRequest();
     private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
@@ -62,11 +69,13 @@ public class PushAttachmentsPreloadTest {
         preLoadRequest.setContentType("application/pdf");
         preLoadRequest.setSha256(X_CHECKSUM_VALUE);
     }
+
     @BeforeAll
     public static void buildClientConfigurationInternalDto() {
         clientConfigurationInternalDto.setApiKey(X_API_KEY);
         clientConfigurationInternalDto.setxPagopaExtchCxId(CLIENT_ID);
     }
+
     @BeforeAll
     public static void buildClientConfigurationInternalDtoWithWrongApiKey() {
         clientConfigurationInternalDtoWithWrongApiKey.setApiKey("TEST");
@@ -107,6 +116,24 @@ public class PushAttachmentsPreloadTest {
         pushAttachmentsPreloadTestCall(BodyInserters.fromValue(preLoadRequestSchema))
                 .expectStatus()
                 .isOk();
+    }
+
+    @ParameterizedTest
+    @MethodSource("providePreLoadRequest")
+    void pushAttachmentsBadPreLoadRequestKo(String preloadIdx, String contentType, String sha256) {
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+        when(fileCall.postFile(eq(CLIENT_ID), eq(X_API_KEY), eq(X_CHECKSUM_VALUE), anyString(), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse()));
+
+        PreLoadRequestData preLoadRequestSchema = new PreLoadRequestData();
+        PreLoadRequest request = new PreLoadRequest();
+        request.setPreloadIdx(preloadIdx);
+        request.setContentType(contentType);
+        request.setSha256(sha256);
+        preLoadRequestSchema.getPreloads().add(request);
+
+        pushAttachmentsPreloadTestCall(BodyInserters.fromValue(preLoadRequestSchema))
+                .expectStatus()
+                .isBadRequest();
     }
 
     @Test
@@ -167,17 +194,21 @@ public class PushAttachmentsPreloadTest {
     }
 
     @Test
-    void getFileOk(){
-        when(fileCall.getFile(eq (FILE_KEY), eq(CLIENT_ID), eq(X_API_KEY), anyString())).thenReturn(Mono.just(new FileDownloadResponse()));
+    void getFileOk() {
+        when(fileCall.getFile(eq(FILE_KEY), eq(CLIENT_ID), eq(X_API_KEY), anyString())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
         getFileTestCall().expectStatus().isOk();
     }
 
     @Test
-    void getFileInvalidApiKey(){
-        when(fileCall.getFile(eq (FILE_KEY), eq(CLIENT_ID), eq(X_API_KEY), anyString())).thenReturn(Mono.just(new FileDownloadResponse()));
+    void getFileInvalidApiKey() {
+        when(fileCall.getFile(eq(FILE_KEY), eq(CLIENT_ID), eq(X_API_KEY), anyString())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDtoWithWrongApiKey));
         getFileTestCall().expectStatus().is4xxClientError();
+    }
+
+    private static Stream<Arguments> providePreLoadRequest() {
+        return Stream.of(Arguments.of(null, APPLICATION_PDF, X_CHECKSUM_VALUE), Arguments.of(CLIENT_ID, null, X_CHECKSUM_VALUE), Arguments.of(CLIENT_ID, APPLICATION_PDF, null));
     }
 
 }
