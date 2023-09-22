@@ -27,12 +27,7 @@ import reactor.test.StepVerifier;
 import javax.mail.MessagingException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.List;
-import java.util.Random;
 
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
@@ -44,7 +39,7 @@ import static org.mockito.Mockito.*;
 @SpringBootTestWebEnv
 public class ScaricamentoEsitiPecServiceTest {
     @SpyBean
-    private ScaricamentoEsitiPecService scaricamentoEsitiPecService;
+    private LavorazioneEsitiPecService lavorazioneEsitiPecService;
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
     @Autowired
@@ -71,11 +66,11 @@ public class ScaricamentoEsitiPecServiceTest {
     void lavorazioneEsitiPecOk(String tipoDestinatario) throws IOException, MessagingException {
 
         RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(tipoDestinatario);
-        Mono<Void> testMono = scaricamentoEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
+        Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
         var request = pecRequest();
 
         when(gestoreRepositoryCall.getRichiesta(eq(CLIENT_ID), eq(PEC_REQUEST_IDX))).thenReturn(Mono.just(request));
-        Mockito.doReturn(Mono.just("location")).when(scaricamentoEsitiPecService).generateLocation(eq(PEC_REQUEST_IDX), eq(ricezioneEsitiPecDto.getMessage()));
+        Mockito.doReturn(Mono.just("location")).when(lavorazioneEsitiPecService).generateLocation(eq(PEC_REQUEST_IDX), eq(ricezioneEsitiPecDto.getMessage()));
 
         StepVerifier.create(testMono).expectComplete().verify();
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class));
@@ -85,7 +80,7 @@ public class ScaricamentoEsitiPecServiceTest {
     void lavorazioneEsitiPecKo() throws IOException, MessagingException {
 
         RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto("certificato");
-        Mono<Void> testMono = scaricamentoEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
+        Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
 
         StepVerifier.create(testMono).expectError().verify();
     }
