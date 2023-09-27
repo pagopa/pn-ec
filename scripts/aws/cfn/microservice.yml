@@ -142,6 +142,11 @@ Parameters:
     Description: 'Lavorazione Cartaceo max thread pool size'
     Default: '100'
 
+  PnEcTaskExecutionPoolMaxSize:
+    Type: String
+    Description: 'SpringBoot configuration Task Execution Max Pool Siza'
+    Default: '512'
+
   ######### TABLES  ############
 
   PnEcTableNameAnagrafica:
@@ -806,6 +811,7 @@ Resources:
         ContainerEnvEntry52: !Sub 'LavorazioneSMSMaxThreadPoolSize=${LavorazioneSMSMaxThreadPoolSize}'
         ContainerEnvEntry53: !Sub 'LavorazioneEmailMaxThreadPoolSize=${LavorazioneEmailMaxThreadPoolSize}'
         ContainerEnvEntry54: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
+        ContainerEnvEntry55: !Sub 'PnEcTaskExecutionPoolMaxSize=${PnEcTaskExecutionPoolMaxSize}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
