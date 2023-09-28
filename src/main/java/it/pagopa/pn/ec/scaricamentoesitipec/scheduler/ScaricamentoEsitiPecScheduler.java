@@ -18,22 +18,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuples;
-
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
-import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
-import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
-import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.DESTINATARIO_ESTERNO;
-import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.decodePecStatusToMachineStateStatus;
 
 @Component
 @Slf4j
@@ -66,23 +59,23 @@ public class ScaricamentoEsitiPecScheduler {
 
     @Scheduled(cron = "${PnEcCronScaricamentoEsitiPec ?:0 */5 * * * *}")
     public void scaricamentoEsitiPecScheduler() {
-
         log.info(STARTING_SCHEDULED, SCARICAMENTO_ESITI_PEC);
         ScaricamentoEsitiPecUtils.sleepRandomSeconds();
+
+        AtomicBoolean hasMessages = new AtomicBoolean();
+        hasMessages.set(true);
+
+        scaricamentoEsitiPec(hasMessages).repeat(hasMessages::get).subscribe();
+    }
+
+    Flux<GetMessageIDResponse> scaricamentoEsitiPec(AtomicBoolean hasMessages) {
 
         var getMessages = new GetMessages();
         getMessages.setUnseen(1);
         getMessages.setOuttype(2);
         getMessages.setLimit(Integer.valueOf(scaricamentoEsitiPecProperties.getMessagesLimit()));
 
-        AtomicBoolean hasMessages = new AtomicBoolean();
-        hasMessages.set(true);
-
-
-        arubaCall.getMessages(getMessages)
-                /* TO-DO: DA CHIARIRE
-                .doOnError(ArubaCallMaxRetriesExceededException.class, e -> log.debug("Aruba non risponde. Circuit breaker"))
-                .onErrorComplete(ArubaCallMaxRetriesExceededException.class)*/
+        return arubaCall.getMessages(getMessages)
                 .flatMap(getMessagesResponse -> {
                     var arrayOfMessages = getMessagesResponse.getArrayOfMessages();
                     if (Objects.isNull(arrayOfMessages))
@@ -106,7 +99,7 @@ public class ScaricamentoEsitiPecScheduler {
                         log.debug(SCARICAMENTO_ESITI_PEC + " - PEC '{}' has daticert.xml with content : {}", finalMessageID, new String(attachBytes));
 
 //                      Deserialize daticert.xml. Start a new Mono inside the flatMap
-                         return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(attachBytes))
+                        return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(attachBytes))
 //                                 Escludere questi daticert. Non sono delle 'comunicazione esiti'
                                 .filter(isPostaCertificataPredicate.negate())
 
@@ -128,26 +121,22 @@ public class ScaricamentoEsitiPecScheduler {
                                     if (isPostaCertificataPredicate.test(postacert)) {
                                         log.debug(PEC_DISCARDED, finalMessageID, SCARICAMENTO_ESITI_PEC, POSTA_CERTIFICATA);
                                     } else if (!endsWithDomainPredicate.test(postacert)) {
-                                        log.debug(PEC_DISCARDED,finalMessageID, SCARICAMENTO_ESITI_PEC, NOT_SENT_BY_US);
+                                        log.debug(PEC_DISCARDED, finalMessageID, SCARICAMENTO_ESITI_PEC, NOT_SENT_BY_US);
                                     }
                                 })
-                                 .flatMap(unused -> sqsService.send(scaricamentoEsitiPecProperties.sqsQueueName(), finalMessageID, RicezioneEsitiPecDto.builder()
-                                         .messageID(finalMessageID)
-                                         .message(message)
-                                         .receiversDomain(getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]))
-                                         .retry(0)
-                                         .build()))
-                                 .thenReturn(finalMessageID);
-                    }
-                    else return Mono.just(finalMessageID);
+                                .flatMap(unused -> sqsService.send(scaricamentoEsitiPecProperties.sqsQueueName(), finalMessageID, RicezioneEsitiPecDto.builder()
+                                        .messageID(finalMessageID)
+                                        .message(message)
+                                        .receiversDomain(getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]))
+                                        .retry(0)
+                                        .build()))
+                                .thenReturn(finalMessageID);
+                    } else return Mono.just(finalMessageID);
                 })
                 //Marca il messaggio come letto.
                 .flatMap(finalMessageID -> arubaCall.getMessageId(createGetMessageIdRequest(finalMessageID, 2, true)), limitRate)
                 .doOnError(throwable -> log.error(FATAL_IN_PROCESS, SCARICAMENTO_ESITI_PEC, throwable, throwable.getMessage()))
-                .onErrorResume(throwable -> Mono.empty())
-                .repeat(hasMessages::get)
-                .subscribe();
-
+                .onErrorResume(throwable -> Mono.empty());
     }
 
 }

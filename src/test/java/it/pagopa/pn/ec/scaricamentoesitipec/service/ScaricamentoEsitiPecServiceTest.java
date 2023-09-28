@@ -31,7 +31,8 @@ import java.util.List;
 
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
-import static it.pagopa.pn.ec.scaricamentoesitipec.utils.PecUtils.generateDaticertAccettazione;
+import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.ACCETTAZIONE;
+import static it.pagopa.pn.ec.scaricamentoesitipec.utils.PecUtils.generateDaticert;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -93,7 +94,7 @@ public class ScaricamentoEsitiPecServiceTest {
 
     private RicezioneEsitiPecDto buildRicezioneEsitiPecDto(String tipoDestinatario) throws MessagingException, IOException {
         String msgId = "-" + encodeMessageId(CLIENT_ID, PEC_REQUEST_IDX) + "-";
-        var daticertBytes = generateDaticertAccettazione("from", "receiverAddress@pagopa.it", "replyTo", "subject", "gestoreMittente", "03/11/1999", "00:00:00", msgId, tipoDestinatario).toString().getBytes();
+        var daticertBytes = generateDaticert(ACCETTAZIONE, "from", "receiverAddress@pagopa.it", "replyTo", "subject", "gestoreMittente", "03/11/1999", "00:00:00", msgId, tipoDestinatario).toString().getBytes();
         ByteArrayOutputStream daticertOutput = new ByteArrayOutputStream();
         daticertOutput.write(daticertBytes);
 
