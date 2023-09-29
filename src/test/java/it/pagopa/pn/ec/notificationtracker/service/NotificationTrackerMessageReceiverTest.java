@@ -32,10 +32,12 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.*;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.test.annotation.DirtiesContext;
 import org.testcontainers.shaded.org.bouncycastle.cert.ocsp.Req;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -54,9 +56,10 @@ import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTestWebEnv
+@DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
 public class NotificationTrackerMessageReceiverTest {
     @Autowired
     private NotificationTrackerMessageReceiver notificationTrackerMessageReceiver;
@@ -80,14 +83,27 @@ public class NotificationTrackerMessageReceiverTest {
     Acknowledgment acknowledgment;
     @Autowired
     RestUtils restUtils;
+
+    //REQUESTIDX
     private static final String SMS_REQUEST_IDX = "SMS_REQUEST_IDX";
     private static final String EMAIL_REQUEST_IDX = "EMAIL_REQUEST_IDX";
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
     private static final String PAPER_REQUEST_IDX = "PAPER_REQUEST_IDX";
     private static final String CLIENT_ID = "CLIENT_ID";
-
     private static final List<JSONObject> stateMachine = new ArrayList<>();
 
+    //DIGITAL CHANNELS INFO
+    private static String SMS_PROCESS_ID;
+    private static String SMS_STATO_QUEUE;
+    private static String SMS_STATO_ERRATO_QUEUE;
+    private static String EMAIL_PROCESS_ID;
+    private static String EMAIL_STATO_QUEUE;
+    private static String EMAIL_STATO_ERRATO_QUEUE;
+    private static String PEC_PROCESS_ID;
+    private static String PEC_STATO_QUEUE;
+    private static String PEC_STATO_ERRATO_QUEUE;
+
+    //DYNAMO TABLES
     private static DynamoDbTable<RequestPersonal> requestPersonalDynamoDbTable;
     private static DynamoDbTable<RequestMetadata> requestMetadataDynamoDbTable;
 
@@ -105,6 +121,23 @@ public class NotificationTrackerMessageReceiverTest {
         insertEmailRequest();
         insertPecRequest();
         insertPaperRequest();
+    }
+
+    @BeforeAll
+    public static void initializeDigitalInfo(@Autowired TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, @Autowired NotificationTrackerSqsName notificationTrackerSqsName) {
+
+        SMS_PROCESS_ID = transactionProcessConfigurationProperties.sms();
+        SMS_STATO_QUEUE = notificationTrackerSqsName.statoSmsName();
+        SMS_STATO_ERRATO_QUEUE = notificationTrackerSqsName.statoSmsErratoName();
+
+        EMAIL_PROCESS_ID = transactionProcessConfigurationProperties.email();
+        EMAIL_STATO_QUEUE = notificationTrackerSqsName.statoEmailName();
+        EMAIL_STATO_ERRATO_QUEUE = notificationTrackerSqsName.statoEmailErratoName();
+
+        PEC_PROCESS_ID = transactionProcessConfigurationProperties.pec();
+        PEC_STATO_QUEUE = notificationTrackerSqsName.statoPecName();
+        PEC_STATO_ERRATO_QUEUE = notificationTrackerSqsName.statoPecErratoName();
+
     }
 
     @BeforeEach
@@ -167,10 +200,10 @@ public class NotificationTrackerMessageReceiverTest {
         });
     }
 
-    private Stream<Arguments> provideArguments() {
-        return Stream.of(Arguments.of(SMS_REQUEST_IDX, transactionProcessConfigurationProperties.sms(), notificationTrackerSqsName.statoSmsName(), notificationTrackerSqsName.statoSmsErratoName()),
-                Arguments.of(EMAIL_REQUEST_IDX, transactionProcessConfigurationProperties.email(), notificationTrackerSqsName.statoEmailName(), notificationTrackerSqsName.statoEmailErratoName()),
-                Arguments.of(PEC_REQUEST_IDX, transactionProcessConfigurationProperties.pec(), notificationTrackerSqsName.statoPecName(), notificationTrackerSqsName.statoPecErratoName()));
+    private static Stream<Arguments> provideArguments() {
+        return Stream.of(Arguments.of(SMS_REQUEST_IDX, SMS_PROCESS_ID, SMS_STATO_QUEUE, SMS_STATO_ERRATO_QUEUE),
+                Arguments.of(EMAIL_REQUEST_IDX, EMAIL_PROCESS_ID, EMAIL_STATO_QUEUE, EMAIL_STATO_ERRATO_QUEUE),
+                Arguments.of(PEC_REQUEST_IDX, PEC_PROCESS_ID, PEC_STATO_QUEUE, PEC_STATO_ERRATO_QUEUE));
     }
 
     @ParameterizedTest
@@ -215,13 +248,12 @@ public class NotificationTrackerMessageReceiverTest {
 
         //WHEN
         when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.error(new InvalidNextStatusException("", "", "", "")));
-        mockStatusDecode();
 
         //THEN
         NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId);
 
         verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
-        verify(sqsService, times(1)).send(any(), any());
+        verify(sqsService, times(1)).send(anyString(), any(NotificationTrackerQueueDto.class));
 
     }
 
@@ -299,7 +331,7 @@ public class NotificationTrackerMessageReceiverTest {
         //THEN
         notificationTrackerMessageReceiver.receiveCartaceoObjectMessage(notificationTrackerQueueDto, acknowledgment);
         verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, transactionProcessConfigurationProperties.paper(), notificationTrackerSqsName.statoCartaceoName(), notificationTrackerSqsName.statoCartaceoErratoName(), acknowledgment);
-        verify(sqsService, times(1)).send(any(), any());
+        verify(sqsService, times(1)).send(anyString(), any(NotificationTrackerQueueDto.class));
     }
 
     @Test
