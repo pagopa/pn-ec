@@ -144,7 +144,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                 return publishOnQueue(listEvents, xPagopaExtchServiceId);
 
                             } else {
-                                 log.debug(LOG_LABEL + "errori sintattici/semantici : Sono stati individuati {} macro errori", listErrorResponse.size());
+                                log.debug(LOG_LABEL + "errori sintattici/semantici : Sono stati individuati {} macro errori", listErrorResponse.size());
                                 // errori
                                 var listErrors = new ArrayList<OperationResultCodeResponse>();
                                 var consAuditLogErrorList = new ArrayList<ConsAuditLogError>();
