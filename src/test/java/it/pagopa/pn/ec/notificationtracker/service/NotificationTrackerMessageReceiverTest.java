@@ -246,21 +246,6 @@ public class NotificationTrackerMessageReceiverTest {
 
     @ParameterizedTest
     @MethodSource("provideArguments")
-    void digitalNtStatusValidationKo(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
-
-        //WHEN
-        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.error(new InvalidNextStatusException("", "", "", "")));
-
-        //THEN
-        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId);
-
-        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
-        verify(sqsService, times(1)).send(anyString(), any(NotificationTrackerQueueDto.class));
-
-    }
-
-    @ParameterizedTest
-    @MethodSource("provideArguments")
     void digitalNtFromErrorKo(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
 
         //WHEN
@@ -316,26 +301,6 @@ public class NotificationTrackerMessageReceiverTest {
         verify(sqsService, times(1)).send(notificationTrackerSqsName.statoCartaceoName(), notificationTrackerQueueDto);
     }
 
-    @ParameterizedTest
-    @ValueSource(ints = {1, 5})
-    void paperNtStatusValidationKo(Integer retry) {
-
-        //GIVEN
-        PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
-        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant());
-        NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), paperProgressStatusDto);
-        notificationTrackerQueueDto.setRetry(retry);
-
-        //WHEN
-        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.error(new InvalidNextStatusException("", "", "", "")));
-        mockStatusDecode();
-
-        //THEN
-        notificationTrackerMessageReceiver.receiveCartaceoObjectMessage(notificationTrackerQueueDto, acknowledgment);
-        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, transactionProcessConfigurationProperties.paper(), notificationTrackerSqsName.statoCartaceoName(), notificationTrackerSqsName.statoCartaceoErratoName(), acknowledgment);
-        verify(sqsService, times(1)).send(anyString(), any(NotificationTrackerQueueDto.class));
-    }
-
     @Test
     void paperNtFromErrorKo() {
 
@@ -374,6 +339,26 @@ public class NotificationTrackerMessageReceiverTest {
         verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
         verify(putEvents, times(0)).putEventExternal(any(SingleStatusUpdate.class), eq(transactionProcessConfigurationProperties.paper()));
 
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 5})
+    void ntStatusValidationKo(Integer retry) {
+
+        //GIVEN
+        PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant());
+        NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), paperProgressStatusDto);
+        notificationTrackerQueueDto.setRetry(retry);
+
+        //WHEN
+        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.error(new InvalidNextStatusException("", "", "", "")));
+        mockStatusDecode();
+
+        //THEN
+        notificationTrackerMessageReceiver.receiveCartaceoObjectMessage(notificationTrackerQueueDto, acknowledgment);
+        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, transactionProcessConfigurationProperties.paper(), notificationTrackerSqsName.statoCartaceoName(), notificationTrackerSqsName.statoCartaceoErratoName(), acknowledgment);
+        verify(sqsService, times(1)).send(anyString(), any(NotificationTrackerQueueDto.class));
     }
 
     private NotificationTrackerQueueDto receiveDigitalObjectMessage(String requestId, String processId) {
