@@ -14,10 +14,12 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.annotation.DirtiesContext;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
@@ -40,8 +42,10 @@ import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
 @SpringBootTestWebEnv
+//@DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
 class PecRetryTest {
 
     @Autowired
@@ -61,12 +65,12 @@ class PecRetryTest {
     @SpyBean
     private GestoreRepositoryCall gestoreRepositoryCall;
 
-
     Message message = Message.builder().build();
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final String ATTACHMENT_PREFIX = "safestorage://";
     private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
+    private static OffsetDateTime NOW;
     public static DigitalNotificationRequest createDigitalNotificationRequest() {
 
         List<String> defaultListAttachmentUrls = new ArrayList<>();
@@ -74,7 +78,7 @@ class PecRetryTest {
 
         digitalNotificationRequest.setRequestId("requestIdx");
         digitalNotificationRequest.eventType("string");
-        digitalNotificationRequest.setClientRequestTimeStamp(OffsetDateTime.now());
+        digitalNotificationRequest.setClientRequestTimeStamp(NOW);
         digitalNotificationRequest.setQos(INTERACTIVE);
         digitalNotificationRequest.setReceiverDigitalAddress("pippo@pec.it");
         digitalNotificationRequest.setMessageText("string");
@@ -124,7 +128,7 @@ class PecRetryTest {
         List<BigDecimal> retries = new ArrayList<>();
         retries.add(0, BigDecimal.valueOf(5));
         retries.add(1, BigDecimal.valueOf(10));
-        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
+        retryDto.setLastRetryTimestamp(NOW.minusMinutes(7));
         retryDto.setRetryStep(BigDecimal.valueOf(0));
         retryDto.setRetryPolicy(retries);
 
@@ -140,6 +144,11 @@ class PecRetryTest {
         requestDto.setRequestMetadata(requestMetadata);
 
         return requestDto;
+    }
+
+    @BeforeAll
+    static void initialize() {
+        NOW = OffsetDateTime.now();
     }
 
     @Test
@@ -162,7 +171,6 @@ class PecRetryTest {
 
         String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
         String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
-        var requestDto=buildRequestDto();
 
         var sendMailResponse=new SendMailResponse();
         sendMailResponse.setErrstr("errorstr");
@@ -189,7 +197,7 @@ class PecRetryTest {
 
         String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
         String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
-        var requestDto=buildRequestDto();
+        var requestDto = buildRequestDto();
 
         PatchDto patchDto = new PatchDto();
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
@@ -207,15 +215,13 @@ class PecRetryTest {
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        doReturn(Mono.just(DeleteMessageResponse.builder().build())).when(sqsService).deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message);
-//        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-//        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-    }
+   }
 
     @Test
     void testGestioneRetryPecSchedulerBach_NoMessages() {

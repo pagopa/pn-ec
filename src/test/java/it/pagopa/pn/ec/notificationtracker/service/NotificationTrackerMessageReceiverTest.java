@@ -59,7 +59,6 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
 @SpringBootTestWebEnv
-@DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
 public class NotificationTrackerMessageReceiverTest {
     @Autowired
     private NotificationTrackerMessageReceiver notificationTrackerMessageReceiver;
@@ -106,6 +105,7 @@ public class NotificationTrackerMessageReceiverTest {
     //DYNAMO TABLES
     private static DynamoDbTable<RequestPersonal> requestPersonalDynamoDbTable;
     private static DynamoDbTable<RequestMetadata> requestMetadataDynamoDbTable;
+    private static OffsetDateTime NOW;
 
     @BeforeAll
     public static void initialize(@Autowired DynamoDbEnhancedClient dynamoDbTestEnhancedClient,
@@ -116,6 +116,8 @@ public class NotificationTrackerMessageReceiverTest {
                 TableSchema.fromBean(RequestPersonal.class));
         requestMetadataDynamoDbTable = dynamoDbTestEnhancedClient.table(gestoreRepositoryDynamoDbTableName.richiesteMetadataName(),
                 TableSchema.fromBean(RequestMetadata.class));
+
+        NOW = OffsetDateTime.now();
 
         insertSmsRequest();
         insertEmailRequest();
@@ -269,7 +271,7 @@ public class NotificationTrackerMessageReceiverTest {
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(requestId).xPagopaExtchCxId(CLIENT_ID).build();
         DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).generatedMessage(new GeneratedMessageDto().id("id").system("system").location("location"));
         NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), digitalProgressStatusDto);
-        notificationTrackerQueueDto.getDigitalProgressStatusDto().setEventTimestamp(OffsetDateTime.now().minusDays(1));
+        notificationTrackerQueueDto.getDigitalProgressStatusDto().setEventTimestamp(NOW.minusDays(1));
         receiveDigitalObjectFromErrorQueue(requestId, processId, notificationTrackerQueueDto);
 
         verify(notificationTrackerService, times(1)).handleMessageFromErrorQueue(notificationTrackerQueueDto, statoQueueName, acknowledgment);
@@ -341,7 +343,7 @@ public class NotificationTrackerMessageReceiverTest {
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
         PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant());
         NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), paperProgressStatusDto);
-        notificationTrackerQueueDto.getPaperProgressStatusDto().setStatusDateTime(OffsetDateTime.now().minusDays(1));
+        notificationTrackerQueueDto.getPaperProgressStatusDto().setStatusDateTime(NOW.minusDays(1));
 
         //WHEN
         when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
@@ -410,21 +412,21 @@ public class NotificationTrackerMessageReceiverTest {
     private static void insertSmsRequest() {
         var concatRequestId = CLIENT_ID + "~" + SMS_REQUEST_IDX;
         requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestPersonal(DigitalRequestPersonal.builder().build()).build()));
-        Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(OffsetDateTime.now()).build()).build();
+        Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(NOW).build()).build();
         requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("SMS").build()).build()));
     }
 
     private static void insertEmailRequest() {
         var concatRequestId = CLIENT_ID + "~" + EMAIL_REQUEST_IDX;
         requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestPersonal(DigitalRequestPersonal.builder().build()).build()));
-        Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(OffsetDateTime.now()).build()).build();
+        Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(NOW).build()).build();
         requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("EMAIL").build()).build()));
     }
 
     private static void insertPecRequest() {
         var concatRequestId = CLIENT_ID + "~" + PEC_REQUEST_IDX;
         requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestPersonal(DigitalRequestPersonal.builder().build()).build()));
-        Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(OffsetDateTime.now()).build()).build();
+        Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(NOW).build()).build();
         requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("PEC").build()).build()));
     }
 
@@ -433,7 +435,7 @@ public class NotificationTrackerMessageReceiverTest {
         requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).paperRequestPersonal(PaperRequestPersonal.builder().build()).build()));
         Events event = Events.builder().paperProgrStatus(PaperProgressStatus.builder()
                 .status(BOOKED.getStatusTransactionTableCompliant())
-                .statusDateTime(OffsetDateTime.now())
+                .statusDateTime(NOW)
                 // .attachments(List.of(new PaperProgressStatusEventAttachments()))
                 .discoveredAddress(new DiscoveredAddress())
                 .build()).build();
