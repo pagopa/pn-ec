@@ -73,6 +73,9 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private Mono<OperationResultCodeResponse> verificaErroriSemantici(ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent, String xPagopaExtchServiceId)
 			throws RicezioneEsitiCartaceoException
 	{
+		final String LOG_LABEL = "RicezioneEsitiCartaceoServiceImpl.verificaErroriSemantici() ";
+		final String ERROR_LABEL = "error = {}";
+
 		var requestId=progressStatusEvent.getRequestId();
 		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, VERIFICA_ERRORI_SEMANTICI, progressStatusEvent);
 
