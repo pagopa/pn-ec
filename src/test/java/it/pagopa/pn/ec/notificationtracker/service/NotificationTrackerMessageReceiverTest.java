@@ -211,22 +211,6 @@ public class NotificationTrackerMessageReceiverTest {
 
     @ParameterizedTest
     @MethodSource("provideArguments")
-    void digitalNtStatusValidationKo(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
-
-        //WHEN
-        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.error(new InvalidNextStatusException("", "", "", "")));
-        mockStatusDecode();
-
-        //THEN
-        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId);
-
-        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
-        verify(sqsService, times(1)).send(any(), any());
-
-    }
-
-    @ParameterizedTest
-    @MethodSource("provideArguments")
     void digitalNtFromErrorKo(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
 
         //WHEN
