@@ -174,7 +174,6 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                 errors)));
                             }
                         })
-                       // .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody"))))
                         .onErrorResume(WebExchangeBindException.class, throwable -> {
                             fieldValidationAuditLog(throwable.getFieldErrors(), exchange.getAttribute("requestBody"));
                             return Mono.just(ResponseEntity.badRequest()
