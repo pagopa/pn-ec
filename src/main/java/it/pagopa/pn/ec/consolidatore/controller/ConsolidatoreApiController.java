@@ -185,7 +185,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                     List.of(throwable.getMessage()))));
                          })
                         .onErrorResume(RuntimeException.class, throwable -> {
-                            log.error(LOG_LABEL + "* FATAL * errore generico = {}, {}", throwable, throwable.getMessage());
+                            log.error(LOG_LABEL + "errore generico = {}, {}", throwable, throwable.getMessage());
                             return Mono.just(ResponseEntity.internalServerError()
                                     .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
                                             errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
