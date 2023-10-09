@@ -2,10 +2,8 @@ package it.pagopa.pn.ec.consolidatore.controller;
 
 import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
 import static it.pagopa.pn.ec.consolidatore.utils.LogUtils.INVALID_API_KEY;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_MESSAGE;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_OK_CODE;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.INTERNAL_SERVER_ERROR_CODE;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.errorCodeDescriptionMap;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
@@ -176,7 +174,14 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                 errors)));
                             }
                         })
-                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody"))))
+                       // .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody"))))
+                        .onErrorResume(WebExchangeBindException.class, throwable -> {
+                            fieldValidationAuditLog(throwable.getFieldErrors(), exchange.getAttribute("requestBody"));
+                            return Mono.just(ResponseEntity.badRequest()
+                                    .body(getOperationResultCodeResponse(SYNTAX_ERROR,
+                                            errorCodeDescriptionMap().get(SYNTAX_ERROR_CODE),
+                                            List.of(throwable.getMessage()))));
+                        }))
                         .onErrorResume(RicezioneEsitiCartaceoException.class, throwable -> {
                             log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(throwable.getAuditLogErrorList()));
                             return Mono.just(ResponseEntity.internalServerError()
@@ -185,7 +190,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                     List.of(throwable.getMessage()))));
                          })
                         .onErrorResume(RuntimeException.class, throwable -> {
-                            log.error(LOG_LABEL + "errore generico = {}, {}", throwable, throwable.getMessage());
+                            log.error(LOG_LABEL + "* FATAL * errore generico = {}, {}", throwable, throwable.getMessage());
                             return Mono.just(ResponseEntity.internalServerError()
                                     .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
                                             errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
