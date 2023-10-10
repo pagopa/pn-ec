@@ -393,7 +393,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 
 	@Test
 	/** Test PN-8187 */
-	void ricezioneEsitiErroreValidazioneDiscoverAddress() {
+	void ricezioneEsitiErroreValidazioneSyntaxError() {
 		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneStatusCode() : START");
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
@@ -416,7 +416,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.expectStatus()
 				.isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
 				.expectBody(OperationResultCodeResponse.class)
-				.value(OperationResultCodeResponse::toString, Matchers.containsString("'discoveredAddress.address': rejected value [null]"));
+				.value(OperationResultCodeResponse::getErrorList, Matchers.hasItem(Matchers.containsString("'discoveredAddress.address': rejected value [null]")));
 
 	}
 
