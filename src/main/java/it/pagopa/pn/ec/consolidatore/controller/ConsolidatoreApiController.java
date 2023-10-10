@@ -174,13 +174,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                 errors)));
                             }
                         })
-                        .onErrorResume(WebExchangeBindException.class, throwable -> {
-                            fieldValidationAuditLog(throwable.getFieldErrors(), exchange.getAttribute("requestBody"));
-                            return Mono.just(ResponseEntity.badRequest()
-                                    .body(getOperationResultCodeResponse(SYNTAX_ERROR,
-                                            errorCodeDescriptionMap().get(SYNTAX_ERROR_CODE),
-                                            List.of(throwable.getMessage()))));
-                        }))
+                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody"))))
                         .onErrorResume(RicezioneEsitiCartaceoException.class, throwable -> {
                             log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(throwable.getAuditLogErrorList()));
                             return Mono.just(ResponseEntity.internalServerError()
@@ -189,7 +183,8 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                     List.of(throwable.getMessage()))));
                          })
                         .onErrorResume(RuntimeException.class, throwable -> {
-                            log.error(LOG_LABEL + "* FATAL * errore generico = {}, {}", throwable, throwable.getMessage());
+                            String fatalMessage = throwable.getClass() == WebExchangeBindException.class ? "" : "* FATAL * ";
+                            log.error(LOG_LABEL +  fatalMessage + "errore generico = {}, {}", throwable, throwable.getMessage());
                             return Mono.just(ResponseEntity.internalServerError()
                                     .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
                                             errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),

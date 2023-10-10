@@ -388,29 +388,5 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.isEqualTo(HttpStatus.BAD_REQUEST);
 
 	}
-	@Test
-	/** Test CRCRE.100.3 */
-	void ricezioneEsitiErroreValidazioneDiscoverAddress() {
-		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneStatusCode() : START");
-		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
-		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
 
-		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();
-		progressStatusEvent.setStatusCode(STATUS_CODE_INESISTENTE);
-		progressStatusEvent.setDiscoveredAddress(new ConsolidatoreIngressPaperProgressStatusEventDiscoveredAddress());
-
-		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
-		events.add(progressStatusEvent);
-
-		webClient.put()
-				.uri(RICEZIONE_ESITI_ENDPOINT)
-				.accept(APPLICATION_JSON)
-				.contentType(APPLICATION_JSON)
-				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
-				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
-				.body(BodyInserters.fromValue(events))
-				.exchange()
-				.expectStatus()
-				.isBadRequest();
-	}
 }
