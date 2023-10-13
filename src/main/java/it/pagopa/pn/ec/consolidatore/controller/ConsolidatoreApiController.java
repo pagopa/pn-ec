@@ -6,6 +6,7 @@ import static it.pagopa.pn.ec.consolidatore.service.impl.RicezioneEsitiCartaceoS
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_OK_CODE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.INTERNAL_SERVER_ERROR_CODE;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.errorCodeDescriptionMap;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.*;
 import java.util.ArrayList;
 import java.util.List;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
@@ -168,7 +169,8 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                         .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, SEND_PAPER_PROGRESS_STATUS_REQUEST, throwable, throwable.getMessage()))
                         .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody"))))
                         .onErrorResume(RuntimeException.class, throwable -> {
-                            log.error(FATAL_IN_PROCESS, SEND_PAPER_PROGRESS_STATUS_REQUEST, throwable, throwable.getMessage());
+                            String fatalMessage = throwable.getClass() == WebExchangeBindException.class ? "" : "* FATAL * ";
+                            log.error(SEND_PAPER_PROGRESS_STATUS_REQUEST +  fatalMessage + "errore generico = {}, {}", throwable, throwable.getMessage());
                             return Mono.just(ResponseEntity.internalServerError()
                                     .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
                                             errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),

@@ -12,6 +12,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
+import java.util.regex.Matcher;
 
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
@@ -45,6 +46,7 @@ import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
+import org.hamcrest.Matchers;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTestWebEnv
@@ -514,4 +516,35 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.isEqualTo(HttpStatus.BAD_REQUEST);
 
 	}
+
+
+	@Test
+	/** Test PN-8187 */
+	void ricezioneEsitiErroreValidazioneSyntaxError() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneStatusCode() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+
+		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();
+		progressStatusEvent.setStatusCode(STATUS_CODE_INESISTENTE);
+		progressStatusEvent.setDiscoveredAddress(new ConsolidatoreIngressPaperProgressStatusEventDiscoveredAddress());
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(progressStatusEvent);
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+				.expectBody(OperationResultCodeResponse.class)
+				.value(OperationResultCodeResponse::getErrorList, Matchers.hasItem(Matchers.containsString("'discoveredAddress.address': rejected value [null]")));
+
+	}
+
 }
