@@ -36,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.test.annotation.DirtiesContext;
 import org.testcontainers.shaded.org.bouncycastle.cert.ocsp.Req;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -57,6 +58,7 @@ import static org.mockito.Mockito.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTestWebEnv
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class NotificationTrackerMessageReceiverTest {
     @Autowired
     private NotificationTrackerMessageReceiver notificationTrackerMessageReceiver;
