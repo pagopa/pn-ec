@@ -53,7 +53,6 @@ import org.hamcrest.Matchers;
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
 @Slf4j
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 
 class RicezioneEsitiConsolidatoreControllerTest {
 	

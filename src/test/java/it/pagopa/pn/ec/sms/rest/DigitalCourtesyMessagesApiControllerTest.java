@@ -38,8 +38,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient(timeout = "50000")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-
 class DigitalCourtesyMessagesApiControllerTest {
 
     @Autowired
