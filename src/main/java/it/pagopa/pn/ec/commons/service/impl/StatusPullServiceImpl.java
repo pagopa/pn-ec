@@ -96,7 +96,7 @@ public class StatusPullServiceImpl implements StatusPullService {
             }
             return callMacchinaStati.statusDecode(xPagopaExtchCxId,
                                                   transactionProcessConfigurationProperties.pec(),
-                                                  digProgrStatus.getStatus().toLowerCase()).map(statiDecodeResponseDto -> {
+                                                  digProgrStatus.getStatus()).map(statiDecodeResponseDto -> {
                 if (statiDecodeResponseDto.getExternalStatus() != null) {
                     event.setStatus(ProgressEventCategory.valueOf(statiDecodeResponseDto.getExternalStatus()));
                     var logicStatus=statiDecodeResponseDto.getLogicStatus();
