@@ -5,6 +5,7 @@ import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
+import it.pagopa.pn.ec.commons.policy.Policy;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
@@ -13,6 +14,8 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.service.SmsService;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
@@ -20,6 +23,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.SqsResponse;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -37,6 +41,9 @@ import static org.mockito.Mockito.*;
 @SpringBootTestWebEnv
 class CartaceoRetryTest {
 
+    @SpyBean
+    SqsService sqsService;
+
     @Autowired
     private CartaceoSqsQueueName cartaceoSqsQueueName;
 
@@ -52,8 +59,6 @@ class CartaceoRetryTest {
     @MockBean
     PaperMessageCall paperMessageCall;
 
-    @SpyBean
-    SqsService sqsService;
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
 
@@ -99,14 +104,10 @@ class CartaceoRetryTest {
 
     private static RequestDto buildRequestDto()
     {
+        Policy retryPolicies = new Policy();
         //RetryDTO
         RetryDto retryDto=new RetryDto();
-        List<BigDecimal> retries = new ArrayList<>();
-        retries.add(0, BigDecimal.valueOf(5));
-        retries.add(1, BigDecimal.valueOf(10));
-        retryDto.setRetryPolicy(retries);
-        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
-        retryDto.setRetryStep(BigDecimal.valueOf(0));
+        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PAPER"));
 
         //RequestMetadataDTO
         RequestMetadataDto requestMetadata = new RequestMetadataDto();
@@ -122,10 +123,14 @@ class CartaceoRetryTest {
         return requestDto;
     }
 
-    @Test
-    void gestioneRetryCartaceo_RetryOk() {
+    @ParameterizedTest
+    @CsvSource({"0,15", "1,25", "2,45"})
+    void gestioneRetryCartaceo_RetryOk(BigDecimal retryStep, long timeElapsed) {
 
         RequestDto requestDto= buildRequestDto();
+
+        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(timeElapsed));
+        requestDto.getRequestMetadata().getRetry().setRetryStep(retryStep);
 
         String requestId=requestDto.getRequestIdx();
         String clientId = requestDto.getxPagopaExtchCxId();
@@ -142,12 +147,10 @@ class CartaceoRetryTest {
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
-        Mono<DeleteMessageResponse> response = cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO, message);
-//        Mono<DeleteMessageResponse> response = cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO_STEP_ERROR, message);
+        Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO),eq(SENT.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
-//        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_STEP_ERROR),eq(SENT.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
         verify(cartaceoService, times(1)).deleteMessageFromErrorQueue(any(Message.class));
 
     }

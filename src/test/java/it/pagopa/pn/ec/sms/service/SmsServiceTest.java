@@ -14,6 +14,7 @@ import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import reactor.core.publisher.Mono;
@@ -92,13 +93,13 @@ class SmsServiceTest {
     @Test
     void lavorazioneRichiestaNtKo() {
 
-        when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
-                new SqsClientException(notificationTrackerSqsName.statoSmsName())));
+        Mockito.doReturn(Mono.error(new SqsClientException(notificationTrackerSqsName.statoSmsName())))
+                .when(smsService).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
         Mono<SendMessageResponse> response = smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(RETRY.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
         verify(smsService, times(1)).sendNotificationOnErrorQueue(eq(SMS_PRESA_IN_CARICO_INFO));
     }
 

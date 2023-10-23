@@ -133,11 +133,14 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                             var lastEventUpdatedDigital = requestDto.getRequestMetadata().getEventsList().get(lastEventIndex).getDigProgrStatus();
 
-                                            var digitalMessageReference = new DigitalMessageReference();
+                                            DigitalMessageReference digitalMessageReference = null;
                                             var generatedMessage = lastEventUpdatedDigital.getGeneratedMessage();
-                                            digitalMessageReference.setId(generatedMessage.getId());
-                                            digitalMessageReference.setSystem(generatedMessage.getSystem());
-                                            digitalMessageReference.setLocation(generatedMessage.getLocation());
+                                            if (!Objects.isNull(generatedMessage)) {
+                                                digitalMessageReference = new DigitalMessageReference();
+                                                digitalMessageReference.setId(generatedMessage.getId());
+                                                digitalMessageReference.setSystem(generatedMessage.getSystem());
+                                                digitalMessageReference.setLocation(generatedMessage.getLocation());
+                                            }
 
                                             if (transactionProcessConfigurationProperties.pec().equals(processId)) {
 
@@ -148,7 +151,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                 legalMessageSentDetails.setEventCode(LegalMessageSentDetails.EventCodeEnum.fromValue(macchinaStatiDecodeResponseDto.getLogicStatus()));
                                                 legalMessageSentDetails.setEventDetails(lastEventUpdatedDigital.getEventDetails());
                                                 legalMessageSentDetails.setEventTimestamp(lastEventUpdatedDigital.getEventTimestamp());
-                                                legalMessageSentDetails.setGeneratedMessage(digitalMessageReference);
+                                                if (!Objects.isNull(digitalMessageReference))
+                                                    legalMessageSentDetails.setGeneratedMessage(digitalMessageReference);
 
                                                 singleStatusUpdate.setDigitalLegal(legalMessageSentDetails);
 
@@ -161,7 +165,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                 courtesyMessageProgressEvent.setEventCode(CourtesyMessageProgressEvent.EventCodeEnum.fromValue(macchinaStatiDecodeResponseDto.getLogicStatus()));
                                                 courtesyMessageProgressEvent.setEventDetails(lastEventUpdatedDigital.getEventDetails());
                                                 courtesyMessageProgressEvent.setEventTimestamp(lastEventUpdatedDigital.getEventTimestamp());
-                                                courtesyMessageProgressEvent.setGeneratedMessage(digitalMessageReference);
+                                                if (!Objects.isNull(digitalMessageReference))
+                                                    courtesyMessageProgressEvent.setGeneratedMessage(digitalMessageReference);
 
                                                 singleStatusUpdate.setDigitalCourtesy(courtesyMessageProgressEvent);
 

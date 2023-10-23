@@ -1,7 +1,10 @@
 package it.pagopa.pn.ec.sms.service;
 
+import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
+import it.pagopa.pn.ec.commons.policy.Policy;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SnsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
@@ -10,22 +13,27 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.SqsResponse;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.pagopa.pn.ec.commons.constant.Status.INTERNAL_ERROR;
-import static it.pagopa.pn.ec.commons.constant.Status.SENT;
+import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
+import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.SNS_SEND_STEP;
 import static it.pagopa.pn.ec.sms.testutils.DigitalCourtesySmsRequestFactory.createSmsRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static org.mockito.ArgumentMatchers.eq;
@@ -51,37 +59,51 @@ class SmsRetryTest {
 
     Message message = Message.builder().build();
 
-    private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO = SmsPresaInCaricoInfo.builder()
-            .requestIdx("idTest")
-            .xPagopaExtchCxId(
-                    DEFAULT_ID_CLIENT_HEADER_VALUE)
-            .digitalCourtesySmsRequest(createSmsRequest())
-            .build();
+    private static SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO = null;
 
-    private static final StepError STEP_ERROR = StepError.builder()
+    private static final StepError NT_STEP_ERROR = StepError.builder()
             .generatedMessageDto(new GeneratedMessageDto().id("1221313223"))
             .step(NOTIFICATION_TRACKER_STEP)
             .build();
-    private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO1 = SmsPresaInCaricoInfo.builder()
+
+    private static final StepError SNS_SEND_STEP_ERROR = StepError.builder()
+            .generatedMessageDto(new GeneratedMessageDto().id("1221313223"))
+            .step(SNS_SEND_STEP)
+            .build();
+    private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO_NT_STEP = SmsPresaInCaricoInfo.builder()
             .requestIdx("idTest")
             .xPagopaExtchCxId(
                     DEFAULT_ID_CLIENT_HEADER_VALUE)
-            .stepError(STEP_ERROR)
+            .stepError(NT_STEP_ERROR)
+            .digitalCourtesySmsRequest(createSmsRequest())
+            .build();
+
+    private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO_SNS_SEND_STEP = SmsPresaInCaricoInfo.builder()
+            .requestIdx("idTest")
+            .xPagopaExtchCxId(
+                    DEFAULT_ID_CLIENT_HEADER_VALUE)
+            .stepError(SNS_SEND_STEP_ERROR)
             .digitalCourtesySmsRequest(createSmsRequest())
             .build();
 
     private final SqsMessageWrapper<SmsPresaInCaricoInfo> sqsPresaInCaricoInfo = new SqsMessageWrapper<>(message, SMS_PRESA_IN_CARICO_INFO);
 
+    @BeforeEach
+    void initializeSmsPresaInCarico() {
+        SMS_PRESA_IN_CARICO_INFO = SmsPresaInCaricoInfo.builder()
+                .requestIdx("idTest")
+                .xPagopaExtchCxId(
+                        DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .digitalCourtesySmsRequest(createSmsRequest())
+                .build();
+    }
+
     private static RequestDto buildRequestDto()
     {
+        Policy retryPolicies = new Policy();
         //RetryDTO
         RetryDto retryDto=new RetryDto();
-        List<BigDecimal> retries = new ArrayList<>();
-        retries.add(0, BigDecimal.valueOf(5));
-        retries.add(1, BigDecimal.valueOf(10));
-        retryDto.setRetryPolicy(retries);
-        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
-        retryDto.setRetryStep(BigDecimal.valueOf(0));
+        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("SMS"));
 
         //RequestMetadataDTO
         RequestMetadataDto requestMetadata = new RequestMetadataDto();
@@ -110,8 +132,34 @@ class SmsRetryTest {
         verify(mockSqsService, never()).deleteMessageFromQueue(eq(message), anyString());
     }
 
+    @ParameterizedTest
+    @CsvSource({"0,15", "1,25", "2,45"})
+    void gestioneRetrySms_Retry_Ok(BigDecimal retryStep, long timeElapsed) {
+
+        var requestDto=buildRequestDto();
+
+        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(timeElapsed));
+        requestDto.getRequestMetadata().getRetry().setRetryStep(retryStep);
+
+        var clientId = requestDto.getxPagopaExtchCxId();
+        var requestId = requestDto.getRequestIdx();
+
+        PatchDto patchDto = new PatchDto();
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
+
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(smsSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mono<SqsResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+  }
     @Test
-    void gestioneRetrySms_Retry_Ok() {
+    void gestioneRetrySms_SnsSendKo() {
 
         var requestDto=buildRequestDto();
 
@@ -127,13 +175,33 @@ class SmsRetryTest {
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(smsSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
+        Mockito.doReturn(Mono.error(new SnsSendException.SnsMaxRetriesExceededException())).when(snsService).send(anyString(),anyString());
 
-        Mono<DeleteMessageResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
-//        Mono<DeleteMessageResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO1, message);
+        Mono<SqsResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
+    }
+    @Test
+    void gestioneRetrySms_SqsSendKo() {
 
-        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-//        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO1), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        var requestDto = buildRequestDto();
+
+        var clientId = requestDto.getxPagopaExtchCxId();
+        var requestId = requestDto.getRequestIdx();
+
+        PatchDto patchDto = new PatchDto();
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
+
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mockito.doReturn(Mono.error(new SqsClientException(""))).when(smsService).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+
+        Mono<SqsResponse> response = smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
     }
     @Test
     void gestioneRetrySms_GenericError() {
@@ -152,10 +220,22 @@ class SmsRetryTest {
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(smsSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
-        Mono<DeleteMessageResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
+        Mono<SqsResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        verify(smsService, times(1)).sendNotificationOnDlqErrorQueue(eq(SMS_PRESA_IN_CARICO_INFO)); }
+
+    @Test
+    void gestioneRetrySchedulerOk()
+    {
+        SmsPresaInCaricoInfo smsPresaInCaricoInfo=new SmsPresaInCaricoInfo();
+        smsPresaInCaricoInfo.setRequestIdx("REQUEST_IDX");
+        smsPresaInCaricoInfo.setDigitalCourtesySmsRequest(new DigitalCourtesySmsRequest());
+        smsPresaInCaricoInfo.setXPagopaExtchCxId("CLIENT_ID");
+
+        smsService.sendNotificationOnErrorQueue(smsPresaInCaricoInfo);
+
+        smsService.gestioneRetrySmsScheduler();
     }
 
 }
