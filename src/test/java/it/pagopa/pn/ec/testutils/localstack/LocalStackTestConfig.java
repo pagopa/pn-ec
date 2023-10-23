@@ -139,7 +139,7 @@ public class LocalStackTestConfig {
                 List.of(emailSqsQueueName.interactiveName(), emailSqsQueueName.batchName(), emailSqsQueueName.errorName(), emailSqsQueueName.dlqErrorName());
         List<String> cartceoQueueNames = List.of(cartaceoSqsQueueName.batchName(), cartaceoSqsQueueName.errorName(), cartaceoSqsQueueName.dlqErrorName());
 //        cartaceoSqsQueueName.interactiveName(),
-        List<String> pecQueueNames = List.of(pecSqsQueueName.interactiveName(), pecSqsQueueName.batchName(), pecSqsQueueName.errorName(), scaricamentoEsitiPecProperties.sqsQueueName());
+        List<String> pecQueueNames = List.of(pecSqsQueueName.interactiveName(), pecSqsQueueName.batchName(), pecSqsQueueName.errorName(), pecSqsQueueName.dlqErrorName(), scaricamentoEsitiPecProperties.sqsQueueName());
 
 
         List<String> allQueueName = new ArrayList<>();
