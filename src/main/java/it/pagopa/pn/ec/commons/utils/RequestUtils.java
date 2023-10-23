@@ -1,7 +1,5 @@
 package it.pagopa.pn.ec.commons.utils;
 
-import it.pagopa.pn.ec.repositorymanager.utils.RequestMapper;
-
 public class RequestUtils {
     private static final String SEPARATORE = "~";
 

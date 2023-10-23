@@ -16,6 +16,7 @@ import javax.mail.util.ByteArrayDataSource;
 import java.io.*;
 import java.util.*;
 
+import static org.apache.commons.codec.CharEncoding.UTF_8;
 import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE;
 
 @Slf4j
@@ -72,9 +73,9 @@ public class EmailUtils {
                 mimeMessage = new PagopaMimeMessage(session, emailField.getMsgId());
             }
 
-            mimeMessage.setFrom(new InternetAddress(emailField.getFrom(), "", "UTF-8"));
-            mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(emailField.getTo(), "", "UTF-8"));
-            mimeMessage.setSubject(emailField.getSubject(), "UTF-8");
+            mimeMessage.setFrom(new InternetAddress(emailField.getFrom(), "", UTF_8));
+            mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(emailField.getTo(), "", UTF_8));
+            mimeMessage.setSubject(emailField.getSubject(), UTF_8);
 
             var htmlOrPlainTextPart = new MimeBodyPart();
             htmlOrPlainTextPart.setContent(emailField.getText(), emailField.getContentType());
@@ -103,10 +104,8 @@ public class EmailUtils {
             mimeMessage.setContent(mimeMultipart);
 
             return mimeMessage;
-        } catch (MessagingException exception) {
+        } catch (MessagingException | UnsupportedEncodingException exception) {
             throw new ComposeMimeMessageException();
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -128,7 +127,7 @@ public class EmailUtils {
             log.debug("Start retrieving attachment with name '{}'", attachmentName);
             Object content = mimeMessage.getContent();
             if (content instanceof String) {
-                return null;
+                return new byte[0];
             }
 
             if (content instanceof Multipart multipart) {

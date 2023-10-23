@@ -9,6 +9,7 @@ import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManag
 import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
+import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.testutils.configuration.DynamoTestConfiguration;
 import it.pagopa.pn.ec.testutils.configuration.SqsTestConfiguration;
@@ -117,6 +118,9 @@ public class LocalStackTestConfig {
     @Autowired
     private CartaceoSqsQueueName cartaceoSqsQueueName;
 
+    @Autowired
+    private ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
+
     private void initSqs() {
         log.info("<-- START initLocalStack.initSqs -->");
 
@@ -135,7 +139,7 @@ public class LocalStackTestConfig {
                 List.of(emailSqsQueueName.interactiveName(), emailSqsQueueName.batchName(), emailSqsQueueName.errorName(), emailSqsQueueName.dlqErrorName());
         List<String> cartceoQueueNames = List.of(cartaceoSqsQueueName.batchName(), cartaceoSqsQueueName.errorName(), cartaceoSqsQueueName.dlqErrorName());
 //        cartaceoSqsQueueName.interactiveName(),
-        List<String> pecQueueNames = List.of(pecSqsQueueName.interactiveName(), pecSqsQueueName.batchName(), pecSqsQueueName.errorName(), pecSqsQueueName.dlqErrorName());
+        List<String> pecQueueNames = List.of(pecSqsQueueName.interactiveName(), pecSqsQueueName.batchName(), pecSqsQueueName.errorName(), scaricamentoEsitiPecProperties.sqsQueueName());
 
 
         List<String> allQueueName = new ArrayList<>();

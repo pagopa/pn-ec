@@ -1,6 +1,11 @@
 package it.pagopa.pn.ec.commons.utils;
 
 public class LogUtils {
+
+    private LogUtils() {
+        throw new IllegalStateException("LogUtils is a utility class");
+    }
+
     public static final String INVALID_API_KEY = "Invalid API key";
     public static final String STARTING_PROCESS_LABEL = "Starting '{}' Process.";
     public static final String STARTING_PROCESS_ON_LABEL = "Starting '{}' Process on '{}'.";

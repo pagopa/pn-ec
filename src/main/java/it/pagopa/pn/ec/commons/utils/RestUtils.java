@@ -35,7 +35,8 @@ public class RestUtils {
         return ResponseEntity.ok(objectMapper.convertValue(entity, dto));
     }
 
-    public <E, D> D dtoToEntity(E entity, Class<D> dto) {
+    public <E, D> D entityToDto(E entity, Class<D> dto) {
         return objectMapper.convertValue(entity, dto);
     }
+
 }

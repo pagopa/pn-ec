@@ -63,7 +63,8 @@ public class StatusPullServiceImpl implements StatusPullService {
             return callMacchinaStati.statusDecode(xPagopaExtchCxId, processId, digProgrStatus.getStatus().toLowerCase())
                                     .map(macchinaStatiDecodeResponseDto -> {
                                         event.setStatus(ProgressEventCategory.valueOf(macchinaStatiDecodeResponseDto.getExternalStatus()));
-                                        event.setEventCode(CourtesyMessageProgressEvent.EventCodeEnum.fromValue(macchinaStatiDecodeResponseDto.getLogicStatus()));
+                                        var logicStatus=macchinaStatiDecodeResponseDto.getLogicStatus();
+                                        event.setEventCode(logicStatus != null ? CourtesyMessageProgressEvent.EventCodeEnum.fromValue(logicStatus) : null);
                                         return event;
                                     });
                 }).switchIfEmpty(Mono.just(new CourtesyMessageProgressEvent().eventDetails("").requestId("")))
@@ -95,7 +96,7 @@ public class StatusPullServiceImpl implements StatusPullService {
             }
             return callMacchinaStati.statusDecode(xPagopaExtchCxId,
                                                   transactionProcessConfigurationProperties.pec(),
-                                                  digProgrStatus.getStatus().toLowerCase()).map(statiDecodeResponseDto -> {
+                                                  digProgrStatus.getStatus()).map(statiDecodeResponseDto -> {
                 if (statiDecodeResponseDto.getExternalStatus() != null) {
                     event.setStatus(ProgressEventCategory.valueOf(statiDecodeResponseDto.getExternalStatus()));
                     var logicStatus=statiDecodeResponseDto.getLogicStatus();

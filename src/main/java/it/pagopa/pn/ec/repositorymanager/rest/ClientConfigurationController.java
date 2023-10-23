@@ -34,7 +34,7 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
     public Mono<ResponseEntity<Flux<ClientConfigurationDto>>> getConfigurations(ServerWebExchange exchange) {
         log.info(STARTING_PROCESS_LABEL, GET_CONFIGURATIONS);
         return clientConfigurationService.getAllClient()
-                .map(retrievedClient -> restUtils.dtoToEntity(retrievedClient, ClientConfigurationDto.class))
+                .map(retrievedClient -> restUtils.entityToDto(retrievedClient, ClientConfigurationDto.class))
                 .collectList()
                 .doOnSuccess(configurationDtoList -> log.debug("Retrieved all clients ↓\n{}", configurationDtoList))
                 .map(configurationDtoList -> ResponseEntity.ok().body(Flux.fromIterable(configurationDtoList)))

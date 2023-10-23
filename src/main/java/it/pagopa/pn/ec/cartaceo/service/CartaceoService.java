@@ -104,7 +104,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .flatMap(requestDto -> sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo,
                         BOOKED.getStatusTransactionTableCompliant(),
                         new PaperProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY))
-//              Publish to CARTACEO BATCH
+//                              Publish to CARTACEO BATCH
                 .flatMap(sendMessageResponse -> sendNotificationOnBatchQueue(cartaceoPresaInCaricoInfo).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY))
                 .onErrorResume(SqsClientException.class,
                         sqsClientException -> sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo,

@@ -105,8 +105,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
         var xPagopaExtchCxId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-        var senderAddress= digitalNotificationRequest.getSenderDigitalAddress();
-        if(Objects.isNull(senderAddress) || senderAddress.isEmpty()) {
+        var senderAddress = digitalNotificationRequest.getSenderDigitalAddress();
+        if (Objects.isNull(senderAddress) || senderAddress.isEmpty()) {
             digitalNotificationRequest.setSenderDigitalAddress(emailDefault.defaultSenderAddress());
         }
 
@@ -283,11 +283,11 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
         return gestoreRepositoryCall.getRichiesta(clientId, requestId)
 //              check status toDelete
-                                    .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
+                .filter(requestDto -> !Objects.equals(requestDto.getStatusRequest(), toDelete))
 //              se status toDelete throw Error
-                                    .switchIfEmpty(Mono.error(new StatusToDeleteException(requestId)))
+                .switchIfEmpty(Mono.error(new StatusToDeleteException(requestId)))
 //              check Id per evitare loop
-                                    .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
+                .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
 //              se il primo step, inizializza l'attributo retry
                 .map(requestDto -> {
                     if (requestDto.getRequestMetadata().getRetry() == null) {
@@ -447,7 +447,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    DigitalProgressStatusDto digitalProgressStatusDto) {
         return sqsService.send(notificationTrackerSqsName.statoEmailName(),
-                               createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
+                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
     }
 
     @Override

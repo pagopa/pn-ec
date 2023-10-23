@@ -19,9 +19,7 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
-
 import org.springframework.stereotype.Service;
-
 import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
@@ -32,6 +30,8 @@ import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.ses.SesAsyncClient;
 import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
 import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
+
+import static org.apache.commons.codec.CharEncoding.UTF_8;
 
 @Service
 @Slf4j
@@ -60,9 +60,9 @@ public class SesServiceImpl implements SesService {
         Session session = Session.getInstance(new Properties(System.getProperties()));
         MimeMessage mimeMessage = new MimeMessage(session);
 
-        mimeMessage.setFrom(new InternetAddress(field.getFrom(), "", "UTF-8"));
-        mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(field.getTo(), "", "UTF-8"));
-        mimeMessage.setSubject(field.getSubject(), "UTF-8");
+        mimeMessage.setFrom(new InternetAddress(field.getFrom(), "", UTF_8));
+        mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(field.getTo(), "", UTF_8));
+        mimeMessage.setSubject(field.getSubject(), UTF_8);
 
         MimeBodyPart htmlPart = new MimeBodyPart();
         htmlPart.setContent(field.getText(), field.getContentType());
