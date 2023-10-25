@@ -54,7 +54,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
         var nextStatus = notificationTrackerQueueDto.getNextStatus();
         var xPagopaExtchCxId = notificationTrackerQueueDto.getXPagopaExtchCxId();
         String sRequestId = notificationTrackerQueueDto.getRequestIdx();
-        var concatRequestId=concatRequestId(xPagopaExtchCxId, nextStatus);
+        var concatRequestId=concatRequestId(xPagopaExtchCxId, sRequestId);
 
         log.info(INVOKING_OPERATION_LABEL_WITH_ARGS,NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId);
 
