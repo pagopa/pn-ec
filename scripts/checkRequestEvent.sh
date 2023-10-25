@@ -64,11 +64,11 @@ jq -r '.xpagopaExtchCxId + "~" + .requestIdx + " " + .nextStatus + " " + .digita
     query=".Item.eventsList.L[].M.digProgrStatus.M | .status.S == \"${nextStatus}\" and .eventTimestamp.S == \"${timestamp}\" and .generatedMessage.M.system.S == \"${system}\" and .generatedMessage.M.id.S == \"${id}\" and .generatedMessage.M.location.S == \"${location}\""
     found=$(echo ${response} | jq "${query}" | grep true)
     if [ "x${found}" == "xtrue" ] ; then
-      echo "[INFO ] ${requestKey} - event \"${nextStatus}\" duplicated"
+      echo "[INFO ] ${requestKey} - event \"${nextStatus}\" duplicated - Ok"
     else
-      echo "[ERROR] ${requestKey} - event \"${nextStatus}\" duplicated but attributes mismatch"
+      echo "[ERROR] ${requestKey} - event \"${nextStatus}\" duplicated but attributes mismatch - Warning"
     fi
   else
-    echo "[ERROR] ${requestKey} - event \"${nextStatus}\" MISSING"
+    echo "[ERROR] ${requestKey} - event \"${nextStatus}\" MISSING - KO"
   fi
 done
