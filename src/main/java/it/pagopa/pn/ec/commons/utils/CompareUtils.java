@@ -17,7 +17,8 @@ public class CompareUtils {
     public static boolean isSameEvent(List<EventsDto> lastEvents, DigitalProgressStatusDto newEvent, String nextStatus) {
         return lastEvents.stream().map(EventsDto::getDigProgrStatus).anyMatch(lastEvent -> lastEvent.getEventTimestamp().equals(newEvent.getEventTimestamp().truncatedTo(SECONDS))
                 && lastEvent.getStatus().equals(nextStatus) && lastEvent.getGeneratedMessage() != null
-                && lastEvent.getGeneratedMessage().equals(newEvent.getGeneratedMessage()));
+                && lastEvent.getGeneratedMessage().getId().equals(newEvent.getGeneratedMessage().getId())
+                && lastEvent.getGeneratedMessage().getSystem().equals(newEvent.getGeneratedMessage().getSystem()));
     }
 
     public static boolean isSameEvent(PaperProgressStatusDto lastEvent, PaperProgressStatusDto newEvent, String nextStatus) {
