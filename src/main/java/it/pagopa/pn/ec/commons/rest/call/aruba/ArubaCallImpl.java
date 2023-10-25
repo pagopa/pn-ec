@@ -72,7 +72,7 @@ public class ArubaCallImpl implements ArubaCall {
                 endSoapRequest(sink, throwable);
             }
         })).cast(GetMessageIDResponse.class).retryWhen(getArubaCallRetryStrategy().onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
-              throw new GetMessageIdException();
+              throw new GetMessageIdException(getMessageID.getMailid());
         }))
            .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_ID, result));
     }
