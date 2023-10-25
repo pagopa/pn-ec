@@ -4,6 +4,8 @@ import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigu
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
+import it.pagopa.pn.ec.commons.exception.aruba.GetMessageIdException;
+import it.pagopa.pn.ec.commons.exception.aruba.GetMessagesException;
 import it.pagopa.pn.ec.commons.model.pojo.pec.PnPostacert;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -80,9 +82,6 @@ public class ScaricamentoEsitiPecScheduler {
 
 
         arubaCall.getMessages(getMessages)
-                /* TO-DO: DA CHIARIRE
-                .doOnError(ArubaCallMaxRetriesExceededException.class, e -> log.debug("Aruba non risponde. Circuit breaker"))
-                .onErrorComplete(ArubaCallMaxRetriesExceededException.class)*/
                 .flatMap(getMessagesResponse -> {
                     var arrayOfMessages = getMessagesResponse.getArrayOfMessages();
                     if (Objects.isNull(arrayOfMessages))
