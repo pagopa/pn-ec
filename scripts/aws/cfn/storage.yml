@@ -663,7 +663,7 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         VisibilityTimeout: 600
 
-  ###### CHANNEL : EMAIL #######
+  ####### CHANNEL : EMAIL #######
 
   PnEcQueueBatchEMAILStack:
     Type: AWS::CloudFormation::Stack
@@ -770,7 +770,7 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         VisibilityTimeout: 600
 
-  ####### ECS LOG GROUO ######
+  ####### ECS LOG GROUP ######
   EcsLogGroup:
     Type: AWS::CloudFormation::Stack
     UpdateReplacePolicy: Retain
@@ -781,6 +781,77 @@ Resources:
         LogGroupName: !Sub '${ProjectName}-external-channel'
         LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
         LogGroupRetention: !Ref LogRetention
+
+  ###### PEC - Cancellazione ricevute ######
+  PnEcQueueCancellazioneRicevutePECStack:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-pec-cancellazione-ricevute-queue'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 300
+
+  PnEcEventRuleCancellazioneRicevutePEC:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: 'This Event rule is used to match events related to PEC receipt deletion'
+      EventBusName: !Ref PnEcEventBusTrackerExternalNotification
+      EventPattern:
+        source:
+          - 'NOTIFICATION TRACKER'
+        account:
+          - !Ref AWS::AccountId
+        region:
+          - !Ref AWS::Region
+        detail:
+          - digitalLegal:
+            - eventCode:
+              - 'C001'
+              - 'C002'
+              - 'C003'
+              - 'C004'
+              - 'C006'
+              - 'C007'
+              - 'C009'
+      State: 'ENABLED'
+      Targets:
+        - Arn: !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueARN
+          Id: 'PnEcCancellazioneRicevutePecTarget'
+
+  PnEcQueuePolicyCancellazioneRicevutePEC:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueURL
+      PolicyDocument:
+        Statement:
+          - Sid: 'AllowAccessSameAccount'
+            Action:
+              - 'sqs:*'
+            Effect: 'Allow'
+            Resource: !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueARN
+            Principal:
+              AWS: !Ref AWS::AccountId
+          - Sid: 'AllowPutEventsFromEventRule'
+            Action:
+              - 'sqs:SendMessage'
+            Effect: 'Allow'
+            Resource: !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueARN
+            Principal:
+              Service:
+              - 'events.amazonaws.com'
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt PnEcEventRuleNotificheDebugDev.Arn
 
 
 ##############   CHANNEL SMS STRESS TEST    ###################
@@ -1293,15 +1364,15 @@ Outputs:
 ###### SCARICAMENTO ESITI : PEC #######
 
   PnEcQueueNameScaricamentoEsitiPEC:
-    Description: '[Canale SMS] Nome della Coda per lo scaricamento esiti PEC'
+    Description: '[PEC- Scaricamento Esiti] Nome della Coda per lo scaricamento esiti PEC'
     Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueName
 
   PnEcQueueArnScaricamentoEsitiPEC:
-    Description: '[Canale SMS] ARN della Coda per lo scaricamento esiti PEC'
+    Description: '[PEC- Scaricamento Esiti] ARN della Coda per lo scaricamento esiti PEC'
     Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueARN
 
   PnEcQueueUrlScaricamentoEsitiPEC:
-    Description: '[Canale SMS] URL della Coda per lo scaricamento esiti PEC'
+    Description: '[PEC- Scaricamento Esiti] URL della Coda per lo scaricamento esiti PEC'
     Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueScaricamentoEsitiPEC:
@@ -1311,6 +1382,28 @@ Outputs:
   PnEcAlarmArnDLQueueScaricamentoEsitiPEC:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueScaricamentoEsitiPEC"
     Value: !GetAtt PnEcQueueScaricamentoEsitiPECStack.Outputs.SqsDLQAlarmArn
+
+###### CANCELLAZIONE RICEVUTE : PEC #######
+
+  PnEcQueueNameCancellazioneRicevutePEC:
+    Description: '[PEC- Cancellazione Ricevute] Nome della Coda per la cancellazione ricevute PEC'
+    Value: !GetAtt  PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueName
+
+  PnEcQueueArnCancellazioneRicevutePEC:
+    Description: '[PEC- Cancellazione Ricevute] ARN della Coda per la cancellazione ricevute PEC'
+    Value: !GetAtt  PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueARN
+
+  PnEcQueueUrlCancellazioneRicevutePEC:
+    Description: '[PEC- Cancellazione Ricevute] URL della Coda per la cancellazione ricevute PEC'
+    Value: !GetAtt  PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueURL
+
+  PnEcAlarmArnQueueCancellazioneRicevutePEC:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueCancellazioneRicevutePEC"
+    Value: !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueCancellazioneRicevutePEC:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueCancellazioneRicevutePEC"
+    Value: !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.SqsDLQAlarmArn
 
   EcsLogGroup:
     Value: !GetAtt EcsLogGroup.Outputs.LogGroupName
