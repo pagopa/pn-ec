@@ -3,10 +3,12 @@ package it.pagopa.pn.ec;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.PropertySource;
 
-@SpringBootApplication
-@ConfigurationPropertiesScan
+@SpringBootApplication(scanBasePackages = {"it.pagopa.pn.ec", "it.pagopa.pn.library.pec"})
+@ConfigurationPropertiesScan(basePackages = {"it.pagopa.pn.ec", "it.pagopa.pn.library.pec"})
 
 // <-- COMMONS -->
 // AWS CONFIGURATION
@@ -56,7 +58,6 @@ import org.springframework.context.annotation.PropertySource;
 //  <-- NOTIFICATION TRACKER -->
 // EVENTBRIDGE EVENT
 @PropertySource("classpath:notificationtracker/notificationtracker-eventbridge-eventbus.properties")
-
 public class EcApplication {
 
     public static void main(String[] args) {
