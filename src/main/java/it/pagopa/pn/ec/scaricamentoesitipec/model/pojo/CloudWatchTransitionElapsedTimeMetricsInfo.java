@@ -10,7 +10,7 @@ import java.time.OffsetDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Data
 @Builder
-public class CloudWatchPecMetricsInfo {
+public class CloudWatchTransitionElapsedTimeMetricsInfo {
 
     String previousStatus;
     OffsetDateTime previousEventTimestamp;

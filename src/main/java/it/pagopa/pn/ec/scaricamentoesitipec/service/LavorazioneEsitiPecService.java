@@ -22,7 +22,7 @@ import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.LegalMessageSentDetails;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
-import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
+import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchTransitionElapsedTimeMetricsInfo;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.daticert.Destinatari;
@@ -162,7 +162,7 @@ public class LavorazioneEsitiPecService {
                                 }
 
                                 var nextEventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
-                                var cloudWatchPecMetricsInfo = CloudWatchPecMetricsInfo.builder()
+                                var cloudWatchPecMetricsInfo = CloudWatchTransitionElapsedTimeMetricsInfo.builder()
                                         .previousStatus(requestDto.getStatusRequest())
                                         .previousEventTimestamp(
                                                 legalMessageSentDetails.getEventTimestamp())
@@ -171,7 +171,7 @@ public class LavorazioneEsitiPecService {
                                         .build();
 
                                 log.debug("Starting {} for PEC '{}'", PUBLISH_CUSTOM_PEC_METRICS, messageID);
-                                return cloudWatchPecMetrics.publishCustomPecMetrics(cloudWatchPecMetricsInfo)
+                                return cloudWatchPecMetrics.publishTransitionElapsedTimeMetrics(cloudWatchPecMetricsInfo)
                                         .thenReturn(Tuples.of(postacert,
                                                 requestDto,
                                                 cloudWatchPecMetricsInfo,
@@ -182,7 +182,7 @@ public class LavorazioneEsitiPecService {
                             .flatMap(objects -> {
                                 PnPostacert postacert = objects.getT1();
                                 RequestDto requestDto = objects.getT2();
-                                CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT3();
+                                CloudWatchTransitionElapsedTimeMetricsInfo cloudWatchTransitionElapsedTimeMetricsInfo = objects.getT3();
                                 String nextStatus = objects.getT4();
 
                                 log.debug(BUILDING_PEC_QUEUE_PAYLOAD, messageID, LAVORAZIONE_ESITI_PEC);
@@ -204,7 +204,7 @@ public class LavorazioneEsitiPecService {
                                                     location);
 
                                             var digitalProgressStatusDto =
-                                                    new DigitalProgressStatusDto().eventTimestamp(cloudWatchPecMetricsInfo.getNextEventTimestamp())
+                                                    new DigitalProgressStatusDto().eventTimestamp(cloudWatchTransitionElapsedTimeMetricsInfo.getNextEventTimestamp())
                                                             .eventDetails(eventDetails)
                                                             .generatedMessage(generatedMessageDto);
 

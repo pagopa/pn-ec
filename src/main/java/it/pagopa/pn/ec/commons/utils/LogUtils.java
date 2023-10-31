@@ -202,6 +202,7 @@ public class LogUtils {
 
     //CLOUD WATCH
     public static final String PUBLISH_CUSTOM_PEC_METRICS = "CloudWatchPecMetrics.publishCustomPecMetrics()";
+    public static final String PUBLISH_PEC_MESSAGE_COUNT=  "CloudWatchPecMetrics.publishMessageCount()";
 
     //EVENT BRIDGE
     public static final String EVENT_BRIDGE_PUT_EVENT_EXTERNAL = "EventBridge - PutEvents.putEventExternal()";
