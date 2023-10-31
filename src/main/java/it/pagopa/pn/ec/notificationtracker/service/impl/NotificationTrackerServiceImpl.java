@@ -54,7 +54,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
         var nextStatus = notificationTrackerQueueDto.getNextStatus();
         var xPagopaExtchCxId = notificationTrackerQueueDto.getXPagopaExtchCxId();
         String sRequestId = notificationTrackerQueueDto.getRequestIdx();
-        var concatRequestId=concatRequestId(xPagopaExtchCxId, nextStatus);
+        var concatRequestId=concatRequestId(xPagopaExtchCxId, sRequestId);
 
         log.info(INVOKING_OPERATION_LABEL_WITH_ARGS,NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId);
 
@@ -68,12 +68,11 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                         if (!Objects.isNull(eventsList) && !eventsList.isEmpty()) {
 
-                                            EventsDto lastEvent = eventsList.get(eventsList.size() - 1);
                                             //PaperProgressStatusDto paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
                                             DigitalProgressStatusDto digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
 
-                                            if (lastEvent.getDigProgrStatus() != null) {
-                                                isSameEvent = isSameEvent(lastEvent.getDigProgrStatus(), digitalProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
+                                            if (digitalProgressStatusDto != null) {
+                                                isSameEvent = isSameEvent(eventsList, digitalProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
                                             }
 //                                            else {
 //                                                log.debug("handleRequestStatusChange - LastEvent paperProgressStatus : {}", lastEvent.getPaperProgrStatus());
