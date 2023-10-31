@@ -12,6 +12,7 @@ import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
+import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,8 @@ public class ScaricamentoEsitiPecServiceTest {
     private AuthService authService;
     @SpyBean
     private SqsService sqsService;
+    @Autowired
+    private CloudWatchPecMetrics cloudWatchPecMetrics;
 
     private static final String CLIENT_ID = "CLIENT_ID";
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
@@ -74,6 +77,12 @@ public class ScaricamentoEsitiPecServiceTest {
 
         StepVerifier.create(testMono).expectComplete().verify();
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class));
+    }
+
+    @Test
+    void publishAndGetPecMessageCount(){
+        StepVerifier.create(cloudWatchPecMetrics.publishMessageCount(Long.valueOf(2))).expectComplete().verify();
+
     }
 
     @Test

@@ -51,7 +51,7 @@ public class LocalStackTestConfig {
 
     static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4");
     static LocalStackContainer localStackContainer =
-            new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS, SES, SECRETSMANAGER)
+            new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS, SES, SECRETSMANAGER,CLOUDWATCH)
                     .withStartupTimeout(Duration.ofMinutes(2)).withEnv("AWS_DEFAULT_REGION", "eu-central-1");
 
     static {
@@ -70,6 +70,8 @@ public class LocalStackTestConfig {
         System.setProperty("test.aws.ses.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SES)));
 
         System.setProperty("test.aws.secretsmanager.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SECRETSMANAGER)));
+
+        System.setProperty("test.aws.cloudwatch.endpoint", String.valueOf(localStackContainer.getEndpointOverride(CLOUDWATCH)));
 
         try {
             localStackContainer.execInContainer("awslocal",
