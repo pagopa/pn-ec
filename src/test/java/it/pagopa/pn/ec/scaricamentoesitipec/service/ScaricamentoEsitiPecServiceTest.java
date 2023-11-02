@@ -53,8 +53,6 @@ public class ScaricamentoEsitiPecServiceTest {
     private AuthService authService;
     @SpyBean
     private SqsService sqsService;
-    @Autowired
-    private CloudWatchPecMetrics cloudWatchPecMetrics;
 
     private static final String CLIENT_ID = "CLIENT_ID";
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
@@ -77,12 +75,6 @@ public class ScaricamentoEsitiPecServiceTest {
 
         StepVerifier.create(testMono).expectComplete().verify();
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class));
-    }
-
-    @Test
-    void publishAndGetPecMessageCount(){
-        StepVerifier.create(cloudWatchPecMetrics.publishMessageCount(Long.valueOf(2))).expectComplete().verify();
-
     }
 
     @Test

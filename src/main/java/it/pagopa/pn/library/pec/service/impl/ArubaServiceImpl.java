@@ -1,8 +1,8 @@
 package it.pagopa.pn.library.pec.service.impl;
 
 import it.pagopa.pn.library.pec.configurationproperties.ArubaServiceProperties;
-import it.pagopa.pn.library.pec.exception.ArubaCallException;
-import it.pagopa.pn.library.pec.exception.ArubaCallMaxRetriesExceededException;
+import it.pagopa.pn.library.pec.exception.aruba.ArubaCallException;
+import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pec.bridgews.*;
@@ -14,6 +14,8 @@ import reactor.core.publisher.MonoSink;
 import reactor.util.retry.Retry;
 
 import java.time.Duration;
+
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 
 @Component
@@ -42,33 +44,37 @@ public class ArubaServiceImpl implements ArubaService {
     }
 
     @Override
-    public Mono<GetMessageCountResponse> getMessagesCount(GetMessageCount getMessageCount) {
+    public Mono<GetMessageCountResponse> getMessageCount(GetMessageCount getMessageCount) {
         getMessageCount.setUser(arubaSecretValue.getPecUsername());
         getMessageCount.setPass(arubaSecretValue.getPecPassword());
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGE_COUNT, getMessageCount);
         return Mono.create(sink -> pecImapBridgeClient.getMessageCountAsync(getMessageCount, res -> {
-            try {
-                var result = res.get();
-                checkErrors(result.getErrcode(), result.getErrstr());
-                sink.success(result);
-            } catch (Exception e) {
-                endSoapRequest(sink, e);
-            }
-        })).cast(GetMessageCountResponse.class).retryWhen(getArubaCallRetryStrategy());
+                    try {
+                        var result = res.get();
+                        checkErrors(result.getErrcode(), result.getErrstr());
+                        sink.success(result);
+                    } catch (Exception e) {
+                        endSoapRequest(sink, e);
+                    }
+                })).cast(GetMessageCountResponse.class).retryWhen(getArubaCallRetryStrategy())
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_COUNT, result));
     }
 
     @Override
     public Mono<DeleteMailResponse> deleteMail(DeleteMail deleteMail) {
         deleteMail.setUser(arubaSecretValue.getPecUsername());
         deleteMail.setPass(arubaSecretValue.getPecPassword());
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_DELETE_MAIL, deleteMail);
         return Mono.create(sink -> pecImapBridgeClient.deleteMailAsync(deleteMail, res -> {
-            try {
-                var result = res.get();
-                checkErrors(result.getErrcode(), result.getErrstr());
-                sink.success(result);
-            } catch (Exception e) {
-                endSoapRequest(sink, e);
-            }
-        })).cast(DeleteMailResponse.class).retryWhen(getArubaCallRetryStrategy());
+                    try {
+                        var result = res.get();
+                        checkErrors(result.getErrcode(), result.getErrstr());
+                        sink.success(result);
+                    } catch (Exception e) {
+                        endSoapRequest(sink, e);
+                    }
+                })).cast(DeleteMailResponse.class).retryWhen(getArubaCallRetryStrategy())
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_DELETE_MAIL, result));
     }
 
     private void checkErrors(Integer errorCode, String errorStr) {

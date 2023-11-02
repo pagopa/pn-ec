@@ -5,7 +5,6 @@ import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
-import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils;
@@ -74,8 +73,9 @@ public class ScaricamentoEsitiPecScheduler {
         AtomicBoolean hasMessages = new AtomicBoolean();
         hasMessages.set(true);
 
-
-        arubaCall.getMessages(getMessages)
+        pnPecService.getMessageCount()
+                .flatMap(messageCount -> cloudWatchPecMetrics.publishMessageCount((long) messageCount))
+                .then(arubaCall.getMessages(getMessages))
                 .flatMap(getMessagesResponse -> {
                     var arrayOfMessages = getMessagesResponse.getArrayOfMessages();
                     if (Objects.isNull(arrayOfMessages))

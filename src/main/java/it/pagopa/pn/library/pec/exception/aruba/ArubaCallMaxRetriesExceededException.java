@@ -1,4 +1,4 @@
-package it.pagopa.pn.library.pec.exception;
+package it.pagopa.pn.library.pec.exception.aruba;
 
 public class ArubaCallMaxRetriesExceededException extends RuntimeException {
 

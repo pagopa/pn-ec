@@ -17,6 +17,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 
 @Service
@@ -30,7 +31,11 @@ public class CancellazioneRicevutePecService {
     @Autowired
     private ArubaSecretValue arubaSecretValue;
 
-    public Mono<Void> cancellazioneRicevute(final CancellazioneRicevutePecDto cancellazioneRicevutePecDto, Acknowledgment acknowledgment) {
+
+
+    public Mono<Void> cancellazioneRicevutePec(final CancellazioneRicevutePecDto cancellazioneRicevutePecDto, Acknowledgment acknowledgment) {
+        log.info(STARTING_SCHEDULED, CANCELLAZIONE_RICEVUTE_PEC);
+
         var requestId = cancellazioneRicevutePecDto.getSingleStatusUpdate().getDigitalLegal().getRequestId();
         return Mono.just(cancellazioneRicevutePecDto.getSingleStatusUpdate())
                 .zipWhen(singleStatusUpdate -> gestoreRepositoryCall.getRichiesta(singleStatusUpdate.getClientId(), singleStatusUpdate.getDigitalLegal().getRequestId()))
@@ -41,12 +46,17 @@ public class CancellazioneRicevutePecService {
                             .flatMapMany(requestMetadataDto -> Flux.fromIterable(requestMetadataDto.getEventsList()))
                             .map(EventsDto::getDigProgrStatus)
                             .filter(digitalProgressStatusDto -> digitalLegal.getEventCode().getValue().equals(digitalProgressStatusDto.getStatusCode()))
-                            .next();
+                            .doOnDiscard(DigitalProgressStatusDto.class, digitalProgressStatusDto -> log.info("Discarded status : {}", digitalProgressStatusDto))
+                            .next()
+                            .doOnSuccess(digitalProgressStatusDto -> {
+                                if (digitalProgressStatusDto == null)
+                                    log.warn(NOT_VALID_FOR_DELETE, requestId);
+                            });
                 })
                 .map(digitalProgressStatusDto -> digitalProgressStatusDto.getGeneratedMessage().getId())
                 .flatMap(messageID -> pnPecService.deleteMessage(messageID))
-                .switchIfEmpty(Mono.fromRunnable(() -> log.warn("Event with requestID {} is not valid for delete.", requestId)))
-                .then();
+                .doOnError(throwable -> log.error(FATAL_IN_PROCESS, CANCELLAZIONE_RICEVUTE_PEC, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> acknowledgment.acknowledge());
     }
 
 }

@@ -1,5 +1,6 @@
 package it.pagopa.pn.library.pec.service.impl;
 
+import it.pagopa.pn.ec.commons.utils.LogUtils;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnPecService;
@@ -10,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Slf4j
 @Service
@@ -34,16 +37,23 @@ public class PnPecServiceImpl implements PnPecService {
     }
 
     @Override
-    public Mono<Integer> getMessagesCount() {
-        return arubaService.getMessagesCount(new GetMessageCount())
-                .map(GetMessageCountResponse::getCount);
+    public Mono<Integer> getMessageCount() {
+        log.debug(INVOKING_OPERATION_LABEL, PEC_GET_MESSAGE_COUNT);
+        return arubaService.getMessageCount(new GetMessageCount())
+                .map(GetMessageCountResponse::getCount)
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_GET_MESSAGE_COUNT, result))
+                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PEC_DELETE_MESSAGE, throwable, throwable.getMessage()));
     }
 
     @Override
     public Mono<Void> deleteMessage(String messageID) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PEC_DELETE_MESSAGE, messageID);
         DeleteMail deleteMail = new DeleteMail();
         deleteMail.setIsuid(2);
         deleteMail.setMailid(messageID);
-        return arubaService.deleteMail(deleteMail).then();
+        return arubaService.deleteMail(deleteMail)
+                .then()
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_NO_RESULT_LABEL, PEC_DELETE_MESSAGE, messageID))
+                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS_FOR, PEC_DELETE_MESSAGE, messageID, throwable, throwable.getMessage()));
     }
 }

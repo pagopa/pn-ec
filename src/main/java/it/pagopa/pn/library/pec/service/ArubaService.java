@@ -8,7 +8,7 @@ import reactor.core.publisher.Mono;
 
 public interface ArubaService {
 
-    Mono<GetMessageCountResponse> getMessagesCount(GetMessageCount getMessageCount);
+    Mono<GetMessageCountResponse> getMessageCount(GetMessageCount getMessageCount);
 
     Mono<DeleteMailResponse> deleteMail(DeleteMail deleteMail);
 

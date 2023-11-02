@@ -10,7 +10,7 @@ public interface PnPecService {
 
     Mono<Void> markMessageAsRead(String messageID);
 
-    Mono<Integer> getMessagesCount();
+    Mono<Integer> getMessageCount();
 
     Mono<Void> deleteMessage(String messageID);
 

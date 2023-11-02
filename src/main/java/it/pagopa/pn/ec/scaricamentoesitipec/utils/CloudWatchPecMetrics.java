@@ -77,11 +77,14 @@ public class CloudWatchPecMetrics {
         }).then();
     }
 
-    public Mono<Void> publishMessageCount(Long count){
+    public Mono<Void> publishMessageCount(Long count) {
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_PEC_MESSAGE_COUNT, count);
-        return Mono.fromCompletionStage(cloudWatchAsyncClient.putMetricData(NAMESPACE.metricData(DATUM.metricName(MESSAGE_COUNT_NAMESPACE)
-                                                                                                      .value(Double.valueOf(count))
-                                                                                                      .build()).build()))
+        return Mono.fromCompletionStage(cloudWatchAsyncClient.putMetricData(NAMESPACE.metricData(MetricDatum.builder()
+                        .unit(StandardUnit.COUNT)
+                        .metricName(MESSAGE_COUNT_NAMESPACE)
+                        .value(Double.valueOf(count))
+                        .timestamp(Instant.now())
+                        .build()).build()))
                 .onErrorResume(throwable -> {
                     log.error(EXCEPTION_IN_PROCESS, PUBLISH_PEC_MESSAGE_COUNT, throwable, throwable.getMessage());
                     return Mono.empty();

@@ -169,6 +169,9 @@ public class LogUtils {
     public static final String ARUBA_GET_MESSAGE_ID = "ArubaCall.getMessageId()";
     public static final String ARUBA_SEND_MAIL = "ArubaCall.sendMail()";
     public static final String ARUBA_GET_ATTACH = "ArubaCall.getAttach()";
+    public static final String ARUBA_GET_MESSAGE_COUNT = "ArubaService.getMessageCount()";
+    public static final String ARUBA_DELETE_MAIL = "ArubaService.deleteMail()";
+
 
     //SES
     public static final String SES_SEND_MAIL = "SesService.sendMail()";
@@ -191,6 +194,7 @@ public class LogUtils {
     //SCARICAMENTO/LAVORAZIONE ESITI PEC
     public static final String STARTING_SCHEDULED = "Starting scheduled process '{}'";
     public static final String SCARICAMENTO_ESITI_PEC = "scaricamentoEsitiPecScheduler()";
+    public static final String CANCELLAZIONE_RICEVUTE_PEC = "cancellazioneRicevutePec()";
     public static final String PROCESSING_PEC = "Processing PEC '{}' in '{}' for request '{}' ";
     public static final String BUILDING_PEC_QUEUE_PAYLOAD = "Building queue payload for PEC '{}' in '{}'";
     public static final String PEC_DISCARDED = "PEC '{}' discarded in '{}' - reason : {}";
@@ -206,5 +210,11 @@ public class LogUtils {
 
     //EVENT BRIDGE
     public static final String EVENT_BRIDGE_PUT_EVENT_EXTERNAL = "EventBridge - PutEvents.putEventExternal()";
+
+    //PN-PEC
+    public static final String PN_PEC = "pn-pec";
+    public static final String PEC_GET_MESSAGE_COUNT = "PnPecService.getMessagesCount()";
+    public static final String PEC_DELETE_MESSAGE = "PnPecService.deleteMessage()";
+    public static final String NOT_VALID_FOR_DELETE = "Event with requestId '{}' is not valid for delete.";
 
 }
