@@ -3,8 +3,6 @@ package it.pagopa.pn.ec;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.PropertySource;
 
 @SpringBootApplication(scanBasePackages = {"it.pagopa.pn.ec", "it.pagopa.pn.library.pec"})
@@ -48,7 +46,7 @@ import org.springframework.context.annotation.PropertySource;
 //  <-- SCARICAMENTO ESITI PEC -->
 @PropertySource("classpath:scaricamentoesitipec/scaricamento-esiti-pec.properties")
 @PropertySource("classpath:scaricamentoesitipec/aruba-call-retry-strategy.properties")
-@PropertySource("classpath:notificationtracker/cancellazione-ricevute-pec.properties")
+@PropertySource("classpath:scaricamentoesitipec/cancellazione-ricevute-pec.properties")
 
 //  <-- CARTACEO -->
 // SQS QUEUE
