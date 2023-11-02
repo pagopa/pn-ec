@@ -34,22 +34,18 @@ public class CloudWatchPecMetricsTest {
         var testMono = cloudWatchPecMetrics.publishMessageCount(MESSAGE_COUNT);
         StepVerifier.create(testMono).verifyComplete();
 
-//        var listMetrics = cloudWatchAsyncClient.listMetrics().get();
-//        Metric messageCount = listMetrics.metrics().stream().filter(metric -> metric.metricName().equals("PECInboxMessageCount")).findFirst().get();
-//
-//        log.info("Metrics : {}", listMetrics);
-//
-//        var messageCountMetric = cloudWatchAsyncClient.getMetricData(builder -> builder
-//                        .startTime(Instant.now().minus(Duration.ofMinutes(1)))
-//                        .endTime(Instant.now())
-//                        .metricDataQueries(MetricDataQuery.builder()
-//                                .id("count")
-//                                .metricStat(MetricStat.builder()
-//                                        .metric(messageCount)
-//                                        .stat("")
-//                                        .period(60).build()).build())).get();
-//
-//        log.info("Message count metric : {}", messageCountMetric);
+        var listMetrics = cloudWatchAsyncClient.listMetrics().get();
+        Metric messageCount = listMetrics.metrics().stream().filter(metric -> metric.metricName().equals("PECInboxMessageCount")).findFirst().get();
+
+        var messageCountMetric = cloudWatchAsyncClient.getMetricData(builder -> builder         .startTime(Instant.now().minus(Duration.ofMinutes(1)))
+                       .endTime(Instant.now())
+                       .metricDataQueries(MetricDataQuery.builder()
+                               .id("count")
+                               .metricStat(MetricStat.builder()         .metric(messageCount)
+                                       .stat("Maximum")
+                                       .period(60).build()).build())).get();
+
+        Assertions.assertEquals(messageCountMetric.metricDataResults().get(0).values().get(0), MESSAGE_COUNT.doubleValue());
 
     }
 
