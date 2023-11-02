@@ -6,6 +6,10 @@ public class LogUtils {
         throw new IllegalStateException("LogUtils is a utility class");
     }
 
+    //KEYS
+    public static final String MDC_CORR_ID_KEY = "correlation_id";
+
+    //LOG LABELS
     public static final String INVALID_API_KEY = "Invalid API key";
     public static final String STARTING_PROCESS_LABEL = "Starting '{}' Process.";
     public static final String STARTING_PROCESS_ON_LABEL = "Starting '{}' Process on '{}'.";
@@ -194,7 +198,8 @@ public class LogUtils {
     //SCARICAMENTO/LAVORAZIONE ESITI PEC
     public static final String STARTING_SCHEDULED = "Starting scheduled process '{}'";
     public static final String SCARICAMENTO_ESITI_PEC = "scaricamentoEsitiPecScheduler()";
-    public static final String CANCELLAZIONE_RICEVUTE_PEC = "cancellazioneRicevutePec()";
+    public static final String CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE = "cancellazioneRicevutePecInteractive()";
+    public static final String CANCELLAZIONE_RICEVUTE_PEC = "CancellazioneRicevutePecService.cancellazioneRicevutePec()";
     public static final String PROCESSING_PEC = "Processing PEC '{}' in '{}' for request '{}' ";
     public static final String BUILDING_PEC_QUEUE_PAYLOAD = "Building queue payload for PEC '{}' in '{}'";
     public static final String PEC_DISCARDED = "PEC '{}' discarded in '{}' - reason : {}";

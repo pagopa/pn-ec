@@ -6,6 +6,7 @@ import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededExcep
 import it.pagopa.pn.library.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pec.bridgews.*;
+import lombok.CustomLog;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -19,7 +20,7 @@ import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 
 @Component
-@Slf4j
+@CustomLog
 public class ArubaServiceImpl implements ArubaService {
 
 

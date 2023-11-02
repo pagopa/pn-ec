@@ -1,20 +1,19 @@
 package it.pagopa.pn.library.pec.service.impl;
 
-import it.pagopa.pn.ec.commons.utils.LogUtils;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnPecService;
 import it.pec.bridgews.DeleteMail;
 import it.pec.bridgews.GetMessageCount;
 import it.pec.bridgews.GetMessageCountResponse;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
-@Slf4j
+@CustomLog
 @Service
 public class PnPecServiceImpl implements PnPecService {
 

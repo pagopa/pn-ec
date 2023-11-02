@@ -58,7 +58,7 @@ public class CancellazioneRicevutePecServiceTest {
         when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, REQUEST_ID)).thenReturn(Mono.just(requestDto));
         when(pnPecService.deleteMessage(MESSAGE_ID)).thenReturn(Mono.just("").then());
 
-        var testMono = cancellazioneRicevutePecService.cancellazioneRicevutePec(cancellazioneRicevutePecDto, acknowledgment);
+        var testMono = cancellazioneRicevutePecService.cancellazioneRicevutePec(cancellazioneRicevutePecDto, REQUEST_ID, acknowledgment);
         StepVerifier.create(testMono).verifyComplete();
     }
 
@@ -68,7 +68,7 @@ public class CancellazioneRicevutePecServiceTest {
 
         when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, REQUEST_ID)).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
-        var testMono = cancellazioneRicevutePecService.cancellazioneRicevutePec(cancellazioneRicevutePecDto, acknowledgment);
+        var testMono = cancellazioneRicevutePecService.cancellazioneRicevutePec(cancellazioneRicevutePecDto, REQUEST_ID, acknowledgment);
         StepVerifier.create(testMono).expectError(RestCallException.ResourceNotFoundException.class).verify();
     }
 
@@ -87,7 +87,7 @@ public class CancellazioneRicevutePecServiceTest {
         when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, REQUEST_ID)).thenReturn(Mono.just(requestDto));
         when(pnPecService.deleteMessage(MESSAGE_ID)).thenReturn(Mono.error(new DeleteMessageException(MESSAGE_ID)));
 
-        var testMono = cancellazioneRicevutePecService.cancellazioneRicevutePec(cancellazioneRicevutePecDto, acknowledgment);
+        var testMono = cancellazioneRicevutePecService.cancellazioneRicevutePec(cancellazioneRicevutePecDto, REQUEST_ID, acknowledgment);
         StepVerifier.create(testMono).expectError(DeleteMessageException.class).verify();
     }
 
@@ -106,7 +106,7 @@ public class CancellazioneRicevutePecServiceTest {
         when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, REQUEST_ID)).thenReturn(Mono.just(requestDto));
         when(pnPecService.deleteMessage(MESSAGE_ID)).thenReturn(Mono.just("").then());
 
-        var testMono = cancellazioneRicevutePecService.cancellazioneRicevutePec(cancellazioneRicevutePecDto, acknowledgment);
+        var testMono = cancellazioneRicevutePecService.cancellazioneRicevutePec(cancellazioneRicevutePecDto, REQUEST_ID, acknowledgment);
         StepVerifier.create(testMono).verifyComplete();
     }
 
