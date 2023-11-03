@@ -625,25 +625,25 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueScaricamentoEsitiPEC"
 
-#  PnEcQueueNameCancellazioneRicevutePEC:
-#    Type: String
-#    Description: '[PEC- Cancellazione Ricevute] Nome della Coda per la cancellazione ricevute PEC'
+  PnEcQueueNameCancellazioneRicevutePEC:
+    Type: String
+    Description: '[PEC- Cancellazione Ricevute] Nome della Coda per la cancellazione ricevute PEC'
 
-#  PnEcQueueArnCancellazioneRicevutePEC:
-#    Type: String
-#    Description: '[PEC- Cancellazione Ricevute] ARN della Coda per la cancellazione ricevute PEC'
+  PnEcQueueArnCancellazioneRicevutePEC:
+    Type: String
+    Description: '[PEC- Cancellazione Ricevute] ARN della Coda per la cancellazione ricevute PEC'
 
-#  PnEcQueueUrlCancellazioneRicevutePEC:
-#    Type: String
-#    Description: '[PEC- Cancellazione Ricevute] URL della Coda per la cancellazione ricevute PEC'
+  PnEcQueueUrlCancellazioneRicevutePEC:
+    Type: String
+    Description: '[PEC- Cancellazione Ricevute] URL della Coda per la cancellazione ricevute PEC'
 
-#  PnEcAlarmArnQueueCancellazioneRicevutePEC:
-#    Type: String
-#    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueCancellazioneRicevutePEC"
+  PnEcAlarmArnQueueCancellazioneRicevutePEC:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueCancellazioneRicevutePEC"
 
-#  PnEcAlarmArnDLQueueCancellazioneRicevutePEC:
-#    Type: String
-#    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueCancellazioneRicevutePEC"
+  PnEcAlarmArnDLQueueCancellazioneRicevutePEC:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueCancellazioneRicevutePEC"
 
   #### CRON Rules ####
   PnEcCronScaricamentoEsitiPec:
@@ -826,7 +826,7 @@ Resources:
         ContainerEnvEntry52: !Sub 'LavorazioneSMSMaxThreadPoolSize=${LavorazioneSMSMaxThreadPoolSize}'
         ContainerEnvEntry53: !Sub 'LavorazioneEmailMaxThreadPoolSize=${LavorazioneEmailMaxThreadPoolSize}'
         ContainerEnvEntry54: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
- #       ContainerEnvEntry55: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueNameCancellazioneRicevutePEC}'
+        ContainerEnvEntry55: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueNameCancellazioneRicevutePEC}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -905,7 +905,7 @@ Resources:
               - !Ref PnEcQueueArnBatchCARTACEO
               - !Ref PnEcQueueArnErroriCARTACEO
               - !Ref PnEcQueueArnScaricamentoEsitiPEC
-  #            - !Ref PnEcQueueArnCancellazioneRicevutePEC
+              - !Ref PnEcQueueArnCancellazioneRicevutePEC
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
@@ -1169,8 +1169,8 @@ Resources:
             - !Ref PnEcAlarmArnDLQueueErroriPEC
             - !Ref PnEcAlarmArnQueueScaricamentoEsitiPEC
             - !Ref PnEcAlarmArnDLQueueScaricamentoEsitiPEC
-   #         - !Ref PnEcAlarmArnQueueCancellazioneRicevutePEC
-   #         - !Ref PnEcAlarmArnDLQueueCancellazioneRicevutePEC
+            - !Ref PnEcAlarmArnQueueCancellazioneRicevutePEC
+            - !Ref PnEcAlarmArnDLQueueCancellazioneRicevutePEC
             - !Ref PnEcAlarmArnQueueBatchEMAIL
             - !Ref PnEcAlarmArnDLQueueBatchEMAIL
             - !Ref PnEcAlarmArnQueueInteractiveEMAIL
@@ -1198,7 +1198,7 @@ Resources:
             - !Ref PnEcQueueArnInteractivePEC
             - !Ref PnEcQueueArnErroriPEC
             - !Ref PnEcQueueArnScaricamentoEsitiPEC
-#            - !Ref PnEcQueueArnCancellazioneRicevutePEC
+            - !Ref PnEcQueueArnCancellazioneRicevutePEC
             - !Ref PnEcQueueArnBatchEMAIL
             - !Ref PnEcQueueArnInteractiveEMAIL
             - !Ref PnEcQueueArnErroriEMAIL
