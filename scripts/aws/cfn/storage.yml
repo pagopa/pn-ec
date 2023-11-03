@@ -810,7 +810,7 @@ Resources:
               - 'events.amazonaws.com'
             Condition:
               ArnEquals:
-                aws:SourceArn: !GetAtt PnEcEventRuleNotificheDebugDev.Arn
+                aws:SourceArn: !GetAtt PnEcEventRuleCancellazioneRicevutePEC.Arn
 
 
 #########  OUTPUTS  ##########
