@@ -20,7 +20,7 @@ import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 
 @Component
-@CustomLog
+@Slf4j
 public class ArubaServiceImpl implements ArubaService {
 
 

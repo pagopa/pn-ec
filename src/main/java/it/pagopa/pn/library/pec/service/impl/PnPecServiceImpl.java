@@ -6,14 +6,14 @@ import it.pagopa.pn.library.pec.service.PnPecService;
 import it.pec.bridgews.DeleteMail;
 import it.pec.bridgews.GetMessageCount;
 import it.pec.bridgews.GetMessageCountResponse;
-import lombok.CustomLog;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
-@CustomLog
+@Slf4j
 @Service
 public class PnPecServiceImpl implements PnPecService {
 
@@ -41,7 +41,7 @@ public class PnPecServiceImpl implements PnPecService {
         return arubaService.getMessageCount(new GetMessageCount())
                 .map(GetMessageCountResponse::getCount)
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_GET_MESSAGE_COUNT, result))
-                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PEC_DELETE_MESSAGE, throwable, throwable.getMessage()));
+                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PEC_GET_MESSAGE_COUNT, throwable, throwable.getMessage()));
     }
 
     @Override

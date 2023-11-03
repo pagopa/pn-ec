@@ -11,7 +11,7 @@ import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.Cancellazion
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CancellazioneRicevutePecDto;
 import it.pagopa.pn.library.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.library.pec.service.PnPecService;
-import lombok.CustomLog;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,7 +21,7 @@ import reactor.core.publisher.Mono;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Service
-@CustomLog
+@Slf4j
 public class CancellazioneRicevutePecService {
 
     @Autowired
@@ -38,16 +38,16 @@ public class CancellazioneRicevutePecService {
         var requestId = cancellazioneRicevutePecDto.getSingleStatusUpdate().getDigitalLegal().getRequestId();
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, requestId);
-        log.logStartingProcess(CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE);
+        log.info(STARTING_PROCESS_ON_LABEL, CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE, requestId);
         cancellazioneRicevutePec(cancellazioneRicevutePecDto, requestId, acknowledgment)
-                .doOnSuccess(result -> log.logEndingProcess(CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE))
-                .doOnError(throwable -> log.logEndingProcess(CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE, false, throwable.getMessage()))
+                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE, requestId))
+                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE, requestId, throwable, throwable.getMessage()))
                 .subscribe();
     }
 
     public Mono<Void> cancellazioneRicevutePec(final CancellazioneRicevutePecDto cancellazioneRicevutePecDto, String requestId, Acknowledgment acknowledgment) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CANCELLAZIONE_RICEVUTE_PEC, cancellazioneRicevutePecDto);
-        return MDCUtils.addMDCToContextAndExecute(Mono.just(cancellazioneRicevutePecDto.getSingleStatusUpdate())
+        return Mono.just(cancellazioneRicevutePecDto.getSingleStatusUpdate())
                 .zipWhen(singleStatusUpdate -> gestoreRepositoryCall.getRichiesta(singleStatusUpdate.getClientId(), singleStatusUpdate.getDigitalLegal().getRequestId()))
                 .flatMap(tuple -> {
                     var digitalLegal = tuple.getT1().getDigitalLegal();
@@ -65,8 +65,8 @@ public class CancellazioneRicevutePecService {
                 })
                 .map(digitalProgressStatusDto -> digitalProgressStatusDto.getGeneratedMessage().getId())
                 .flatMap(messageID -> pnPecService.deleteMessage(messageID))
-                .doOnError(throwable -> log.fatal(CANCELLAZIONE_RICEVUTE_PEC + " - " + throwable.getMessage()))
-                .doOnSuccess(result -> acknowledgment.acknowledge()));
+                .doOnError(throwable -> log.error(FATAL_IN_PROCESS_FOR, CANCELLAZIONE_RICEVUTE_PEC, requestId, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> acknowledgment.acknowledge());
     }
 
 }
