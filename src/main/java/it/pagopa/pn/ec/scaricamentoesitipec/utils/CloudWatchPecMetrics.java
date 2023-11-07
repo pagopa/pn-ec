@@ -30,9 +30,10 @@ public class CloudWatchPecMetrics {
     }
 
     private static final PutMetricDataRequest.Builder NAMESPACE = PutMetricDataRequest.builder().namespace("PEC");
+    private static final PutMetricDataRequest.Builder MESSAGE_COUNT_NAMESPACE = PutMetricDataRequest.builder().namespace("PEC/Aruba");
     private static final Dimension DIMENSION = Dimension.builder().name("Event").value("StatusChange").build();
     private static final MetricDatum.Builder DATUM = MetricDatum.builder().unit(StandardUnit.SECONDS).dimensions(DIMENSION);
-    private static final String MESSAGE_COUNT_NAMESPACE = "PECInboxMessageCount";
+    private static final String MESSAGE_COUNT_METRIC_NAME = "InboxMessageCount";
     private static final String TRANSACTION_SENT_AND_ACCEPTED = "TimeElapsedBetweenSentAndAccepted";
     private static final String TRANSACTION_ACCEPTED_AND_DELIVERED = "TimeElapsedBetweenAcceptedAndDelivered";
     private static final String TRANSACTION_ACCEPTED_AND_NOT_DELIVERED = "TimeElapsedBetweenAcceptedAndNotDelivered";
@@ -79,9 +80,9 @@ public class CloudWatchPecMetrics {
 
     public Mono<Void> publishMessageCount(Long count) {
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_PEC_MESSAGE_COUNT, count);
-        return Mono.fromCompletionStage(cloudWatchAsyncClient.putMetricData(NAMESPACE.metricData(MetricDatum.builder()
+        return Mono.fromCompletionStage(cloudWatchAsyncClient.putMetricData(MESSAGE_COUNT_NAMESPACE.metricData(MetricDatum.builder()
                         .unit(StandardUnit.COUNT)
-                        .metricName(MESSAGE_COUNT_NAMESPACE)
+                        .metricName(MESSAGE_COUNT_METRIC_NAME)
                         .value(Double.valueOf(count))
                         .timestamp(Instant.now())
                         .build()).build()))

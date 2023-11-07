@@ -35,7 +35,7 @@ public class CloudWatchPecMetricsTest {
         StepVerifier.create(testMono).verifyComplete();
 
         var listMetrics = cloudWatchAsyncClient.listMetrics().get();
-        Metric messageCount = listMetrics.metrics().stream().filter(metric -> metric.metricName().equals("PECInboxMessageCount")).findFirst().get();
+        Metric messageCount = listMetrics.metrics().stream().filter(metric -> metric.metricName().equals("InboxMessageCount")).findFirst().get();
 
         var messageCountMetric = cloudWatchAsyncClient.getMetricData(builder -> builder         .startTime(Instant.now().minus(Duration.ofMinutes(1)))
                        .endTime(Instant.now())
