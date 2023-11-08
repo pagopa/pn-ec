@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
+import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
@@ -11,7 +12,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
@@ -23,20 +23,20 @@ import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 @Slf4j
 public class ClientConfigurationServiceImpl implements ClientConfigurationService {
 
-    private final DynamoDbAsyncTable<ClientConfigurationInternal> clientConfigurationDynamoDbTableInternal;
-    private final DynamoDbAsyncTable<ClientConfiguration> clientConfigurationDynamoDbTable;
+    private final DynamoDbAsyncTableDecorator<ClientConfigurationInternal> clientConfigurationDynamoDbTableInternal;
+    private final DynamoDbAsyncTableDecorator<ClientConfiguration> clientConfigurationDynamoDbTable;
 
     public ClientConfigurationServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
                                           RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
-        this.clientConfigurationDynamoDbTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.anagraficaClientName(),
-                TableSchema.fromBean(ClientConfiguration.class));
-        this.clientConfigurationDynamoDbTableInternal = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.anagraficaClientName(),
-                TableSchema.fromBean(ClientConfigurationInternal.class));
+        this.clientConfigurationDynamoDbTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.anagraficaClientName(),
+                TableSchema.fromBean(ClientConfiguration.class)));
+        this.clientConfigurationDynamoDbTableInternal = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.anagraficaClientName(),
+                TableSchema.fromBean(ClientConfigurationInternal.class)));
     }
 
     @Bean
     @Qualifier("clientConfigurationDynamoDbTable")
-    public DynamoDbAsyncTable<ClientConfiguration> getClientConfigurationDynamoDbTable() {
+    public DynamoDbAsyncTableDecorator<ClientConfiguration> getClientConfigurationDynamoDbTable() {
         return this.clientConfigurationDynamoDbTable;
     }
 

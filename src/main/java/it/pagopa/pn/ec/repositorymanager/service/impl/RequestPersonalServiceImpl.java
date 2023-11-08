@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
+import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
@@ -7,7 +8,6 @@ import it.pagopa.pn.ec.repositorymanager.service.RequestPersonalService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
@@ -20,12 +20,12 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 @Slf4j
 public class RequestPersonalServiceImpl implements RequestPersonalService {
 
-    private final DynamoDbAsyncTable<RequestPersonal> requestPersonalDynamoDbTable;
+    private final DynamoDbAsyncTableDecorator<RequestPersonal> requestPersonalDynamoDbTable;
 
     public RequestPersonalServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
                                       RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
-        this.requestPersonalDynamoDbTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiestePersonalName(),
-                                                                         TableSchema.fromBean(RequestPersonal.class));
+        this.requestPersonalDynamoDbTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiestePersonalName(),
+                                                                         TableSchema.fromBean(RequestPersonal.class)));
     }
 
     @Override

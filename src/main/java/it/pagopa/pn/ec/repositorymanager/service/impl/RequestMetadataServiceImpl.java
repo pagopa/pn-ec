@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
+import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.*;
@@ -8,7 +9,6 @@ import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbAsyncTable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -29,12 +29,12 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 @Slf4j
 public class RequestMetadataServiceImpl implements RequestMetadataService {
 
-    private final DynamoDbAsyncTable<RequestMetadata> requestMetadataDynamoDbTable;
+    private final DynamoDbAsyncTableDecorator<RequestMetadata> requestMetadataDynamoDbTable;
 
     public RequestMetadataServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
                                       RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
-        this.requestMetadataDynamoDbTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteMetadataName(),
-                                                                         TableSchema.fromBean(RequestMetadata.class));
+        this.requestMetadataDynamoDbTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteMetadataName(),
+                                                                         TableSchema.fromBean(RequestMetadata.class)));
     }
 
     private void checkTipoPatchMetadata(RequestMetadata requestMetadata, Patch patch) {
