@@ -3,10 +3,13 @@ package it.pagopa.pn.ec.repositorymanager.service.impl;
 import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
-import it.pagopa.pn.ec.repositorymanager.model.entity.*;
+import it.pagopa.pn.ec.repositorymanager.model.entity.DigitalProgressStatus;
+import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
+import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
+import it.pagopa.pn.ec.repositorymanager.model.entity.Retry;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Patch;
 import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
@@ -17,16 +20,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static it.pagopa.pn.ec.commons.utils.CompareUtils.isSameEvent;
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.DYNAMO_OPTIMISTIC_LOCKING_RETRY;
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
-import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 
 @Service
-@Slf4j
+@CustomLog
 public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     private final DynamoDbAsyncTableDecorator<RequestMetadata> requestMetadataDynamoDbTable;
@@ -190,21 +192,15 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     }
 
     private Mono<Void> insertRequestMetadataInDynamoDb(RequestMetadata requestMetadata) {
-        log.debug(INSERTING_DATA_IN_DYNAMODB_TABLE, requestMetadata, requestMetadataDynamoDbTable.tableName());
-        return Mono.fromCompletionStage(() -> requestMetadataDynamoDbTable.putItem(builder -> builder.item(requestMetadata)))
-                .doOnSuccess(result -> log.info(INSERTED_DATA_IN_DYNAMODB_TABLE, requestMetadataDynamoDbTable.tableName()));
+        return Mono.fromCompletionStage(() -> requestMetadataDynamoDbTable.putItem(builder -> builder.item(requestMetadata)));
     }
 
     private Mono<RequestMetadata> updateRequestMetadataInDynamoDb(RequestMetadata requestMetadata) {
-        log.debug(UPDATING_DATA_IN_DYNAMODB_TABLE, requestMetadata, requestMetadataDynamoDbTable.tableName());
-        return Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(requestMetadata))
-                .doOnSuccess(result -> log.info(UPDATED_DATA_IN_DYNAMODB_TABLE, requestMetadataDynamoDbTable.tableName()));
+        return Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(requestMetadata));
     }
 
     private Mono<RequestMetadata> deleteRequestMetadataFromDynamoDb(String requestId) {
-        log.debug(DELETING_DATA_FROM_DYNAMODB_TABLE, requestId, requestMetadataDynamoDbTable.tableName());
-        return Mono.fromCompletionStage(requestMetadataDynamoDbTable.deleteItem(getKey(requestId)))
-                .doOnSuccess(result -> log.info(DELETED_DATA_FROM_DYNAMODB_TABLE, requestMetadataDynamoDbTable.tableName()));
+        return Mono.fromCompletionStage(requestMetadataDynamoDbTable.deleteItem(getKey(requestId)));
     }
 
 }

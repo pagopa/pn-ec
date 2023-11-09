@@ -3,14 +3,14 @@ package it.pagopa.pn.ec.consolidatore.service.impl;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.ConsolidatoreEndpointProperties;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
-import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogError;
-import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogEvent;
 import it.pagopa.pn.ec.consolidatore.exception.SemanticException;
 import it.pagopa.pn.ec.consolidatore.exception.SyntaxException;
+import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogError;
+import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogEvent;
 import it.pagopa.pn.ec.consolidatore.service.ConsolidatoreService;
 import it.pagopa.pn.ec.consolidatore.utils.ContentTypes;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,11 +25,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
 
 @Service
-@Slf4j
+@CustomLog
 public class ConsolidatoreServiceImpl implements ConsolidatoreService {
 
     @Autowired
@@ -47,14 +47,14 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
         return checkHeaders(xPagopaExtchServiceId)
                 .then(authService.clientAuth(xPagopaExtchServiceId))
                 .flatMap(clientConfiguration -> {
-                    log.info(CHECKING_VALIDATION_PROCESS_ON, X_API_KEY_VALIDATION, xPagopaExtchServiceId);
+                    log.logChecking(X_API_KEY_VALIDATION);
                     if (!clientConfiguration.getApiKey().equals(xApiKey)) {
                         ConsAuditLogError consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_API_KEY.getValue()).description(INVALID_API_KEY).build();
                         log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(attachments.map(PreLoadRequestData::getPreloads)).errorList(List.of(consAuditLogError)).build());
-                        log.warn(VALIDATION_PROCESS_FAILED, X_API_KEY_VALIDATION, INVALID_API_KEY);
+                        log.logCheckingOutcome(X_API_KEY_VALIDATION, false, INVALID_API_KEY);
                         return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, INVALID_API_KEY));
                     }
-                    log.info(VALIDATION_PROCESS_PASSED, X_API_KEY_VALIDATION);
+                    log.logCheckingOutcome(X_API_KEY_VALIDATION, true);
                     return Mono.just(clientConfiguration);
                 })
                 .then(attachments)
@@ -84,7 +84,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                     String xTraceId = RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH);
 
                     return fileCall.postFile(xPagopaExtchServiceId, xApiKey, preLoadRequest.getSha256(), xTraceId, fileCreationRequest)
-                            .doOnError(ConnectException.class, e -> log.error(FATAL_IN_PROCESS_FOR, PRESIGNED_UPLOAD_REQUEST, preLoadRequest.getPreloadIdx(), e, e.getMessage()))
+                            .doOnError(ConnectException.class, e -> log.fatal(PRESIGNED_UPLOAD_REQUEST, e))
                             .flux()
                             .map(fileCreationResponse ->
                             {
@@ -122,18 +122,18 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
         return checkHeaders(xPagopaExtchServiceId)
                 .then(authService.clientAuth(xPagopaExtchServiceId))
                 .flatMap(clientConfiguration -> {
-                    log.info(CHECKING_VALIDATION_PROCESS_ON, X_API_KEY_VALIDATION, xPagopaExtchServiceId);
+                    log.logChecking(X_API_KEY_VALIDATION);
                     if (!clientConfiguration.getApiKey().equals(xApiKey)) {
                         var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_API_KEY.getValue()).requestId(fileKey).description(INVALID_API_KEY).build();
                         log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().errorList(List.of(consAuditLogError)).build());
-                        log.warn(VALIDATION_PROCESS_FAILED, X_API_KEY_VALIDATION, INVALID_API_KEY);
+                        log.logCheckingOutcome(X_API_KEY_VALIDATION, false, INVALID_API_KEY);
                         return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, INVALID_API_KEY));
                     }
-                    log.info(VALIDATION_PROCESS_PASSED, X_API_KEY_VALIDATION);
+                    log.logCheckingOutcome(X_API_KEY_VALIDATION, true);
                     return Mono.just(clientConfiguration);
                 })
                 .then(fileCall.getFile(fileKey, xPagopaExtchServiceId, xApiKey, RandomStringUtils.randomAlphanumeric(TRACE_ID_LENGTH)))
-                .doOnError(ConnectException.class, e -> log.error(FATAL_IN_PROCESS_FOR, GET_FILE, fileKey, e, e.getMessage()))
+                .doOnError(ConnectException.class, e -> log.fatal(GET_FILE, e))
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, fileKey, GET_FILE, result));
     }
 

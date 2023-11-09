@@ -7,7 +7,7 @@ import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
 import it.pagopa.pn.ec.repositorymanager.service.RequestPersonalService;
 import it.pagopa.pn.ec.repositorymanager.service.RequestService;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -27,7 +27,7 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static it.pagopa.pn.ec.repositorymanager.utils.RequestMapper.createRequestFromPersonalAndMetadata;
 
 @Service
-@Slf4j
+@CustomLog
 public class RequestServiceImpl implements RequestService {
 
 

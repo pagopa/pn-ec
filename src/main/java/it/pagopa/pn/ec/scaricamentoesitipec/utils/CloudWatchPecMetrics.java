@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.utils;
 
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
@@ -20,7 +20,7 @@ import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Component
-@Slf4j
+@CustomLog
 public class CloudWatchPecMetrics {
 
     private final CloudWatchAsyncClient cloudWatchAsyncClient;

@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.commons.rest.call.download;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.stereotype.Component;
@@ -14,7 +14,7 @@ import java.net.URI;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Component
-@Slf4j
+@CustomLog
 public class DownloadCallImpl implements DownloadCall {
 
     private final WebClient downloadWebClient;

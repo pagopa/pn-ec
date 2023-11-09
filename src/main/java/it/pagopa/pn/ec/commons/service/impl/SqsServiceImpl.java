@@ -5,7 +5,7 @@ import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.utils.JsonUtils;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,7 +26,7 @@ import static it.pagopa.pn.ec.commons.utils.LogUtils.INSERTING_DATA_IN_SQS;
 import static it.pagopa.pn.ec.commons.utils.OptionalUtils.getFirstListElement;
 
 @Service
-@Slf4j
+@CustomLog
 public class SqsServiceImpl implements SqsService {
 
     private final SqsAsyncClient sqsAsyncClient;

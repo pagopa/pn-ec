@@ -13,7 +13,7 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.notificationtracker.service.NotificationTrackerService;
 import it.pagopa.pn.ec.notificationtracker.service.PutEvents;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import java.time.OffsetDateTime;
@@ -27,7 +27,7 @@ import static java.time.temporal.ChronoUnit.SECONDS;
 
 
 @Service
-@Slf4j
+@CustomLog
 public class NotificationTrackerServiceImpl implements NotificationTrackerService {
 
     private final PutEvents putEvents;

@@ -6,7 +6,7 @@ import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManag
 import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
 import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfigurationInternal;
 import it.pagopa.pn.ec.repositorymanager.service.ClientConfigurationService;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
@@ -20,7 +20,7 @@ import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Service
-@Slf4j
+@CustomLog
 public class ClientConfigurationServiceImpl implements ClientConfigurationService {
 
     private final DynamoDbAsyncTableDecorator<ClientConfigurationInternal> clientConfigurationDynamoDbTableInternal;
@@ -94,21 +94,15 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
     }
 
     private Mono<Void> putClientConfigurationInDynamoDb(ClientConfigurationInternal clientConfiguration) {
-        log.debug(INSERTING_DATA_IN_DYNAMODB_TABLE, clientConfiguration, clientConfigurationDynamoDbTableInternal.tableName());
-        return Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.putItem(builder -> builder.item(clientConfiguration)))
-                .doOnSuccess(result -> log.info(INSERTED_DATA_IN_DYNAMODB_TABLE, clientConfigurationDynamoDbTableInternal.tableName()));
+        return Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.putItem(builder -> builder.item(clientConfiguration)));
     }
 
     private Mono<ClientConfigurationInternal> updateClientConfigurationInDynamoDb(ClientConfigurationInternal clientConfiguration) {
-        log.debug(UPDATING_DATA_IN_DYNAMODB_TABLE, clientConfiguration, clientConfigurationDynamoDbTableInternal.tableName());
-        return Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.updateItem(clientConfiguration))
-                .doOnSuccess(result -> log.info(UPDATED_DATA_IN_DYNAMODB_TABLE, clientConfigurationDynamoDbTableInternal.tableName()));
+        return Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.updateItem(clientConfiguration));
     }
 
     private Mono<ClientConfigurationInternal> deleteClientConfigurationFromDynamoDb(String cxId) {
-        log.debug(DELETING_DATA_FROM_DYNAMODB_TABLE, cxId, clientConfigurationDynamoDbTableInternal.tableName());
-        return Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.deleteItem(getKey(cxId)))
-                .doOnSuccess(result -> log.info(DELETED_DATA_FROM_DYNAMODB_TABLE, clientConfigurationDynamoDbTableInternal.tableName()));
+        return Mono.fromCompletionStage(clientConfigurationDynamoDbTableInternal.deleteItem(getKey(cxId)));
     }
 
 }

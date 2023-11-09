@@ -5,7 +5,7 @@ import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.repositorymanager.service.RequestPersonalService;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
@@ -13,11 +13,10 @@ import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
-import static it.pagopa.pn.ec.commons.utils.LogUtils.DELETED_DATA_FROM_DYNAMODB_TABLE;
 import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 
 @Service
-@Slf4j
+@CustomLog
 public class RequestPersonalServiceImpl implements RequestPersonalService {
 
     private final DynamoDbAsyncTableDecorator<RequestPersonal> requestPersonalDynamoDbTable;
@@ -66,15 +65,11 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
     }
 
     private Mono<Void> putRequestPersonalInDynamoDb(RequestPersonal requestPersonal) {
-        log.debug(INSERTING_DATA_IN_DYNAMODB_TABLE, requestPersonal, requestPersonalDynamoDbTable.tableName());
-        return Mono.fromCompletionStage(requestPersonalDynamoDbTable.putItem(builder -> builder.item(requestPersonal)))
-                .doOnSuccess(result -> log.info(INSERTED_DATA_IN_DYNAMODB_TABLE, requestPersonalDynamoDbTable.tableName()));
+        return Mono.fromCompletionStage(requestPersonalDynamoDbTable.putItem(builder -> builder.item(requestPersonal)));
     }
 
     private Mono<RequestPersonal> deleteRequestPersonalFromDynamoDb(String concatRequestId) {
-        log.debug(DELETING_DATA_FROM_DYNAMODB_TABLE, concatRequestId, requestPersonalDynamoDbTable.tableName());
-        return Mono.fromCompletionStage(requestPersonalDynamoDbTable.deleteItem(getKey(concatRequestId)))
-                .doOnSuccess(result -> log.info(DELETED_DATA_FROM_DYNAMODB_TABLE, requestPersonalDynamoDbTable.tableName()));
+        return Mono.fromCompletionStage(requestPersonalDynamoDbTable.deleteItem(getKey(concatRequestId)));
     }
 
 }

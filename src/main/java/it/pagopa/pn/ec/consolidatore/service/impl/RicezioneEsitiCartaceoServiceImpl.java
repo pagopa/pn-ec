@@ -18,7 +18,7 @@ import it.pagopa.pn.ec.consolidatore.model.dto.RicezioneEsitiDto;
 import it.pagopa.pn.ec.consolidatore.exception.RicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.consolidatore.service.RicezioneEsitiCartaceoService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -37,7 +37,7 @@ import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.*;
 
 @Service
-@Slf4j
+@CustomLog
 public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceoService {
 
 	private final GestoreRepositoryCall gestoreRepositoryCall;

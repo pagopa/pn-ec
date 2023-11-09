@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.scaricamentoesitipec.service;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.constant.Status;
@@ -26,7 +27,9 @@ import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchPecMetricsInfo;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.daticert.Destinatari;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
+import lombok.CustomLog;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -51,7 +54,7 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.*;
 
 
-@Slf4j
+@CustomLog
 @Service
 public class LavorazioneEsitiPecService {
 
@@ -89,13 +92,14 @@ public class LavorazioneEsitiPecService {
 
     @SqsListener(value = "${scaricamento-esiti-pec.sqs-queue-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void lavorazioneEsitiPecInteractive(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
+        MDC.clear();
         logIncomingMessage(scaricamentoEsitiPecProperties.sqsQueueName(), ricezioneEsitiPecDto);
         lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment).subscribe();
     }
 
     Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
-
-        log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, LAVORAZIONE_ESITI_PEC, ricezioneEsitiPecDto);
+        MDC.put(MDC_CORR_ID_KEY, ricezioneEsitiPecDto.getMessageID());
+        log.logStartingProcess(LAVORAZIONE_ESITI_PEC);
 
         try {
             semaphore.acquire();
@@ -105,7 +109,7 @@ public class LavorazioneEsitiPecService {
 
         AtomicReference<String> requestIdx = new AtomicReference<>();
 
-        return Mono.just(ricezioneEsitiPecDto)
+        return MDCUtils.addMDCToContextAndExecute(Mono.just(ricezioneEsitiPecDto)
                 .flatMap(ricEsitiPecDto ->
                 {
 
@@ -221,10 +225,13 @@ public class LavorazioneEsitiPecService {
                             .flatMap(notificationTrackerQueueDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
                                     notificationTrackerQueueDto));
                 })
-                .doOnSuccess(result -> acknowledgment.acknowledge())
-                .doOnError(throwable -> log.warn(EXCEPTION_IN_PROCESS_FOR, LAVORAZIONE_ESITI_PEC, requestIdx.get(), throwable, throwable.getMessage()))
+                .doOnSuccess(result -> {
+                    log.logEndingProcess(LAVORAZIONE_ESITI_PEC);
+                    acknowledgment.acknowledge();
+                })
+                .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_ESITI_PEC, false, throwable.getMessage()))
                 .then()
-                .doFinally(signalType -> semaphore.release());
+                .doFinally(signalType -> semaphore.release()));
     }
 
 
@@ -253,7 +260,7 @@ public class LavorazioneEsitiPecService {
                             .retrieve()
                             .toBodilessEntity()
                             .thenReturn(SAFESTORAGE_PREFIX + fileCreationResponse.getKey());
-                }).doOnSuccess(location -> log.debug(LOCATION_GENERATED, LAVORAZIONE_ESITI_PEC, requestIdx));
+                }).doOnSuccess(location -> log.debug(SUCCESSFUL_OPERATION_LABEL, GENERATE_LOCATION, location));
     }
 
     private String generateSha256(byte[] fileBytes) {
