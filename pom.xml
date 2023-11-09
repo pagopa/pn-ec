@@ -15,6 +15,7 @@
     <version>2.2.0-SNAPSHOT</version>
     <name>pn-ec</name>
     <description>External communication µService</description>
+
     <scm>
         <connection>${git.conn}</connection>
         <developerConnection>${git.devConn}</developerConnection>
