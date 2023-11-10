@@ -92,13 +92,25 @@ public class LavorazioneEsitiPecService {
 
     @SqsListener(value = "${scaricamento-esiti-pec.sqs-queue-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void lavorazioneEsitiPecInteractive(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
-        MDC.clear();
         logIncomingMessage(scaricamentoEsitiPecProperties.sqsQueueName(), ricezioneEsitiPecDto);
         lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment).subscribe();
     }
 
     Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
-        MDC.put(MDC_CORR_ID_KEY, ricezioneEsitiPecDto.getMessageID());
+
+        MDC.clear();
+
+        var messageID = ricezioneEsitiPecDto.getMessageID();
+        var message = ricezioneEsitiPecDto.getMessage();
+        var mimeMessage = getMimeMessage(message);
+        var daticert = findAttachmentByName(mimeMessage, "daticert.xml");
+        var postacert = daticertService.getPostacertFromByteArray(daticert);
+        var msgId = postacert.getDati().getMsgid();
+        msgId = msgId.substring(1, msgId.length() - 1);
+        var presaInCaricoInfo = decodeMessageId(msgId);
+
+        MDC.put(MDC_CORR_ID_KEY, concatRequestId(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx()));
+
         log.logStartingProcess(LAVORAZIONE_ESITI_PEC);
 
         try {
@@ -109,50 +121,17 @@ public class LavorazioneEsitiPecService {
 
         AtomicReference<String> requestIdx = new AtomicReference<>();
 
-        return MDCUtils.addMDCToContextAndExecute(Mono.just(ricezioneEsitiPecDto)
-                .flatMap(ricEsitiPecDto ->
-                {
-
-                    var messageID = ricEsitiPecDto.getMessageID();
-                    var message = ricEsitiPecDto.getMessage();
-                    var mimeMessage = getMimeMessage(message);
-                    var daticert = findAttachmentByName(mimeMessage, "daticert.xml");
-
-                    return Mono.just(daticertService.getPostacertFromByteArray(daticert))
-                            .flatMap(postacert -> {
-
-                                var msgId = postacert.getDati().getMsgid();
-                                msgId = msgId.substring(1, msgId.length() - 1);
-
-                                var presaInCaricoInfo = decodeMessageId(msgId);
+        return MDCUtils.addMDCToContextAndExecute(statusPullService.pecPullService(presaInCaricoInfo.getRequestIdx(), presaInCaricoInfo.getXPagopaExtchCxId())
+                            .zipWhen(legalMessageSentDetails -> {
                                 requestIdx.set(presaInCaricoInfo.getRequestIdx());
                                 var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
-                                var concatRequestId=concatRequestId(clientId, requestIdx.get());
-
-                                log.debug(PROCESSING_PEC, messageID, LAVORAZIONE_ESITI_PEC, concatRequestId);
-
-                                return statusPullService.pecPullService(requestIdx.get(), clientId)
-                                        .map(legalMessageSentDetails -> Tuples.of(postacert, legalMessageSentDetails, presaInCaricoInfo));
-                            })
-                            .flatMap(objects -> {
-
-                                PnPostacert postacert = objects.getT1();
-                                LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
-                                PresaInCaricoInfo presaInCaricoInfo = objects.getT3();
-
-                                requestIdx.set(presaInCaricoInfo.getRequestIdx());
-                                var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
-
-                                return gestoreRepositoryCall.getRichiesta(clientId, requestIdx.get())
-                                        .map(requestDto -> Tuples.of(postacert, legalMessageSentDetails, requestDto));
-
+                                return gestoreRepositoryCall.getRichiesta(clientId, requestIdx.get());
                             })
                             //Pubblicazione metriche custom su CloudWatch
                             .flatMap(objects ->
                             {
-                                PnPostacert postacert = objects.getT1();
-                                LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
-                                RequestDto requestDto = objects.getT3();
+                                LegalMessageSentDetails legalMessageSentDetails = objects.getT1();
+                                RequestDto requestDto = objects.getT2();
 
                                 //Se la validation è delivered->delivered, IGNORA STATUS VALIDATION E MARCA COME LETTO.
                                 Destinatari destinatario = postacert.getIntestazione().getDestinatari().get(0);
@@ -176,7 +155,7 @@ public class LavorazioneEsitiPecService {
 
                                 log.debug("Starting {} for PEC '{}'", PUBLISH_CUSTOM_PEC_METRICS, messageID);
                                 return cloudWatchPecMetrics.publishCustomPecMetrics(cloudWatchPecMetricsInfo)
-                                        .thenReturn(Tuples.of(postacert,
+                                        .thenReturn(Tuples.of(
                                                 requestDto,
                                                 cloudWatchPecMetricsInfo,
                                                 nextStatus));
@@ -184,10 +163,9 @@ public class LavorazioneEsitiPecService {
                             })
                             //Preparazione payload per la coda stati PEC
                             .flatMap(objects -> {
-                                PnPostacert postacert = objects.getT1();
-                                RequestDto requestDto = objects.getT2();
-                                CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT3();
-                                String nextStatus = objects.getT4();
+                                RequestDto requestDto = objects.getT1();
+                                CloudWatchPecMetricsInfo cloudWatchPecMetricsInfo = objects.getT2();
+                                String nextStatus = objects.getT3();
 
                                 log.debug(BUILDING_PEC_QUEUE_PAYLOAD, messageID, LAVORAZIONE_ESITI_PEC);
 
@@ -196,7 +174,7 @@ public class LavorazioneEsitiPecService {
                                 var eventDetails = postacert.getErrore();
                                 var senderDigitalAddress = arubaSecretValue.getPecUsername();
                                 var senderDomain = getDomainFromAddress(senderDigitalAddress);
-                                var receiversDomain = ricEsitiPecDto.getReceiversDomain();
+                                var receiversDomain = ricezioneEsitiPecDto.getReceiversDomain();
 
                                 return generateLocation(requestIdx.get(), message)
                                         .map(location ->
@@ -223,8 +201,7 @@ public class LavorazioneEsitiPecService {
 
                             //Pubblicazione sulla coda degli stati PEC
                             .flatMap(notificationTrackerQueueDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
-                                    notificationTrackerQueueDto));
-                })
+                                    notificationTrackerQueueDto))
                 .doOnSuccess(result -> {
                     log.logEndingProcess(LAVORAZIONE_ESITI_PEC);
                     acknowledgment.acknowledge();
@@ -233,6 +210,7 @@ public class LavorazioneEsitiPecService {
                 .then()
                 .doFinally(signalType -> semaphore.release()));
     }
+
 
 
     Mono<String> generateLocation(String requestIdx, byte[] fileBytes) {
