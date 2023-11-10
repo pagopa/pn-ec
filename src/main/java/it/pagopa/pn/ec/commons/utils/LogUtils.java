@@ -8,12 +8,6 @@ public class LogUtils {
 
     public static final String MDC_CORR_ID_KEY = "cx_id";
     public static final String INVALID_API_KEY = "Invalid API key";
-    public static final String STARTING_PROCESS_LABEL = "Starting '{}' Process.";
-    public static final String STARTING_PROCESS_ON_LABEL = "Starting '{}' Process on '{}'.";
-    public static final String ENDING_PROCESS_LABEL = "Ending '{}' Process.";
-    public static final String ENDING_PROCESS_ON_LABEL = "Ending '{}' Process on '{}'.";
-    public static final String ENDING_PROCESS_WITH_ERROR_LABEL = "Ending '{}' Process with error = {} - {}";
-    public static final String ENDING_PROCESS_ON_WITH_ERROR_LABEL = "Ending '{}' Process on '{}' with error = {} - {}";
 
     public static final String INVOKING_OPERATION_LABEL_WITH_ARGS = "Invoking operation '{}' with args: {}";
     public static final String INVOKING_OPERATION_LABEL = "Invoking operation '{}'";
@@ -34,10 +28,6 @@ public class LogUtils {
 
 
     //VALIDATION
-    public static final String CHECKING_VALIDATION_PROCESS = "Checking {}";
-    public static final String CHECKING_VALIDATION_PROCESS_ON = "Checking {} on '{}'";
-    public static final String VALIDATION_PROCESS_PASSED = "{} passed";
-    public static final String VALIDATION_PROCESS_FAILED = "{} failed error = {}";
     public static final String CLIENT_AUTHENTICATION = "Client authentication";
     public static final String X_API_KEY_VALIDATION = "XApiKey validation";
 
@@ -75,6 +65,24 @@ public class LogUtils {
     //NOTIFICATION_TRACKER
     public static final String NT_HANDLE_REQUEST_STATUS_CHANGE = "NotificationTrackerService.handleRequestStatusChange()";
     public static final String NT_HANDLE_MESSAGE_FROM_ERROR_QUEUE = "NotificationTrackerService.handleMessageFromErrorQueue()";
+
+    //NOTIFICATION TRACKER MESSAGE RECEIVER
+
+    public static final String NT_RECEIVE_SMS = "receiveSMSObjectMessage()";
+
+    public static final String NT_RECEIVE_SMS_ERROR = "receiveSMSObjectFromErrorQueue()";
+
+    public static final String NT_RECEIVE_EMAIL = "receiveEmailObjectMessage()";
+
+    public static final String NT_RECEIVE_EMAIL_ERROR = "receiveEmailObjectFromErrorQueue()";
+
+    public static final String NT_RECEIVE_PEC = "receivePecObjectMessage()";
+
+    public static final String NT_RECEIVE_PEC_ERROR = "receivePecObjectFromErrorQueue()";
+
+    public static final String NT_RECEIVE_CARTACEO = "receiveCartaceoObjectMessage()";
+
+    public static final String NT_RECEIVE_CARTACEO_ERROR = "receiveCartaceoObjectFromErrorQueue()";
 
 
     //PEC
@@ -156,7 +164,6 @@ public class LogUtils {
     public static final String GESTORE_REPOSITORY_SERVICE = "repositorymanager";
 
     //MICROSERVIZI ESTERNI
-    public static final String INVOKING_EXTERNAL_SERVICE = "Invoking external service {} {}. Waiting Sync response.";
     public static final String CONSOLIDATORE_SERVICE = "Consolidatore";
 
     //SERVIZI ESTERNI
@@ -178,7 +185,6 @@ public class LogUtils {
 
     //DOWNLOAD CALL
     public static final String DOWNLOAD_FILE = "DownloadCall.downloadFile()";
-    public static final String REQUEST_METADATA_TABLE = "RequestMetadata";
 
     //SCARICAMENTO/LAVORAZIONE ESITI PEC
     public static final String STARTING_SCHEDULED = "Starting scheduled process '{}'";
@@ -189,8 +195,6 @@ public class LogUtils {
     public static final String NOT_SENT_BY_US = "Not sent by us";
     public static final String LAVORAZIONE_ESITI_PEC = "lavorazioneEsitiPec()";
     public static final String GENERATE_LOCATION = "LavorazioneEsitiPecService.generateLocation()";
-    public static final String LOCATION_GENERATED = "Location generated in '{}' for request '{}'";
-
 
     //CLOUD WATCH
     public static final String PUBLISH_CUSTOM_PEC_METRICS = "CloudWatchPecMetrics.publishCustomPecMetrics()";
