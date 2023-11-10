@@ -58,7 +58,6 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                     return Mono.just(clientConfiguration);
                 })
                 .then(attachments)
-                .doOnNext(preLoadRequestData -> log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESIGNED_UPLOAD_REQUEST, preLoadRequestData))
                 .map(PreLoadRequestData::getPreloads)
                 .flatMapMany(Flux::fromIterable)
                 .transform(checkSyntaxErrors())

@@ -68,27 +68,30 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 
     @Override
     public Mono<ResponseEntity<FileDownloadResponse>> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, final ServerWebExchange exchange) {
+        MDC.clear();
+        MDC.put(MDC_CORR_ID_KEY, fileKey);
         log.logStartingProcess(GET_FILE);
-        return consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
+        return MDCUtils.addMDCToContextAndExecute(consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
                 .doOnSuccess(result -> log.logEndingProcess(GET_FILE))
                 .doOnError(throwable -> log.logEndingProcess(GET_FILE, false, throwable.getMessage()))
                 .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody")))
                 .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
                 .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
-                .map(ResponseEntity::ok);
+                .map(ResponseEntity::ok));
     }
 
 
     @Override
     public Mono<ResponseEntity<PreLoadResponseData>> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> preLoadRequestData, ServerWebExchange exchange) {
+        MDC.clear();
         log.logStartingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS);
-        return MDCUtils.addMDCToContextAndExecute(consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
+        return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
                 .doOnSuccess(result -> log.logEndingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS))
                 .doOnError(throwable -> log.logEndingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS, false, throwable.getMessage()))
                 .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody")))
                 .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
                 .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
-                .map(ResponseEntity::ok));
+                .map(ResponseEntity::ok);
     }
 
     @Override
@@ -96,6 +99,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                                                             String xApiKey,
                                                                                             Flux<ConsolidatoreIngressPaperProgressStatusEvent> consolidatoreIngressPaperProgressStatusEvent,
                                                                                             final ServerWebExchange exchange) {
+        MDC.clear();
         log.logStartingProcess(SEND_PAPER_PROGRESS_STATUS_REQUEST);
         return authService.clientAuth(xPagopaExtchServiceId)
                 .flatMap(clientConfiguration -> {
@@ -109,11 +113,13 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                 })
                 .flatMap(clientConfiguration -> consolidatoreIngressPaperProgressStatusEvent
                         .flatMap(statusEvent -> {
+                            MDC.put(MDC_CORR_ID_KEY, statusEvent.getRequestId());
                             log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "START for requestId {}", statusEvent.getRequestId());
-                            return ricezioneEsitiCartaceoService.verificaEsitoDaConsolidatore(xPagopaExtchServiceId, statusEvent);
+                            return MDCUtils.addMDCToContextAndExecute(ricezioneEsitiCartaceoService.verificaEsitoDaConsolidatore(xPagopaExtchServiceId, statusEvent));
                         })
                         .collectList()
                         .flatMap(listRicezioneEsitiDto -> {
+                            MDC.clear();
                             // ricerco errori
                             var listErrorResponse = listRicezioneEsitiDto.stream()
                                     .filter(ricezioneEsito -> ricezioneEsito.getOperationResultCodeResponse() != null &&
