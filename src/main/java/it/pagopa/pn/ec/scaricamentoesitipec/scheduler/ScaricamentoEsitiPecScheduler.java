@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
+import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.model.pojo.pec.PnPostacert;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.service.DaticertService;

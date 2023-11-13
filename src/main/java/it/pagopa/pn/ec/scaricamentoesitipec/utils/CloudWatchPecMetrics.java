@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.utils;
 
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchTransitionElapsedTimeMetricsInfo;
+import lombok.CustomLog;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;

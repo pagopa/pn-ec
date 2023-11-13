@@ -11,6 +11,7 @@ import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.Cancellazion
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CancellazioneRicevutePecDto;
 import it.pagopa.pn.library.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.library.pec.service.PnPecService;
+import lombok.CustomLog;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,7 @@ import reactor.core.publisher.Mono;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Service
-@Slf4j
+@CustomLog
 public class CancellazioneRicevutePecService {
 
     @Autowired
@@ -38,10 +39,10 @@ public class CancellazioneRicevutePecService {
         var requestId = cancellazioneRicevutePecDto.getSingleStatusUpdate().getDigitalLegal().getRequestId();
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, requestId);
-        log.info(STARTING_PROCESS_ON_LABEL, CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE, requestId);
-        cancellazioneRicevutePec(cancellazioneRicevutePecDto, requestId, acknowledgment)
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE, requestId))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE, requestId, throwable, throwable.getMessage()))
+        log.logStartingProcess(CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE);
+        MDCUtils.addMDCToContextAndExecute(cancellazioneRicevutePec(cancellazioneRicevutePecDto, requestId, acknowledgment)
+                .doOnSuccess(result -> log.logEndingProcess(CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE))
+                .doOnError(throwable -> log.logEndingProcess(CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE, false, throwable.getMessage())))
                 .subscribe();
     }
 
@@ -56,7 +57,6 @@ public class CancellazioneRicevutePecService {
                             .flatMapMany(requestMetadataDto -> Flux.fromIterable(requestMetadataDto.getEventsList()))
                             .map(EventsDto::getDigProgrStatus)
                             .filter(digitalProgressStatusDto -> digitalLegal.getEventCode().getValue().equals(digitalProgressStatusDto.getStatusCode()))
-                            .doOnDiscard(DigitalProgressStatusDto.class, digitalProgressStatusDto -> log.debug("Discarded status : {}", digitalProgressStatusDto))
                             .next()
                             .doOnSuccess(digitalProgressStatusDto -> {
                                 if (digitalProgressStatusDto == null)
@@ -65,7 +65,7 @@ public class CancellazioneRicevutePecService {
                 })
                 .map(digitalProgressStatusDto -> digitalProgressStatusDto.getGeneratedMessage().getId())
                 .flatMap(messageID -> pnPecService.deleteMessage(messageID))
-                .doOnError(throwable -> log.error(FATAL_IN_PROCESS_FOR, CANCELLAZIONE_RICEVUTE_PEC, requestId, throwable, throwable.getMessage()))
+                .doOnError(throwable -> log.fatal(CANCELLAZIONE_RICEVUTE_PEC, throwable, throwable.getMessage()))
                 .doOnSuccess(result -> acknowledgment.acknowledge());
     }
 

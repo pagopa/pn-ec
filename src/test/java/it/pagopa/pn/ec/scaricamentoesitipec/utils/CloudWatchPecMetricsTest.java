@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.utils;
 
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import lombok.CustomLog;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -17,7 +18,7 @@ import java.time.temporal.TemporalAmount;
 import java.util.concurrent.ExecutionException;
 
 @SpringBootTestWebEnv
-@Slf4j
+@CustomLog
 public class CloudWatchPecMetricsTest {
 
     @Autowired

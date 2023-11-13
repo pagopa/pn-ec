@@ -1,5 +1,6 @@
 package it.pagopa.pn.library.pec.configuration;
 
+import lombok.CustomLog;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -12,7 +13,7 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClientBuilde
 import java.net.URI;
 
 @Configuration
-@Slf4j
+@CustomLog
 public class SecretsManagerClientConfiguration {
 
     @Value("${aws.region-code}")
