@@ -9,7 +9,7 @@ import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
@@ -20,7 +20,7 @@ import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 
 @Service
-@Slf4j
+@CustomLog
 public class StatusPullServiceImpl implements StatusPullService {
 
     private final AuthService authService;

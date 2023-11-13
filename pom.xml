@@ -6,7 +6,7 @@
     <parent>
         <groupId>it.pagopa.pn</groupId>
         <artifactId>pn-parent</artifactId>
-        <version>2.0.0</version>
+        <version>2.1.1</version>
         <relativePath/>
     </parent>
 
@@ -38,7 +38,25 @@
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-commons</artifactId>
-            <version>2.0.0</version>
+            <version>2.2.3</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>it.pagopa.tech.lollipop-consumer-java-sdk</groupId>
+                    <artifactId>core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>it.pagopa.tech.lollipop-consumer-java-sdk</groupId>
+                    <artifactId>http-verifier</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>it.pagopa.tech.lollipop-consumer-java-sdk</groupId>
+                    <artifactId>assertion-rest-client-native</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>it.pagopa.tech.lollipop-consumer-java-sdk</groupId>
+                    <artifactId>identity-service-rest-client-native</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Start OpenApi dependencies --> 
@@ -240,6 +258,10 @@
         </dependency>
         <!--prova generators-->
 
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>janino</artifactId>
+        </dependency>
 
     </dependencies>
 

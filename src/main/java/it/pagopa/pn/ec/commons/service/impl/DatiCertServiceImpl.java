@@ -7,7 +7,7 @@ import it.pec.daticert.Data;
 import it.pec.daticert.Postacert;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -16,7 +16,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 
 @Service
-@Slf4j
+@CustomLog
 public class DatiCertServiceImpl implements DaticertService {
 
     private final JAXBContext jaxbContext;

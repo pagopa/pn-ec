@@ -5,7 +5,7 @@ import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -15,7 +15,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Component
-@Slf4j
+@CustomLog
 public class CallMacchinaStatiImpl implements CallMacchinaStati {
 
     private final WebClient stateMachineWebClient;
@@ -32,7 +32,7 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
     public Mono<MacchinaStatiValidateStatoResponseDto> statusValidation(String xPagopaExtchCxId, String processId, String currentStatus,
                                                                         String nextStatus)
             throws InvalidNextStatusException {
-        log.info(INVOKING_EXTERNAL_SERVICE, STATE_MACHINE_SERVICE, STATUS_VALIDATION);
+        log.logInvokingExternalService(STATE_MACHINE_SERVICE, STATUS_VALIDATION);
         return stateMachineWebClient.get()
                 .uri(uriBuilder -> uriBuilder.path(stateMachineEndpointProperties.validate())
                         .queryParam(CLIENT_ID_QUERY_PARAM, xPagopaExtchCxId)
@@ -55,7 +55,7 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
 
     @Override
     public Mono<MacchinaStatiDecodeResponseDto> statusDecode(String xPagopaExtchCxId, String processId, String statusToDecode) {
-        log.info(INVOKING_EXTERNAL_SERVICE, STATE_MACHINE_SERVICE, STATUS_DECODE);
+        log.logInvokingExternalService(STATE_MACHINE_SERVICE, STATUS_DECODE);
         return stateMachineWebClient.get()
                 .uri(uriBuilder -> uriBuilder.path(stateMachineEndpointProperties.decode())
                         .queryParam(CLIENT_ID_QUERY_PARAM, xPagopaExtchCxId)

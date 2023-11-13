@@ -14,7 +14,7 @@ import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.testutils.configuration.DynamoTestConfiguration;
 import it.pagopa.pn.ec.testutils.configuration.SqsTestConfiguration;
 import it.pagopa.pn.ec.testutils.exception.DynamoDbInitTableCreationException;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
@@ -46,7 +46,7 @@ import static software.amazon.awssdk.services.dynamodb.model.TableStatus.ACTIVE;
 
 @TestConfiguration
 @Import({SqsTestConfiguration.class, DynamoTestConfiguration.class})
-@Slf4j
+@CustomLog
 public class LocalStackTestConfig {
 
     static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4");

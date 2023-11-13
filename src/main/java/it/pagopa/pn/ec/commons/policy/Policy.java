@@ -3,14 +3,14 @@ package it.pagopa.pn.ec.commons.policy;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.exception.PolicyFileNotFoundException;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-@Slf4j
+@CustomLog
 public class Policy {
 
 

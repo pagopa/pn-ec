@@ -4,7 +4,7 @@ package it.pagopa.pn.ec.notificationtracker.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.notificationtracker.configurationproperties.NotificationTrackerEventBridgeEventName;
 import it.pagopa.pn.ec.notificationtracker.service.PutEvents;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
@@ -18,7 +18,7 @@ import java.util.Date;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Service
-@Slf4j
+@CustomLog
 public class PutEventsImpl implements PutEvents {
 
     private final EventBridgeAsyncClient eventBrClient;

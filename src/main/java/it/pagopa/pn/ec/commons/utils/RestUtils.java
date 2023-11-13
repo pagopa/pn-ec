@@ -1,12 +1,12 @@
 package it.pagopa.pn.ec.commons.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 @Component
-@Slf4j
+@CustomLog
 public class RestUtils {
 
     private final ObjectMapper objectMapper;

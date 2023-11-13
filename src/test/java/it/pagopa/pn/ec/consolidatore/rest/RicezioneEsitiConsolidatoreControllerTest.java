@@ -44,14 +44,14 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import reactor.core.publisher.Mono;
 import org.hamcrest.Matchers;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
-@Slf4j
+@CustomLog
 class RicezioneEsitiConsolidatoreControllerTest {
 	
     @Autowired

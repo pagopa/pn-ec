@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.commons.utils;
 import it.pagopa.pn.ec.commons.exception.email.*;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.pec.model.pojo.PagopaMimeMessage;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.mail.util.MimeMessageParser;
 import javax.activation.DataHandler;
@@ -19,7 +19,7 @@ import java.util.*;
 import static org.apache.commons.codec.CharEncoding.UTF_8;
 import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE;
 
-@Slf4j
+@CustomLog
 public class EmailUtils {
 
     private EmailUtils() {
