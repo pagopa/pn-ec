@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.scaricamentoesitipec.service;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.constant.Status;
@@ -23,10 +24,13 @@ import it.pagopa.pn.ec.rest.v1.dto.LegalMessageSentDetails;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchTransitionElapsedTimeMetricsInfo;
+import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchTransitionElapsedTimeMetricsInfo;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pec.daticert.Destinatari;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
+import lombok.CustomLog;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -51,7 +55,7 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.*;
 
 
-@Slf4j
+@CustomLog
 @Service
 public class LavorazioneEsitiPecService {
 
@@ -95,7 +99,20 @@ public class LavorazioneEsitiPecService {
 
     Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
 
-        log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, LAVORAZIONE_ESITI_PEC, ricezioneEsitiPecDto);
+        MDC.clear();
+
+        var messageID = ricezioneEsitiPecDto.getMessageID();
+        var message = ricezioneEsitiPecDto.getMessage();
+        var mimeMessage = getMimeMessage(message);
+        var daticert = findAttachmentByName(mimeMessage, "daticert.xml");
+        var postacert = daticertService.getPostacertFromByteArray(daticert);
+        var msgId = postacert.getDati().getMsgid();
+        msgId = msgId.substring(1, msgId.length() - 1);
+        var presaInCaricoInfo = decodeMessageId(msgId);
+
+        MDC.put(MDC_CORR_ID_KEY, concatRequestId(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx()));
+
+        log.logStartingProcess(LAVORAZIONE_ESITI_PEC);
 
         try {
             semaphore.acquire();
@@ -105,50 +122,17 @@ public class LavorazioneEsitiPecService {
 
         AtomicReference<String> requestIdx = new AtomicReference<>();
 
-        return Mono.just(ricezioneEsitiPecDto)
-                .flatMap(ricEsitiPecDto ->
-                {
-
-                    var messageID = ricEsitiPecDto.getMessageID();
-                    var message = ricEsitiPecDto.getMessage();
-                    var mimeMessage = getMimeMessage(message);
-                    var daticert = findAttachmentByName(mimeMessage, "daticert.xml");
-
-                    return Mono.just(daticertService.getPostacertFromByteArray(daticert))
-                            .flatMap(postacert -> {
-
-                                var msgId = postacert.getDati().getMsgid();
-                                msgId = msgId.substring(1, msgId.length() - 1);
-
-                                var presaInCaricoInfo = decodeMessageId(msgId);
+        return MDCUtils.addMDCToContextAndExecute(statusPullService.pecPullService(presaInCaricoInfo.getRequestIdx(), presaInCaricoInfo.getXPagopaExtchCxId())
+                            .zipWhen(legalMessageSentDetails -> {
                                 requestIdx.set(presaInCaricoInfo.getRequestIdx());
                                 var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
-                                var concatRequestId=concatRequestId(clientId, requestIdx.get());
-
-                                log.debug(PROCESSING_PEC, messageID, LAVORAZIONE_ESITI_PEC, concatRequestId);
-
-                                return statusPullService.pecPullService(requestIdx.get(), clientId)
-                                        .map(legalMessageSentDetails -> Tuples.of(postacert, legalMessageSentDetails, presaInCaricoInfo));
-                            })
-                            .flatMap(objects -> {
-
-                                PnPostacert postacert = objects.getT1();
-                                LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
-                                PresaInCaricoInfo presaInCaricoInfo = objects.getT3();
-
-                                requestIdx.set(presaInCaricoInfo.getRequestIdx());
-                                var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
-
-                                return gestoreRepositoryCall.getRichiesta(clientId, requestIdx.get())
-                                        .map(requestDto -> Tuples.of(postacert, legalMessageSentDetails, requestDto));
-
+                                return gestoreRepositoryCall.getRichiesta(clientId, requestIdx.get());
                             })
                             //Pubblicazione metriche custom su CloudWatch
                             .flatMap(objects ->
                             {
-                                PnPostacert postacert = objects.getT1();
-                                LegalMessageSentDetails legalMessageSentDetails = objects.getT2();
-                                RequestDto requestDto = objects.getT3();
+                                LegalMessageSentDetails legalMessageSentDetails = objects.getT1();
+                                RequestDto requestDto = objects.getT2();
 
                                 //Se la validation è delivered->delivered, IGNORA STATUS VALIDATION E MARCA COME LETTO.
                                 Destinatari destinatario = postacert.getIntestazione().getDestinatari().get(0);
@@ -172,18 +156,16 @@ public class LavorazioneEsitiPecService {
 
                                 log.debug("Starting {} for PEC '{}'", PUBLISH_CUSTOM_PEC_METRICS, messageID);
                                 return cloudWatchPecMetrics.publishTransitionElapsedTimeMetrics(cloudWatchPecMetricsInfo)
-                                        .thenReturn(Tuples.of(postacert,
-                                                requestDto,
+                                        .thenReturn(Tuples.of(requestDto,
                                                 cloudWatchPecMetricsInfo,
                                                 nextStatus));
 
                             })
                             //Preparazione payload per la coda stati PEC
                             .flatMap(objects -> {
-                                PnPostacert postacert = objects.getT1();
-                                RequestDto requestDto = objects.getT2();
-                                CloudWatchTransitionElapsedTimeMetricsInfo cloudWatchTransitionElapsedTimeMetricsInfo = objects.getT3();
-                                String nextStatus = objects.getT4();
+                                RequestDto requestDto = objects.getT1();
+                                CloudWatchTransitionElapsedTimeMetricsInfo cloudWatchTransitionElapsedTimeMetricsInfo = objects.getT2();
+                                String nextStatus = objects.getT3();
 
                                 log.debug(BUILDING_PEC_QUEUE_PAYLOAD, messageID, LAVORAZIONE_ESITI_PEC);
 
@@ -192,7 +174,7 @@ public class LavorazioneEsitiPecService {
                                 var eventDetails = postacert.getErrore();
                                 var senderDigitalAddress = arubaSecretValue.getPecUsername();
                                 var senderDomain = getDomainFromAddress(senderDigitalAddress);
-                                var receiversDomain = ricEsitiPecDto.getReceiversDomain();
+                                var receiversDomain = ricezioneEsitiPecDto.getReceiversDomain();
 
                                 return generateLocation(requestIdx.get(), message)
                                         .map(location ->
@@ -219,12 +201,14 @@ public class LavorazioneEsitiPecService {
 
                             //Pubblicazione sulla coda degli stati PEC
                             .flatMap(notificationTrackerQueueDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
-                                    notificationTrackerQueueDto));
+                                    notificationTrackerQueueDto))
+                .doOnSuccess(result -> {
+                    log.logEndingProcess(LAVORAZIONE_ESITI_PEC);
+                    acknowledgment.acknowledge();
                 })
-                .doOnSuccess(result -> acknowledgment.acknowledge())
-                .doOnError(throwable -> log.warn(EXCEPTION_IN_PROCESS_FOR, LAVORAZIONE_ESITI_PEC, requestIdx.get(), throwable, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_ESITI_PEC, false, throwable.getMessage()))
                 .then()
-                .doFinally(signalType -> semaphore.release());
+                .doFinally(signalType -> semaphore.release()));
     }
 
 
@@ -253,7 +237,7 @@ public class LavorazioneEsitiPecService {
                             .retrieve()
                             .toBodilessEntity()
                             .thenReturn(SAFESTORAGE_PREFIX + fileCreationResponse.getKey());
-                }).doOnSuccess(location -> log.debug(LOCATION_GENERATED, LAVORAZIONE_ESITI_PEC, requestIdx));
+                }).doOnSuccess(location -> log.debug(SUCCESSFUL_OPERATION_LABEL, GENERATE_LOCATION, location));
     }
 
     private String generateSha256(byte[] fileBytes) {

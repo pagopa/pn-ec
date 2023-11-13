@@ -2,10 +2,12 @@ package it.pagopa.pn.ec.scaricamentoesitipec.service;
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
+import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
@@ -67,12 +69,12 @@ public class ScaricamentoEsitiPecServiceTest {
     void lavorazioneEsitiPecOk(String tipoDestinatario) throws IOException, MessagingException {
 
         RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(tipoDestinatario);
-        Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
         var request = pecRequest();
 
-        when(gestoreRepositoryCall.getRichiesta(eq(CLIENT_ID), eq(PEC_REQUEST_IDX))).thenReturn(Mono.just(request));
+        when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, PEC_REQUEST_IDX)).thenReturn(Mono.just(request));
         Mockito.doReturn(Mono.just("location")).when(lavorazioneEsitiPecService).generateLocation(eq(PEC_REQUEST_IDX), eq(ricezioneEsitiPecDto.getMessage()));
 
+        Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
         StepVerifier.create(testMono).expectComplete().verify();
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class));
     }
@@ -81,8 +83,9 @@ public class ScaricamentoEsitiPecServiceTest {
     void lavorazioneEsitiPecKo() throws IOException, MessagingException {
 
         RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto("certificato");
-        Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
+        when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, PEC_REQUEST_IDX)).thenReturn(Mono.error(new RepositoryManagerException.RequestNotFoundException(PEC_REQUEST_IDX)));
 
+        Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
         StepVerifier.create(testMono).expectError().verify();
     }
 

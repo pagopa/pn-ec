@@ -10,7 +10,7 @@ import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableExc
 import it.pagopa.pn.ec.commons.exception.ss.attachment.InvalidAttachmentSchemaException;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
 import it.pagopa.pn.ec.rest.v1.dto.ProblemError;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,7 +23,7 @@ import java.util.UUID;
 import static org.springframework.http.HttpStatus.*;
 
 @ControllerAdvice
-@Slf4j
+@CustomLog
 public class GlobalRestErrorHandler {
 
 	private static final String DEFAULT_PROBLEM_ERROR_MESSAGE = "Internal error codes to be defined";

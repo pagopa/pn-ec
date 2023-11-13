@@ -6,7 +6,7 @@ import it.pagopa.pn.ec.commons.exception.aruba.GetMessageIdException;
 import it.pagopa.pn.ec.commons.exception.aruba.GetMessagesException;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pec.bridgews.*;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 
 import java.time.Duration;
 
@@ -20,7 +20,7 @@ import reactor.util.retry.RetryBackoffSpec;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Component
-@Slf4j
+@CustomLog
 public class ArubaCallImpl implements ArubaCall {
 
     private final PecImapBridge pecImapBridge;

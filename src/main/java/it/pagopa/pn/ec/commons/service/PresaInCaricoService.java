@@ -1,12 +1,12 @@
 package it.pagopa.pn.ec.commons.service;
 
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 @Service
-@Slf4j
+@CustomLog
 public abstract class PresaInCaricoService {
 
     private final AuthService authService;

@@ -9,11 +9,10 @@ import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils;
 import it.pagopa.pn.library.pec.service.PnPecService;
-import it.pagopa.pn.library.pec.service.impl.PnPecServiceImpl;
 import it.pec.bridgews.*;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -27,7 +26,7 @@ import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
 
 @Component
-@Slf4j
+@CustomLog
 public class ScaricamentoEsitiPecScheduler {
 
     private final ArubaCall arubaCall;
@@ -62,7 +61,7 @@ public class ScaricamentoEsitiPecScheduler {
     @Scheduled(cron = "${PnEcCronScaricamentoEsitiPec ?:0 */5 * * * *}")
     public void scaricamentoEsitiPecScheduler() {
 
-        log.info(STARTING_SCHEDULED, SCARICAMENTO_ESITI_PEC);
+        log.logStartingProcess(SCARICAMENTO_ESITI_PEC);
         ScaricamentoEsitiPecUtils.sleepRandomSeconds();
 
         var getMessages = new GetMessages();
@@ -73,7 +72,7 @@ public class ScaricamentoEsitiPecScheduler {
         AtomicBoolean hasMessages = new AtomicBoolean();
         hasMessages.set(true);
 
-        pnPecService.getMessageCount()
+        MDCUtils.addMDCToContextAndExecute(pnPecService.getMessageCount()
                 .flatMap(messageCount -> cloudWatchPecMetrics.publishMessageCount((long) messageCount))
                 .then(arubaCall.getMessages(getMessages))
                 .flatMap(getMessagesResponse -> {
@@ -87,6 +86,7 @@ public class ScaricamentoEsitiPecScheduler {
 
                     var mimeMessage = getMimeMessage(message);
                     var messageID = getMessageIdFromMimeMessage(mimeMessage);
+                    MDC.put(MDC_CORR_ID_KEY, messageID);
                     //Rimozione delle parentesi angolari dal messageID
                     var finalMessageID = messageID.substring(1, messageID.length() - 1);
                     var attachBytes = findAttachmentByName(mimeMessage, "daticert.xml");
@@ -136,9 +136,10 @@ public class ScaricamentoEsitiPecScheduler {
                 })
                 //Marca il messaggio come letto.
                 .flatMap(finalMessageID -> arubaCall.getMessageId(createGetMessageIdRequest(finalMessageID, 2, true)), limitRate)
-                .doOnError(throwable -> log.error(FATAL_IN_PROCESS, SCARICAMENTO_ESITI_PEC, throwable, throwable.getMessage()))
+                .doOnError(throwable -> log.fatal(SCARICAMENTO_ESITI_PEC, throwable))
                 .onErrorResume(throwable -> Mono.empty())
                 .repeat(hasMessages::get)
+                .doOnComplete(() -> log.logEndingProcess(SCARICAMENTO_ESITI_PEC)))
                 .subscribe();
 
     }

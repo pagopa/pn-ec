@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.commons.utils;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 
-@Slf4j
+@CustomLog
 public class SqsUtils {
 
     private SqsUtils() {

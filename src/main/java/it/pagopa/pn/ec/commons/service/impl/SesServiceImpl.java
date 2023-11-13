@@ -24,7 +24,7 @@ import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.service.SesService;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.ses.SesAsyncClient;
@@ -34,7 +34,7 @@ import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
 import static org.apache.commons.codec.CharEncoding.UTF_8;
 
 @Service
-@Slf4j
+@CustomLog
 public class SesServiceImpl implements SesService {
 
     private final SesAsyncClient sesAsyncClient;

@@ -20,7 +20,7 @@ import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Component
-@Slf4j
+@CustomLog
 public class CloudWatchPecMetrics {
 
     private final CloudWatchAsyncClient cloudWatchAsyncClient;
