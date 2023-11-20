@@ -19,9 +19,9 @@ import java.util.concurrent.TimeUnit;
 
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.rest.v1.dto.GeneratedMessageDto;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 
-@Slf4j
+@CustomLog
 public class ScaricamentoEsitiPecUtils {
 
     private static final int MAX_SECONDS = 60;

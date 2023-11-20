@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.commons.configuration.http;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
 
-@Slf4j
+@CustomLog
 @Configuration
 public class NettyWebFilter implements WebFilter {
 

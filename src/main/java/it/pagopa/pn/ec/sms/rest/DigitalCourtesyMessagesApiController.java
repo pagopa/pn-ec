@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.sms.rest;
 
+import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
@@ -10,7 +11,8 @@ import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.sms.service.SmsService;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
+import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
@@ -21,7 +23,7 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static org.springframework.http.HttpStatus.OK;
 
 @RestController
-@Slf4j
+@CustomLog
 public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMessagesApi {
 
     private final SmsService smsService;
@@ -42,11 +44,13 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
     public Mono<ResponseEntity<CourtesyMessageProgressEvent>> getCourtesyShortMessageStatus(String requestIdx, String xPagopaExtchCxId,
                                                                                             ServerWebExchange exchange) {
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
-        log.info(STARTING_PROCESS_ON_LABEL, GET_COURTESY_SHORT_MESSAGE_STATUS, concatRequestId);
-        return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.sms())
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, GET_COURTESY_SHORT_MESSAGE_STATUS, concatRequestId))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, GET_COURTESY_SHORT_MESSAGE_STATUS, concatRequestId, throwable, throwable.getMessage()))
-                .map(ResponseEntity::ok);
+        MDC.clear();
+        MDC.put(MDC_CORR_ID_KEY, concatRequestId);
+        log.logStartingProcess(GET_COURTESY_SHORT_MESSAGE_STATUS);
+        return MDCUtils.addMDCToContextAndExecute(statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.sms())
+                .doOnSuccess(result -> log.logEndingProcess(GET_COURTESY_SHORT_MESSAGE_STATUS))
+                .doOnError(throwable -> log.logEndingProcess(GET_COURTESY_SHORT_MESSAGE_STATUS, false, throwable.getMessage()))
+                .map(ResponseEntity::ok));
     }
 
     @Override
@@ -54,16 +58,18 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                Mono<DigitalCourtesySmsRequest> digitalCourtesySmsRequest,
                                                                final ServerWebExchange exchange) {
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
-        log.info(STARTING_PROCESS_ON_LABEL, SEND_COURTESY_SHORT_MESSAGE, concatRequestId);
-        return digitalCourtesySmsRequest.flatMap(request ->
+        MDC.clear();
+        MDC.put(MDC_CORR_ID_KEY, concatRequestId);
+        log.logStartingProcess(SEND_COURTESY_SHORT_MESSAGE);
+        return MDCUtils.addMDCToContextAndExecute(digitalCourtesySmsRequest.flatMap(request ->
                         smsService.presaInCarico(SmsPresaInCaricoInfo.builder()
                                 .requestIdx(requestIdx)
                                 .xPagopaExtchCxId(xPagopaExtchCxId)
                                 .digitalCourtesySmsRequest(request)
                                 .build()))
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, SEND_COURTESY_SHORT_MESSAGE, concatRequestId))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, SEND_COURTESY_SHORT_MESSAGE, concatRequestId, throwable, throwable.getMessage()))
-                .thenReturn(new ResponseEntity<>(OK));
+                .doOnSuccess(result -> log.logEndingProcess(SEND_COURTESY_SHORT_MESSAGE))
+                .doOnError(throwable -> log.logEndingProcess(SEND_COURTESY_SHORT_MESSAGE, false, throwable.getMessage()))
+                .thenReturn(new ResponseEntity<>(OK)));
     }
 
     /*
@@ -79,26 +85,30 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                                                  Mono<DigitalCourtesyMailRequest> digitalCourtesyMailRequest,
                                                                  final ServerWebExchange exchange) {
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
-        log.info(STARTING_PROCESS_ON_LABEL, SEND_DIGITAL_COURTESY_MESSAGE, concatRequestId);
-        return digitalCourtesyMailRequest.flatMap(request ->
+        MDC.clear();
+        MDC.put(MDC_CORR_ID_KEY, concatRequestId);
+        log.logStartingProcess(SEND_DIGITAL_COURTESY_MESSAGE);
+        return MDCUtils.addMDCToContextAndExecute(digitalCourtesyMailRequest.flatMap(request ->
                         emailService.presaInCarico(EmailPresaInCaricoInfo.builder()
                                 .requestIdx(requestIdx)
                                 .xPagopaExtchCxId(xPagopaExtchCxId)
                                 .digitalCourtesyMailRequest(request)
                                 .build()))
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, SEND_DIGITAL_COURTESY_MESSAGE, concatRequestId))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, SEND_DIGITAL_COURTESY_MESSAGE, concatRequestId, throwable, throwable.getMessage()))
-                .thenReturn(new ResponseEntity<>(OK));
+                .doOnSuccess(result -> log.logEndingProcess(SEND_DIGITAL_COURTESY_MESSAGE))
+                .doOnError(throwable -> log.logEndingProcess(SEND_DIGITAL_COURTESY_MESSAGE, false, throwable.getMessage()))
+                .thenReturn(new ResponseEntity<>(OK)));
     }
 
     @Override
     public Mono<ResponseEntity<CourtesyMessageProgressEvent>> getDigitalCourtesyMessageStatus(String requestIdx, String xPagopaExtchCxId,
                                                                                               ServerWebExchange exchange) {
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
-        log.info(STARTING_PROCESS_ON_LABEL, GET_DIGITAL_COURTESY_MESSAGE_STATUS, concatRequestId);
-        return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.email())
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL,  GET_DIGITAL_COURTESY_MESSAGE_STATUS, concatRequestId))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, GET_DIGITAL_COURTESY_MESSAGE_STATUS, concatRequestId, throwable, throwable.getMessage()))
-                .map(ResponseEntity::ok);
+        MDC.clear();
+        MDC.put(MDC_CORR_ID_KEY, concatRequestId);
+        log.logStartingProcess(GET_DIGITAL_COURTESY_MESSAGE_STATUS);
+        return MDCUtils.addMDCToContextAndExecute(statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.email())
+                .doOnSuccess(result -> log.logEndingProcess(GET_DIGITAL_COURTESY_MESSAGE_STATUS))
+                .doOnError(throwable -> log.logEndingProcess(GET_DIGITAL_COURTESY_MESSAGE_STATUS, false, throwable.getMessage()))
+                .map(ResponseEntity::ok));
     }
 }

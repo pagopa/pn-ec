@@ -59,15 +59,32 @@ jq -r '.xpagopaExtchCxId + "~" + .requestIdx + " " + .nextStatus + " " + .digita
     continue
   fi
   query=".Item.eventsList.L[].M.digProgrStatus.M | .status.S == \"${nextStatus}\""
-  found=$(echo ${response} | jq "${query}" | grep true)
+  found=$(echo ${response} | jq "${query}" | grep -n true)
+  index=$(($(echo ${found} | cut -d ':' -f 1) - 1))
+  found=$(echo ${found} | cut -d ':' -f 2)
   if [ "x${found}" == "xtrue" ] ; then
-    query=".Item.eventsList.L[].M.digProgrStatus.M | .status.S == \"${nextStatus}\" and .eventTimestamp.S == \"${timestamp}\" and .generatedMessage.M.system.S == \"${system}\" and .generatedMessage.M.id.S == \"${id}\" and .generatedMessage.M.location.S == \"${location}\""
-    found=$(echo ${response} | jq "${query}" | grep true)
-    if [ "x${found}" == "xtrue" ] ; then
-      echo "[INFO ] ${requestKey} - event \"${nextStatus}\" duplicated - Ok"
-    else
-      echo "[ERROR] ${requestKey} - event \"${nextStatus}\" duplicated but attributes mismatch - Warning"
-    fi
+    query=".Item.eventsList.L[${index}].M.digProgrStatus.M"
+    event=$(echo ${response} | jq "${query}")
+    eventTimestamp=$(echo ${event} | jq -r ".eventTimestamp.S")
+		eventSystem=$(echo ${event} | jq -r ".generatedMessage.M.system.S")
+		eventId=$(echo ${event} | jq -r ".generatedMessage.M.id.S")
+		
+		if [ "x${eventSystem}" != "x${system}" ] ; then
+      echo "[ERROR] ${requestKey} - event \"${nextStatus}\" duplicated but attributes 'system' mismatch - Warning"
+      continue
+		fi
+		if [ "x${eventId}" != "x${id}" ] ; then
+      echo "[ERROR] ${requestKey} - event \"${nextStatus}\" duplicated but attributes 'id' mismatch - Warning"
+      continue
+		fi
+		eventEpoch=$(date -d ${eventTimestamp} +%s)
+		epoch=$(date -d ${timestamp} +%s)
+		if [ ${eventEpoch} -ne ${epoch} ] ; then
+      echo "[ERROR] ${requestKey} - event \"${nextStatus}\" duplicated but attributes 'eventTimestamp' mismatch - Warning"
+      continue
+		fi
+				
+    echo "[INFO ] ${requestKey} - event \"${nextStatus}\" duplicated - Ok"
   else
     echo "[ERROR] ${requestKey} - event \"${nextStatus}\" MISSING - KO"
   fi

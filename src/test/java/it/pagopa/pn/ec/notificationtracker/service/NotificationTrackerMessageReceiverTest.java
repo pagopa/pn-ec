@@ -22,6 +22,8 @@ import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.service.RequestService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import lombok.CustomLog;
+import lombok.CustomLog;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
