@@ -1,44 +1,30 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
-import it.pagopa.pn.ec.commons.constant.Status;
-import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
-import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
-import it.pagopa.pn.ec.commons.exception.aruba.GetMessageIdException;
-import it.pagopa.pn.ec.commons.exception.aruba.GetMessagesException;
 import it.pagopa.pn.ec.commons.model.pojo.pec.PnPostacert;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
-import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
+import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils;
+import it.pagopa.pn.library.pec.service.PnPecService;
 import it.pec.bridgews.*;
-import lombok.CustomLog;
 import lombok.CustomLog;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuples;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
-import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
-import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
-import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.DESTINATARIO_ESTERNO;
-import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils.decodePecStatusToMachineStateStatus;
 
 @Component
 @CustomLog
@@ -48,14 +34,18 @@ public class ScaricamentoEsitiPecScheduler {
     private final DaticertService daticertService;
     private final SqsService sqsService;
     private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
+    private final CloudWatchPecMetrics cloudWatchPecMetrics;
+    private final PnPecService pnPecService;
     @Value("${scaricamento-esiti-pec.limit-rate}")
     private Integer limitRate;
 
-    public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties) {
+    public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, CloudWatchPecMetrics cloudWatchPecMetrics, PnPecService pnPecService) {
         this.arubaCall = arubaCall;
         this.daticertService = daticertService;
         this.sqsService = sqsService;
         this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;
+        this.cloudWatchPecMetrics = cloudWatchPecMetrics;
+        this.pnPecService = pnPecService;
     }
 
     private final Predicate<PnPostacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
@@ -83,8 +73,9 @@ public class ScaricamentoEsitiPecScheduler {
         AtomicBoolean hasMessages = new AtomicBoolean();
         hasMessages.set(true);
 
-
-        MDCUtils.addMDCToContextAndExecute(arubaCall.getMessages(getMessages)
+        MDCUtils.addMDCToContextAndExecute(pnPecService.getMessageCount()
+                .flatMap(messageCount -> cloudWatchPecMetrics.publishMessageCount((long) messageCount))
+                .then(arubaCall.getMessages(getMessages))
                 .flatMap(getMessagesResponse -> {
                     var arrayOfMessages = getMessagesResponse.getArrayOfMessages();
                     if (Objects.isNull(arrayOfMessages))

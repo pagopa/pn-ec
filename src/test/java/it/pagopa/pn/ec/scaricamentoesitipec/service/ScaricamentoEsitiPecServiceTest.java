@@ -14,6 +14,7 @@ import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
+import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

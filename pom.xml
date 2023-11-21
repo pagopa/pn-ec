@@ -59,6 +59,12 @@
             </exclusions>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.codehaus.janino/janino -->
+				<dependency>
+				    <groupId>org.codehaus.janino</groupId>
+				    <artifactId>janino</artifactId>
+				</dependency>
+
         <!-- Start OpenApi dependencies --> 
         <dependency>
             <groupId>org.openapitools</groupId>
@@ -258,10 +264,6 @@
         </dependency>
         <!--prova generators-->
 
-        <dependency>
-            <groupId>org.codehaus.janino</groupId>
-            <artifactId>janino</artifactId>
-        </dependency>
 
     </dependencies>
 
