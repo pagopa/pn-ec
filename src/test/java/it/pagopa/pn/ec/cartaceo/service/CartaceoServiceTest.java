@@ -6,13 +6,12 @@ import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
-import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
-import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
+import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -20,17 +19,22 @@ import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
+import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.List;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.*;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
-import static org.mockito.AdditionalMatchers.not;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -57,6 +61,8 @@ class CartaceoServiceTest {
 
     @Mock
     private Acknowledgment acknowledgment;
+
+    private final Message message = Message.builder().build();
 
     private static final CartaceoPresaInCaricoInfo CARTACEO_PRESA_IN_CARICO_INFO = CartaceoPresaInCaricoInfo.builder().requestIdx(DEFAULT_REQUEST_IDX)
             .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
@@ -195,5 +201,51 @@ class CartaceoServiceTest {
         boolean testImplemented = true;
         assertTrue(testImplemented);
     }
+
+    @Test
+    void lavorazioneRichiestaBatchOk() {
+        RetryDto retryDto = new RetryDto() {{
+            setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
+            setRetryStep(BigDecimal.valueOf(0));
+            setRetryPolicy(List.of(BigDecimal.valueOf(5), BigDecimal.valueOf(10)));
+        }};
+        RequestMetadataDto requestMetadataDto = new RequestMetadataDto() {{
+            setRetry(retryDto);
+            setEventsList(List.of(new EventsDto()));
+        }};
+        RequestDto requestDto = new RequestDto() {{
+            setRequestMetadata(requestMetadataDto);
+            setStatusRequest("statusTest");
+            setRequestIdx(DEFAULT_REQUEST_IDX);
+        }};
+
+        when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
+        when(sqsService.deleteMessageFromQueue(any(), any())).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        when(sqsService.getMessages(cartaceoSqsQueueName.batchName(), CartaceoPresaInCaricoInfo.class)).thenReturn(Flux.just(new SqsMessageWrapper<>(message, CARTACEO_PRESA_IN_CARICO_INFO)));
+        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(requestDto));
+
+        cartaceoService.lavorazioneRichiestaBatch();
+
+        verify(sqsService, times(2)).getMessages(cartaceoSqsQueueName.batchName(), CartaceoPresaInCaricoInfo.class);
+        verify(sqsService, times(1)).deleteMessageFromQueue(any(), any());
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
+
+    }
+
+    @Test
+    void lavorazioneRichiestaBatchTestKo() {
+        when(sqsService.getMessages(cartaceoSqsQueueName.batchName(), CartaceoPresaInCaricoInfo.class)).thenReturn(Flux.just(new SqsMessageWrapper<>(null, CARTACEO_PRESA_IN_CARICO_INFO)));
+        when(sqsService.deleteMessageFromQueue(any(),any())).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        cartaceoService.lavorazioneRichiestaBatch();
+
+        verify(sqsService, times(2)).getMessages(cartaceoSqsQueueName.batchName(), CartaceoPresaInCaricoInfo.class);
+        verify(sqsService, times(1)).deleteMessageFromQueue(any(), any());
+    }
+
+
+
+
+
 
 }

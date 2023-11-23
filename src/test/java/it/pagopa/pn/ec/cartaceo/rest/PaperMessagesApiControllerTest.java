@@ -68,6 +68,7 @@ class PaperMessagesApiControllerTest {
     @MockBean
     private FileCall uriBuilderCall;
 
+    private static final String GET_PAPER_ENGAGE_PROGRESSES_ENDPOINT ="/external-channels/v1/paper-deliveries-engagements" + "/{requestIdx}";
     private static final String SEND_CARTACEO_ENDPOINT = "/external-channels/v1/paper-deliveries-engagements" + "/{requestIdx}";
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
@@ -250,4 +251,34 @@ class PaperMessagesApiControllerTest {
                                                                                               .expectBody(Problem.class);
     }
 
+    @Test
+    void getPaperEngageProgressesTest() {
+        RequestMetadataDto requestMetadataDto = new RequestMetadataDto() {{
+            setEventsList(new ArrayList<>());
+        }};
+        RequestDto requestDto = new RequestDto() {{
+            setMessageId("messageId");
+            setxPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE);
+            setClientRequestTimeStamp(OffsetDateTime.now());
+            setxPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE);
+            setRequestMetadata(requestMetadataDto);
+        }};
+        ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto() {{
+            setxPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE);
+            setApiKey("apiKey");
+        }};
+
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(requestDto));
+
+        webTestClient.get()
+                .uri(uriBuilder -> uriBuilder.path(GET_PAPER_ENGAGE_PROGRESSES_ENDPOINT).build(DEFAULT_REQUEST_IDX))
+                .accept(APPLICATION_JSON)
+                .header(ID_CLIENT_HEADER_NAME, DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(PaperProgressStatusEvent.class)
+                .returnResult();
+    }
 }
