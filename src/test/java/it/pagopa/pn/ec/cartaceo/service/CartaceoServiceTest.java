@@ -242,10 +242,4 @@ class CartaceoServiceTest {
         verify(sqsService, times(2)).getMessages(cartaceoSqsQueueName.batchName(), CartaceoPresaInCaricoInfo.class);
         verify(sqsService, times(1)).deleteMessageFromQueue(any(), any());
     }
-
-
-
-
-
-
 }

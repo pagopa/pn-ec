@@ -152,4 +152,19 @@ class CartaceoRetryTest {
 
     }
 
+    @Test
+    void checkTentativiEccessiviCartaceoTest() {
+        RequestDto requestDto= buildRequestDto();
+
+        String requestId=requestDto.getRequestIdx();
+        String clientId = requestDto.getxPagopaExtchCxId();
+
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
+        when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(cartaceoSqsQueueName.errorName()))).thenThrow(new RuntimeException("TestException"));
+
+        StepVerifier.create(cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO, message)).expectNextCount(0).verifyComplete();
+
+    }
 }
