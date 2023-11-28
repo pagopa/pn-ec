@@ -97,7 +97,7 @@ public class ScaricamentoEsitiPecScheduler {
 //                  Check se daticert.xml è presente controllando la lunghezza del byte[]
                     if (!Objects.isNull(attachBytes) && attachBytes.length > 0) {
 
-                        log.debug(SCARICAMENTO_ESITI_PEC + " - PEC '{}' has daticert.xml with content : {}", finalMessageID, new String(attachBytes));
+                        log.debug(SCARICAMENTO_ESITI_PEC + " - PEC '{}' has daticert.xml", finalMessageID);
 
 //                      Deserialize daticert.xml. Start a new Mono inside the flatMap
                          return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(attachBytes))
