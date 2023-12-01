@@ -12,11 +12,13 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
+import java.util.regex.Matcher;
 
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
+import it.pagopa.pn.ec.consolidatore.utils.PaperElem;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -42,13 +44,14 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import reactor.core.publisher.Mono;
+import org.hamcrest.Matchers;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
-@Slf4j
+@CustomLog
 class RicezioneEsitiConsolidatoreControllerTest {
 	
     @Autowired
@@ -95,7 +98,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
 
 	private static final String STATUS_CODE_INESISTENTE = "test";
-    
+
     private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithoutAttachments() {
     	ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = new ConsolidatoreIngressPaperProgressStatusEvent();
     	progressStatusEvent.setRequestId(requestId);
@@ -113,8 +116,17 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		clientConfigurationInternalDto.setApiKey(xApiKeyHeaderValue);
 		clientConfigurationInternalDto.setxPagopaExtchCxId(xPagopaExtchServiceIdHeaderValue);
 	}
-    
-    private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithAttachments() {
+
+	private ConsolidatoreIngressPaperProgressStatusEvent consolidatoreIngressPaperProgressStatusEventWithAttachmentsAndRecCode(String code, String documentType){
+		ConsolidatoreIngressPaperProgressStatusEvent event = getProgressStatusEventWithAttachments();
+		code = code == null || code.isEmpty() ? PaperElem.RECAG003E: code;
+		event.setStatusCode(code);
+		event.getAttachments().get(0).setDocumentType(
+				documentType == null || documentType.isEmpty() ? ATTACHMENT_DOCUMENT_TYPE_ARCAD : documentType);
+		return event;
+	}
+
+	private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithAttachments() {
     	ConsolidatoreIngressPaperProgressStatusEventAttachments attachment = new ConsolidatoreIngressPaperProgressStatusEventAttachments();
     	attachment.setId(attachmentId);	
     	attachment.setDocumentType(documentType);
@@ -414,6 +426,33 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	        .expectStatus()
 	        .isBadRequest();
     }
+    
+    @Test
+    /** Test CRCRE.100.4 */
+    void ricezioneEsitiErroreValidazioneAttachments() {
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+    	log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneAttachments() : START");
+    	
+    	when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+    	
+    	when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true))
+    		.thenReturn(Mono.error(new AttachmentNotAvailableException(documentKey)));
+    	
+    	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+    	events.add(getProgressStatusEventWithAttachments());
+    	
+        webClient.put()
+	        .uri(RICEZIONE_ESITI_ENDPOINT)
+	        .accept(APPLICATION_JSON)
+	        .contentType(APPLICATION_JSON)
+	        .header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+	        .header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+	        .body(BodyInserters.fromValue(events))
+	        .exchange()
+	        .expectStatus()
+	        .isBadRequest();
+    }
+
 
     @Test
     /** Test CRCRE.100.4 */
@@ -446,5 +485,66 @@ class RicezioneEsitiConsolidatoreControllerTest {
         .expectStatus()
         .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+
+	@Test
+	void ricezioneEsitiWithRecCodeAndAttachments(){
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiWithRecCodeAndInvalidAttachment() : START");
+
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class)))
+				.thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName.statoCartaceoName())));
+
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(consolidatoreIngressPaperProgressStatusEventWithAttachmentsAndRecCode(PaperElem.RECAG003E,"INVALID"));
+		//events.add(consolidatoreIngressPaperProgressStatusEventWithAttachmentsAndRecCode(CON010));
+
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isEqualTo(HttpStatus.BAD_REQUEST);
+
+	}
+
+
+	@Test
+	/** Test PN-8187 */
+	void ricezioneEsitiErroreValidazioneSyntaxError() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneStatusCode() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+
+		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();
+		progressStatusEvent.setStatusCode(STATUS_CODE_INESISTENTE);
+		progressStatusEvent.setDiscoveredAddress(new ConsolidatoreIngressPaperProgressStatusEventDiscoveredAddress());
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(progressStatusEvent);
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+				.expectBody(OperationResultCodeResponse.class)
+				.value(OperationResultCodeResponse::getErrorList, Matchers.hasItem(Matchers.containsString("'discoveredAddress.address': rejected value [null]")));
+
+	}
 
 }

@@ -258,7 +258,13 @@ public class PaperElem {
 			Map.entry("F01","in caso di furto"),
 			Map.entry("F02","in caso di smarrimento"),
 			Map.entry("F03","in caso di deterioramento"),
-			Map.entry("F04","in caso di rapina"));
+			Map.entry("F04","in caso di rapina"),
+			Map.entry("C01","incendio"),
+			Map.entry("C02","strada chiusa per lavori in corso o frana"),
+			Map.entry("C03","strada chiusa dalle autorità per eventi eccezionali"),
+			Map.entry("C04","maltempo: Alluvione, Neve, Allagamento"),
+			Map.entry("C05","terremoto"),
+			Map.entry("C06","eruzione vulcanica"));
 	
 	public static Map<String, String> deliveryFailureCausemap() {
 		return deliveryFailureCauseMap;

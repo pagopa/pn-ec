@@ -20,10 +20,6 @@ Parameters:
     Type: String
     Description: 'keep track of used projects commitIds'
 
-  # CdcKinesisSourceStreamArn:
-  #   Type: String
-  #   Description: 'Where to send CDC'
-
   PnEcEventBusTrackerExternalNotificationName:
     Type: String
     Description: 'Nome del Event Bus che raccoglie gli eventi del microservizio Gestore Disponibilita'
@@ -46,18 +42,8 @@ Parameters:
     Type: Number
     Default: 14
 
-  ### SMS STRESS TEST ###
-  SMSStressTestMode:
-    Type: String
-    Default: 'false'
-
-  SMSStressTestTopicName:
-    Type: String
-    Default: 'pn-ec-sms-stress-test-topic'
-
 Conditions:
   IsDevEnv: !Equals [ !Ref EnvType, 'dev']
-  SMSStressTestModeON: !Equals [ !Ref SMSStressTestMode, 'true']
 
 Resources:
   PCKmsEncDecDynamoDataKey:
@@ -447,25 +433,6 @@ Resources:
           StringEqualsIfExists:
             events:creatorAccount: !Ref AWS::AccountId
 
-  # ####### DENY POLICY FROM OUTSIDE ACCOUNT ########
-  # PnEcEventBusPolicyDenyTrackerExternalNotification:
-  #   Type: AWS::Events::EventBusPolicy
-  #   Properties:
-  #     EventBusName: !Ref PnEcEventBusTrackerExternalNotification
-  #     StatementId: 'PnEcCustomEventBusPolicyDenyCrossAccount'
-  #     Statement:
-  #       Action:
-  #         - "events:*"
-  #       Effect: 'Deny'
-  #       Principal:
-  #         Service:
-  #           - 'ecs.amazonaws.com'
-  #       Resource: !GetAtt PnEcEventBusTrackerExternalNotification.Arn
-  #       Condition:
-  #         StringNotEquals:
-  #           aws:SourceAccount: !Sub '${AWS::AccountId}'
-
-
   PnEcEventRuleNotificheDebugDev:
     Type: AWS::Events::Rule
     Condition: IsDevEnv
@@ -497,13 +464,6 @@ Resources:
         QueueHasAlarm: 'true'
         OncallDLQLimit: '1'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
-
-  # PnEcEventBusArchiveTrackerExternalNotification:
-  #   Type: AWS::Events::Archive
-  #   Properties:
-  #     Description: 'Archive for storage of events to be delivered from Notification Tracker towards external platform'
-  #     RetentionDays: 15
-  #     SourceArn: !Ref PnEcEventBusTrackerExternalNotification
 
   ###### CHANNEL : SMS #######
 
@@ -663,7 +623,7 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         VisibilityTimeout: 600
 
-  ###### CHANNEL : EMAIL #######
+  ####### CHANNEL : EMAIL #######
 
   PnEcQueueBatchEMAILStack:
     Type: AWS::CloudFormation::Stack
@@ -770,7 +730,7 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         VisibilityTimeout: 600
 
-  ####### ECS LOG GROUO ######
+  ####### ECS LOG GROUP ######
   EcsLogGroup:
     Type: AWS::CloudFormation::Stack
     UpdateReplacePolicy: Retain
@@ -782,32 +742,76 @@ Resources:
         LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
         LogGroupRetention: !Ref LogRetention
 
-
-##############   CHANNEL SMS STRESS TEST    ###################
-  PnEcSMSStressTestQueue:
-    Condition: SMSStressTestModeON
+  ###### PEC - Cancellazione ricevute ######
+  PnEcQueueCancellazioneRicevutePECStack:
     Type: AWS::CloudFormation::Stack
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
-        QueueName: 'pn-ec-sms-stress-test'
+        QueueName: 'pn-ec-pec-cancellazione-ricevute-queue'
         SqsManagedSseEnabled: true
         ContentBasedDeduplication: 'true'
         HasDLQ: 'true'
         MaxReceiveCount: 10
-        VisibilityTimeout: 360
-  
-  PnEcSMSStressTestTopic:
-    Condition: SMSStressTestModeON
-    DeletionPolicy: Delete
-    Type: AWS::SNS::Topic
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 300
+
+  PnEcEventRuleCancellazioneRicevutePEC:
+    Type: AWS::Events::Rule
     Properties:
-      Subscription: 
-        - Endpoint: !GetAtt PnEcSMSStressTestQueue.Outputs.QueueARN
-          Protocol: 'SQS'
-      TopicName: 'pn-ec-sms-stress-test-topic'
+      Description: 'This Event rule is used to match events related to PEC receipt deletion'
+      EventBusName: !Ref PnEcEventBusTrackerExternalNotification
+      EventPattern:
+        source:
+          - 'NOTIFICATION TRACKER'
+        account:
+          - !Ref AWS::AccountId
+        region:
+          - !Ref AWS::Region
+        detail:
+          digitalLegal:
+            eventCode:
+              - 'C001'
+              - 'C002'
+              - 'C003'
+              - 'C004'
+              - 'C006'
+              - 'C007'
+              - 'C009'
+      State: 'ENABLED'
+      Targets:
+        - Arn: !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueARN
+          Id: 'PnEcCancellazioneRicevutePecTarget'
+
+  PnEcQueuePolicyCancellazioneRicevutePEC:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueURL
+      PolicyDocument:
+        Statement:
+          - Sid: 'AllowAccessSameAccount'
+            Action:
+              - 'sqs:*'
+            Effect: 'Allow'
+            Resource: !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueARN
+            Principal:
+              AWS: !Ref AWS::AccountId
+          - Sid: 'AllowPutEventsFromEventRule'
+            Action:
+              - 'sqs:SendMessage'
+            Effect: 'Allow'
+            Resource: !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueARN
+            Principal:
+              Service:
+              - 'events.amazonaws.com'
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt PnEcEventRuleCancellazioneRicevutePEC.Arn
+
 
 #########  OUTPUTS  ##########
 
@@ -1293,15 +1297,15 @@ Outputs:
 ###### SCARICAMENTO ESITI : PEC #######
 
   PnEcQueueNameScaricamentoEsitiPEC:
-    Description: '[Canale SMS] Nome della Coda per lo scaricamento esiti PEC'
+    Description: '[PEC- Scaricamento Esiti] Nome della Coda per lo scaricamento esiti PEC'
     Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueName
 
   PnEcQueueArnScaricamentoEsitiPEC:
-    Description: '[Canale SMS] ARN della Coda per lo scaricamento esiti PEC'
+    Description: '[PEC- Scaricamento Esiti] ARN della Coda per lo scaricamento esiti PEC'
     Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueARN
 
   PnEcQueueUrlScaricamentoEsitiPEC:
-    Description: '[Canale SMS] URL della Coda per lo scaricamento esiti PEC'
+    Description: '[PEC- Scaricamento Esiti] URL della Coda per lo scaricamento esiti PEC'
     Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueScaricamentoEsitiPEC:
@@ -1312,30 +1316,28 @@ Outputs:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueScaricamentoEsitiPEC"
     Value: !GetAtt PnEcQueueScaricamentoEsitiPECStack.Outputs.SqsDLQAlarmArn
 
+###### CANCELLAZIONE RICEVUTE : PEC #######
+
+  PnEcQueueNameCancellazioneRicevutePEC:
+    Description: '[PEC- Cancellazione Ricevute] Nome della Coda per la cancellazione ricevute PEC'
+    Value: !GetAtt  PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueName
+
+  PnEcQueueArnCancellazioneRicevutePEC:
+    Description: '[PEC- Cancellazione Ricevute] ARN della Coda per la cancellazione ricevute PEC'
+    Value: !GetAtt  PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueARN
+
+  PnEcQueueUrlCancellazioneRicevutePEC:
+    Description: '[PEC- Cancellazione Ricevute] URL della Coda per la cancellazione ricevute PEC'
+    Value: !GetAtt  PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueURL
+
+  PnEcAlarmArnQueueCancellazioneRicevutePEC:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueCancellazioneRicevutePEC"
+    Value: !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueCancellazioneRicevutePEC:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueCancellazioneRicevutePEC"
+    Value: !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.SqsDLQAlarmArn
+
   EcsLogGroup:
     Value: !GetAtt EcsLogGroup.Outputs.LogGroupName
 
-###### SMS STRESS TESTE MODE #######
-
-  SMSStressTestMode:
-    Value: !Ref SMSStressTestMode
-
-  PnEcQueueNameSMSStressTestQueue:
-    Condition: SMSStressTestModeON
-    Description: '[Stress Test SMS] Nome della Coda per lo Stress Test SMS'
-    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueName
-
-  PnEcQueueArnSMSStressTestQueue:
-    Condition: SMSStressTestModeON
-    Description: '[Stress Test SMS] ARN della Coda per lo Stress Test SMS'
-    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueARN
-
-  PnEcQueueUrlSMSStressTestQueue:
-    Condition: SMSStressTestModeON
-    Description: '[Stress Test SMS] URL della Coda per lo Stress Test SMS'
-    Value: !GetAtt  PnEcSMSStressTestQueue.Outputs.QueueURL
-
-  PnEcSMSStressTestTopicArn:
-    Condition: SMSStressTestModeON
-    Description: '[Stress Test SMS] ARN del Topic per lo Stress Test SMS'
-    Value: !Ref PnEcSMSStressTestTopic

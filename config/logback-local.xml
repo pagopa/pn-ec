@@ -3,7 +3,7 @@
 <configuration scan="true" scanPeriod="30 seconds" >
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d [%X{trace_id}] %highlight(%-5level) - %-4relative - [%thread] - %cyan(%logger{20}) - %msg %n</pattern>
+            <pattern>%d [%X{trace_id}] %highlight(%-5level) - %-4relative - [%thread] - %cyan(%logger{20}) - %red([%X{cx_id}]) - %msg %n</pattern>
         </encoder>
     </appender>
     <root level="info">

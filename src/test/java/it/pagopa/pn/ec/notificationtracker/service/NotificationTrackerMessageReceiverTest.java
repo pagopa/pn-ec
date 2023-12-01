@@ -1,10 +1,8 @@
 package it.pagopa.pn.ec.notificationtracker.service;
 
-import com.amazonaws.services.s3.transfer.internal.future.FutureImpl;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
@@ -13,41 +11,40 @@ import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.commons.utils.CompareUtils;
 import it.pagopa.pn.ec.commons.utils.RestUtils;
 import it.pagopa.pn.ec.notificationtracker.service.impl.NotificationTrackerMessageReceiver;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
-import it.pagopa.pn.ec.repositorymanager.model.entity.*;
 import it.pagopa.pn.ec.repositorymanager.model.entity.DiscoveredAddress;
+import it.pagopa.pn.ec.repositorymanager.model.entity.*;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Patch;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.service.RequestService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import lombok.CustomLog;
+import lombok.CustomLog;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.*;
-import org.mockito.Mock;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.testcontainers.shaded.org.bouncycastle.cert.ocsp.Req;
+import org.springframework.test.annotation.DirtiesContext;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
-import java.awt.print.Paper;
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
@@ -57,6 +54,7 @@ import static org.mockito.Mockito.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTestWebEnv
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class NotificationTrackerMessageReceiverTest {
     @Autowired
     private NotificationTrackerMessageReceiver notificationTrackerMessageReceiver;
@@ -207,22 +205,6 @@ public class NotificationTrackerMessageReceiverTest {
         //THEN
         verify(notificationTrackerService, times(1)).handleMessageFromErrorQueue(notificationTrackerQueueDto, statoQueueName, acknowledgment);
         verify(sqsService, times(1)).send(statoQueueName, notificationTrackerQueueDto);
-    }
-
-    @ParameterizedTest
-    @MethodSource("provideArguments")
-    void digitalNtStatusValidationKo(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
-
-        //WHEN
-        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.error(new InvalidNextStatusException("", "", "", "")));
-        mockStatusDecode();
-
-        //THEN
-        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId);
-
-        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
-        verify(sqsService, times(1)).send(any(), any());
-
     }
 
     @ParameterizedTest

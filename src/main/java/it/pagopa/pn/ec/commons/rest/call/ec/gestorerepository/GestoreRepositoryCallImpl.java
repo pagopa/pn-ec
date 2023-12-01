@@ -4,7 +4,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.Gest
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -14,7 +14,7 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static org.springframework.http.HttpStatus.*;
 
 @Component
-@Slf4j
+@CustomLog
 public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
     private final WebClient ecWebClient;

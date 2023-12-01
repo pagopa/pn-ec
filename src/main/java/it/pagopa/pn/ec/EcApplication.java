@@ -5,8 +5,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.PropertySource;
 
-@SpringBootApplication
-@ConfigurationPropertiesScan
+@SpringBootApplication(scanBasePackages = {"it.pagopa.pn.ec", "it.pagopa.pn.library.pec"})
+@ConfigurationPropertiesScan(basePackages = {"it.pagopa.pn.ec", "it.pagopa.pn.library.pec"})
 
 // <-- COMMONS -->
 // AWS CONFIGURATION
@@ -46,6 +46,7 @@ import org.springframework.context.annotation.PropertySource;
 //  <-- SCARICAMENTO ESITI PEC -->
 @PropertySource("classpath:scaricamentoesitipec/scaricamento-esiti-pec.properties")
 @PropertySource("classpath:scaricamentoesitipec/aruba-call-retry-strategy.properties")
+@PropertySource("classpath:scaricamentoesitipec/cancellazione-ricevute-pec.properties")
 
 //  <-- CARTACEO -->
 // SQS QUEUE
@@ -56,7 +57,6 @@ import org.springframework.context.annotation.PropertySource;
 //  <-- NOTIFICATION TRACKER -->
 // EVENTBRIDGE EVENT
 @PropertySource("classpath:notificationtracker/notificationtracker-eventbridge-eventbus.properties")
-
 public class EcApplication {
 
     public static void main(String[] args) {

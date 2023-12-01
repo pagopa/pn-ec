@@ -1,19 +1,18 @@
 package it.pagopa.pn.ec.consolidatore.controller;
 
-import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
-import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
-import static it.pagopa.pn.ec.consolidatore.service.impl.RicezioneEsitiCartaceoServiceImpl.getAllErrors;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.COMPLETED_OK_CODE;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.INTERNAL_SERVER_ERROR_CODE;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.errorCodeDescriptionMap;
-import java.util.ArrayList;
-import java.util.List;
+import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.consolidatore.exception.SemanticException;
 import it.pagopa.pn.ec.consolidatore.exception.SyntaxException;
 import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogError;
 import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogEvent;
+import it.pagopa.pn.ec.consolidatore.service.RicezioneEsitiCartaceoService;
+import it.pagopa.pn.ec.consolidatore.service.impl.ConsolidatoreServiceImpl;
+import it.pagopa.pn.ec.rest.v1.api.ConsolidatoreApi;
+import it.pagopa.pn.ec.rest.v1.dto.*;
+import lombok.CustomLog;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,20 +21,20 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
-import it.pagopa.pn.ec.consolidatore.service.impl.ConsolidatoreServiceImpl;
-import it.pagopa.pn.ec.consolidatore.service.RicezioneEsitiCartaceoService;
-import it.pagopa.pn.ec.rest.v1.api.ConsolidatoreApi;
-import it.pagopa.pn.ec.rest.v1.dto.ConsolidatoreIngressPaperProgressStatusEvent;
-import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
-import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
-import it.pagopa.pn.ec.rest.v1.dto.PreLoadRequestData;
-import it.pagopa.pn.ec.rest.v1.dto.PreLoadResponseData;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.ERR_CONS;
+import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.ERR_CONS_BAD_JSON_FORMAT;
+import static it.pagopa.pn.ec.consolidatore.service.impl.RicezioneEsitiCartaceoServiceImpl.getAllErrors;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.*;
+
 @RestController
-@Slf4j
+@CustomLog
 public class ConsolidatoreApiController implements ConsolidatoreApi {
 
     private static final Integer NRO_MAX_ERRORS = 50;
@@ -69,23 +68,26 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 
     @Override
     public Mono<ResponseEntity<FileDownloadResponse>> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, final ServerWebExchange exchange) {
-        log.info(STARTING_PROCESS_ON_LABEL, GET_FILE, fileKey);
-        return consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_ON_LABEL, GET_FILE, fileKey))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_ON_WITH_ERROR_LABEL, GET_FILE, fileKey, throwable, throwable.getMessage()))
+        MDC.clear();
+        MDC.put(MDC_CORR_ID_KEY, fileKey);
+        log.logStartingProcess(GET_FILE);
+        return MDCUtils.addMDCToContextAndExecute(consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
+                .doOnSuccess(result -> log.logEndingProcess(GET_FILE))
+                .doOnError(throwable -> log.logEndingProcess(GET_FILE, false, throwable.getMessage()))
                 .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody")))
                 .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
                 .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
-                .map(ResponseEntity::ok);
+                .map(ResponseEntity::ok));
     }
 
 
     @Override
     public Mono<ResponseEntity<PreLoadResponseData>> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> preLoadRequestData, ServerWebExchange exchange) {
-        log.info(STARTING_PROCESS_LABEL, PRESIGNED_UPLOAD_REQUEST);
+        MDC.clear();
+        log.logStartingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS);
         return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
-                .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, PRESIGNED_UPLOAD_REQUEST))
-                .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, PRESIGNED_UPLOAD_REQUEST, throwable, throwable.getMessage()))
+                .doOnSuccess(result -> log.logEndingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS))
+                .doOnError(throwable -> log.logEndingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS, false, throwable.getMessage()))
                 .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody")))
                 .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
                 .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
@@ -97,24 +99,27 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                                                             String xApiKey,
                                                                                             Flux<ConsolidatoreIngressPaperProgressStatusEvent> consolidatoreIngressPaperProgressStatusEvent,
                                                                                             final ServerWebExchange exchange) {
-        log.info(STARTING_PROCESS_LABEL, SEND_PAPER_PROGRESS_STATUS_REQUEST);
+        MDC.clear();
+        log.logStartingProcess(SEND_PAPER_PROGRESS_STATUS_REQUEST);
         return authService.clientAuth(xPagopaExtchServiceId)
                 .flatMap(clientConfiguration -> {
-                    log.info(CHECKING_VALIDATION_PROCESS_ON, X_API_KEY_VALIDATION, xPagopaExtchServiceId);
+                    log.logChecking(X_API_KEY_VALIDATION);
                     if (clientConfiguration.getApiKey() == null || !clientConfiguration.getApiKey().equals(xApiKey)) {
-                        log.warn(VALIDATION_PROCESS_FAILED, X_API_KEY_VALIDATION, INVALID_API_KEY);
+                        log.logCheckingOutcome(X_API_KEY_VALIDATION, false, INVALID_API_KEY);
                         return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, INVALID_API_KEY));
                     }
-                    log.info(VALIDATION_PROCESS_PASSED, X_API_KEY_VALIDATION);
+                    log.logCheckingOutcome(X_API_KEY_VALIDATION, true);
                     return Mono.just(clientConfiguration);
                 })
                 .flatMap(clientConfiguration -> consolidatoreIngressPaperProgressStatusEvent
                         .flatMap(statusEvent -> {
+                            MDC.put(MDC_CORR_ID_KEY, statusEvent.getRequestId());
                             log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "START for requestId {}", statusEvent.getRequestId());
-                            return ricezioneEsitiCartaceoService.verificaEsitoDaConsolidatore(xPagopaExtchServiceId, statusEvent);
+                            return MDCUtils.addMDCToContextAndExecute(ricezioneEsitiCartaceoService.verificaEsitoDaConsolidatore(xPagopaExtchServiceId, statusEvent));
                         })
                         .collectList()
                         .flatMap(listRicezioneEsitiDto -> {
+                            MDC.clear();
                             // ricerco errori
                             var listErrorResponse = listRicezioneEsitiDto.stream()
                                     .filter(ricezioneEsito -> ricezioneEsito.getOperationResultCodeResponse() != null &&
@@ -164,11 +169,12 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                 errors)));
                             }
                         })
-                        .doOnSuccess(result -> log.info(ENDING_PROCESS_LABEL, SEND_PAPER_PROGRESS_STATUS_REQUEST))
-                        .doOnError(throwable -> log.warn(ENDING_PROCESS_WITH_ERROR_LABEL, SEND_PAPER_PROGRESS_STATUS_REQUEST, throwable, throwable.getMessage()))
+                        .doOnSuccess(result -> log.logEndingProcess(SEND_PAPER_PROGRESS_STATUS_REQUEST))
+                        .doOnError(throwable -> log.logEndingProcess(SEND_PAPER_PROGRESS_STATUS_REQUEST, false, throwable.getMessage()))
                         .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody"))))
                         .onErrorResume(RuntimeException.class, throwable -> {
-                            log.error(FATAL_IN_PROCESS, SEND_PAPER_PROGRESS_STATUS_REQUEST, throwable, throwable.getMessage());
+                            String fatalMessage = throwable.getClass() == WebExchangeBindException.class ? "" : "* FATAL * ";
+                            log.error(SEND_PAPER_PROGRESS_STATUS_REQUEST +  fatalMessage + "errore generico = {}, {}", throwable, throwable.getMessage());
                             return Mono.just(ResponseEntity.internalServerError()
                                     .body(getOperationResultCodeResponse(INTERNAL_SERVER_ERROR_CODE,
                                             errorCodeDescriptionMap().get(INTERNAL_SERVER_ERROR_CODE),
