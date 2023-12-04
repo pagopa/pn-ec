@@ -1,9 +1,6 @@
 package it.pagopa.pn.library.pec.service;
 
-import it.pec.bridgews.DeleteMail;
-import it.pec.bridgews.DeleteMailResponse;
-import it.pec.bridgews.GetMessageCount;
-import it.pec.bridgews.GetMessageCountResponse;
+import it.pec.bridgews.*;
 import reactor.core.publisher.Mono;
 
 public interface ArubaService {
@@ -12,4 +9,10 @@ public interface ArubaService {
 
     Mono<DeleteMailResponse> deleteMail(DeleteMail deleteMail);
 
-}
+    Mono<SendMailResponse> sendMail(SendMail sendMail) ;
+
+    Mono<GetMessagesResponse> getMessages(GetMessages getMessages) ;
+
+    Mono<GetMessageIDResponse> getMessageId(GetMessageID getMessageID) ;
+
+    }

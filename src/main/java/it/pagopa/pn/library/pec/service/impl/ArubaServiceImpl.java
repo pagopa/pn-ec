@@ -7,13 +7,11 @@ import it.pagopa.pn.library.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pec.bridgews.*;
 import lombok.CustomLog;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 import reactor.util.retry.Retry;
-
 import java.time.Duration;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
@@ -76,6 +74,57 @@ public class ArubaServiceImpl implements ArubaService {
                     }
                 })).cast(DeleteMailResponse.class).retryWhen(getArubaCallRetryStrategy())
                 .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_DELETE_MAIL, result));
+    }
+
+    @Override
+    public Mono<SendMailResponse> sendMail(SendMail sendMail) {
+        sendMail.setUser(arubaSecretValue.getPecUsername());
+        sendMail.setPass(arubaSecretValue.getPecPassword());
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_SEND_MAIL, sendMail);
+        return Mono.create(sink -> pecImapBridgeClient.sendMailAsync(sendMail, outputFuture -> {
+            try {
+                var result = outputFuture.get();
+                checkErrors(result.getErrcode(), result.getErrstr());
+                sink.success(result);
+            } catch (Exception throwable) {
+                endSoapRequest(sink, throwable);
+            }
+        })).cast(SendMailResponse.class).retryWhen(getArubaCallRetryStrategy()).doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_SEND_MAIL, result));
+    }
+
+    @Override
+    public Mono<GetMessagesResponse> getMessages(GetMessages getMessages) {
+        getMessages.setUser(arubaSecretValue.getPecUsername());
+        getMessages.setPass(arubaSecretValue.getPecPassword());
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGES, getMessages);
+        return Mono.create(sink -> pecImapBridgeClient.getMessagesAsync(getMessages, outputFuture -> {
+                    try {
+                        var result = outputFuture.get();
+                        checkErrors(result.getErrcode(), result.getErrstr());
+                        sink.success(result);
+                    } catch (Exception throwable) {
+                        endSoapRequest(sink, throwable);
+                    }
+                })).cast(GetMessagesResponse.class).retryWhen(getArubaCallRetryStrategy())
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGES, result));
+    }
+
+
+    @Override
+    public Mono<GetMessageIDResponse> getMessageId(GetMessageID getMessageID) {
+        getMessageID.setUser(arubaSecretValue.getPecUsername());
+        getMessageID.setPass(arubaSecretValue.getPecPassword());
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGE_ID, getMessageID);
+        return Mono.create(sink -> pecImapBridgeClient.getMessageIDAsync(getMessageID, outputFuture -> {
+                    try {
+                        var result = outputFuture.get();
+                        checkErrors(result.getErrcode(), result.getErrstr());
+                        sink.success(result);
+                    } catch (Exception throwable) {
+                        endSoapRequest(sink, throwable);
+                    }
+                })).cast(GetMessageIDResponse.class).retryWhen(getArubaCallRetryStrategy())
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_ID, result));
     }
 
     private void checkErrors(Integer errorCode, String errorStr) {
