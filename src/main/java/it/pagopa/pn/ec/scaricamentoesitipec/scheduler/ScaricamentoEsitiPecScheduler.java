@@ -2,13 +2,13 @@ package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.model.pojo.pec.PnPostacert;
-import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils;
+import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.PnPecService;
 import it.pec.bridgews.*;
 import lombok.CustomLog;
@@ -29,8 +29,6 @@ import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA
 @Component
 @CustomLog
 public class ScaricamentoEsitiPecScheduler {
-
-    private final ArubaCall arubaCall;
     private final DaticertService daticertService;
     private final SqsService sqsService;
     private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
@@ -39,8 +37,7 @@ public class ScaricamentoEsitiPecScheduler {
     @Value("${scaricamento-esiti-pec.limit-rate}")
     private Integer limitRate;
 
-    public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, CloudWatchPecMetrics cloudWatchPecMetrics, PnPecService pnPecService) {
-        this.arubaCall = arubaCall;
+    public ScaricamentoEsitiPecScheduler(DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, CloudWatchPecMetrics cloudWatchPecMetrics, PnPecService pnPecService) {
         this.daticertService = daticertService;
         this.sqsService = sqsService;
         this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;
@@ -64,25 +61,19 @@ public class ScaricamentoEsitiPecScheduler {
 
         log.logStartingProcess(SCARICAMENTO_ESITI_PEC);
         ScaricamentoEsitiPecUtils.sleepRandomSeconds();
-
-        var getMessages = new GetMessages();
-        getMessages.setUnseen(1);
-        getMessages.setOuttype(2);
-        getMessages.setLimit(Integer.valueOf(scaricamentoEsitiPecProperties.getMessagesLimit()));
-
         AtomicBoolean hasMessages = new AtomicBoolean();
         hasMessages.set(true);
 
         MDCUtils.addMDCToContextAndExecute(pnPecService.getMessageCount()
                 .flatMap(messageCount -> cloudWatchPecMetrics.publishMessageCount((long) messageCount))
-                .then(arubaCall.getMessages(getMessages))
-                .flatMap(getMessagesResponse -> {
-                    var arrayOfMessages = getMessagesResponse.getArrayOfMessages();
-                    if (Objects.isNull(arrayOfMessages))
+                .then(pnPecService.getUnreadMessages(Integer.parseInt(scaricamentoEsitiPecProperties.getMessagesLimit())))
+                .flatMap(pnGetMessagesResponse -> {
+                    var listOfMessages = pnGetMessagesResponse.getPnListOfMessages();
+                    if (Objects.isNull(listOfMessages))
                         hasMessages.set(false);
-                    return Mono.justOrEmpty(arrayOfMessages);
+                    return Mono.justOrEmpty(listOfMessages);
                 })
-                .flatMapIterable(MesArrayOfMessages::getItem)
+                .flatMapIterable(PnListOfMessages::getMessages)
                 .flatMap(message -> {
 
                     var mimeMessage = getMimeMessage(message);
@@ -136,7 +127,7 @@ public class ScaricamentoEsitiPecScheduler {
                     else return Mono.just(finalMessageID);
                 })
                 //Marca il messaggio come letto.
-                .flatMap(finalMessageID -> arubaCall.getMessageId(createGetMessageIdRequest(finalMessageID, 2, true)), limitRate)
+                .flatMap(pnPecService::markMessageAsRead, limitRate)
                 .doOnError(throwable -> log.fatal(SCARICAMENTO_ESITI_PEC, throwable))
                 .onErrorResume(throwable -> Mono.empty())
                 .repeat(hasMessages::get)

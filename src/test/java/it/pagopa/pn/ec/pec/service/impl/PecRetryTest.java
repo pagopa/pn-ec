@@ -2,7 +2,6 @@ package it.pagopa.pn.ec.pec.service.impl;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
-import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
@@ -12,6 +11,7 @@ import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
 import org.junit.jupiter.api.Test;
@@ -53,7 +53,7 @@ class PecRetryTest {
     @SpyBean
     private SqsService sqsService;
     @MockBean
-    private ArubaCall arubaCall;
+    private ArubaService arubaService;
     @MockBean
     private DownloadCall downloadCall;
     @SpyBean
@@ -170,7 +170,7 @@ class PecRetryTest {
         sendMailResponse.setErrstr("errorstr");
 
         when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(arubaService.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
         when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
 
         //Gestore repository mocks.
@@ -200,7 +200,7 @@ class PecRetryTest {
         sendMailResponse.setErrstr("errorstr");
 
         when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(arubaService.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
         when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
 
         //Gestore repository mocks.

@@ -1,5 +1,6 @@
 package it.pagopa.pn.library.pec.service.impl;
 
+import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
 import it.pagopa.pn.library.pec.configurationproperties.ArubaServiceProperties;
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallException;
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;

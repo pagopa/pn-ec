@@ -109,19 +109,20 @@ public class EmailUtils {
         }
     }
 
-    public static OutputStream getMimeMessageOutputStream(EmailField emailField) {
+    public static byte[] getMimeMessageByteArray(EmailField emailField) {
         var output = new ByteArrayOutputStream();
         try {
             getMimeMessage(emailField).writeTo(output);
-            return output;
+            return output.toByteArray();
         } catch (IOException | MessagingException exception) {
             throw new ComposeMimeMessageException();
         }
     }
 
-    public static String getMimeMessageInCDATATag(EmailField emailField) {
-        return String.format("<![CDATA[%s]]>", getMimeMessageOutputStream(emailField));
+    public static String getMimeMessageInCDATATag(byte[] fileBytes) {
+        return String.format("<![CDATA[%s]]>", new String(fileBytes));
     }
+
     public static byte[] getAttachmentFromMimeMessage(MimeMessage mimeMessage, String attachmentName) {
         try {
             log.debug("Start retrieving attachment with name '{}'", attachmentName);

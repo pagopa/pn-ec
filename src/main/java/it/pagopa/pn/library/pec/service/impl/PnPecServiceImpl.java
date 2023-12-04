@@ -1,9 +1,6 @@
 package it.pagopa.pn.library.pec.service.impl;
 
-import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
-import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
-import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.ArubaService;
@@ -13,13 +10,6 @@ import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import java.io.IOException;
-import java.util.Arrays;
-import javax.mail.Address;
-
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @CustomLog
@@ -29,37 +19,21 @@ public class PnPecServiceImpl implements PnPecService {
     @Autowired
     private ArubaService arubaService;
 
-    @Autowired
-    private ArubaCall arubaCall;
-
-    private final ArubaSecretValue arubaSecretVaule = new ArubaSecretValue();
-
     @Override
-    public Mono<Void> sendMail(byte[] message) {
+    public Mono<String> sendMail(byte[] message) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PEC_SEND_MAIL, message);
-        return Mono.just(message).map(EmailUtils::getMimeMessage)
-                .<EmailField>handle((mimeMessage, sink) -> {
-                    try {
-                        sink.next(EmailField.builder()
-                                .msgId(EmailUtils.getMessageIdFromMimeMessage(mimeMessage))
-                                .from(arubaSecretVaule.getPecUsername())
-                                .to(Arrays.toString(Arrays.stream(mimeMessage.getRecipients(Message.RecipientType.TO)).map(Address::toString).toArray()))
-                                .subject(mimeMessage.getSubject())
-                                .text(mimeMessage.getContent().toString())
-                                .contentType(mimeMessage.getContentType())
-                                .build());
-                    } catch (MessagingException | IOException e) {
-                        sink.error(new RuntimeException(e));
-                    }
-                })
-                .map(EmailUtils::getMimeMessageInCDATATag)
+        return Mono.just(EmailUtils.getMimeMessageInCDATATag(message))
                 .map(data -> {
                     SendMail sendMail = new SendMail();
                     sendMail.setData(data);
                     return sendMail;
                 })
                 .flatMap(arubaService::sendMail)
-                .then()
+                .map(sendMailResponse -> {
+                    String msgId = sendMailResponse.getErrstr();
+                    //Remove the last 2 char '\r\n'
+                    return msgId.substring(0, msgId.length() - 2);
+                })
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_NO_RESULT_LABEL, PEC_SEND_MAIL, result))
                 .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PEC_SEND_MAIL, throwable, throwable.getMessage()));
     }
@@ -71,15 +45,15 @@ public class PnPecServiceImpl implements PnPecService {
         getMessages.setUnseen(1);
         getMessages.setOuttype(2);
         getMessages.setLimit(limit);
-    return arubaService.getMessages(getMessages)
-            .map(GetMessagesResponse::getArrayOfMessages)
-            .map(messages -> {
-                PnGetMessagesResponse pnGetMessagesResponse = new PnGetMessagesResponse();
-                pnGetMessagesResponse.setPnListOfMessages(new PnListOfMessages(messages.getItem()));
-                return pnGetMessagesResponse;
-            })
-            .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_GET_UNREAD_MESSAGES, result))
-            .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PEC_GET_UNREAD_MESSAGES, throwable, throwable.getMessage()));
+        return arubaService.getMessages(getMessages)
+                .map(GetMessagesResponse::getArrayOfMessages)
+                .map(messages -> {
+                    PnGetMessagesResponse pnGetMessagesResponse = new PnGetMessagesResponse();
+                    pnGetMessagesResponse.setPnListOfMessages(new PnListOfMessages(messages.getItem()));
+                    return pnGetMessagesResponse;
+                })
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_GET_UNREAD_MESSAGES, result))
+                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PEC_GET_UNREAD_MESSAGES, throwable, throwable.getMessage()));
     }
 
     @Override
