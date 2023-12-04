@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.ERR_CONS;
 import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.ERR_CONS_BAD_JSON_FORMAT;
 import static it.pagopa.pn.ec.consolidatore.service.impl.RicezioneEsitiCartaceoServiceImpl.getAllErrors;
@@ -113,7 +114,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                 })
                 .flatMap(clientConfiguration -> consolidatoreIngressPaperProgressStatusEvent
                         .flatMap(statusEvent -> {
-                            MDC.put(MDC_CORR_ID_KEY, statusEvent.getRequestId());
+                            MDC.put(MDC_CORR_ID_KEY, concatRequestId(xPagopaExtchServiceId, statusEvent.getRequestId()));
                             log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "START for requestId {}", statusEvent.getRequestId());
                             return MDCUtils.addMDCToContextAndExecute(ricezioneEsitiCartaceoService.verificaEsitoDaConsolidatore(xPagopaExtchServiceId, statusEvent));
                         })
