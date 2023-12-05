@@ -9,6 +9,7 @@
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "sent"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "P000"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "_any_"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": ""},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "CON998"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "CON998"},"targetStatus": {"L": [{"S": "_any_"}]}}
+{"processClientId": {"S": "PAPER"},"currStatus": {"S": "CON020"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "CON020"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "CON997"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "CON997"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "CON996"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "CON996"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "CON995"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "CON995"},"targetStatus": {"L": [{"S": "_any_"}]}}
