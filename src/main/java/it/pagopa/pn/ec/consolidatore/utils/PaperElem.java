@@ -9,6 +9,7 @@ public class PaperElem {
 	}
 	
 	// Eventi relativi alla fase di "Stampa/Postalizzazione"
+    public static final String CON020 = "CON020";
 	public static final String CON998 = "CON998";
 	public static final String CON997 = "CON997";
 	public static final String CON996 = "CON996";
@@ -118,6 +119,7 @@ public class PaperElem {
 	private static final Map<String, String> statusCodeDescriptionMap = Map.ofEntries(
 							// Eventi relativi alla fase di "Stampa/Postalizzazione"
 							Map.entry(CON998,"Scartato NODOC"),
+							Map.entry(CON020,"Affido conservato"),
 							Map.entry(CON997,"Scartato CAP/INTERNAZIONALE"),
 							Map.entry(CON996,"Scartato PDF"),
 							Map.entry(CON995,"Errore Stampa"),
@@ -258,7 +260,13 @@ public class PaperElem {
 			Map.entry("F01","in caso di furto"),
 			Map.entry("F02","in caso di smarrimento"),
 			Map.entry("F03","in caso di deterioramento"),
-			Map.entry("F04","in caso di rapina"));
+			Map.entry("F04","in caso di rapina"),
+			Map.entry("C01","incendio"),
+			Map.entry("C02","strada chiusa per lavori in corso o frana"),
+			Map.entry("C03","strada chiusa dalle autorità per eventi eccezionali"),
+			Map.entry("C04","maltempo: Alluvione, Neve, Allagamento"),
+			Map.entry("C05","terremoto"),
+			Map.entry("C06","eruzione vulcanica"));
 	
 	public static Map<String, String> deliveryFailureCausemap() {
 		return deliveryFailureCauseMap;

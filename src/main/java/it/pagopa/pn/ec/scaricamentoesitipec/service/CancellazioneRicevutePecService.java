@@ -20,6 +20,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 
 @Service
 @CustomLog
@@ -37,8 +38,9 @@ public class CancellazioneRicevutePecService {
     @SqsListener(value = "${cancellazione-ricevute-pec.sqs-queue-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void cancellazioneRicevutePecInteractive(final CancellazioneRicevutePecDto cancellazioneRicevutePecDto, Acknowledgment acknowledgment) {
         var requestId = cancellazioneRicevutePecDto.getSingleStatusUpdate().getDigitalLegal().getRequestId();
+        var clientId = cancellazioneRicevutePecDto.getSingleStatusUpdate().getClientId();
         MDC.clear();
-        MDC.put(MDC_CORR_ID_KEY, requestId);
+        MDC.put(MDC_CORR_ID_KEY, concatRequestId(clientId, requestId));
         log.logStartingProcess(CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE);
         MDCUtils.addMDCToContextAndExecute(cancellazioneRicevutePec(cancellazioneRicevutePecDto, requestId, acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE))
