@@ -36,7 +36,7 @@ public class ArubaCallImpl implements ArubaCall {
 
     private RetryBackoffSpec getArubaCallRetryStrategy(String clientMethodName) {
         return Retry.backoff(Long.parseLong(arubaCallProperties.maxAttempts()), Duration.ofSeconds(Long.parseLong(arubaCallProperties.minBackoff())))
-                .doBeforeRetry(retrySignal -> log.debug("Retry number {} for '{}', caused by : {}", clientMethodName, retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
+                .doBeforeRetry(retrySignal -> log.debug("Retry number {} for '{}', caused by : {}", retrySignal.totalRetries(), clientMethodName, retrySignal.failure().getMessage(), retrySignal.failure()));
     }
 
     @Override
