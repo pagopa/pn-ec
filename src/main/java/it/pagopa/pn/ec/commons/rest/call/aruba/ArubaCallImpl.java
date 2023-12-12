@@ -34,8 +34,9 @@ public class ArubaCallImpl implements ArubaCall {
         this.arubaCallProperties = arubaCallProperties;
     }
 
-    private RetryBackoffSpec getArubaCallRetryStrategy () {
-    	return Retry.backoff(Long.parseLong(arubaCallProperties.maxAttempts()), Duration.ofSeconds(Long.parseLong(arubaCallProperties.minBackoff())));
+    private RetryBackoffSpec getArubaCallRetryStrategy(String clientMethodName) {
+        return Retry.backoff(Long.parseLong(arubaCallProperties.maxAttempts()), Duration.ofSeconds(Long.parseLong(arubaCallProperties.minBackoff())))
+                .doBeforeRetry(retrySignal -> log.debug("Retry number {} for '{}', caused by : {}", clientMethodName, retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
     }
 
     @Override
@@ -51,7 +52,7 @@ public class ArubaCallImpl implements ArubaCall {
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
-        })).cast(GetMessagesResponse.class).retryWhen(getArubaCallRetryStrategy()
+        })).cast(GetMessagesResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_GET_MESSAGES)
                .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
                     throw new GetMessagesException();
             }))
@@ -71,7 +72,7 @@ public class ArubaCallImpl implements ArubaCall {
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
-        })).cast(GetMessageIDResponse.class).retryWhen(getArubaCallRetryStrategy().onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
+        })).cast(GetMessageIDResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_GET_MESSAGE_ID).onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
               throw new GetMessageIdException(getMessageID.getMailid());
         }))
            .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_ID, result));
@@ -90,7 +91,7 @@ public class ArubaCallImpl implements ArubaCall {
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
-        })).cast(SendMailResponse.class).retryWhen(getArubaCallRetryStrategy().onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
+        })).cast(SendMailResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_SEND_MAIL).onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
             throw new ArubaCallMaxRetriesExceededException();
         })).doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_SEND_MAIL, result));
     }
@@ -108,7 +109,7 @@ public class ArubaCallImpl implements ArubaCall {
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
-        })).cast(GetAttachResponse.class).retryWhen(getArubaCallRetryStrategy())
+        })).cast(GetAttachResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_GET_ATTACH))
            .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_ATTACH, result));
     }
 
