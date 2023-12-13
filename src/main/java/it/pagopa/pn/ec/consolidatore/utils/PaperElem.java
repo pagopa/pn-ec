@@ -273,6 +273,7 @@ public class PaperElem {
 	}
 	
 	public static final String ATTACHMENT_DOCUMENT_TYPE_23L = "23L";
+	public static final String ATTACHMENT_DOCUMENT_TYPE_23I = "23I";
 	public static final String ATTACHMENT_DOCUMENT_TYPE_ARCAD = "ARCAD";
 	public static final String ATTACHMENT_DOCUMENT_TYPE_CAD = "CAD";
 	public static final String ATTACHMENT_DOCUMENT_TYPE_CAN = "CAN";
@@ -281,7 +282,8 @@ public class PaperElem {
 	public static final String ATTACHMENT_DOCUMENT_TYPE_AR = "AR";
 	
 	private static final List<String> attachmentDocumentTypeMap = List.of(
-			ATTACHMENT_DOCUMENT_TYPE_23L, 
+			ATTACHMENT_DOCUMENT_TYPE_23L,
+			ATTACHMENT_DOCUMENT_TYPE_23I,
 			ATTACHMENT_DOCUMENT_TYPE_ARCAD,
 			ATTACHMENT_DOCUMENT_TYPE_CAD,
 			ATTACHMENT_DOCUMENT_TYPE_CAN,
