@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.commons.rest.call.aruba;
 
+import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.aruba.GetMessageIdException;
@@ -50,7 +51,7 @@ public class ArubaCallImpl implements ArubaCall {
                 checkErrors(result.getErrcode(), result.getErrstr());
                 sink.success(result);
             } catch (Exception throwable) {
-                endSoapRequest(sink, throwable);
+                endSoapRequest(sink, throwable, ARUBA_GET_MESSAGES);
             }
         })).cast(GetMessagesResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_GET_MESSAGES)
                .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
@@ -70,7 +71,7 @@ public class ArubaCallImpl implements ArubaCall {
                 checkErrors(result.getErrcode(), result.getErrstr());
                 sink.success(result);
             } catch (Exception throwable) {
-                endSoapRequest(sink, throwable);
+                endSoapRequest(sink, throwable, ARUBA_GET_MESSAGE_ID);
             }
         })).cast(GetMessageIDResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_GET_MESSAGE_ID).onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
               throw new GetMessageIdException(getMessageID.getMailid());
@@ -83,13 +84,15 @@ public class ArubaCallImpl implements ArubaCall {
         sendMail.setUser(arubaSecretValue.getPecUsername());
         sendMail.setPass(arubaSecretValue.getPecPassword());
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_SEND_MAIL, sendMail);
+        var mdcContextMap = MDCUtils.retrieveMDCContextMap();
         return Mono.create(sink -> pecImapBridge.sendMailAsync(sendMail, outputFuture -> {
             try {
                 var result = outputFuture.get();
                 checkErrors(result.getErrcode(), result.getErrstr());
                 sink.success(result);
             } catch (Exception throwable) {
-                endSoapRequest(sink, throwable);
+                MDCUtils.enrichWithMDC(throwable, mdcContextMap);
+                endSoapRequest(sink, throwable, ARUBA_SEND_MAIL);
             }
         })).cast(SendMailResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_SEND_MAIL).onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
             throw new ArubaCallMaxRetriesExceededException();
@@ -107,7 +110,7 @@ public class ArubaCallImpl implements ArubaCall {
                 checkErrors(result.getErrcode(), result.getErrstr());
                 sink.success(result);
             } catch (Exception throwable) {
-                endSoapRequest(sink, throwable);
+                endSoapRequest(sink, throwable, ARUBA_GET_ATTACH);
             }
         })).cast(GetAttachResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_GET_ATTACH))
            .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_ATTACH, result));
@@ -118,8 +121,8 @@ public class ArubaCallImpl implements ArubaCall {
             throw new ArubaCallException(errorStr);
     }
 
-    private void endSoapRequest(MonoSink<Object> sink, Throwable throwable) {
-        log.error(throwable.getMessage());
+    private void endSoapRequest(MonoSink<Object> sink, Throwable throwable, String methodName) {
+        log.error(EXCEPTION_IN_PROCESS, methodName, throwable, throwable.getMessage());
         sink.error(throwable);
         Thread.currentThread().interrupt();
     }
