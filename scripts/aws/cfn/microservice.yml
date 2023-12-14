@@ -152,8 +152,8 @@ Parameters:
     Description: 'SpringBoot configuration Task Execution Max Pool Siza'
     Default: '512'
 
-  ######### TABLES  ############
-
+  ### TABLES  ###
+  
   PnEcTableNameAnagrafica:
     Type: String
     Description: "Nome della Tabella DynamoDB relativa ad Anagrafica Client"
@@ -178,8 +178,8 @@ Parameters:
     Type: String
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
 
-  ######### QUEUES  ############
-  ######### TRACKER : SMS  ##########
+  ### QUEUES  ###
+  ### TRACKER : SMS  ###
 
   PnEcQueueNameTrackerStatoSMS:
     Type: String
