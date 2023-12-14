@@ -31,6 +31,8 @@ public class ArubaServiceImpl implements ArubaService {
 
     private final ArubaServiceProperties arubaServiceProperties;
 
+    private static final int MESSAGE_NOT_FOUND_ERR_CODE = 99;
+
     @Autowired
     public ArubaServiceImpl(PecImapBridge pecImapBridgeClient, ArubaSecretValue arubaSecretValue, ArubaServiceProperties arubaServiceProperties) {
         this.pecImapBridgeClient = pecImapBridgeClient;
@@ -71,8 +73,8 @@ public class ArubaServiceImpl implements ArubaService {
     public Mono<DeleteMailResponse> deleteMail(DeleteMail deleteMail) {
         deleteMail.setUser(arubaSecretValue.getPecUsername());
         deleteMail.setPass(arubaSecretValue.getPecPassword());
-        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_DELETE_MAIL, deleteMail);
         var mdcContextMap = MDCUtils.retrieveMDCContextMap();
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_DELETE_MAIL, deleteMail);
         return Mono.create(sink -> pecImapBridgeClient.deleteMailAsync(deleteMail, res -> {
                     try {
                         var result = res.get();
@@ -80,7 +82,7 @@ public class ArubaServiceImpl implements ArubaService {
                         sink.success(result);
                     } catch (ArubaCallException arubaCallException) {
                         MDCUtils.enrichWithMDC(null, mdcContextMap);
-                        if (arubaCallException.getErrorCode() == 99) {
+                        if (arubaCallException.getErrorCode() == MESSAGE_NOT_FOUND_ERR_CODE) {
                             log.debug(ARUBA_MESSAGE_MISSING, deleteMail.getMailid());
                             sink.success();
                         } else endSoapRequest(sink, arubaCallException);

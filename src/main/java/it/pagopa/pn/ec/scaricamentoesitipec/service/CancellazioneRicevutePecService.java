@@ -33,6 +33,7 @@ public class CancellazioneRicevutePecService {
     public CancellazioneRicevutePecService(PnPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, @Value("${cancellazione-ricevute-pec.max-thread-pool-size}") Integer maxThreadPoolSize) {
         this.pnPecService = pnPecService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
+        log.debug("{} max thread pool size : {} ", CANCELLAZIONE_RICEVUTE_PEC, maxThreadPoolSize);
         this.semaphore = new Semaphore(maxThreadPoolSize);
     }
 
