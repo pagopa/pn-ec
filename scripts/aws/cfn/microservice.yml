@@ -142,13 +142,17 @@ Parameters:
     Description: 'Lavorazione Cartaceo max thread pool size'
     Default: '100'
 
+  CancellazioneRicevutePecMaxThreadPoolSize:
+    Type: String
+    Description: 'Cancellazione Ricevute Pec max thread pool size'
+
   PnEcTaskExecutionPoolMaxSize:
     Type: String
     Description: 'SpringBoot configuration Task Execution Max Pool Siza'
     Default: '512'
 
-  ######### TABLES  ############
-
+  ### TABLES  ###
+  
   PnEcTableNameAnagrafica:
     Type: String
     Description: "Nome della Tabella DynamoDB relativa ad Anagrafica Client"
@@ -173,8 +177,8 @@ Parameters:
     Type: String
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
 
-  ######### QUEUES  ############
-  ######### TRACKER : SMS  ##########
+  ### QUEUES  ###
+  ### TRACKER : SMS  ###
 
   PnEcQueueNameTrackerStatoSMS:
     Type: String
@@ -833,6 +837,7 @@ Resources:
         ContainerEnvEntry54: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
         ContainerEnvEntry55: !Sub 'PnEcTaskExecutionPoolMaxSize=${PnEcTaskExecutionPoolMaxSize}'
         ContainerEnvEntry56: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueNameCancellazioneRicevutePEC}'
+        ContainerEnvEntry57: !Sub 'CancellazioneRicevutePecMaxThreadPoolSize=${CancellazioneRicevutePecMaxThreadPoolSize}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
