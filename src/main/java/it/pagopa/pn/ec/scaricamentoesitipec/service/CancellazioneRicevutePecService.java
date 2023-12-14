@@ -5,19 +5,19 @@ import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.CancellazioneRicevutePecProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CancellazioneRicevutePecDto;
 import it.pagopa.pn.library.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.library.pec.service.PnPecService;
 import lombok.CustomLog;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.concurrent.Semaphore;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
@@ -26,14 +26,16 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 @CustomLog
 public class CancellazioneRicevutePecService {
 
-    @Autowired
-    private PnPecService pnPecService;
-    @Autowired
-    private GestoreRepositoryCall gestoreRepositoryCall;
-    @Autowired
-    private ArubaSecretValue arubaSecretValue;
-    @Autowired
-    private CancellazioneRicevutePecProperties cancellazioneRicevutePecProperties;
+
+    private final PnPecService pnPecService;
+    private final GestoreRepositoryCall gestoreRepositoryCall;
+    private final Semaphore semaphore;
+
+    public CancellazioneRicevutePecService(PnPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, @Value("${cancellazione-ricevute-pec.max-thread-pool-size}") Integer maxThreadPoolSize) {
+        this.pnPecService = pnPecService;
+        this.gestoreRepositoryCall = gestoreRepositoryCall;
+        this.semaphore = new Semaphore(maxThreadPoolSize);
+    }
 
     @SqsListener(value = "${cancellazione-ricevute-pec.sqs-queue-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void cancellazioneRicevutePecInteractive(final CancellazioneRicevutePecDto cancellazioneRicevutePecDto, Acknowledgment acknowledgment) {
@@ -50,6 +52,13 @@ public class CancellazioneRicevutePecService {
 
     public Mono<Void> cancellazioneRicevutePec(final CancellazioneRicevutePecDto cancellazioneRicevutePecDto, String requestId, Acknowledgment acknowledgment) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CANCELLAZIONE_RICEVUTE_PEC, cancellazioneRicevutePecDto);
+
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         return Mono.just(cancellazioneRicevutePecDto.getSingleStatusUpdate())
                 .zipWhen(singleStatusUpdate -> gestoreRepositoryCall.getRichiesta(singleStatusUpdate.getClientId(), singleStatusUpdate.getDigitalLegal().getRequestId()))
                 .flatMap(tuple -> {
@@ -66,9 +75,10 @@ public class CancellazioneRicevutePecService {
                             });
                 })
                 .map(digitalProgressStatusDto -> digitalProgressStatusDto.getGeneratedMessage().getId())
-                .flatMap(messageID -> pnPecService.deleteMessage(messageID))
+                .flatMap(pnPecService::deleteMessage)
                 .doOnError(throwable -> log.fatal(CANCELLAZIONE_RICEVUTE_PEC, throwable, throwable.getMessage()))
-                .doOnSuccess(result -> acknowledgment.acknowledge());
+                .doOnSuccess(result -> acknowledgment.acknowledge())
+                .doFinally(signalType -> semaphore.release());
     }
 
 }

@@ -15,6 +15,7 @@
     "LavorazioneEmailMaxThreadPoolSize": "75",
     "LavorazioneCartaceoMaxThreadPoolSize": "100",
     "LavorazioneEsitiPecMaxThreadPoolSize" : "50",
+    "CancellazioneRicevutePecMaxThreadPoolSize" : "50",
     "ScaricamentoEsitiPecLimitRate" : "50",
     "JavaToolOptions": "-XX:MaxDirectMemorySize=128M",
     "PnEcQueueElapsedTimeSeconds": "7200",
