@@ -145,7 +145,7 @@ Parameters:
   CancellazioneRicevutePecMaxThreadPoolSize:
     Type: String
     Description: 'Cancellazione Ricevute Pec max thread pool size'
-    Default: '50'
+    Default: '10'
 
   PnEcTaskExecutionPoolMaxSize:
     Type: String

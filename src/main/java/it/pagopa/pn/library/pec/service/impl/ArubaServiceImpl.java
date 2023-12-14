@@ -71,6 +71,12 @@ public class ArubaServiceImpl implements ArubaService {
                         var result = res.get();
                         checkErrors(result.getErrcode(), result.getErrstr());
                         sink.success(result);
+                    } catch (ArubaCallException arubaCallException) {
+                        if (arubaCallException.getErrorCode() == 99) {
+                            log.debug(ARUBA_MESSAGE_MISSING, deleteMail.getMailid());
+                            sink.success();
+                        }
+                        endSoapRequest(sink, arubaCallException);
                     } catch (Exception e) {
                         endSoapRequest(sink, e);
                     }
@@ -80,7 +86,7 @@ public class ArubaServiceImpl implements ArubaService {
 
     private void checkErrors(Integer errorCode, String errorStr) {
         if (!errorCode.equals(0))
-            throw new ArubaCallException(errorStr);
+            throw new ArubaCallException(errorStr, errorCode);
     }
 
     private void endSoapRequest(MonoSink<Object> sink, Throwable throwable) {

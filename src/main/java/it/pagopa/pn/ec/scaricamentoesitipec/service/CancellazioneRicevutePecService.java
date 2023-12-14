@@ -26,7 +26,6 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 @CustomLog
 public class CancellazioneRicevutePecService {
 
-
     private final PnPecService pnPecService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final Semaphore semaphore;
