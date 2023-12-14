@@ -75,8 +75,7 @@ public class ArubaServiceImpl implements ArubaService {
                         if (arubaCallException.getErrorCode() == 99) {
                             log.debug(ARUBA_MESSAGE_MISSING, deleteMail.getMailid());
                             sink.success();
-                        }
-                        endSoapRequest(sink, arubaCallException);
+                        } else endSoapRequest(sink, arubaCallException);
                     } catch (Exception e) {
                         endSoapRequest(sink, e);
                     }
