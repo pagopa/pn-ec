@@ -2,6 +2,8 @@ package it.pagopa.pn.ec.commons.configuration.http;
 
 import it.pec.bridgews.PecImapBridge;
 import it.pec.bridgews.PecImapBridge_Service;
+import lombok.CustomLog;
+
 import org.apache.cxf.endpoint.Client;
 import org.apache.cxf.frontend.ClientProxy;
 import org.apache.cxf.frontend.ClientProxyFactoryBean;
@@ -16,6 +18,7 @@ import javax.xml.namespace.QName;
 import java.io.IOException;
 
 @Configuration
+@CustomLog
 public class PecImapBridgeConf {
 
     @Value("${aruba.server.address}")
@@ -23,6 +26,7 @@ public class PecImapBridgeConf {
 
     @Bean
     public PecImapBridge pecImapBridge() throws IOException {
+    	log.debug("arubaServerAddress {}", arubaServerAddress);
         JaxWsProxyFactoryBean factory = new JaxWsProxyFactoryBean();
         factory.setServiceClass(PecImapBridge.class);
         factory.setAddress(arubaServerAddress);
