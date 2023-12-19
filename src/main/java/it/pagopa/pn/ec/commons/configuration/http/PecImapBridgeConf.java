@@ -26,13 +26,16 @@ public class PecImapBridgeConf {
 
     @Bean
     public PecImapBridge pecImapBridge() throws IOException {
-    	log.debug("arubaServerAddress {}", arubaServerAddress);
+        var wsdlLocation = PecImapBridge_Service.WSDL_LOCATION.getPath();
+        var endpointName = PecImapBridge_Service.PecImapBridgeSOAP;
+        var serviceName = PecImapBridge_Service.SERVICE;
+        log.debug("ArubaServerAddress : {}, WsdlLocation : {}, EndpointName : {}, ServiceName : {}", arubaServerAddress, wsdlLocation, endpointName, serviceName);
         JaxWsProxyFactoryBean factory = new JaxWsProxyFactoryBean();
         factory.setServiceClass(PecImapBridge.class);
         factory.setAddress(arubaServerAddress);
-        factory.setWsdlLocation(PecImapBridge_Service.WSDL_LOCATION.getPath());
-        factory.setEndpointName(PecImapBridge_Service.PecImapBridgeSOAP);
-        factory.setServiceName(PecImapBridge_Service.SERVICE);
+        factory.setWsdlLocation(wsdlLocation);
+        factory.setEndpointName(endpointName);
+        factory.setServiceName(serviceName);
         return factory.create(PecImapBridge.class);
     }
 }
