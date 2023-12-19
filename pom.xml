@@ -496,6 +496,7 @@
                             <wsdlOptions>
                                 <wsdlOption>
                                     <wsdl>${project.basedir}/src/main/resources/pec/PecImapBridgeBWS1.5.wsdl</wsdl>
+                                    <wsdlLocation>classpath:pec/PecImapBridgeBWS1.5.wsdl</wsdlLocation>
                                     <extraargs>
                                         <extraarg>-client</extraarg>
                                         <extraarg>-verbose</extraarg>
