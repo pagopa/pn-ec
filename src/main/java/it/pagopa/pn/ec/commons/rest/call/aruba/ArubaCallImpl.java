@@ -128,7 +128,6 @@ public class ArubaCallImpl implements ArubaCall {
     private void endSoapRequest(MonoSink<Object> sink, Throwable throwable, String methodName) {
         log.error(EXCEPTION_IN_PROCESS, methodName, throwable, throwable.getMessage());
         sink.error(throwable);
-        Thread.currentThread().interrupt();
     }
 
 }
