@@ -34,6 +34,8 @@ import java.util.List;
 
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.ACCETTAZIONE;
+import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.PREAVVISO_ERRORE_CONSEGNA;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.PecUtils.generateDaticertAccettazione;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -68,7 +70,21 @@ public class ScaricamentoEsitiPecServiceTest {
     @ValueSource(strings = {"certificato", "esterno"})
     void lavorazioneEsitiPecOk(String tipoDestinatario) throws IOException, MessagingException {
 
-        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(tipoDestinatario);
+        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(ACCETTAZIONE, tipoDestinatario);
+        var request = pecRequest();
+
+        when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, PEC_REQUEST_IDX)).thenReturn(Mono.just(request));
+        Mockito.doReturn(Mono.just("location")).when(lavorazioneEsitiPecService).generateLocation(eq(PEC_REQUEST_IDX), eq(ricezioneEsitiPecDto.getMessage()));
+
+        Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
+        StepVerifier.create(testMono).expectComplete().verify();
+        verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class));
+    }
+
+    @Test
+    void lavorazioneEsitiPecDeliveryWarn24h() throws IOException, MessagingException {
+
+        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato");
         var request = pecRequest();
 
         when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, PEC_REQUEST_IDX)).thenReturn(Mono.just(request));
@@ -82,7 +98,7 @@ public class ScaricamentoEsitiPecServiceTest {
     @Test
     void lavorazioneEsitiPecKo() throws IOException, MessagingException {
 
-        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto("certificato");
+        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(ACCETTAZIONE, "certificato");
         when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, PEC_REQUEST_IDX)).thenReturn(Mono.error(new RepositoryManagerException.RequestNotFoundException(PEC_REQUEST_IDX)));
 
         Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
@@ -95,9 +111,9 @@ public class ScaricamentoEsitiPecServiceTest {
         return new RequestDto().requestIdx(PEC_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).requestPersonal(requestPersonal).requestMetadata(requestMetadata);
     }
 
-    private RicezioneEsitiPecDto buildRicezioneEsitiPecDto(String tipoDestinatario) throws MessagingException, IOException {
+    private RicezioneEsitiPecDto buildRicezioneEsitiPecDto(String tipoPostacert, String tipoDestinatario) throws MessagingException, IOException {
         String msgId = "-" + encodeMessageId(CLIENT_ID, PEC_REQUEST_IDX) + "-";
-        var daticertBytes = generateDaticertAccettazione("from", "receiverAddress@pagopa.it", "replyTo", "subject", "gestoreMittente", "03/11/1999", "00:00:00", msgId, tipoDestinatario).toString().getBytes();
+        var daticertBytes = generateDaticertAccettazione(tipoPostacert,"from", "receiverAddress@pagopa.it", "replyTo", "subject", "gestoreMittente", "03/11/1999", "00:00:00", msgId, tipoDestinatario).toString().getBytes();
         ByteArrayOutputStream daticertOutput = new ByteArrayOutputStream();
         daticertOutput.write(daticertBytes);
 
