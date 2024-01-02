@@ -115,6 +115,15 @@ class PaperMessagesApiControllerTest {
         paperEngageRequest.setClientRequestTimeStamp(OffsetDateTime.now());
     }
 
+    private WebTestClient.ResponseSpec getCartaceoTestCall(String requestIdx) {
+
+       return  this.webTestClient.get()
+                .uri(uriBuilder -> uriBuilder.path(GET_PAPER_ENGAGE_PROGRESSES_ENDPOINT).build(DEFAULT_REQUEST_IDX))
+                .accept(APPLICATION_JSON)
+                .header(ID_CLIENT_HEADER_NAME, DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .exchange();
+
+    }
     private WebTestClient.ResponseSpec sendCartaceoTestCall(BodyInserter<PaperEngageRequest, ReactiveHttpOutputMessage> bodyInserter,
                                                             String requestIdx) {
 
@@ -271,11 +280,7 @@ class PaperMessagesApiControllerTest {
         when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
         when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(requestDto));
 
-        webTestClient.get()
-                .uri(uriBuilder -> uriBuilder.path(GET_PAPER_ENGAGE_PROGRESSES_ENDPOINT).build(DEFAULT_REQUEST_IDX))
-                .accept(APPLICATION_JSON)
-                .header(ID_CLIENT_HEADER_NAME, DEFAULT_ID_CLIENT_HEADER_VALUE)
-                .exchange()
+        getCartaceoTestCall(DEFAULT_REQUEST_IDX)
                 .expectStatus()
                 .isOk()
                 .expectBody(PaperProgressStatusEvent.class)

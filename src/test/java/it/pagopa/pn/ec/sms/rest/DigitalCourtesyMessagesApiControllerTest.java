@@ -7,6 +7,7 @@ import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.service.AuthService;
+import it.pagopa.pn.ec.commons.service.StatusPullService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
@@ -25,6 +26,8 @@ import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Mono;
 
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Objects;
 
 import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
@@ -57,12 +60,34 @@ class DigitalCourtesyMessagesApiControllerTest {
     @SpyBean
     private SqsServiceImpl sqsService;
 
+    @SpyBean
+    private StatusPullService statusPullService;
+
+    private RequestMetadataDto requestMetadataDto = new RequestMetadataDto() {{
+        setEventsList(new ArrayList<>());
+    }};
+
+    private RequestDto requestDto = new RequestDto() {{
+        setMessageId("messageId");
+        setxPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE);
+        setClientRequestTimeStamp(OffsetDateTime.now());
+        setxPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE);
+        setRequestMetadata(requestMetadataDto);
+    }};
+
+    private ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto() {{
+        setxPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE);
+        setApiKey("apiKey");
+    }};
+
     private static final String SEND_SMS_ENDPOINT =
             "/external-channels/v1/digital-deliveries/courtesy-simple-message-requests" + "/{requestIdx}";
 
+    private static final String SHORT_MESSAGE_STATUS_ENDPOINT = "/external-channels/v1/digital-deliveries/courtesy-simple-message-requests" + "/{requestIdx}";
+
+    private static final String DIGITAL_COURTESY_MESSAGE_STATUS_ENDPOINT = "/external-channels/v1/digital-deliveries/courtesy-full-message-requests"+"/{requestIdx}";
     private static final DigitalCourtesySmsRequest digitalCourtesySmsRequest = createSmsRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
-    private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
 
     private WebTestClient.ResponseSpec sendSmsTestCall(BodyInserter<DigitalCourtesySmsRequest, ReactiveHttpOutputMessage> bodyInserter,
                                                        String requestIdx) {
@@ -71,6 +96,22 @@ class DigitalCourtesyMessagesApiControllerTest {
                                  .accept(APPLICATION_JSON)
                                  .contentType(APPLICATION_JSON)
                                  .body(bodyInserter)
+                                 .header(ID_CLIENT_HEADER_NAME, DEFAULT_ID_CLIENT_HEADER_VALUE)
+                                 .exchange();
+    }
+
+    private WebTestClient.ResponseSpec getShortMessageStatus(String requestIdx) {
+        return this.webTestClient.get()
+                                 .uri(uriBuilder -> uriBuilder.path(SHORT_MESSAGE_STATUS_ENDPOINT).build(requestIdx))
+                                 .accept(APPLICATION_JSON)
+                                 .header(ID_CLIENT_HEADER_NAME, DEFAULT_ID_CLIENT_HEADER_VALUE)
+                                 .exchange();
+    }
+
+    private WebTestClient.ResponseSpec getDigitalCourtesyMessageStatus(String requestIdx) {
+        return this.webTestClient.get()
+                                 .uri(uriBuilder -> uriBuilder.path(DIGITAL_COURTESY_MESSAGE_STATUS_ENDPOINT).build(requestIdx))
+                                 .accept(APPLICATION_JSON)
                                  .header(ID_CLIENT_HEADER_NAME, DEFAULT_ID_CLIENT_HEADER_VALUE)
                                  .exchange();
     }
@@ -184,4 +225,20 @@ class DigitalCourtesyMessagesApiControllerTest {
                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)
                                                                                                 .expectBody(Problem.class);
     }
+
+    @Test
+    void getCourtesyShortMessageStatusTest() {
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+        when(gestoreRepositoryCall.getRichiesta(any(),any())).thenReturn(Mono.just(requestDto));
+        getShortMessageStatus(DEFAULT_REQUEST_IDX).expectStatus().isOk();
+    }
+
+    @Test
+    void getDigitalCourtesyMessageStatusTest() {
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+        when(gestoreRepositoryCall.getRichiesta(any(),any())).thenReturn(Mono.just(requestDto));
+        when(statusPullService.digitalPullService(anyString(),anyString(),any())).thenReturn(Mono.just(new CourtesyMessageProgressEvent()));
+        getDigitalCourtesyMessageStatus(DEFAULT_REQUEST_IDX).expectStatus().isOk();
+    }
+
 }
