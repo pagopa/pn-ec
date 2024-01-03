@@ -16,6 +16,10 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import it.pagopa.pn.library.pec.model.pojo.ArubaPostacert;
+import it.pagopa.pn.library.pec.service.DaticertService;
+import it.pagopa.pn.library.pec.service.impl.DatiCertServiceImpl;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,18 +28,20 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.context.annotation.PropertySource;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import javax.mail.MessagingException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import static it.pagopa.pn.ec.commons.utils.EmailUtils.findAttachmentByName;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
-import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.ACCETTAZIONE;
-import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.PREAVVISO_ERRORE_CONSEGNA;
+import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.*;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.PecUtils.generateDaticertAccettazione;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -57,6 +63,8 @@ public class ScaricamentoEsitiPecServiceTest {
     private AuthService authService;
     @SpyBean
     private SqsService sqsService;
+    @SpyBean
+    private DaticertService daticertService;
 
     private static final String CLIENT_ID = "CLIENT_ID";
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
@@ -93,6 +101,14 @@ public class ScaricamentoEsitiPecServiceTest {
         Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
         StepVerifier.create(testMono).expectComplete().verify();
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class));
+
+    }
+
+    @Test
+    void correzioneTipoArubaPecTest() throws MessagingException, IOException {
+        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato");
+        ArubaPostacert postacert = (ArubaPostacert) daticertService.getPostacertFromByteArray(findAttachmentByName(EmailUtils.getMimeMessage(ricezioneEsitiPecDto.getMessage()), "daticert.xml"));
+        Assertions.assertEquals(ERRORE_CONSEGNA, postacert.getTipo());
     }
 
     @Test
@@ -113,7 +129,7 @@ public class ScaricamentoEsitiPecServiceTest {
 
     private RicezioneEsitiPecDto buildRicezioneEsitiPecDto(String tipoPostacert, String tipoDestinatario) throws MessagingException, IOException {
         String msgId = "-" + encodeMessageId(CLIENT_ID, PEC_REQUEST_IDX) + "-";
-        var daticertBytes = generateDaticertAccettazione(tipoPostacert,"from", "receiverAddress@pagopa.it", "replyTo", "subject", "gestoreMittente", "03/11/1999", "00:00:00", msgId, tipoDestinatario).toString().getBytes();
+        var daticertBytes = generateDaticertAccettazione(tipoPostacert,"from", "receiverAddress@pagopa.it", "replyTo", "subject", "gestoreMittente", "03/11/1999", "00:00:00", msgId, tipoDestinatario).toString().getBytes(StandardCharsets.UTF_8);
         ByteArrayOutputStream daticertOutput = new ByteArrayOutputStream();
         daticertOutput.write(daticertBytes);
 
