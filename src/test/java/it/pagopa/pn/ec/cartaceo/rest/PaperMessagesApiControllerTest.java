@@ -13,7 +13,6 @@ import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import it.pagopa.pn.ec.testutils.annotation.SpringBootNewStartupWebTestEnv;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -44,7 +43,7 @@ import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 
-@SpringBootNewStartupWebTestEnv
+@SpringBootTestWebEnv
 @AutoConfigureWebTestClient(timeout = "50000")
 class PaperMessagesApiControllerTest {
 
