@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.consolidatore.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.pagopa.pn.ec.cartaceo.model.pojo.StatusCodesToDeliveryFailureCauses;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
@@ -27,6 +26,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,21 +45,19 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private final ObjectMapper objectMapper;
 	private final NotificationTrackerSqsName notificationTrackerSqsName;
 	private final SqsService sqsService;
-	private final StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses;
 
 	private final StatusPullService statusPullService;
 
 	public RicezioneEsitiCartaceoServiceImpl(GestoreRepositoryCall gestoreRepositoryCall,
-                                             FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
-                                             SqsService sqsService, StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses, StatusPullService statusPullService) {
+											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
+											 SqsService sqsService, StatusPullService statusPullService) {
 		super();
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.fileCall = fileCall;
 		this.objectMapper = objectMapper;
 		this.notificationTrackerSqsName = notificationTrackerSqsName;
 		this.sqsService = sqsService;
-        this.statusCodesToDeliveryFailureCauses = statusCodesToDeliveryFailureCauses;
-        this.statusPullService = statusPullService;
+		this.statusPullService = statusPullService;
 	}
 
 	private OperationResultCodeResponse getOperationResultCodeResponse(
@@ -109,20 +107,13 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 						errorList.add(String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()));
 					}
 					// DeliveryFailureCause non è un campo obbligatorio
-                    boolean isOk = false;
-                    if (progressStatusEvent.getDeliveryFailureCause() != null
-                            && !progressStatusEvent.getDeliveryFailureCause().isBlank()) {
-                        isOk = deliveryFailureCausemap().containsKey(progressStatusEvent.getDeliveryFailureCause());
-                        if (isOk) {
-                            isOk = statusCodesToDeliveryFailureCauses.isDeliveryFailureCauseInStatusCode(progressStatusEvent.getStatusCode(), progressStatusEvent.getDeliveryFailureCause());
-                        }
-                        if (!isOk) {
-                            auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_DEL_FAILURE_CAUSE.getValue()).description("DeliveryFailureCause is not valid."));
-                            errorList.add(String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
-                        }
-                    }
-
-                    //TODO COMMENTATO PER UN CASO PARTICOLARE CHE ANDRA' GESTITO IN FUTURO.
+					if (progressStatusEvent.getDeliveryFailureCause() != null
+							&& !progressStatusEvent.getDeliveryFailureCause().isBlank()
+							&& !deliveryFailureCausemap().containsKey(progressStatusEvent.getDeliveryFailureCause())) {
+						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_DEL_FAILURE_CAUSE.getValue()).description("DeliveryFailureCause is not valid."));
+						errorList.add(String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
+					}
+					//TODO COMMENTATO PER UN CASO PARTICOLARE CHE ANDRA' GESTITO IN FUTURO.
 //					if (!progressStatusEvent.getProductType().equals(productType)) {
 //						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getStatusCode()));
 //						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, productType));
