@@ -11,13 +11,13 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTestWebEnv
-public class StatusCodesToDeliveryFailureCausesConfTest {
+class StatusCodesToDeliveryFailureCausesConfTest {
 
     @Autowired
     private StatusCodesToDeliveryFailureCausesConf statusCodesToDeliveryFailureCausesConf;
     private static final String PARAMETER = "/PagoPA/esitiCartaceo";
     private static final String EXPECTED_VALUE = "{\n" +
-            "    \"cartaceo\":{\n" +
+            "\"cartaceo\":{\n" +
             "     \"RECRN006\" : [\"M03\",\"M04\"],\n" +
             "     \"RECRN004A\" : [\"M05\",\"M06\",\"M07\"],\n" +
             "     \"RECRN004B\" : [\"M08\",\"M09\",\"F01\",\"F02\"]\n" +

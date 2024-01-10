@@ -51,7 +51,7 @@ public class LocalStackTestConfig {
 
     static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4");
     static LocalStackContainer localStackContainer =
-            new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS, SES, SECRETSMANAGER,CLOUDWATCH)
+            new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS, SES, SECRETSMANAGER,CLOUDWATCH,SSM)
                     .withStartupTimeout(Duration.ofMinutes(2)).withEnv("AWS_DEFAULT_REGION", "eu-central-1");
 
     static {
@@ -73,6 +73,8 @@ public class LocalStackTestConfig {
 
         System.setProperty("test.aws.cloudwatch.endpoint", String.valueOf(localStackContainer.getEndpointOverride(CLOUDWATCH)));
 
+        System.setProperty("test.aws.ssm.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SSM)));
+
         try {
             localStackContainer.execInContainer("awslocal",
                     "secretsmanager",
@@ -81,6 +83,24 @@ public class LocalStackTestConfig {
                     "pn/identity/pec",
                     "--secret-string",
                     "{\"user\":\"aruba_username@dgsspa.com\",\"pass\":\"aruba_password\"}");
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            localStackContainer.execInContainer("awslocal",
+                    "ssm",
+                    "put-parameter",
+                    "--name",
+                    "/PagoPA/esitiCartaceo",
+                    "--type",
+                    "String",
+                    "--value",
+                    "{\n" +
+                            "\"cartaceo\":{\n" +
+                            "     \"RECRN006\" : [\"M03\",\"M04\"],\n" +
+                            "     \"RECRN004A\" : [\"M05\",\"M06\",\"M07\"],\n" +
+                            "     \"RECRN004B\" : [\"M08\",\"M09\",\"F01\",\"F02\"]\n" +
+                            "    }\n}");
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }

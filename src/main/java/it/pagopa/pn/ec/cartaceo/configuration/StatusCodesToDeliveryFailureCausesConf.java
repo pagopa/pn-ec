@@ -7,16 +7,12 @@ import it.pagopa.pn.ec.cartaceo.model.pojo.StatusCodesToDeliveryFailureCauses;
 import it.pagopa.pn.ec.commons.utils.JsonUtils;
 import lombok.CustomLog;
 import lombok.SneakyThrows;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ssm.SsmClient;
 import software.amazon.awssdk.services.ssm.model.GetParameterRequest;
 import software.amazon.awssdk.services.ssm.model.SsmException;
 
-import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
 
@@ -24,22 +20,17 @@ import java.util.Map;
 @Configuration
 public class StatusCodesToDeliveryFailureCausesConf {
 
-    @Value("${aws.region-code}")
-    private String regionCode;
-    private SsmClient ssmClient;
+    private final SsmClient ssmClient;
     private static final String URL_PREFIX = "/PagoPA/";
     private static final String DELIVERY_FAILURE_CODES_SUFFIX = "esitiCartaceo";
 
     ObjectMapper objectMapper = new ObjectMapper();
     JsonUtils jsonUtils = new JsonUtils(objectMapper);
 
-    @PostConstruct
-    public void initializeSsmClient() {
-        ssmClient = SsmClient.builder()
-                .credentialsProvider(DefaultCredentialsProvider.create())
-                .region(Region.of(regionCode))
-                .build();
+    public StatusCodesToDeliveryFailureCausesConf(SsmClient ssmClient) {
+        this.ssmClient = ssmClient;
     }
+
     public String getParameter(String parameterName) throws SsmException {
         GetParameterRequest parameterRequest = GetParameterRequest.builder().name(parameterName).build();
 
