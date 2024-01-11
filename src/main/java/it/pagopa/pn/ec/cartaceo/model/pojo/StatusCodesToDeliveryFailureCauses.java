@@ -13,15 +13,15 @@ import java.util.Map;
 @SuperBuilder
 @NoArgsConstructor
 public class StatusCodesToDeliveryFailureCauses {
-    Map<String, List<String>> statusCodeToDeliveryFailureCausesMap;
+    Map<String,Map<String, List<String>>> statusCodeToDeliveryFailureCausesMap;
 
-    public StatusCodesToDeliveryFailureCauses(Map<String, List<String>> deliveryFailureCauses) {
+    public StatusCodesToDeliveryFailureCauses(Map<String,Map<String, List<String>>>deliveryFailureCauses) {
         this.statusCodeToDeliveryFailureCausesMap = deliveryFailureCauses;
     }
 
     public boolean isDeliveryFailureCauseInStatusCode(String statusCode, String deliveryFailureCause) {
         try {
-            return (statusCodeToDeliveryFailureCausesMap.get(statusCode).contains(deliveryFailureCause)
+            return (statusCodeToDeliveryFailureCausesMap.get(statusCode).get("deliveryFailureCause").contains(deliveryFailureCause)
                     || statusCodeToDeliveryFailureCausesMap.isEmpty());
         } catch (NullPointerException e) {
             return true;

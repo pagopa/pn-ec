@@ -17,10 +17,29 @@ class StatusCodesToDeliveryFailureCausesConfTest {
     private StatusCodesToDeliveryFailureCausesConf statusCodesToDeliveryFailureCausesConf;
     private static final String PARAMETER = "/PagoPA/esitiCartaceo";
     private static final String EXPECTED_VALUE = "{\n" +
-            "\"cartaceo\":{\n" +
-            "     \"RECRN006\" : [\"M03\",\"M04\"],\n" +
-            "     \"RECRN004A\" : [\"M05\",\"M06\",\"M07\"],\n" +
-            "     \"RECRN004B\" : [\"M08\",\"M09\",\"F01\",\"F02\"]\n" +
+            "    \"cartaceo\": {\n" +
+            "        \"RECRN004A\": {\n" +
+            "            \"deliveryFailureCause\": [\n" +
+            "                \"M05\",\n" +
+            "                \"M06\",\n" +
+            "                \"M07\"\n" +
+            "            ]\n" +
+            "        },\n" +
+            "        \"RECRN004B\": {\n" +
+            "            \"deliveryFailureCause\": [\n" +
+            "                \"M08\",\n" +
+            "                \"M09\",\n" +
+            "                \"F01\",\n" +
+            "                \"F02\",\n" +
+            "                \"TEST\"\n" +
+            "            ]\n" +
+            "        },\n" +
+            "        \"RECRN006\": {\n" +
+            "            \"deliveryFailureCause\": [\n" +
+            "                \"M03\",\n" +
+            "                \"M04\"\n" +
+            "            ]\n" +
+            "        }\n" +
             "    }\n" +
             "}";
 
@@ -34,11 +53,11 @@ class StatusCodesToDeliveryFailureCausesConfTest {
     @Test
     void buildDeliveryFailureCausesMapFromJsonTest() throws JsonProcessingException {
 
-        Map<String, List<String>> result = statusCodesToDeliveryFailureCausesConf.retrieveDeliveryFailureCausesFromParameterStore();
+        Map<String, Map<String, List<String>>> result = statusCodesToDeliveryFailureCausesConf.retrieveDeliveryFailureCausesFromParameterStore();
 
         assertEquals(3, result.size());
-        assertEquals(List.of("M03", "M04"), result.get("RECRN006"));
-        assertEquals(List.of("M05", "M06", "M07"), result.get("RECRN004A"));
-        assertEquals(List.of("M08", "M09", "F01", "F02"), result.get("RECRN004B"));
+        assertEquals(Map.of("deliveryFailureCause", List.of("M03", "M04")), result.get("RECRN006"));
+        assertEquals(Map.of("deliveryFailureCause", List.of("M05", "M06", "M07")), result.get("RECRN004A"));
+        assertEquals(Map.of("deliveryFailureCause", List.of("M08", "M09", "F01", "F02", "TEST")), result.get("RECRN004B"));
     }
 }

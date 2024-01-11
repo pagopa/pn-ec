@@ -27,16 +27,13 @@ public class JsonUtils {
         }
     }
 
-    public Map<String, List<String>> convertJsonToMap(String jsonString) throws JsonStringToObjectException {
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, List<String>> map = new HashMap<String, List<String>>();
+    public Map<String, Map<String, List<String>>> convertJsonToMap(String jsonString) throws JsonStringToObjectException {
+        Map<String, Map<String, List<String>>> map = new HashMap<>();
         try {
-            map = mapper.readValue(jsonString, new TypeReference<Map<String, List<String>>>(){});
+            map = objectMapper.readValue(jsonString, new TypeReference<Map<String, Map<String, List<String>>>>(){});
         } catch (JsonProcessingException e) {
             throw new JsonStringToObjectException(jsonString, Map.class);
         }
         return map;
     }
-
-
 }

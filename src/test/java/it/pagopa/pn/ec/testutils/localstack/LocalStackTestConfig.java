@@ -96,11 +96,31 @@ public class LocalStackTestConfig {
                     "String",
                     "--value",
                     "{\n" +
-                            "\"cartaceo\":{\n" +
-                            "     \"RECRN006\" : [\"M03\",\"M04\"],\n" +
-                            "     \"RECRN004A\" : [\"M05\",\"M06\",\"M07\"],\n" +
-                            "     \"RECRN004B\" : [\"M08\",\"M09\",\"F01\",\"F02\"]\n" +
-                            "    }\n}");
+                            "    \"cartaceo\": {\n" +
+                            "        \"RECRN004A\": {\n" +
+                            "            \"deliveryFailureCause\": [\n" +
+                            "                \"M05\",\n" +
+                            "                \"M06\",\n" +
+                            "                \"M07\"\n" +
+                            "            ]\n" +
+                            "        },\n" +
+                            "        \"RECRN004B\": {\n" +
+                            "            \"deliveryFailureCause\": [\n" +
+                            "                \"M08\",\n" +
+                            "                \"M09\",\n" +
+                            "                \"F01\",\n" +
+                            "                \"F02\",\n" +
+                            "                \"TEST\"\n" +
+                            "            ]\n" +
+                            "        },\n" +
+                            "        \"RECRN006\": {\n" +
+                            "            \"deliveryFailureCause\": [\n" +
+                            "                \"M03\",\n" +
+                            "                \"M04\"\n" +
+                            "            ]\n" +
+                            "        }\n" +
+                            "    }\n" +
+                            "}");
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }

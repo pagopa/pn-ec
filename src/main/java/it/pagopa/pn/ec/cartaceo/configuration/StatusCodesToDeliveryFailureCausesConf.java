@@ -37,7 +37,7 @@ public class StatusCodesToDeliveryFailureCausesConf {
         return ssmClient.getParameter(parameterRequest).parameter().value();
     }
 
-    public Map<String, List<String>> retrieveDeliveryFailureCausesFromParameterStore() throws SsmException, JsonProcessingException {
+    public Map<String, Map<String,List<String>>> retrieveDeliveryFailureCausesFromParameterStore() throws SsmException, JsonProcessingException {
         String parameterName = URL_PREFIX + DELIVERY_FAILURE_CODES_SUFFIX;
         GetParameterRequest parameterRequest = GetParameterRequest.builder().name(parameterName).build();
         String value = ssmClient.getParameter(parameterRequest).parameter().value();
