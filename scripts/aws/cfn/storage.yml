@@ -759,60 +759,6 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         VisibilityTimeout: 300
 
-  PnEcEventRuleCancellazioneRicevutePEC:
-    Type: AWS::Events::Rule
-    Properties:
-      Description: 'This Event rule is used to match events related to PEC receipt deletion'
-      EventBusName: !Ref PnEcEventBusTrackerExternalNotification
-      EventPattern:
-        source:
-          - 'NOTIFICATION TRACKER'
-        account:
-          - !Ref AWS::AccountId
-        region:
-          - !Ref AWS::Region
-        detail:
-          digitalLegal:
-            eventCode:
-              - 'C001'
-              - 'C002'
-              - 'C003'
-              - 'C004'
-              - 'C006'
-              - 'C007'
-              - 'C009'
-      State: 'ENABLED'
-      Targets:
-        - Arn: !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueARN
-          Id: 'PnEcCancellazioneRicevutePecTarget'
-
-  PnEcQueuePolicyCancellazioneRicevutePEC:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueURL
-      PolicyDocument:
-        Statement:
-          - Sid: 'AllowAccessSameAccount'
-            Action:
-              - 'sqs:*'
-            Effect: 'Allow'
-            Resource: !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueARN
-            Principal:
-              AWS: !Ref AWS::AccountId
-          - Sid: 'AllowPutEventsFromEventRule'
-            Action:
-              - 'sqs:SendMessage'
-            Effect: 'Allow'
-            Resource: !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.QueueARN
-            Principal:
-              Service:
-              - 'events.amazonaws.com'
-            Condition:
-              ArnEquals:
-                aws:SourceArn: !GetAtt PnEcEventRuleCancellazioneRicevutePEC.Arn
-
-
 #########  OUTPUTS  ##########
 
 Outputs:
