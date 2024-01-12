@@ -1,9 +1,14 @@
 package it.pagopa.pn.ec.commons.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.exception.JsonStringToObjectException;
 import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Component
 public class JsonUtils {
@@ -20,5 +25,15 @@ public class JsonUtils {
         } catch (JsonProcessingException e) {
             throw new JsonStringToObjectException(jsonString, classToMap);
         }
+    }
+
+    public Map<String, Map<String, List<String>>> convertJsonToMap(String jsonString) throws JsonStringToObjectException {
+        Map<String, Map<String, List<String>>> map = new HashMap<>();
+        try {
+            map = objectMapper.readValue(jsonString, new TypeReference<Map<String, Map<String, List<String>>>>(){});
+        } catch (JsonProcessingException e) {
+            throw new JsonStringToObjectException(jsonString, Map.class);
+        }
+        return map;
     }
 }

@@ -965,6 +965,12 @@ Resources:
               - 'cloudwatch:PutMetricData'
             Resource:
               - '*'
+          - Sid: 'ReadParameterStore'
+            Effect: Allow
+            Action:
+              - 'ssm:GetParameter'
+            Resource:
+              - '*'
 
   ###########  NOTIFICATION TRACKER - STATO - QUEUE POLICIES   ###########
 
