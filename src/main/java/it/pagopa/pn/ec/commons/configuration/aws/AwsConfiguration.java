@@ -28,6 +28,8 @@ import software.amazon.awssdk.services.sns.SnsAsyncClient;
 import software.amazon.awssdk.services.sns.SnsAsyncClientBuilder;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.SqsAsyncClientBuilder;
+import software.amazon.awssdk.services.ssm.SsmClient;
+import software.amazon.awssdk.services.ssm.SsmClientBuilder;
 
 import java.net.URI;
 import java.util.List;
@@ -52,6 +54,8 @@ public class AwsConfiguration {
     String secretsmanagerLocalStackEndpoint;
     @Value("${test.aws.cloudwatch.endpoint:#{null}}")
     String cloudwatchLocalStackEndpoint;
+    @Value("${test.aws.ssm.endpoint:#{null}}")
+    String ssmLocalStackEndpoint;
 
 
 
@@ -182,5 +186,18 @@ public class AwsConfiguration {
         }
 
         return cloudWatchAsyncClientBuilder.build();
+    }
+
+    @Bean
+    public SsmClient ssmClient() {
+        SsmClientBuilder ssmClientBuilder = SsmClient.builder()
+                .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER_V2)
+                .region(Region.of(awsConfigurationProperties.regionCode()));
+
+        if(ssmLocalStackEndpoint != null) {
+            ssmClientBuilder.endpointOverride(URI.create(ssmLocalStackEndpoint));
+        }
+
+        return ssmClientBuilder.build();
     }
 }

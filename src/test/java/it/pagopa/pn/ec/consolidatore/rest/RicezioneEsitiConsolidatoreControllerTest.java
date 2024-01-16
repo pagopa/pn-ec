@@ -1,9 +1,6 @@
 package it.pagopa.pn.ec.consolidatore.rest;
 
-import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.ATTACHMENT_DOCUMENT_TYPE_ARCAD;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.CON010;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.PRODUCT_TYPE_AR;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.statusCodeDescriptionMap;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -12,7 +9,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-import java.util.regex.Matcher;
 
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
@@ -25,7 +21,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -99,6 +94,9 @@ class RicezioneEsitiConsolidatoreControllerTest {
 
 	private static final String STATUS_CODE_INESISTENTE = "test";
 
+	private static final String DELIVERY_FAILURE_CAUSE_OK = "M03";
+	private static final String DELIVERY_FAILURE_CAUSE_KO = "KO";
+
     private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithoutAttachments() {
     	ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = new ConsolidatoreIngressPaperProgressStatusEvent();
     	progressStatusEvent.setRequestId(requestId);
@@ -110,6 +108,32 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	progressStatusEvent.setClientRequestTimeStamp(now);
     	return progressStatusEvent;
     }
+
+	private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithCorrectDeliveryFailureCause() {
+		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = new ConsolidatoreIngressPaperProgressStatusEvent();
+		progressStatusEvent.setRequestId(requestId);
+		progressStatusEvent.setStatusCode(RECRN006);
+		progressStatusEvent.setStatusDescription(statusCodeDescriptionMap().get(RECRN006));
+		progressStatusEvent.setStatusDateTime(now);
+		progressStatusEvent.setProductType(PRODUCT_TYPE_AR);
+		progressStatusEvent.setIun(IUN);
+		progressStatusEvent.setClientRequestTimeStamp(now);
+		progressStatusEvent.setDeliveryFailureCause(DELIVERY_FAILURE_CAUSE_OK);
+		return progressStatusEvent;
+	}
+
+	private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithIncorrectDeliveryFailureCause() {
+		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = new ConsolidatoreIngressPaperProgressStatusEvent();
+		progressStatusEvent.setRequestId(requestId);
+		progressStatusEvent.setStatusCode(RECRN006);
+		progressStatusEvent.setStatusDescription(statusCodeDescriptionMap().get(RECRN006));
+		progressStatusEvent.setStatusDateTime(now);
+		progressStatusEvent.setProductType(PRODUCT_TYPE_AR);
+		progressStatusEvent.setIun(IUN);
+		progressStatusEvent.setClientRequestTimeStamp(now);
+		progressStatusEvent.setDeliveryFailureCause(DELIVERY_FAILURE_CAUSE_KO);
+		return progressStatusEvent;
+	}
 
 	@BeforeAll
 	public static void buildClientConfigurationInternalDto() {
@@ -517,7 +541,6 @@ class RicezioneEsitiConsolidatoreControllerTest {
 
 	}
 
-
 	@Test
 	/** Test PN-8187 */
 	void ricezioneEsitiErroreValidazioneSyntaxError() {
@@ -545,6 +568,84 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.expectBody(OperationResultCodeResponse.class)
 				.value(OperationResultCodeResponse::getErrorList, Matchers.hasItem(Matchers.containsString("'discoveredAddress.address': rejected value [null]")));
 
+	}
+
+	@Test
+	void ricezioneEsitiErroreValidazioneDeliveryFailureCauseNotInStatusCodeShouldBeAddedToErrorList() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneStatusCode() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
+		fileDownloadResponse.setKey(documentKey);
+
+		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true)).thenReturn(Mono.just(fileDownloadResponse));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithIncorrectDeliveryFailureCause());
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isBadRequest()
+				.expectBody(OperationResultCodeResponse.class)
+				.value(OperationResultCodeResponse::getErrorList, Matchers.hasItem(Matchers.containsString("KO")));
+	}
+
+	@Test
+	void ricezioneEsitiErroreValidazioneDeliveryFailureCauseInStatusCodeShouldNotBeAddedToErrorList() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneStatusCode() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithCorrectDeliveryFailureCause());
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isOk();
+	}
+
+	@Test
+	void ricezioneEsitiErroreValidazioneDeliveryWithIncorrectStatusCodeShouldBeAddedToErrorList() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneStatusCode() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto()));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();
+		progressStatusEvent.setStatusCode(STATUS_CODE_INESISTENTE);
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(progressStatusEvent);
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isBadRequest()
+				.expectBody(OperationResultCodeResponse.class)
+				.value(OperationResultCodeResponse::getErrorList, Matchers.hasItem(Matchers.containsString("test")));
 	}
 
 }
