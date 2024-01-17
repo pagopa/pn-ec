@@ -610,6 +610,7 @@ Parameters:
     Type: String
     Description: "ARN dell'allarme messaggi vecchi nella DLQ per forward degli eventi al bus PnCoreTargetEventBus"
 
+  ###### PEC : RICEVUTE, ESITI #######
   PnEcQueueNameScaricamentoEsitiPEC:
     Type: String
     Description: '[PEC- Scaricamento Esiti] Nome della Coda per lo scaricamento esiti PEC'
@@ -649,6 +650,14 @@ Parameters:
   PnEcAlarmArnDLQueueCancellazioneRicevutePEC:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueCancellazioneRicevutePEC"
+
+  CancellazioneRicevutePecEventRuleStatus:
+    Type: String
+    Description: "Stato della regola per intercettare eventi di cancellazione ricevute PEC {ENABLED,DISABLED} "  
+    Default: ENABLED
+    AllowedValues: 
+      - ENABLED
+      - DISABLED
 
   #### CRON Rules ####
   PnEcCronScaricamentoEsitiPec:
@@ -708,7 +717,6 @@ Parameters:
   LogAlarmStrategy:
     Type: String
     Default: 'FATAL'
-
 
   PCKmsEncDecDynamoDataKeyARN:
     Type: String
@@ -950,6 +958,12 @@ Resources:
             Effect: Allow
             Action:
               - 'cloudwatch:PutMetricData'
+            Resource:
+              - '*'
+          - Sid: 'ReadParameterStore'
+            Effect: Allow
+            Action:
+              - 'ssm:GetParameter'
             Resource:
               - '*'
 
@@ -1328,6 +1342,59 @@ Resources:
           RoleArn: !GetAtt PnEcRoleExternalNotifications.Arn
           DeadLetterConfig:
             Arn: !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
+
+  PnEcEventRuleCancellazioneRicevutePEC:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: 'This Event rule is used to match events related to PEC receipt deletion'
+      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      EventPattern:
+        source:
+          - 'NOTIFICATION TRACKER'
+        account:
+          - !Ref AWS::AccountId
+        region:
+          - !Ref AWS::Region
+        detail:
+          digitalLegal:
+            eventCode:
+              - 'C001'
+              - 'C002'
+              - 'C003'
+              - 'C004'
+              - 'C006'
+              - 'C007'
+              - 'C009'
+      State: !Ref CancellazioneRicevutePecEventRuleStatus
+      Targets:
+        - Arn: !Ref PnEcQueueArnCancellazioneRicevutePEC
+          Id: 'PnEcCancellazioneRicevutePecTarget'
+
+  PnEcQueuePolicyCancellazioneRicevutePEC:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref PnEcQueueUrlCancellazioneRicevutePEC
+      PolicyDocument:
+        Statement:
+          - Sid: 'AllowAccessSameAccount'
+            Action:
+              - 'sqs:*'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnCancellazioneRicevutePEC
+            Principal:
+              AWS: !Ref AWS::AccountId
+          - Sid: 'AllowPutEventsFromEventRule'
+            Action:
+              - 'sqs:SendMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnCancellazioneRicevutePEC
+            Principal:
+              Service:
+              - 'events.amazonaws.com'
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt PnEcEventRuleCancellazioneRicevutePEC.Arn
 
 ##############   CHANNEL SMS STRESS TEST    #################
   PnEcSMSStressTestSecurityGroup:
