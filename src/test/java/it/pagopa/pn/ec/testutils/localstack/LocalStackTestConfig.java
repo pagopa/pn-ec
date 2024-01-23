@@ -91,7 +91,7 @@ public class LocalStackTestConfig {
                     "ssm",
                     "put-parameter",
                     "--name",
-                    "/PagoPA/esitiCartaceo",
+                    "pn-EC-esitiCartaceo",
                     "--type",
                     "String",
                     "--value",

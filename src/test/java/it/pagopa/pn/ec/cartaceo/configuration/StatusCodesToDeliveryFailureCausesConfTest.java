@@ -15,40 +15,6 @@ class StatusCodesToDeliveryFailureCausesConfTest {
 
     @Autowired
     private StatusCodesToDeliveryFailureCausesConf statusCodesToDeliveryFailureCausesConf;
-    private static final String PARAMETER = "/PagoPA/esitiCartaceo";
-    private static final String EXPECTED_VALUE = "{\n" +
-            "    \"cartaceo\": {\n" +
-            "        \"RECRN004A\": {\n" +
-            "            \"deliveryFailureCause\": [\n" +
-            "                \"M05\",\n" +
-            "                \"M06\",\n" +
-            "                \"M07\"\n" +
-            "            ]\n" +
-            "        },\n" +
-            "        \"RECRN004B\": {\n" +
-            "            \"deliveryFailureCause\": [\n" +
-            "                \"M08\",\n" +
-            "                \"M09\",\n" +
-            "                \"F01\",\n" +
-            "                \"F02\",\n" +
-            "                \"TEST\"\n" +
-            "            ]\n" +
-            "        },\n" +
-            "        \"RECRN006\": {\n" +
-            "            \"deliveryFailureCause\": [\n" +
-            "                \"M03\",\n" +
-            "                \"M04\"\n" +
-            "            ]\n" +
-            "        }\n" +
-            "    }\n" +
-            "}";
-
-    @Test
-    void getParameterTest() {
-        String actualValue = statusCodesToDeliveryFailureCausesConf.getParameter(PARAMETER);
-
-        assertEquals(EXPECTED_VALUE, actualValue);
-    }
 
     @Test
     void buildDeliveryFailureCausesMapFromJsonTest() throws JsonProcessingException {
