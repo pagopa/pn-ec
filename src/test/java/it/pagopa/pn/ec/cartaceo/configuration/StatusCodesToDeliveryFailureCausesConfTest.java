@@ -15,7 +15,7 @@ class StatusCodesToDeliveryFailureCausesConfTest {
 
     @Autowired
     private StatusCodesToDeliveryFailureCausesConf statusCodesToDeliveryFailureCausesConf;
-    private static final String PARAMETER = "/PagoPA/esitiCartaceo";
+    private static final String PARAMETER = "pn-EC-esitiCartaceo";
     private static final String EXPECTED_VALUE = "{\n" +
             "    \"cartaceo\": {\n" +
             "        \"RECRN004A\": {\n" +
