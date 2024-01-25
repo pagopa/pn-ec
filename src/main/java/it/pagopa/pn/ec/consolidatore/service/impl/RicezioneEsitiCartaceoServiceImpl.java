@@ -14,6 +14,7 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
+import it.pagopa.pn.ec.consolidatore.exception.NoSuchEventException;
 import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogError;
 import it.pagopa.pn.ec.consolidatore.model.dto.RicezioneEsitiDto;
 import it.pagopa.pn.ec.consolidatore.exception.RicezioneEsitiCartaceoException;
@@ -27,9 +28,11 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static it.pagopa.pn.ec.commons.constant.Status.SENT;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperConstant.*;
@@ -72,7 +75,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	}
 
 	// errore semantico -> resultDescription: 'Semantic Error'
-	private Mono<OperationResultCodeResponse> verificaErroriSemantici(ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent, String xPagopaExtchServiceId)
+	private Mono<OperationResultCodeResponse> verificaErroriSemantici(ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent, RequestDto requestDto, String xPagopaExtchServiceId)
 			throws RicezioneEsitiCartaceoException
 	{
 		final String LOG_LABEL = "RicezioneEsitiCartaceoServiceImpl.verificaErroriSemantici() ";
@@ -97,6 +100,18 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 					List<String> errorList = new ArrayList<>();
 					List<ConsAuditLogError> auditLogErrorList = new ArrayList<>();
+
+					//Status date time
+					OffsetDateTime statusDateTime = progressStatusEvent.getStatusDateTime();
+					EventsDto sentEvent = requestDto.getRequestMetadata().getEventsList()
+							.stream()
+							.filter(eventsDto -> eventsDto.getPaperProgrStatus().getStatus().equals(SENT.getStatusTransactionTableCompliant()))
+							.findFirst()
+							.orElseThrow(() -> new NoSuchEventException(SENT.getStatusTransactionTableCompliant()));
+					if (statusDateTime.isBefore(sentEvent.getPaperProgrStatus().getStatusDateTime())) {
+						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_STATUS_DATE_TIME.getValue()).description("Status date time is not valid."));
+						errorList.add(String.format(NOT_VALID, STATUS_DATE_TIME_LABEL, statusDateTime));
+					}
 
 					//Iun
 					if (!StringUtils.isBlank(iun) && !progressStatusEvent.getIun().equals(iun)) {
@@ -224,7 +239,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		  var requestId = progressStatusEvent.getRequestId();
 		  return Mono.just(progressStatusEvent)
 				 .flatMap(unused -> gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceId, progressStatusEvent.getRequestId()))
-			     .flatMap(unused -> verificaErroriSemantici(progressStatusEvent, xPagopaExtchServiceId))
+			     .flatMap(requestDto -> verificaErroriSemantici(progressStatusEvent, requestDto, xPagopaExtchServiceId))
 			     .flatMap(unused -> verificaAttachments(xPagopaExtchServiceId, requestId, progressStatusEvent.getAttachments()))
 				 .flatMap(unused -> Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 						  getOperationResultCodeResponse(COMPLETED_OK_CODE,
