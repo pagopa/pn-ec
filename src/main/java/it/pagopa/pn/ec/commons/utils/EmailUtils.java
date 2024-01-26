@@ -76,6 +76,8 @@ public class EmailUtils {
             mimeMessage.setFrom(new InternetAddress(emailField.getFrom(), "", UTF_8));
             mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(emailField.getTo(), "", UTF_8));
             mimeMessage.setSubject(emailField.getSubject(), UTF_8);
+            
+            mimeMessage.addHeader("X-TipoRicevuta", "breve");
 
             var htmlOrPlainTextPart = new MimeBodyPart();
             htmlOrPlainTextPart.setContent(emailField.getText(), emailField.getContentType());
