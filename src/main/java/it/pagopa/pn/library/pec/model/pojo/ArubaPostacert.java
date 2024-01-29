@@ -13,7 +13,7 @@ public class ArubaPostacert extends PnPostacert {
 
     @Override
     public String getTipo() {
-        if (tipo.equals(PREAVVISO_ERRORE_CONSEGNA) && this.getDati().getErroreEsteso().matches(".*5\\.4\\.1.*"))
+        if (tipo.equals(PREAVVISO_ERRORE_CONSEGNA) && this.getDati().getErroreEsteso().matches("^5\\.4\\.1.*"))
             return ERRORE_CONSEGNA;
         else return this.tipo;
     }
