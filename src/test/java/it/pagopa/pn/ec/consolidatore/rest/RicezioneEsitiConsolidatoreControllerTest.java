@@ -1,12 +1,13 @@
 package it.pagopa.pn.ec.consolidatore.rest;
 
-import static it.pagopa.pn.ec.commons.constant.Status.SENT;
+import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
@@ -98,6 +99,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	private static final String DELIVERY_FAILURE_CAUSE_OK = "M03";
 	private static final String DELIVERY_FAILURE_CAUSE_KO = "KO";
 	private static final EventsDto SENT_EVENT = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(SENT.getStatusTransactionTableCompliant()).statusDateTime(now));
+	private static final EventsDto BOOKED_EVENT = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(BOOKED.getStatusTransactionTableCompliant()).statusDateTime(now));
+	private static final EventsDto RETRY_EVENT = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).statusDateTime(now));
 
     private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithoutAttachments() {
     	ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = new ConsolidatoreIngressPaperProgressStatusEvent();
@@ -678,4 +681,182 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.value(OperationResultCodeResponse::getErrorList, Matchers.hasItem(Matchers.containsString("test")));
 	}
 
+	@Test
+	void ricezioneEsitiWithRetryStatusShouldThrowException() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiWithRetryStatusShouldThrowException() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(RETRY_EVENT,RETRY_EVENT)));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithoutAttachments());
+
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isBadRequest();
+	}
+
+	@Test
+	void ricezioneEsitiWithBookeAndSentdEventsShouldReturnOk() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiWithBookedAndSentEventsShouldReturnOk() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(BOOKED_EVENT,SENT_EVENT)));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithoutAttachments());
+
+		webClient.put()
+			.uri(RICEZIONE_ESITI_ENDPOINT)
+			.accept(APPLICATION_JSON)
+			.contentType(APPLICATION_JSON)
+			.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+			.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+			.body(BodyInserters.fromValue(events))
+			.exchange()
+			.expectStatus()
+			.isOk();
+	}
+
+	@Test
+	void ricezioneEsitiWithBookedAndRetryEventsShouldReturnOk(){
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiWithBookedAndRetryEventsShouldReturnOk() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(BOOKED_EVENT,RETRY_EVENT)));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithoutAttachments());
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isOk();
+	}
+
+	@Test
+	void ricezioneEsitiWithStatusDateTimeBeforeSentEventDateTimeShouldThrowException(){
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiWithStatusDateTimeBeforeSentEventDateTimeShouldThrowException() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		EventsDto bookedEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+				.status(BOOKED.getStatusTransactionTableCompliant())
+				.statusDateTime(OffsetDateTime.of(2024, 2, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
+		EventsDto sentEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+				.status(SENT.getStatusTransactionTableCompliant())
+				.statusDateTime(OffsetDateTime.of(2024, 2, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(bookedEvent,sentEvent)));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithoutAttachments().statusDateTime(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isBadRequest();
+	}
+
+	@Test
+	void ricezioneEsitiWithStatusDateTimeBeforeBookedEventDateTimeShouldThrowException(){
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiWithStatusDateTimeBeforeBookedEventDateTimeShouldThrowException() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		EventsDto bookedEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+				.status(BOOKED.getStatusTransactionTableCompliant())
+				.statusDateTime(OffsetDateTime.of(2024, 2, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
+		EventsDto retryEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+				.status(RETRY.getStatusTransactionTableCompliant())
+				.statusDateTime(OffsetDateTime.of(2024, 2, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(bookedEvent,retryEvent)));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithoutAttachments().statusDateTime(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isBadRequest();
+	}
+
+	@Test
+	void ricezioneEsitiWithStatusDateTimeAfterSentEventDateTimeShouldReturnOk(){
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiWithStatusDateTimeAfterSentEventDateTimeShouldReturnOk() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		EventsDto bookedEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+				.status(BOOKED.getStatusTransactionTableCompliant())
+				.statusDateTime(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
+		EventsDto sentEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+				.status(SENT.getStatusTransactionTableCompliant())
+				.statusDateTime(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(bookedEvent,sentEvent)));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithoutAttachments().statusDateTime(OffsetDateTime.of(2024, 2, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isOk();
+	}
+
+	@Test
+	void ricezioneEsitiWithStatusDateTimeAfterBookedEventDateTimeShouldReturnOk(){
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiWithStatusDateTimeAfterBookedEventDateTimeShouldReturnOk() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		EventsDto bookedEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+				.status(BOOKED.getStatusTransactionTableCompliant())
+				.statusDateTime(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
+		EventsDto retryEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+				.status(RETRY.getStatusTransactionTableCompliant())
+				.statusDateTime(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(bookedEvent,retryEvent)));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithoutAttachments().statusDateTime(OffsetDateTime.of(2024, 2, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isOk();
+	}
 }
