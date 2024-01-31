@@ -668,7 +668,7 @@ Parameters:
   PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked:
     Type: String
     Description: "[Cartaceo- Ricezione Esiti] Stato della funzionalità che considera BOOKED gli eventi senza uno stato SENT"
-    Default: 'true'
+    Default: 'false'
 
   #### CRON Rules ####
   PnEcCronScaricamentoEsitiPec:
