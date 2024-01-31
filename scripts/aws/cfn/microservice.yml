@@ -663,6 +663,13 @@ Parameters:
       - ENABLED
       - DISABLED
 
+  ### CARTACEO : ESITI ###
+
+  PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked:
+    Type: String
+    Description: "[Cartaceo- Ricezione Esiti] Stato della funzionalità che considera BOOKED gli eventi senza uno stato SENT"
+    Default: 'true'
+
   #### CRON Rules ####
   PnEcCronScaricamentoEsitiPec:
     Type: String
@@ -846,6 +853,7 @@ Resources:
         ContainerEnvEntry55: !Sub 'PnEcTaskExecutionPoolMaxSize=${PnEcTaskExecutionPoolMaxSize}'
         ContainerEnvEntry56: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueNameCancellazioneRicevutePEC}'
         ContainerEnvEntry57: !Sub 'CancellazioneRicevutePecMaxThreadPoolSize=${CancellazioneRicevutePecMaxThreadPoolSize}'
+        ContainerEnvEntry58: !Sub 'PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked=${PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
