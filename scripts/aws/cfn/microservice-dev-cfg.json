@@ -21,6 +21,6 @@
     "PnEcQueueElapsedTimeSeconds": "7200",
     "PnEcTaskExecutionPoolMaxSize": "512",
     "CancellazioneRicevutePecEventRuleStatus": "ENABLED",
-    "PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked": "false"
+    "PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked": "true"
   }
 }
