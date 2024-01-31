@@ -22,6 +22,7 @@ import it.pagopa.pn.ec.consolidatore.service.RicezioneEsitiCartaceoService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -32,6 +33,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
@@ -49,20 +51,22 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private final NotificationTrackerSqsName notificationTrackerSqsName;
 	private final SqsService sqsService;
 	private final StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses;
-
 	private final StatusPullService statusPullService;
+	private boolean considerEventsWithoutSentStatusAsBooked;
 
 	public RicezioneEsitiCartaceoServiceImpl(GestoreRepositoryCall gestoreRepositoryCall,
-                                             FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
-                                             SqsService sqsService, StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses, StatusPullService statusPullService) {
+											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
+											 SqsService sqsService, StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses, StatusPullService statusPullService,
+											 @Value("${ricezione-esiti-cartaceo.consider-event-without-sent-status-as-booked}") boolean considerEventsWithoutStatusAsBooked) {
 		super();
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.fileCall = fileCall;
 		this.objectMapper = objectMapper;
 		this.notificationTrackerSqsName = notificationTrackerSqsName;
 		this.sqsService = sqsService;
-        this.statusCodesToDeliveryFailureCauses = statusCodesToDeliveryFailureCauses;
-        this.statusPullService = statusPullService;
+		this.statusCodesToDeliveryFailureCauses = statusCodesToDeliveryFailureCauses;
+		this.statusPullService = statusPullService;
+		this.considerEventsWithoutSentStatusAsBooked = considerEventsWithoutStatusAsBooked;
 	}
 
 	private OperationResultCodeResponse getOperationResultCodeResponse(
@@ -107,7 +111,17 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 							.stream()
 							.filter(eventsDto -> eventsDto.getPaperProgrStatus().getStatus().equals(SENT.getStatusTransactionTableCompliant()))
 							.findFirst()
-							.orElseThrow(() -> new NoSuchEventException(SENT.getStatusTransactionTableCompliant()));
+							.orElseGet(() -> {
+								if (considerEventsWithoutSentStatusAsBooked) {
+									return requestDto.getRequestMetadata().getEventsList()
+											.stream()
+											.filter(eventsDto -> eventsDto.getPaperProgrStatus().getStatus().equals(BOOKED.getStatusTransactionTableCompliant()))
+											.findFirst()
+											.orElseThrow(() -> new NoSuchEventException(BOOKED.getStatusTransactionTableCompliant()));
+								} else {
+									throw new NoSuchEventException(SENT.getStatusTransactionTableCompliant());
+								}
+							});
 					if (statusDateTime.isBefore(sentEvent.getPaperProgrStatus().getStatusDateTime())) {
 						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_STATUS_DATE_TIME.getValue()).description("Status date time is not valid."));
 						errorList.add(String.format(NOT_VALID, STATUS_DATE_TIME_LABEL, statusDateTime));
