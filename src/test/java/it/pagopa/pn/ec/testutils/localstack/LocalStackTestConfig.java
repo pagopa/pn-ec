@@ -51,7 +51,7 @@ public class LocalStackTestConfig {
 
     static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4");
     static LocalStackContainer localStackContainer =
-            new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS, SES, SECRETSMANAGER,CLOUDWATCH)
+            new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS, SES, SECRETSMANAGER,CLOUDWATCH,SSM)
                     .withStartupTimeout(Duration.ofMinutes(2)).withEnv("AWS_DEFAULT_REGION", "eu-central-1");
 
     static {
@@ -73,6 +73,8 @@ public class LocalStackTestConfig {
 
         System.setProperty("test.aws.cloudwatch.endpoint", String.valueOf(localStackContainer.getEndpointOverride(CLOUDWATCH)));
 
+        System.setProperty("test.aws.ssm.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SSM)));
+
         try {
             localStackContainer.execInContainer("awslocal",
                     "secretsmanager",
@@ -81,6 +83,44 @@ public class LocalStackTestConfig {
                     "pn/identity/pec",
                     "--secret-string",
                     "{\"user\":\"aruba_username@dgsspa.com\",\"pass\":\"aruba_password\"}");
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            localStackContainer.execInContainer("awslocal",
+                    "ssm",
+                    "put-parameter",
+                    "--name",
+                    "pn-EC-esitiCartaceo",
+                    "--type",
+                    "String",
+                    "--value",
+                    "{\n" +
+                            "    \"cartaceo\": {\n" +
+                            "        \"RECRN004A\": {\n" +
+                            "            \"deliveryFailureCause\": [\n" +
+                            "                \"M05\",\n" +
+                            "                \"M06\",\n" +
+                            "                \"M07\"\n" +
+                            "            ]\n" +
+                            "        },\n" +
+                            "        \"RECRN004B\": {\n" +
+                            "            \"deliveryFailureCause\": [\n" +
+                            "                \"M08\",\n" +
+                            "                \"M09\",\n" +
+                            "                \"F01\",\n" +
+                            "                \"F02\",\n" +
+                            "                \"TEST\"\n" +
+                            "            ]\n" +
+                            "        },\n" +
+                            "        \"RECRN006\": {\n" +
+                            "            \"deliveryFailureCause\": [\n" +
+                            "                \"M03\",\n" +
+                            "                \"M04\"\n" +
+                            "            ]\n" +
+                            "        }\n" +
+                            "    }\n" +
+                            "}");
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }

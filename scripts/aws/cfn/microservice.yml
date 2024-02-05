@@ -142,13 +142,17 @@ Parameters:
     Description: 'Lavorazione Cartaceo max thread pool size'
     Default: '100'
 
+  CancellazioneRicevutePecMaxThreadPoolSize:
+    Type: String
+    Description: 'Cancellazione Ricevute Pec max thread pool size'
+
   PnEcTaskExecutionPoolMaxSize:
     Type: String
     Description: 'SpringBoot configuration Task Execution Max Pool Siza'
     Default: '512'
 
-  ######### TABLES  ############
-
+  ### TABLES  ###
+  
   PnEcTableNameAnagrafica:
     Type: String
     Description: "Nome della Tabella DynamoDB relativa ad Anagrafica Client"
@@ -173,8 +177,8 @@ Parameters:
     Type: String
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
 
-  ######### QUEUES  ############
-  ######### TRACKER : SMS  ##########
+  ### QUEUES  ###
+  ### TRACKER : SMS  ###
 
   PnEcQueueNameTrackerStatoSMS:
     Type: String
@@ -610,6 +614,7 @@ Parameters:
     Type: String
     Description: "ARN dell'allarme messaggi vecchi nella DLQ per forward degli eventi al bus PnCoreTargetEventBus"
 
+  ###### PEC : RICEVUTE, ESITI #######
   PnEcQueueNameScaricamentoEsitiPEC:
     Type: String
     Description: '[PEC- Scaricamento Esiti] Nome della Coda per lo scaricamento esiti PEC'
@@ -649,6 +654,21 @@ Parameters:
   PnEcAlarmArnDLQueueCancellazioneRicevutePEC:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueCancellazioneRicevutePEC"
+
+  CancellazioneRicevutePecEventRuleStatus:
+    Type: String
+    Description: "Stato della regola per intercettare eventi di cancellazione ricevute PEC {ENABLED,DISABLED} "  
+    Default: ENABLED
+    AllowedValues: 
+      - ENABLED
+      - DISABLED
+
+  ### CARTACEO : ESITI ###
+
+  PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked:
+    Type: String
+    Description: "[Cartaceo- Ricezione Esiti] Stato della funzionalità che considera BOOKED gli eventi senza uno stato SENT"
+    Default: 'false'
 
   #### CRON Rules ####
   PnEcCronScaricamentoEsitiPec:
@@ -708,7 +728,6 @@ Parameters:
   LogAlarmStrategy:
     Type: String
     Default: 'FATAL'
-
 
   PCKmsEncDecDynamoDataKeyARN:
     Type: String
@@ -833,6 +852,8 @@ Resources:
         ContainerEnvEntry54: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
         ContainerEnvEntry55: !Sub 'PnEcTaskExecutionPoolMaxSize=${PnEcTaskExecutionPoolMaxSize}'
         ContainerEnvEntry56: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueNameCancellazioneRicevutePEC}'
+        ContainerEnvEntry57: !Sub 'CancellazioneRicevutePecMaxThreadPoolSize=${CancellazioneRicevutePecMaxThreadPoolSize}'
+        ContainerEnvEntry58: !Sub 'PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked=${PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -950,6 +971,12 @@ Resources:
             Effect: Allow
             Action:
               - 'cloudwatch:PutMetricData'
+            Resource:
+              - '*'
+          - Sid: 'ReadParameterStore'
+            Effect: Allow
+            Action:
+              - 'ssm:GetParameter'
             Resource:
               - '*'
 
@@ -1328,6 +1355,59 @@ Resources:
           RoleArn: !GetAtt PnEcRoleExternalNotifications.Arn
           DeadLetterConfig:
             Arn: !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
+
+  PnEcEventRuleCancellazioneRicevutePEC:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: 'This Event rule is used to match events related to PEC receipt deletion'
+      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      EventPattern:
+        source:
+          - 'NOTIFICATION TRACKER'
+        account:
+          - !Ref AWS::AccountId
+        region:
+          - !Ref AWS::Region
+        detail:
+          digitalLegal:
+            eventCode:
+              - 'C001'
+              - 'C002'
+              - 'C003'
+              - 'C004'
+              - 'C006'
+              - 'C007'
+              - 'C009'
+      State: !Ref CancellazioneRicevutePecEventRuleStatus
+      Targets:
+        - Arn: !Ref PnEcQueueArnCancellazioneRicevutePEC
+          Id: 'PnEcCancellazioneRicevutePecTarget'
+
+  PnEcQueuePolicyCancellazioneRicevutePEC:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref PnEcQueueUrlCancellazioneRicevutePEC
+      PolicyDocument:
+        Statement:
+          - Sid: 'AllowAccessSameAccount'
+            Action:
+              - 'sqs:*'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnCancellazioneRicevutePEC
+            Principal:
+              AWS: !Ref AWS::AccountId
+          - Sid: 'AllowPutEventsFromEventRule'
+            Action:
+              - 'sqs:SendMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnCancellazioneRicevutePEC
+            Principal:
+              Service:
+              - 'events.amazonaws.com'
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt PnEcEventRuleCancellazioneRicevutePEC.Arn
 
 ##############   CHANNEL SMS STRESS TEST    #################
   PnEcSMSStressTestSecurityGroup:
