@@ -7,37 +7,46 @@ import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
+import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Spy;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.annotation.DirtiesContext;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import software.amazon.awssdk.services.dynamodb.model.Delete;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+
 import java.io.ByteArrayOutputStream;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import static it.pagopa.pn.ec.commons.constant.Status.INTERNAL_ERROR;
-import static it.pagopa.pn.ec.commons.constant.Status.SENT;
 
+import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -57,13 +66,15 @@ class PecRetryTest {
     @MockBean
     private DownloadCall downloadCall;
     @SpyBean
+    private AttachmentServiceImpl attachmentService;
+    @SpyBean
     private PecService pecService;
+    @SpyBean
+    private PnPecConfigurationProperties pnPecConfigurationProperties;
     @MockBean
     private FileCall fileCall;
     @SpyBean
     private GestoreRepositoryCall gestoreRepositoryCall;
-
-
     Message message = Message.builder().build();
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
@@ -99,11 +110,10 @@ class PecRetryTest {
             .digitalNotificationRequest(createDigitalNotificationRequest())
             .build();
 
-    private static final PecPresaInCaricoInfo PEC_PRESA_IN_CARICO_INFO_STEP_ERROR = PecPresaInCaricoInfo.builder()
+    private static final PecPresaInCaricoInfo PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR = PecPresaInCaricoInfo.builder()
             .requestIdx(DEFAULT_REQUEST_IDX)
             .xPagopaExtchCxId(
                     DEFAULT_ID_CLIENT_HEADER_VALUE)
-            .stepError(STEP_ERROR)
             .digitalNotificationRequest(createDigitalNotificationRequest())
             .build();
 
@@ -217,6 +227,139 @@ class PecRetryTest {
 
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 //        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+    }
+
+    @Test
+    void gestionreRetryPec_MaxAttachmentsSizeExceeded_Limit(){
+
+        String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+        String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestDto=buildRequestDto();
+
+        PatchDto patchDto = new PatchDto();
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+        var sendMailResponse=new SendMailResponse();
+        sendMailResponse.setErrstr("errorstr");
+
+        var file1 = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url1")).key("key1");
+        var file2 = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url2")).key("key2");
+
+        var file1ByteArray = new byte[1024];
+        var file2ByteArray = new byte[pnPecConfigurationProperties.getMaxMessageSizeMb() * 1000000];
+
+        var outputStream1 = new ByteArrayOutputStream();
+        var outputStream2 = new ByteArrayOutputStream();
+
+        outputStream1.writeBytes(file1ByteArray);
+        outputStream2.writeBytes(file2ByteArray);
+
+        when(pnPecConfigurationProperties.getAttachmentRule()).thenReturn("LIMIT");
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(file1, file2));
+        when(downloadCall.downloadFile(file1.getDownload().getUrl())).thenReturn(Mono.just(outputStream1));
+        when(downloadCall.downloadFile(file2.getDownload().getUrl())).thenReturn(Mono.just(outputStream2));
+        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+
+        //Gestore repository mocks.
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
+
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        ArgumentCaptor<SendMail> argumentCaptor = ArgumentCaptor.forClass(SendMail.class);
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        verify(arubaCall, times(1)).sendMail(argumentCaptor.capture());
+        assertTrue(argumentCaptor.getValue().getData().getBytes().length < pnPecConfigurationProperties.getMaxMessageSizeMb());
+    }
+
+    @Test
+    void gestionreRetryPec_MaxAttachmentsSizeExceeded_First() {
+
+        String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+        String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestDto = buildRequestDto();
+
+        PatchDto patchDto = new PatchDto();
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+        var sendMailResponse = new SendMailResponse();
+        sendMailResponse.setErrstr("errorstr");
+
+        var file1 = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url1")).key("key1");
+        var file2 = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url2")).key("key2");
+
+        var file1ByteArray = new byte[1024];
+        var file2ByteArray = new byte[pnPecConfigurationProperties.getMaxMessageSizeMb() * 1000000];
+
+        var outputStream1 = new ByteArrayOutputStream();
+        var outputStream2 = new ByteArrayOutputStream();
+
+        outputStream1.writeBytes(file1ByteArray);
+        outputStream2.writeBytes(file2ByteArray);
+
+        when(pnPecConfigurationProperties.getAttachmentRule()).thenReturn("FIRST");
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(file1, file2));
+        when(downloadCall.downloadFile(file1.getDownload().getUrl())).thenReturn(Mono.just(outputStream1));
+        when(downloadCall.downloadFile(file2.getDownload().getUrl())).thenReturn(Mono.just(outputStream2));
+        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+
+        //Gestore repository mocks.
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
+
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        ArgumentCaptor<SendMail> argumentCaptor = ArgumentCaptor.forClass(SendMail.class);
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        verify(arubaCall, times(1)).sendMail(argumentCaptor.capture());
+        assertTrue(argumentCaptor.getValue().getData().getBytes().length < pnPecConfigurationProperties.getMaxMessageSizeMb());
+    }
+
+    @Test
+    void gestionreRetryPec_MaxAttachmentsSizeExceeded_Ko() {
+
+        String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+        String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestDto = buildRequestDto();
+
+        PatchDto patchDto = new PatchDto();
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+        var sendMailResponse = new SendMailResponse();
+        sendMailResponse.setErrstr("errorstr");
+
+        var file = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url1")).key("key");
+        var fileByteArray = new byte[(pnPecConfigurationProperties.getMaxMessageSizeMb() * 1000000) + 1024];
+        var outputStream = new ByteArrayOutputStream();
+        outputStream.writeBytes(fileByteArray);
+
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(file));
+        when(downloadCall.downloadFile(file.getDownload().getUrl())).thenReturn(Mono.just(outputStream));
+        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+
+        //Gestore repository mocks.
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
+
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
+        StepVerifier.create(response).verifyComplete();
+
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(RETRY.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
 
     @Test

@@ -5,6 +5,8 @@ import it.pagopa.pn.ec.pec.model.pojo.PagopaMimeMessage;
 import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.mail.util.MimeMessageParser;
+import reactor.core.publisher.Mono;
+
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.mail.*;
@@ -61,6 +63,10 @@ public class EmailUtils {
         } catch (MessagingException e) {
             throw new RetrieveFromException();
         }
+    }
+
+    public static Mono<MimeMessage> getMonoMimeMessage(EmailField emailField) {
+        return null;
     }
 
     public static MimeMessage getMimeMessage(EmailField emailField) {
