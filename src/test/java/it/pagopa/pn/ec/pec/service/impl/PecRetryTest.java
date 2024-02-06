@@ -16,6 +16,8 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -24,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -152,6 +155,16 @@ class PecRetryTest {
         requestDto.setRequestMetadata(requestMetadata);
 
         return requestDto;
+    }
+
+    private String TIPO_RICEVUTA_BREVE_DEFAULT;
+    @BeforeEach
+    void setUp() {
+        TIPO_RICEVUTA_BREVE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "tipoRicevutaBreve");
+    }
+    @AfterEach
+    void afterEach() {
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", TIPO_RICEVUTA_BREVE_DEFAULT);
     }
 
     @Test
@@ -390,7 +403,7 @@ class PecRetryTest {
         when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
-        when(pnPecConfigurationProperties.getTipoRicevutaBreve()).thenReturn(headerValue);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", headerValue);
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
@@ -434,7 +447,7 @@ class PecRetryTest {
         when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
-        when(pnPecConfigurationProperties.getTipoRicevutaBreve()).thenReturn(headerValue);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", headerValue);
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));

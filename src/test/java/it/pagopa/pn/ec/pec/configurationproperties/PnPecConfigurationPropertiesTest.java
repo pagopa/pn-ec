@@ -1,26 +1,36 @@
-package it.pagopa.pn.ec.pec.configurationProperties;
+package it.pagopa.pn.ec.pec.configurationproperties;
 
-import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @SpringBootTestWebEnv
 @CustomLog
 public class PnPecConfigurationPropertiesTest {
+
     @Autowired
     PnPecConfigurationProperties pnPecConfigurationProperties;
+    private String TIPO_RICEVUTA_BREVE_DEFAULT;
 
     @BeforeEach
     void setUp() {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2020-01-01").getMillis());
-        pnPecConfigurationProperties=new PnPecConfigurationProperties();
+        TIPO_RICEVUTA_BREVE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "tipoRicevutaBreve");
+    }
+
+    @AfterEach
+    void afterEach() {
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", TIPO_RICEVUTA_BREVE_DEFAULT);
+    }
+
+    @AfterAll
+    static void afterAll() {
+        DateTimeUtils.setCurrentMillisSystem();
     }
 
     @Test

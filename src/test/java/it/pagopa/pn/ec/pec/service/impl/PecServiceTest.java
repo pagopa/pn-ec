@@ -17,6 +17,10 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
 import lombok.CustomLog;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -25,6 +29,8 @@ import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -50,6 +56,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @CustomLog
 class PecServiceTest {
 
@@ -139,6 +146,17 @@ class PecServiceTest {
 
         return requestDto;
     }
+
+    private String TIPO_RICEVUTA_BREVE_DEFAULT;
+    @BeforeEach
+    void setUp() {
+        TIPO_RICEVUTA_BREVE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "tipoRicevutaBreve");
+    }
+    @AfterEach
+    void afterEach() {
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", TIPO_RICEVUTA_BREVE_DEFAULT);
+    }
+
     @Test
     void lavorazionePec_Ok(){
 
@@ -271,7 +289,7 @@ class PecServiceTest {
         when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
         when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        when(pnPecConfigurationProperties.getTipoRicevutaBreve()).thenReturn(headerValue);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", headerValue);
 
         Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
@@ -299,7 +317,7 @@ class PecServiceTest {
         when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
         when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        when(pnPecConfigurationProperties.getTipoRicevutaBreve()).thenReturn(headerValue);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", headerValue);
 
         Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
