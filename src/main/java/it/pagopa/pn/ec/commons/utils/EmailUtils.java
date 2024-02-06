@@ -125,6 +125,10 @@ public class EmailUtils {
         }
     }
 
+    public static String getMimeMessageFromCDATATag(String cDataString) {
+        return cDataString.substring(cDataString.indexOf("[CDATA[") + "[CDATA[".length(), cDataString.lastIndexOf("]]"));
+    }
+
     public static String getMimeMessageInCDATATag(EmailField emailField) {
         return String.format("<![CDATA[%s]]>", getMimeMessageOutputStream(emailField));
     }
@@ -174,6 +178,14 @@ public class EmailUtils {
 
         } catch (IOException | MessagingException exception) {
             throw new RetrieveAttachmentException();
+        }
+    }
+
+    public static String[] getHeaderFromMimeMessage(MimeMessage mimeMessage, String headerName) {
+        try {
+            return mimeMessage.getHeader(headerName);
+        } catch (MessagingException e) {
+            throw new RuntimeException(e);
         }
     }
 

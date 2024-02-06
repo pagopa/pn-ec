@@ -17,20 +17,18 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Spy;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.annotation.DirtiesContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import software.amazon.awssdk.services.dynamodb.model.Delete;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.io.ByteArrayOutputStream;
 
@@ -41,12 +39,14 @@ import java.util.List;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
+import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
+import static it.pagopa.pn.ec.commons.utils.EmailUtils.getHeaderFromMimeMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -271,10 +271,10 @@ class PecRetryTest {
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-        ArgumentCaptor<SendMail> argumentCaptor = ArgumentCaptor.forClass(SendMail.class);
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-        verify(arubaCall, times(1)).sendMail(argumentCaptor.capture());
-        assertTrue(argumentCaptor.getValue().getData().getBytes().length < pnPecConfigurationProperties.getMaxMessageSizeMb());
+
+        var mimeMessageStr = extractSendMailData();
+        assertTrue(mimeMessageStr.getBytes().length < pnPecConfigurationProperties.getMaxMessageSizeMb());
     }
 
     @Test
@@ -319,10 +319,10 @@ class PecRetryTest {
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-        ArgumentCaptor<SendMail> argumentCaptor = ArgumentCaptor.forClass(SendMail.class);
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-        verify(arubaCall, times(1)).sendMail(argumentCaptor.capture());
-        assertTrue(argumentCaptor.getValue().getData().getBytes().length < pnPecConfigurationProperties.getMaxMessageSizeMb());
+
+        var mimeMessageStr = extractSendMailData();
+        assertTrue(mimeMessageStr.getBytes().length < pnPecConfigurationProperties.getMaxMessageSizeMb());
     }
 
     @Test
@@ -362,6 +362,94 @@ class PecRetryTest {
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(RETRY.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"true", "true;2100-02-01T10:00:00Z;false"})
+    void gestionreRetryPec_XTipoRicevutaHeaderInserted_Ok(String headerValue){
+
+        String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+        String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestDto=buildRequestDto();
+
+        PatchDto patchDto = new PatchDto();
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+        var sendMailResponse=new SendMailResponse();
+        sendMailResponse.setErrstr("errorstr");
+
+        var file = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url1")).key("key");
+        var fileByteArray = new byte[1024];
+        var outputStream = new ByteArrayOutputStream();
+        outputStream.writeBytes(fileByteArray);
+
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(file));
+        when(downloadCall.downloadFile(file.getDownload().getUrl())).thenReturn(Mono.just(outputStream));
+        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+
+        //Gestore repository mocks.
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
+
+        when(pnPecConfigurationProperties.getTipoRicevutaBreve()).thenReturn(headerValue);
+
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+
+        String mimeMessageStr = extractSendMailData();
+        var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
+        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, "X-TipoRicevuta");
+        assertNotNull(xTipoRicevutaHeader);
+        assertTrue(getHeaderFromMimeMessage(mimeMessage, "X-TipoRicevuta").length > 0);
+    }
+    @ParameterizedTest
+    @ValueSource(strings = {"false", "true;2023-02-01T10:00:00Z;false"})
+    void gestionreRetryPec_XTipoRicevutaHeaderNotInserted_Ok(String headerValue){
+
+        String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+        String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestDto=buildRequestDto();
+
+        PatchDto patchDto = new PatchDto();
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+        var sendMailResponse=new SendMailResponse();
+        sendMailResponse.setErrstr("errorstr");
+
+        var file = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url1")).key("key");
+        var fileByteArray = new byte[1024];
+        var outputStream = new ByteArrayOutputStream();
+        outputStream.writeBytes(fileByteArray);
+
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(file));
+        when(downloadCall.downloadFile(file.getDownload().getUrl())).thenReturn(Mono.just(outputStream));
+        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+
+        //Gestore repository mocks.
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
+
+        when(pnPecConfigurationProperties.getTipoRicevutaBreve()).thenReturn(headerValue);
+
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        String mimeMessageStr = extractSendMailData();
+        var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
+        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, "X-TipoRicevuta");
+        assertNull(xTipoRicevutaHeader);
+        fail();
+    }
+
     @Test
     void testGestioneRetryPecSchedulerBach_NoMessages() {
         // mock SQSService per restituire un Mono vuoto quando viene chiamato getOneMessage
@@ -375,6 +463,13 @@ class PecRetryTest {
         // verificare che non sia stata eseguita alcuna operazione sul mock SQSService
         verify(mockSqsService, never()).deleteMessageFromQueue(eq(message), anyString());
 
+    }
+
+    private String extractSendMailData() {
+        ArgumentCaptor<SendMail> argumentCaptor = ArgumentCaptor.forClass(SendMail.class);
+        verify(arubaCall, times(1)).sendMail(argumentCaptor.capture());
+        var sendMail = argumentCaptor.getValue();
+        return getMimeMessageFromCDATATag(sendMail.getData());
     }
 
 }
