@@ -18,8 +18,8 @@ import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
 import lombok.CustomLog;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeUtils;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -89,6 +89,8 @@ class PecServiceTest {
     private static final RequestDto requestDto = new RequestDto();
     private static final String ATTACHMENT_PREFIX = "safestorage://";
     private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
+    private static Integer MAX_MESSAGE_SIZE_KB;
+    private String TIPO_RICEVUTA_BREVE_DEFAULT;
     public static DigitalNotificationRequest createDigitalNotificationRequest() {
 //        Mock an existing request. Set the requestIdx
         requestDto.setRequestIdx("requestIdx");
@@ -147,7 +149,10 @@ class PecServiceTest {
         return requestDto;
     }
 
-    private String TIPO_RICEVUTA_BREVE_DEFAULT;
+    @BeforeAll
+    static void beforeAll(@Autowired PnPecConfigurationProperties pnPecConfigurationProperties) {
+        MAX_MESSAGE_SIZE_KB = pnPecConfigurationProperties.getMaxMessageSizeMb() * MB_TO_KB;
+    }
     @BeforeEach
     void setUp() {
         TIPO_RICEVUTA_BREVE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "tipoRicevutaBreve");
@@ -214,7 +219,7 @@ class PecServiceTest {
         var file2 = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url2")).key("key2");
 
         var file1ByteArray = new byte[1024];
-        var file2ByteArray = new byte[pnPecConfigurationProperties.getMaxMessageSizeMb() * 1000000];
+        var file2ByteArray = new byte[MAX_MESSAGE_SIZE_KB];
 
         var outputStream1 = new ByteArrayOutputStream();
         var outputStream2 = new ByteArrayOutputStream();
@@ -235,7 +240,7 @@ class PecServiceTest {
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
         var mimeMessageStr = extractSendMailData();
-        assertTrue(mimeMessageStr.getBytes().length < pnPecConfigurationProperties.getMaxMessageSizeMb());
+        assertTrue(mimeMessageStr.getBytes().length < MAX_MESSAGE_SIZE_KB);
     }
 
     @Test
@@ -251,7 +256,7 @@ class PecServiceTest {
         var file2 = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url2")).key("key2");
 
         var file1ByteArray = new byte[1024];
-        var file2ByteArray = new byte[pnPecConfigurationProperties.getMaxMessageSizeMb() * 1000000];
+        var file2ByteArray = new byte[MAX_MESSAGE_SIZE_KB];
 
         var outputStream1 = new ByteArrayOutputStream();
         var outputStream2 = new ByteArrayOutputStream();
@@ -272,7 +277,7 @@ class PecServiceTest {
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
         var mimeMessageStr = extractSendMailData();
-        assertTrue(mimeMessageStr.getBytes().length < pnPecConfigurationProperties.getMaxMessageSizeMb());
+        assertTrue(mimeMessageStr.getBytes().length < MAX_MESSAGE_SIZE_KB);
     }
 
     @ParameterizedTest
@@ -332,6 +337,7 @@ class PecServiceTest {
     }
     @Test
     void lavorazionePecMaxAttachmentsSizeExceeded_Ko() {
+        log.info("DATA ORA ADESSO PROPRIO ORA : {}", DateTime.now());
         var requestDto = buildRequestDto();
         var clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
         var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
@@ -340,7 +346,7 @@ class PecServiceTest {
         sendMailResponse.setErrstr("errorstr");
 
         var file = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url1")).key("key");
-        var fileByteArray = new byte[(pnPecConfigurationProperties.getMaxMessageSizeMb() * 1000000) + 1024];
+        var fileByteArray = new byte[(MAX_MESSAGE_SIZE_KB) + 1024];
         var outputStream = new ByteArrayOutputStream();
         outputStream.writeBytes(fileByteArray);
 

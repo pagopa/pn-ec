@@ -27,7 +27,7 @@ public class EmailUtils {
     private EmailUtils() {
         throw new IllegalStateException("EmailUtils is a utility class");
     }
-
+    public static final Integer MB_TO_KB = 1000000;
     public static String getDomainFromAddress(String address) {
         return address.substring(address.indexOf("@"));
     }

@@ -16,6 +16,8 @@ public class PnPecConfigurationProperties {
     private int maxMessageSizeMb;
     @Pattern(regexp = "(true|false|(true|false);[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z;(true|false))$")
     private String tipoRicevutaBreve;
+    private String tipoRicevutaHeaderName;
+    private String tipoRicevutaHeaderValue;
 
 
     private String returnPropertyValue(String propertyString) {
