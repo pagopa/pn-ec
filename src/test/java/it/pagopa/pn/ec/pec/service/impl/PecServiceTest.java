@@ -2,7 +2,6 @@ package it.pagopa.pn.ec.pec.service.impl;
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.model.pojo.pec.PnPostacert;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCallImpl;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -18,25 +17,17 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
 import lombok.CustomLog;
-import org.aspectj.lang.annotation.Before;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.event.annotation.BeforeTestExecution;
-import org.springframework.test.context.event.annotation.BeforeTestMethod;
-import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 
@@ -45,19 +36,17 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
+import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
@@ -88,11 +77,6 @@ class PecServiceTest {
     private PnPecConfigurationProperties pnPecConfigurationProperties;
     @Mock
     private Acknowledgment acknowledgment;
-    @Value("${pn.ec.pec.attachment-rule}")
-    private String pecAttachmentRule;
-    @Value("${pn.ec.pec.max-message-size-mb}")
-    private Integer maxMessageSizeMb;
-
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final RequestDto requestDto = new RequestDto();
@@ -212,7 +196,7 @@ class PecServiceTest {
         var file2 = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url2")).key("key2");
 
         var file1ByteArray = new byte[1024];
-        var file2ByteArray = new byte[maxMessageSizeMb * 1000000];
+        var file2ByteArray = new byte[pnPecConfigurationProperties.getMaxMessageSizeMb() * 1000000];
 
         var outputStream1 = new ByteArrayOutputStream();
         var outputStream2 = new ByteArrayOutputStream();
@@ -230,10 +214,10 @@ class PecServiceTest {
         Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-        ArgumentCaptor<SendMail> argumentCaptor = ArgumentCaptor.forClass(SendMail.class);
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-        verify(arubaCall, times(1)).sendMail(argumentCaptor.capture());
-        assertTrue(argumentCaptor.getValue().getData().getBytes().length < maxMessageSizeMb);
+
+        var mimeMessageStr = extractSendMailData();
+        assertTrue(mimeMessageStr.getBytes().length < pnPecConfigurationProperties.getMaxMessageSizeMb());
     }
 
     @Test
@@ -249,7 +233,7 @@ class PecServiceTest {
         var file2 = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url2")).key("key2");
 
         var file1ByteArray = new byte[1024];
-        var file2ByteArray = new byte[maxMessageSizeMb * 1000000];
+        var file2ByteArray = new byte[pnPecConfigurationProperties.getMaxMessageSizeMb() * 1000000];
 
         var outputStream1 = new ByteArrayOutputStream();
         var outputStream2 = new ByteArrayOutputStream();
@@ -267,12 +251,67 @@ class PecServiceTest {
         Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-        ArgumentCaptor<SendMail> argumentCaptor = ArgumentCaptor.forClass(SendMail.class);
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-        verify(arubaCall, times(1)).sendMail(argumentCaptor.capture());
-        assertTrue(argumentCaptor.getValue().getData().getBytes().length < maxMessageSizeMb);
+
+        var mimeMessageStr = extractSendMailData();
+        assertTrue(mimeMessageStr.getBytes().length < pnPecConfigurationProperties.getMaxMessageSizeMb());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"true", "true;2100-02-01T10:00:00Z;false"})
+    void lavorazionePec_XTipoRicevutaHeaderInserted_Ok(String headerValue) {
+        var requestDto=buildRequestDto();
+        var clientId=PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestId=PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+
+        var sendMailResponse=new SendMailResponse();
+        sendMailResponse.setErrstr("errorstr");
+
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(pnPecConfigurationProperties.getTipoRicevutaBreve()).thenReturn(headerValue);
+
+        Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+
+        String mimeMessageStr = extractSendMailData();
+        var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
+        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, "X-TipoRicevuta");
+        assertNotNull(xTipoRicevutaHeader);
+        assertTrue(getHeaderFromMimeMessage(mimeMessage, "X-TipoRicevuta").length > 0);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"false", "true;2023-02-01T10:00:00Z;false"})
+    void lavorazionePec_XTipoRicevutaHeaderNotInserted_Ok(String headerValue) {
+        var requestDto = buildRequestDto();
+        var clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+
+        var sendMailResponse = new SendMailResponse();
+        sendMailResponse.setErrstr("errorstr");
+
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(pnPecConfigurationProperties.getTipoRicevutaBreve()).thenReturn(headerValue);
+
+        Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+
+        String mimeMessageStr = extractSendMailData();
+        var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
+        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, "X-TipoRicevuta");
+        assertNull(xTipoRicevutaHeader);
+        fail();
+    }
     @Test
     void lavorazionePecMaxAttachmentsSizeExceeded_Ko() {
         var requestDto = buildRequestDto();
@@ -283,7 +322,7 @@ class PecServiceTest {
         sendMailResponse.setErrstr("errorstr");
 
         var file = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url1")).key("key");
-        var fileByteArray = new byte[(maxMessageSizeMb * 1000000) + 1024];
+        var fileByteArray = new byte[(pnPecConfigurationProperties.getMaxMessageSizeMb() * 1000000) + 1024];
         var outputStream = new ByteArrayOutputStream();
         outputStream.writeBytes(fileByteArray);
 
@@ -296,6 +335,13 @@ class PecServiceTest {
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(RETRY.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+    }
+
+    private String extractSendMailData() {
+        ArgumentCaptor<SendMail> argumentCaptor = ArgumentCaptor.forClass(SendMail.class);
+        verify(arubaCall, times(1)).sendMail(argumentCaptor.capture());
+        var sendMail = argumentCaptor.getValue();
+        return getMimeMessageFromCDATATag(sendMail.getData());
     }
 
 }
