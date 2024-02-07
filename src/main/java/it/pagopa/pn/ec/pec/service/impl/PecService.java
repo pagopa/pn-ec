@@ -25,12 +25,12 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
+import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
-import lombok.CustomLog;
 import lombok.CustomLog;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,6 +43,7 @@ import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import javax.mail.Header;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -53,7 +54,7 @@ import java.util.concurrent.Semaphore;
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.*;
-import static it.pagopa.pn.ec.commons.utils.EmailUtils.getDomainFromAddress;
+import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
@@ -76,11 +77,12 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final PecSqsQueueName pecSqsQueueName;
     private final Semaphore semaphore;
+    private final PnPecConfigurationProperties pnPecProps;
     private String idSaved;
 
     protected PecService(AuthService authService, ArubaCall arubaCall, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
             , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, ArubaSecretValue arubaSecretValue,
-                         NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName, @Value("${lavorazione-pec.max-thread-pool-size}") Integer maxThreadPoolSize) {
+                         NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName, @Value("${lavorazione-pec.max-thread-pool-size}") Integer maxThreadPoolSize, PnPecConfigurationProperties pnPecProps) {
         super(authService);
         this.arubaCall = arubaCall;
         this.sqsService = sqsService;
@@ -91,6 +93,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.pecSqsQueueName = pecSqsQueueName;
         this.semaphore = new Semaphore(maxThreadPoolSize);
+        this.pnPecProps = pnPecProps;
     }
 
     private final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
@@ -286,15 +289,21 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private Mono<GeneratedMessageDto> sendMail(String xPagopaExtchCxId, String requestIdx, DigitalNotificationRequest digitalNotificationRequest, List<EmailAttachment> attachments) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS + " - {}", PEC_SEND_MAIL, digitalNotificationRequest, attachments);
         return Mono.just(attachments).map(fileDownloadResponses -> EmailField.builder()
-                        .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
-                        .from(arubaSecretValue.getPecUsername())
-                        .to(digitalNotificationRequest.getReceiverDigitalAddress())
-                        .subject(digitalNotificationRequest.getSubjectText())
-                        .text(digitalNotificationRequest.getMessageText())
-                        .contentType(digitalNotificationRequest.getMessageContentType()
-                                .getValue())
-                        .emailAttachments(fileDownloadResponses)
-                        .build())
+                .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
+                .from(arubaSecretValue.getPecUsername())
+                .to(digitalNotificationRequest.getReceiverDigitalAddress())
+                .subject(digitalNotificationRequest.getSubjectText())
+                .text(digitalNotificationRequest.getMessageText())
+                .contentType(digitalNotificationRequest.getMessageContentType()
+                        .getValue())
+                .emailAttachments(fileDownloadResponses)
+                .headersList(List.of(new Header(pnPecProps.getTipoRicevutaHeaderName(), pnPecProps.getTipoRicevutaHeaderValue())))
+                .build())
+
+                .flatMap(emailField -> getMonoMimeMessage(emailField,
+                        pnPecProps.getAttachmentRule(),
+                        pnPecProps.getMaxMessageSizeMb() * MB_TO_KB,
+                        pnPecProps.getTipoRicevutaBreve()))
 
                 .map(EmailUtils::getMimeMessageInCDATATag)
 

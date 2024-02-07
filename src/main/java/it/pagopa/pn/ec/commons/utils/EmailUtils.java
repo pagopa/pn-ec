@@ -1,12 +1,14 @@
 package it.pagopa.pn.ec.commons.utils;
 import it.pagopa.pn.ec.commons.exception.email.*;
+import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.pec.model.pojo.PagopaMimeMessage;
 import lombok.CustomLog;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.mail.util.MimeMessageParser;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.mail.*;
@@ -65,8 +67,57 @@ public class EmailUtils {
         }
     }
 
-    public static Mono<MimeMessage> getMonoMimeMessage(EmailField emailField) {
-        return null;
+    public static Mono<MimeMessage> getMonoMimeMessage(EmailField emailField, String mimeMessageRule, Integer maxMessageSizeKb, boolean canInsertXTipoRicevutaHeader) {
+        return Mono.fromSupplier(() -> buildMimeMessage(emailField))
+                .flatMap(mimeMessage ->  setAttachmentsInMimeMessage(mimeMessage, emailField, maxMessageSizeKb, mimeMessageRule))
+                .flatMap(mimeMessage -> setHeadersInMimeMessage(mimeMessage, emailField.getHeadersList(), canInsertXTipoRicevutaHeader));
+    }
+
+    private static Mono<MimeMessage> setAttachmentsInMimeMessage(MimeMessage mimeMessage, EmailField emailField, Integer maxMessageSizeKb, String mimeMessageRule) {
+        return Flux.fromIterable(emailField.getEmailAttachments())
+                .map(EmailUtils::buildAttachmentPart)
+                .map(mimeBodyPart -> addAttachmentToMimeMessage(mimeMessage, mimeBodyPart))
+                .takeWhile(mime -> {
+                    ByteArrayOutputStream outputStream = getMimeMessageOutputStream(mimeMessage);
+                    return outputStream.toByteArray().length <= maxMessageSizeKb;
+                })
+                .then()
+                .thenReturn(mimeMessage)
+                .filter(mime -> getMimeMessageOutputStream(mime).toByteArray().length > maxMessageSizeKb)
+                .handle((mime, sink) -> {
+                    Multipart multipart = getMultipartFromMimeMessage(mime);
+                    if (getMultipartCount(multipart) <= 2)
+                        sink.error(new RuntimeException());
+                    else sink.next(mime);
+                })
+                .cast(MimeMessage.class)
+                .flatMap(mime -> {
+                    if (mimeMessageRule.equals("LIMIT"))
+                        removeLastAttachmentFromMimeMessage(mime);
+                    else if (mimeMessageRule.equals("FIRST"))
+                        removeAllExceptFirstAttachmentFromMimeMessage(mime);
+                    return Mono.just(mime);
+                })
+                .defaultIfEmpty(mimeMessage);
+    }
+    private static Mono<MimeMessage> setHeadersInMimeMessage(MimeMessage mimeMessage, List<Header> headers, boolean canInsertXTipoRicevutaHeader) {
+        return Flux.fromIterable(headers)
+                .filter(header -> !header.getName().equals("X-TipoRicevuta"))
+                .doOnNext(header -> setHeaderInMimeMessage(mimeMessage, header))
+                .doOnDiscard(Header.class, header -> {
+                    if (canInsertXTipoRicevutaHeader) {
+                        setHeaderInMimeMessage(mimeMessage, header);
+                    }
+                })
+                .then()
+                .thenReturn(mimeMessage);
+    }
+    private static void setHeaderInMimeMessage(MimeMessage mimeMessage, Header header) {
+        try {
+            mimeMessage.setHeader(header.getName(), header.getValue());
+        } catch (MessagingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static MimeMessage getMimeMessage(EmailField emailField) {
@@ -115,6 +166,84 @@ public class EmailUtils {
         }
     }
 
+    @SneakyThrows
+    private static MimeMessage buildMimeMessage(EmailField emailField) {
+        var session = Session.getInstance(new Properties());
+        MimeMessage mimeMessage;
+
+        if (emailField.getMsgId() == null) {
+            mimeMessage = new MimeMessage(session);
+        } else {
+            mimeMessage = new PagopaMimeMessage(session, emailField.getMsgId());
+        }
+
+        mimeMessage.setFrom(new InternetAddress(emailField.getFrom(), "", UTF_8));
+        mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(emailField.getTo(), "", UTF_8));
+        mimeMessage.setSubject(emailField.getSubject(), UTF_8);
+
+        var htmlOrPlainTextPart = new MimeBodyPart();
+        htmlOrPlainTextPart.setContent(emailField.getText(), emailField.getContentType());
+
+        var mimeMultipart = new MimeMultipart();
+
+        mimeMultipart.addBodyPart(htmlOrPlainTextPart);
+        mimeMessage.setContent(mimeMultipart);
+
+        return mimeMessage;
+    }
+
+    @SneakyThrows
+    private static MimeBodyPart buildAttachmentPart(EmailAttachment emailAttachment) {
+        var attachmentPart = new MimeBodyPart();
+        var byteArrayOutputStream = (ByteArrayOutputStream) emailAttachment.getContent();
+        DataSource aAttachment = new ByteArrayDataSource(byteArrayOutputStream.toByteArray(), APPLICATION_OCTET_STREAM_VALUE);
+        attachmentPart.setDataHandler(new DataHandler(aAttachment));
+        attachmentPart.setFileName(emailAttachment.getNameWithExtension());
+        return attachmentPart;
+    }
+
+    @SneakyThrows
+    public static Multipart getMultipartFromMimeMessage(MimeMessage mimeMessage) {
+        return (MimeMultipart) mimeMessage.getContent();
+    }
+
+    @SneakyThrows
+    public static Integer getMultipartCount(Multipart multipart) {
+        return multipart.getCount();
+    }
+    @SneakyThrows
+    private static void removeLastAttachmentFromMimeMessage(MimeMessage mimeMessage) {
+        var multipart = (MimeMultipart) mimeMessage.getContent();
+        multipart.removeBodyPart(multipart.getCount() - 1);
+        mimeMessage.setContent(multipart);
+    }
+
+    @SneakyThrows
+    private static void removeAllExceptFirstAttachmentFromMimeMessage(MimeMessage mimeMessage) {
+        var multipart = (MimeMultipart) mimeMessage.getContent();
+        var emailBody = multipart.getBodyPart(0);
+        var firstAttachment = multipart.getBodyPart(1);
+        MimeMultipart newMultipart = new MimeMultipart();
+        newMultipart.addBodyPart(emailBody);
+        newMultipart.addBodyPart(firstAttachment);
+        mimeMessage.setContent(newMultipart);
+    }
+
+    @SneakyThrows
+    private static MimeMessage addAttachmentToMimeMessage(MimeMessage mimeMessage, MimeBodyPart mimeBodyPart) {
+        var multipart = (MimeMultipart) mimeMessage.getContent();
+        multipart.addBodyPart(mimeBodyPart);
+        mimeMessage.setContent(multipart);
+        return mimeMessage;
+    }
+
+    @SneakyThrows
+    public static ByteArrayOutputStream getMimeMessageOutputStream(MimeMessage mimeMessage) {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        mimeMessage.writeTo(byteArrayOutputStream);
+        return byteArrayOutputStream;
+    }
+
     public static OutputStream getMimeMessageOutputStream(EmailField emailField) {
         var output = new ByteArrayOutputStream();
         try {
@@ -131,6 +260,10 @@ public class EmailUtils {
 
     public static String getMimeMessageInCDATATag(EmailField emailField) {
         return String.format("<![CDATA[%s]]>", getMimeMessageOutputStream(emailField));
+    }
+
+    public static String getMimeMessageInCDATATag(MimeMessage mimeMessage) {
+        return String.format("<![CDATA[%s]]>", getMimeMessageOutputStream(mimeMessage));
     }
     public static byte[] getAttachmentFromMimeMessage(MimeMessage mimeMessage, String attachmentName) {
         try {
