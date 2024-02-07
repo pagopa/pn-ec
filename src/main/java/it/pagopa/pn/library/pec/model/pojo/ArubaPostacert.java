@@ -12,7 +12,7 @@ public class ArubaPostacert extends PnPostacert {
     @Override
     public String getTipo() {
         if (tipo.equals(PREAVVISO_ERRORE_CONSEGNA)) {
-                if (this.getDati().getErroreEsteso().startsWith("5.4.1")) {
+                if (this.getDati().getErroreEsteso().trim().startsWith("5.4.1")) {
                 log.debug("ArubaPostacert.getTipo():Errore esteso matches 5.4.1, changing tipo to ERRORE_CONSEGNA, errore esteso:{}", this.getDati().getErroreEsteso());
                 return ERRORE_CONSEGNA;
             } else {
