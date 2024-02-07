@@ -266,6 +266,25 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriPEC"
 
+  ######### LAVORAZIONE : PEC  ##########
+
+  PnEcPECMaxMessageSizeMB:
+    Type: String
+    Description: 'Limite dimensione messaggio PEC in MB'
+
+  PnEcPECAttachmentRule:
+    Type: String
+    Description: 'Regola per invio di allegati PEC'
+    AllowedValues:
+      - 'LIMIT'
+      - 'FIRST'
+
+  PnEcPECTipoRicevutaBreve:
+    Type: String
+    Description: 'Tipo ricevuta breve PEC'
+
+
+
   ######### TRACKER : EMAIL  ##########
 
   PnEcQueueNameTrackerStatoEMAIL:
