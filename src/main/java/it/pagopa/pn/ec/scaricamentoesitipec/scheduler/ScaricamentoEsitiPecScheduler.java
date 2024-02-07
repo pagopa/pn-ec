@@ -1,9 +1,10 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.commons.model.pojo.pec.PnPostacert;
+import it.pagopa.pn.library.pec.model.pojo.IPostacert;
+import it.pagopa.pn.library.pec.pojo.PnPostacert;
 import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
-import it.pagopa.pn.ec.commons.service.DaticertService;
+import it.pagopa.pn.library.pec.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
@@ -48,8 +49,8 @@ public class ScaricamentoEsitiPecScheduler {
         this.pnPecService = pnPecService;
     }
 
-    private final Predicate<PnPostacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
-    private final Predicate<PnPostacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
+    private final Predicate<IPostacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
+    private final Predicate<IPostacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
 
     private GetMessageID createGetMessageIdRequest(String messageID, Integer isuid, boolean markSeen) {
         var getMessageID = new GetMessageID();

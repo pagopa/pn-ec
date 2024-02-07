@@ -513,7 +513,7 @@
                         <source>src/main/resources/pec/daticert-xml-schema.dtd</source>
                     </sources>
                     <externalEntityProcessing>true</externalEntityProcessing>
-                    <packageName>it.pec.daticert</packageName>
+                    <packageName>it.pagopa.pn.library.pec.model.pojo</packageName>
                 </configuration>
             </plugin>
 
