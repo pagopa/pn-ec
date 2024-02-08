@@ -7,6 +7,7 @@ import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
+import it.pagopa.pn.ec.commons.exception.email.ComposeMimeMessageException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
 import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
@@ -26,6 +27,7 @@ import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
+import it.pagopa.pn.ec.pec.exception.MaxSizeExceededException;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -44,12 +46,16 @@ import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import javax.mail.Header;
+import javax.mail.Multipart;
+import javax.mail.internet.MimeMessage;
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
@@ -588,6 +594,62 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     @Override
     public Mono<DeleteMessageResponse> deleteMessageFromErrorQueue(Message message) {
         return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName());
+    }
+
+    public  Mono<MimeMessage> getMonoMimeMessage(EmailField emailField, String mimeMessageRule, Integer maxMessageSizeKb, boolean canInsertXTipoRicevutaHeader) {
+        return Mono.fromSupplier(() -> {
+                    log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GET_MONO_MIME_MESSAGE, Stream.of(emailField, mimeMessageRule, maxMessageSizeKb, canInsertXTipoRicevutaHeader).toList());
+                    return buildMimeMessage(emailField);
+                })
+                .flatMap(mimeMessage -> setAttachmentsInMimeMessage(mimeMessage, emailField, maxMessageSizeKb, mimeMessageRule))
+                .flatMap(mimeMessage -> setHeadersInMimeMessage(mimeMessage, emailField.getHeadersList(), canInsertXTipoRicevutaHeader))
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_NO_RESULT_LABEL, GET_MONO_MIME_MESSAGE))
+                .onErrorResume(throwable -> Mono.error(new ComposeMimeMessageException(throwable.getMessage())));
+    }
+
+    private  Mono<MimeMessage> setAttachmentsInMimeMessage(MimeMessage mimeMessage, EmailField emailField, Integer maxMessageSizeKb, String mimeMessageRule) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, SET_ATTACHMENTS_IN_MIME_MESSAGE, Stream.of(emailField, maxMessageSizeKb, mimeMessageRule).toList());
+        return Flux.fromIterable(emailField.getEmailAttachments())
+                .map(EmailUtils::buildAttachmentPart)
+                .map(mimeBodyPart -> addAttachmentToMimeMessage(mimeMessage, mimeBodyPart))
+                .takeWhile(mime -> {
+                    ByteArrayOutputStream outputStream = getMimeMessageOutputStream(mimeMessage);
+                    return outputStream.toByteArray().length <= maxMessageSizeKb;
+                })
+                .then()
+                .thenReturn(mimeMessage)
+                .filter(mime -> getMimeMessageOutputStream(mime).toByteArray().length > maxMessageSizeKb)
+                .handle((mime, sink) -> {
+                    Multipart multipart = getMultipartFromMimeMessage(mime);
+                    if (getMultipartCount(multipart) <= 2)
+                        sink.error(new MaxSizeExceededException("MimeMessage has exceeded the max available size with the first attachment."));
+                    else sink.next(mime);
+                })
+                .cast(MimeMessage.class)
+                .flatMap(mime -> {
+                    if (mimeMessageRule.equals("LIMIT"))
+                        removeLastAttachmentFromMimeMessage(mime);
+                    else if (mimeMessageRule.equals("FIRST"))
+                        removeAllExceptFirstAttachmentFromMimeMessage(mime);
+                    return Mono.just(mime);
+                })
+                .defaultIfEmpty(mimeMessage)
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_NO_RESULT_LABEL, SET_ATTACHMENTS_IN_MIME_MESSAGE));
+    }
+
+    private  Mono<MimeMessage> setHeadersInMimeMessage(MimeMessage mimeMessage, List<Header> headers, boolean canInsertXTipoRicevutaHeader) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, SET_HEADERS_IN_MIME_MESSAGE, Stream.of(headers, canInsertXTipoRicevutaHeader).toList());
+        return Flux.fromIterable(headers)
+                .filter(header -> !header.getName().equals(pnPecProps.getTipoRicevutaHeaderName()))
+                .doOnNext(header -> setHeaderInMimeMessage(mimeMessage, header))
+                .doOnDiscard(Header.class, header -> {
+                    if (canInsertXTipoRicevutaHeader) {
+                        setHeaderInMimeMessage(mimeMessage, header);
+                    }
+                })
+                .then()
+                .thenReturn(mimeMessage)
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_NO_RESULT_LABEL, SET_HEADERS_IN_MIME_MESSAGE));
     }
 
 }

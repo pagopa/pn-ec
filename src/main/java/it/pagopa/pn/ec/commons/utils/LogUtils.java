@@ -200,6 +200,10 @@ public class LogUtils {
     public static final String NOT_SENT_BY_US = "Not sent by us";
     public static final String LAVORAZIONE_ESITI_PEC = "lavorazioneEsitiPec()";
     public static final String GENERATE_LOCATION = "LavorazioneEsitiPecService.generateLocation()";
+    public static final String GET_MONO_MIME_MESSAGE = "EmailUtils.getMonoMimeMessage()";
+    public static final String SET_ATTACHMENTS_IN_MIME_MESSAGE = "EmailUtils.setAttachmentsInMimeMessage()";
+    public static final String SET_HEADERS_IN_MIME_MESSAGE = "EmailUtils.setHeadersInMimeMessage()";
+
 
     //CLOUD WATCH
     public static final String PUBLISH_CUSTOM_PEC_METRICS = "CloudWatchPecMetrics.publishCustomPecMetrics()";

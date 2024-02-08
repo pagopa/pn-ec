@@ -16,7 +16,6 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
-import org.junit.BeforeClass;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,9 +33,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
-
 import java.io.ByteArrayOutputStream;
-
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -251,7 +248,7 @@ class PecRetryTest {
     }
 
     @Test
-    void gestionreRetryPec_MaxAttachmentsSizeExceeded_Limit(){
+    void gestionreRetryPec_MaxAttachmentsSizeExceeded_MoreAttachments_Limit(){
 
         String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
         String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
@@ -263,22 +260,8 @@ class PecRetryTest {
         var sendMailResponse=new SendMailResponse();
         sendMailResponse.setErrstr("errorstr");
 
-        var file1 = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url1")).key("key1");
-        var file2 = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url2")).key("key2");
-
-        var file1ByteArray = new byte[1024];
-        var file2ByteArray = new byte[MAX_MESSAGE_SIZE_KB];
-
-        var outputStream1 = new ByteArrayOutputStream();
-        var outputStream2 = new ByteArrayOutputStream();
-
-        outputStream1.writeBytes(file1ByteArray);
-        outputStream2.writeBytes(file2ByteArray);
-
+        mockAttachmentsWithLastInOffset(3);
         when(pnPecConfigurationProperties.getAttachmentRule()).thenReturn("LIMIT");
-        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(file1, file2));
-        when(downloadCall.downloadFile(file1.getDownload().getUrl())).thenReturn(Mono.just(outputStream1));
-        when(downloadCall.downloadFile(file2.getDownload().getUrl())).thenReturn(Mono.just(outputStream2));
         when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
 
         //Gestore repository mocks.
@@ -295,11 +278,16 @@ class PecRetryTest {
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
         var mimeMessageStr = extractSendMailData();
+        var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
+        var multipart=getMultipartFromMimeMessage(mimeMessage);
+
         assertTrue(mimeMessageStr.getBytes().length < MAX_MESSAGE_SIZE_KB);
+        //Body del messaggio + 2 allegati
+        assertEquals(getMultipartCount(multipart), 3);
     }
 
     @Test
-    void gestionreRetryPec_MaxAttachmentsSizeExceeded_First() {
+    void gestionreRetryPec_MaxAttachmentsSizeExceeded_MoreAttachments_First() {
 
         String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
         String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
@@ -311,22 +299,8 @@ class PecRetryTest {
         var sendMailResponse = new SendMailResponse();
         sendMailResponse.setErrstr("errorstr");
 
-        var file1 = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url1")).key("key1");
-        var file2 = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url2")).key("key2");
-
-        var file1ByteArray = new byte[1024];
-        var file2ByteArray = new byte[MAX_MESSAGE_SIZE_KB];
-
-        var outputStream1 = new ByteArrayOutputStream();
-        var outputStream2 = new ByteArrayOutputStream();
-
-        outputStream1.writeBytes(file1ByteArray);
-        outputStream2.writeBytes(file2ByteArray);
-
+        mockAttachmentsWithLastInOffset(3);
         when(pnPecConfigurationProperties.getAttachmentRule()).thenReturn("FIRST");
-        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(file1, file2));
-        when(downloadCall.downloadFile(file1.getDownload().getUrl())).thenReturn(Mono.just(outputStream1));
-        when(downloadCall.downloadFile(file2.getDownload().getUrl())).thenReturn(Mono.just(outputStream2));
         when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
 
         //Gestore repository mocks.
@@ -343,11 +317,16 @@ class PecRetryTest {
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
         var mimeMessageStr = extractSendMailData();
+        var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
+        var multipart=getMultipartFromMimeMessage(mimeMessage);
+
         assertTrue(mimeMessageStr.getBytes().length < MAX_MESSAGE_SIZE_KB);
+        //Body del messaggio + 1 allegato
+        assertEquals(getMultipartCount(multipart), 2);
     }
 
     @Test
-    void gestionreRetryPec_MaxAttachmentsSizeExceeded_Ko() {
+    void gestionreRetryPec_MaxAttachmentsSizeExceeded_OneAttachment() {
 
         String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
         String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
@@ -359,13 +338,7 @@ class PecRetryTest {
         var sendMailResponse = new SendMailResponse();
         sendMailResponse.setErrstr("errorstr");
 
-        var file = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url1")).key("key");
-        var fileByteArray = new byte[(MAX_MESSAGE_SIZE_KB) + 1024];
-        var outputStream = new ByteArrayOutputStream();
-        outputStream.writeBytes(fileByteArray);
-
-        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(file));
-        when(downloadCall.downloadFile(file.getDownload().getUrl())).thenReturn(Mono.just(outputStream));
+        mockAttachmentsWithLastInOffset(1);
         when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
 
@@ -379,7 +352,7 @@ class PecRetryTest {
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
         StepVerifier.create(response).verifyComplete();
-
+        verify(arubaCall, never()).sendMail(any(SendMail.class));
     }
 
     @ParameterizedTest
@@ -467,7 +440,6 @@ class PecRetryTest {
         var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
         var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, "X-TipoRicevuta");
         assertNull(xTipoRicevutaHeader);
-        fail();
     }
 
     @Test
@@ -490,6 +462,23 @@ class PecRetryTest {
         verify(arubaCall, times(1)).sendMail(argumentCaptor.capture());
         var sendMail = argumentCaptor.getValue();
         return getMimeMessageFromCDATATag(sendMail.getData());
+    }
+
+    private void mockAttachmentsWithLastInOffset(int numOfAttachments) {
+        List<FileDownloadResponse> fileDownloadResponseList = new ArrayList<>();
+        int sizeForAttachment = MAX_MESSAGE_SIZE_KB / numOfAttachments;
+        for (int i = 0; i < numOfAttachments; i++) {
+            var file = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url" + i)).key("key" + i);
+            fileDownloadResponseList.add(file);
+            byte[] fileByteArray;
+            if (i != numOfAttachments - 1)
+                fileByteArray = new byte[sizeForAttachment];
+            else fileByteArray = new byte[sizeForAttachment + 10000];
+            var outputStream = new ByteArrayOutputStream();
+            outputStream.writeBytes(fileByteArray);
+            when(downloadCall.downloadFile(file.getDownload().getUrl())).thenReturn(Mono.just(outputStream));
+        }
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.fromIterable(fileDownloadResponseList));
     }
 
 }
