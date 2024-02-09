@@ -14,7 +14,7 @@ public class PnPecConfigurationProperties {
 
     private String attachmentRule;
     private int maxMessageSizeMb;
-    @Pattern(regexp = "(true|false|(true|false);[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z;(true|false))$")
+    @Pattern(regexp = "(true|false|(true|false);\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z;(true|false))$")
     private String tipoRicevutaBreve;
     private String tipoRicevutaHeaderName;
     private String tipoRicevutaHeaderValue;

@@ -65,14 +65,6 @@ public class EmailUtils {
             throw new RetrieveFromException();
         }
     }
-
-    public static void setHeaderInMimeMessage(MimeMessage mimeMessage, Header header) {
-        try {
-            mimeMessage.setHeader(header.getName(), header.getValue());
-        } catch (MessagingException e) {
-            throw new RuntimeException(e);
-        }
-    }
     public static MimeMessage getMimeMessage(EmailField emailField) {
         try {
             var session = Session.getInstance(new Properties());
@@ -117,6 +109,11 @@ public class EmailUtils {
         } catch (MessagingException | UnsupportedEncodingException exception) {
             throw new ComposeMimeMessageException();
         }
+    }
+
+    @SneakyThrows(MessagingException.class)
+    public static void setHeaderInMimeMessage(MimeMessage mimeMessage, Header header) {
+        mimeMessage.setHeader(header.getName(), header.getValue());
     }
 
     @SneakyThrows({MessagingException.class, UnsupportedEncodingException.class})
@@ -203,6 +200,11 @@ public class EmailUtils {
         return mimeMessageSize;
     }
 
+    @SneakyThrows(MessagingException.class)
+    public static String[] getHeaderFromMimeMessage(MimeMessage mimeMessage, String headerName) {
+        return mimeMessage.getHeader(headerName);
+    }
+
     public static OutputStream getMimeMessageOutputStream(EmailField emailField) {
         var output = new ByteArrayOutputStream();
         try {
@@ -270,14 +272,6 @@ public class EmailUtils {
 
         } catch (IOException | MessagingException exception) {
             throw new RetrieveAttachmentException();
-        }
-    }
-
-    public static String[] getHeaderFromMimeMessage(MimeMessage mimeMessage, String headerName) {
-        try {
-            return mimeMessage.getHeader(headerName);
-        } catch (MessagingException e) {
-            throw new RuntimeException(e);
         }
     }
 
