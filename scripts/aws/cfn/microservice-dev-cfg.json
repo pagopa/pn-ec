@@ -23,7 +23,7 @@
     "CancellazioneRicevutePecEventRuleStatus": "ENABLED",
     "PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked": "true",
     "PnEcPECMaxMessageSizeMB": "100000000",
-    "PnEcPECAttachmentRules": "LIMIT",
+    "PnEcPECAttachmentRule": "LIMIT",
     "PnEcPECTipoRicevutaBreve": "true"
   }
 }
