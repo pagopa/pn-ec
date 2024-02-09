@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.5">
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.2">
   <hashTree>
     <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="PECPresaInCarico" enabled="true">
-      <stringProp name="TestPlan.comments"></stringProp>
       <boolProp name="TestPlan.functional_mode">false</boolProp>
       <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
@@ -15,21 +14,19 @@
           </elementProp>
         </collectionProp>
       </elementProp>
-      <stringProp name="TestPlan.user_define_classpath"></stringProp>
     </TestPlan>
     <hashTree>
       <OpenModelThreadGroup guiclass="OpenModelThreadGroupGui" testclass="OpenModelThreadGroup" testname="PECPresaInCarico - Thread Group" enabled="true">
         <elementProp name="ThreadGroup.main_controller" elementType="OpenModelThreadGroupController"/>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <stringProp name="OpenModelThreadGroup.schedule">random_arrivals(0 s) rate(5/s) even_arrivals(1 min) random_arrivals(1 s) rate(0/s) </stringProp>
-        <stringProp name="OpenModelThreadGroup.random_seed"></stringProp>
+        <stringProp name="OpenModelThreadGroup.schedule">random_arrivals(0 s) rate(5/s) even_arrivals(5 min) random_arrivals(1 s) rate(0/s) </stringProp>
       </OpenModelThreadGroup>
       <hashTree>
         <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
           <collectionProp name="Arguments.arguments">
             <elementProp name="server_name" elementType="Argument">
               <stringProp name="Argument.name">server_name</stringProp>
-              <stringProp name="Argument.value">${__P(ALBBaseURL,internal-infra-Appli-UPD78WH5UJMP-959579080.eu-south-1.elb.amazonaws.com)}</stringProp>
+              <stringProp name="Argument.value">${__P(ALBBaseURL,localhost)}</stringProp>
               <stringProp name="Argument.metadata">=</stringProp>
             </elementProp>
             <elementProp name="server_port" elementType="Argument">
@@ -66,19 +63,19 @@
   &quot;eventType&quot;: &quot;string&quot;,&#xd;
   &quot;qos&quot;: &quot;INTERACTIVE&quot;,&#xd;
   &quot;clientRequestTimeStamp&quot;: &quot;2023-02-01T07:41:35.717Z&quot;,&#xd;
-  &quot;receiverDigitalAddress&quot;: &quot;notifichedigitali-dev@pec.pagopa.it&quot;,&#xd;
+  &quot;receiverDigitalAddress&quot;: &quot;mario.ottone@arubapec.it&quot;,&#xd;
   &quot;messageText&quot;: &quot;Message test for: ${rand_requestIdx}&quot;,&#xd;
-  &quot;senderDigitalAddress&quot;: &quot;pectest@pec.pagopa.it&quot;,&#xd;
+  &quot;senderDigitalAddress&quot;: &quot;notifichedigitali-dev@pec.pagopa.it&quot;,&#xd;
   &quot;channel&quot;: &quot;PEC&quot;,&#xd;
   &quot;tags&quot;: {&#xd;
     &quot;additionalProp1&quot;: &quot;string&quot;,&#xd;
     &quot;additionalProp3&quot;: &quot;string&quot;,&#xd;
     &quot;additionalProp2&quot;: &quot;string&quot;&#xd;
   },&#xd;
-  &quot;subjectText&quot;: &quot;pn-ec-stressTestPEC&quot;,&#xd;
+  &quot;subjectText&quot;: &quot;ERR[SM_10]&quot;,&#xd;
   &quot;messageContentType&quot;: &quot;text/plain&quot;,&#xd;
   &quot;attachmentUrls&quot;: [&#xd;
-    &quot;safestorage://PN_EXTERNAL_LEGAL_FACTS-100e64792f4247f9b63367b77d8021d2.xml&quot;&#xd;
+    &quot;safestorage://PN_AAR-10004cbe56e24eb2b056304bba99a9d5.pdf&quot;&#xd;
   ]&#xd;
 }&#xd;
 </stringProp>
@@ -96,9 +93,12 @@
           <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
           <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
-          <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
-          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
-          <stringProp name="HTTPSampler.response_timeout"></stringProp>
+          <boolProp name="HTTPSampler.BROWSER_COMPATIBLE_MULTIPART">false</boolProp>
+          <boolProp name="HTTPSampler.image_parser">false</boolProp>
+          <boolProp name="HTTPSampler.concurrentDwn">false</boolProp>
+          <stringProp name="HTTPSampler.concurrentPool">6</stringProp>
+          <boolProp name="HTTPSampler.md5">false</boolProp>
+          <intProp name="HTTPSampler.ipSourceType">0</intProp>
         </HTTPSamplerProxy>
         <hashTree>
           <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
@@ -210,8 +210,8 @@ f.close();
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group" enabled="false">
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <stringProp name="LoopController.loops">100</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
-          <stringProp name="LoopController.loops">10</stringProp>
         </elementProp>
         <stringProp name="ThreadGroup.num_threads">1</stringProp>
         <stringProp name="ThreadGroup.ramp_time">1</stringProp>
@@ -219,6 +219,7 @@ f.close();
         <stringProp name="ThreadGroup.duration"></stringProp>
         <stringProp name="ThreadGroup.delay"></stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <boolProp name="ThreadGroup.delayedStart">false</boolProp>
       </ThreadGroup>
       <hashTree>
         <DebugSampler guiclass="TestBeanGUI" testclass="DebugSampler" testname="Debug Sampler" enabled="true">
