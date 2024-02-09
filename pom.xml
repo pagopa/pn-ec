@@ -12,7 +12,7 @@
 
     <groupId>it.pagopa.pn.ec</groupId>
     <artifactId>pn-ec</artifactId>
-    <version>2.5.0-SNAPSHOT</version>
+    <version>2.6.0-SNAPSHOT</version>
     <name>pn-ec</name>
     <description>External communication µService</description>
 
@@ -521,7 +521,7 @@
                         <source>src/main/resources/pec/daticert-xml-schema.dtd</source>
                     </sources>
                     <externalEntityProcessing>true</externalEntityProcessing>
-                    <packageName>it.pec.daticert</packageName>
+                    <packageName>it.pagopa.pn.library.pec.model.pojo</packageName>
                 </configuration>
             </plugin>
 
