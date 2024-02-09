@@ -5,6 +5,7 @@ import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.pec.model.pojo.PagopaMimeMessage;
 import lombok.CustomLog;
 import lombok.SneakyThrows;
+import org.apache.commons.io.output.CountingOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.mail.util.MimeMessageParser;
 import javax.activation.DataHandler;
@@ -27,7 +28,7 @@ public class EmailUtils {
     private EmailUtils() {
         throw new IllegalStateException("EmailUtils is a utility class");
     }
-    public static final Integer MB_TO_KB = 1000000;
+    public static final Integer MB_TO_BYTES = 1000000;
     public static String getDomainFromAddress(String address) {
         return address.substring(address.indexOf("@"));
     }
@@ -192,6 +193,14 @@ public class EmailUtils {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         mimeMessage.writeTo(byteArrayOutputStream);
         return byteArrayOutputStream;
+    }
+
+    @SneakyThrows({IOException.class, MessagingException.class})
+    public static int getMimeMessageSizeInBytes(MimeMessage mimeMessage, CountingOutputStream countingOutputStream) {
+        mimeMessage.writeTo(countingOutputStream);
+        var mimeMessageSize = countingOutputStream.getCount();
+        countingOutputStream.resetCount();
+        return mimeMessageSize;
     }
 
     public static OutputStream getMimeMessageOutputStream(EmailField emailField) {

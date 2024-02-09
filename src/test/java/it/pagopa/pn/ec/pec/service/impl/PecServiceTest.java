@@ -147,7 +147,7 @@ class PecServiceTest {
 
     @BeforeAll
     static void beforeAll(@Autowired PnPecConfigurationProperties pnPecConfigurationProperties) {
-        MAX_MESSAGE_SIZE_KB = pnPecConfigurationProperties.getMaxMessageSizeMb() * MB_TO_KB;
+        MAX_MESSAGE_SIZE_KB = pnPecConfigurationProperties.getMaxMessageSizeMb() * MB_TO_BYTES;
     }
     @BeforeEach
     void setUp() {
@@ -226,7 +226,7 @@ class PecServiceTest {
 
         assertTrue(mimeMessageStr.getBytes().length < MAX_MESSAGE_SIZE_KB);
         //Body del messaggio + allegati
-        assertEquals(getMultipartCount(multipart), 3);
+        assertEquals(3, getMultipartCount(multipart));
     }
 
     @Test
@@ -254,7 +254,7 @@ class PecServiceTest {
 
         assertTrue(mimeMessageStr.getBytes().length < MAX_MESSAGE_SIZE_KB);
         //Body del messaggio + 1 allegato
-        assertEquals(getMultipartCount(multipart), 2);
+        assertEquals(2, getMultipartCount(multipart));
     }
 
     @Test
@@ -300,9 +300,9 @@ class PecServiceTest {
 
         String mimeMessageStr = extractSendMailData();
         var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
-        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, "X-TipoRicevuta");
+        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName());
         assertNotNull(xTipoRicevutaHeader);
-        assertTrue(getHeaderFromMimeMessage(mimeMessage, "X-TipoRicevuta").length > 0);
+        assertTrue(getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName()).length > 0);
     }
 
     @ParameterizedTest
@@ -328,7 +328,7 @@ class PecServiceTest {
 
         String mimeMessageStr = extractSendMailData();
         var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
-        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, "X-TipoRicevuta");
+        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName());
         assertNull(xTipoRicevutaHeader);
     }
 

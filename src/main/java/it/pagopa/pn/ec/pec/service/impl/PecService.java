@@ -34,6 +34,7 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
 import lombok.CustomLog;
+import org.apache.commons.io.output.CountingOutputStream;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -308,7 +309,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
                 .flatMap(emailField -> getMonoMimeMessage(emailField,
                         pnPecProps.getAttachmentRule(),
-                        pnPecProps.getMaxMessageSizeMb() * MB_TO_KB,
+                        pnPecProps.getMaxMessageSizeMb() * MB_TO_BYTES,
                         pnPecProps.getTipoRicevutaBreve()))
 
                 .map(EmailUtils::getMimeMessageInCDATATag)
@@ -596,30 +597,36 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName());
     }
 
-    public  Mono<MimeMessage> getMonoMimeMessage(EmailField emailField, String mimeMessageRule, Integer maxMessageSizeKb, boolean canInsertXTipoRicevutaHeader) {
+    public  Mono<MimeMessage> getMonoMimeMessage(EmailField emailField, String mimeMessageRule, Integer maxMessageSizeInBytes, boolean canInsertXTipoRicevutaHeader) {
         return Mono.fromSupplier(() -> {
-                    log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GET_MONO_MIME_MESSAGE, Stream.of(emailField, mimeMessageRule, maxMessageSizeKb, canInsertXTipoRicevutaHeader).toList());
+                    log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GET_MONO_MIME_MESSAGE, Stream.of(emailField, mimeMessageRule, maxMessageSizeInBytes, canInsertXTipoRicevutaHeader).toList());
                     return buildMimeMessage(emailField);
                 })
-                .flatMap(mimeMessage -> setAttachmentsInMimeMessage(mimeMessage, emailField, maxMessageSizeKb, mimeMessageRule))
+                .flatMap(mimeMessage -> setAttachmentsInMimeMessage(mimeMessage, emailField, maxMessageSizeInBytes, mimeMessageRule))
                 .flatMap(mimeMessage -> setHeadersInMimeMessage(mimeMessage, emailField.getHeadersList(), canInsertXTipoRicevutaHeader))
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_NO_RESULT_LABEL, GET_MONO_MIME_MESSAGE))
                 .onErrorResume(throwable -> Mono.error(new ComposeMimeMessageException(throwable.getMessage())));
     }
 
-    private  Mono<MimeMessage> setAttachmentsInMimeMessage(MimeMessage mimeMessage, EmailField emailField, Integer maxMessageSizeKb, String mimeMessageRule) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, SET_ATTACHMENTS_IN_MIME_MESSAGE, Stream.of(emailField, maxMessageSizeKb, mimeMessageRule).toList());
+    private Mono<MimeMessage> setAttachmentsInMimeMessage(MimeMessage mimeMessage, EmailField emailField, Integer maxMessageSizeInBytes, String mimeMessageRule) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, SET_ATTACHMENTS_IN_MIME_MESSAGE, Stream.of(emailField, maxMessageSizeInBytes, mimeMessageRule).toList());
+        CountingOutputStream sizeCounter = new CountingOutputStream(new ByteArrayOutputStream());
         return Flux.fromIterable(emailField.getEmailAttachments())
                 .map(EmailUtils::buildAttachmentPart)
                 .map(mimeBodyPart -> addAttachmentToMimeMessage(mimeMessage, mimeBodyPart))
-                .takeWhile(mime -> {
-                    ByteArrayOutputStream outputStream = getMimeMessageOutputStream(mimeMessage);
-                    return outputStream.toByteArray().length <= maxMessageSizeKb;
+                .map(mime -> getMimeMessageSizeInBytes(mime, sizeCounter))
+                .takeUntil(mimeMessageSize -> mimeMessageSize > maxMessageSizeInBytes)
+                .last(0)
+                .flatMap(mimeMessageSize -> {
+                    if (mimeMessageSize > maxMessageSizeInBytes)
+                        return handleMaxSizeExceeded(mimeMessage, mimeMessageRule);
+                    else return Mono.just(mimeMessage);
                 })
-                .then()
-                .thenReturn(mimeMessage)
-                .filter(mime -> getMimeMessageOutputStream(mime).toByteArray().length > maxMessageSizeKb)
-                .handle((mime, sink) -> {
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_NO_RESULT_LABEL, SET_ATTACHMENTS_IN_MIME_MESSAGE));
+    }
+
+    private Mono<MimeMessage> handleMaxSizeExceeded(MimeMessage mimeMessage, String mimeMessageRule) {
+        return Mono.just(mimeMessage).handle((mime, sink) -> {
                     Multipart multipart = getMultipartFromMimeMessage(mime);
                     if (getMultipartCount(multipart) <= 2)
                         sink.error(new MaxSizeExceededException("MimeMessage has exceeded the max available size with the first attachment."));
@@ -632,9 +639,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                     else if (mimeMessageRule.equals("FIRST"))
                         removeAllExceptFirstAttachmentFromMimeMessage(mime);
                     return Mono.just(mime);
-                })
-                .defaultIfEmpty(mimeMessage)
-                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_NO_RESULT_LABEL, SET_ATTACHMENTS_IN_MIME_MESSAGE));
+                });
     }
 
     private  Mono<MimeMessage> setHeadersInMimeMessage(MimeMessage mimeMessage, List<Header> headers, boolean canInsertXTipoRicevutaHeader) {

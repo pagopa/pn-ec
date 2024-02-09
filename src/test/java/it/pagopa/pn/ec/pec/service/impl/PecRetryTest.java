@@ -160,7 +160,7 @@ class PecRetryTest {
 
     @BeforeAll
     static void beforeAll(@Autowired PnPecConfigurationProperties pnPecConfigurationProperties) {
-        MAX_MESSAGE_SIZE_KB = pnPecConfigurationProperties.getMaxMessageSizeMb() * MB_TO_KB;
+        MAX_MESSAGE_SIZE_KB = pnPecConfigurationProperties.getMaxMessageSizeMb() * MB_TO_BYTES;
     }
 
     @BeforeEach
@@ -283,7 +283,7 @@ class PecRetryTest {
 
         assertTrue(mimeMessageStr.getBytes().length < MAX_MESSAGE_SIZE_KB);
         //Body del messaggio + 2 allegati
-        assertEquals(getMultipartCount(multipart), 3);
+        assertEquals(3, getMultipartCount(multipart));
     }
 
     @Test
@@ -322,7 +322,7 @@ class PecRetryTest {
 
         assertTrue(mimeMessageStr.getBytes().length < MAX_MESSAGE_SIZE_KB);
         //Body del messaggio + 1 allegato
-        assertEquals(getMultipartCount(multipart), 2);
+        assertEquals(2, getMultipartCount(multipart));
     }
 
     @Test
@@ -395,9 +395,9 @@ class PecRetryTest {
 
         String mimeMessageStr = extractSendMailData();
         var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
-        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, "X-TipoRicevuta");
+        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName());
         assertNotNull(xTipoRicevutaHeader);
-        assertTrue(getHeaderFromMimeMessage(mimeMessage, "X-TipoRicevuta").length > 0);
+        assertTrue(getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName()).length > 0);
     }
     @ParameterizedTest
     @ValueSource(strings = {"false", "true;2023-02-01T10:00:00Z;false"})
@@ -438,7 +438,7 @@ class PecRetryTest {
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
         String mimeMessageStr = extractSendMailData();
         var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
-        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, "X-TipoRicevuta");
+        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName());
         assertNull(xTipoRicevutaHeader);
     }
 
