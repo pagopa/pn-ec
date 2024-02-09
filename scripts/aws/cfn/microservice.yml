@@ -266,6 +266,25 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriPEC"
 
+  ######### LAVORAZIONE : PEC  ##########
+
+  PnEcPECMaxMessageSizeMB:
+    Type: String
+    Description: 'Limite dimensione messaggio PEC in MB'
+
+  PnEcPECAttachmentRule:
+    Type: String
+    Description: 'Regola per invio di allegati PEC'
+    AllowedValues:
+      - 'LIMIT'
+      - 'FIRST'
+
+  PnEcPECTipoRicevutaBreve:
+    Type: String
+    Description: 'Tipo ricevuta breve PEC'
+
+
+
   ######### TRACKER : EMAIL  ##########
 
   PnEcQueueNameTrackerStatoEMAIL:
@@ -854,6 +873,9 @@ Resources:
         ContainerEnvEntry56: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueNameCancellazioneRicevutePEC}'
         ContainerEnvEntry57: !Sub 'CancellazioneRicevutePecMaxThreadPoolSize=${CancellazioneRicevutePecMaxThreadPoolSize}'
         ContainerEnvEntry58: !Sub 'PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked=${PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked}'
+        ContainerEnvEntry59: !Sub 'PnEcPECMaxMessageSizeMB=${PnEcPECMaxMessageSizeMB}'
+        ContainerEnvEntry60: !Sub 'PnEcPECAttachmentRule=${PnEcPECAttachmentRule}'
+        ContainerEnvEntry61: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'

@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.commons.model.pojo.email;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import javax.mail.Header;
 import java.util.List;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -24,4 +25,7 @@ public class EmailField {
     String contentType;
     @ToString.Exclude
     List<EmailAttachment> emailAttachments;
+    @ToString.Exclude
+    List<Header> headersList;
+
 }
