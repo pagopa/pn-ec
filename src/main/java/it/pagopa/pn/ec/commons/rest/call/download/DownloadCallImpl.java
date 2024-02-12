@@ -30,7 +30,7 @@ public class DownloadCallImpl implements DownloadCall {
         return DataBufferUtils.write(downloadWebClient.get().uri(URI.create(url)).retrieve().bodyToFlux(DataBuffer.class), outputStream)
                               .map(DataBufferUtils::release)
                               .then(Mono.just(outputStream))
-                              .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, DOWNLOAD_FILE, result))
+                              .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, DOWNLOAD_FILE, url))
                               .doOnError(e -> log.error("Error in downloadFile class: {}", e.getMessage()));
     }
 }
