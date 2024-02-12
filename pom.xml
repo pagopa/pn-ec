@@ -163,9 +163,12 @@
         </dependency>
 
         <!-- MAIL DEPENDENCIES-->
+
+        <!-- https://mvnrepository.com/artifact/com.sun.mail/javax.mail -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-mail</artifactId>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>1.6.2</version>
         </dependency>
 
         <!-- Usato nella generazione del client consolidatore-2023-01-02.yml -->
@@ -175,43 +178,11 @@
             <version>1.6.5</version>
         </dependency>
 
-        <!-- Start SOAP dependencies -->
-        <dependency>
-            <groupId>jakarta.xml.bind</groupId>
-            <artifactId>jakarta.xml.bind-api</artifactId>
-            <version>4.0.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>jakarta.jws</groupId>
-            <artifactId>jakarta.jws-api</artifactId>
-            <version>3.0.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>jakarta.xml.ws</groupId>
-            <artifactId>jakarta.xml.ws-api</artifactId>
-            <version>4.0.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>jakarta.xml.soap</groupId>
-            <artifactId>jakarta.xml.soap-api</artifactId>
-            <version>3.0.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>jakarta.activation</groupId>
-            <artifactId>jakarta.activation-api</artifactId>
-            <version>2.1.1</version>
-        </dependency>
-
         <dependency>
             <groupId>javax.xml.soap</groupId>
             <artifactId>javax.xml.soap-api</artifactId>
             <version>1.4.0</version>
         </dependency>
-
 
         <dependency>
             <groupId>com.sun.xml.bind</groupId>
@@ -223,13 +194,25 @@
         <dependency>
             <groupId>com.sun.xml.ws</groupId>
             <artifactId>jaxws-rt</artifactId>
-            <version>4.0.1</version>
+            <version>2.3.7</version>
         </dependency>
 
         <dependency>
             <groupId>javax.xml.bind</groupId>
             <artifactId>jaxb-api</artifactId>
             <version>2.3.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.xml.ws</groupId>
+            <artifactId>jaxws-api</artifactId>
+            <version>2.3.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sun.activation</groupId>
+            <artifactId>javax.activation</artifactId>
+            <version>1.2.0</version>
         </dependency>
 
         <dependency>
@@ -531,23 +514,30 @@
             </plugin>
 
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>jaxb2-maven-plugin</artifactId>
-                <version>3.1.0</version>
+                <groupId>org.jvnet.jaxb2.maven2</groupId>
+                <artifactId>maven-jaxb2-plugin</artifactId>
+                <version>0.15.3</version>
                 <executions>
                     <execution>
                         <goals>
-                            <goal>xjc</goal>
+                            <goal>generate</goal>
                         </goals>
                     </execution>
                 </executions>
                 <configuration>
-                    <sourceType>dtd</sourceType>
-                    <sources>
-                        <source>src/main/resources/pec/daticert-xml-schema.dtd</source>
-                    </sources>
-                    <externalEntityProcessing>true</externalEntityProcessing>
-                    <packageName>it.pagopa.pn.library.pec.model.pojo</packageName>
+                    <generatePackage>it.pagopa.pn.library.pec.model.pojo</generatePackage>
+                    <schemas>
+                        <schema>
+                            <url>src/main/resources/pec/daticert-xml-schema.dtd</url>
+                        </schema>
+                    </schemas>
+                    <schemaLanguage>DTD</schemaLanguage>
+<!--                    <sourceType>dtd</sourceType>-->
+<!--                    <sources>-->
+<!--                        <source>src/main/resources/pec/daticert-xml-schema.dtd</source>-->
+<!--                    </sources>-->
+<!--                    <externalEntityProcessing>true</externalEntityProcessing>-->
+<!--                    <packageName>it.pagopa.pn.library.pec.model.pojo</packageName>-->
                 </configuration>
             </plugin>
 
