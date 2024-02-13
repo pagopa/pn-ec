@@ -167,6 +167,7 @@ public class EmailUtils {
         log.debug("Removing last attachment from mimeMessage...");
         var multipart = (MimeMultipart) mimeMessage.getContent();
         multipart.removeBodyPart(multipart.getCount() - 1);
+        mimeMessage.saveChanges();
     }
 
     @SneakyThrows({IOException.class, MessagingException.class})
@@ -176,12 +177,14 @@ public class EmailUtils {
             log.debug("Removing attachment number '{}' from mimeMessage...", i);
             multipart.removeBodyPart(i);
         }
+        mimeMessage.saveChanges();
     }
 
     @SneakyThrows({IOException.class, MessagingException.class})
     public static MimeMessage addAttachmentToMimeMessage(MimeMessage mimeMessage, MimeBodyPart mimeBodyPart) {
         log.debug("Adding attachment '{}' to mimeMessage...", mimeBodyPart.getFileName());
         ((MimeMultipart) mimeMessage.getContent()).addBodyPart(mimeBodyPart);
+        mimeMessage.saveChanges();
         return mimeMessage;
     }
 
