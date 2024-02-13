@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.pec.configurationproperties;
 
 import lombok.Data;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -30,7 +31,7 @@ public class PnPecConfigurationProperties {
             String valueBeforeDate = propertyArray[0];
             String valueAfterDate = propertyArray[2];
             DateTime date = DateTime.parse(propertyArray[1]);
-            DateTime now = DateTime.now();
+            DateTime now = DateTime.now(DateTimeZone.UTC);
             if(now.isBefore(date)) {
                 return valueBeforeDate;
             } else {
