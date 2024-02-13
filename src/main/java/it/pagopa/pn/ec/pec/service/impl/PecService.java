@@ -6,7 +6,6 @@ import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
-import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
 import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
@@ -28,10 +27,9 @@ import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.library.pec.service.PnPecService;
-import it.pec.bridgews.SendMail;
-import it.pec.bridgews.SendMailResponse;
 import lombok.CustomLog;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -77,7 +75,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private final Semaphore semaphore;
     private String idSaved;
 
-    protected PecService(AuthService authService, PnPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
+    protected PecService(AuthService authService,@Qualifier("pnPecServiceImpl") PnPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
             , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, ArubaSecretValue arubaSecretValue,
                          NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName, @Value("${lavorazione-pec.max-thread-pool-size}") Integer maxThreadPoolSize) {
         super(authService);

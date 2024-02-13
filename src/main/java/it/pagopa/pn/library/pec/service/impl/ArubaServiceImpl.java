@@ -1,10 +1,12 @@
 package it.pagopa.pn.library.pec.service.impl;
 
-import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
+import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.library.pec.configurationproperties.ArubaServiceProperties;
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallException;
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.model.pojo.ArubaSecretValue;
+import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
+import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pec.bridgews.*;
 import lombok.CustomLog;
@@ -44,7 +46,8 @@ public class ArubaServiceImpl implements ArubaService {
     }
 
     @Override
-    public Mono<GetMessageCountResponse> getMessageCount(GetMessageCount getMessageCount) {
+    public Mono<Integer> getMessageCount() {
+        GetMessageCount getMessageCount = new GetMessageCount();
         getMessageCount.setUser(arubaSecretValue.getPecUsername());
         getMessageCount.setPass(arubaSecretValue.getPecPassword());
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGE_COUNT, getMessageCount);
@@ -57,13 +60,16 @@ public class ArubaServiceImpl implements ArubaService {
                         endSoapRequest(sink, e);
                     }
                 })).cast(GetMessageCountResponse.class).retryWhen(getArubaCallRetryStrategy())
+                .map(GetMessageCountResponse::getCount)
                 .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_COUNT, result));
     }
 
-    @Override
-    public Mono<DeleteMailResponse> deleteMail(DeleteMail deleteMail) {
+    public Mono<Void> deleteMessage(String messageID) {
+        DeleteMail deleteMail = new DeleteMail();
         deleteMail.setUser(arubaSecretValue.getPecUsername());
         deleteMail.setPass(arubaSecretValue.getPecPassword());
+        deleteMail.setMailid(messageID);
+        deleteMail.setIsuid(2);
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_DELETE_MAIL, deleteMail);
         return Mono.create(sink -> pecImapBridgeClient.deleteMailAsync(deleteMail, res -> {
                     try {
@@ -74,11 +80,14 @@ public class ArubaServiceImpl implements ArubaService {
                         endSoapRequest(sink, e);
                     }
                 })).cast(DeleteMailResponse.class).retryWhen(getArubaCallRetryStrategy())
+                .then()
                 .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_DELETE_MAIL, result));
     }
 
     @Override
-    public Mono<SendMailResponse> sendMail(SendMail sendMail) {
+    public Mono<String> sendMail(byte[] message) {
+        SendMail sendMail = new SendMail();
+        sendMail.setData(EmailUtils.getMimeMessageInCDATATag(message));
         sendMail.setUser(arubaSecretValue.getPecUsername());
         sendMail.setPass(arubaSecretValue.getPecPassword());
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_SEND_MAIL, sendMail);
@@ -90,11 +99,22 @@ public class ArubaServiceImpl implements ArubaService {
             } catch (Exception throwable) {
                 endSoapRequest(sink, throwable);
             }
-        })).cast(SendMailResponse.class).retryWhen(getArubaCallRetryStrategy()).doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_SEND_MAIL, result));
+        }))
+                .cast(SendMailResponse.class).retryWhen(getArubaCallRetryStrategy())
+                .map(sendMailResponse -> {
+                    String msgId = sendMailResponse.getErrstr();
+                    //Remove the last 2 char '\r\n'
+                    return msgId.substring(0, msgId.length() - 2);
+                })
+                .cast(String.class)
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_SEND_MAIL, result));
     }
 
-    @Override
-    public Mono<GetMessagesResponse> getMessages(GetMessages getMessages) {
+    public Mono<PnGetMessagesResponse> getUnreadMessages(int limit) {
+        GetMessages getMessages = new GetMessages();
+        getMessages.setUnseen(1);
+        getMessages.setLimit(limit);
+        getMessages.setOuttype(2);
         getMessages.setUser(arubaSecretValue.getPecUsername());
         getMessages.setPass(arubaSecretValue.getPecPassword());
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGES, getMessages);
@@ -107,14 +127,22 @@ public class ArubaServiceImpl implements ArubaService {
                         endSoapRequest(sink, throwable);
                     }
                 })).cast(GetMessagesResponse.class).retryWhen(getArubaCallRetryStrategy())
+                .map(getMessagesResponse -> {
+                    PnGetMessagesResponse pnGetMessagesResponse = new PnGetMessagesResponse();
+                    pnGetMessagesResponse.setPnListOfMessages(new PnListOfMessages(getMessagesResponse.getArrayOfMessages().getItem()));
+                    return pnGetMessagesResponse;
+                })
                 .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGES, result));
     }
 
 
-    @Override
-    public Mono<GetMessageIDResponse> getMessageId(GetMessageID getMessageID) {
+   public  Mono<Void> markMessageAsRead(String messageID) {
+        GetMessageID getMessageID = new GetMessageID();
         getMessageID.setUser(arubaSecretValue.getPecUsername());
         getMessageID.setPass(arubaSecretValue.getPecPassword());
+        getMessageID.setMailid(messageID);
+        getMessageID.setIsuid(2);
+        getMessageID.setMarkseen(1);
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGE_ID, getMessageID);
         return Mono.create(sink -> pecImapBridgeClient.getMessageIDAsync(getMessageID, outputFuture -> {
                     try {
@@ -125,6 +153,7 @@ public class ArubaServiceImpl implements ArubaService {
                         endSoapRequest(sink, throwable);
                     }
                 })).cast(GetMessageIDResponse.class).retryWhen(getArubaCallRetryStrategy())
+                .then()
                 .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_ID, result));
     }
 
@@ -138,5 +167,9 @@ public class ArubaServiceImpl implements ArubaService {
         sink.error(throwable);
         Thread.currentThread().interrupt();
     }
+
+
+
+
 
 }

@@ -261,6 +261,11 @@ Parameters:
   PnEcAlarmArnDLQueueTrackerErroriPEC:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriPEC"
+  ######### LAVORAZIONE : PEC  ##########
+
+  PnEcLavorazionePecProperties:
+    Type: String
+    Description: 'Regola per lo switch del provider PEC'
 
   ######### TRACKER : EMAIL  ##########
 
@@ -833,6 +838,7 @@ Resources:
         ContainerEnvEntry54: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
         ContainerEnvEntry55: !Sub 'PnEcTaskExecutionPoolMaxSize=${PnEcTaskExecutionPoolMaxSize}'
         ContainerEnvEntry56: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueNameCancellazioneRicevutePEC}'
+        ContainerEnvEntry57: !Sub 'PnEcProviderSwitch=${PnEcProviderSwitch}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'

@@ -52,7 +52,7 @@ class PecRetryTest {
     private PecSqsQueueName pecSqsQueueName;
     @SpyBean
     private SqsService sqsService;
-    @MockBean
+    @MockBean(name="arubaServiceImpl")
     private ArubaService arubaService;
     @MockBean
     private DownloadCall downloadCall;
@@ -164,13 +164,9 @@ class PecRetryTest {
 
         String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
         String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
-        var requestDto=buildRequestDto();
-
-        var sendMailResponse=new SendMailResponse();
-        sendMailResponse.setErrstr("errorstr");
 
         when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-        when(arubaService.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
         when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
 
         //Gestore repository mocks.
@@ -196,11 +192,8 @@ class PecRetryTest {
         PatchDto patchDto = new PatchDto();
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
-        var sendMailResponse=new SendMailResponse();
-        sendMailResponse.setErrstr("errorstr");
-
         when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-        when(arubaService.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
         when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
 
         //Gestore repository mocks.

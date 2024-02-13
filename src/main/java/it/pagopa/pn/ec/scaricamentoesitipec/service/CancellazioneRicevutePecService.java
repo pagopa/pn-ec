@@ -5,16 +5,15 @@ import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.CancellazioneRicevutePecProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CancellazioneRicevutePecDto;
 import it.pagopa.pn.library.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.library.pec.service.PnPecService;
 import lombok.CustomLog;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -27,6 +26,7 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 public class CancellazioneRicevutePecService {
 
     @Autowired
+    @Qualifier("pnPecServiceImpl")
     private PnPecService pnPecService;
     @Autowired
     private GestoreRepositoryCall gestoreRepositoryCall;

@@ -13,6 +13,7 @@ import it.pagopa.pn.library.pec.service.PnPecService;
 import it.pec.bridgews.*;
 import lombok.CustomLog;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -37,7 +38,7 @@ public class ScaricamentoEsitiPecScheduler {
     @Value("${scaricamento-esiti-pec.limit-rate}")
     private Integer limitRate;
 
-    public ScaricamentoEsitiPecScheduler(DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, CloudWatchPecMetrics cloudWatchPecMetrics, PnPecService pnPecService) {
+    public ScaricamentoEsitiPecScheduler(DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, CloudWatchPecMetrics cloudWatchPecMetrics, @Qualifier("pnPecServiceImpl") PnPecService pnPecService) {
         this.daticertService = daticertService;
         this.sqsService = sqsService;
         this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;

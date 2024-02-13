@@ -66,7 +66,7 @@ class PecServiceTest {
     @SpyBean
     private SqsServiceImpl sqsService;
 
-    @MockBean
+    @MockBean(name = "arubaServiceImpl")
     private ArubaService arubaService;
     @MockBean
     private AttachmentServiceImpl attachmentService;
@@ -150,12 +150,9 @@ class PecServiceTest {
         var clientId=PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
         var requestId=PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
 
-        var sendMailResponse=new SendMailResponse();
-        sendMailResponse.setErrstr("errorstr");
-
         when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
         when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-        when(arubaService.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
 
         Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
@@ -168,16 +165,12 @@ class PecServiceTest {
     @Test
     void lavorazionePec_MaxRetriesExceeded() {
 
-        var requestDto=buildRequestDto();
         var clientId=PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
         var requestId=PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
 
-        var sendMailResponse=new SendMailResponse();
-        sendMailResponse.setErrstr("errorstr");
-
         when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
         when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-        when(arubaService.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.error(new RuntimeException()));
 
         Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
