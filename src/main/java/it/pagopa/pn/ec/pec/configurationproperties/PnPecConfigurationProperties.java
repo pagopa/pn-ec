@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.pec.configurationproperties;
 
+import lombok.CustomLog;
 import lombok.Data;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -11,6 +11,7 @@ import javax.validation.constraints.Pattern;
 @ConfigurationProperties(prefix = "pn.ec.pec")
 @Validated
 @Data
+@CustomLog
 public class PnPecConfigurationProperties {
 
     private String attachmentRule;
@@ -31,7 +32,8 @@ public class PnPecConfigurationProperties {
             String valueBeforeDate = propertyArray[0];
             String valueAfterDate = propertyArray[2];
             DateTime date = DateTime.parse(propertyArray[1]);
-            DateTime now = DateTime.now(DateTimeZone.UTC);
+            DateTime now = DateTime.now();
+            log.info("PnPecConfigurationProperties.returnPropertyValue() -> Date : {}, Now : {}", date, now);
             if(now.isBefore(date)) {
                 return valueBeforeDate;
             } else {
