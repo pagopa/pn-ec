@@ -14,6 +14,7 @@ import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.AlternativeProviderService;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnPecService;
+import it.pagopa.pn.library.pec.service.impl.ArubaServiceImpl;
 import lombok.CustomLog;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
@@ -364,16 +365,15 @@ public class PnPecServiceTest {
         messageIDs.add("opec21010.20231006185001.00057.206.1.59@test.com");
         messageIDs.add("opec21010.20231006185001.00057.206.1.59@pec.aruba.it.test");
 
-        Assertions.assertTrue(EmailUtils.isAruba(messageIDs.get(0)));
-        Assertions.assertTrue(EmailUtils.isAruba(messageIDs.get(1)));
-        Assertions.assertTrue(EmailUtils.isAruba(messageIDs.get(2)));
-        Assertions.assertFalse(EmailUtils.isAruba(messageIDs.get(3)));
-        Assertions.assertFalse(EmailUtils.isAruba(messageIDs.get(4)));
+        Assertions.assertTrue(ArubaServiceImpl.isAruba(messageIDs.get(0)));
+        Assertions.assertTrue(ArubaServiceImpl.isAruba(messageIDs.get(1)));
+        Assertions.assertTrue(ArubaServiceImpl.isAruba(messageIDs.get(2)));
+        Assertions.assertFalse(ArubaServiceImpl.isAruba(messageIDs.get(3)));
+        Assertions.assertFalse(ArubaServiceImpl.isAruba(messageIDs.get(4)));
 
     }
 
     private static RequestDto buildRequestDto() {
-        //RetryDto
         RetryDto retryDto = new RetryDto();
         List<BigDecimal> retries = new ArrayList<>();
         retries.add(0, BigDecimal.valueOf(5));
@@ -382,11 +382,9 @@ public class PnPecServiceTest {
         retryDto.setRetryStep(BigDecimal.valueOf(0));
         retryDto.setRetryPolicy(retries);
 
-        //RequestMetadataDto
         RequestMetadataDto requestMetadata = new RequestMetadataDto();
         requestMetadata.setRetry(retryDto);
 
-        //RequestDto
         RequestDto requestDto = new RequestDto();
         requestDto.setStatusRequest("statusTest");
         requestDto.setRequestIdx(PEC_PRESA_IN_CARICO_INFO.getRequestIdx());

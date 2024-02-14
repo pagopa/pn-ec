@@ -1,6 +1,5 @@
 package it.pagopa.pn.library.pec.service.impl;
 
-import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
@@ -100,8 +99,7 @@ public class PnPecServiceImpl implements PnPecService {
                     return Mono.just(0);
                 });
 
-        return arubaCount.zipWith(otherProviderCount)
-                .map(tuple -> tuple.getT1() + tuple.getT2())
+        return Mono.just(arubaCount.block()+otherProviderCount.block())
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_GET_MESSAGE_COUNT, result))
                 .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PEC_GET_MESSAGE_COUNT, throwable, throwable.getMessage()));
     }
@@ -135,7 +133,7 @@ public class PnPecServiceImpl implements PnPecService {
     }
 
     private PnPecService getProvider(String messageID){
-        if(EmailUtils.isAruba(messageID)){
+        if(ArubaServiceImpl.isAruba(messageID)){
             return arubaService;
         }else{
             return otherService;

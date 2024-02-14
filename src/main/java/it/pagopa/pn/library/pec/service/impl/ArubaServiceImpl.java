@@ -31,6 +31,8 @@ public class ArubaServiceImpl implements ArubaService {
 
     private final ArubaServiceProperties arubaServiceProperties;
 
+    public static final String ARUBA_PATTERN_STRING = "@pec.aruba.it";
+
     @Autowired
     public ArubaServiceImpl(PecImapBridge pecImapBridgeClient, ArubaSecretValue arubaSecretValue, ArubaServiceProperties arubaServiceProperties) {
         this.pecImapBridgeClient = pecImapBridgeClient;
@@ -169,7 +171,9 @@ public class ArubaServiceImpl implements ArubaService {
     }
 
 
-
+    public static boolean isAruba(String messageID) {
+        return messageID.trim().toLowerCase().endsWith(ARUBA_PATTERN_STRING);
+    }
 
 
 }

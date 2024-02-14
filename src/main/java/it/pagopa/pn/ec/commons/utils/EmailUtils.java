@@ -22,8 +22,6 @@ import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE;
 @CustomLog
 public class EmailUtils {
 
-    public static final String ARUBA_PATTERN_STRING = "@pec.aruba.it";
-
     private EmailUtils() {
         throw new IllegalStateException("EmailUtils is a utility class");
     }
@@ -183,9 +181,5 @@ public class EmailUtils {
         } catch (Exception e) {
             throw new RetrieveAttachmentException();
         }
-    }
-    //TODO move to arubaserviceimpl
-    public static boolean isAruba(String messageID) {
-        return messageID.trim().toLowerCase().endsWith(ARUBA_PATTERN_STRING);
     }
 }

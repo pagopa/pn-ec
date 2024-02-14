@@ -263,7 +263,7 @@ Parameters:
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriPEC"
   ######### LAVORAZIONE : PEC  ##########
 
-  PnEcLavorazionePecProperties:
+  PnEcProviderSwitch:
     Type: String
     Description: 'Regola per lo switch del provider PEC'
 
