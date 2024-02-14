@@ -22,7 +22,6 @@ import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE;
 @CustomLog
 public class EmailUtils {
 
-    public static final String ARUBA_PATTERN = ".*@pec\\.aruba\\.it$";
     public static final String ARUBA_PATTERN_STRING = "@pec.aruba.it";
 
     private EmailUtils() {
@@ -185,8 +184,8 @@ public class EmailUtils {
             throw new RetrieveAttachmentException();
         }
     }
-
+    //TODO move to arubaserviceimpl
     public static boolean isAruba(String messageID) {
-        return messageID.trim().toLowerCase().endsWith(ARUBA_PATTERN_STRING.trim().toLowerCase());
+        return messageID.trim().toLowerCase().endsWith(ARUBA_PATTERN_STRING);
     }
 }
