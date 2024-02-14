@@ -25,16 +25,21 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 @CustomLog
 public class CancellazioneRicevutePecService {
 
-    @Autowired
-    @Qualifier("pnPecServiceImpl")
-    private PnPecService pnPecService;
-    @Autowired
-    private GestoreRepositoryCall gestoreRepositoryCall;
-    @Autowired
-    private ArubaSecretValue arubaSecretValue;
-    @Autowired
-    private CancellazioneRicevutePecProperties cancellazioneRicevutePecProperties;
+    private final PnPecService pnPecService;
+    private final GestoreRepositoryCall gestoreRepositoryCall;
+    private final ArubaSecretValue arubaSecretValue;
+    private final CancellazioneRicevutePecProperties cancellazioneRicevutePecProperties;
 
+    @Autowired
+    public CancellazioneRicevutePecService(@Qualifier("pnPecServiceImpl") PnPecService pnPecService,
+                                           GestoreRepositoryCall gestoreRepositoryCall,
+                                           ArubaSecretValue arubaSecretValue,
+                                           CancellazioneRicevutePecProperties cancellazioneRicevutePecProperties) {
+        this.pnPecService = pnPecService;
+        this.gestoreRepositoryCall = gestoreRepositoryCall;
+        this.arubaSecretValue = arubaSecretValue;
+        this.cancellazioneRicevutePecProperties = cancellazioneRicevutePecProperties;
+    }
     @SqsListener(value = "${cancellazione-ricevute-pec.sqs-queue-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void cancellazioneRicevutePecInteractive(final CancellazioneRicevutePecDto cancellazioneRicevutePecDto, Acknowledgment acknowledgment) {
         var requestId = cancellazioneRicevutePecDto.getSingleStatusUpdate().getDigitalLegal().getRequestId();

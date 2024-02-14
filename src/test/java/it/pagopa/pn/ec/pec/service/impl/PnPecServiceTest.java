@@ -228,9 +228,7 @@ public class PnPecServiceTest {
         Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
         StepVerifier.create(combinedMessages)
-                .expectNextMatches(response -> response.getNumOfMessages() == 0
-                        && response.getPnListOfMessages().getMessages().isEmpty())
-                .expectComplete()
+                .expectError()
                 .verify();
 
         verify(arubaService, times(1)).getUnreadMessages(6);
@@ -290,7 +288,7 @@ public class PnPecServiceTest {
 
         Mono<Integer> messageCount = pnPecService.getMessageCount();
 
-        StepVerifier.create(messageCount).expectNext(0).expectComplete().verify();
+        StepVerifier.create(messageCount).expectError().verify();
 
         verify(arubaService, times(1)).getMessageCount();
         verify(alternativeProviderService, times(1)).getMessageCount();

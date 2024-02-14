@@ -49,14 +49,6 @@ public class ScaricamentoEsitiPecScheduler {
     private final Predicate<PnPostacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
     private final Predicate<PnPostacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
 
-    private GetMessageID createGetMessageIdRequest(String messageID, Integer isuid, boolean markSeen) {
-        var getMessageID = new GetMessageID();
-        getMessageID.setMailid(messageID);
-        getMessageID.setIsuid(isuid);
-        getMessageID.setMarkseen(markSeen ? 1 : 0);
-        return getMessageID;
-    }
-
     @Scheduled(cron = "${PnEcCronScaricamentoEsitiPec ?:0 */5 * * * *}")
     public void scaricamentoEsitiPecScheduler() {
 

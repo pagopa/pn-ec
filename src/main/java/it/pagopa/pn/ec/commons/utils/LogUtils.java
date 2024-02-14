@@ -18,13 +18,11 @@ public class LogUtils {
     public static final String SUCCESSFUL_OPERATION_NO_RESULT_LABEL = "Successful operation: '{}'";
     public static final String INSERTING_DATA_IN_SQS = "Inserting data {} in SQS '{}'";
     public static final String INSERTED_DATA_IN_SQS = "Inserted data in SQS '{}'";
-    public static final String PRESA_IN_CARICO = "PresaInCaricoService.presaInCarico()";
     public static final String MESSAGE_REMOVED_FROM_ERROR_QUEUE = "The message has been successfully handled and removed from the error queue '{}'";
     public static final String EXCEPTION_IN_PROCESS_FOR = "Exception in '{}' for request '{}' - {}, {}";
     public static final String EXCEPTION_IN_PROCESS = "Exception in '{}' - {}, {}";
     public static final String SHORT_RETRY_ATTEMPT = "Short retry attempt number '{}' caused by : {} - {}";
     public static final String RETRY_ATTEMPT = "{} - retry attempt number '{}'";
-    public static final String ARUBA_SEND_EXCEPTION = "ArubaSendException occurred during lavorazione PEC for request '{}' - Errcode: {}, Errstr: {}, Errblock: {}";
 
 
     //VALIDATION

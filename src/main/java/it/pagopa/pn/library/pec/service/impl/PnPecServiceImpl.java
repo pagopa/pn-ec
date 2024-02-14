@@ -1,6 +1,7 @@
 package it.pagopa.pn.library.pec.service.impl;
 
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
+import it.pagopa.pn.library.pec.exception.pecservice.ProvidersNotAvailableException;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.AlternativeProviderService;
@@ -12,130 +13,157 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static reactor.core.publisher.MonoExtensionsKt.doOnError;
 
 @CustomLog
 @Service
 public class PnPecServiceImpl implements PnPecService {
 
-    @Autowired
-    @Qualifier("arubaServiceImpl")
-    private ArubaService arubaService;
 
-    @Autowired
-    @Qualifier("alternativeProviderServiceImpl")
-    private AlternativeProviderService otherService;
-
-    @Autowired
-    PnPecConfigurationProperties props;
+    private final ArubaService arubaService;
+    private final AlternativeProviderService otherService;
+    private final PnPecConfigurationProperties props;
 
     private static final String ARUBA_PROVIDER = "aruba";
-    //TODO cambiare valore provider una volta che sarà disponibile il servizio
     private static final String OTHER_PROVIDER = "other";
+    private static final String SERVICE_ERROR = "Error retrieving messages from service: {}";
+
+    @Autowired
+    public PnPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService,
+                            @Qualifier("alternativeProviderServiceImpl") AlternativeProviderService otherService,
+                            PnPecConfigurationProperties props) {
+        this.arubaService = arubaService;
+        this.otherService = otherService;
+        this.props = props;
+    }
 
     @Override
     public Mono<String> sendMail(byte[] message) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PEC_SEND_MAIL, message);
+        log.logStartingProcess(PEC_SEND_MAIL);
         return getProvider()
                 .sendMail(message)
-                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_NO_RESULT_LABEL, PEC_SEND_MAIL, result))
-                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PEC_SEND_MAIL, throwable, throwable.getMessage()));
+                .doOnSuccess(result -> log.logEndingProcess(PEC_SEND_MAIL))
+                .doOnError(throwable -> log.logEndingProcess(PEC_SEND_MAIL, false, throwable.getMessage()));
     }
 
     @Override
     public Mono<PnGetMessagesResponse> getUnreadMessages(int limit) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PEC_GET_UNREAD_MESSAGES, limit);
+        log.logStartingProcess(PEC_GET_UNREAD_MESSAGES);
+
+        AtomicBoolean isArubaOk = new AtomicBoolean(true);
+        AtomicBoolean isOtherOk = new AtomicBoolean(true);
 
         Flux<byte[]> arubaMessages = arubaService.getUnreadMessages(limit)
                 .flatMapIterable(response -> response.getPnListOfMessages().getMessages())
                 .onErrorResume(e -> {
-                    log.error("Error retrieving messages from ArubaService", e);
+                    log.warn(SERVICE_ERROR, "ArubaService", e);
+                    isArubaOk.set(false);
                     return Flux.empty();
                 });
 
         Flux<byte[]> otherProviderMessages = otherService.getUnreadMessages(limit)
                 .flatMapIterable(response -> response.getPnListOfMessages().getMessages())
                 .onErrorResume(e -> {
-                    log.error("Error retrieving messages from ArubaService", e);
+                    log.warn(SERVICE_ERROR, "OtherProviderService", e);
+                    isOtherOk.set(false);
                     return Flux.empty();
                 });
 
         return Flux.merge(arubaMessages, otherProviderMessages)
                 .collectList()
                 .map(messages -> {
-                    PnGetMessagesResponse pnGetMessagesResponse = new PnGetMessagesResponse();
-                    pnGetMessagesResponse.setPnListOfMessages(new PnListOfMessages(messages));
-                    pnGetMessagesResponse.setNumOfMessages(messages.size());
-                    return pnGetMessagesResponse;
+                    if (!isArubaOk.get() && !isOtherOk.get()) {
+                        throw new ProvidersNotAvailableException("Both services returned an error");
+                    } else {
+                        PnGetMessagesResponse pnGetMessagesResponse = new PnGetMessagesResponse();
+                        pnGetMessagesResponse.setPnListOfMessages(new PnListOfMessages(messages));
+                        pnGetMessagesResponse.setNumOfMessages(messages.size());
+                        return pnGetMessagesResponse;
+                    }
                 })
-                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_GET_UNREAD_MESSAGES, result))
-                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PEC_GET_UNREAD_MESSAGES, throwable, throwable.getMessage()));
+                .doOnSuccess(result -> log.logEndingProcess(PEC_GET_UNREAD_MESSAGES));
+
     }
 
     @Override
     public Mono<Void> markMessageAsRead(String messageID) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PEC_MARK_MESSAGE_AS_READ, messageID);
+        log.logStartingProcess(PEC_MARK_MESSAGE_AS_READ);
         PnPecService provider = getProvider(messageID);
         return provider.markMessageAsRead(messageID)
                 .then()
-                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_NO_RESULT_LABEL, PEC_MARK_MESSAGE_AS_READ, result))
-                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PEC_MARK_MESSAGE_AS_READ, throwable, throwable.getMessage()));
+                .doOnSuccess(result -> log.logEndingProcess(PEC_MARK_MESSAGE_AS_READ))
+                .doOnError(throwable -> log.logEndingProcess(PEC_MARK_MESSAGE_AS_READ, false, throwable.getMessage()));
     }
 
     @Override
     public Mono<Integer> getMessageCount() {
-        log.debug(INVOKING_OPERATION_LABEL, PEC_GET_MESSAGE_COUNT);
+        log.logStartingProcess(PEC_GET_MESSAGE_COUNT);
+
+        AtomicBoolean isArubaOk = new AtomicBoolean(true);
+        AtomicBoolean isOtherOk = new AtomicBoolean(true);
 
         Mono<Integer> arubaCount = arubaService.getMessageCount()
                 .onErrorResume(e -> {
-                    //TODO verificare livello di log
-                    log.error("Error retrieving messages from ArubaService", e);
-                    return Mono.just(0);
-                });
-        Mono<Integer> otherProviderCount = otherService.getMessageCount()
-                .onErrorResume(e -> {
-                    //TODO verificare livello di log
-                    log.error("Error retrieving messages from ArubaService", e);
+                    log.warn(SERVICE_ERROR, "ArubaService", e);
+                    isArubaOk.set(false);
                     return Mono.just(0);
                 });
 
-        return Mono.just(arubaCount.block()+otherProviderCount.block())
-                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_GET_MESSAGE_COUNT, result))
-                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PEC_GET_MESSAGE_COUNT, throwable, throwable.getMessage()));
+        Mono<Integer> otherProviderCount = otherService.getMessageCount()
+                .onErrorResume(e -> {
+                    log.warn(SERVICE_ERROR, "OtherProviderService", e);
+                    isOtherOk.set(false);
+                    return Mono.just(0);
+                });
+
+        return Mono.zip(arubaCount, otherProviderCount)
+                .map(tuple -> {
+                    if (!isArubaOk.get() && !isOtherOk.get()) {
+                        throw new ProvidersNotAvailableException("Both services returned an error");
+                    }  else {
+                        return tuple.getT1() + tuple.getT2();
+                    }
+                })
+                .doOnError(throwable -> log.logEndingProcess(PEC_GET_MESSAGE_COUNT, false, throwable.getMessage()))
+                .doOnSuccess(result -> log.logEndingProcess(PEC_GET_MESSAGE_COUNT));
     }
 
     @Override
     public Mono<Void> deleteMessage(String messageID) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PEC_DELETE_MESSAGE, messageID);
+        log.logStartingProcess(PEC_DELETE_MESSAGE);
 
         PnPecService provider = getProvider(messageID);
 
         return provider.deleteMessage(messageID)
                 .then()
-                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_NO_RESULT_LABEL, PEC_DELETE_MESSAGE, messageID))
-                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS_FOR, PEC_DELETE_MESSAGE, messageID, throwable, throwable.getMessage()));
+                .doOnSuccess(result -> log.logEndingProcess(PEC_DELETE_MESSAGE))
+                .doOnError(throwable -> log.logEndingProcess(PEC_DELETE_MESSAGE, false, throwable.getMessage()));
     }
 
 
-    private PnPecService getProvider(){
-        if(props.getPnPecProviderSwitch().equals(ARUBA_PROVIDER)){
+    private PnPecService getProvider() {
+        if (props.getPnPecProviderSwitch().equals(ARUBA_PROVIDER)) {
             //TODO verificare livello di log
             log.debug("Aruba provider selected");
             return arubaService;
-        }else if (props.getPnPecProviderSwitch().equals(OTHER_PROVIDER)) {
+        } else if (props.getPnPecProviderSwitch().equals(OTHER_PROVIDER)) {
             //TODO verificare livello di log
             log.debug("Other provider selected");
             return otherService;
-        }else{
+        } else {
             log.debug("Error parsing property values, wrong value for service.");
             throw new IllegalArgumentException("Error parsing property values, wrong value for service.");
         }
     }
 
-    private PnPecService getProvider(String messageID){
-        if(ArubaServiceImpl.isAruba(messageID)){
+    private PnPecService getProvider(String messageID) {
+        if (ArubaServiceImpl.isAruba(messageID)) {
             return arubaService;
-        }else{
+        } else {
             return otherService;
         }
     }
