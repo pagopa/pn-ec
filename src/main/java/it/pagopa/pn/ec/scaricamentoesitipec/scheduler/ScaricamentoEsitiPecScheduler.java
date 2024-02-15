@@ -39,6 +39,8 @@ public class ScaricamentoEsitiPecScheduler {
     private final PnPecService pnPecService;
     @Value("${scaricamento-esiti-pec.limit-rate}")
     private Integer limitRate;
+    @Value("${pn.ec.storage.sqs.messages.staging.bucket}")
+    private String storageSqsMessagesStagingBucket;
 
     public ScaricamentoEsitiPecScheduler(ArubaCall arubaCall, DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, CloudWatchPecMetrics cloudWatchPecMetrics, PnPecService pnPecService) {
         this.arubaCall = arubaCall;
@@ -126,12 +128,15 @@ public class ScaricamentoEsitiPecScheduler {
                                         log.debug(PEC_DISCARDED,finalMessageID, SCARICAMENTO_ESITI_PEC, NOT_SENT_BY_US);
                                     }
                                 })
-                                 .flatMap(unused -> sqsService.send(scaricamentoEsitiPecProperties.sqsQueueName(), finalMessageID, RicezioneEsitiPecDto.builder()
-                                         .messageID(finalMessageID)
-                                         .message(message)
-                                         .receiversDomain(getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]))
-                                         .retry(0)
-                                         .build()))
+                                 .flatMap(unused -> sqsService.sendWithLargePayload(scaricamentoEsitiPecProperties.sqsQueueName(),
+                                         finalMessageID,
+                                         storageSqsMessagesStagingBucket,
+                                         RicezioneEsitiPecDto.builder()
+                                                 .messageID(finalMessageID)
+                                                 .message(message)
+                                                 .receiversDomain(getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]))
+                                                 .retry(0)
+                                                 .build()))
                                  .thenReturn(finalMessageID);
                     }
                     else return Mono.just(finalMessageID);

@@ -20,6 +20,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClientBuilder;
 import software.amazon.awssdk.services.eventbridge.EventBridgeAsyncClient;
 import software.amazon.awssdk.services.eventbridge.EventBridgeAsyncClientBuilder;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClientBuilder;
 import software.amazon.awssdk.services.ses.SesAsyncClient;
@@ -56,6 +58,8 @@ public class AwsConfiguration {
     String cloudwatchLocalStackEndpoint;
     @Value("${test.aws.ssm.endpoint:#{null}}")
     String ssmLocalStackEndpoint;
+    @Value("${test.aws.s3.endpoint:#{null}}")
+    String s3LocalStackEndpoint;
 
 
 
@@ -199,5 +203,18 @@ public class AwsConfiguration {
         }
 
         return ssmClientBuilder.build();
+    }
+
+    @Bean
+    public S3AsyncClient s3AsyncClient() {
+        S3AsyncClientBuilder s3Client = S3AsyncClient.builder()
+                .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER_V2)
+                .region(Region.of(awsConfigurationProperties.regionCode()));
+
+        if (s3LocalStackEndpoint != null) {
+            s3Client.endpointOverride(URI.create(s3LocalStackEndpoint));
+        }
+
+        return s3Client.build();
     }
 }
