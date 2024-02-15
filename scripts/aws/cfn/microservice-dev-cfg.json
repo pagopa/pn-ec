@@ -24,7 +24,6 @@
     "PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked": "true",
     "PnEcPECMaxMessageSizeMB": "100000000",
     "PnEcPECAttachmentRule": "LIMIT",
-    "PnEcPECTipoRicevutaBreve": "true",
-    "PnEcSqsMessagesStagingBucketName": "pn-ec-storage-sqs-messages-staging"
+    "PnEcPECTipoRicevutaBreve": "true"
   }
 }
