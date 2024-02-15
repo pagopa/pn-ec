@@ -22,7 +22,7 @@
     "PnEcTaskExecutionPoolMaxSize": "512",
     "CancellazioneRicevutePecEventRuleStatus": "ENABLED",
     "PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked": "true",
-    "PnEcPECMaxMessageSizeMB": "100000000",
+    "PnEcPECMaxMessageSizeMB": "100",
     "PnEcPECAttachmentRule": "LIMIT",
     "PnEcPECTipoRicevutaBreve": "true"
   }
