@@ -935,6 +935,7 @@ Resources:
               - kms:Encrypt
               - kms:Decrypt
               - kms:ReEncrypt*
+              - kms:GenerateDataKey
             Resource:
               - !Ref PCKmsEncDecDynamoDataKeyARN
           - Effect: Allow
