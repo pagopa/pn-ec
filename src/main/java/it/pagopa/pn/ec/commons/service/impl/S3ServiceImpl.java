@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.commons.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.configurationproperties.s3.S3Properties;
+import it.pagopa.pn.ec.commons.model.pojo.s3.S3Pointer;
 import it.pagopa.pn.ec.commons.service.S3Service;
 import lombok.CustomLog;
 import lombok.SneakyThrows;
@@ -15,6 +16,7 @@ import software.amazon.awssdk.core.BytesWrapper;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.IOException;
@@ -71,6 +73,15 @@ public class S3ServiceImpl implements S3Service {
                 .doOnNext(fileKey -> log.info(CLIENT_METHOD_RETURN, CONVERT_AND_PUT_OBJECT, fileKey))
                 .retryWhen(s3RetryStrategy)
                 .doOnError(throwable -> log.warn(CLIENT_METHOD_RETURN_WITH_ERROR, CONVERT_AND_PUT_OBJECT, throwable, throwable.getMessage()));
+    }
+
+    @Override
+    public Mono<DeleteObjectResponse> deleteObject(String key, String bucketName) {
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, DELETE_OBJECT, Stream.of(key, bucketName).toList());
+        return Mono.fromCompletionStage(s3AsyncClient.deleteObject(builder -> builder.key(key).bucket(bucketName)))
+                .doOnNext(deleteObjectResponse -> log.info(CLIENT_METHOD_RETURN, DELETE_OBJECT, deleteObjectResponse))
+                .retryWhen(s3RetryStrategy)
+                .doOnError(throwable -> log.warn(CLIENT_METHOD_RETURN_WITH_ERROR, DELETE_OBJECT, throwable, throwable.getMessage()));
     }
 
     @SneakyThrows(IOException.class)

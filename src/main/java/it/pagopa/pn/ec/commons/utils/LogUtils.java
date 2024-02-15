@@ -190,6 +190,7 @@ public class LogUtils {
     //S3
     public static final String GET_OBJECT_AND_CONVERT = "getObjectAndConvert()";
     public static final String CONVERT_AND_PUT_OBJECT = "convertAndPutObject()";
+    public static final String DELETE_OBJECT = "deleteObject()";
 
     //DOWNLOAD CALL
     public static final String DOWNLOAD_FILE = "DownloadCall.downloadFile()";

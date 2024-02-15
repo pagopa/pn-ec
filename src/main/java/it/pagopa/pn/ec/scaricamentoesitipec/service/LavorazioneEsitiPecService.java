@@ -99,9 +99,10 @@ public class LavorazioneEsitiPecService {
 
     Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto payload, Acknowledgment acknowledgment) {
         MDC.clear();
-        return MDCUtils.addMDCToContextAndExecute(Mono.justOrEmpty(payload.getPointerFileKey())
-                .doOnNext(pointerFileKey -> log.debug("Getting SQS payload with key '{}' from S3 bucket.", pointerFileKey))
-                .flatMap(pointerFileKey -> s3Service.getObjectAndConvert(pointerFileKey, storageSqsMessagesStagingBucket, RicezioneEsitiPecDto.class))
+        String payloadPointerFileKey = payload.getPointerFileKey();
+        return MDCUtils.addMDCToContextAndExecute(Mono.justOrEmpty(payloadPointerFileKey)
+                .doOnNext(fileKey -> log.debug("Getting SQS payload with key '{}' from S3 bucket.", fileKey))
+                .flatMap(fileKey -> s3Service.getObjectAndConvert(fileKey, storageSqsMessagesStagingBucket, RicezioneEsitiPecDto.class))
                 .defaultIfEmpty(payload)
                 .flatMap(ricezioneEsitiPecDto ->
                         {
@@ -208,6 +209,11 @@ public class LavorazioneEsitiPecService {
                                             notificationTrackerQueueDto));
                         }
                 )
+                .flatMap(sendMessageResponse -> {
+                    if (payloadPointerFileKey != null)
+                        return s3Service.deleteObject(payloadPointerFileKey, storageSqsMessagesStagingBucket).thenReturn(sendMessageResponse);
+                    else return Mono.just(sendMessageResponse);
+                })
                 .doOnSuccess(result -> {
                     log.logEndingProcess(LAVORAZIONE_ESITI_PEC);
                     acknowledgment.acknowledge();
