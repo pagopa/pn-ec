@@ -2,7 +2,6 @@ package it.pagopa.pn.ec.commons.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.configurationproperties.s3.S3Properties;
-import it.pagopa.pn.ec.commons.model.pojo.s3.S3Pointer;
 import it.pagopa.pn.ec.commons.service.S3Service;
 import lombok.CustomLog;
 import lombok.SneakyThrows;
@@ -63,12 +62,11 @@ public class S3ServiceImpl implements S3Service {
                 .zipWhen(fileBytes -> Mono.just(new String(Base64.encodeBase64(DigestUtils.md5(fileBytes)))))
                 .flatMap(tuple -> {
                     String contentMD5 = tuple.getT2();
-                    String fileKey = contentMD5 + ".eml";
-                    return Mono.fromCompletionStage(s3AsyncClient.putObject(builder -> builder.key(fileKey)
+                    return Mono.fromCompletionStage(s3AsyncClient.putObject(builder -> builder.key(contentMD5)
                                             .contentMD5(contentMD5)
                                             .bucket(bucketName),
                                     AsyncRequestBody.fromBytes(tuple.getT1())))
-                            .thenReturn(fileKey);
+                            .thenReturn(contentMD5);
                 })
                 .doOnNext(fileKey -> log.info(CLIENT_METHOD_RETURN, CONVERT_AND_PUT_OBJECT, fileKey))
                 .retryWhen(s3RetryStrategy)
