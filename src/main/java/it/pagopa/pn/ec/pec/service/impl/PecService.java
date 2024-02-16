@@ -308,13 +308,11 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .emailAttachments(fileDownloadResponses)
                 .headersList(List.of(new Header(pnPecProps.getTipoRicevutaHeaderName(), pnPecProps.getTipoRicevutaHeaderValue())))
                 .build())
-
                 .flatMap(emailField -> getMonoMimeMessage(emailField,
                         pnPecProps.getAttachmentRule(),
                         pnPecProps.getMaxMessageSizeMb() * MB_TO_BYTES,
                         pnPecProps.getTipoRicevutaBreve()))
-
-                .map(EmailUtils::getMimeMessageInCDATATag)
+                .map(EmailUtils::getMimeMessageByteArray)
                 .flatMap(pnPecService::sendMail)
                 .map(this::createGeneratedMessageDto)
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)

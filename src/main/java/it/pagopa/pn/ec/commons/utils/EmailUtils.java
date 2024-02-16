@@ -111,6 +111,20 @@ public class EmailUtils {
         }
     }
 
+    public static byte[] getMimeMessageByteArray(MimeMessage mimeMessage) {
+        var output = new ByteArrayOutputStream();
+        try {
+            mimeMessage.writeTo(output);
+            return output.toByteArray();
+        } catch (IOException | MessagingException exception) {
+            throw new ComposeMimeMessageException();
+        }
+    }
+
+    public static String getMimeMessageInCDATATag(byte[] fileBytes) {
+        return String.format("<![CDATA[%s]]>", new String(fileBytes));
+    }
+
     @SneakyThrows(MessagingException.class)
     public static void setHeaderInMimeMessage(MimeMessage mimeMessage, Header header) {
         mimeMessage.setHeader(header.getName(), header.getValue());

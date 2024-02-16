@@ -3,12 +3,12 @@ package it.pagopa.pn.library.pec.service.impl;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.library.pec.configurationproperties.ArubaServiceProperties;
-import it.pagopa.pn.library.pec.exception.aruba.ArubaCallException;
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.ArubaService;
+import it.pagopa.pn.library.pec.exception.aruba.ArubaCallException;
 import it.pec.bridgews.*;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -144,7 +144,7 @@ public class ArubaServiceImpl implements ArubaService {
                     } catch (Exception throwable) {
                         endSoapRequest(sink, throwable);
                     }
-                })).cast(GetMessagesResponse.class).retryWhen(getArubaCallRetryStrategy())
+                })).cast(GetMessagesResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_GET_MESSAGES))
                 .map(getMessagesResponse -> {
                     PnGetMessagesResponse pnGetMessagesResponse = new PnGetMessagesResponse();
                     pnGetMessagesResponse.setPnListOfMessages(new PnListOfMessages(getMessagesResponse.getArrayOfMessages().getItem()));
@@ -170,7 +170,7 @@ public class ArubaServiceImpl implements ArubaService {
                     } catch (Exception throwable) {
                         endSoapRequest(sink, throwable);
                     }
-                })).cast(GetMessageIDResponse.class).retryWhen(getArubaCallRetryStrategy())
+                })).cast(GetMessageIDResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_GET_MESSAGE_ID))
                 .then()
                 .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_ID, result));
     }
