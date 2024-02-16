@@ -1,8 +1,9 @@
-package it.pagopa.pn.ec.commons.model.pojo.pec;
+package it.pagopa.pn.library.pec.pojo;
 
-import it.pec.daticert.Postacert;
+import it.pagopa.pn.library.pec.model.pojo.IPostacert;
+import it.pagopa.pn.library.pec.model.pojo.Postacert;
 
-public class PnPostacert extends Postacert {
+public class PnPostacert extends Postacert implements IPostacert {
 	
 	public PnPostacert( Postacert postacert) {
 		this.dati = postacert.getDati();

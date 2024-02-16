@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.model.pojo;
 
+import it.pagopa.pn.ec.commons.model.pojo.s3.S3Pointer;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
@@ -11,7 +12,7 @@ import lombok.experimental.SuperBuilder;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @ToString
 @SuperBuilder
-public class RicezioneEsitiPecDto {
+public class RicezioneEsitiPecDto extends S3Pointer {
 
     String messageID;
     @ToString.Exclude

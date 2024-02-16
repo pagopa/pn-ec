@@ -1,6 +1,10 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
+import it.pagopa.pn.library.pec.model.pojo.IPostacert;
+import it.pagopa.pn.library.pec.pojo.PnPostacert;
+import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
+import it.pagopa.pn.library.pec.service.DaticertService;
 import it.pagopa.pn.ec.commons.model.pojo.pec.PnPostacert;
 import it.pagopa.pn.ec.commons.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
@@ -37,6 +41,8 @@ public class ScaricamentoEsitiPecScheduler {
     private final PnPecService pnPecService;
     @Value("${scaricamento-esiti-pec.limit-rate}")
     private Integer limitRate;
+    @Value("${pn.ec.storage.sqs.messages.staging.bucket}")
+    private String storageSqsMessagesStagingBucket;
 
     public ScaricamentoEsitiPecScheduler(DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, CloudWatchPecMetrics cloudWatchPecMetrics, @Qualifier("pnPecServiceImpl") PnPecService pnPecService) {
         this.daticertService = daticertService;
@@ -46,8 +52,8 @@ public class ScaricamentoEsitiPecScheduler {
         this.pnPecService = pnPecService;
     }
 
-    private final Predicate<PnPostacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
-    private final Predicate<PnPostacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
+    private final Predicate<IPostacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
+    private final Predicate<IPostacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
 
     @Scheduled(cron = "${PnEcCronScaricamentoEsitiPec ?:0 */5 * * * *}")
     public void scaricamentoEsitiPecScheduler() {
@@ -109,12 +115,15 @@ public class ScaricamentoEsitiPecScheduler {
                                         log.debug(PEC_DISCARDED,finalMessageID, SCARICAMENTO_ESITI_PEC, NOT_SENT_BY_US);
                                     }
                                 })
-                                 .flatMap(unused -> sqsService.send(scaricamentoEsitiPecProperties.sqsQueueName(), finalMessageID, RicezioneEsitiPecDto.builder()
-                                         .messageID(finalMessageID)
-                                         .message(message)
-                                         .receiversDomain(getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]))
-                                         .retry(0)
-                                         .build()))
+                                 .flatMap(unused -> sqsService.sendWithLargePayload(scaricamentoEsitiPecProperties.sqsQueueName(),
+                                         finalMessageID,
+                                         storageSqsMessagesStagingBucket,
+                                         RicezioneEsitiPecDto.builder()
+                                                 .messageID(finalMessageID)
+                                                 .message(message)
+                                                 .receiversDomain(getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]))
+                                                 .retry(0)
+                                                 .build()))
                                  .thenReturn(finalMessageID);
                     }
                     else return Mono.just(finalMessageID);

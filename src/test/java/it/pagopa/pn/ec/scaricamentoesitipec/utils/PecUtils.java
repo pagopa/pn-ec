@@ -17,12 +17,12 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageCont
 
 public class PecUtils {
 
-    public static StringBuffer generateDaticertAccettazione(String from, String receiver, String replyTo, String subject, String gestoreMittente, String data, String orario, String messageId, String tipoDestinatario) {
+    public static StringBuffer generateDaticertAccettazione(String tipo, String from, String receiver, String replyTo, String subject, String gestoreMittente, String data, String orario, String messageId, String tipoDestinatario) {
 
         //Costruzione del daticert
         StringBuffer stringBufferContent = new StringBuffer();
         stringBufferContent.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");//popolare con daticert su note
-        stringBufferContent.append("<postacert tipo=\"accettazione\" errore=\"nessuno\">");
+        stringBufferContent.append("<postacert tipo=").append("\"").append(tipo).append("\"").append(" ").append("errore=\"nessuno\">");
         stringBufferContent.append("<intestazione>");
         stringBufferContent.append("<mittente>").append(from).append("</mittente>"); //mittente dell'email, sta nella mappa
         stringBufferContent.append("<destinatari tipo=").append("\"").append(tipoDestinatario).append("\"").append(">").append(receiver).append("</destinatari>"); //destinatario dell'email, sta nella mappa
@@ -37,6 +37,7 @@ public class PecUtils {
         stringBufferContent.append("</data>");
         stringBufferContent.append("<identificativo>").append(generateRandomString(64)).append("</identificativo>"); //stringa random 64 caratteri
         stringBufferContent.append("<msgid>").append(messageId).append("</msgid>"); //msgid della mappa, nella forma url encoded. fare url encode della stringa
+        stringBufferContent.append("<errore-esteso>").append("5.4.1 - Aruba Pec S.p.A. - il messaggio non è stato consegnato nelle prime ventiquattro ore dal suo invio").append("</errore-esteso>");
         stringBufferContent.append("</dati>");
         stringBufferContent.append("</postacert>");
 
@@ -52,32 +53,6 @@ public class PecUtils {
 
         // Convert the bytes to a string using the Base64 encoding.
         return Base64.getEncoder().encodeToString(bytes);
-    }
-
-    public static ByteArrayOutputStream generatePecAccettazione(String clientId, String requestIdx, String from, String tipoDestinatario, boolean hasDaticert) throws MessagingException, IOException {
-        String msgId = "-" + encodeMessageId(clientId, requestIdx) + "-";
-        var daticertBytes = generateDaticertAccettazione("from", "receiverAddress@pagopa.it", "replyTo", "subject", "gestoreMittente", "03/11/1999", "00:00:00", msgId, tipoDestinatario).toString().getBytes();
-        ByteArrayOutputStream daticertOutput = new ByteArrayOutputStream();
-        daticertOutput.write(daticertBytes);
-
-        EmailField emailField = EmailField.builder()
-                .msgId("messageId")
-                .from(from)
-                .to("to")
-                .subject("subject")
-                .text("text")
-                .contentType(PLAIN.getValue())
-                .emailAttachments(List.of(EmailAttachment.builder()
-                        .nameWithExtension(hasDaticert ? "daticert.xml" : "other.xml")
-                        .url("url")
-                        .content(daticertOutput).build()))
-                .build();
-
-
-        var emailOutput = new ByteArrayOutputStream();
-        EmailUtils.getMimeMessage(emailField).writeTo(emailOutput);
-
-        return emailOutput;
     }
 
 }
