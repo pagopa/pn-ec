@@ -9,6 +9,7 @@ import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.service.AuthService;
+import it.pagopa.pn.ec.commons.service.S3Service;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
@@ -26,11 +27,15 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.PropertySource;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import javax.mail.MessagingException;
 import java.io.ByteArrayOutputStream;
@@ -65,7 +70,12 @@ public class ScaricamentoEsitiPecServiceTest {
     private SqsService sqsService;
     @SpyBean
     private DaticertService daticertService;
+    @SpyBean
+    private S3Service s3Service;
+    @Value("${pn.ec.storage.sqs.messages.staging.bucket}")
+    String storageSqsMessagesStagingBucket;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private static final String CLIENT_ID = "CLIENT_ID";
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
 
@@ -87,6 +97,41 @@ public class ScaricamentoEsitiPecServiceTest {
         Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
         StepVerifier.create(testMono).expectComplete().verify();
         verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"certificato", "esterno"})
+    void lavorazioneEsitiPec_S3Payload_Ok(String tipoDestinatario) throws IOException, MessagingException {
+
+        String pointerFileKey = s3Service.convertAndPutObject(storageSqsMessagesStagingBucket, buildRicezioneEsitiPecDto(ACCETTAZIONE, tipoDestinatario)).block();
+        RicezioneEsitiPecDto ricezioneEsitiPecDto = RicezioneEsitiPecDto.builder().pointerFileKey(pointerFileKey).build();
+        var request = pecRequest();
+
+        when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, PEC_REQUEST_IDX)).thenReturn(Mono.just(request));
+        Mockito.doReturn(Mono.just("location")).when(lavorazioneEsitiPecService).generateLocation(eq(PEC_REQUEST_IDX), any());
+
+        Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
+        StepVerifier.create(testMono).expectComplete().verify();
+        verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class));
+        verify(s3Service, times(1)).getObjectAndConvert(pointerFileKey, storageSqsMessagesStagingBucket, RicezioneEsitiPecDto.class);
+
+    }
+
+    @Test
+    void lavorazioneEsitiPec_S3Payload_NoSuchKeyKo() {
+
+        String fileKey = "pointerFileKey.eml";
+        RicezioneEsitiPecDto ricezioneEsitiPecDto = RicezioneEsitiPecDto.builder().pointerFileKey(fileKey).build();
+        var request = pecRequest();
+
+        when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, PEC_REQUEST_IDX)).thenReturn(Mono.just(request));
+        Mockito.doReturn(Mono.just("location")).when(lavorazioneEsitiPecService).generateLocation(eq(PEC_REQUEST_IDX), any());
+
+        Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
+        StepVerifier.create(testMono).expectError(NoSuchKeyException.class).verify();
+        verify(sqsService, never()).send(anyString(), any(NotificationTrackerQueueDto.class));
+        verify(s3Service, times(1)).getObjectAndConvert(fileKey, storageSqsMessagesStagingBucket, RicezioneEsitiPecDto.class);
+
     }
 
     @Test

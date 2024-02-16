@@ -12,6 +12,7 @@ import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
+import it.pagopa.pn.ec.commons.service.S3Service;
 import it.pagopa.pn.library.pec.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
@@ -67,11 +68,12 @@ public class LavorazioneEsitiPecService {
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final CallMacchinaStati callMacchinaStati;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
-
+    private final S3Service s3Service;
+    private final String storageSqsMessagesStagingBucket;
     private final Semaphore semaphore;
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
 
-    public LavorazioneEsitiPecService(SqsService sqsService, DaticertService daticertService, StatusPullService statusPullService, CloudWatchPecMetrics cloudWatchPecMetrics, NotificationTrackerSqsName notificationTrackerSqsName, ArubaSecretValue arubaSecretValue, FileCall fileCall, WebClient uploadWebClient, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, @Value("${lavorazione-esiti-pec.max-thread-pool-size}") Integer maxThreadPoolSize) {
+    public LavorazioneEsitiPecService(SqsService sqsService, DaticertService daticertService, StatusPullService statusPullService, CloudWatchPecMetrics cloudWatchPecMetrics, NotificationTrackerSqsName notificationTrackerSqsName, ArubaSecretValue arubaSecretValue, FileCall fileCall, WebClient uploadWebClient, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, S3Service s3Service, @Value("${lavorazione-esiti-pec.max-thread-pool-size}") Integer maxThreadPoolSize, @Value("${pn.ec.storage.sqs.messages.staging.bucket}") String storageSqsMessagesStagingBucket) {
         this.sqsService = sqsService;
         this.daticertService = daticertService;
         this.statusPullService = statusPullService;
@@ -84,6 +86,8 @@ public class LavorazioneEsitiPecService {
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.callMacchinaStati = callMacchinaStati;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+        this.s3Service = s3Service;
+        this.storageSqsMessagesStagingBucket = storageSqsMessagesStagingBucket;
         this.semaphore = new Semaphore(maxThreadPoolSize);
     }
 
@@ -93,111 +97,123 @@ public class LavorazioneEsitiPecService {
         lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment).subscribe();
     }
 
-    Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
-
+    Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto payload, Acknowledgment acknowledgment) {
         MDC.clear();
+        String payloadPointerFileKey = payload.getPointerFileKey();
+        return MDCUtils.addMDCToContextAndExecute(Mono.justOrEmpty(payloadPointerFileKey)
+                .doOnNext(fileKey -> log.debug("Getting SQS payload with key '{}' from S3 bucket.", fileKey))
+                .flatMap(fileKey -> s3Service.getObjectAndConvert(fileKey, storageSqsMessagesStagingBucket, RicezioneEsitiPecDto.class))
+                .defaultIfEmpty(payload)
+                .flatMap(ricezioneEsitiPecDto ->
+                        {
+                            var messageID = ricezioneEsitiPecDto.getMessageID();
+                            var message = ricezioneEsitiPecDto.getMessage();
+                            var mimeMessage = getMimeMessage(message);
+                            var daticert = findAttachmentByName(mimeMessage, "daticert.xml");
+                            var postacert = daticertService.getPostacertFromByteArray(daticert);
+                            var msgId = postacert.getDati().getMsgid();
+                            msgId = msgId.substring(1, msgId.length() - 1);
+                            var presaInCaricoInfo = decodeMessageId(msgId);
 
-        var messageID = ricezioneEsitiPecDto.getMessageID();
-        var message = ricezioneEsitiPecDto.getMessage();
-        var mimeMessage = getMimeMessage(message);
-        var daticert = findAttachmentByName(mimeMessage, "daticert.xml");
-        var postacert = daticertService.getPostacertFromByteArray(daticert);
-        var msgId = postacert.getDati().getMsgid();
-        msgId = msgId.substring(1, msgId.length() - 1);
-        var presaInCaricoInfo = decodeMessageId(msgId);
+                            MDC.put(MDC_CORR_ID_KEY, concatRequestId(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx()));
 
-        MDC.put(MDC_CORR_ID_KEY, concatRequestId(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx()));
+                            log.logStartingProcess(LAVORAZIONE_ESITI_PEC);
 
-        log.logStartingProcess(LAVORAZIONE_ESITI_PEC);
+                            try {
+                                semaphore.acquire();
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
 
-        try {
-            semaphore.acquire();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+                            AtomicReference<String> requestIdx = new AtomicReference<>();
 
-        AtomicReference<String> requestIdx = new AtomicReference<>();
+                            return statusPullService.pecPullService(presaInCaricoInfo.getRequestIdx(), presaInCaricoInfo.getXPagopaExtchCxId())
+                                    .zipWhen(legalMessageSentDetails -> {
+                                        requestIdx.set(presaInCaricoInfo.getRequestIdx());
+                                        var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
+                                        return gestoreRepositoryCall.getRichiesta(clientId, requestIdx.get());
+                                    })
+                                    //Pubblicazione metriche custom su CloudWatch
+                                    .flatMap(objects ->
+                                    {
+                                        LegalMessageSentDetails legalMessageSentDetails = objects.getT1();
+                                        RequestDto requestDto = objects.getT2();
 
-        return MDCUtils.addMDCToContextAndExecute(statusPullService.pecPullService(presaInCaricoInfo.getRequestIdx(), presaInCaricoInfo.getXPagopaExtchCxId())
-                            .zipWhen(legalMessageSentDetails -> {
-                                requestIdx.set(presaInCaricoInfo.getRequestIdx());
-                                var clientId = presaInCaricoInfo.getXPagopaExtchCxId();
-                                return gestoreRepositoryCall.getRichiesta(clientId, requestIdx.get());
-                            })
-                            //Pubblicazione metriche custom su CloudWatch
-                            .flatMap(objects ->
-                            {
-                                LegalMessageSentDetails legalMessageSentDetails = objects.getT1();
-                                RequestDto requestDto = objects.getT2();
+                                        //Se la validation è delivered->delivered, IGNORA STATUS VALIDATION E MARCA COME LETTO.
+                                        Destinatari destinatario = postacert.getIntestazione().getDestinatari().get(0);
+                                        var tipoDestinatario = destinatario.getTipo();
 
-                                //Se la validation è delivered->delivered, IGNORA STATUS VALIDATION E MARCA COME LETTO.
-                                Destinatari destinatario = postacert.getIntestazione().getDestinatari().get(0);
-                                var tipoDestinatario = destinatario.getTipo();
+                                        var nextStatus = "";
+                                        if (tipoDestinatario.equals(DESTINATARIO_ESTERNO)) {
+                                            nextStatus = Status.NOT_PEC.getStatusTransactionTableCompliant();
+                                        } else {
+                                            nextStatus = decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
+                                        }
 
-                                var nextStatus = "";
-                                if (tipoDestinatario.equals(DESTINATARIO_ESTERNO)) {
-                                    nextStatus = Status.NOT_PEC.getStatusTransactionTableCompliant();
-                                } else {
-                                    nextStatus = decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
-                                }
+                                        var nextEventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
+                                        var cloudWatchPecMetricsInfo = CloudWatchTransitionElapsedTimeMetricsInfo.builder()
+                                                .previousStatus(requestDto.getStatusRequest())
+                                                .previousEventTimestamp(
+                                                        legalMessageSentDetails.getEventTimestamp())
+                                                .nextStatus(nextStatus)
+                                                .nextEventTimestamp(nextEventTimestamp)
+                                                .build();
 
-                                var nextEventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
-                                var cloudWatchPecMetricsInfo = CloudWatchTransitionElapsedTimeMetricsInfo.builder()
-                                        .previousStatus(requestDto.getStatusRequest())
-                                        .previousEventTimestamp(
-                                                legalMessageSentDetails.getEventTimestamp())
-                                        .nextStatus(nextStatus)
-                                        .nextEventTimestamp(nextEventTimestamp)
-                                        .build();
+                                        log.debug("Starting {} for PEC '{}'", PUBLISH_CUSTOM_PEC_METRICS, messageID);
+                                        return cloudWatchPecMetrics.publishTransitionElapsedTimeMetrics(cloudWatchPecMetricsInfo)
+                                                .thenReturn(Tuples.of(requestDto,
+                                                        cloudWatchPecMetricsInfo,
+                                                        nextStatus));
 
-                                log.debug("Starting {} for PEC '{}'", PUBLISH_CUSTOM_PEC_METRICS, messageID);
-                                return cloudWatchPecMetrics.publishTransitionElapsedTimeMetrics(cloudWatchPecMetricsInfo)
-                                        .thenReturn(Tuples.of(requestDto,
-                                                cloudWatchPecMetricsInfo,
-                                                nextStatus));
+                                    })
+                                    //Preparazione payload per la coda stati PEC
+                                    .flatMap(objects -> {
+                                        RequestDto requestDto = objects.getT1();
+                                        CloudWatchTransitionElapsedTimeMetricsInfo cloudWatchTransitionElapsedTimeMetricsInfo = objects.getT2();
+                                        String nextStatus = objects.getT3();
 
-                            })
-                            //Preparazione payload per la coda stati PEC
-                            .flatMap(objects -> {
-                                RequestDto requestDto = objects.getT1();
-                                CloudWatchTransitionElapsedTimeMetricsInfo cloudWatchTransitionElapsedTimeMetricsInfo = objects.getT2();
-                                String nextStatus = objects.getT3();
+                                        log.debug(BUILDING_PEC_QUEUE_PAYLOAD, messageID, LAVORAZIONE_ESITI_PEC);
 
-                                log.debug(BUILDING_PEC_QUEUE_PAYLOAD, messageID, LAVORAZIONE_ESITI_PEC);
+                                        requestIdx.set(requestDto.getRequestIdx());
+                                        var xPagopaExtchCxId = requestDto.getxPagopaExtchCxId();
+                                        var eventDetails = postacert.getErrore();
+                                        var senderDigitalAddress = arubaSecretValue.getPecUsername();
+                                        var senderDomain = getDomainFromAddress(senderDigitalAddress);
+                                        var receiversDomain = ricezioneEsitiPecDto.getReceiversDomain();
 
-                                requestIdx.set(requestDto.getRequestIdx());
-                                var xPagopaExtchCxId = requestDto.getxPagopaExtchCxId();
-                                var eventDetails = postacert.getErrore();
-                                var senderDigitalAddress = arubaSecretValue.getPecUsername();
-                                var senderDomain = getDomainFromAddress(senderDigitalAddress);
-                                var receiversDomain = ricezioneEsitiPecDto.getReceiversDomain();
+                                        return generateLocation(requestIdx.get(), message)
+                                                .map(location ->
+                                                {
+                                                    var generatedMessageDto = createGeneratedMessageByStatus(receiversDomain,
+                                                            senderDomain,
+                                                            messageID,
+                                                            postacert.getTipo(),
+                                                            location);
 
-                                return generateLocation(requestIdx.get(), message)
-                                        .map(location ->
-                                        {
-                                            var generatedMessageDto = createGeneratedMessageByStatus(receiversDomain,
-                                                    senderDomain,
-                                                    messageID,
-                                                    postacert.getTipo(),
-                                                    location);
+                                                    var digitalProgressStatusDto =
+                                                            new DigitalProgressStatusDto().eventTimestamp(cloudWatchTransitionElapsedTimeMetricsInfo.getNextEventTimestamp())
+                                                                    .eventDetails(eventDetails)
+                                                                    .generatedMessage(generatedMessageDto);
 
-                                            var digitalProgressStatusDto =
-                                                    new DigitalProgressStatusDto().eventTimestamp(cloudWatchTransitionElapsedTimeMetricsInfo.getNextEventTimestamp())
-                                                            .eventDetails(eventDetails)
-                                                            .generatedMessage(generatedMessageDto);
+                                                    return NotificationTrackerQueueDto.builder()
+                                                            .requestIdx(requestIdx.get())
+                                                            .xPagopaExtchCxId(xPagopaExtchCxId)
+                                                            .nextStatus(nextStatus)
+                                                            .digitalProgressStatusDto(digitalProgressStatusDto)
+                                                            .build();
+                                                });
+                                    })
 
-                                            return NotificationTrackerQueueDto.builder()
-                                                    .requestIdx(requestIdx.get())
-                                                    .xPagopaExtchCxId(xPagopaExtchCxId)
-                                                    .nextStatus(nextStatus)
-                                                    .digitalProgressStatusDto(digitalProgressStatusDto)
-                                                    .build();
-                                        });
-                            })
-
-                            //Pubblicazione sulla coda degli stati PEC
-                            .flatMap(notificationTrackerQueueDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
-                                    notificationTrackerQueueDto))
+                                    //Pubblicazione sulla coda degli stati PEC
+                                    .flatMap(notificationTrackerQueueDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
+                                            notificationTrackerQueueDto));
+                        }
+                )
+                .flatMap(sendMessageResponse -> {
+                    if (payloadPointerFileKey != null)
+                        return s3Service.deleteObject(payloadPointerFileKey, storageSqsMessagesStagingBucket).thenReturn(sendMessageResponse);
+                    else return Mono.just(sendMessageResponse);
+                })
                 .doOnSuccess(result -> {
                     log.logEndingProcess(LAVORAZIONE_ESITI_PEC);
                     acknowledgment.acknowledge();

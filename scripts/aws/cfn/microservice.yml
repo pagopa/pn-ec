@@ -689,6 +689,16 @@ Parameters:
     Description: "[Cartaceo- Ricezione Esiti] Stato della funzionalità che considera BOOKED gli eventi senza uno stato SENT"
     Default: 'false'
 
+### S3 BUCKET FOR OVERSIZE SQS MESSAGES ###
+
+  PnEcSqsMessagesStagingBucketName:
+    Type: String
+    Description: 'Nome Bucket Staging per messaggi SQS troppo grandi'
+
+  PnEcSqsMessagesStagingBucketArn:
+    Type: String
+    Description: 'ARN Bucket Staging per messaggi SQS troppo grandi'
+
   #### CRON Rules ####
   PnEcCronScaricamentoEsitiPec:
     Type: String
@@ -876,6 +886,7 @@ Resources:
         ContainerEnvEntry59: !Sub 'PnEcPECMaxMessageSizeMB=${PnEcPECMaxMessageSizeMB}'
         ContainerEnvEntry60: !Sub 'PnEcPECAttachmentRule=${PnEcPECAttachmentRule}'
         ContainerEnvEntry61: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
+        ContainerEnvEntry62: !Sub 'PnEcSqsMessagesStagingBucketName=${PnEcSqsMessagesStagingBucketName}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -924,6 +935,7 @@ Resources:
               - kms:Encrypt
               - kms:Decrypt
               - kms:ReEncrypt*
+              - kms:GenerateDataKey
             Resource:
               - !Ref PCKmsEncDecDynamoDataKeyARN
           - Effect: Allow
@@ -989,6 +1001,17 @@ Resources:
               - 'ses:Verify*'
             Resource:
               - '*'
+          - Effect: Allow
+            Sid: 'S3bucketSQSOversizeMessages'
+            Action:
+              - 's3:List*'
+              - 's3:GetBucket*'
+              - 's3:*Object*'
+              - 's3:*MultipartUpload*'
+              - 's3:PutBucket*'
+            Resource:
+              - !Ref PnEcSqsMessagesStagingBucketArn
+              - !Join [ '', [ !Sub '${PnEcSqsMessagesStagingBucketArn}' , '/*']]              
           - Sid: 'CloudWatchPutMetricData'
             Effect: Allow
             Action:
@@ -1001,6 +1024,21 @@ Resources:
               - 'ssm:GetParameter'
             Resource:
               - '*'
+
+  PnEcSqsMessagesStagingBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PnEcSqsMessagesStagingBucketName
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 's3:*'
+            Effect: Allow
+            Resource: !Join [ '', [ !Sub '${PnEcSqsMessagesStagingBucketArn}' , '/*']]
+            Principal:
+              AWS:
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   ###########  NOTIFICATION TRACKER - STATO - QUEUE POLICIES   ###########
 
