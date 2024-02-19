@@ -129,6 +129,37 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
 
+  ######### S3 BUCKET FOR OVERSIZE SQS MESSAGES #########
+
+  PnEcSqsMessagesStagingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${ProjectName}-sqs-messages-staging-${AWS::Region}-${AWS::AccountId}
+      AccessControl: 'Private'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - BucketKeyEnabled: true
+            ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+              KMSMasterKeyID: !Ref PCKmsEncDecDynamoDataKey
+      LifecycleConfiguration:
+        Rules:
+          - Id: 'PnEcAbortIncompleteMultipartUpload'
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+            Status: 'Enabled'
+          - Id: 'PnEcCleanupOldMessages'
+            Status: 'Enabled'
+            ExpirationInDays: 15
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+        
   ######### NOTIFICATION TRACKER QUEUES  ############
   ######### TRACKER : SMS  ############
 
@@ -1283,6 +1314,16 @@ Outputs:
   PnEcAlarmArnDLQueueCancellazioneRicevutePEC:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueCancellazioneRicevutePEC"
     Value: !GetAtt PnEcQueueCancellazioneRicevutePECStack.Outputs.SqsDLQAlarmArn
+
+### S3 BUCKET FOR OVERSIZE SQS MESSAGES ###
+
+  PnEcSqsMessagesStagingBucketName:
+    Description: 'Nome Bucket SS'
+    Value: !Ref PnEcSqsMessagesStagingBucket
+
+  PnEcSqsMessagesStagingBucketArn:
+    Description: 'ARN Bucket SS'
+    Value: !GetAtt PnEcSqsMessagesStagingBucket.Arn
 
   EcsLogGroup:
     Value: !GetAtt EcsLogGroup.Outputs.LogGroupName

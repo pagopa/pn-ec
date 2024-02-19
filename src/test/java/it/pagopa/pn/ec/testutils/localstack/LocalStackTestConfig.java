@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.testutils.localstack;
 
 
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
+import it.pagopa.pn.ec.commons.configurationproperties.AwsConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
@@ -16,6 +17,7 @@ import it.pagopa.pn.ec.testutils.configuration.SqsTestConfiguration;
 import it.pagopa.pn.ec.testutils.exception.DynamoDbInitTableCreationException;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
 import org.testcontainers.containers.localstack.LocalStackContainer;
@@ -28,6 +30,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.DescribeTableResponse;
 import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.dynamodb.waiters.DynamoDbWaiter;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
@@ -45,13 +49,13 @@ import static org.testcontainers.containers.localstack.LocalStackContainer.Servi
 import static software.amazon.awssdk.services.dynamodb.model.TableStatus.ACTIVE;
 
 @TestConfiguration
-@Import({SqsTestConfiguration.class, DynamoTestConfiguration.class})
+@Import({SqsTestConfiguration.class, DynamoTestConfiguration.class, LocalStackClientConfig.class})
 @CustomLog
 public class LocalStackTestConfig {
 
     static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4");
     static LocalStackContainer localStackContainer =
-            new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS, SES, SECRETSMANAGER,CLOUDWATCH,SSM)
+            new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS, SES, SECRETSMANAGER,CLOUDWATCH,SSM, S3)
                     .withStartupTimeout(Duration.ofMinutes(2)).withEnv("AWS_DEFAULT_REGION", "eu-central-1");
 
     static {
@@ -75,6 +79,8 @@ public class LocalStackTestConfig {
 
         System.setProperty("test.aws.ssm.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SSM)));
 
+        System.setProperty("test.aws.s3.endpoint", String.valueOf(localStackContainer.getEndpointOverride(S3)));
+
         try {
             localStackContainer.execInContainer("awslocal",
                     "secretsmanager",
@@ -91,7 +97,7 @@ public class LocalStackTestConfig {
                     "ssm",
                     "put-parameter",
                     "--name",
-                    "/PagoPA/esitiCartaceo",
+                    "pn-EC-esitiCartaceo",
                     "--type",
                     "String",
                     "--value",
@@ -140,10 +146,14 @@ public class LocalStackTestConfig {
     public void initLocalStack() {
         initSqs();
         initDynamo();
+        initS3();
     }
 
     @Autowired
     private SqsClient sqsClient;
+
+    @Autowired
+    private AwsConfigurationProperties awsConfigurationProperties;
 
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
@@ -239,4 +249,29 @@ public class LocalStackTestConfig {
             }
         });
     }
+
+    @Value("${pn.ec.storage.sqs.messages.staging.bucket}")
+    private String storageSqsMessagesStagingBucket;
+    @Autowired
+    private S3Client s3TestClient;
+    private void initS3() {
+        List<String> bucketNames = List.of(storageSqsMessagesStagingBucket);
+
+        ObjectLockConfiguration objectLockConfiguration = ObjectLockConfiguration.builder().objectLockEnabled(ObjectLockEnabled.ENABLED)
+                .rule(ObjectLockRule.builder().defaultRetention(DefaultRetention.builder().days(1).mode(ObjectLockRetentionMode.GOVERNANCE).build()).build())
+                .build();
+
+        bucketNames.forEach(bucket -> {
+            log.info("<-- START S3 init-->");
+            try {
+                s3TestClient.headBucket(builder -> builder.bucket(bucket));
+                log.info("Bucket {} already created on local stack S3", bucket);
+            } catch (NoSuchBucketException noSuchBucketException) {
+                s3TestClient.createBucket(builder -> builder.bucket(bucket).objectLockEnabledForBucket(true));
+                s3TestClient.putObjectLockConfiguration(builder -> builder.bucket(bucket).objectLockConfiguration(objectLockConfiguration));
+                log.info("New bucket {} created on local stack S3", bucket);
+            }
+        });
+    }
+
 }

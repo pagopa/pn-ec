@@ -170,6 +170,7 @@ public class LogUtils {
     public static final String CLIENT_METHOD_INVOCATION_WITH_ARGS = "Client method {} - args: {}";
     public static final String CLIENT_METHOD_INVOCATION = "Client method {}";
     public static final String CLIENT_METHOD_RETURN = "Return client method: {} = {}";
+    public static final String CLIENT_METHOD_RETURN_WITH_ERROR = "Return client method '{}' with error: {} - {}";
 
     //ARUBA
     public static final String ARUBA_GET_MESSAGES = "ArubaCall.getMessages()";
@@ -186,6 +187,11 @@ public class LogUtils {
     //SNS
     public static final String SNS_SEND = "SnsService.send()";
 
+    //S3
+    public static final String GET_OBJECT_AND_CONVERT = "getObjectAndConvert()";
+    public static final String CONVERT_AND_PUT_OBJECT = "convertAndPutObject()";
+    public static final String DELETE_OBJECT = "deleteObject()";
+
     //DOWNLOAD CALL
     public static final String DOWNLOAD_FILE = "DownloadCall.downloadFile()";
 
@@ -200,6 +206,10 @@ public class LogUtils {
     public static final String NOT_SENT_BY_US = "Not sent by us";
     public static final String LAVORAZIONE_ESITI_PEC = "lavorazioneEsitiPec()";
     public static final String GENERATE_LOCATION = "LavorazioneEsitiPecService.generateLocation()";
+    public static final String GET_MONO_MIME_MESSAGE = "EmailUtils.getMonoMimeMessage()";
+    public static final String SET_ATTACHMENTS_IN_MIME_MESSAGE = "EmailUtils.setAttachmentsInMimeMessage()";
+    public static final String SET_HEADERS_IN_MIME_MESSAGE = "EmailUtils.setHeadersInMimeMessage()";
+
 
     //CLOUD WATCH
     public static final String PUBLISH_CUSTOM_PEC_METRICS = "CloudWatchPecMetrics.publishCustomPecMetrics()";

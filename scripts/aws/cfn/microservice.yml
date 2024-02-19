@@ -142,12 +142,16 @@ Parameters:
     Description: 'Lavorazione Cartaceo max thread pool size'
     Default: '100'
 
+  CancellazioneRicevutePecMaxThreadPoolSize:
+    Type: String
+    Description: 'Cancellazione Ricevute Pec max thread pool size'
+
   PnEcTaskExecutionPoolMaxSize:
     Type: String
     Description: 'SpringBoot configuration Task Execution Max Pool Siza'
     Default: '512'
 
-  ######### TABLES  ############
+  ### TABLES  ###
 
   PnEcTableNameAnagrafica:
     Type: String
@@ -173,8 +177,8 @@ Parameters:
     Type: String
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
 
-  ######### QUEUES  ############
-  ######### TRACKER : SMS  ##########
+  ### QUEUES  ###
+  ### TRACKER : SMS  ###
 
   PnEcQueueNameTrackerStatoSMS:
     Type: String
@@ -261,6 +265,25 @@ Parameters:
   PnEcAlarmArnDLQueueTrackerErroriPEC:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriPEC"
+
+  ######### LAVORAZIONE : PEC  ##########
+
+  PnEcPECMaxMessageSizeMB:
+    Type: String
+    Description: 'Limite dimensione messaggio PEC in MB'
+
+  PnEcPECAttachmentRule:
+    Type: String
+    Description: 'Regola per invio di allegati PEC'
+    AllowedValues:
+      - 'LIMIT'
+      - 'FIRST'
+
+  PnEcPECTipoRicevutaBreve:
+    Type: String
+    Description: 'Tipo ricevuta breve PEC'
+
+
 
   ######### TRACKER : EMAIL  ##########
 
@@ -659,6 +682,23 @@ Parameters:
       - ENABLED
       - DISABLED
 
+  ### CARTACEO : ESITI ###
+
+  PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked:
+    Type: String
+    Description: "[Cartaceo- Ricezione Esiti] Stato della funzionalità che considera BOOKED gli eventi senza uno stato SENT"
+    Default: 'false'
+
+### S3 BUCKET FOR OVERSIZE SQS MESSAGES ###
+
+  PnEcSqsMessagesStagingBucketName:
+    Type: String
+    Description: 'Nome Bucket Staging per messaggi SQS troppo grandi'
+
+  PnEcSqsMessagesStagingBucketArn:
+    Type: String
+    Description: 'ARN Bucket Staging per messaggi SQS troppo grandi'
+
   #### CRON Rules ####
   PnEcCronScaricamentoEsitiPec:
     Type: String
@@ -841,6 +881,12 @@ Resources:
         ContainerEnvEntry54: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
         ContainerEnvEntry55: !Sub 'PnEcTaskExecutionPoolMaxSize=${PnEcTaskExecutionPoolMaxSize}'
         ContainerEnvEntry56: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueNameCancellazioneRicevutePEC}'
+        ContainerEnvEntry57: !Sub 'CancellazioneRicevutePecMaxThreadPoolSize=${CancellazioneRicevutePecMaxThreadPoolSize}'
+        ContainerEnvEntry58: !Sub 'PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked=${PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked}'
+        ContainerEnvEntry59: !Sub 'PnEcPECMaxMessageSizeMB=${PnEcPECMaxMessageSizeMB}'
+        ContainerEnvEntry60: !Sub 'PnEcPECAttachmentRule=${PnEcPECAttachmentRule}'
+        ContainerEnvEntry61: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
+        ContainerEnvEntry62: !Sub 'PnEcSqsMessagesStagingBucketName=${PnEcSqsMessagesStagingBucketName}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -889,6 +935,7 @@ Resources:
               - kms:Encrypt
               - kms:Decrypt
               - kms:ReEncrypt*
+              - kms:GenerateDataKey
             Resource:
               - !Ref PCKmsEncDecDynamoDataKeyARN
           - Effect: Allow
@@ -954,6 +1001,17 @@ Resources:
               - 'ses:Verify*'
             Resource:
               - '*'
+          - Effect: Allow
+            Sid: 'S3bucketSQSOversizeMessages'
+            Action:
+              - 's3:List*'
+              - 's3:GetBucket*'
+              - 's3:*Object*'
+              - 's3:*MultipartUpload*'
+              - 's3:PutBucket*'
+            Resource:
+              - !Ref PnEcSqsMessagesStagingBucketArn
+              - !Join [ '', [ !Sub '${PnEcSqsMessagesStagingBucketArn}' , '/*']]
           - Sid: 'CloudWatchPutMetricData'
             Effect: Allow
             Action:
@@ -966,6 +1024,21 @@ Resources:
               - 'ssm:GetParameter'
             Resource:
               - '*'
+
+  PnEcSqsMessagesStagingBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PnEcSqsMessagesStagingBucketName
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 's3:*'
+            Effect: Allow
+            Resource: !Join [ '', [ !Sub '${PnEcSqsMessagesStagingBucketArn}' , '/*']]
+            Principal:
+              AWS:
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
 
   ###########  NOTIFICATION TRACKER - STATO - QUEUE POLICIES   ###########
 

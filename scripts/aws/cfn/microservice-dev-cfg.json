@@ -19,6 +19,10 @@
     "JavaToolOptions": "-XX:MaxDirectMemorySize=128M",
     "PnEcQueueElapsedTimeSeconds": "7200",
     "PnEcTaskExecutionPoolMaxSize": "512",
-    "CancellazioneRicevutePecEventRuleStatus": "ENABLED"
+    "CancellazioneRicevutePecEventRuleStatus": "ENABLED",
+    "PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked": "true",
+    "PnEcPECMaxMessageSizeMB": "100",
+    "PnEcPECAttachmentRule": "LIMIT",
+    "PnEcPECTipoRicevutaBreve": "true"
   }
 }

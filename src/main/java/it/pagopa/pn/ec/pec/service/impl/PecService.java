@@ -7,6 +7,7 @@ import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
+import it.pagopa.pn.ec.commons.exception.email.ComposeMimeMessageException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
 import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
@@ -25,13 +26,15 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
+import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
+import it.pagopa.pn.ec.pec.exception.MaxSizeExceededException;
 import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
 import lombok.CustomLog;
-import lombok.CustomLog;
+import org.apache.commons.io.output.CountingOutputStream;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -43,17 +46,22 @@ import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
+import javax.mail.Header;
+import javax.mail.Multipart;
+import javax.mail.internet.MimeMessage;
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.*;
-import static it.pagopa.pn.ec.commons.utils.EmailUtils.getDomainFromAddress;
+import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
@@ -76,11 +84,12 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final PecSqsQueueName pecSqsQueueName;
     private final Semaphore semaphore;
+    private final PnPecConfigurationProperties pnPecProps;
     private String idSaved;
 
     protected PecService(AuthService authService, ArubaCall arubaCall, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
             , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, ArubaSecretValue arubaSecretValue,
-                         NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName, @Value("${lavorazione-pec.max-thread-pool-size}") Integer maxThreadPoolSize) {
+                         NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName, @Value("${lavorazione-pec.max-thread-pool-size}") Integer maxThreadPoolSize, PnPecConfigurationProperties pnPecProps) {
         super(authService);
         this.arubaCall = arubaCall;
         this.sqsService = sqsService;
@@ -91,6 +100,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.pecSqsQueueName = pecSqsQueueName;
         this.semaphore = new Semaphore(maxThreadPoolSize);
+        this.pnPecProps = pnPecProps;
     }
 
     private final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
@@ -286,15 +296,21 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private Mono<GeneratedMessageDto> sendMail(String xPagopaExtchCxId, String requestIdx, DigitalNotificationRequest digitalNotificationRequest, List<EmailAttachment> attachments) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS + " - {}", PEC_SEND_MAIL, digitalNotificationRequest, attachments);
         return Mono.just(attachments).map(fileDownloadResponses -> EmailField.builder()
-                        .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
-                        .from(arubaSecretValue.getPecUsername())
-                        .to(digitalNotificationRequest.getReceiverDigitalAddress())
-                        .subject(digitalNotificationRequest.getSubjectText())
-                        .text(digitalNotificationRequest.getMessageText())
-                        .contentType(digitalNotificationRequest.getMessageContentType()
-                                .getValue())
-                        .emailAttachments(fileDownloadResponses)
-                        .build())
+                .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
+                .from(arubaSecretValue.getPecUsername())
+                .to(digitalNotificationRequest.getReceiverDigitalAddress())
+                .subject(digitalNotificationRequest.getSubjectText())
+                .text(digitalNotificationRequest.getMessageText())
+                .contentType(digitalNotificationRequest.getMessageContentType()
+                        .getValue())
+                .emailAttachments(fileDownloadResponses)
+                .headersList(List.of(new Header(pnPecProps.getTipoRicevutaHeaderName(), pnPecProps.getTipoRicevutaHeaderValue())))
+                .build())
+
+                .flatMap(emailField -> getMonoMimeMessage(emailField,
+                        pnPecProps.getAttachmentRule(),
+                        pnPecProps.getMaxMessageSizeMb() * MB_TO_BYTES,
+                        pnPecProps.getTipoRicevutaBreve()))
 
                 .map(EmailUtils::getMimeMessageInCDATATag)
 
@@ -578,6 +594,66 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     @Override
     public Mono<DeleteMessageResponse> deleteMessageFromErrorQueue(Message message) {
         return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName());
+    }
+
+    public  Mono<MimeMessage> getMonoMimeMessage(EmailField emailField, String mimeMessageRule, Integer maxMessageSizeInBytes, boolean canInsertXTipoRicevutaHeader) {
+        return Mono.fromSupplier(() -> {
+                    log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GET_MONO_MIME_MESSAGE, Stream.of(emailField, mimeMessageRule, maxMessageSizeInBytes, canInsertXTipoRicevutaHeader).toList());
+                    return buildMimeMessage(emailField);
+                })
+                .flatMap(mimeMessage -> setAttachmentsInMimeMessage(mimeMessage, emailField, maxMessageSizeInBytes, mimeMessageRule))
+                .flatMap(mimeMessage -> setHeadersInMimeMessage(mimeMessage, emailField.getHeadersList(), canInsertXTipoRicevutaHeader))
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_NO_RESULT_LABEL, GET_MONO_MIME_MESSAGE))
+                .onErrorResume(throwable -> Mono.error(new ComposeMimeMessageException(throwable.getMessage())));
+    }
+
+    private Mono<MimeMessage> setAttachmentsInMimeMessage(MimeMessage mimeMessage, EmailField emailField, Integer maxMessageSizeInBytes, String mimeMessageRule) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, SET_ATTACHMENTS_IN_MIME_MESSAGE, Stream.of(emailField, maxMessageSizeInBytes, mimeMessageRule).toList());
+        CountingOutputStream sizeCounter = new CountingOutputStream(new ByteArrayOutputStream());
+        return Flux.fromIterable(emailField.getEmailAttachments())
+                .map(EmailUtils::buildAttachmentPart)
+                .map(mimeBodyPart -> addAttachmentToMimeMessage(mimeMessage, mimeBodyPart))
+                .map(mime -> getMimeMessageSizeInBytes(mime, sizeCounter))
+                .takeUntil(mimeMessageSize -> mimeMessageSize > maxMessageSizeInBytes)
+                .last(0)
+                .flatMap(mimeMessageSize -> {
+                    if (mimeMessageSize > maxMessageSizeInBytes)
+                        return handleMaxSizeExceeded(mimeMessage, mimeMessageRule);
+                    else return Mono.just(mimeMessage);
+                })
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_NO_RESULT_LABEL, SET_ATTACHMENTS_IN_MIME_MESSAGE));
+    }
+
+    private Mono<MimeMessage> handleMaxSizeExceeded(MimeMessage mimeMessage, String mimeMessageRule) {
+        return Mono.just(mimeMessage).handle((mime, sink) -> {
+                    Multipart multipart = getMultipartFromMimeMessage(mime);
+                    if (getMultipartCount(multipart) <= 2)
+                        sink.error(new MaxSizeExceededException("MimeMessage has exceeded the max available size with the first attachment."));
+                    else sink.next(mime);
+                })
+                .cast(MimeMessage.class)
+                .flatMap(mime -> {
+                    if (mimeMessageRule.equals("LIMIT"))
+                        removeLastAttachmentFromMimeMessage(mime);
+                    else if (mimeMessageRule.equals("FIRST"))
+                        removeAllExceptFirstAttachmentFromMimeMessage(mime);
+                    return Mono.just(mime);
+                });
+    }
+
+    private  Mono<MimeMessage> setHeadersInMimeMessage(MimeMessage mimeMessage, List<Header> headers, boolean canInsertXTipoRicevutaHeader) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, SET_HEADERS_IN_MIME_MESSAGE, Stream.of(headers, canInsertXTipoRicevutaHeader).toList());
+        return Flux.fromIterable(headers)
+                .filter(header -> !header.getName().equals(pnPecProps.getTipoRicevutaHeaderName()))
+                .doOnNext(header -> setHeaderInMimeMessage(mimeMessage, header))
+                .doOnDiscard(Header.class, header -> {
+                    if (canInsertXTipoRicevutaHeader) {
+                        setHeaderInMimeMessage(mimeMessage, header);
+                    }
+                })
+                .then()
+                .thenReturn(mimeMessage)
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_NO_RESULT_LABEL, SET_HEADERS_IN_MIME_MESSAGE));
     }
 
 }
