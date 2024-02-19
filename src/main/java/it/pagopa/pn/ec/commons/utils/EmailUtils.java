@@ -29,6 +29,7 @@ public class EmailUtils {
         throw new IllegalStateException("EmailUtils is a utility class");
     }
     public static final Integer MB_TO_BYTES = 1000000;
+    private static final String C_DATA_TAG = "<![CDATA[%s]]>";
     public static String getDomainFromAddress(String address) {
         return address.substring(address.indexOf("@"));
     }
@@ -119,10 +120,6 @@ public class EmailUtils {
         } catch (IOException | MessagingException exception) {
             throw new ComposeMimeMessageException();
         }
-    }
-
-    public static String getMimeMessageInCDATATag(byte[] fileBytes) {
-        return String.format("<![CDATA[%s]]>", new String(fileBytes));
     }
 
     @SneakyThrows(MessagingException.class)
@@ -236,12 +233,16 @@ public class EmailUtils {
         return cDataString.substring(cDataString.indexOf("[CDATA[") + "[CDATA[".length(), cDataString.lastIndexOf("]]"));
     }
 
+    public static String getMimeMessageInCDATATag(byte[] fileBytes) {
+        return String.format(C_DATA_TAG, new String(fileBytes));
+    }
+
     public static String getMimeMessageInCDATATag(EmailField emailField) {
-        return String.format("<![CDATA[%s]]>", getMimeMessageOutputStream(emailField));
+        return String.format(C_DATA_TAG, getMimeMessageOutputStream(emailField));
     }
 
     public static String getMimeMessageInCDATATag(MimeMessage mimeMessage) {
-        return String.format("<![CDATA[%s]]>", getMimeMessageOutputStream(mimeMessage));
+        return String.format(C_DATA_TAG, getMimeMessageOutputStream(mimeMessage));
     }
     public static byte[] getAttachmentFromMimeMessage(MimeMessage mimeMessage, String attachmentName) {
         try {

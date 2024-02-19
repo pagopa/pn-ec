@@ -44,7 +44,7 @@ import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
 @CustomLog
-public class PnPecServiceTest {
+class PnPecServiceTest {
 
     @MockBean
     private AttachmentServiceImpl attachmentService;

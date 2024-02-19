@@ -147,11 +147,9 @@ public class PnPecServiceImpl implements PnPecService {
 
     private PnPecService getProvider() {
         if (props.getPnPecProviderSwitch().equals(ARUBA_PROVIDER)) {
-            //TODO verificare livello di log
             log.debug("Aruba provider selected");
             return arubaService;
         } else if (props.getPnPecProviderSwitch().equals(OTHER_PROVIDER)) {
-            //TODO verificare livello di log
             log.debug("Other provider selected");
             return otherService;
         } else {

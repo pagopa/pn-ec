@@ -7,11 +7,9 @@ import it.pagopa.pn.library.pec.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
-import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.PnPecService;
-import it.pec.bridgews.*;
 import lombok.CustomLog;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -34,18 +32,16 @@ public class ScaricamentoEsitiPecScheduler {
     private final DaticertService daticertService;
     private final SqsService sqsService;
     private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
-    private final CloudWatchPecMetrics cloudWatchPecMetrics;
     private final PnPecService pnPecService;
     @Value("${scaricamento-esiti-pec.limit-rate}")
     private Integer limitRate;
     @Value("${pn.ec.storage.sqs.messages.staging.bucket}")
     private String storageSqsMessagesStagingBucket;
 
-    public ScaricamentoEsitiPecScheduler(DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, CloudWatchPecMetrics cloudWatchPecMetrics, @Qualifier("pnPecServiceImpl") PnPecService pnPecService) {
+    public ScaricamentoEsitiPecScheduler(DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, @Qualifier("pnPecServiceImpl") PnPecService pnPecService) {
         this.daticertService = daticertService;
         this.sqsService = sqsService;
         this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;
-        this.cloudWatchPecMetrics = cloudWatchPecMetrics;
         this.pnPecService = pnPecService;
     }
 
