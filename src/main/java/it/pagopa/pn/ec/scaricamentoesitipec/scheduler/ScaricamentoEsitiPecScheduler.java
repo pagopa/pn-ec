@@ -61,7 +61,6 @@ public class ScaricamentoEsitiPecScheduler {
         hasMessages.set(true);
 
         MDCUtils.addMDCToContextAndExecute(pnPecService.getMessageCount()
-                .flatMap(messageCount -> cloudWatchPecMetrics.publishMessageCount((long) messageCount))
                 .then(pnPecService.getUnreadMessages(Integer.parseInt(scaricamentoEsitiPecProperties.getMessagesLimit())))
                 .flatMap(pnGetMessagesResponse -> {
                     var listOfMessages = pnGetMessagesResponse.getPnListOfMessages();

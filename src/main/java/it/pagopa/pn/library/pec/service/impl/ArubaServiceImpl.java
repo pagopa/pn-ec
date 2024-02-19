@@ -2,6 +2,7 @@ package it.pagopa.pn.library.pec.service.impl;
 
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.commons.utils.MDCUtils;
+import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.library.pec.configurationproperties.ArubaServiceProperties;
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.model.pojo.ArubaSecretValue;
@@ -12,6 +13,7 @@ import it.pagopa.pn.library.pec.exception.aruba.ArubaCallException;
 import it.pec.bridgews.*;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
@@ -32,15 +34,21 @@ public class ArubaServiceImpl implements ArubaService {
 
     private final ArubaServiceProperties arubaServiceProperties;
 
+    private final CloudWatchPecMetrics cloudWatchPecMetrics;
+
+    private final String arubaProviderNamespace;
+
     private static final int MESSAGE_NOT_FOUND_ERR_CODE = 99;
 
     public static final String ARUBA_PATTERN_STRING = "@pec.aruba.it";
 
     @Autowired
-    public ArubaServiceImpl(PecImapBridge pecImapBridgeClient, ArubaSecretValue arubaSecretValue, ArubaServiceProperties arubaServiceProperties) {
+    public ArubaServiceImpl(PecImapBridge pecImapBridgeClient, ArubaSecretValue arubaSecretValue, ArubaServiceProperties arubaServiceProperties, CloudWatchPecMetrics cloudWatchPecMetrics, @Value("${library.pec.cloudwatch.namespace.aruba}") String arubaProviderNamespace) {
         this.pecImapBridgeClient = pecImapBridgeClient;
         this.arubaSecretValue = arubaSecretValue;
         this.arubaServiceProperties = arubaServiceProperties;
+        this.cloudWatchPecMetrics = cloudWatchPecMetrics;
+        this.arubaProviderNamespace = arubaProviderNamespace;
     }
 
     private Retry getArubaCallRetryStrategy(String clientMethodName) {
@@ -71,6 +79,7 @@ public class ArubaServiceImpl implements ArubaService {
                     }
                 })).cast(GetMessageCountResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_GET_MESSAGE_COUNT))
                 .map(GetMessageCountResponse::getCount)
+                .flatMap(count -> cloudWatchPecMetrics.publishMessageCount(Long.valueOf(count), arubaProviderNamespace).thenReturn(count))
                 .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_COUNT, result));
     }
 

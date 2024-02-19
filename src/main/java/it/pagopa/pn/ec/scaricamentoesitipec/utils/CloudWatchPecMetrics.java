@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.scaricamentoesitipec.utils;
 
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchTransitionElapsedTimeMetricsInfo;
 import lombok.CustomLog;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
@@ -31,7 +31,6 @@ public class CloudWatchPecMetrics {
     }
 
     private static final PutMetricDataRequest.Builder NAMESPACE = PutMetricDataRequest.builder().namespace("PEC");
-    private static final PutMetricDataRequest.Builder MESSAGE_COUNT_NAMESPACE = PutMetricDataRequest.builder().namespace("PEC/Aruba");
     private static final Dimension DIMENSION = Dimension.builder().name("Event").value("StatusChange").build();
     private static final MetricDatum.Builder DATUM = MetricDatum.builder().unit(StandardUnit.SECONDS).dimensions(DIMENSION);
     private static final String MESSAGE_COUNT_METRIC_NAME = "InboxMessageCount";
@@ -79,9 +78,11 @@ public class CloudWatchPecMetrics {
         }).then();
     }
 
-    public Mono<Void> publishMessageCount(Long count) {
+    public Mono<Void> publishMessageCount(Long count, String namespace) {
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_PEC_MESSAGE_COUNT, count);
-        return Mono.fromCompletionStage(cloudWatchAsyncClient.putMetricData(MESSAGE_COUNT_NAMESPACE.metricData(MetricDatum.builder()
+        return Mono.fromCompletionStage(cloudWatchAsyncClient.putMetricData(PutMetricDataRequest.builder()
+                        .namespace(namespace)
+                        .metricData(MetricDatum.builder()
                         .unit(StandardUnit.COUNT)
                         .metricName(MESSAGE_COUNT_METRIC_NAME)
                         .value(Double.valueOf(count))
