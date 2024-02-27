@@ -152,7 +152,7 @@ Parameters:
     Default: '512'
 
   ### TABLES  ###
-  
+
   PnEcTableNameAnagrafica:
     Type: String
     Description: "Nome della Tabella DynamoDB relativa ad Anagrafica Client"
@@ -1011,7 +1011,7 @@ Resources:
               - 's3:PutBucket*'
             Resource:
               - !Ref PnEcSqsMessagesStagingBucketArn
-              - !Join [ '', [ !Sub '${PnEcSqsMessagesStagingBucketArn}' , '/*']]              
+              - !Join [ '', [ !Sub '${PnEcSqsMessagesStagingBucketArn}' , '/*']]
           - Sid: 'CloudWatchPutMetricData'
             Effect: Allow
             Action:
