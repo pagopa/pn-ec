@@ -179,7 +179,7 @@ public class LogUtils {
     public static final String ARUBA_GET_ATTACH = "ArubaCall.getAttach()";
     public static final String ARUBA_GET_MESSAGE_COUNT = "ArubaService.getMessageCount()";
     public static final String ARUBA_DELETE_MAIL = "ArubaService.deleteMail()";
-
+    public static final String INITIALIZING_ARUBA_PROXY_CLIENT = "Initializing Aruba proxy client for '{}' : ArubaServerAddress : {}, EndpointName : {}, ServiceName : {}";
 
     //SES
     public static final String SES_SEND_MAIL = "SesService.sendMail()";
