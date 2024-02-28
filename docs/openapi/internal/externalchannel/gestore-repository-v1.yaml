@@ -323,6 +323,9 @@ components:
             $ref: '#/components/schemas/EventsDto'
         retry:
           $ref: '#/components/schemas/RetryDto'
+        lastUpdateTimestamp:
+          type: string
+          format: date-time
 
     PatchDto:
       type: object

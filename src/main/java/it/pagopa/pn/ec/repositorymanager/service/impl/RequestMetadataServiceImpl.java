@@ -16,6 +16,9 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -95,6 +98,9 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                            return Mono.error(new RepositoryManagerException.RequestMalformedException(
                                    "Valorizzare solamente un tipologia di richiesta metadata"));
                        }
+
+                       OffsetDateTime lastUpdateTimestamp = OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MILLIS);
+                       requestMetadata.setLastUpdateTimestamp(lastUpdateTimestamp);
                        return insertRequestMetadataInDynamoDb(requestMetadata);
                    })
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.debug(throwable.getMessage()))
@@ -165,6 +171,11 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                 .flatMap(retrieveRequestMetadata -> managePatch(concatRequestId,
                         patch,
                         retrieveRequestMetadata))
+                .map(requestMetadata -> {
+                    OffsetDateTime lastUpdateTimestamp = OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MILLIS);
+                    requestMetadata.setLastUpdateTimestamp(lastUpdateTimestamp);
+                    return requestMetadata;
+                })
                 .flatMap(this::updateRequestMetadataInDynamoDb)
                 .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY)
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, PATCH_REQUEST_METADATA_OP, result));
