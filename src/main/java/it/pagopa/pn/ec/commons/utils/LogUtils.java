@@ -18,6 +18,7 @@ public class LogUtils {
     public static final String SUCCESSFUL_OPERATION_NO_RESULT_LABEL = "Successful operation: '{}'";
     public static final String INSERTING_DATA_IN_SQS = "Inserting data {} in SQS '{}'";
     public static final String INSERTED_DATA_IN_SQS = "Inserted data in SQS '{}'";
+    public static final String PRESA_IN_CARICO = "PresaInCaricoService.presaInCarico()";
     public static final String MESSAGE_REMOVED_FROM_ERROR_QUEUE = "The message has been successfully handled and removed from the error queue '{}'";
     public static final String EXCEPTION_IN_PROCESS_FOR = "Exception in '{}' for request '{}' - {}, {}";
     public static final String EXCEPTION_IN_PROCESS = "Exception in '{}' - {}, {}";
@@ -182,6 +183,7 @@ public class LogUtils {
     public static final String ARUBA_DELETE_MAIL = "ArubaService.deleteMail()";
     public static final String ARUBA_GET_UNREAD_MESSAGES = "ArubaService.getUnreadMessages()";
 
+    public static final String INITIALIZING_ARUBA_PROXY_CLIENT = "Initializing Aruba proxy client for '{}' : ArubaServerAddress : {}, EndpointName : {}, ServiceName : {}";
 
     //SES
     public static final String SES_SEND_MAIL = "SesService.sendMail()";

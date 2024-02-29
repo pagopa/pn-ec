@@ -312,7 +312,6 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .map(EmailUtils::getMimeMessageByteArray)
                 .flatMap(pnPecService::sendMail)
                 .map(this::createGeneratedMessageDto)
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_SEND_MAIL, result));
     }
 
