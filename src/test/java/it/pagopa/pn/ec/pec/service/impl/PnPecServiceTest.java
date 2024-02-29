@@ -130,7 +130,7 @@ class PnPecServiceTest {
         verify(pecService, times(0)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
         verify(arubaService, never()).sendMail(any());
         //TODO modificare test una volta implementato il nuovo provider
-        verify(alternativeProviderService, times(4)).sendMail(any());
+        verify(alternativeProviderService, times(1)).sendMail(any());
     }
 
     @Test
