@@ -30,5 +30,5 @@ public class RequestMetadata extends DocumentVersion {
     PaperRequestMetadata paperRequestMetadata;
     List<Events> eventsList;
     Retry retry;
-    OffsetDateTime lastUpdateTimestamp;
+    String lastUpdateTimestamp;
 }
