@@ -96,7 +96,8 @@ public class LogUtils {
     public static final String INSERT_REQUEST_FROM_PEC = "PecService.insertRequestFromPec()";
     public static final String PEC_GET_ATTACHMENTS = "PecService.getAttachments()";
     public static final String PEC_DOWNLOAD_ATTACHMENT = "PecService.downloadAttachment()";
-    public static final String PEC_SEND_MAIL = "PnPecService.sendMail()";
+    public static final String PEC_SEND_MAIL = "PecService.sendMail()";
+    public static final String PN_PEC_SEND_MAIL = "PnPecService.sendMail()";
     public static final String PEC_SEND_MESSAGE = "PnPecService.sendMessage()";
     public static final String PEC_GET_UNREAD_MESSAGES = "PnPecService.getUnreadMessages()";
     public static final String PEC_SET_MESSAGE_ID_IN_REQUEST_METADATA = "PecService.setMessageIdInRequestMetadata()";

@@ -14,10 +14,10 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
-import static reactor.core.publisher.MonoExtensionsKt.doOnError;
 
 @CustomLog
 @Service
@@ -43,11 +43,11 @@ public class PnPecServiceImpl implements PnPecService {
 
     @Override
     public Mono<String> sendMail(byte[] message) {
-        log.logStartingProcess(PEC_SEND_MAIL);
+        log.logStartingProcess(PN_PEC_SEND_MAIL);
         return getProvider()
                 .sendMail(message)
-                .doOnSuccess(result -> log.logEndingProcess(PEC_SEND_MAIL))
-                .doOnError(throwable -> log.logEndingProcess(PEC_SEND_MAIL, false, throwable.getMessage()));
+                .doOnSuccess(result -> log.logEndingProcess(PN_PEC_SEND_MAIL))
+                .doOnError(throwable -> log.logEndingProcess(PN_PEC_SEND_MAIL, false, throwable.getMessage()));
     }
 
     @Override
@@ -58,7 +58,14 @@ public class PnPecServiceImpl implements PnPecService {
         AtomicBoolean isOtherOk = new AtomicBoolean(true);
 
         Flux<byte[]> arubaMessages = arubaService.getUnreadMessages(limit)
-                .flatMapIterable(response -> response.getPnListOfMessages().getMessages())
+                .flatMapMany(response -> {
+                    var listOfMessages = response.getPnListOfMessages();
+                    if (Objects.isNull(listOfMessages)) {
+                        return Flux.empty();
+                    } else {
+                        return Flux.fromIterable(listOfMessages.getMessages());
+                    }
+                })
                 .onErrorResume(e -> {
                     log.warn(SERVICE_ERROR, "ArubaService", e);
                     isArubaOk.set(false);
@@ -66,7 +73,14 @@ public class PnPecServiceImpl implements PnPecService {
                 });
 
         Flux<byte[]> otherProviderMessages = otherService.getUnreadMessages(limit)
-                .flatMapIterable(response -> response.getPnListOfMessages().getMessages())
+                .flatMapMany(response -> {
+                    var listOfMessages = response.getPnListOfMessages();
+                    if (Objects.isNull(listOfMessages)) {
+                        return Flux.empty();
+                    } else {
+                        return Flux.fromIterable(listOfMessages.getMessages());
+                    }
+                })
                 .onErrorResume(e -> {
                     log.warn(SERVICE_ERROR, "OtherProviderService", e);
                     isOtherOk.set(false);
@@ -79,10 +93,7 @@ public class PnPecServiceImpl implements PnPecService {
                     if (!isArubaOk.get() && !isOtherOk.get()) {
                         throw new ProvidersNotAvailableException("Both services returned an error");
                     } else {
-                        PnGetMessagesResponse pnGetMessagesResponse = new PnGetMessagesResponse();
-                        pnGetMessagesResponse.setPnListOfMessages(new PnListOfMessages(messages));
-                        pnGetMessagesResponse.setNumOfMessages(messages.size());
-                        return pnGetMessagesResponse;
+                        return new PnGetMessagesResponse(new PnListOfMessages(messages), messages.size());
                     }
                 })
                 .doOnSuccess(result -> log.logEndingProcess(PEC_GET_UNREAD_MESSAGES));

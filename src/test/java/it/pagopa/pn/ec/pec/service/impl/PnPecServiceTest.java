@@ -236,6 +236,27 @@ class PnPecServiceTest {
     }
 
     @Test
+    void getUnreadMesagesBothEmpty(){
+        log.debug("getUnreadMessagesBothEmpty");
+        PnGetMessagesResponse arubaMessages = new PnGetMessagesResponse();
+        PnGetMessagesResponse otherProviderMessages = new PnGetMessagesResponse();
+
+        when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.just(arubaMessages));
+        when(alternativeProviderService.getUnreadMessages(anyInt())).thenReturn(Mono.just(otherProviderMessages));
+
+        Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
+
+        StepVerifier.create(combinedMessages)
+                .expectNextMatches(response -> response.getNumOfMessages() == 0
+                        && response.getPnListOfMessages().getMessages().isEmpty())
+                .expectComplete()
+                .verify();
+
+        verify(arubaService, times(1)).getUnreadMessages(6);
+        verify(alternativeProviderService, times(1)).getUnreadMessages(6);
+    }
+
+    @Test
     void getMessageCountExpectBothOk() {
         log.debug("getUnreadMessagesExpectBoth");
         when(arubaService.getMessageCount()).thenReturn(Mono.just(3));
