@@ -157,7 +157,7 @@ public class ArubaServiceImpl implements ArubaService {
                 })).cast(GetMessagesResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_GET_MESSAGES))
                 .map(getMessagesResponse -> {
                     PnGetMessagesResponse pnGetMessagesResponse = new PnGetMessagesResponse();
-                    List<byte[]> messages = getMessagesResponse.getArrayOfMessages().getItem() == null ?
+                    List<byte[]> messages = getMessagesResponse.getArrayOfMessages() == null ?
                             List.of() : getMessagesResponse.getArrayOfMessages().getItem();
 
                     pnGetMessagesResponse.setPnListOfMessages(new PnListOfMessages(messages));
