@@ -248,7 +248,7 @@ class PnPecServiceTest {
 
         StepVerifier.create(combinedMessages)
                 .expectNextMatches(response -> response.getNumOfMessages() == 0
-                        && response.getPnListOfMessages().getMessages().isEmpty())
+                        && response.getPnListOfMessages().getMessages() == null)
                 .expectComplete()
                 .verify();
 
