@@ -1,15 +1,7 @@
 package it.pagopa.pn.library.pec.service;
 
-import it.pec.bridgews.DeleteMail;
-import it.pec.bridgews.DeleteMailResponse;
-import it.pec.bridgews.GetMessageCount;
-import it.pec.bridgews.GetMessageCountResponse;
-import reactor.core.publisher.Mono;
 
-public interface ArubaService {
+public interface ArubaService extends PnPecService {
 
-    Mono<GetMessageCountResponse> getMessageCount(GetMessageCount getMessageCount);
 
-    Mono<DeleteMailResponse> deleteMail(DeleteMail deleteMail);
-
-}
+    }
