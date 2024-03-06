@@ -19,6 +19,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 import reactor.util.retry.Retry;
 import java.time.Duration;
+import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
@@ -156,7 +157,10 @@ public class ArubaServiceImpl implements ArubaService {
                 })).cast(GetMessagesResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_GET_MESSAGES))
                 .map(getMessagesResponse -> {
                     PnGetMessagesResponse pnGetMessagesResponse = new PnGetMessagesResponse();
-                    pnGetMessagesResponse.setPnListOfMessages(new PnListOfMessages(getMessagesResponse.getArrayOfMessages().getItem()));
+                    List<byte[]> messages = getMessagesResponse.getArrayOfMessages().getItem() == null ?
+                            List.of() : getMessagesResponse.getArrayOfMessages().getItem();
+
+                    pnGetMessagesResponse.setPnListOfMessages(new PnListOfMessages(messages));
                     return pnGetMessagesResponse;
                 })
                 .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGES, result));
