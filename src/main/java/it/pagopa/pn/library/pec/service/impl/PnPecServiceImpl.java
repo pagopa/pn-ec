@@ -52,7 +52,6 @@ public class PnPecServiceImpl implements PnPecService {
 
     @Override
     public Mono<PnGetMessagesResponse> getUnreadMessages(int limit) {
-        log.logStartingProcess(PEC_GET_UNREAD_MESSAGES);
 
         AtomicBoolean isArubaOk = new AtomicBoolean(true);
         AtomicBoolean isOtherOk = new AtomicBoolean(true);
@@ -96,6 +95,7 @@ public class PnPecServiceImpl implements PnPecService {
                         return new PnGetMessagesResponse(new PnListOfMessages(messages), messages.size());
                     }
                 })
+                .doOnSubscribe(subscription -> log.logStartingProcess(PEC_GET_UNREAD_MESSAGES))
                 .doOnSuccess(result -> log.logEndingProcess(PEC_GET_UNREAD_MESSAGES));
 
     }
