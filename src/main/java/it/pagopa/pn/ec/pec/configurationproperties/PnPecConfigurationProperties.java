@@ -16,6 +16,8 @@ public class PnPecConfigurationProperties {
 
     private String attachmentRule;
     private int maxMessageSizeMb;
+    @Pattern(regexp = "([A-Za-z]*)|([A-Za-z]*;\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z;[A-Za-z]*)")
+    private String pnPecProviderSwitch;
     @Pattern(regexp = "(true|false|(true|false);\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z;(true|false))$")
     private String tipoRicevutaBreve;
     private String tipoRicevutaHeaderName;
@@ -48,5 +50,9 @@ public class PnPecConfigurationProperties {
         } catch (Exception e) {
             throw new IllegalArgumentException("Error parsing TipoRicevutaBreve value");
         }
+    }
+
+    public String getPnPecProviderSwitch() {
+        return returnPropertyValue(pnPecProviderSwitch);
     }
 }

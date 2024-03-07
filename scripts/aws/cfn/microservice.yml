@@ -268,6 +268,10 @@ Parameters:
 
   ######### LAVORAZIONE : PEC  ##########
 
+  PnEcProviderSwitch:
+    Type: String
+    Description: 'Regola per lo switch del provider PEC'
+
   PnEcPECMaxMessageSizeMB:
     Type: String
     Description: 'Limite dimensione messaggio PEC in MB'
@@ -282,8 +286,6 @@ Parameters:
   PnEcPECTipoRicevutaBreve:
     Type: String
     Description: 'Tipo ricevuta breve PEC'
-
-
 
   ######### TRACKER : EMAIL  ##########
 
@@ -676,9 +678,9 @@ Parameters:
 
   CancellazioneRicevutePecEventRuleStatus:
     Type: String
-    Description: "Stato della regola per intercettare eventi di cancellazione ricevute PEC {ENABLED,DISABLED} "  
+    Description: "Stato della regola per intercettare eventi di cancellazione ricevute PEC {ENABLED,DISABLED} "
     Default: ENABLED
-    AllowedValues: 
+    AllowedValues:
       - ENABLED
       - DISABLED
 
@@ -887,6 +889,7 @@ Resources:
         ContainerEnvEntry60: !Sub 'PnEcPECAttachmentRule=${PnEcPECAttachmentRule}'
         ContainerEnvEntry61: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
         ContainerEnvEntry62: !Sub 'PnEcSqsMessagesStagingBucketName=${PnEcSqsMessagesStagingBucketName}'
+        ContainerEnvEntry63: !Sub 'PnEcProviderSwitch=${PnEcProviderSwitch}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'

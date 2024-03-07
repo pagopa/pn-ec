@@ -2,7 +2,6 @@ package it.pagopa.pn.ec.pec.service.impl;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
-import it.pagopa.pn.ec.commons.rest.call.aruba.ArubaCall;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
@@ -14,6 +13,7 @@ import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pec.bridgews.SendMail;
 import it.pec.bridgews.SendMailResponse;
 import org.junit.jupiter.api.AfterEach;
@@ -63,8 +63,8 @@ class PecRetryTest {
     private PecSqsQueueName pecSqsQueueName;
     @SpyBean
     private SqsService sqsService;
-    @MockBean
-    private ArubaCall arubaCall;
+    @MockBean(name="arubaServiceImpl")
+    private ArubaService arubaService;
     @MockBean
     private DownloadCall downloadCall;
     @SpyBean
@@ -192,13 +192,9 @@ class PecRetryTest {
 
         String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
         String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
-        var requestDto=buildRequestDto();
-
-        var sendMailResponse=new SendMailResponse();
-        sendMailResponse.setErrstr("errorstr");
 
         when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
         when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
 
         //Gestore repository mocks.
@@ -224,11 +220,8 @@ class PecRetryTest {
         PatchDto patchDto = new PatchDto();
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
-        var sendMailResponse=new SendMailResponse();
-        sendMailResponse.setErrstr("errorstr");
-
         when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
         when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
 
         //Gestore repository mocks.
@@ -257,12 +250,9 @@ class PecRetryTest {
         PatchDto patchDto = new PatchDto();
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
-        var sendMailResponse=new SendMailResponse();
-        sendMailResponse.setErrstr("errorstr");
-
         mockAttachmentsWithLastInOffset(3);
         when(pnPecConfigurationProperties.getAttachmentRule()).thenReturn("LIMIT");
-        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
 
         //Gestore repository mocks.
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
@@ -277,12 +267,12 @@ class PecRetryTest {
 
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
-        var mimeMessageStr = extractSendMailData();
-        var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
+        var mimeMessageBytes = extractSendMailData();
+        var mimeMessage = getMimeMessage(mimeMessageBytes);
         var multipart=getMultipartFromMimeMessage(mimeMessage);
 
-        assertTrue(mimeMessageStr.getBytes().length < MAX_MESSAGE_SIZE_KB);
-        //Body del messaggio + 2 allegati
+        assertTrue(mimeMessageBytes.length < MAX_MESSAGE_SIZE_KB);
+        //Body del messaggio + allegati
         assertEquals(3, getMultipartCount(multipart));
     }
 
@@ -296,12 +286,9 @@ class PecRetryTest {
         PatchDto patchDto = new PatchDto();
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
-        var sendMailResponse = new SendMailResponse();
-        sendMailResponse.setErrstr("errorstr");
-
         mockAttachmentsWithLastInOffset(3);
         when(pnPecConfigurationProperties.getAttachmentRule()).thenReturn("FIRST");
-        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
 
         //Gestore repository mocks.
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
@@ -316,11 +303,11 @@ class PecRetryTest {
 
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
-        var mimeMessageStr = extractSendMailData();
-        var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
+        var mimeMessageBytes = extractSendMailData();
+        var mimeMessage = getMimeMessage(mimeMessageBytes);
         var multipart=getMultipartFromMimeMessage(mimeMessage);
 
-        assertTrue(mimeMessageStr.getBytes().length < MAX_MESSAGE_SIZE_KB);
+        assertTrue(mimeMessageBytes.length < MAX_MESSAGE_SIZE_KB);
         //Body del messaggio + 1 allegato
         assertEquals(2, getMultipartCount(multipart));
     }
@@ -335,11 +322,8 @@ class PecRetryTest {
         PatchDto patchDto = new PatchDto();
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
-        var sendMailResponse = new SendMailResponse();
-        sendMailResponse.setErrstr("errorstr");
-
         mockAttachmentsWithLastInOffset(1);
-        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
 
         //Gestore repository mocks.
@@ -352,7 +336,7 @@ class PecRetryTest {
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
         StepVerifier.create(response).verifyComplete();
-        verify(arubaCall, never()).sendMail(any(SendMail.class));
+        verify(arubaService, never()).sendMail(any());
     }
 
     @ParameterizedTest
@@ -366,9 +350,6 @@ class PecRetryTest {
         PatchDto patchDto = new PatchDto();
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
-        var sendMailResponse=new SendMailResponse();
-        sendMailResponse.setErrstr("errorstr");
-
         var file = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url1")).key("key");
         var fileByteArray = new byte[1024];
         var outputStream = new ByteArrayOutputStream();
@@ -376,7 +357,7 @@ class PecRetryTest {
 
         when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(file));
         when(downloadCall.downloadFile(file.getDownload().getUrl())).thenReturn(Mono.just(outputStream));
-        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
 
         //Gestore repository mocks.
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
@@ -393,8 +374,8 @@ class PecRetryTest {
 
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
-        String mimeMessageStr = extractSendMailData();
-        var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
+        byte[] mimeMessageBytes = extractSendMailData();
+        var mimeMessage = getMimeMessage(mimeMessageBytes);
         var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName());
         assertNotNull(xTipoRicevutaHeader);
         assertTrue(getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName()).length > 0);
@@ -410,9 +391,6 @@ class PecRetryTest {
         PatchDto patchDto = new PatchDto();
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
-        var sendMailResponse=new SendMailResponse();
-        sendMailResponse.setErrstr("errorstr");
-
         var file = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url1")).key("key");
         var fileByteArray = new byte[1024];
         var outputStream = new ByteArrayOutputStream();
@@ -420,7 +398,7 @@ class PecRetryTest {
 
         when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(file));
         when(downloadCall.downloadFile(file.getDownload().getUrl())).thenReturn(Mono.just(outputStream));
-        when(arubaCall.sendMail(any(SendMail.class))).thenReturn(Mono.just(sendMailResponse));
+        when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
 
         //Gestore repository mocks.
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
@@ -436,8 +414,8 @@ class PecRetryTest {
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-        String mimeMessageStr = extractSendMailData();
-        var mimeMessage = getMimeMessage(mimeMessageStr.getBytes());
+        byte[] mimeMessageBytes = extractSendMailData();
+        var mimeMessage = getMimeMessage(mimeMessageBytes);
         var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName());
         assertNull(xTipoRicevutaHeader);
     }
@@ -457,11 +435,10 @@ class PecRetryTest {
 
     }
 
-    private String extractSendMailData() {
-        ArgumentCaptor<SendMail> argumentCaptor = ArgumentCaptor.forClass(SendMail.class);
-        verify(arubaCall, times(1)).sendMail(argumentCaptor.capture());
-        var sendMail = argumentCaptor.getValue();
-        return getMimeMessageFromCDATATag(sendMail.getData());
+    private byte[] extractSendMailData() {
+        ArgumentCaptor<byte[]> argumentCaptor = ArgumentCaptor.forClass(byte[].class);
+        verify(arubaService, times(1)).sendMail(argumentCaptor.capture());
+        return argumentCaptor.getValue();
     }
 
     private void mockAttachmentsWithLastInOffset(int numOfAttachments) {

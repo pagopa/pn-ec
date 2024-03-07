@@ -4,7 +4,7 @@ import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import reactor.core.publisher.Mono;
 
 public interface PnPecService {
-    Mono<Void> sendMail(byte[] message);
+    Mono<String> sendMail(byte[] message);
 
     Mono<PnGetMessagesResponse> getUnreadMessages(int limit);
 

@@ -24,6 +24,7 @@
     "PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked": "true",
     "PnEcPECMaxMessageSizeMB": "100",
     "PnEcPECAttachmentRule": "LIMIT",
-    "PnEcPECTipoRicevutaBreve": "true"
+    "PnEcPECTipoRicevutaBreve": "true",
+    "PnEcProviderSwitch": "aruba"
   }
 }

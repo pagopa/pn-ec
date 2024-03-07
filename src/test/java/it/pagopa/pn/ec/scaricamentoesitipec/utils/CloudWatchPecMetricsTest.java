@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 import software.amazon.awssdk.services.cloudwatch.model.Metric;
@@ -14,7 +15,6 @@ import software.amazon.awssdk.services.cloudwatch.model.MetricStat;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.TemporalAmount;
 import java.util.concurrent.ExecutionException;
 
 @SpringBootTestWebEnv
@@ -27,12 +27,15 @@ public class CloudWatchPecMetricsTest {
     @Autowired
     private CloudWatchAsyncClient cloudWatchAsyncClient;
 
+    @Value("${library.pec.cloudwatch.namespace.aruba}")
+    private String arubaProviderNamespace;
+
     private static final Long MESSAGE_COUNT = 100L;
 
     @Test
     void publishMessageCountOk() throws ExecutionException, InterruptedException {
 
-        var testMono = cloudWatchPecMetrics.publishMessageCount(MESSAGE_COUNT);
+        var testMono = cloudWatchPecMetrics.publishMessageCount(MESSAGE_COUNT, arubaProviderNamespace);
         StepVerifier.create(testMono).verifyComplete();
 
         var listMetrics = cloudWatchAsyncClient.listMetrics().get();
