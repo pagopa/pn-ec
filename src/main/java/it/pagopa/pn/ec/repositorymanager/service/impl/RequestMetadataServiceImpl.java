@@ -208,6 +208,8 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     public Mono<RequestMetadata> setMessageIdInRequestMetadata(String concatRequestId) {
         return getRequestMetadata(concatRequestId).flatMap(retrievedRequestMetadata -> {
             retrievedRequestMetadata.setMessageId(encodeMessageId(concatRequestId));
+            OffsetDateTime lastUpdateTimestamp = OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MILLIS);
+            retrievedRequestMetadata.setLastUpdateTimestamp(lastUpdateTimestamp.format(dtf));
             return Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(retrievedRequestMetadata));
         }).retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
     }
