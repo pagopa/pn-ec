@@ -28,7 +28,7 @@ public class CancellazioneRicevutePecServiceTest {
     Acknowledgment acknowledgment;
     @MockBean
     GestoreRepositoryCall gestoreRepositoryCall;
-    @MockBean
+    @MockBean(name = "pnPecServiceImpl")
     PnPecService pnPecService;
 
     private final String CLIENT_ID = "CLIENT_ID";

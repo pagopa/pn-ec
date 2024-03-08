@@ -97,8 +97,11 @@ public class LogUtils {
     public static final String PEC_GET_ATTACHMENTS = "PecService.getAttachments()";
     public static final String PEC_DOWNLOAD_ATTACHMENT = "PecService.downloadAttachment()";
     public static final String PEC_SEND_MAIL = "PecService.sendMail()";
-    public static final String PEC_SEND_MESSAGE = "PecService.sendMessage()";
+    public static final String PN_PEC_SEND_MAIL = "PnPecService.sendMail()";
+    public static final String PEC_SEND_MESSAGE = "PnPecService.sendMessage()";
+    public static final String PEC_GET_UNREAD_MESSAGES = "PnPecService.getUnreadMessages()";
     public static final String PEC_SET_MESSAGE_ID_IN_REQUEST_METADATA = "PecService.setMessageIdInRequestMetadata()";
+    public static final String PEC_MARK_MESSAGE_AS_READ = "PnPecService.markMessageAsRead()";
 
 
     //PAPER
@@ -179,7 +182,9 @@ public class LogUtils {
     public static final String ARUBA_GET_ATTACH = "ArubaCall.getAttach()";
     public static final String ARUBA_GET_MESSAGE_COUNT = "ArubaService.getMessageCount()";
     public static final String ARUBA_DELETE_MAIL = "ArubaService.deleteMail()";
+    public static final String ARUBA_GET_UNREAD_MESSAGES = "ArubaService.getUnreadMessages()";
 
+    public static final String INITIALIZING_ARUBA_PROXY_CLIENT = "Initializing Aruba proxy client for '{}' : ArubaServerAddress : {}, EndpointName : {}, ServiceName : {}";
 
     //SES
     public static final String SES_SEND_MAIL = "SesService.sendMail()";

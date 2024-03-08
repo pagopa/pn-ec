@@ -6,12 +6,11 @@ import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
-import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.CancellazioneRicevutePecProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CancellazioneRicevutePecDto;
-import it.pagopa.pn.library.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.library.pec.service.PnPecService;
 import lombok.CustomLog;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -30,7 +29,7 @@ public class CancellazioneRicevutePecService {
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final Semaphore semaphore;
 
-    public CancellazioneRicevutePecService(PnPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, @Value("${cancellazione-ricevute-pec.max-thread-pool-size}") Integer maxThreadPoolSize) {
+    public CancellazioneRicevutePecService(@Qualifier("pnPecServiceImpl") PnPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, @Value("${cancellazione-ricevute-pec.max-thread-pool-size}") Integer maxThreadPoolSize) {
         this.pnPecService = pnPecService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         log.debug("{} max thread pool size : {} ", CANCELLAZIONE_RICEVUTE_PEC, maxThreadPoolSize);
