@@ -3,7 +3,6 @@ package it.pagopa.pn.library.pec.service.impl;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
-import it.pagopa.pn.library.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.ArubaService;
@@ -12,7 +11,8 @@ import it.pec.bridgews.*;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 
@@ -21,15 +21,13 @@ import java.util.List;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 
-@Component
+@Service
+@DependsOn("pnPecCredentialConf")
 @CustomLog
 public class ArubaServiceImpl implements ArubaService {
 
 
     private final PecImapBridge pecImapBridgeClient;
-
-    private final ArubaSecretValue arubaSecretValue;
-
 
     private final CloudWatchPecMetrics cloudWatchPecMetrics;
 
@@ -39,13 +37,17 @@ public class ArubaServiceImpl implements ArubaService {
 
     public static final String ARUBA_PATTERN_STRING = "@pec.aruba.it";
 
+    @Value("${aruba.pec.username}")
+    private String pecUsername;
+
+    @Value("${aruba.pec.password}")
+    private String pecPassword;
+
     @Autowired
     public ArubaServiceImpl(PecImapBridge pecImapBridgeClient,
-                            ArubaSecretValue arubaSecretValue,
                             CloudWatchPecMetrics cloudWatchPecMetrics,
                             @Value("${library.pec.cloudwatch.namespace.aruba}") String arubaProviderNamespace) {
         this.pecImapBridgeClient = pecImapBridgeClient;
-        this.arubaSecretValue = arubaSecretValue;
         this.cloudWatchPecMetrics = cloudWatchPecMetrics;
         this.arubaProviderNamespace = arubaProviderNamespace;
     }
@@ -53,8 +55,8 @@ public class ArubaServiceImpl implements ArubaService {
     @Override
     public Mono<Integer> getMessageCount() {
         GetMessageCount getMessageCount = new GetMessageCount();
-        getMessageCount.setUser(arubaSecretValue.getPecUsername());
-        getMessageCount.setPass(arubaSecretValue.getPecPassword());
+        getMessageCount.setUser(pecUsername);
+        getMessageCount.setPass(pecPassword);
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGE_COUNT, getMessageCount);
         return Mono.create(sink -> pecImapBridgeClient.getMessageCountAsync(getMessageCount, res -> {
                     try {
@@ -72,8 +74,8 @@ public class ArubaServiceImpl implements ArubaService {
 
     public Mono<Void> deleteMessage(String messageID) {
         DeleteMail deleteMail = new DeleteMail();
-        deleteMail.setUser(arubaSecretValue.getPecUsername());
-        deleteMail.setPass(arubaSecretValue.getPecPassword());
+        deleteMail.setUser(pecUsername);
+        deleteMail.setPass(pecPassword);
         var mdcContextMap = MDCUtils.retrieveMDCContextMap();
         deleteMail.setMailid(messageID);
         deleteMail.setIsuid(2);
@@ -102,8 +104,8 @@ public class ArubaServiceImpl implements ArubaService {
     public Mono<String> sendMail(byte[] message) {
         SendMail sendMail = new SendMail();
         sendMail.setData(EmailUtils.getMimeMessageInCDATATag(message));
-        sendMail.setUser(arubaSecretValue.getPecUsername());
-        sendMail.setPass(arubaSecretValue.getPecPassword());
+        sendMail.setUser(pecUsername);
+        sendMail.setPass(pecPassword);
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_SEND_MAIL, sendMail);
         return Mono.create(sink -> pecImapBridgeClient.sendMailAsync(sendMail, outputFuture -> {
             try {
@@ -129,8 +131,8 @@ public class ArubaServiceImpl implements ArubaService {
         getMessages.setUnseen(1);
         getMessages.setLimit(limit);
         getMessages.setOuttype(2);
-        getMessages.setUser(arubaSecretValue.getPecUsername());
-        getMessages.setPass(arubaSecretValue.getPecPassword());
+        getMessages.setUser(pecUsername);
+        getMessages.setPass(pecPassword);
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGES, getMessages);
         return Mono.create(sink -> pecImapBridgeClient.getMessagesAsync(getMessages, outputFuture -> {
                     try {
@@ -155,8 +157,8 @@ public class ArubaServiceImpl implements ArubaService {
 
    public  Mono<Void> markMessageAsRead(String messageID) {
         GetMessageID getMessageID = new GetMessageID();
-        getMessageID.setUser(arubaSecretValue.getPecUsername());
-        getMessageID.setPass(arubaSecretValue.getPecPassword());
+        getMessageID.setUser(pecUsername);
+        getMessageID.setPass(pecPassword);
         getMessageID.setMailid(messageID);
         getMessageID.setIsuid(2);
         getMessageID.setMarkseen(1);

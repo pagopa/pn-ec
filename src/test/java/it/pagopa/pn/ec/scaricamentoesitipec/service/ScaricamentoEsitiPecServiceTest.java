@@ -7,19 +7,15 @@ import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.S3Service;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
-import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
-import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.library.pec.model.pojo.ArubaPostacert;
 import it.pagopa.pn.library.pec.service.DaticertService;
-import it.pagopa.pn.library.pec.service.impl.DatiCertServiceImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,12 +26,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
-import org.springframework.context.annotation.PropertySource;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import javax.mail.MessagingException;
 import java.io.ByteArrayOutputStream;
@@ -58,8 +52,6 @@ public class ScaricamentoEsitiPecServiceTest {
     private LavorazioneEsitiPecService lavorazioneEsitiPecService;
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
-    @Autowired
-    private ArubaSecretValue arubaSecretValue;
     @MockBean
     private Acknowledgment acknowledgment;
     @MockBean
@@ -74,6 +66,8 @@ public class ScaricamentoEsitiPecServiceTest {
     private S3Service s3Service;
     @Value("${pn.ec.storage.sqs.messages.staging.bucket}")
     String storageSqsMessagesStagingBucket;
+    @Value("${aruba.pec.username}")
+    private String pecUsername;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private static final String CLIENT_ID = "CLIENT_ID";
@@ -180,7 +174,7 @@ public class ScaricamentoEsitiPecServiceTest {
 
         EmailField emailField = EmailField.builder()
                 .msgId("messageId")
-                .from(arubaSecretValue.getPecUsername())
+                .from(pecUsername)
                 .to("to")
                 .subject("subject")
                 .text("text")
