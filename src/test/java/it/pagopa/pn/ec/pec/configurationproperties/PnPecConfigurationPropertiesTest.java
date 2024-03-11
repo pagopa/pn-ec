@@ -1,31 +1,38 @@
 package it.pagopa.pn.ec.pec.configurationproperties;
 
+import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @SpringBootTestWebEnv
 @CustomLog
-class PnPecConfigurationPropertiesTest {
+public class PnPecConfigurationPropertiesTest {
 
     @Autowired
     PnPecConfigurationProperties pnPecConfigurationProperties;
-    private String TIPO_RICEVUTA_BREVE_DEFAULT;
+
+    private final String ARUBA = "aruba";
+    private final String ALTERNATIVE = "other";
+    private  String PROVIDER_SWITCH_DEFAULT = "aruba";
+    private final String DATE_ARUBA= "2050-01-01T00:00:00Z";
+    private final String DATE_ALTERNATIVE= "2020-12-31T23:59:58Z";
+    private final String DATE_DEFAULT= "2020-01-01T00:00:00Z";
+    private final String PN_PEC_PROVIDER_SWITCH = "pnPecProviderSwitch";
 
     @BeforeEach
     void setUp() {
-        DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2020-01-01").getMillis());
-        TIPO_RICEVUTA_BREVE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "tipoRicevutaBreve");
+        DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_DEFAULT).getMillis());
+        PROVIDER_SWITCH_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH);
     }
 
     @AfterEach
     void afterEach() {
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", TIPO_RICEVUTA_BREVE_DEFAULT);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties,PN_PEC_PROVIDER_SWITCH,PROVIDER_SWITCH_DEFAULT);
     }
 
     @AfterAll
@@ -35,36 +42,28 @@ class PnPecConfigurationPropertiesTest {
 
     @Test
     void testTipoRicevutaActualPropertyValueOk() {
-        DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2022-12-31T23:59:58Z").getMillis());
-        Assertions.assertFalse(pnPecConfigurationProperties.getTipoRicevutaBreve());
-        DateTimeUtils.setCurrentMillisFixed(DateTime.parse("2050-01-01T00:00:00Z").getMillis());
-        Assertions.assertTrue(pnPecConfigurationProperties.getTipoRicevutaBreve());
+        DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_ALTERNATIVE).getMillis());
+        Assertions.assertEquals(ALTERNATIVE, pnPecConfigurationProperties.getPnPecProviderSwitch());
+        DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_ARUBA).getMillis());
+        Assertions.assertEquals(ARUBA, pnPecConfigurationProperties.getPnPecProviderSwitch());
     }
 
     @Test
-    void testTipoRicevutaBreveSingleValueOk(){
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", "true");
-        Assertions.assertTrue(pnPecConfigurationProperties.getTipoRicevutaBreve());
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", "false");
-        Assertions.assertFalse(pnPecConfigurationProperties.getTipoRicevutaBreve());
+    void testpnPecProviderSwitchSingleValueOk() {
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ARUBA);
+        Assertions.assertEquals(ARUBA, pnPecConfigurationProperties.getPnPecProviderSwitch());
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ALTERNATIVE);
+        Assertions.assertEquals(ALTERNATIVE, pnPecConfigurationProperties.getPnPecProviderSwitch());
     }
 
     @Test
-    void testTipoRicevutaKoUnparsableValue(){
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", "true;test;false;");
-        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getTipoRicevutaBreve());
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", "true;2021-01-01T23:59:59Z");
-        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getTipoRicevutaBreve());
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", "true;2021-01-01T23:59:59Z;false;false");
-        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getTipoRicevutaBreve());
-    }
-
-    @Test
-    void testTipoRicevutaBreveDateOk() {
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", "true;2023-01-01T23:59:59Z;false");
-        Assertions.assertTrue(pnPecConfigurationProperties.getTipoRicevutaBreve());
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", "true;2019-01-01T23:59:59Z;false");
-        Assertions.assertFalse(pnPecConfigurationProperties.getTipoRicevutaBreve());
+    void testTipoRicevutaKoUnparsableValue() {
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ARUBA+";"+ARUBA+";"+ALTERNATIVE);
+        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getPnPecProviderSwitch());
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ARUBA+";"+DATE_ALTERNATIVE);
+        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getPnPecProviderSwitch());
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ARUBA+";"+DATE_ALTERNATIVE+";false;false");
+        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getPnPecProviderSwitch());
     }
 
 }

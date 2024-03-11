@@ -102,14 +102,14 @@ Parameters:
     Description: 'Alarm threshold to trigger autoscaling of the microservice'
     Default: 10000
 
-  ArubaCallRetryStrategyMaxAttempts:
+  PnPecRetryStrategyMaxAttempts:
     Type: String
-    Description: 'Retry strategy Aruba max attempts'
+    Description: 'Retry strategy max attempts'
     Default: ''
 
-  ArubaCallRetryStrategyMinBackoff:
+  PnPecRetryStrategyMinBackoff:
     Type: String
-    Description: 'Retry strategy Aruba min delay'
+    Description: 'Retry strategy min delay'
     Default: ''
   
   LavorazionePecMaxThreadPoolSize:
@@ -870,8 +870,8 @@ Resources:
         ContainerEnvEntry41: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
         ContainerEnvEntry42: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
         ContainerEnvEntry43: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
-        ContainerEnvEntry44: !Sub 'ArubaCallRetryStrategyMaxAttempts=${ArubaCallRetryStrategyMaxAttempts}'
-        ContainerEnvEntry45: !Sub 'ArubaCallRetryStrategyMinBackoff=${ArubaCallRetryStrategyMinBackoff}'
+        ContainerEnvEntry44: !Sub 'PnPecRetryStrategyMaxAttempts=${PnPecRetryStrategyMaxAttempts}'
+        ContainerEnvEntry45: !Sub 'PnPecRetryStrategyMinBackoff=${PnPecRetryStrategyMinBackoff}'
         ContainerEnvEntry46: !Sub 'LavorazionePecMaxThreadPoolSize=${LavorazionePecMaxThreadPoolSize}'
         ContainerEnvEntry47: !Sub 'LavorazioneEsitiPecMaxThreadPoolSize=${LavorazioneEsitiPecMaxThreadPoolSize}'
         ContainerEnvEntry48: !Sub 'ScaricamentoEsitiPecLimitRate=${ScaricamentoEsitiPecLimitRate}'
