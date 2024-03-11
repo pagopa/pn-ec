@@ -3,6 +3,7 @@ package it.pagopa.pn.library.pec.service.impl;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
+import it.pagopa.pn.library.pec.exception.pecservice.PnSpapiTemporaryErrorException;
 import it.pagopa.pn.library.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
@@ -67,7 +68,8 @@ public class ArubaServiceImpl implements ArubaService {
                 })).cast(GetMessageCountResponse.class)
                 .map(GetMessageCountResponse::getCount)
                 .flatMap(count -> cloudWatchPecMetrics.publishMessageCount(Long.valueOf(count), arubaProviderNamespace).thenReturn(count))
-                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_COUNT, result));
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_COUNT, result))
+                .onErrorResume(throwable -> Mono.error(new PnSpapiTemporaryErrorException(throwable.getMessage(), throwable)));
     }
 
     public Mono<Void> deleteMessage(String messageID) {
@@ -95,7 +97,9 @@ public class ArubaServiceImpl implements ArubaService {
                     }
                 })).cast(DeleteMailResponse.class)
                 .then()
-                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_DELETE_MAIL, result));
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_DELETE_MAIL, result))
+                .onErrorResume(throwable -> Mono.error(new PnSpapiTemporaryErrorException(throwable.getMessage(), throwable)));
+
     }
 
     @Override
@@ -121,7 +125,9 @@ public class ArubaServiceImpl implements ArubaService {
                     return msgId.substring(0, msgId.length() - 2);
                 })
                 .cast(String.class)
-                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_SEND_MAIL, result));
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_SEND_MAIL, result))
+                .onErrorResume(throwable -> Mono.error(new PnSpapiTemporaryErrorException(throwable.getMessage(), throwable)));
+
     }
 
     public Mono<PnGetMessagesResponse> getUnreadMessages(int limit) {
@@ -149,7 +155,9 @@ public class ArubaServiceImpl implements ArubaService {
                     pnGetMessagesResponse.setPnListOfMessages(new PnListOfMessages(messages));
                     return pnGetMessagesResponse;
                 })
-                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGES, result));
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGES, result))
+                .onErrorResume(throwable -> Mono.error(new PnSpapiTemporaryErrorException(throwable.getMessage(), throwable)));
+
     }
 
 
@@ -171,8 +179,10 @@ public class ArubaServiceImpl implements ArubaService {
                     }
                 })).cast(GetMessageIDResponse.class)
                 .then()
-                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_ID, result));
-    }
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_ID, result))
+                .onErrorResume(throwable -> Mono.error(new PnSpapiTemporaryErrorException(throwable.getMessage(), throwable)));
+
+   }
 
     private void checkErrors(Integer errorCode, String errorStr) {
         if (!errorCode.equals(0))
