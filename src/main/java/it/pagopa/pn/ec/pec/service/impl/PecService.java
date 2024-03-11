@@ -84,8 +84,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private final Semaphore semaphore;
     private final PnPecConfigurationProperties pnPecProps;
     private String idSaved;
-    @Value("${aruba.pec.username}")
-    private String pecUsername;
+    @Value("${pn.pec.sender}")
+    private String pecSender;
 
     protected PecService(AuthService authService,@Qualifier("pnPecServiceImpl") PnPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
             , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName, @Value("${lavorazione-pec.max-thread-pool-size}") Integer maxThreadPoolSize, PnPecConfigurationProperties pnPecProps) {
@@ -295,7 +295,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS + " - {}", PEC_SEND_MAIL, digitalNotificationRequest, attachments);
         return Mono.just(attachments).map(fileDownloadResponses -> EmailField.builder()
                 .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
-                .from(pecUsername)
+                .from(pecSender)
                 .to(digitalNotificationRequest.getReceiverDigitalAddress())
                 .subject(digitalNotificationRequest.getSubjectText())
                 .text(digitalNotificationRequest.getMessageText())
@@ -332,7 +332,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private GeneratedMessageDto createGeneratedMessageDto(String messageID) {
-        return new GeneratedMessageDto().id(messageID).system(getDomainFromAddress(pecUsername));
+        return new GeneratedMessageDto().id(messageID).system(getDomainFromAddress(pecSender));
     }
 
     @Scheduled(cron = "${PnEcCronGestioneRetryPec ?:0 */5 * * * *}")

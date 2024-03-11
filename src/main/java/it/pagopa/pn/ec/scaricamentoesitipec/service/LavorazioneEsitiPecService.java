@@ -72,8 +72,8 @@ public class LavorazioneEsitiPecService {
     private final String storageSqsMessagesStagingBucket;
     private final Semaphore semaphore;
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
-    @Value("${aruba.pec.username}")
-    private String pecUsername;
+    @Value("${pn.pec.sender}")
+    private String pecSender;
 
     public LavorazioneEsitiPecService(SqsService sqsService, DaticertService daticertService, StatusPullService statusPullService, CloudWatchPecMetrics cloudWatchPecMetrics, NotificationTrackerSqsName notificationTrackerSqsName, FileCall fileCall, WebClient uploadWebClient, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, S3Service s3Service, @Value("${lavorazione-esiti-pec.max-thread-pool-size}") Integer maxThreadPoolSize, @Value("${pn.ec.storage.sqs.messages.staging.bucket}") String storageSqsMessagesStagingBucket) {
         this.sqsService = sqsService;
@@ -178,7 +178,7 @@ public class LavorazioneEsitiPecService {
                                         requestIdx.set(requestDto.getRequestIdx());
                                         var xPagopaExtchCxId = requestDto.getxPagopaExtchCxId();
                                         var eventDetails = postacert.getErrore();
-                                        var senderDigitalAddress = pecUsername;
+                                        var senderDigitalAddress = pecSender;
                                         var senderDomain = getDomainFromAddress(senderDigitalAddress);
                                         var receiversDomain = ricezioneEsitiPecDto.getReceiversDomain();
 
