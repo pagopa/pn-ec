@@ -49,6 +49,7 @@ public class ArubaServiceImpl implements ArubaService {
         GetMessageCount getMessageCount = new GetMessageCount();
         getMessageCount.setUser(pecUsername);
         getMessageCount.setPass(pecPassword);
+        var mdcContextMap = MDCUtils.retrieveMDCContextMap();
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGE_COUNT, getMessageCount);
         return Mono.create(sink -> pecImapBridgeClient.getMessageCountAsync(getMessageCount, res -> {
                     try {
@@ -56,6 +57,7 @@ public class ArubaServiceImpl implements ArubaService {
                         checkErrors(result.getErrcode(), result.getErrstr());
                         sink.success(result);
                     } catch (Exception e) {
+                        MDCUtils.enrichWithMDC(null, mdcContextMap);
                         endSoapRequest(sink, e);
                     }
                 })).cast(GetMessageCountResponse.class)
@@ -100,6 +102,7 @@ public class ArubaServiceImpl implements ArubaService {
         sendMail.setData(EmailUtils.getMimeMessageInCDATATag(message));
         sendMail.setUser(pecUsername);
         sendMail.setPass(pecPassword);
+        var mdcContextMap = MDCUtils.retrieveMDCContextMap();
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_SEND_MAIL, sendMail);
         return Mono.create(sink -> pecImapBridgeClient.sendMailAsync(sendMail, outputFuture -> {
             try {
@@ -107,6 +110,7 @@ public class ArubaServiceImpl implements ArubaService {
                 checkErrors(result.getErrcode(), result.getErrstr());
                 sink.success(result);
             } catch (Exception throwable) {
+                MDCUtils.enrichWithMDC(null, mdcContextMap);
                 endSoapRequest(sink, throwable);
             }
         }))
@@ -129,6 +133,7 @@ public class ArubaServiceImpl implements ArubaService {
         getMessages.setOuttype(2);
         getMessages.setUser(pecUsername);
         getMessages.setPass(pecPassword);
+        var mdcContextMap = MDCUtils.retrieveMDCContextMap();
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGES, getMessages);
         return Mono.create(sink -> pecImapBridgeClient.getMessagesAsync(getMessages, outputFuture -> {
                     try {
@@ -136,6 +141,7 @@ public class ArubaServiceImpl implements ArubaService {
                         checkErrors(result.getErrcode(), result.getErrstr());
                         sink.success(result);
                     } catch (Exception throwable) {
+                        MDCUtils.enrichWithMDC(null, mdcContextMap);
                         endSoapRequest(sink, throwable);
                     }
                 })).cast(GetMessagesResponse.class)
@@ -160,6 +166,7 @@ public class ArubaServiceImpl implements ArubaService {
         getMessageID.setMailid(messageID);
         getMessageID.setIsuid(2);
         getMessageID.setMarkseen(1);
+        var mdcContextMap = MDCUtils.retrieveMDCContextMap();
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGE_ID, getMessageID);
         return Mono.create(sink -> pecImapBridgeClient.getMessageIDAsync(getMessageID, outputFuture -> {
                     try {
@@ -167,6 +174,7 @@ public class ArubaServiceImpl implements ArubaService {
                         checkErrors(result.getErrcode(), result.getErrstr());
                         sink.success(result);
                     } catch (Exception throwable) {
+                        MDCUtils.enrichWithMDC(null, mdcContextMap);
                         endSoapRequest(sink, throwable);
                     }
                 })).cast(GetMessageIDResponse.class)
