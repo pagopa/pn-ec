@@ -7,6 +7,7 @@ import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.library.pec.exception.pecservice.MaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.PnSpapiPermanentErrorException;
@@ -24,6 +25,7 @@ import org.joda.time.DateTimeUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -66,6 +68,12 @@ class PnPecServiceTest {
     private PecService pecService;
     @SpyBean
     private PnPecConfigurationProperties pnPecConfigurationProperties;
+    @SpyBean
+    private CloudWatchPecMetrics cloudWatchPecMetrics;
+    @Value("${library.pec.cloudwatch.namespace.aruba}")
+    private String arubaProviderNamespace;
+    @Value("${library.pec.cloudwatch.namespace.alternative}")
+    private String alternativeProviderNamespace;
 
     private String PROVIDER_SWITCH_DEFAULT = "aruba";
     private final String TEMPORARY_EXCEPTION = "test temporary exception";
@@ -405,6 +413,8 @@ class PnPecServiceTest {
 
         verify(arubaService, times(1)).getMessageCount();
         verify(alternativeProviderService, times(1)).getMessageCount();
+        verify(cloudWatchPecMetrics, times(1)).publishMessageCount(3L, arubaProviderNamespace);
+        verify(cloudWatchPecMetrics, times(1)).publishMessageCount(3L, alternativeProviderNamespace);
     }
 
     @Test
@@ -420,6 +430,8 @@ class PnPecServiceTest {
 
         verify(arubaService, times(1)).getMessageCount();
         verify(alternativeProviderService, times(1)).getMessageCount();
+        verify(cloudWatchPecMetrics, times(1)).publishMessageCount(3L, arubaProviderNamespace);
+        verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), eq(alternativeProviderNamespace));
     }
 
     @Test
@@ -435,6 +447,8 @@ class PnPecServiceTest {
 
         verify(arubaService, times(1)).getMessageCount();
         verify(alternativeProviderService, times(1)).getMessageCount();
+        verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), eq(arubaProviderNamespace));
+        verify(cloudWatchPecMetrics, times(1)).publishMessageCount(3L, alternativeProviderNamespace);
     }
 
     @Test
@@ -450,6 +464,7 @@ class PnPecServiceTest {
 
         verify(arubaService, times(1)).getMessageCount();
         verify(alternativeProviderService, times(1)).getMessageCount();
+        verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), anyString());
     }
 
     @Test
@@ -465,6 +480,8 @@ class PnPecServiceTest {
 
         verify(arubaService, times(1)).getMessageCount();
         verify(alternativeProviderService, times(1)).getMessageCount();
+        verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), eq(arubaProviderNamespace));
+        verify(cloudWatchPecMetrics, times(1)).publishMessageCount(3L, alternativeProviderNamespace);
     }
 
     @Test
@@ -480,6 +497,8 @@ class PnPecServiceTest {
 
         verify(arubaService, times(1)).getMessageCount();
         verify(alternativeProviderService, times(1)).getMessageCount();
+        verify(cloudWatchPecMetrics, times(1)).publishMessageCount(3L, arubaProviderNamespace);
+        verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), eq(alternativeProviderNamespace));
     }
 
     @Test
@@ -495,6 +514,7 @@ class PnPecServiceTest {
 
         verify(arubaService, times(1)).getMessageCount();
         verify(alternativeProviderService, times(1)).getMessageCount();
+        verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), anyString());
     }
 
     //MARKMESSAGEASREAD

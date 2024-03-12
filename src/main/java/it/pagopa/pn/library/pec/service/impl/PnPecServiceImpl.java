@@ -2,6 +2,7 @@ package it.pagopa.pn.library.pec.service.impl;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
+import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.library.pec.configurationproperties.PnPecRetryStrategyProperties;
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.AlternativeProviderMaxRetriesExceededException;
@@ -17,6 +18,7 @@ import lombok.CustomLog;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -36,22 +38,29 @@ public class PnPecServiceImpl implements PnPecService {
     private final AlternativeProviderService otherService;
     private final PnPecConfigurationProperties props;
     private final PnPecRetryStrategyProperties retryStrategyProperties;
+    private final CloudWatchPecMetrics cloudWatchPecMetrics;
 
     private static final String ARUBA_PROVIDER = "aruba";
     private static final String OTHER_PROVIDER = "other";
     private static final String SERVICE_ERROR = "Error retrieving messages from service: {}";
     private static final String RETRIES_EXCEEDED_MESSAGE = "Max retries exceeded for ";
 
+    @Value("${library.pec.cloudwatch.namespace.aruba}")
+    private String arubaProviderNamespace;
+    @Value("${library.pec.cloudwatch.namespace.alternative}")
+    private String alternativeProviderNamespace;
+
 
     @Autowired
     public PnPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService,
                             @Qualifier("alternativeProviderServiceImpl") AlternativeProviderService otherService,
                             PnPecConfigurationProperties props,
-                            PnPecRetryStrategyProperties retryStrategyProperties) {
+                            PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics) {
         this.arubaService = arubaService;
         this.retryStrategyProperties = retryStrategyProperties;
         this.otherService = otherService;
         this.props = props;
+        this.cloudWatchPecMetrics = cloudWatchPecMetrics;
     }
 
     private Retry getPnPecRetryStrategy(String clientMethodName, String providerName) {
@@ -158,6 +167,7 @@ public class PnPecServiceImpl implements PnPecService {
         AtomicBoolean isOtherOk = new AtomicBoolean(true);
 
         Mono<Integer> arubaCount = arubaService.getMessageCount()
+                .flatMap(count -> cloudWatchPecMetrics.publishMessageCount(Long.valueOf(count), arubaProviderNamespace).thenReturn(count))
                 .retryWhen(getPnPecRetryStrategy(PEC_GET_MESSAGE_COUNT, ARUBA_PROVIDER))
                 .onErrorResume(e -> {
                     log.warn(SERVICE_ERROR, "ArubaService", e);
@@ -166,6 +176,7 @@ public class PnPecServiceImpl implements PnPecService {
                 });
 
         Mono<Integer> otherProviderCount = otherService.getMessageCount()
+                .flatMap(count -> cloudWatchPecMetrics.publishMessageCount(Long.valueOf(count), alternativeProviderNamespace).thenReturn(count))
                 .retryWhen(getPnPecRetryStrategy(PEC_GET_MESSAGE_COUNT, OTHER_PROVIDER))
                 .onErrorResume(e -> {
                     log.warn(SERVICE_ERROR, "OtherProviderService", e);
