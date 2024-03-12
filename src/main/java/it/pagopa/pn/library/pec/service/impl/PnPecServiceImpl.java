@@ -130,7 +130,7 @@ public class PnPecServiceImpl implements PnPecService {
                     if (!isArubaOk.get() && !isOtherOk.get()) {
                         throw new ProvidersNotAvailableException("Both services returned an error");
                     } else {
-                        return new PnGetMessagesResponse(new PnListOfMessages(messages.isEmpty() ? null : messages), messages.size());
+                            return new PnGetMessagesResponse(messages.isEmpty() ? null : new PnListOfMessages(messages), messages.size());
                     }
                 })
                 .doOnSuccess(result -> log.logEndingProcess(PEC_GET_UNREAD_MESSAGES));
