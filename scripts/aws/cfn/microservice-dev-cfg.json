@@ -25,6 +25,16 @@
     "PnEcPECMaxMessageSizeMB": "100",
     "PnEcPECAttachmentRule": "LIMIT",
     "PnEcPECTipoRicevutaBreve": "true",
-    "PnEcProviderSwitch": "aruba"
+    "PnEcProviderSwitch": "aruba",
+    "PnEcNamirialServerImapAddress": "",
+    "PnEcNamirialServerSmtpAddress": "",
+    "PnEcNamirialServerImapPort": "",
+    "PnEcNamirialServerSmtpPort": "",
+    "PnEcNamirialPoolImapMaxtotal": "",
+    "PnEcNamirialPoolImapMaxidle": "",
+    "PnEcNamirialPoolImapMinidle": "",
+    "PnEcNamirialPoolSmtpMaxtotal": "",
+    "PnEcNamirialPoolSmtpMaxidle": "",
+    "PnEcNamirialPoolSmtpMinidle": ""
   }
 }

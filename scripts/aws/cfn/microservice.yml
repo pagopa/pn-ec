@@ -809,6 +809,36 @@ Parameters:
     Default: 7200
     Description: Value in seconds
 
+  PnEcNamirialServerImapAddress:
+    Type: String
+
+  PnEcNamirialServerSmtpAddress:
+    Type: String
+
+  PnEcNamirialServerImapPort:
+    Type: String
+
+  PnEcNamirialServerSmtpPort:
+    Type: String
+
+  PnEcNamirialPoolImapMaxtotal:
+    Type: String
+
+  PnEcNamirialPoolImapMaxidle:
+    Type: String
+
+  PnEcNamirialPoolImapMinidle:
+    Type: String
+
+  PnEcNamirialPoolSmtpMaxtotal:
+    Type: String
+
+  PnEcNamirialPoolSmtpMaxidle:
+    Type: String
+
+  PnEcNamirialPoolSmtpMinidle:
+    Type: String
+
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
@@ -890,7 +920,17 @@ Resources:
         ContainerEnvEntry61: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
         ContainerEnvEntry62: !Sub 'PnEcSqsMessagesStagingBucketName=${PnEcSqsMessagesStagingBucketName}'
         ContainerEnvEntry63: !Sub 'PnEcProviderSwitch=${PnEcProviderSwitch}',
-        ContainerEnvEntry64: !Sub 'PnEcIdentityPec=${PnEcIdentityPec}'
+        ContainerEnvEntry64: !Sub 'PnEcIdentityPec=${PnEcIdentityPec}',
+        ContainerEnvEntry65: !Sub 'PnEcNamirialServerImapAddress=${PnEcNamirialServerImapAddress}',
+        ContainerEnvEntry66: !Sub 'PnEcNamirialServerSmtpAddress=${PnEcNamirialServerSmtpAddress}',
+        ContainerEnvEntry67: !Sub 'PnEcNamirialServerImapPort=${PnEcNamirialServerImapPort}',
+        ContainerEnvEntry68: !Sub 'PnEcNamirialServerSmtpPort=${PnEcNamirialServerSmtpPort}',
+        ContainerEnvEntry69: !Sub 'PnEcNamirialPoolImapMaxtotal=${PnEcNamirialPoolImapMaxtotal}',
+        ContainerEnvEntry70: !Sub 'PnEcNamirialPoolImapMaxidle=${PnEcNamirialPoolImapMaxidle}',
+        ContainerEnvEntry71: !Sub 'PnEcNamirialPoolImapMinidle=${PnEcNamirialPoolImapMinidle}',
+        ContainerEnvEntry72: !Sub 'PnEcNamirialPoolSmtpMaxtotal=${PnEcNamirialPoolSmtpMaxtotal}',
+        ContainerEnvEntry73: !Sub 'PnEcNamirialPoolSmtpMaxidle=${PnEcNamirialPoolSmtpMaxidle}',
+        ContainerEnvEntry74: !Sub 'PnEcNamirialPoolSmtpMinidle=${PnEcNamirialPoolSmtpMinidle}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
