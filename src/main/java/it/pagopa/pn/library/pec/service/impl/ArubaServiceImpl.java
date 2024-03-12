@@ -3,8 +3,7 @@ package it.pagopa.pn.library.pec.service.impl;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
-import it.pagopa.pn.library.pec.configurationproperties.ArubaServiceProperties;
-import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
+import it.pagopa.pn.library.pec.exception.pecservice.PnSpapiTemporaryErrorException;
 import it.pagopa.pn.library.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
@@ -17,8 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
-import reactor.util.retry.Retry;
-import java.time.Duration;
+
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
@@ -33,7 +31,6 @@ public class ArubaServiceImpl implements ArubaService {
 
     private final ArubaSecretValue arubaSecretValue;
 
-    private final ArubaServiceProperties arubaServiceProperties;
 
     private final CloudWatchPecMetrics cloudWatchPecMetrics;
 
@@ -44,24 +41,14 @@ public class ArubaServiceImpl implements ArubaService {
     public static final String ARUBA_PATTERN_STRING = "@pec.aruba.it";
 
     @Autowired
-    public ArubaServiceImpl(PecImapBridge pecImapBridgeClient, ArubaSecretValue arubaSecretValue, ArubaServiceProperties arubaServiceProperties, CloudWatchPecMetrics cloudWatchPecMetrics, @Value("${library.pec.cloudwatch.namespace.aruba}") String arubaProviderNamespace) {
+    public ArubaServiceImpl(PecImapBridge pecImapBridgeClient,
+                            ArubaSecretValue arubaSecretValue,
+                            CloudWatchPecMetrics cloudWatchPecMetrics,
+                            @Value("${library.pec.cloudwatch.namespace.aruba}") String arubaProviderNamespace) {
         this.pecImapBridgeClient = pecImapBridgeClient;
         this.arubaSecretValue = arubaSecretValue;
-        this.arubaServiceProperties = arubaServiceProperties;
         this.cloudWatchPecMetrics = cloudWatchPecMetrics;
         this.arubaProviderNamespace = arubaProviderNamespace;
-    }
-
-    private Retry getArubaCallRetryStrategy(String clientMethodName) {
-        var mdcContextMap = MDCUtils.retrieveMDCContextMap();
-        return Retry.backoff(Long.parseLong(arubaServiceProperties.maxAttempts()), Duration.ofSeconds(Long.parseLong(arubaServiceProperties.minBackoff())))
-                .doBeforeRetry(retrySignal -> {
-                    MDCUtils.enrichWithMDC(null, mdcContextMap);
-                    log.debug("Retry number {} for '{}', caused by : {}", retrySignal.totalRetries(), clientMethodName, retrySignal.failure().getMessage(), retrySignal.failure());
-                })
-                .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
-                    throw new ArubaCallMaxRetriesExceededException();
-                });
     }
 
     @Override
@@ -69,6 +56,7 @@ public class ArubaServiceImpl implements ArubaService {
         GetMessageCount getMessageCount = new GetMessageCount();
         getMessageCount.setUser(arubaSecretValue.getPecUsername());
         getMessageCount.setPass(arubaSecretValue.getPecPassword());
+        var mdcContextMap = MDCUtils.retrieveMDCContextMap();
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGE_COUNT, getMessageCount);
         return Mono.create(sink -> pecImapBridgeClient.getMessageCountAsync(getMessageCount, res -> {
                     try {
@@ -76,12 +64,14 @@ public class ArubaServiceImpl implements ArubaService {
                         checkErrors(result.getErrcode(), result.getErrstr());
                         sink.success(result);
                     } catch (Exception e) {
+                        MDCUtils.enrichWithMDC(null, mdcContextMap);
                         endSoapRequest(sink, e);
                     }
-                })).cast(GetMessageCountResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_GET_MESSAGE_COUNT))
+                })).cast(GetMessageCountResponse.class)
                 .map(GetMessageCountResponse::getCount)
                 .flatMap(count -> cloudWatchPecMetrics.publishMessageCount(Long.valueOf(count), arubaProviderNamespace).thenReturn(count))
-                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_COUNT, result));
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_COUNT, result))
+                .onErrorResume(throwable -> Mono.error(new PnSpapiTemporaryErrorException(throwable.getMessage(), throwable)));
     }
 
     public Mono<Void> deleteMessage(String messageID) {
@@ -107,9 +97,11 @@ public class ArubaServiceImpl implements ArubaService {
                         MDCUtils.enrichWithMDC(null, mdcContextMap);
                         endSoapRequest(sink, e);
                     }
-                })).cast(DeleteMailResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_DELETE_MAIL))
+                })).cast(DeleteMailResponse.class)
                 .then()
-                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_DELETE_MAIL, result));
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_DELETE_MAIL, result))
+                .onErrorResume(throwable -> Mono.error(new PnSpapiTemporaryErrorException(throwable.getMessage(), throwable)));
+
     }
 
     @Override
@@ -118,6 +110,7 @@ public class ArubaServiceImpl implements ArubaService {
         sendMail.setData(EmailUtils.getMimeMessageInCDATATag(message));
         sendMail.setUser(arubaSecretValue.getPecUsername());
         sendMail.setPass(arubaSecretValue.getPecPassword());
+        var mdcContextMap = MDCUtils.retrieveMDCContextMap();
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_SEND_MAIL, sendMail);
         return Mono.create(sink -> pecImapBridgeClient.sendMailAsync(sendMail, outputFuture -> {
             try {
@@ -125,17 +118,20 @@ public class ArubaServiceImpl implements ArubaService {
                 checkErrors(result.getErrcode(), result.getErrstr());
                 sink.success(result);
             } catch (Exception throwable) {
+                MDCUtils.enrichWithMDC(null, mdcContextMap);
                 endSoapRequest(sink, throwable);
             }
         }))
-                .cast(SendMailResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_SEND_MAIL))
+                .cast(SendMailResponse.class)
                 .map(sendMailResponse -> {
                     String msgId = sendMailResponse.getErrstr();
                     //Remove the last 2 char '\r\n'
                     return msgId.substring(0, msgId.length() - 2);
                 })
                 .cast(String.class)
-                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_SEND_MAIL, result));
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_SEND_MAIL, result))
+                .onErrorResume(throwable -> Mono.error(new PnSpapiTemporaryErrorException(throwable.getMessage(), throwable)));
+
     }
 
     public Mono<PnGetMessagesResponse> getUnreadMessages(int limit) {
@@ -145,6 +141,7 @@ public class ArubaServiceImpl implements ArubaService {
         getMessages.setOuttype(2);
         getMessages.setUser(arubaSecretValue.getPecUsername());
         getMessages.setPass(arubaSecretValue.getPecPassword());
+        var mdcContextMap = MDCUtils.retrieveMDCContextMap();
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGES, getMessages);
         return Mono.create(sink -> pecImapBridgeClient.getMessagesAsync(getMessages, outputFuture -> {
                     try {
@@ -152,9 +149,10 @@ public class ArubaServiceImpl implements ArubaService {
                         checkErrors(result.getErrcode(), result.getErrstr());
                         sink.success(result);
                     } catch (Exception throwable) {
+                        MDCUtils.enrichWithMDC(null, mdcContextMap);
                         endSoapRequest(sink, throwable);
                     }
-                })).cast(GetMessagesResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_GET_MESSAGES))
+                })).cast(GetMessagesResponse.class)
                 .map(getMessagesResponse -> {
                     PnGetMessagesResponse pnGetMessagesResponse = new PnGetMessagesResponse();
                     List<byte[]> messages = getMessagesResponse.getArrayOfMessages() == null ?
@@ -163,7 +161,9 @@ public class ArubaServiceImpl implements ArubaService {
                     pnGetMessagesResponse.setPnListOfMessages(new PnListOfMessages(messages));
                     return pnGetMessagesResponse;
                 })
-                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGES, result));
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGES, result))
+                .onErrorResume(throwable -> Mono.error(new PnSpapiTemporaryErrorException(throwable.getMessage(), throwable)));
+
     }
 
 
@@ -174,6 +174,7 @@ public class ArubaServiceImpl implements ArubaService {
         getMessageID.setMailid(messageID);
         getMessageID.setIsuid(2);
         getMessageID.setMarkseen(1);
+        var mdcContextMap = MDCUtils.retrieveMDCContextMap();
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGE_ID, getMessageID);
         return Mono.create(sink -> pecImapBridgeClient.getMessageIDAsync(getMessageID, outputFuture -> {
                     try {
@@ -181,12 +182,15 @@ public class ArubaServiceImpl implements ArubaService {
                         checkErrors(result.getErrcode(), result.getErrstr());
                         sink.success(result);
                     } catch (Exception throwable) {
+                        MDCUtils.enrichWithMDC(null, mdcContextMap);
                         endSoapRequest(sink, throwable);
                     }
-                })).cast(GetMessageIDResponse.class).retryWhen(getArubaCallRetryStrategy(ARUBA_GET_MESSAGE_ID))
+                })).cast(GetMessageIDResponse.class)
                 .then()
-                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_ID, result));
-    }
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_ID, result))
+                .onErrorResume(throwable -> Mono.error(new PnSpapiTemporaryErrorException(throwable.getMessage(), throwable)));
+
+   }
 
     private void checkErrors(Integer errorCode, String errorStr) {
         if (!errorCode.equals(0))

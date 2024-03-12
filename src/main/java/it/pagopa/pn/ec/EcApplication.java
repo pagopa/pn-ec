@@ -45,7 +45,7 @@ import org.springframework.context.annotation.PropertySource;
 
 //  <-- SCARICAMENTO ESITI PEC -->
 @PropertySource("classpath:scaricamentoesitipec/scaricamento-esiti-pec.properties")
-@PropertySource("classpath:scaricamentoesitipec/aruba-call-retry-strategy.properties")
+@PropertySource("classpath:scaricamentoesitipec/pn-pec-retry-strategy.properties")
 @PropertySource("classpath:scaricamentoesitipec/cancellazione-ricevute-pec.properties")
 
 //  <-- CARTACEO -->
