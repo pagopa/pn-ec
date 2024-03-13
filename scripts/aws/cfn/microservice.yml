@@ -889,7 +889,8 @@ Resources:
         ContainerEnvEntry60: !Sub 'PnEcPECAttachmentRule=${PnEcPECAttachmentRule}'
         ContainerEnvEntry61: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
         ContainerEnvEntry62: !Sub 'PnEcSqsMessagesStagingBucketName=${PnEcSqsMessagesStagingBucketName}'
-        ContainerEnvEntry63: !Sub 'PnEcProviderSwitch=${PnEcProviderSwitch}'
+        ContainerEnvEntry63: !Sub 'PnEcProviderSwitch=${PnEcProviderSwitch}',
+        ContainerEnvEntry64: !Sub 'PnEcIdentityPec=${PnEcIdentityPec}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -987,7 +988,7 @@ Resources:
             Resource:
               - '*'
           - Effect: Allow
-            Sid: 'ReadFromSecretsManagerInvioPEC'
+            Sid: 'ReadFromSecretsManagerIdentityPec'
             Action:
               - 'secretsmanager:DescribeSecret'
               - 'secretsmanager:GetSecretValue'
