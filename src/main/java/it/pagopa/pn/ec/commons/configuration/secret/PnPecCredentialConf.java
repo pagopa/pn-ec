@@ -42,12 +42,11 @@ public class PnPecCredentialConf {
     public void setSecretProperties() throws JsonProcessingException {
         if (testSecretProperties == null) {
             SecretsManagerClient smClient = initializeSmClient();
-            log.debug("Getting secrets from Secret Manager... {}", pnEcIdentityPec);
+            log.debug("Getting secrets from Secret Manager...");
             String secretStringJson = smClient.getSecretValue(builder -> builder.secretId(pnEcIdentityPec)).secretString();
-            log.debug("Secret value : {}", secretStringJson);
             Map<String, String> secretMap = objectMapper.readValue(secretStringJson, Map.class);
             secretMap.forEach(System::setProperty);
-            log.debug("All secret properties has been set. {}", System.getProperty("aruba.pec.username"));
+            log.debug("All secret properties has been set.");
         }
     }
 
