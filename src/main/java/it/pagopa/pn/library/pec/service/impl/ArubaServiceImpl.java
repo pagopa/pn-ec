@@ -2,7 +2,6 @@ package it.pagopa.pn.library.pec.service.impl;
 
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.library.pec.exception.pecservice.PnSpapiTemporaryErrorException;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
@@ -30,10 +29,6 @@ public class ArubaServiceImpl implements ArubaService {
 
     private final PecImapBridge pecImapBridgeClient;
 
-    private final CloudWatchPecMetrics cloudWatchPecMetrics;
-
-    private final String arubaProviderNamespace;
-
     private static final int MESSAGE_NOT_FOUND_ERR_CODE = 99;
 
     public static final String ARUBA_PATTERN_STRING = "@pec.aruba.it";
@@ -45,12 +40,8 @@ public class ArubaServiceImpl implements ArubaService {
     private String pecPassword;
 
     @Autowired
-    public ArubaServiceImpl(PecImapBridge pecImapBridgeClient,
-                            CloudWatchPecMetrics cloudWatchPecMetrics,
-                            @Value("${library.pec.cloudwatch.namespace.aruba}") String arubaProviderNamespace) {
+    public ArubaServiceImpl(PecImapBridge pecImapBridgeClient) {
         this.pecImapBridgeClient = pecImapBridgeClient;
-        this.cloudWatchPecMetrics = cloudWatchPecMetrics;
-        this.arubaProviderNamespace = arubaProviderNamespace;
     }
 
     @Override
@@ -71,7 +62,6 @@ public class ArubaServiceImpl implements ArubaService {
                     }
                 })).cast(GetMessageCountResponse.class)
                 .map(GetMessageCountResponse::getCount)
-                .flatMap(count -> cloudWatchPecMetrics.publishMessageCount(Long.valueOf(count), arubaProviderNamespace).thenReturn(count))
                 .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_COUNT, result))
                 .onErrorResume(throwable -> Mono.error(new PnSpapiTemporaryErrorException(throwable.getMessage(), throwable)));
     }
