@@ -268,9 +268,13 @@ Parameters:
 
   ######### LAVORAZIONE : PEC  ##########
 
-  PnEcProviderSwitch:
+  PnEcProviderSwitchRead:
     Type: String
-    Description: 'Regola per lo switch del provider PEC'
+    Description: 'Regola per lo switch del provider PEC per le operazioni in READ'
+
+  PnEcProviderSwitchWrite:
+    Type: String
+    Description: 'Regola per lo switch del provider PEC per le operazioni in WRITE'
 
   PnEcPECMaxMessageSizeMB:
     Type: String
@@ -889,7 +893,8 @@ Resources:
         ContainerEnvEntry60: !Sub 'PnEcPECAttachmentRule=${PnEcPECAttachmentRule}'
         ContainerEnvEntry61: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
         ContainerEnvEntry62: !Sub 'PnEcSqsMessagesStagingBucketName=${PnEcSqsMessagesStagingBucketName}'
-        ContainerEnvEntry63: !Sub 'PnEcProviderSwitch=${PnEcProviderSwitch}'
+        ContainerEnvEntry63: !Sub 'PnEcProviderSwitchRead=${PnEcProviderSwitchRead}'
+        ContainerEnvEntry64: !Sub 'PnEcProviderSwitchWrite=${PnEcProviderSwitchWrite}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'

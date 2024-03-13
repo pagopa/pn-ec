@@ -18,16 +18,15 @@ public class PnPecConfigurationProperties {
 
     private String attachmentRule;
     private int maxMessageSizeMb;
-    @Pattern(regexp = "([A-Za-z]*)|([A-Za-z]*;\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z;[A-Za-z]*)") //nuovo pattern per provider scrittura
+    @Pattern(regexp = "(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z;[a-zA-Z]+(?:\\|[a-zA-Z]+)*)((?:,\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z;[a-zA-Z]+(?:\\|[a-zA-Z]+)*))*")
     private String pnPecProviderSwitchWrite;
-    @Pattern(regexp = "([A-Za-z]*)|([A-Za-z]*;\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z;[A-Za-z]*)") //nuovo pattern per providers lettura
+    @Pattern(regexp = "(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z;[a-zA-Z]+(?:\\|[a-zA-Z]+)*)((?:,\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z;[a-zA-Z]+(?:\\|[a-zA-Z]+)*))*")
     private String pnPecProviderSwitchRead;
-    @Pattern(regexp = "(true|false);\\d{4}-\\d{2}-\\true|false|(d{2}T\\d{2}:\\d{2}:\\d{2}Z;(true|false))$")
+    @Pattern(regexp = "(true|false);\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z;(true|false)")
     private String tipoRicevutaBreve;
     private String tipoRicevutaHeaderName;
     private String tipoRicevutaHeaderValue;
 
-    private SortedMap<DateTime,List<String>> dateProviders;
 
 
 

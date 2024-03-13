@@ -25,6 +25,7 @@
     "PnEcPECMaxMessageSizeMB": "100",
     "PnEcPECAttachmentRule": "LIMIT",
     "PnEcPECTipoRicevutaBreve": "true",
-    "PnEcProviderSwitch": "aruba"
+    "PnEcProviderSwitchRead": "",
+    "PnEcProviderSwitchWrite": ""
   }
 }
