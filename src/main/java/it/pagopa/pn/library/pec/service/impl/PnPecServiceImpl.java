@@ -79,7 +79,7 @@ public class PnPecServiceImpl implements PnPecService {
         log.logStartingProcess(PN_PEC_SEND_MAIL);
         return getProvider()
                 .sendMail(message)
-                .retryWhen(getPnPecRetryStrategy(PN_PEC_SEND_MAIL, props.getPnPecProviderSwitch()))
+                .retryWhen(getPnPecRetryStrategy(PN_PEC_SEND_MAIL, props.getPnPecProviderSwitchWrite()))
                 .doOnSuccess(result -> log.logEndingProcess(PN_PEC_SEND_MAIL))
                 .doOnError(throwable -> log.logEndingProcess(PN_PEC_SEND_MAIL, false, throwable.getMessage()));
     }
@@ -143,7 +143,7 @@ public class PnPecServiceImpl implements PnPecService {
         log.logStartingProcess(PEC_MARK_MESSAGE_AS_READ);
         PnPecService provider = getProvider(messageID);
         return provider.markMessageAsRead(messageID)
-                .retryWhen(getPnPecRetryStrategy(PEC_MARK_MESSAGE_AS_READ, props.getPnPecProviderSwitch()))
+                .retryWhen(getPnPecRetryStrategy(PEC_MARK_MESSAGE_AS_READ, props.getPnPecProviderSwitchWrite()))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PEC_MARK_MESSAGE_AS_READ))
                 .doOnError(throwable -> log.logEndingProcess(PEC_MARK_MESSAGE_AS_READ, false, throwable.getMessage()));
@@ -193,7 +193,7 @@ public class PnPecServiceImpl implements PnPecService {
         PnPecService provider = getProvider(messageID);
 
         return provider.deleteMessage(messageID)
-                .retryWhen(getPnPecRetryStrategy(PEC_DELETE_MESSAGE,props.getPnPecProviderSwitch()))
+                .retryWhen(getPnPecRetryStrategy(PEC_DELETE_MESSAGE,props.getPnPecProviderSwitchWrite()))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PEC_DELETE_MESSAGE))
                 .doOnError(throwable -> log.logEndingProcess(PEC_DELETE_MESSAGE, false, throwable.getMessage()));
@@ -201,10 +201,10 @@ public class PnPecServiceImpl implements PnPecService {
 
 
     private PnPecService getProvider() {
-        if (props.getPnPecProviderSwitch().equals(ARUBA_PROVIDER)) {
+        if (props.getPnPecProviderSwitchWrite().equals(ARUBA_PROVIDER)) {
             log.debug("Aruba provider selected");
             return arubaService;
-        } else if (props.getPnPecProviderSwitch().equals(OTHER_PROVIDER)) {
+        } else if (props.getPnPecProviderSwitchWrite().equals(OTHER_PROVIDER)) {
             log.debug("Other provider selected");
             return otherService;
         } else {

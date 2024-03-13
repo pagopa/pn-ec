@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec.pec.configurationproperties;
 
-import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
 import org.joda.time.DateTime;
@@ -43,27 +42,27 @@ public class PnPecConfigurationPropertiesTest {
     @Test
     void testTipoRicevutaActualPropertyValueOk() {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_ALTERNATIVE).getMillis());
-        Assertions.assertEquals(ALTERNATIVE, pnPecConfigurationProperties.getPnPecProviderSwitch());
+        Assertions.assertEquals(ALTERNATIVE, pnPecConfigurationProperties.getPnPecProviderSwitchWrite());
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_ARUBA).getMillis());
-        Assertions.assertEquals(ARUBA, pnPecConfigurationProperties.getPnPecProviderSwitch());
+        Assertions.assertEquals(ARUBA, pnPecConfigurationProperties.getPnPecProviderSwitchWrite());
     }
 
     @Test
     void testpnPecProviderSwitchSingleValueOk() {
         ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ARUBA);
-        Assertions.assertEquals(ARUBA, pnPecConfigurationProperties.getPnPecProviderSwitch());
+        Assertions.assertEquals(ARUBA, pnPecConfigurationProperties.getPnPecProviderSwitchWrite());
         ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ALTERNATIVE);
-        Assertions.assertEquals(ALTERNATIVE, pnPecConfigurationProperties.getPnPecProviderSwitch());
+        Assertions.assertEquals(ALTERNATIVE, pnPecConfigurationProperties.getPnPecProviderSwitchWrite());
     }
 
     @Test
     void testTipoRicevutaKoUnparsableValue() {
         ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ARUBA+";"+ARUBA+";"+ALTERNATIVE);
-        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getPnPecProviderSwitch());
+        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getPnPecProviderSwitchWrite());
         ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ARUBA+";"+DATE_ALTERNATIVE);
-        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getPnPecProviderSwitch());
+        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getPnPecProviderSwitchWrite());
         ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ARUBA+";"+DATE_ALTERNATIVE+";false;false");
-        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getPnPecProviderSwitch());
+        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getPnPecProviderSwitchWrite());
     }
 
 }
