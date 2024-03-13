@@ -45,7 +45,7 @@ import org.springframework.context.annotation.PropertySource;
 
 //  <-- SCARICAMENTO ESITI PEC -->
 @PropertySource("classpath:scaricamentoesitipec/scaricamento-esiti-pec.properties")
-@PropertySource("classpath:scaricamentoesitipec/aruba-call-retry-strategy.properties")
+@PropertySource("classpath:scaricamentoesitipec/pn-pec-retry-strategy.properties")
 @PropertySource("classpath:scaricamentoesitipec/cancellazione-ricevute-pec.properties")
 
 //  <-- CARTACEO -->
@@ -63,6 +63,9 @@ import org.springframework.context.annotation.PropertySource;
 
 //S3
 @PropertySource("classpath:s3/s3.properties")
+
+//NAMIRIAL
+@PropertySource("classpath:namirial/namirial.properties")
 public class EcApplication {
 
     public static void main(String[] args) {
