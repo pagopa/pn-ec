@@ -7,7 +7,6 @@ import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededExcep
 import it.pagopa.pn.library.pec.exception.pecservice.AlternativeProviderMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.MaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.PnSpapiTemporaryErrorException;
-import it.pagopa.pn.library.pec.exception.pecservice.ProvidersNotAvailableException;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.AlternativeProviderService;
@@ -20,11 +19,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 
 import java.time.Duration;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.ArrayList;
+import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
@@ -41,6 +41,10 @@ public class PnPecServiceImpl implements PnPecService {
     private static final String OTHER_PROVIDER = "other";
     private static final String SERVICE_ERROR = "Error retrieving messages from service: {}";
     private static final String RETRIES_EXCEEDED_MESSAGE = "Max retries exceeded for ";
+    private static final String ARUBA_PROVIDER_SELECTED = "Aruba provider selected";
+    private static final String OTHER_PROVIDER_SELECTED = "Other provider selected";
+    private static final String ERROR_PARSING_PROPERTY_VALUES = "Error parsing property values, wrong value for service";
+
 
 
     @Autowired
@@ -62,7 +66,7 @@ public class PnPecServiceImpl implements PnPecService {
                     MDCUtils.enrichWithMDC(null, mdcContextMap);
                     log.debug("Retry number {} for '{}', caused by : {}", retrySignal.totalRetries(), clientMethodName, retrySignal.failure().getMessage(), retrySignal.failure());
                 })
-                .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) ->{
+                .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
                     if (providerName.equals(ARUBA_PROVIDER)) {
                         return new ArubaCallMaxRetriesExceededException(RETRIES_EXCEEDED_MESSAGE + clientMethodName, retrySignal.failure());
                     } else if (providerName.equals(OTHER_PROVIDER)) {
@@ -77,7 +81,7 @@ public class PnPecServiceImpl implements PnPecService {
     @SneakyThrows
     public Mono<String> sendMail(byte[] message) {
         log.logStartingProcess(PN_PEC_SEND_MAIL);
-        return getProvider()
+        return getProviderWrite()
                 .sendMail(message)
                 .retryWhen(getPnPecRetryStrategy(PN_PEC_SEND_MAIL, props.getPnPecProviderSwitchWrite()))
                 .doOnSuccess(result -> log.logEndingProcess(PN_PEC_SEND_MAIL))
@@ -89,53 +93,30 @@ public class PnPecServiceImpl implements PnPecService {
     public Mono<PnGetMessagesResponse> getUnreadMessages(int limit) {
         log.logStartingProcess(PEC_GET_UNREAD_MESSAGES);
 
-        AtomicBoolean isArubaOk = new AtomicBoolean(true);
-        AtomicBoolean isOtherOk = new AtomicBoolean(true);
-
-        Flux<byte[]> arubaMessages = arubaService.getUnreadMessages(limit)
-                .flatMapMany(response -> {
+        return Flux.fromIterable(getProvidersRead())
+                .flatMap(provider -> provider.getUnreadMessages(limit)
+                        .retryWhen(getPnPecRetryStrategy(PEC_GET_UNREAD_MESSAGES, provider.getClass().getName())))
+                .flatMap(response -> {
                     var listOfMessages = response.getPnListOfMessages();
-                    if (Objects.isNull(listOfMessages)) {
+                    if (listOfMessages == null) {
                         return Flux.empty();
                     } else {
                         return Flux.fromIterable(listOfMessages.getMessages());
                     }
                 })
-                .retryWhen(getPnPecRetryStrategy(PEC_GET_UNREAD_MESSAGES, ARUBA_PROVIDER))
-                .onErrorResume(e -> {
-                    log.warn(SERVICE_ERROR, "ArubaService", e);
-                    isArubaOk.set(false);
-                    return Flux.empty();
-                });
-
-        Flux<byte[]> otherProviderMessages = otherService.getUnreadMessages(limit)
-                .flatMapMany(response -> {
-                    var listOfMessages = response.getPnListOfMessages();
-                    if (Objects.isNull(listOfMessages)) {
-                        return Flux.empty();
-                    } else {
-                        return Flux.fromIterable(listOfMessages.getMessages());
-                    }
-                })
-                .retryWhen(getPnPecRetryStrategy(PEC_GET_UNREAD_MESSAGES, OTHER_PROVIDER))
-                .onErrorResume(e -> {
-                    log.warn(SERVICE_ERROR, "OtherProviderService", e);
-                    isOtherOk.set(false);
-                    return Flux.empty();
-                });
-
-        return Flux.merge(arubaMessages, otherProviderMessages)
+                .parallel().runOn(Schedulers.parallel())
+                .sequential()
                 .collectList()
-                .map(messages -> {
-                    if (!isArubaOk.get() && !isOtherOk.get()) {
-                        throw new ProvidersNotAvailableException("Both services returned an error");
-                    } else {
-                            return new PnGetMessagesResponse(messages.isEmpty() ? null : new PnListOfMessages(messages), messages.size());
-                    }
-                })
-                .doOnSuccess(result -> log.logEndingProcess(PEC_GET_UNREAD_MESSAGES));
-
+                .flatMap(messages -> Mono.just(new PnGetMessagesResponse(messages.isEmpty() ? null : new PnListOfMessages(messages), messages.size()))
+                )
+                .doOnSuccess(result -> log.logEndingProcess(PEC_GET_UNREAD_MESSAGES))
+                .onErrorResume(e -> {
+                    log.fatal(SERVICE_ERROR, e);
+                    return Mono.error(e);
+                });
     }
+
+
 
     @Override
     @SneakyThrows
@@ -154,70 +135,81 @@ public class PnPecServiceImpl implements PnPecService {
     public Mono<Integer> getMessageCount() {
         log.logStartingProcess(PEC_GET_MESSAGE_COUNT);
 
-        AtomicBoolean isArubaOk = new AtomicBoolean(true);
-        AtomicBoolean isOtherOk = new AtomicBoolean(true);
-
-        Mono<Integer> arubaCount = arubaService.getMessageCount()
-                .retryWhen(getPnPecRetryStrategy(PEC_GET_MESSAGE_COUNT, ARUBA_PROVIDER))
+        return Flux.fromIterable(getProvidersRead())
+                .flatMap(provider -> provider.getMessageCount()
+                        .retryWhen(getPnPecRetryStrategy(PEC_GET_MESSAGE_COUNT, provider.getClass().getName())))
+                .parallel().runOn(Schedulers.parallel())
+                .sequential()
+                .reduce(0, Integer::sum)
+                .doOnSuccess(result -> log.logEndingProcess(PEC_GET_MESSAGE_COUNT))
                 .onErrorResume(e -> {
-                    log.warn(SERVICE_ERROR, "ArubaService", e);
-                    isArubaOk.set(false);
-                    return Mono.just(0);
+                    log.fatal(SERVICE_ERROR, e);
+                    return Mono.error(e);
                 });
-
-        Mono<Integer> otherProviderCount = otherService.getMessageCount()
-                .retryWhen(getPnPecRetryStrategy(PEC_GET_MESSAGE_COUNT, OTHER_PROVIDER))
-                .onErrorResume(e -> {
-                    log.warn(SERVICE_ERROR, "OtherProviderService", e);
-                    isOtherOk.set(false);
-                    return Mono.just(0);
-                });
-
-        return Mono.zip(arubaCount, otherProviderCount)
-                .map(tuple -> {
-                    if (!isArubaOk.get() && !isOtherOk.get()) {
-                        throw new ProvidersNotAvailableException("Both services returned an error");
-                    }  else {
-                        return tuple.getT1() + tuple.getT2();
-                    }
-                })
-                .doOnError(throwable -> log.logEndingProcess(PEC_GET_MESSAGE_COUNT, false, throwable.getMessage()))
-                .doOnSuccess(result -> log.logEndingProcess(PEC_GET_MESSAGE_COUNT));
     }
+
 
     @Override
     @SneakyThrows
-    public Mono<Void> deleteMessage(String messageID){
+    public Mono<Void> deleteMessage(String messageID) {
         log.logStartingProcess(PEC_DELETE_MESSAGE);
 
         PnPecService provider = getProvider(messageID);
 
         return provider.deleteMessage(messageID)
-                .retryWhen(getPnPecRetryStrategy(PEC_DELETE_MESSAGE,props.getPnPecProviderSwitchWrite()))
+                .retryWhen(getPnPecRetryStrategy(PEC_DELETE_MESSAGE, props.getPnPecProviderSwitchWrite()))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PEC_DELETE_MESSAGE))
                 .doOnError(throwable -> log.logEndingProcess(PEC_DELETE_MESSAGE, false, throwable.getMessage()));
     }
 
 
-    private PnPecService getProvider() {
-        if (props.getPnPecProviderSwitchWrite().equals(ARUBA_PROVIDER)) {
-            log.debug("Aruba provider selected");
-            return arubaService;
-        } else if (props.getPnPecProviderSwitchWrite().equals(OTHER_PROVIDER)) {
-            log.debug("Other provider selected");
-            return otherService;
-        } else {
-            log.debug("Error parsing property values, wrong value for service.");
-            throw new IllegalArgumentException("Error parsing property values, wrong value for service.");
+    private PnPecService getProviderWrite() {
+        return switch (props.getPnPecProviderSwitchWrite()) {
+            case ARUBA_PROVIDER -> {
+                log.debug(ARUBA_PROVIDER_SELECTED);
+                yield arubaService;
+            }
+            case OTHER_PROVIDER -> {
+                log.debug(OTHER_PROVIDER_SELECTED);
+                yield otherService;
+            }
+            default -> {
+                log.debug(ERROR_PARSING_PROPERTY_VALUES);
+                throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
+            }
+        };
+    }
+
+    private List<PnPecService> getProvidersRead() {
+        List<String> providers = props.getPnPecProviderSwitchRead();
+        List<PnPecService> services = new ArrayList<>();
+        for (String provider : providers) {
+            if (provider.equals(ARUBA_PROVIDER)) {
+                log.debug(ARUBA_PROVIDER_SELECTED);
+                services.add(arubaService);
+            } else if (provider.equals(OTHER_PROVIDER)) {
+                log.debug(OTHER_PROVIDER_SELECTED);
+                services.add(arubaService);
+            } else {
+                log.debug(ERROR_PARSING_PROPERTY_VALUES);
+                throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES + " : " + provider);
+            }
+        }
+        return services;
+    }
+
+        private PnPecService getProvider(String messageID) {
+         if (ArubaServiceImpl.isAruba(messageID)) {
+             log.debug(ARUBA_PROVIDER_SELECTED);
+             return arubaService;
+         } else if (AlternativeProviderServiceImpl.isOther(messageID)){
+             log.debug(OTHER_PROVIDER_SELECTED);
+             return otherService;
+         } else {
+             log.debug(ERROR_PARSING_PROPERTY_VALUES);
+             throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
+         }
         }
     }
 
-    private PnPecService getProvider(String messageID) {
-        if (ArubaServiceImpl.isAruba(messageID)) {
-            return arubaService;
-        } else {
-            return otherService;
-        }
-    }
-}
