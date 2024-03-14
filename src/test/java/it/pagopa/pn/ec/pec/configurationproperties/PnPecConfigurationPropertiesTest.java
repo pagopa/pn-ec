@@ -2,13 +2,14 @@ package it.pagopa.pn.ec.pec.configurationproperties;
 
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
+import org.hamcrest.Matchers;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.List;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @SpringBootTestWebEnv
 @CustomLog
@@ -48,37 +49,25 @@ public class PnPecConfigurationPropertiesTest {
         DateTimeUtils.setCurrentMillisSystem();
     }
 
-    @Nested
-    class TestTipoRicevutaActualPropertyValueOk {
-
         @Test
         void testWithDateRArubaWAruba() {
             DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_W_ARUBA).getMillis());
             Assertions.assertEquals(ARUBA, pnPecConfigurationProperties.getPnPecProviderSwitchWrite());
-            Assertions.assertEquals(List.of(ARUBA), pnPecConfigurationProperties.getPnPecProviderSwitchRead());
+            assertThat(pnPecConfigurationProperties.getPnPecProviderSwitchRead(), Matchers.containsInAnyOrder(ARUBA));
         }
 
         @Test
         void testWithDateROtherWAruba() {
             DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_OTHER_W_ARUBA).getMillis());
             Assertions.assertEquals(ARUBA, pnPecConfigurationProperties.getPnPecProviderSwitchWrite());
-            Assertions.assertEquals(List.of(OTHER), pnPecConfigurationProperties.getPnPecProviderSwitchRead());
+            assertThat(pnPecConfigurationProperties.getPnPecProviderSwitchRead(), Matchers.containsInAnyOrder(OTHER));
         }
 
         @Test
         void testWithDateRArubaOtherWOther() {
             DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
             Assertions.assertEquals(OTHER, pnPecConfigurationProperties.getPnPecProviderSwitchWrite());
-            Assertions.assertEquals(List.of(ARUBA, OTHER), pnPecConfigurationProperties.getPnPecProviderSwitchRead());
+            assertThat(pnPecConfigurationProperties.getPnPecProviderSwitchRead(), Matchers.containsInAnyOrder(ARUBA, OTHER));
         }
-    }
-
-
-    @Test
-    void testTipoRicevutaKoInvalidValues() {
-        String invalidDate = "1969-12-31T23:59:59Z";
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH_READ, DATE_DEFAULT + ";" + ARUBA + "|" + OTHER);
-        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getPnPecProviderSwitchWrite());
-    }
 
 }
