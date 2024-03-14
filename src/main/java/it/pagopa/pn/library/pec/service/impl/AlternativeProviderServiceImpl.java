@@ -45,4 +45,8 @@ public class AlternativeProviderServiceImpl implements AlternativeProviderServic
     public Mono<Void> deleteMessage(String messageID) {
         return Mono.empty();
     }
+
+    public static boolean isOther(String messageID) {
+        return false;
+    }
 }
