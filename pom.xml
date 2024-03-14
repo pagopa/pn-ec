@@ -63,7 +63,7 @@
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-servizifiduciari-spapi</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.codehaus.janino/janino -->
