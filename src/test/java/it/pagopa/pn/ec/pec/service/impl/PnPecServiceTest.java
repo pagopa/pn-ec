@@ -108,89 +108,35 @@ class PnPecServiceTest {
     class sendMailTests {
 
         @Test
-        void sendMailExpectArubaOK() {
-            log.debug("sendMailExpectArubaOk");
-            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_W_ARUBA).getMillis());
-            var requestDto = buildRequestDto();
-            var clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
-            var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+        void sendMailArubaOk() {
+            log.debug("sendMailArubaPermanentException");
 
-            when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
-            when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-            when(arubaService.sendMail(any())).thenReturn(Mono.just(MESSAGE));
-            when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
-
-            Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
-            StepVerifier.create(response).expectNextCount(1).verifyComplete();
-
-            verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-            verify(arubaService, times(1)).sendMail(any());
-            verify(otherProviderService, never()).sendMail(any());
-        }
-
-        @Test
-        void sendMailExpectArubaKo() {
-            log.debug("sendMailExpectArubaKo");
-            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_DEFAULT).getMillis());
-            var requestDto = buildRequestDto();
-            var clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
-            var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
-
-            when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
-            when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-            when(arubaService.sendMail(any())).thenReturn(Mono.error(permanentException));
-            when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
-
-            Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
-            StepVerifier.create(response).expectError(RuntimeException.class).verify();
-
-            verify(pecService, times(0)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-            verify(arubaService, times(1)).sendMail(any());
-            verify(otherProviderService, never()).sendMail(any());
-        }
-
-
-        @Test
-        void sendMailExpectAlternativeOK() {
-            log.debug("sendMailExpectAlternative");
-            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
-            var requestDto = buildRequestDto();
-            var clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
-            var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
-
-            when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
-            when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-            when(arubaService.sendMail(any())).thenReturn(Mono.just(MESSAGE));
-            when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
-
-            Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
-            StepVerifier.create(response).expectNextCount(1).verifyComplete();
-
-            verify(pecService, times(0)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-            verify(arubaService, never()).sendMail(any());
-            //TODO modificare test una volta implementato il nuovo provider
-            verify(otherProviderService, times(1)).sendMail(any());
-        }
-
-        @Test
-        void sendMailExpectAlternativeKo() {
-            log.debug("sendMailExpectAlternativeKo");
+            byte[] message = MESSAGE.getBytes();
             DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_OTHER_W_ARUBA).getMillis());
-            var requestDto = buildRequestDto();
-            var clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
-            var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
 
-            when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
-            when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-            when(arubaService.sendMail(any())).thenReturn(Mono.error(permanentException));
-            when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+            when(arubaService.sendMail(any())).thenReturn(Mono.just(MESSAGE));
 
-            Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
-            StepVerifier.create(response).expectError(RuntimeException.class).verify();
+            Mono<String> response = pnPecService.sendMail(message);
+            StepVerifier.create(response).expectNext(MESSAGE).verifyComplete();
 
-            verify(pecService, times(0)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-            verify(arubaService, never()).sendMail(any());
+            verify(arubaService, times(1)).sendMail(any());
+            verify(otherProviderService, never()).sendMail(any());
+        }
+
+        @Test
+        void sendMailAlternativeOk() {
+            log.debug("sendMailArubaPermanentException");
+
+            byte[] message = MESSAGE.getBytes();
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
+
+            when(otherProviderService.sendMail(any())).thenReturn(Mono.just(MESSAGE));
+
+            Mono<String> response = pnPecService.sendMail(message);
+            StepVerifier.create(response).expectNext(MESSAGE).verifyComplete();
+
             verify(otherProviderService, times(1)).sendMail(any());
+            verify(arubaService, never()).sendMail(any());
         }
 
         @Test
@@ -223,30 +169,6 @@ class PnPecServiceTest {
 
             verify(arubaService, never()).sendMail(any());
             verify(otherProviderService, times(1)).sendMail(any());
-        }
-
-        @Test
-        void sendMailWrongProvider() {
-            log.debug("sendMailWrongProvider");
-            ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite", "wrongProvider");
-
-            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_OTHER_W_ARUBA).getMillis());
-            var requestDto = buildRequestDto();
-            var clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
-            var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
-
-            when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
-            when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-            when(arubaService.sendMail(any())).thenReturn(Mono.just(MESSAGE));
-            when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
-
-            Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
-            StepVerifier.create(response).expectNextCount(1).expectComplete().verify();
-
-            verify(pecService, times(0)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-            verify(arubaService, never()).sendMail(any());
-            //TODO modificare test una volta implementato il nuovo provider
-            verify(otherProviderService, times(0)).sendMail(any());
         }
 
         @Test
@@ -284,6 +206,17 @@ class PnPecServiceTest {
 
     @Nested
     class getUnreadMessagesTests {
+
+        @BeforeEach
+        void setUp() {
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
+        }
+
+        @AfterAll
+        static void afterAll() {
+            DateTimeUtils.setCurrentMillisSystem();
+        }
+
         @Test
         void getUnreadMessagesExpectBothOk() {
             log.debug("getUnreadMessagesExpectBothOk");
@@ -318,9 +251,7 @@ class PnPecServiceTest {
             Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
             StepVerifier.create(combinedMessages)
-                    .expectNextMatches(response -> response.getNumOfMessages() == arubaMessages.getNumOfMessages()
-                            && response.getPnListOfMessages().getMessages().size() == arubaMessages.getPnListOfMessages().getMessages().size())
-                    .expectComplete()
+                    .expectError(PnSpapiPermanentErrorException.class)
                     .verify();
 
             verify(arubaService, times(1)).getUnreadMessages(6);
@@ -338,13 +269,11 @@ class PnPecServiceTest {
             Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
             StepVerifier.create(combinedMessages)
-                    .expectNextMatches(response -> response.getNumOfMessages() == otherProviderMessages.getNumOfMessages()
-                            && response.getPnListOfMessages().getMessages().size() == otherProviderMessages.getPnListOfMessages().getMessages().size())
-                    .expectComplete()
+                    .expectError(PnSpapiPermanentErrorException.class)
                     .verify();
 
             verify(arubaService, times(1)).getUnreadMessages(6);
-            verify(otherProviderService, times(1)).getUnreadMessages(6);
+            verify(otherProviderService, never()).getUnreadMessages(anyInt());
         }
 
         @Test
@@ -357,11 +286,11 @@ class PnPecServiceTest {
             Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
             StepVerifier.create(combinedMessages)
-                    .expectError(ProvidersNotAvailableException.class)
+                    .expectError(PnSpapiPermanentErrorException.class)
                     .verify();
 
             verify(arubaService, times(1)).getUnreadMessages(6);
-            verify(otherProviderService, times(1)).getUnreadMessages(6);
+            verify(otherProviderService, never()).getUnreadMessages(anyInt());
         }
 
         @Test
@@ -396,9 +325,7 @@ class PnPecServiceTest {
             Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
             StepVerifier.create(combinedMessages)
-                    .expectNextMatches(response -> response.getNumOfMessages() == arubaMessages.getNumOfMessages()
-                            && response.getPnListOfMessages().getMessages().size() == arubaMessages.getPnListOfMessages().getMessages().size())
-                    .expectComplete()
+                    .expectError(AlternativeProviderMaxRetriesExceededException.class)
                     .verify();
 
             verify(arubaService, times(1)).getUnreadMessages(6);
@@ -416,19 +343,16 @@ class PnPecServiceTest {
             Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
             StepVerifier.create(combinedMessages)
-                    .expectNextMatches(response -> response.getNumOfMessages() == otherProviderMessages.getNumOfMessages()
-                            && response.getPnListOfMessages().getMessages().size() == otherProviderMessages.getPnListOfMessages().getMessages().size())
-                    .expectComplete()
+                    .expectError(ArubaCallMaxRetriesExceededException.class)
                     .verify();
 
             verify(arubaService, times(1)).getUnreadMessages(6);
-            verify(otherProviderService, times(1)).getUnreadMessages(6);
+            verify(otherProviderService, never()).getUnreadMessages(anyInt());
         }
 
         @Test
         void getUnreadMessagesBothRetriesExceeded() {
             log.debug("getUnreadMessagesOtherProviderKo");
-            PnGetMessagesResponse arubaMessages = getArubaMessage();
 
             when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.error(temporaryException));
             when(otherProviderService.getUnreadMessages(anyInt())).thenReturn(Mono.error(temporaryException));
@@ -436,20 +360,30 @@ class PnPecServiceTest {
             Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
             StepVerifier.create(combinedMessages)
-                    .expectError(ProvidersNotAvailableException.class)
+                    .expectError(ArubaCallMaxRetriesExceededException.class)
                     .verify();
 
             verify(arubaService, times(1)).getUnreadMessages(6);
-            verify(otherProviderService, times(1)).getUnreadMessages(6);
+            verify(otherProviderService, never()).getUnreadMessages(anyInt());
         }
     }
 
     @Nested
     class getMessageCountTests {
+        @BeforeEach
+        void setUp() {
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
+        }
+
+        @AfterAll
+        static void afterAll() {
+            DateTimeUtils.setCurrentMillisSystem();
+        }
 
         @Test
         void getMessageCountExpectBothOk() {
             log.debug("getUnreadMessagesExpectBoth");
+
             when(arubaService.getMessageCount()).thenReturn(Mono.just(3));
             when(otherProviderService.getMessageCount()).thenReturn(Mono.just(3));
 
@@ -470,7 +404,7 @@ class PnPecServiceTest {
 
             Mono<Integer> messageCount = pnPecService.getMessageCount();
 
-            StepVerifier.create(messageCount).expectNext(3).expectComplete().verify();
+            StepVerifier.create(messageCount).expectError(PnSpapiPermanentErrorException.class).verify();
 
             verify(arubaService, times(1)).getMessageCount();
             verify(otherProviderService, times(1)).getMessageCount();
@@ -485,16 +419,15 @@ class PnPecServiceTest {
 
             Mono<Integer> messageCount = pnPecService.getMessageCount();
 
-            StepVerifier.create(messageCount).expectNext(3).expectComplete().verify();
+            StepVerifier.create(messageCount).expectError(PnSpapiPermanentErrorException.class).verify();
 
             verify(arubaService, times(1)).getMessageCount();
-            verify(otherProviderService, times(1)).getMessageCount();
+            verify(otherProviderService, times(0)).getMessageCount();
         }
 
         @Test
         void getMessageCountBothKo() {
             log.debug("getUnreadMessagesBothKo");
-            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
 
             when(arubaService.getMessageCount()).thenReturn(Mono.error(permanentException));
             when(otherProviderService.getMessageCount()).thenReturn(Mono.error(permanentException));
@@ -510,7 +443,6 @@ class PnPecServiceTest {
         @Test
         void getMessageCountArubaRetriesExceeded() {
             log.debug("getUnreadMessagesArubaRetriesExceeded");
-            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
 
             when(arubaService.getMessageCount()).thenReturn(Mono.error(temporaryException));
             when(otherProviderService.getMessageCount()).thenReturn(Mono.just(3));
@@ -520,14 +452,12 @@ class PnPecServiceTest {
             StepVerifier.create(messageCount).expectError(ArubaCallMaxRetriesExceededException.class).verify();
 
             verify(arubaService, times(1)).getMessageCount();
-            verify(otherProviderService, times(1)).getMessageCount();
+            verify(otherProviderService, times(0)).getMessageCount();
         }
 
         @Test
         void getMessageCountOtherProviderRetriesExceeded() {
             log.debug("getUnreadMessagesOtherProviderRetriesExceeded");
-            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
-
 
             when(arubaService.getMessageCount()).thenReturn(Mono.just(3));
             when(otherProviderService.getMessageCount()).thenReturn(Mono.error(temporaryException));
@@ -543,17 +473,18 @@ class PnPecServiceTest {
         @Test
         void getMessageCountBothRetriesExceeded() {
             log.debug("getUnreadMessagesBothRetry");
-            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
 
             when(arubaService.getMessageCount()).thenReturn(Mono.error(temporaryException));
             when(otherProviderService.getMessageCount()).thenReturn(Mono.error(temporaryException));
 
             Mono<Integer> messageCount = pnPecService.getMessageCount();
 
-            StepVerifier.create(messageCount).expectError(ProvidersNotAvailableException.class).verify();
+            StepVerifier.create(messageCount)
+                    .expectErrorMatches(throwable -> throwable instanceof ArubaCallMaxRetriesExceededException || throwable instanceof AlternativeProviderMaxRetriesExceededException)
+                    .verify();
 
             verify(arubaService, times(1)).getMessageCount();
-            verify(otherProviderService, times(1)).getMessageCount();
+            verify(otherProviderService, times(0)).getMessageCount();
         }
     }
 

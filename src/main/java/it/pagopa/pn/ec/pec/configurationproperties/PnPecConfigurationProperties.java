@@ -52,7 +52,6 @@ public class PnPecConfigurationProperties {
         List<String> providers = new ArrayList<>();
         SortedMap<DateTime, List<String>> dateProviderMap = splitDateProviders(propertyString).descendingMap();
         DateTime now = DateTime.now();
-        log.info("ORARIO: "+now);
 
         for (Map.Entry<DateTime, List<String>> entry : dateProviderMap.entrySet()) {
             if (entry.getKey().isBefore(now)) {
@@ -63,9 +62,29 @@ public class PnPecConfigurationProperties {
         return providers;
     }
 
+    private String parseTipoRicevutaBreveProp(String propertyString) {
+        String[] propertyArray = propertyString.split(";");
+        if(propertyArray.length == 1) {
+            return propertyArray[0];
+        } else if(propertyArray.length == 2 || propertyArray.length > 3){
+            throw new IllegalArgumentException("Error parsing property values,wrong number of arguments.");
+        } else {
+            String valueBeforeDate = propertyArray[0];
+            String valueAfterDate = propertyArray[2];
+            DateTime date = DateTime.parse(propertyArray[1]);
+            DateTime now = DateTime.now();
+            log.debug("PnPecConfigurationProperties.returnPropertyValue() -> Date : {}, Now : {}", date, now);
+            if(now.isBefore(date)) {
+                return valueBeforeDate;
+            } else {
+                return valueAfterDate;
+            }
+        }
+    }
+
     public boolean getTipoRicevutaBreve() {
         try{
-            return Boolean.parseBoolean(returnPropertyValue(tipoRicevutaBreve).get(0));
+            return Boolean.parseBoolean(parseTipoRicevutaBreveProp(tipoRicevutaBreve));
         } catch (Exception e) {
             throw new IllegalArgumentException("Error parsing TipoRicevutaBreve value");
         }
