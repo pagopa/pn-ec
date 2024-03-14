@@ -41,7 +41,7 @@ public class PnPecConfigurationProperties {
             key = DateTime.parse(propertyBase[0]);
             String[] providerProperty = propertyBase[1].split("\\|");
             for (String provider : providerProperty) {
-                values.add(provider);
+                values.add(provider.toLowerCase());
             }
             dateProviders.put(key, values);
         }

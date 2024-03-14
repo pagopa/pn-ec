@@ -7,6 +7,7 @@ import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededExcep
 import it.pagopa.pn.library.pec.exception.pecservice.AlternativeProviderMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.MaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.PnSpapiTemporaryErrorException;
+import it.pagopa.pn.library.pec.exception.pecservice.ProvidersNotAvailableException;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.AlternativeProviderService;
@@ -45,6 +46,10 @@ public class PnPecServiceImpl implements PnPecService {
     private static final String OTHER_PROVIDER_SELECTED = "Other provider selected";
     private static final String ERROR_PARSING_PROPERTY_VALUES = "Error parsing property values, wrong value for service";
 
+    private static final String ALTERNATIVE_PATTERN_STRING = "";
+    private static final String ARUBA_PATTERN_STRING = "@pec.aruba.it";
+
+
 
 
     @Autowired
@@ -58,7 +63,7 @@ public class PnPecServiceImpl implements PnPecService {
         this.props = props;
     }
 
-    private Retry getPnPecRetryStrategy(String clientMethodName, String providerName) {
+    private Retry getPnPecRetryStrategy(String clientMethodName, Class providerClass) {
         var mdcContextMap = MDCUtils.retrieveMDCContextMap();
         return Retry.backoff(Long.parseLong(retryStrategyProperties.maxAttempts()), Duration.ofSeconds(Long.parseLong(retryStrategyProperties.minBackoff())))
                 .filter(PnSpapiTemporaryErrorException.class::isInstance)
@@ -67,9 +72,9 @@ public class PnPecServiceImpl implements PnPecService {
                     log.debug("Retry number {} for '{}', caused by : {}", retrySignal.totalRetries(), clientMethodName, retrySignal.failure().getMessage(), retrySignal.failure());
                 })
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
-                    if (providerName.equals(ARUBA_PROVIDER)) {
+                    if (providerClass.isInstance(ArubaService.class)) {
                         return new ArubaCallMaxRetriesExceededException(RETRIES_EXCEEDED_MESSAGE + clientMethodName, retrySignal.failure());
-                    } else if (providerName.equals(OTHER_PROVIDER)) {
+                    } else if (providerClass.isInstance(AlternativeProviderService.class)) {
                         return new AlternativeProviderMaxRetriesExceededException(RETRIES_EXCEEDED_MESSAGE + clientMethodName, retrySignal.failure());
                     } else {
                         return new MaxRetriesExceededException(RETRIES_EXCEEDED_MESSAGE + clientMethodName, retrySignal.failure());
@@ -81,9 +86,10 @@ public class PnPecServiceImpl implements PnPecService {
     @SneakyThrows
     public Mono<String> sendMail(byte[] message) {
         log.logStartingProcess(PN_PEC_SEND_MAIL);
-        return getProviderWrite()
+        PnPecService provider = getProviderWrite();
+        return provider
                 .sendMail(message)
-                .retryWhen(getPnPecRetryStrategy(PN_PEC_SEND_MAIL, props.getPnPecProviderSwitchWrite()))
+                .retryWhen(getPnPecRetryStrategy(PN_PEC_SEND_MAIL, provider.getClass()))
                 .doOnSuccess(result -> log.logEndingProcess(PN_PEC_SEND_MAIL))
                 .doOnError(throwable -> log.logEndingProcess(PN_PEC_SEND_MAIL, false, throwable.getMessage()));
     }
@@ -95,7 +101,7 @@ public class PnPecServiceImpl implements PnPecService {
 
         return Flux.fromIterable(getProvidersRead())
                 .flatMap(provider -> provider.getUnreadMessages(limit)
-                        .retryWhen(getPnPecRetryStrategy(PEC_GET_UNREAD_MESSAGES, provider.getClass().getName())))
+                        .retryWhen(getPnPecRetryStrategy(PEC_GET_UNREAD_MESSAGES, provider.getClass())))
                 .flatMap(response -> {
                     var listOfMessages = response.getPnListOfMessages();
                     if (listOfMessages == null) {
@@ -124,7 +130,7 @@ public class PnPecServiceImpl implements PnPecService {
         log.logStartingProcess(PEC_MARK_MESSAGE_AS_READ);
         PnPecService provider = getProvider(messageID);
         return provider.markMessageAsRead(messageID)
-                .retryWhen(getPnPecRetryStrategy(PEC_MARK_MESSAGE_AS_READ, props.getPnPecProviderSwitchWrite()))
+                .retryWhen(getPnPecRetryStrategy(PEC_MARK_MESSAGE_AS_READ, provider.getClass()))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PEC_MARK_MESSAGE_AS_READ))
                 .doOnError(throwable -> log.logEndingProcess(PEC_MARK_MESSAGE_AS_READ, false, throwable.getMessage()));
@@ -135,9 +141,13 @@ public class PnPecServiceImpl implements PnPecService {
     public Mono<Integer> getMessageCount() {
         log.logStartingProcess(PEC_GET_MESSAGE_COUNT);
 
+        List<PnPecService> providers = getProvidersRead();
+        log.error("PROVIDERS: " + providers.size());
+
         return Flux.fromIterable(getProvidersRead())
-                .flatMap(provider -> provider.getMessageCount()
-                        .retryWhen(getPnPecRetryStrategy(PEC_GET_MESSAGE_COUNT, provider.getClass().getName())))
+                .flatMap(provider ->
+                        provider.getMessageCount()
+                        .retryWhen(getPnPecRetryStrategy(PEC_GET_MESSAGE_COUNT, provider.getClass())))
                 .parallel().runOn(Schedulers.parallel())
                 .sequential()
                 .reduce(0, Integer::sum)
@@ -157,7 +167,7 @@ public class PnPecServiceImpl implements PnPecService {
         PnPecService provider = getProvider(messageID);
 
         return provider.deleteMessage(messageID)
-                .retryWhen(getPnPecRetryStrategy(PEC_DELETE_MESSAGE, props.getPnPecProviderSwitchWrite()))
+                .retryWhen(getPnPecRetryStrategy(PEC_DELETE_MESSAGE, provider.getClass()))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PEC_DELETE_MESSAGE))
                 .doOnError(throwable -> log.logEndingProcess(PEC_DELETE_MESSAGE, false, throwable.getMessage()));
@@ -190,7 +200,7 @@ public class PnPecServiceImpl implements PnPecService {
                 services.add(arubaService);
             } else if (provider.equals(OTHER_PROVIDER)) {
                 log.debug(OTHER_PROVIDER_SELECTED);
-                services.add(arubaService);
+                services.add(otherService);
             } else {
                 log.debug(ERROR_PARSING_PROPERTY_VALUES);
                 throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES + " : " + provider);
@@ -200,10 +210,10 @@ public class PnPecServiceImpl implements PnPecService {
     }
 
         private PnPecService getProvider(String messageID) {
-         if (ArubaServiceImpl.isAruba(messageID)) {
+         if (isAruba(messageID)) {
              log.debug(ARUBA_PROVIDER_SELECTED);
              return arubaService;
-         } else if (AlternativeProviderServiceImpl.isOther(messageID)){
+         } else if (isOther(messageID)){
              log.debug(OTHER_PROVIDER_SELECTED);
              return otherService;
          } else {
@@ -211,5 +221,15 @@ public class PnPecServiceImpl implements PnPecService {
              throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
          }
         }
+
+        public static boolean isOther(String messageID) {
+            return true;
+        }
+
+        public static boolean isAruba(String messageID) {
+            return messageID.trim().toLowerCase().endsWith(ARUBA_PATTERN_STRING);
+        }
+
+
     }
 

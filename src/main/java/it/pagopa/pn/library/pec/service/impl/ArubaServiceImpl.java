@@ -38,7 +38,6 @@ public class ArubaServiceImpl implements ArubaService {
 
     private static final int MESSAGE_NOT_FOUND_ERR_CODE = 99;
 
-    public static final String ARUBA_PATTERN_STRING = "@pec.aruba.it";
 
     @Autowired
     public ArubaServiceImpl(PecImapBridge pecImapBridgeClient,
@@ -204,9 +203,7 @@ public class ArubaServiceImpl implements ArubaService {
     }
 
 
-    public static boolean isAruba(String messageID) {
-        return messageID.trim().toLowerCase().endsWith(ARUBA_PATTERN_STRING);
-    }
+
 
 
 }

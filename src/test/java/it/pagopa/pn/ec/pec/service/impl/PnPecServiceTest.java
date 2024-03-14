@@ -8,16 +8,14 @@ import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import it.pagopa.pn.library.pec.exception.pecservice.MaxRetriesExceededException;
-import it.pagopa.pn.library.pec.exception.pecservice.PnSpapiPermanentErrorException;
-import it.pagopa.pn.library.pec.exception.pecservice.PnSpapiTemporaryErrorException;
-import it.pagopa.pn.library.pec.exception.pecservice.ProvidersNotAvailableException;
+import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
+import it.pagopa.pn.library.pec.exception.pecservice.*;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.AlternativeProviderService;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnPecService;
-import it.pagopa.pn.library.pec.service.impl.ArubaServiceImpl;
+import it.pagopa.pn.library.pec.service.impl.PnPecServiceImpl;
 import lombok.CustomLog;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
@@ -68,6 +66,7 @@ class PnPecServiceTest {
     private PnPecConfigurationProperties pnPecConfigurationProperties;
 
     private String PROVIDER_SWITCH_READ_DEFAULT = "1970-01-01T00:00:00Z;aruba";
+    private String PROVIDER_SWITCH_WRITE_DEFAULT = "1970-01-01T00:00:00Z;aruba";
     private final String TEMPORARY_EXCEPTION = "test temporary exception";
     private final String PERMANENT_EXCEPTION = "test permanent exception";
     private final String MESSAGE = "test message";
@@ -90,11 +89,13 @@ class PnPecServiceTest {
     void setUp() {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_DEFAULT).getMillis());
         PROVIDER_SWITCH_READ_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchRead");
+        PROVIDER_SWITCH_WRITE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite");
     }
 
     @AfterEach
     void afterEach() {
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitch", PROVIDER_SWITCH_READ_DEFAULT);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchRead", PROVIDER_SWITCH_READ_DEFAULT);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite", PROVIDER_SWITCH_WRITE_DEFAULT);
     }
 
     @AfterAll
@@ -493,28 +494,30 @@ class PnPecServiceTest {
         @Test
         void getMessageCountBothKo() {
             log.debug("getUnreadMessagesBothKo");
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
 
             when(arubaService.getMessageCount()).thenReturn(Mono.error(permanentException));
             when(otherProviderService.getMessageCount()).thenReturn(Mono.error(permanentException));
 
             Mono<Integer> messageCount = pnPecService.getMessageCount();
 
-            StepVerifier.create(messageCount).expectError(ProvidersNotAvailableException.class).verify();
+            StepVerifier.create(messageCount).expectError(PnSpapiPermanentErrorException.class).verify();
 
             verify(arubaService, times(1)).getMessageCount();
-            verify(otherProviderService, times(1)).getMessageCount();
+            verify(otherProviderService, times(0)).getMessageCount();
         }
 
         @Test
         void getMessageCountArubaRetriesExceeded() {
             log.debug("getUnreadMessagesArubaRetriesExceeded");
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
 
             when(arubaService.getMessageCount()).thenReturn(Mono.error(temporaryException));
             when(otherProviderService.getMessageCount()).thenReturn(Mono.just(3));
 
             Mono<Integer> messageCount = pnPecService.getMessageCount();
 
-            StepVerifier.create(messageCount).expectNext(3).expectComplete().verify();
+            StepVerifier.create(messageCount).expectError(ArubaCallMaxRetriesExceededException.class).verify();
 
             verify(arubaService, times(1)).getMessageCount();
             verify(otherProviderService, times(1)).getMessageCount();
@@ -523,13 +526,15 @@ class PnPecServiceTest {
         @Test
         void getMessageCountOtherProviderRetriesExceeded() {
             log.debug("getUnreadMessagesOtherProviderRetriesExceeded");
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
+
 
             when(arubaService.getMessageCount()).thenReturn(Mono.just(3));
             when(otherProviderService.getMessageCount()).thenReturn(Mono.error(temporaryException));
 
             Mono<Integer> messageCount = pnPecService.getMessageCount();
 
-            StepVerifier.create(messageCount).expectNext(3).expectComplete().verify();
+            StepVerifier.create(messageCount).expectError(AlternativeProviderMaxRetriesExceededException.class).verify();
 
             verify(arubaService, times(1)).getMessageCount();
             verify(otherProviderService, times(1)).getMessageCount();
@@ -538,6 +543,7 @@ class PnPecServiceTest {
         @Test
         void getMessageCountBothRetriesExceeded() {
             log.debug("getUnreadMessagesBothRetry");
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
 
             when(arubaService.getMessageCount()).thenReturn(Mono.error(temporaryException));
             when(otherProviderService.getMessageCount()).thenReturn(Mono.error(temporaryException));
@@ -650,6 +656,7 @@ class PnPecServiceTest {
         @Test
         void deleteMessageFromAlternativeOk() {
             log.debug("deleteMessageFromAlternativeOk");
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
 
             when(arubaService.deleteMessage(ALTERNATIVE_MESSAGE_ID)).thenReturn(Mono.empty());
             when(otherProviderService.deleteMessage(ALTERNATIVE_MESSAGE_ID)).thenReturn(Mono.empty());
@@ -663,6 +670,7 @@ class PnPecServiceTest {
         @Test
         void deleteMessageFromArubaKo() {
             log.debug("deleteMessageFromArubaKo");
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_OTHER_W_ARUBA).getMillis());
 
             when(arubaService.deleteMessage(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(permanentException));
             when(otherProviderService.deleteMessage(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(temporaryException));
@@ -679,6 +687,7 @@ class PnPecServiceTest {
 
             when(arubaService.deleteMessage(ALTERNATIVE_MESSAGE_ID)).thenReturn(Mono.error(temporaryException));
             when(otherProviderService.deleteMessage(ALTERNATIVE_MESSAGE_ID)).thenReturn(Mono.error(permanentException));
+
 
             StepVerifier.create(pnPecService.deleteMessage(ALTERNATIVE_MESSAGE_ID)).expectError(PnSpapiPermanentErrorException.class).verify();
 
@@ -723,11 +732,11 @@ class PnPecServiceTest {
         messageIDs.add("opec21010.20231006185001.00057.206.1.59@test.com");
         messageIDs.add(ALTERNATIVE_MESSAGE_ID);
 
-        Assertions.assertTrue(ArubaServiceImpl.isAruba(messageIDs.get(0)));
-        Assertions.assertTrue(ArubaServiceImpl.isAruba(messageIDs.get(1)));
-        Assertions.assertTrue(ArubaServiceImpl.isAruba(messageIDs.get(2)));
-        Assertions.assertFalse(ArubaServiceImpl.isAruba(messageIDs.get(3)));
-        Assertions.assertFalse(ArubaServiceImpl.isAruba(messageIDs.get(4)));
+        Assertions.assertTrue(PnPecServiceImpl.isAruba(messageIDs.get(0)));
+        Assertions.assertTrue(PnPecServiceImpl.isAruba(messageIDs.get(1)));
+        Assertions.assertTrue(PnPecServiceImpl.isAruba(messageIDs.get(2)));
+        Assertions.assertFalse(PnPecServiceImpl.isAruba(messageIDs.get(3)));
+        Assertions.assertFalse(PnPecServiceImpl.isAruba(messageIDs.get(4)));
 
     }
 
