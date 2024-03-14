@@ -68,7 +68,6 @@ class PnPecServiceTest {
     private PnPecConfigurationProperties pnPecConfigurationProperties;
 
     private String PROVIDER_SWITCH_READ_DEFAULT = "1970-01-01T00:00:00Z;aruba";
-    private String PROVIDER_SWITCH_WRITE_DEFAULT = "1970-01-01T00:00:00Z;aruba";
     private final String TEMPORARY_EXCEPTION = "test temporary exception";
     private final String PERMANENT_EXCEPTION = "test permanent exception";
     private final String MESSAGE = "test message";
@@ -91,7 +90,6 @@ class PnPecServiceTest {
     void setUp() {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_DEFAULT).getMillis());
         PROVIDER_SWITCH_READ_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchRead");
-        PROVIDER_SWITCH_WRITE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite");
     }
 
     @AfterEach
