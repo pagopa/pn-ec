@@ -8,15 +8,12 @@ import it.pagopa.pn.library.pec.configurationproperties.PnPecRetryStrategyProper
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.AlternativeProviderMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.MaxRetriesExceededException;
-import it.pagopa.pn.library.pec.exception.pecservice.PnSpapiTemporaryErrorException;
-import it.pagopa.pn.library.pec.exception.pecservice.ProvidersNotAvailableException;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.AlternativeProviderService;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnPecService;
 import lombok.CustomLog;
-import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.*;
 
 @CustomLog
 @Service
@@ -40,24 +38,10 @@ public class PnPecServiceImpl implements PnPecService {
     private final PnPecConfigurationProperties props;
     private final PnPecRetryStrategyProperties retryStrategyProperties;
     private final CloudWatchPecMetrics cloudWatchPecMetrics;
-
-    private static final String ARUBA_PROVIDER = "aruba";
-    private static final String OTHER_PROVIDER = "other";
-    private static final String SERVICE_ERROR = "Error retrieving messages from service: {}";
-    private static final String RETRIES_EXCEEDED_MESSAGE = "Max retries exceeded for ";
-    private static final String ARUBA_PROVIDER_SELECTED = "Aruba provider selected";
-    private static final String OTHER_PROVIDER_SELECTED = "Other provider selected";
-    private static final String ERROR_PARSING_PROPERTY_VALUES = "Error parsing property values, wrong value for service";
-
-    private static final String ALTERNATIVE_PATTERN_STRING = "";
-    private static final String ARUBA_PATTERN_STRING = "@pec.aruba.it";
-
-
-
     @Value("${library.pec.cloudwatch.namespace.aruba}")
     private String arubaProviderNamespace;
     @Value("${library.pec.cloudwatch.namespace.alternative}")
-    private String alternativeProviderNamespace;
+    private String otherProviderNamespace;
 
 
     @Autowired
@@ -92,7 +76,6 @@ public class PnPecServiceImpl implements PnPecService {
     }
 
     @Override
-    @SneakyThrows
     public Mono<String> sendMail(byte[] message) {
         log.logStartingProcess(PN_PEC_SEND_MAIL);
         PnPecService provider = getProviderWrite();
@@ -104,7 +87,6 @@ public class PnPecServiceImpl implements PnPecService {
     }
 
     @Override
-    @SneakyThrows
     public Mono<PnGetMessagesResponse> getUnreadMessages(int limit) {
         log.logStartingProcess(PEC_GET_UNREAD_MESSAGES);
 
@@ -129,7 +111,6 @@ public class PnPecServiceImpl implements PnPecService {
 
 
     @Override
-    @SneakyThrows
     public Mono<Void> markMessageAsRead(String messageID) {
         log.logStartingProcess(PEC_MARK_MESSAGE_AS_READ);
         PnPecService provider = getProvider(messageID);
@@ -141,12 +122,11 @@ public class PnPecServiceImpl implements PnPecService {
     }
 
     @Override
-    @SneakyThrows
     public Mono<Integer> getMessageCount() {
         log.logStartingProcess(PEC_GET_MESSAGE_COUNT);
         return Flux.fromIterable(getProvidersRead())
                 .flatMap(provider -> provider.getMessageCount()
-                        .flatMap(count -> cloudWatchPecMetrics.publishMessageCount(Long.valueOf(count), arubaProviderNamespace).thenReturn(count))
+                        .flatMap(count -> cloudWatchPecMetrics.publishMessageCount(Long.valueOf(count), getMetricNamespace(provider)).thenReturn(count))
                         .retryWhen(getPnPecRetryStrategy(PEC_GET_MESSAGE_COUNT, provider)))
                 .reduce(0, Integer::sum)
                 .doOnSuccess(result -> log.logEndingProcess(PEC_GET_MESSAGE_COUNT))
@@ -155,7 +135,6 @@ public class PnPecServiceImpl implements PnPecService {
 
 
     @Override
-    @SneakyThrows
     public Mono<Void> deleteMessage(String messageID) {
         log.logStartingProcess(PEC_DELETE_MESSAGE);
 
@@ -216,6 +195,17 @@ public class PnPecServiceImpl implements PnPecService {
              throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
          }
         }
+
+    private String getMetricNamespace(PnPecService service) {
+        if (service instanceof ArubaService) {
+            return arubaProviderNamespace;
+        } else if (service instanceof AlternativeProviderService) {
+            return otherProviderNamespace;
+        } else {
+            log.debug(ERROR_RETRIEVING_METRIC_NAMESPACE);
+            throw new IllegalArgumentException(ERROR_RETRIEVING_METRIC_NAMESPACE);
+        }
+    }
 
         public static boolean isOther(String messageID) {
             return true;

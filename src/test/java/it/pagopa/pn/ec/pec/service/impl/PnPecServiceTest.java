@@ -7,7 +7,10 @@ import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import it.pagopa.pn.library.exceptions.PnSpapiPermanentErrorException;
+import it.pagopa.pn.library.exceptions.PnSpapiTemporaryErrorException;
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.*;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
@@ -22,21 +25,18 @@ import org.joda.time.DateTimeUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.util.ReflectionTestUtils;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
-import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.pagopa.pn.ec.commons.constant.Status.SENT;
 import static it.pagopa.pn.ec.pec.service.impl.PecServiceTest.createDigitalNotificationRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
@@ -64,6 +64,12 @@ class PnPecServiceTest {
     private PecService pecService;
     @SpyBean
     private PnPecConfigurationProperties pnPecConfigurationProperties;
+    @SpyBean
+    private CloudWatchPecMetrics cloudWatchPecMetrics;
+    @Value("${library.pec.cloudwatch.namespace.aruba}")
+    private String arubaProviderNamespace;
+    @Value("${library.pec.cloudwatch.namespace.alternative}")
+    private String otherProviderNamespace;
 
     private String PROVIDER_SWITCH_READ_DEFAULT = "1970-01-01T00:00:00Z;aruba";
     private String PROVIDER_SWITCH_WRITE_DEFAULT = "1970-01-01T00:00:00Z;aruba";
@@ -393,6 +399,8 @@ class PnPecServiceTest {
 
             verify(arubaService, times(1)).getMessageCount();
             verify(otherProviderService, times(1)).getMessageCount();
+            verify(cloudWatchPecMetrics, times(1)).publishMessageCount(3L, arubaProviderNamespace);
+            verify(cloudWatchPecMetrics, times(1)).publishMessageCount(3L, otherProviderNamespace);
         }
 
         @Test
@@ -408,6 +416,8 @@ class PnPecServiceTest {
 
             verify(arubaService, times(1)).getMessageCount();
             verify(otherProviderService, times(1)).getMessageCount();
+            verify(cloudWatchPecMetrics, times(1)).publishMessageCount(3L, arubaProviderNamespace);
+            verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), eq(otherProviderNamespace));
         }
 
         @Test
@@ -423,6 +433,7 @@ class PnPecServiceTest {
 
             verify(arubaService, times(1)).getMessageCount();
             verify(otherProviderService, times(0)).getMessageCount();
+            verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), anyString());
         }
 
         @Test
@@ -438,6 +449,7 @@ class PnPecServiceTest {
 
             verify(arubaService, times(1)).getMessageCount();
             verify(otherProviderService, times(0)).getMessageCount();
+            verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), anyString());
         }
 
         @Test
@@ -453,6 +465,7 @@ class PnPecServiceTest {
 
             verify(arubaService, times(1)).getMessageCount();
             verify(otherProviderService, times(0)).getMessageCount();
+            verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), anyString());
         }
 
         @Test
@@ -468,6 +481,8 @@ class PnPecServiceTest {
 
             verify(arubaService, times(1)).getMessageCount();
             verify(otherProviderService, times(1)).getMessageCount();
+            verify(cloudWatchPecMetrics, times(1)).publishMessageCount(3L, arubaProviderNamespace);
+            verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), eq(otherProviderNamespace));
         }
 
         @Test
@@ -480,11 +495,12 @@ class PnPecServiceTest {
             Mono<Integer> messageCount = pnPecService.getMessageCount();
 
             StepVerifier.create(messageCount)
-                    .expectErrorMatches(throwable -> throwable instanceof ArubaCallMaxRetriesExceededException || throwable instanceof AlternativeProviderMaxRetriesExceededException)
+                    .expectError(ArubaCallMaxRetriesExceededException.class)
                     .verify();
 
             verify(arubaService, times(1)).getMessageCount();
             verify(otherProviderService, times(0)).getMessageCount();
+            verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), anyString());
         }
     }
 

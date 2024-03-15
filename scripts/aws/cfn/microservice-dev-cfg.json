@@ -24,7 +24,7 @@
     "PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked": "true",
     "PnEcPECMaxMessageSizeMB": "100",
     "PnEcPECAttachmentRule": "LIMIT",
-    "PnEcPECTipoRicevutaBreve": "true",
+    "PnEcPECTipoRicevutaBreve": "false;2024-03-14T23:00:00Z;true",
     "PnEcProviderSwitchRead": "",
     "PnEcProviderSwitchWrite": "",
     "PnEcNamirialServerImapAddress": "",

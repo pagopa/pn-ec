@@ -4,11 +4,14 @@ import lombok.CustomLog;
 import lombok.Getter;
 import lombok.Setter;
 import org.joda.time.DateTime;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.Pattern;
 import java.util.*;
+
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.ARUBA_PROVIDER;
 
 @ConfigurationProperties(prefix = "pn.ec.pec")
 @Validated
@@ -29,6 +32,11 @@ public class PnPecConfigurationProperties {
     private String tipoRicevutaBreve;
     private String tipoRicevutaHeaderName;
     private String tipoRicevutaHeaderValue;
+
+    @Value("${aruba.pec.sender}")
+    private String arubaPecSender;
+    @Value("${namirial.pec.sender}")
+    private String namirialPecSender;
 
 
     private TreeMap<DateTime, List<String>> splitDateProviders(String propertyString) {
@@ -96,5 +104,9 @@ public class PnPecConfigurationProperties {
 
     public List<String> getPnPecProviderSwitchRead() {
         return returnPropertyValue(pnPecProviderSwitchRead);
+    }
+
+    public String getPnPecSender() {
+        return getPnPecProviderSwitchWrite().equals(ARUBA_PROVIDER) ? arubaPecSender : namirialPecSender;
     }
 }
