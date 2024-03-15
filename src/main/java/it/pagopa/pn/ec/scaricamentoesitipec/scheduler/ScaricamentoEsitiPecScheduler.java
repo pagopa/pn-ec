@@ -47,6 +47,7 @@ public class ScaricamentoEsitiPecScheduler {
 
     private final Predicate<IPostacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
     private final Predicate<IPostacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
+    private final Predicate<PnListOfMessages> hasNoMessages = pnListOfMessages -> Objects.isNull(pnListOfMessages) || Objects.isNull(pnListOfMessages.getMessages()) || pnListOfMessages.getMessages().isEmpty();
 
     @Scheduled(cron = "${PnEcCronScaricamentoEsitiPec ?:0 */5 * * * *}")
     public void scaricamentoEsitiPecScheduler() {
@@ -60,7 +61,7 @@ public class ScaricamentoEsitiPecScheduler {
                 .then(Mono.defer(() -> pnPecService.getUnreadMessages(Integer.parseInt(scaricamentoEsitiPecProperties.getMessagesLimit()))))
                 .flatMap(pnGetMessagesResponse -> {
                     var listOfMessages = pnGetMessagesResponse.getPnListOfMessages();
-                    if (Objects.isNull(listOfMessages))
+                    if (hasNoMessages.test(listOfMessages))
                         hasMessages.set(false);
                     return Mono.justOrEmpty(listOfMessages);
                 })

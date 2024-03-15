@@ -1,6 +1,6 @@
 {
   "Parameters": {
-    "PnEcIdentityPec":"pn/identity/pec",
+    "PnEcIdentityPec":"Pn-EC-PEC",
     "PnEcConsolidatoreBaseURL":"http://internal-pn-re-Appli-17ZRKQ0S21KXS-1215481206.eu-south-1.elb.amazonaws.com:8080",
     "PnEcEmailDefaultSender": "noreply@mail.dev.notifichedigitali.it",
     "ConsolidatoreClientId": "pn-cons-000",
@@ -26,6 +26,16 @@
     "PnEcPECAttachmentRule": "LIMIT",
     "PnEcPECTipoRicevutaBreve": "true",
     "PnEcProviderSwitchRead": "",
-    "PnEcProviderSwitchWrite": ""
+    "PnEcProviderSwitchWrite": "",
+    "PnEcNamirialServerImapAddress": "",
+    "PnEcNamirialServerSmtpAddress": "",
+    "PnEcNamirialServerImapPort": "",
+    "PnEcNamirialServerSmtpPort": "",
+    "PnEcNamirialPoolImapMaxtotal": "",
+    "PnEcNamirialPoolImapMaxidle": "",
+    "PnEcNamirialPoolImapMinidle": "",
+    "PnEcNamirialPoolSmtpMaxtotal": "",
+    "PnEcNamirialPoolSmtpMaxidle": "",
+    "PnEcNamirialPoolSmtpMinidle": ""
   }
 }

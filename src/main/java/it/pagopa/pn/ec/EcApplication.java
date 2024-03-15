@@ -63,6 +63,9 @@ import org.springframework.context.annotation.PropertySource;
 
 //S3
 @PropertySource("classpath:s3/s3.properties")
+
+//NAMIRIAL
+@PropertySource("classpath:namirial/namirial.properties")
 public class EcApplication {
 
     public static void main(String[] args) {
