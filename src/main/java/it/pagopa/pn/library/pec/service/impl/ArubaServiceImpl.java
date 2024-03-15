@@ -2,7 +2,7 @@ package it.pagopa.pn.library.pec.service.impl;
 
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.library.pec.exception.pecservice.PnSpapiTemporaryErrorException;
+import it.pagopa.pn.library.exceptions.PnSpapiTemporaryErrorException;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.ArubaService;
