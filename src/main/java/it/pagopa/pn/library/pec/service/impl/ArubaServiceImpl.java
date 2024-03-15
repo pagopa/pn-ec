@@ -133,7 +133,7 @@ public class ArubaServiceImpl implements ArubaService {
         getMessages.setUser(pecUsername);
         getMessages.setPass(pecPassword);
         var mdcContextMap = MDCUtils.retrieveMDCContextMap();
-        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGES, getMessages);
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_UNREAD_MESSAGES, getMessages);
         return Mono.create(sink -> pecImapBridgeClient.getMessagesAsync(getMessages, outputFuture -> {
                     try {
                         var result = outputFuture.get();
@@ -152,7 +152,7 @@ public class ArubaServiceImpl implements ArubaService {
                     pnGetMessagesResponse.setPnListOfMessages(new PnListOfMessages(messages));
                     return pnGetMessagesResponse;
                 })
-                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGES, result))
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_UNREAD_MESSAGES, result))
                 .onErrorResume(throwable -> Mono.error(new PnSpapiTemporaryErrorException(throwable.getMessage(), throwable)));
 
     }
@@ -166,7 +166,7 @@ public class ArubaServiceImpl implements ArubaService {
         getMessageID.setIsuid(2);
         getMessageID.setMarkseen(1);
         var mdcContextMap = MDCUtils.retrieveMDCContextMap();
-        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_GET_MESSAGE_ID, getMessageID);
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, ARUBA_MARK_MESSAGE_AS_READ, getMessageID);
         return Mono.create(sink -> pecImapBridgeClient.getMessageIDAsync(getMessageID, outputFuture -> {
                     try {
                         var result = outputFuture.get();
@@ -178,7 +178,7 @@ public class ArubaServiceImpl implements ArubaService {
                     }
                 })).cast(GetMessageIDResponse.class)
                 .then()
-                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_GET_MESSAGE_ID, result))
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, ARUBA_MARK_MESSAGE_AS_READ, result))
                 .onErrorResume(throwable -> Mono.error(new PnSpapiTemporaryErrorException(throwable.getMessage(), throwable)));
 
    }
