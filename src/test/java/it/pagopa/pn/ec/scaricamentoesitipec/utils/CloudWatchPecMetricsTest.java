@@ -27,15 +27,13 @@ public class CloudWatchPecMetricsTest {
     @Autowired
     private CloudWatchAsyncClient cloudWatchAsyncClient;
 
-    @Value("${library.pec.cloudwatch.namespace.aruba}")
-    private String arubaProviderNamespace;
-
     private static final Long MESSAGE_COUNT = 100L;
 
     @Test
     void publishMessageCountOk() throws ExecutionException, InterruptedException {
 
-        var testMono = cloudWatchPecMetrics.publishMessageCount(MESSAGE_COUNT, arubaProviderNamespace);
+        String NAMESPACE = "namespace";
+        var testMono = cloudWatchPecMetrics.publishMessageCount(MESSAGE_COUNT, NAMESPACE);
         StepVerifier.create(testMono).verifyComplete();
 
         var listMetrics = cloudWatchAsyncClient.listMetrics().get();
@@ -49,7 +47,7 @@ public class CloudWatchPecMetricsTest {
                                        .stat("Maximum")
                                        .period(60).build()).build())).get();
 
-        Assertions.assertEquals(messageCountMetric.metricDataResults().get(0).values().get(0), MESSAGE_COUNT.doubleValue());
+        Assertions.assertEquals(MESSAGE_COUNT.doubleValue(), messageCountMetric.metricDataResults().get(0).values().get(0));
 
     }
 

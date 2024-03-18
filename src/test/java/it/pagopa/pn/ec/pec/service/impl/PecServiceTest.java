@@ -13,16 +13,22 @@ import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import it.pagopa.pn.library.pec.service.AlternativeProviderService;
 import it.pagopa.pn.library.pec.service.ArubaService;
+import it.pagopa.pn.library.pec.service.impl.PnPecServiceImpl;
+import lombok.CustomLog;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.annotation.DirtiesContext;
@@ -37,6 +43,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
@@ -45,6 +52,8 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageCont
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.ARUBA_PROVIDER;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.OTHER_PROVIDER;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -69,6 +78,8 @@ class PecServiceTest {
     @MockBean(name = "arubaServiceImpl")
     private ArubaService arubaService;
     @MockBean
+    private AlternativeProviderService otherService;
+    @MockBean
     private AttachmentServiceImpl attachmentService;
     @MockBean
     private DownloadCall downloadCall;
@@ -76,8 +87,14 @@ class PecServiceTest {
     private PecService pecService;
     @SpyBean
     private PnPecConfigurationProperties pnPecConfigurationProperties;
+    @SpyBean
+    private PnPecServiceImpl pnPecService;
     @Mock
     private Acknowledgment acknowledgment;
+    @Value("${aruba.pec.sender}")
+    private String arubaPecSender;
+    @Value("${namirial.pec.sender}")
+    private String namirialPecSender;
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final RequestDto requestDto = new RequestDto();
@@ -85,6 +102,9 @@ class PecServiceTest {
     private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
     private static Integer MAX_MESSAGE_SIZE_KB;
     private String TIPO_RICEVUTA_BREVE_DEFAULT;
+    private String PROVIDER_SWITCH_WRITE_DEFAULT;
+    private final static String PROVIDER_SWITCH_WRITE_ARUBA = "1970-01-01T00:00:00Z;aruba";
+    private final static String PROVIDER_SWITCH_WRITE_OTHER = "1970-01-01T00:00:00Z;other";
     public static DigitalNotificationRequest createDigitalNotificationRequest() {
 //        Mock an existing request. Set the requestIdx
         requestDto.setRequestIdx("requestIdx");
@@ -150,10 +170,12 @@ class PecServiceTest {
     @BeforeEach
     void setUp() {
         TIPO_RICEVUTA_BREVE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "tipoRicevutaBreve");
+        PROVIDER_SWITCH_WRITE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite");
     }
     @AfterEach
     void afterEach() {
         ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", TIPO_RICEVUTA_BREVE_DEFAULT);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite", PROVIDER_SWITCH_WRITE_DEFAULT);
     }
 
     @Test
@@ -308,6 +330,33 @@ class PecServiceTest {
         assertNull(xTipoRicevutaHeader);
     }
 
+    private static Stream<Arguments> providerSource() {
+        return Stream.of(Arguments.of(PROVIDER_SWITCH_WRITE_ARUBA, ARUBA_PROVIDER), Arguments.of(PROVIDER_SWITCH_WRITE_OTHER, OTHER_PROVIDER));
+    }
+
+    @ParameterizedTest
+    @MethodSource("providerSource")
+    void lavorazionePec_SenderSwitch_Ok(String providerSwitch, String providerName) {
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite", providerSwitch);
+
+        var requestDto=buildRequestDto();
+        var clientId=PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestId=PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        String messageID = "messageID";
+        when(arubaService.sendMail(any())).thenReturn(Mono.just(messageID));
+        when(otherService.sendMail(any())).thenReturn(Mono.just(messageID));
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+
+        Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        verifyPecProviderSwitch(providerName);
+    }
+
     private byte[] extractSendMailData() {
         ArgumentCaptor<byte[]> argumentCaptor = ArgumentCaptor.forClass(byte[].class);
         verify(arubaService, times(1)).sendMail(argumentCaptor.capture());
@@ -329,6 +378,20 @@ class PecServiceTest {
             when(downloadCall.downloadFile(file.getDownload().getUrl())).thenReturn(Mono.just(outputStream));
         }
         when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.fromIterable(fileDownloadResponseList));
+    }
+
+    private void verifyPecProviderSwitch(String providerName) {
+        ArgumentCaptor<byte[]> argumentCaptor = ArgumentCaptor.forClass(byte[].class);
+        verify(pnPecService, times(1)).sendMail(argumentCaptor.capture());
+        var mimeMessage = getMimeMessage(argumentCaptor.getValue());
+        var sender = getSenderFromMimeMessage(mimeMessage);
+        if (providerName.equals(ARUBA_PROVIDER)) {
+            verify(arubaService, times(1)).sendMail(argumentCaptor.capture());
+            assertEquals(arubaPecSender, sender);
+        } else {
+            verify(otherService, times(1)).sendMail(argumentCaptor.capture());
+            assertEquals(namirialPecSender, sender);
+        }
     }
 
 }
