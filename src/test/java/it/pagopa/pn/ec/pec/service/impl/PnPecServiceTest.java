@@ -187,7 +187,7 @@ class PnPecServiceTest {
             when(arubaService.sendMail(any())).thenReturn(Mono.error(temporaryException));
 
             Mono<String> response = pnPecService.sendMail(message);
-            StepVerifier.create(response).expectError(MaxRetriesExceededException.class).verify();
+            StepVerifier.create(response).expectError(ArubaCallMaxRetriesExceededException.class).verify();
 
             verify(arubaService, times(1)).sendMail(any());
             verify(otherProviderService, never()).sendMail(any());
@@ -565,7 +565,7 @@ class PnPecServiceTest {
             when(arubaService.markMessageAsRead(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(temporaryException));
             when(otherProviderService.markMessageAsRead(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(permanentException));
 
-            StepVerifier.create(pnPecService.markMessageAsRead(ARUBA_MESSAGE_ID)).expectError(MaxRetriesExceededException.class).verify();
+            StepVerifier.create(pnPecService.markMessageAsRead(ARUBA_MESSAGE_ID)).expectError(ArubaCallMaxRetriesExceededException.class).verify();
 
             verify(arubaService, times(1)).markMessageAsRead(ARUBA_MESSAGE_ID);
             verify(otherProviderService, never()).markMessageAsRead(anyString());
@@ -649,7 +649,7 @@ class PnPecServiceTest {
             when(arubaService.deleteMessage(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(temporaryException));
             when(otherProviderService.deleteMessage(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(permanentException));
 
-            StepVerifier.create(pnPecService.deleteMessage(ARUBA_MESSAGE_ID)).expectError(MaxRetriesExceededException.class).verify();
+            StepVerifier.create(pnPecService.deleteMessage(ARUBA_MESSAGE_ID)).expectError(ArubaCallMaxRetriesExceededException.class).verify();
 
             verify(arubaService, times(1)).deleteMessage(ARUBA_MESSAGE_ID);
             verify(otherProviderService, never()).deleteMessage(anyString());

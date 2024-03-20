@@ -26,7 +26,6 @@ public class DatiCertServiceImpl implements DaticertService {
 
     @Value("${library.pec.postacert.path}")
     String postacertClassType;
-
     public DatiCertServiceImpl(JAXBContext jaxbContext) {
         this.jaxbContext = jaxbContext;
     }
@@ -34,17 +33,18 @@ public class DatiCertServiceImpl implements DaticertService {
     @Override
     public IPostacert getPostacertFromByteArray(byte[] bytes) {
         try {
-
 //          This method could be called in a non-thread safe context; is good to create for each unmarshall operation a jakarta.xml.bind
 //          .JAXBContext.Unmarshaller object instead of a Spring Bean ?
 //          Yes the jakarta.xml.bind.JAXBContext is thread safe but jakarta.xml.bind.JAXBContext.Unmarshaller no
 //          https://javaee.github.io/jaxb-v2/doc/user-guide/ch06.html#d0e6879
 //          https://stackoverflow.com/questions/7400422/jaxb-creating-context-and-marshallers-cost
-            Class<?> dynamicClass = Class.forName(postacertClassType).asSubclass(Postacert.class);
+            Class<?> dynamicClass = Class.forName(postacertClassType);
             return (IPostacert) dynamicClass.getDeclaredConstructor(Postacert.class).newInstance((Postacert) jaxbContext.createUnmarshaller().unmarshal(new ByteArrayInputStream(bytes)));
         } catch (JAXBException e) {
+
             throw new XmlParserException("JAXBException during input stream unmarshalling");
         } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
+            log.error("Exception during custom Postacert object instantiation : " + e);
             throw new DaticertServiceException("Exception during custom Postacert object instantiation : " + e.getMessage());
         }
     }

@@ -125,7 +125,6 @@ public class ScaricamentoEsitiPecServiceTest {
         StepVerifier.create(testMono).expectError(NoSuchKeyException.class).verify();
         verify(sqsService, never()).send(anyString(), any(NotificationTrackerQueueDto.class));
         verify(s3Service, times(1)).getObjectAndConvert(fileKey, storageSqsMessagesStagingBucket, RicezioneEsitiPecDto.class);
-
     }
 
     @Test
