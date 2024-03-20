@@ -5,7 +5,7 @@ import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
+import it.pagopa.pn.ec.commons.exception.pec.PecCallMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.email.ComposeMimeMessageException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
@@ -227,7 +227,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 //                              Create EmailField object with request info and attachments
 
                 .flatMap(emailAttachments -> sendMail(xPagopaExtchCxId, requestIdx, digitalNotificationRequest, emailAttachments)
-                        .onErrorResume(ArubaCallMaxRetriesExceededException.class, throwable -> {
+                        .onErrorResume(PecCallMaxRetriesExceededException.class, throwable -> {
                             var stepError = new StepError();
                             pecPresaInCaricoInfo.setStepError(stepError);
                             pecPresaInCaricoInfo.getStepError().setStep(ARUBA_SEND_MAIL_STEP);
