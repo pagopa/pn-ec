@@ -44,8 +44,7 @@ public class DatiCertServiceImpl implements DaticertService {
 
             throw new XmlParserException("JAXBException during input stream unmarshalling");
         } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
-            log.error("Exception during custom Postacert object instantiation : " + e);
-            throw new DaticertServiceException("Exception during custom Postacert object instantiation : " + e.getMessage());
+            throw new DaticertServiceException("Exception during custom Postacert object instantiation : " + e);
         }
     }
 
