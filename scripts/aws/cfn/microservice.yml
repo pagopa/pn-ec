@@ -850,7 +850,7 @@ Parameters:
 
   MemoryAmount:
     Type: String
-    Default: '4GB'
+    Default: '2GB'
     Description: Memory amount reserved to the task pod.
     AllowedValues: [ 2GB, 4GB, 6GB, 8GB ]
 
