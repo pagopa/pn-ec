@@ -374,7 +374,6 @@
                         </configuration>
                     </execution>
 
-
                     <execution>
                         <id>generate-api-internal</id>
                         <goals>
