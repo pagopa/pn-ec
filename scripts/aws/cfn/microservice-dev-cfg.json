@@ -37,7 +37,7 @@
     "PnEcNamirialPoolSmtpMaxtotal": "",
     "PnEcNamirialPoolSmtpMaxidle": "",
     "PnEcNamirialPoolSmtpMinidle": "",
-    "CpuValue": "4096",
-    "MemoryAmount": "8GB"
+    "CpuValue": "1024",
+    "MemoryAmount": "2GB"
   }
 }
