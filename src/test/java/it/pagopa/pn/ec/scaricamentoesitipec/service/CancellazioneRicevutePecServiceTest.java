@@ -8,7 +8,6 @@ import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CancellazioneRicevutePecD
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.library.pec.exception.pecservice.DeleteMessageException;
 import it.pagopa.pn.library.pec.service.PnPecService;
-import org.apache.commons.compress.archivers.sevenz.CLI;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;

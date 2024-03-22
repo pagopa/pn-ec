@@ -219,6 +219,11 @@ public class EmailUtils {
         return mimeMessage.getHeader(headerName);
     }
 
+    @SneakyThrows(MessagingException.class)
+    public static String getSenderFromMimeMessage(MimeMessage mimeMessage) {
+        return mimeMessage.getFrom()[0].toString();
+    }
+
     public static OutputStream getMimeMessageOutputStream(EmailField emailField) {
         var output = new ByteArrayOutputStream();
         try {

@@ -313,7 +313,7 @@ class RequestControllerTest {
     void testUpdateFailed(PatchDto patchDto) {
 
         webClient.patch()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build("idCheNonEsiste"))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build("idCheNonEsiste1"))
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .body(BodyInserters.fromValue(patchDto))
                  .exchange()
@@ -371,7 +371,7 @@ class RequestControllerTest {
     @Test
     void deleteRequestTestFailed() {
         webClient.delete()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest()).build("idCheNonEsiste"))
+                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest()).build("idCheNonEsiste2"))
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()

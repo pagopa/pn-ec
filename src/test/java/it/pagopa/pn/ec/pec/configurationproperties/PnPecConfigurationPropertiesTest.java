@@ -1,13 +1,15 @@
 package it.pagopa.pn.ec.pec.configurationproperties;
 
-import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
+import org.hamcrest.Matchers;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @SpringBootTestWebEnv
 @CustomLog
@@ -17,22 +19,29 @@ public class PnPecConfigurationPropertiesTest {
     PnPecConfigurationProperties pnPecConfigurationProperties;
 
     private final String ARUBA = "aruba";
-    private final String ALTERNATIVE = "other";
-    private  String PROVIDER_SWITCH_DEFAULT = "aruba";
-    private final String DATE_ARUBA= "2050-01-01T00:00:00Z";
-    private final String DATE_ALTERNATIVE= "2020-12-31T23:59:58Z";
-    private final String DATE_DEFAULT= "2020-01-01T00:00:00Z";
-    private final String PN_PEC_PROVIDER_SWITCH = "pnPecProviderSwitch";
+    private final String OTHER = "other";
+    private String PROVIDER_SWITCH_DEFAULT_READ = "aruba";
+    private String PROVIDER_SWITCH_DEFAULT_WRITE = "aruba";
+    private final String DATE_R_ARUBA_W_ARUBA = "2022-12-02T00:00:00Z";
+    private final String DATE_R_ARUBA_OTHER_W_OTHER = "2023-01-02T23:59:58Z";
+    private final String DATE_R_OTHER_W_ARUBA = "2023-02-02T00:00:00Z";
+    private final String DATE_DEFAULT="1970-01-01T00:00:00Z";
+    private final String PN_PEC_PROVIDER_SWITCH_WRITE = "pnPecProviderSwitchWrite";
+    private final String PN_PEC_PROVIDER_SWITCH_READ = "pnPecProviderSwitchRead";
 
     @BeforeEach
     void setUp() {
-        DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_DEFAULT).getMillis());
-        PROVIDER_SWITCH_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH);
+        DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_OTHER_W_ARUBA).getMillis());
+        PROVIDER_SWITCH_DEFAULT_READ = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH_READ);
+        PROVIDER_SWITCH_DEFAULT_WRITE = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH_WRITE);
+
+
     }
 
     @AfterEach
     void afterEach() {
-        ReflectionTestUtils.setField(pnPecConfigurationProperties,PN_PEC_PROVIDER_SWITCH,PROVIDER_SWITCH_DEFAULT);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH_READ, PROVIDER_SWITCH_DEFAULT_READ);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH_WRITE, PROVIDER_SWITCH_DEFAULT_WRITE);
     }
 
     @AfterAll
@@ -40,30 +49,25 @@ public class PnPecConfigurationPropertiesTest {
         DateTimeUtils.setCurrentMillisSystem();
     }
 
-    @Test
-    void testTipoRicevutaActualPropertyValueOk() {
-        DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_ALTERNATIVE).getMillis());
-        Assertions.assertEquals(ALTERNATIVE, pnPecConfigurationProperties.getPnPecProviderSwitch());
-        DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_ARUBA).getMillis());
-        Assertions.assertEquals(ARUBA, pnPecConfigurationProperties.getPnPecProviderSwitch());
-    }
+        @Test
+        void testWithDateRArubaWAruba() {
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_W_ARUBA).getMillis());
+            Assertions.assertEquals(ARUBA, pnPecConfigurationProperties.getPnPecProviderSwitchWrite());
+            assertThat(pnPecConfigurationProperties.getPnPecProviderSwitchRead(), Matchers.containsInAnyOrder(ARUBA));
+        }
 
-    @Test
-    void testpnPecProviderSwitchSingleValueOk() {
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ARUBA);
-        Assertions.assertEquals(ARUBA, pnPecConfigurationProperties.getPnPecProviderSwitch());
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ALTERNATIVE);
-        Assertions.assertEquals(ALTERNATIVE, pnPecConfigurationProperties.getPnPecProviderSwitch());
-    }
+        @Test
+        void testWithDateROtherWAruba() {
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_OTHER_W_ARUBA).getMillis());
+            Assertions.assertEquals(ARUBA, pnPecConfigurationProperties.getPnPecProviderSwitchWrite());
+            assertThat(pnPecConfigurationProperties.getPnPecProviderSwitchRead(), Matchers.containsInAnyOrder(OTHER));
+        }
 
-    @Test
-    void testTipoRicevutaKoUnparsableValue() {
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ARUBA+";"+ARUBA+";"+ALTERNATIVE);
-        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getPnPecProviderSwitch());
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ARUBA+";"+DATE_ALTERNATIVE);
-        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getPnPecProviderSwitch());
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, PN_PEC_PROVIDER_SWITCH, ARUBA+";"+DATE_ALTERNATIVE+";false;false");
-        Assertions.assertThrows(RuntimeException.class, () -> pnPecConfigurationProperties.getPnPecProviderSwitch());
-    }
+        @Test
+        void testWithDateRArubaOtherWOther() {
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_R_ARUBA_OTHER_W_OTHER).getMillis());
+            Assertions.assertEquals(OTHER, pnPecConfigurationProperties.getPnPecProviderSwitchWrite());
+            assertThat(pnPecConfigurationProperties.getPnPecProviderSwitchRead(), Matchers.containsInAnyOrder(ARUBA, OTHER));
+        }
 
 }

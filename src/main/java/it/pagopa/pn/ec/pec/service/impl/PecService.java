@@ -5,7 +5,7 @@ import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
+import it.pagopa.pn.ec.commons.exception.pec.PecCallMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.email.ComposeMimeMessageException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
@@ -84,8 +84,6 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private final Semaphore semaphore;
     private final PnPecConfigurationProperties pnPecProps;
     private String idSaved;
-    @Value("${pn.pec.sender}")
-    private String pecSender;
 
     protected PecService(AuthService authService,@Qualifier("pnPecServiceImpl") PnPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
             , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName, @Value("${lavorazione-pec.max-thread-pool-size}") Integer maxThreadPoolSize, PnPecConfigurationProperties pnPecProps) {
@@ -229,7 +227,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 //                              Create EmailField object with request info and attachments
 
                 .flatMap(emailAttachments -> sendMail(xPagopaExtchCxId, requestIdx, digitalNotificationRequest, emailAttachments)
-                        .onErrorResume(ArubaCallMaxRetriesExceededException.class, throwable -> {
+                        .onErrorResume(PecCallMaxRetriesExceededException.class, throwable -> {
                             var stepError = new StepError();
                             pecPresaInCaricoInfo.setStepError(stepError);
                             pecPresaInCaricoInfo.getStepError().setStep(ARUBA_SEND_MAIL_STEP);
@@ -293,9 +291,10 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
     private Mono<GeneratedMessageDto> sendMail(String xPagopaExtchCxId, String requestIdx, DigitalNotificationRequest digitalNotificationRequest, List<EmailAttachment> attachments) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS + " - {}", PEC_SEND_MAIL, digitalNotificationRequest, attachments);
+        String sender = pnPecProps.getPnPecSender();
         return Mono.just(attachments).map(fileDownloadResponses -> EmailField.builder()
                 .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
-                .from(pecSender)
+                .from(sender)
                 .to(digitalNotificationRequest.getReceiverDigitalAddress())
                 .subject(digitalNotificationRequest.getSubjectText())
                 .text(digitalNotificationRequest.getMessageText())
@@ -310,7 +309,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                         pnPecProps.getTipoRicevutaBreve()))
                 .map(EmailUtils::getMimeMessageByteArray)
                 .flatMap(pnPecService::sendMail)
-                .map(this::createGeneratedMessageDto)
+                .map(messageID -> createGeneratedMessageDto(messageID, sender))
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_SEND_MAIL, result));
     }
 
@@ -331,8 +330,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_SEND_MESSAGE, result));
     }
 
-    private GeneratedMessageDto createGeneratedMessageDto(String messageID) {
-        return new GeneratedMessageDto().id(messageID).system(getDomainFromAddress(pecSender));
+    private GeneratedMessageDto createGeneratedMessageDto(String messageID, String sender) {
+        return new GeneratedMessageDto().id(messageID).system(getDomainFromAddress(sender));
     }
 
     @Scheduled(cron = "${PnEcCronGestioneRetryPec ?:0 */5 * * * *}")

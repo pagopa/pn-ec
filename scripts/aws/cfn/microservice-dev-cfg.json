@@ -24,8 +24,9 @@
     "PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked": "true",
     "PnEcPECMaxMessageSizeMB": "100",
     "PnEcPECAttachmentRule": "LIMIT",
-    "PnEcPECTipoRicevutaBreve": "true",
-    "PnEcProviderSwitch": "aruba",
+    "PnEcPECTipoRicevutaBreve": "false;2024-03-14T23:00:00Z;true",
+    "PnEcProviderSwitchRead": "1970-01-01T00:00:00Z;aruba",
+    "PnEcProviderSwitchWrite": "1970-01-01T00:00:00Z;aruba",
     "PnEcNamirialServerImapAddress": "",
     "PnEcNamirialServerSmtpAddress": "",
     "PnEcNamirialServerImapPort": "",
@@ -35,6 +36,8 @@
     "PnEcNamirialPoolImapMinidle": "",
     "PnEcNamirialPoolSmtpMaxtotal": "",
     "PnEcNamirialPoolSmtpMaxidle": "",
-    "PnEcNamirialPoolSmtpMinidle": ""
+    "PnEcNamirialPoolSmtpMinidle": "",
+    "CpuValue": "1024",
+    "MemoryAmount": "4GB"
   }
 }

@@ -72,8 +72,6 @@ public class LavorazioneEsitiPecService {
     private final String storageSqsMessagesStagingBucket;
     private final Semaphore semaphore;
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
-    @Value("${pn.pec.sender}")
-    private String pecSender;
 
     public LavorazioneEsitiPecService(SqsService sqsService, DaticertService daticertService, StatusPullService statusPullService, CloudWatchPecMetrics cloudWatchPecMetrics, NotificationTrackerSqsName notificationTrackerSqsName, FileCall fileCall, WebClient uploadWebClient, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, S3Service s3Service, @Value("${lavorazione-esiti-pec.max-thread-pool-size}") Integer maxThreadPoolSize, @Value("${pn.ec.storage.sqs.messages.staging.bucket}") String storageSqsMessagesStagingBucket) {
         this.sqsService = sqsService;
@@ -112,6 +110,7 @@ public class LavorazioneEsitiPecService {
                             var mimeMessage = getMimeMessage(message);
                             var daticert = findAttachmentByName(mimeMessage, "daticert.xml");
                             var postacert = daticertService.getPostacertFromByteArray(daticert);
+                            var sender = postacert.getIntestazione().getMittente();
                             var msgId = postacert.getDati().getMsgid();
                             msgId = msgId.substring(1, msgId.length() - 1);
                             var presaInCaricoInfo = decodeMessageId(msgId);
@@ -178,8 +177,7 @@ public class LavorazioneEsitiPecService {
                                         requestIdx.set(requestDto.getRequestIdx());
                                         var xPagopaExtchCxId = requestDto.getxPagopaExtchCxId();
                                         var eventDetails = postacert.getErrore();
-                                        var senderDigitalAddress = pecSender;
-                                        var senderDomain = getDomainFromAddress(senderDigitalAddress);
+                                        var senderDomain = getDomainFromAddress(sender);
                                         var receiversDomain = ricezioneEsitiPecDto.getReceiversDomain();
 
                                         return generateLocation(requestIdx.get(), message)

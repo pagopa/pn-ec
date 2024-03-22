@@ -60,6 +60,18 @@
             </exclusions>
         </dependency>
 
+        <dependency>
+            <groupId>it.pagopa.pn</groupId>
+            <artifactId>pn-ec-aruba-pec</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>it.pagopa.pn</groupId>
+            <artifactId>pn-servizifiduciari-spapi</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.codehaus.janino/janino -->
 				<dependency>
 				    <groupId>org.codehaus.janino</groupId>
@@ -296,7 +308,6 @@
 
         <!--prova generators-->
 
-
     </dependencies>
 
     <build>
@@ -362,7 +373,6 @@
                             <skipValidateSpec>true</skipValidateSpec>
                         </configuration>
                     </execution>
-
 
                     <execution>
                         <id>generate-api-internal</id>
@@ -488,7 +498,6 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -497,59 +506,6 @@
                     <target>17</target>
                 </configuration>
             </plugin>
-
-            <plugin>
-                <groupId>org.apache.cxf</groupId>
-                <artifactId>cxf-codegen-plugin</artifactId>
-                <version>3.6.2</version>
-                <executions>
-                    <execution>
-                        <id>generate-sources</id>
-                        <phase>generate-sources</phase>
-                        <configuration>
-                            <wsdlOptions>
-                                <wsdlOption>
-                                    <wsdl>${project.basedir}/src/main/resources/pec/PecImapBridgeBWS1.5.wsdl</wsdl>
-                                    <wsdlLocation>classpath:pec/PecImapBridgeBWS1.5.wsdl</wsdlLocation>
-                                    <extraargs>
-                                        <extraarg>-client</extraarg>
-                                        <extraarg>-verbose</extraarg>
-                                        <extraarg>-p</extraarg>
-                                        <extraarg>it.pec.bridgews</extraarg>
-                                        <extraarg>-asyncMethods</extraarg>
-                                        <extraarg>-bareMethods</extraarg>
-                                    </extraargs>
-                                </wsdlOption>
-                            </wsdlOptions>
-                        </configuration>
-                        <goals>
-                            <goal>wsdl2java</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>jaxb2-maven-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>xjc</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <sourceType>dtd</sourceType>
-                    <sources>
-                        <source>src/main/resources/pec/daticert-xml-schema.dtd</source>
-                    </sources>
-                    <externalEntityProcessing>true</externalEntityProcessing>
-                    <packageName>it.pagopa.pn.library.pec.model.pojo</packageName>
-                </configuration>
-            </plugin>
-
         </plugins>
     </build>
 </project>
