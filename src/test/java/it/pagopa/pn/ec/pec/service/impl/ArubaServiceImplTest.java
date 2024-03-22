@@ -2,13 +2,10 @@ package it.pagopa.pn.ec.pec.service.impl;
 
 
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import it.pagopa.pn.library.pec.model.pojo.ArubaPostacert;
-import it.pagopa.pn.library.pec.model.pojo.Postacert;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.service.impl.ArubaServiceImpl;
 import it.pec.bridgews.*;
 import lombok.CustomLog;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;

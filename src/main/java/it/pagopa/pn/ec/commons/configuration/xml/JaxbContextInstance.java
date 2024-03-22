@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.commons.configuration.xml;
 
-import it.pagopa.pn.library.pec.pojo.PnPostacert;
+import it.pagopa.pn.library.pec.model.pojo.PnPostacert;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import org.springframework.context.annotation.Bean;
