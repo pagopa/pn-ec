@@ -63,7 +63,7 @@
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-ec-aruba-pec</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.1</version>
         </dependency>
 
         <dependency>
