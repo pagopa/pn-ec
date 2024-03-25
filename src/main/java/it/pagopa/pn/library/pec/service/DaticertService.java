@@ -1,6 +1,6 @@
 package it.pagopa.pn.library.pec.service;
 
-import it.pagopa.pn.library.pec.model.pojo.IPostacert;
+import it.pagopa.pn.library.pec.model.IPostacert;
 
 public interface DaticertService {
 

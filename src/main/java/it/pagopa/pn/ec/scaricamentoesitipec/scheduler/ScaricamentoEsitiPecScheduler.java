@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.library.pec.model.pojo.IPostacert;
-import it.pagopa.pn.library.pec.pojo.PnPostacert;
+import it.pagopa.pn.library.pec.model.IPostacert;
+import it.pagopa.pn.library.pec.model.pojo.PnPostacert;
 import it.pagopa.pn.library.pec.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
