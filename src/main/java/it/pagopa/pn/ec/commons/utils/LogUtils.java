@@ -183,13 +183,6 @@ public class LogUtils {
     public static final String ARUBA_GET_UNREAD_MESSAGES = "ArubaService.getUnreadMessages()";
     public static final String INITIALIZING_ARUBA_PROXY_CLIENT = "Initializing Aruba proxy client for '{}' : ArubaServerAddress : {}, EndpointName : {}, ServiceName : {}";
 
-    //ALTERNATIVE PROVIDER
-    public static final String ALT_GET_UNREAD_MESSAGES = "AlternativeProviderService.getUnreadMessages()";
-    public static final String ALT_MARK_MESSAGE_AS_READ = "AlternativeProviderService.markMessageAsRead()";
-    public static final String ALT_SEND_MAIL = "AlternativeProviderService.sendMail()";
-    public static final String ALT_GET_MESSAGE_COUNT = "AlternativeProviderService.getMessageCount()";
-    public static final String ALT_DELETE_MAIL = "AlternativeProviderService.deleteMail()";
-
     //SES
     public static final String SES_SEND_MAIL = "SesService.sendMail()";
 

@@ -6,11 +6,10 @@ import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.library.exceptions.PnSpapiTemporaryErrorException;
 import it.pagopa.pn.library.pec.configurationproperties.PnPecRetryStrategyProperties;
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
-import it.pagopa.pn.library.pec.exception.pecservice.AlternativeProviderMaxRetriesExceededException;
+import it.pagopa.pn.library.pec.exception.pecservice.NamirialProviderMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.MaxRetriesExceededException;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
-import it.pagopa.pn.library.pec.service.AlternativeProviderService;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnPecService;
 import lombok.CustomLog;
@@ -34,24 +33,22 @@ import static it.pagopa.pn.library.pec.utils.PnPecUtils.*;
 public class PnPecServiceImpl implements PnPecService {
 
     private final ArubaService arubaService;
-    private final AlternativeProviderService otherService;
+    private final com.namirial.pec.library.service.PnPecServiceImpl namirialService;
     private final PnPecConfigurationProperties props;
     private final PnPecRetryStrategyProperties retryStrategyProperties;
     private final CloudWatchPecMetrics cloudWatchPecMetrics;
     @Value("${library.pec.cloudwatch.namespace.aruba}")
     private String arubaProviderNamespace;
-    @Value("${library.pec.cloudwatch.namespace.alternative}")
-    private String otherProviderNamespace;
+    @Value("${library.pec.cloudwatch.namespace.namirial}")
+    private String namirialProviderNamespace;
 
 
     @Autowired
-    public PnPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService,
-                            @Qualifier("alternativeProviderServiceImpl") AlternativeProviderService otherService,
-                            PnPecConfigurationProperties props,
+    public PnPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService, com.namirial.pec.library.service.PnPecServiceImpl namirialService, PnPecConfigurationProperties props,
                             PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics) {
         this.arubaService = arubaService;
+        this.namirialService = namirialService;
         this.retryStrategyProperties = retryStrategyProperties;
-        this.otherService = otherService;
         this.props = props;
         this.cloudWatchPecMetrics = cloudWatchPecMetrics;
     }
@@ -67,8 +64,8 @@ public class PnPecServiceImpl implements PnPecService {
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
                     if (service instanceof ArubaService) {
                         return new ArubaCallMaxRetriesExceededException(RETRIES_EXCEEDED_MESSAGE + clientMethodName, retrySignal.failure());
-                    } else if (service instanceof AlternativeProviderService) {
-                        return new AlternativeProviderMaxRetriesExceededException(RETRIES_EXCEEDED_MESSAGE + clientMethodName, retrySignal.failure());
+                    } else if (service instanceof com.namirial.pec.library.service.PnPecServiceImpl) {
+                        return new NamirialProviderMaxRetriesExceededException(RETRIES_EXCEEDED_MESSAGE + clientMethodName, retrySignal.failure());
                     } else {
                         return new MaxRetriesExceededException(RETRIES_EXCEEDED_MESSAGE + clientMethodName, retrySignal.failure());
                     }
@@ -154,9 +151,9 @@ public class PnPecServiceImpl implements PnPecService {
                 log.debug(ARUBA_PROVIDER_SELECTED);
                 yield arubaService;
             }
-            case OTHER_PROVIDER -> {
-                log.debug(OTHER_PROVIDER_SELECTED);
-                yield otherService;
+            case NAMIRIAL_PROVIDER -> {
+                log.debug(NAMIRIAL_PROVIDER_SELECTED);
+                yield namirialService;
             }
             default -> {
                 log.debug(ERROR_PARSING_PROPERTY_VALUES);
@@ -172,9 +169,9 @@ public class PnPecServiceImpl implements PnPecService {
             if (provider.equals(ARUBA_PROVIDER)) {
                 log.debug(ARUBA_PROVIDER_SELECTED);
                 services.add(arubaService);
-            } else if (provider.equals(OTHER_PROVIDER)) {
-                log.debug(OTHER_PROVIDER_SELECTED);
-                services.add(otherService);
+            } else if (provider.equals(NAMIRIAL_PROVIDER)) {
+                log.debug(NAMIRIAL_PROVIDER_SELECTED);
+                services.add(namirialService);
             } else {
                 log.debug(ERROR_PARSING_PROPERTY_VALUES);
                 throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES + " : " + provider);
@@ -187,9 +184,9 @@ public class PnPecServiceImpl implements PnPecService {
          if (isAruba(messageID)) {
              log.debug(ARUBA_PROVIDER_SELECTED);
              return arubaService;
-         } else if (isOther(messageID)){
-             log.debug(OTHER_PROVIDER_SELECTED);
-             return otherService;
+         } else if (isNamirial(messageID)){
+             log.debug(NAMIRIAL_PROVIDER_SELECTED);
+             return namirialService;
          } else {
              log.debug(ERROR_PARSING_PROPERTY_VALUES);
              throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
@@ -199,15 +196,15 @@ public class PnPecServiceImpl implements PnPecService {
     private String getMetricNamespace(PnPecService service) {
         if (service instanceof ArubaService) {
             return arubaProviderNamespace;
-        } else if (service instanceof AlternativeProviderService) {
-            return otherProviderNamespace;
+        } else if (service instanceof com.namirial.pec.library.service.PnPecServiceImpl) {
+            return namirialProviderNamespace;
         } else {
             log.debug(ERROR_RETRIEVING_METRIC_NAMESPACE);
             throw new IllegalArgumentException(ERROR_RETRIEVING_METRIC_NAMESPACE);
         }
     }
 
-        public static boolean isOther(String messageID) {
+        public static boolean isNamirial(String messageID) {
             return true;
         }
 

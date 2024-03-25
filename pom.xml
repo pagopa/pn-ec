@@ -67,6 +67,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.namirial.pec.library</groupId>
+            <artifactId>pn-ec-namirial-pec</artifactId>
+            <version>1.0.1-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-servizifiduciari-spapi</artifactId>
             <version>1.0.0</version>
