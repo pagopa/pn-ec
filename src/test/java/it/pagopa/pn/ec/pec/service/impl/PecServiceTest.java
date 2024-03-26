@@ -13,10 +13,9 @@ import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import it.pagopa.pn.library.pec.service.AlternativeProviderService;
 import it.pagopa.pn.library.pec.service.ArubaService;
+import it.pagopa.pn.library.pec.service.PnPecService;
 import it.pagopa.pn.library.pec.service.impl.PnPecServiceImpl;
-import lombok.CustomLog;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,7 +52,7 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INT
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
 import static it.pagopa.pn.library.pec.utils.PnPecUtils.ARUBA_PROVIDER;
-import static it.pagopa.pn.library.pec.utils.PnPecUtils.OTHER_PROVIDER;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.NAMIRIAL_PROVIDER;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -77,8 +76,8 @@ class PecServiceTest {
     private SqsServiceImpl sqsService;
     @MockBean(name = "arubaServiceImpl")
     private ArubaService arubaService;
-    @MockBean
-    private AlternativeProviderService otherService;
+    @MockBean(name = "namirialService")
+    private com.namirial.pec.library.service.PnPecServiceImpl namirialService;
     @MockBean
     private AttachmentServiceImpl attachmentService;
     @MockBean
@@ -104,7 +103,7 @@ class PecServiceTest {
     private String TIPO_RICEVUTA_BREVE_DEFAULT;
     private String PROVIDER_SWITCH_WRITE_DEFAULT;
     private final static String PROVIDER_SWITCH_WRITE_ARUBA = "1970-01-01T00:00:00Z;aruba";
-    private final static String PROVIDER_SWITCH_WRITE_OTHER = "1970-01-01T00:00:00Z;other";
+    private final static String PROVIDER_SWITCH_WRITE_NAMIRIAL = "1970-01-01T00:00:00Z;namirial";
     public static DigitalNotificationRequest createDigitalNotificationRequest() {
 //        Mock an existing request. Set the requestIdx
         requestDto.setRequestIdx("requestIdx");
@@ -331,7 +330,7 @@ class PecServiceTest {
     }
 
     private static Stream<Arguments> providerSource() {
-        return Stream.of(Arguments.of(PROVIDER_SWITCH_WRITE_ARUBA, ARUBA_PROVIDER), Arguments.of(PROVIDER_SWITCH_WRITE_OTHER, OTHER_PROVIDER));
+        return Stream.of(Arguments.of(PROVIDER_SWITCH_WRITE_ARUBA, ARUBA_PROVIDER), Arguments.of(PROVIDER_SWITCH_WRITE_NAMIRIAL, NAMIRIAL_PROVIDER));
     }
 
     @ParameterizedTest
@@ -347,7 +346,7 @@ class PecServiceTest {
         when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
         String messageID = "messageID";
         when(arubaService.sendMail(any())).thenReturn(Mono.just(messageID));
-        when(otherService.sendMail(any())).thenReturn(Mono.just(messageID));
+        when(namirialService.sendMail(any())).thenReturn(Mono.just(messageID));
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
 
         Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
@@ -389,7 +388,7 @@ class PecServiceTest {
             verify(arubaService, times(1)).sendMail(argumentCaptor.capture());
             assertEquals(arubaPecSender, sender);
         } else {
-            verify(otherService, times(1)).sendMail(argumentCaptor.capture());
+            verify(namirialService, times(1)).sendMail(argumentCaptor.capture());
             assertEquals(namirialPecSender, sender);
         }
     }
