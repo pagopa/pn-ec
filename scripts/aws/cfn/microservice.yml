@@ -992,15 +992,15 @@ Resources:
         ContainerEnvEntry14: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
         ContainerEnvEntry15: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
         ContainerEnvEntry16: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
-        ContainerEnvEntry17: 'PnEcQueueNameBatchPEC=pn-ec-pec-batch-queue-namirial'
-        ContainerEnvEntry18: 'PnEcQueueNameInteractivePEC=pn-ec-pec-interactive-queue-namirial'
-        ContainerEnvEntry19: 'PnEcQueueNameErroriPEC=pn-ec-pec-errori-queue-namirial'
+        ContainerEnvEntry17: !Sub 'PnEcQueueNameBatchPEC=${PnEcQueueBatchPECStackNamirial.Outputs.QueueName}'
+        ContainerEnvEntry18: !Sub 'PnEcQueueNameInteractivePEC=${PnEcQueueInteractivePECStackNamirial.Outputs.QueueName}'
+        ContainerEnvEntry19: !Sub 'PnEcQueueNameErroriPEC=${PnEcQueueErroriPECStackNamirial.Outputs.QueueName}'
         ContainerEnvEntry20: !Sub 'PnEcQueueNameBatchEMAIL=${PnEcQueueNameBatchEMAIL}'
         ContainerEnvEntry21: !Sub 'PnEcQueueNameInteractiveEMAIL=${PnEcQueueNameInteractiveEMAIL}'
         ContainerEnvEntry22: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
         ContainerEnvEntry23: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
         ContainerEnvEntry24: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
-        ContainerEnvEntry25: 'PnEcQueueNameScaricamentoEsitiPEC=pn-ec-pec-scaricamento-esiti-queue-namirial'
+        ContainerEnvEntry25: !Sub 'PnEcQueueNameScaricamentoEsitiPEC=${PnEcQueueScaricamentoEsitiPECStackNamirial.Outputs.QueueName}'
         ContainerEnvEntry26: !Sub 'PnEcCronScaricamentoEsitiPec=${PnEcCronScaricamentoEsitiPec}'
         ContainerEnvEntry27: !Sub 'PnEcCronLavorazioneBatchSms=${PnEcCronLavorazioneBatchSms}'
         ContainerEnvEntry28: !Sub 'PnEcCronLavorazioneBatchEmail=${PnEcCronLavorazioneBatchEmail}'
@@ -1031,7 +1031,7 @@ Resources:
         ContainerEnvEntry53: !Sub 'LavorazioneEmailMaxThreadPoolSize=${LavorazioneEmailMaxThreadPoolSize}'
         ContainerEnvEntry54: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
         ContainerEnvEntry55: !Sub 'PnEcTaskExecutionPoolMaxSize=${PnEcTaskExecutionPoolMaxSize}'
-        ContainerEnvEntry56: 'PnEcQueueNameCancellazioneRicevutePEC=pn-ec-pec-cancellazione-ricevute-queue-namirial'
+        ContainerEnvEntry56: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueCancellazioneRicevutePECStackNamirial.Outputs.QueueName}'
         ContainerEnvEntry57: !Sub 'CancellazioneRicevutePecMaxThreadPoolSize=${CancellazioneRicevutePecMaxThreadPoolSize}'
         ContainerEnvEntry58: !Sub 'PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked=${PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked}'
         ContainerEnvEntry59: !Sub 'PnEcPECMaxMessageSizeMB=${PnEcPECMaxMessageSizeMB}'
@@ -1062,7 +1062,6 @@ Resources:
         LoadbalancerRulePriority: 40
         TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
-        EcsLogGroup: "/aws/ecs/pn-ec-namirial"
         LoadBalancingAlgorithm: round_robin
         AutoscalingThreshold: !Ref AutoscalingThreshold
         AutoscalingStrategy: REST-API
@@ -1074,8 +1073,6 @@ Resources:
 
   PnEcQueueBatchPECStackNamirial:
     Type: AWS::CloudFormation::Stack
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
@@ -1091,8 +1088,6 @@ Resources:
 
   PnEcQueueCancellazioneRicevutePECStackNamirial:
     Type: AWS::CloudFormation::Stack
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
@@ -1107,8 +1102,6 @@ Resources:
 
   PnEcQueueErroriPECStackNamirial:
     Type: AWS::CloudFormation::Stack
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
@@ -1125,8 +1118,6 @@ Resources:
 
   PnEcQueueInteractivePECStackNamirial:
     Type: AWS::CloudFormation::Stack
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
@@ -1143,8 +1134,6 @@ Resources:
 
   PnEcQueueScaricamentoEsitiPECStackNamirial:
     Type: AWS::CloudFormation::Stack
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
@@ -1221,11 +1210,11 @@ Resources:
               - !Ref PnEcQueueArnScaricamentoEsitiPEC
               - !Ref PnEcQueueArnCancellazioneRicevutePEC
                # SQS ARN FOR TEST MICROSERVICE NAMIRIAL:
-              - !GetAtt PnEcQueueBatchPECStackNamirial.Arn
-              - !GetAtt PnEcQueueCancellazioneRicevutePECStackNamirial.Arn
-              - !GetAtt PnEcQueueErroriPECStackNamirial.Arn
-              - !GetAtt PnEcQueueInteractivePECStackNamirial.Arn
-              - !GetAtt PnEcQueueScaricamentoEsitiPECStackNamirial.Arn
+              - !GetAtt PnEcQueueBatchPECStackNamirial.Outputs.QueueARN
+              - !GetAtt PnEcQueueCancellazioneRicevutePECStackNamirial.Outputs.QueueARN
+              - !GetAtt PnEcQueueErroriPECStackNamirial.Outputs.QueueARN
+              - !GetAtt PnEcQueueInteractivePECStackNamirial.Outputs.QueueARN
+              - !GetAtt PnEcQueueScaricamentoEsitiPECStackNamirial.Outputs.QueueARN
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
