@@ -18,9 +18,11 @@ public class PnPecProvidersConf {
 
     @SneakyThrows(IOException.class)
     private Set<String> getNamirialPropertiesKeySet() {
-        Properties prop = new Properties();
-        prop.load(new FileInputStream("src/main/resources/namirial/namirial.properties"));
-        return prop.stringPropertyNames();
+        try (FileInputStream fileInputStream = new FileInputStream("src/main/resources/namirial/namirial.properties")) {
+            Properties prop = new Properties();
+            prop.load(fileInputStream);
+            return prop.stringPropertyNames();
+        }
     }
 
     @Bean
