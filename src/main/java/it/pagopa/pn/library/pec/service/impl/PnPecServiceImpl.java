@@ -180,18 +180,15 @@ public class PnPecServiceImpl implements PnPecService {
         return services;
     }
 
-        private PnPecService getProvider(String messageID) {
-         if (isAruba(messageID)) {
-             log.debug(ARUBA_PROVIDER_SELECTED);
-             return arubaService;
-         } else if (isNamirial(messageID)){
-             log.debug(NAMIRIAL_PROVIDER_SELECTED);
-             return namirialService;
-         } else {
-             log.debug(ERROR_PARSING_PROPERTY_VALUES);
-             throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
-         }
+    private PnPecService getProvider(String messageID) {
+        if (isAruba(messageID)) {
+            log.debug(ARUBA_PROVIDER_SELECTED);
+            return arubaService;
+        } else {
+            log.debug(NAMIRIAL_PROVIDER_SELECTED);
+            return namirialService;
         }
+    }
 
     private String getMetricNamespace(PnPecService service) {
         if (service instanceof ArubaService) {
@@ -203,10 +200,6 @@ public class PnPecServiceImpl implements PnPecService {
             throw new IllegalArgumentException(ERROR_RETRIEVING_METRIC_NAMESPACE);
         }
     }
-
-        public static boolean isNamirial(String messageID) {
-            return true;
-        }
 
         public static boolean isAruba(String messageID) {
             return messageID.trim().toLowerCase().endsWith(ARUBA_PATTERN_STRING);
