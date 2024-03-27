@@ -311,6 +311,11 @@
             <version>2.15.1</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>jakarta.mail</artifactId>
+            <version>2.0.1</version>
+        </dependency>
 
         <!--prova generators-->
 
