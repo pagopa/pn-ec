@@ -966,6 +966,188 @@ Resources:
         MaxTasksNumber: !Ref MaxTasksNumber
         JavaToolOptions: !Ref JavaToolOptions
 
+  ExternalChannelMicroserviceNamirial:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/ecs-service.yaml"
+      Parameters:
+        MicroServiceUniqueName: !Sub '${ProjectName}-external-channel-Namirial'
+        CpuValue: 4096
+        MemoryAmount: 8GB
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        ContainerImageURI: !Sub '${ContainerImageUri}'
+        ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
+        ContainerEnvEntry2: !Sub 'PnEcTableNameAnagrafica=${PnEcTableNameAnagrafica}'
+        ContainerEnvEntry3: !Sub 'PnEcTableNameRichieste=${PnEcTableNameRichieste}'
+        ContainerEnvEntry4: !Sub 'PnEcTableNameRichiesteMetadati=${PnEcTableNameRichiesteMetadati}'
+        ContainerEnvEntry5: !Sub 'PnEcEventBusNameTrackerExternalNotification=${PnEcEventBusNameTrackerExternalNotification}'
+        ContainerEnvEntry6: !Sub 'PnEcQueueNameTrackerStatoSMS=${PnEcQueueNameTrackerStatoSMS}'
+        ContainerEnvEntry7: !Sub 'PnEcQueueNameTrackerErroriSMS=${PnEcQueueNameTrackerErroriSMS}'
+        ContainerEnvEntry8: !Sub 'PnEcQueueNameTrackerStatoPEC=${PnEcQueueNameTrackerStatoPEC}'
+        ContainerEnvEntry9: !Sub 'PnEcQueueNameTrackerErroriPEC=${PnEcQueueNameTrackerErroriPEC}'
+        ContainerEnvEntry10: !Sub 'PnEcQueueNameTrackerStatoEMAIL=${PnEcQueueNameTrackerStatoEMAIL}'
+        ContainerEnvEntry11: !Sub 'PnEcQueueNameTrackerErroriEMAIL=${PnEcQueueNameTrackerErroriEMAIL}'
+        ContainerEnvEntry12: !Sub 'PnEcQueueNameTrackerStatoCARTACEO=${PnEcQueueNameTrackerStatoCARTACEO}'
+        ContainerEnvEntry13: !Sub 'PnEcQueueNameTrackerErroriCARTACEO=${PnEcQueueNameTrackerErroriCARTACEO}'
+        ContainerEnvEntry14: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
+        ContainerEnvEntry15: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
+        ContainerEnvEntry16: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
+        ContainerEnvEntry17: !Sub 'PnEcQueueNameBatchPEC=${PnEcQueueBatchPECStackNamirial.Outputs.QueueName}'
+        ContainerEnvEntry18: !Sub 'PnEcQueueNameInteractivePEC=${PnEcQueueInteractivePECStackNamirial.Outputs.QueueName}'
+        ContainerEnvEntry19: !Sub 'PnEcQueueNameErroriPEC=${PnEcQueueErroriPECStackNamirial.Outputs.QueueName}'
+        ContainerEnvEntry20: !Sub 'PnEcQueueNameBatchEMAIL=${PnEcQueueNameBatchEMAIL}'
+        ContainerEnvEntry21: !Sub 'PnEcQueueNameInteractiveEMAIL=${PnEcQueueNameInteractiveEMAIL}'
+        ContainerEnvEntry22: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
+        ContainerEnvEntry23: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
+        ContainerEnvEntry24: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
+        ContainerEnvEntry25: !Sub 'PnEcQueueNameScaricamentoEsitiPEC=${PnEcQueueScaricamentoEsitiPECStackNamirial.Outputs.QueueName}'
+        ContainerEnvEntry26: !Sub 'PnEcCronScaricamentoEsitiPec=${PnEcCronScaricamentoEsitiPec}'
+        ContainerEnvEntry27: !Sub 'PnEcCronLavorazioneBatchSms=${PnEcCronLavorazioneBatchSms}'
+        ContainerEnvEntry28: !Sub 'PnEcCronLavorazioneBatchEmail=${PnEcCronLavorazioneBatchEmail}'
+        ContainerEnvEntry29: !Sub 'PnEcCronLavorazioneBatchPec=${PnEcCronLavorazioneBatchPec}'
+        ContainerEnvEntry30: !Sub 'PnEcCronLavorazioneBatchCartaceo=${PnEcCronLavorazioneBatchCartaceo}'
+        ContainerEnvEntry31: !Sub 'PnEcCronGestioneRetryEmail=${PnEcCronGestioneRetryEmail}'
+        ContainerEnvEntry32: !Sub 'PnEcCronGestioneRetryPec=${PnEcCronGestioneRetryPec}'
+        ContainerEnvEntry33: !Sub 'PnEcCronGestioneRetrySms=${PnEcCronGestioneRetrySms}'
+        ContainerEnvEntry34: !Sub 'PnEcCronGestioneRetryCartaceo=${PnEcCronGestioneRetryCartaceo}'
+        ContainerEnvEntry35: 'SafeStorageClientId=pn-external-channels'
+        ContainerEnvEntry36: 'SafeStorageClientApiKey=pn-external-channels_api_key'
+        ContainerEnvEntry37: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
+        ContainerEnvEntry38: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry39: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry40: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry41: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
+        ContainerEnvEntry42: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
+        ContainerEnvEntry43: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
+        ContainerEnvEntry44: !Sub 'PnPecRetryStrategyMaxAttempts=${PnPecRetryStrategyMaxAttempts}'
+        ContainerEnvEntry45: !Sub 'PnPecRetryStrategyMinBackoff=${PnPecRetryStrategyMinBackoff}'
+        ContainerEnvEntry46: !Sub 'LavorazionePecMaxThreadPoolSize=${LavorazionePecMaxThreadPoolSize}'
+        ContainerEnvEntry47: !Sub 'LavorazioneEsitiPecMaxThreadPoolSize=${LavorazioneEsitiPecMaxThreadPoolSize}'
+        ContainerEnvEntry48: !Sub 'ScaricamentoEsitiPecLimitRate=${ScaricamentoEsitiPecLimitRate}'
+        ContainerEnvEntry49: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
+        ContainerEnvEntry50: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
+        ContainerEnvEntry51: !Sub 'PnEcQueueElapsedTimeSeconds=${PnEcQueueElapsedTimeSeconds}'
+        ContainerEnvEntry52: !Sub 'LavorazioneSMSMaxThreadPoolSize=${LavorazioneSMSMaxThreadPoolSize}'
+        ContainerEnvEntry53: !Sub 'LavorazioneEmailMaxThreadPoolSize=${LavorazioneEmailMaxThreadPoolSize}'
+        ContainerEnvEntry54: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
+        ContainerEnvEntry55: !Sub 'PnEcTaskExecutionPoolMaxSize=${PnEcTaskExecutionPoolMaxSize}'
+        ContainerEnvEntry56: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueCancellazioneRicevutePECStackNamirial.Outputs.QueueName}'
+        ContainerEnvEntry57: !Sub 'CancellazioneRicevutePecMaxThreadPoolSize=${CancellazioneRicevutePecMaxThreadPoolSize}'
+        ContainerEnvEntry58: !Sub 'PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked=${PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked}'
+        ContainerEnvEntry59: !Sub 'PnEcPECMaxMessageSizeMB=${PnEcPECMaxMessageSizeMB}'
+        ContainerEnvEntry60: !Sub 'PnEcPECAttachmentRule=${PnEcPECAttachmentRule}'
+        ContainerEnvEntry61: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
+        ContainerEnvEntry62: !Sub 'PnEcSqsMessagesStagingBucketName=${PnEcSqsMessagesStagingBucketName}'
+        ContainerEnvEntry63: 'PnEcProviderSwitchRead=1970-01-01T00:00:00Z;namirial'
+        ContainerEnvEntry64: 'PnEcProviderSwitchWrite=1970-01-01T00:00:00Z;namirial'
+        ContainerEnvEntry65: !Sub 'PnEcIdentityPec=${PnEcIdentityPec}'
+        ContainerEnvEntry66: !Sub 'PnEcNamirialServerImapAddress=${PnEcNamirialServerImapAddress}'
+        ContainerEnvEntry67: !Sub 'PnEcNamirialServerSmtpAddress=${PnEcNamirialServerSmtpAddress}'
+        ContainerEnvEntry68: !Sub 'PnEcNamirialServerImapPort=${PnEcNamirialServerImapPort}'
+        ContainerEnvEntry69: !Sub 'PnEcNamirialServerSmtpPort=${PnEcNamirialServerSmtpPort}'
+        ContainerEnvEntry70: !Sub 'PnEcNamirialPoolImapMaxtotal=${PnEcNamirialPoolImapMaxtotal}'
+        ContainerEnvEntry71: !Sub 'PnEcNamirialPoolImapMaxidle=${PnEcNamirialPoolImapMaxidle}'
+        ContainerEnvEntry72: !Sub 'PnEcNamirialPoolImapMinidle=${PnEcNamirialPoolImapMinidle}'
+        ContainerEnvEntry73: !Sub 'PnEcNamirialPoolSmtpMaxtotal=${PnEcNamirialPoolSmtpMaxtotal}'
+        ContainerEnvEntry74: !Sub 'PnEcNamirialPoolSmtpMaxidle=${PnEcNamirialPoolSmtpMaxidle}'
+        ContainerEnvEntry75: !Sub 'PnEcNamirialPoolSmtpMinidle=${PnEcNamirialPoolSmtpMinidle}'
+        ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
+        MicroServiceSecretPrefix: pn-EC-Secrets
+        MappedPaths: '/external-channel-test/*'
+        ECSClusterName: !Ref ECSClusterName
+        Subnets: !Ref VpcEgressSubnetsIds
+        VpcId: !Ref VpcId
+        EcsDefaultSecurityGroup: !Ref EcsDefaultSecurityGroup
+        LoadBalancerListenerArn: !Ref ApplicationLoadBalancerListenerArn
+        LoadbalancerRulePriority: 40
+        TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
+        LogAlarmStrategyV1: !Ref LogAlarmStrategy
+        LoadBalancingAlgorithm: round_robin
+        AutoscalingThreshold: !Ref AutoscalingThreshold
+        AutoscalingStrategy: REST-API
+        MinTasksNumber: 1
+        MaxTasksNumber: 1
+        JavaToolOptions: !Ref JavaToolOptions
+
+  #SQS FOR TEST MICROSERVICE NAMIRIAL:
+
+  PnEcQueueBatchPECStackNamirial:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-pec-batch-queue-namirial'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 600
+
+  PnEcQueueCancellazioneRicevutePECStackNamirial:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-pec-cancellazione-ricevute-queue-namirial'
+        SqsManagedSseEnabled: true
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 300
+
+  PnEcQueueErroriPECStackNamirial:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-pec-errori-queue-namirial'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        DelaySeconds: 300
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 600
+
+  PnEcQueueInteractivePECStackNamirial:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-pec-interactive-queue-namirial'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
+        VisibilityTimeout: 600
+
+  PnEcQueueScaricamentoEsitiPECStackNamirial:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-pec-scaricamento-esiti-queue-namirial'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        DeduplicationScope: 'messageGroup'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 600
+
   PnEcManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -1027,6 +1209,12 @@ Resources:
               - !Ref PnEcQueueArnErroriCARTACEO
               - !Ref PnEcQueueArnScaricamentoEsitiPEC
               - !Ref PnEcQueueArnCancellazioneRicevutePEC
+               # SQS ARN FOR TEST MICROSERVICE NAMIRIAL:
+              - !GetAtt PnEcQueueBatchPECStackNamirial.Outputs.QueueARN
+              - !GetAtt PnEcQueueCancellazioneRicevutePECStackNamirial.Outputs.QueueARN
+              - !GetAtt PnEcQueueErroriPECStackNamirial.Outputs.QueueARN
+              - !GetAtt PnEcQueueInteractivePECStackNamirial.Outputs.QueueARN
+              - !GetAtt PnEcQueueScaricamentoEsitiPECStackNamirial.Outputs.QueueARN
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
@@ -1099,6 +1287,7 @@ Resources:
             Principal:
               AWS:
                 - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroservice.Outputs.TaskRoleName]]
+                - !Join [ '', [ !Sub 'arn:aws:iam::${AWS::AccountId}:role/' , !GetAtt ExternalChannelMicroserviceNamirial.Outputs.TaskRoleName]]
 
   ###########  NOTIFICATION TRACKER - STATO - QUEUE POLICIES   ###########
 
