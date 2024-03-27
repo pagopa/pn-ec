@@ -73,7 +73,7 @@ public class ScaricamentoEsitiPecScheduler {
                     MDC.put(MDC_CORR_ID_KEY, messageID);
                     //Rimozione delle parentesi angolari dal messageID
                     var finalMessageID = messageID.substring(1, messageID.length() - 1);
-                    var attachBytes = findAttachmentByName(mimeMessage, "daticert.xml");
+                    var attachBytes = getAttachmentFromMimeMessage(mimeMessage, "daticert.xml");
 
                     log.debug(SCARICAMENTO_ESITI_PEC + " - Try to download PEC '{}' daticert.xml", finalMessageID);
 
