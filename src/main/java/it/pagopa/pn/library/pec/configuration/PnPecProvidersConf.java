@@ -16,18 +16,20 @@ import java.util.*;
 @CustomLog
 public class PnPecProvidersConf {
 
-    @SneakyThrows(IOException.class)
-    private Set<String> getNamirialPropertiesKeySet() {
-        try (FileInputStream fileInputStream = new FileInputStream("src/main/resources/namirial/namirial.properties")) {
-            Properties prop = new Properties();
-            prop.load(fileInputStream);
-            return prop.stringPropertyNames();
-        }
-    }
+    private final Set<String> namirialPropertiesKeySet = Set.of("namirial.server.imap.address",
+            "namirial.server.smtp.address",
+            "namirial.server.imap.port",
+            "namirial.server.smtp.port",
+            "namirial.pool.imap.maxtotal",
+            "namirial.pool.imap.maxidle",
+            "namirial.pool.imap.minidle",
+            "namirial.pool.smtp.maxtotal",
+            "namirial.pool.smtp.maxidle",
+            "namirial.pool.smtp.minidle");
 
     @Bean
     public PnPecServiceImpl namirialService(@Autowired Environment env) {
-        getNamirialPropertiesKeySet().forEach(key -> {
+        namirialPropertiesKeySet.forEach(key -> {
             String property = env.getRequiredProperty(key);
             System.setProperty(key, property);
         });
