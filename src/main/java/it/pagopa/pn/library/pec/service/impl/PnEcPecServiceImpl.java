@@ -80,22 +80,22 @@ public class PnEcPecServiceImpl implements PnEcPecService {
 
     @Override
     public Mono<String> sendMail(byte[] message) {
-        log.logStartingProcess(PN_PEC_SEND_MAIL);
+        log.logStartingProcess(PN_EC_PEC_SEND_MAIL);
         PnPecService provider = getProviderWrite();
         return provider
                 .sendMail(message)
-                .retryWhen(getPnPecRetryStrategy(PN_PEC_SEND_MAIL, provider))
-                .doOnSuccess(result -> log.logEndingProcess(PN_PEC_SEND_MAIL))
-                .doOnError(throwable -> log.logEndingProcess(PN_PEC_SEND_MAIL, false, throwable.getMessage()));
+                .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_SEND_MAIL, provider))
+                .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_SEND_MAIL))
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_SEND_MAIL, false, throwable.getMessage()));
     }
 
     @Override
     public Mono<PnEcPecGetMessagesResponse> getUnreadMessages(int limit) {
-        log.logStartingProcess(PEC_GET_UNREAD_MESSAGES);
+        log.logStartingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES);
 
         return Flux.fromIterable(getProvidersRead())
                 .flatMap(provider -> provider.getUnreadMessages(limit)
-                        .retryWhen(getPnPecRetryStrategy(PEC_GET_UNREAD_MESSAGES, provider))
+                        .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_GET_UNREAD_MESSAGES, provider))
                         .map(pnGetMessagesResponse -> Tuples.of(pnGetMessagesResponse, getProviderName(provider))))
                 .flatMap(tuple -> {
                     var listOfMessages = tuple.getT1().getPnListOfMessages();
@@ -108,42 +108,42 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 })
                 .collectList()
                 .flatMap(messages -> Mono.just(new PnEcPecGetMessagesResponse(messages.isEmpty() ? null : new PnEcPecListOfMessages(messages), messages.size())))
-                .doOnSuccess(result -> log.logEndingProcess(PEC_GET_UNREAD_MESSAGES))
-                .doOnError(throwable -> log.logEndingProcess(PEC_GET_UNREAD_MESSAGES, false, throwable.getMessage()));
+                .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES))
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES, false, throwable.getMessage()));
     }
 
     @Override
     public Mono<Integer> getMessageCount() {
-        log.logStartingProcess(PEC_GET_MESSAGE_COUNT);
+        log.logStartingProcess(PN_EC_PEC_GET_MESSAGE_COUNT);
         return Flux.fromIterable(getProvidersRead())
                 .flatMap(provider -> provider.getMessageCount()
                         .flatMap(count -> cloudWatchPecMetrics.publishMessageCount(Long.valueOf(count), getMetricNamespace(provider)).thenReturn(count))
-                        .retryWhen(getPnPecRetryStrategy(PEC_GET_MESSAGE_COUNT, provider)))
+                        .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_GET_MESSAGE_COUNT, provider)))
                 .reduce(0, Integer::sum)
-                .doOnSuccess(result -> log.logEndingProcess(PEC_GET_MESSAGE_COUNT))
-                .doOnError(throwable -> log.logEndingProcess(PEC_GET_MESSAGE_COUNT, false, throwable.getMessage()));
+                .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_GET_MESSAGE_COUNT))
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_MESSAGE_COUNT, false, throwable.getMessage()));
     }
 
     @Override
     public Mono<Void> markMessageAsRead(String messageID, String providerName) {
-        log.logStartingProcess(PEC_MARK_MESSAGE_AS_READ);
+        log.logStartingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ);
         PnPecService provider = getProviderByName(providerName);
         return provider.markMessageAsRead(messageID)
-                .retryWhen(getPnPecRetryStrategy(PEC_MARK_MESSAGE_AS_READ, provider))
+                .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_MARK_MESSAGE_AS_READ, provider))
                 .then()
-                .doOnSuccess(result -> log.logEndingProcess(PEC_MARK_MESSAGE_AS_READ))
-                .doOnError(throwable -> log.logEndingProcess(PEC_MARK_MESSAGE_AS_READ, false, throwable.getMessage()));
+                .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ))
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ, false, throwable.getMessage()));
     }
 
     @Override
     public Mono<Void> deleteMessage(String messageID, String senderMessageID) {
-        log.logStartingProcess(PEC_DELETE_MESSAGE);
+        log.logStartingProcess(PN_EC_PEC_DELETE_MESSAGE);
         PnPecService provider = getProviderByMessageId(senderMessageID);
         return provider.deleteMessage(messageID)
-                .retryWhen(getPnPecRetryStrategy(PEC_DELETE_MESSAGE, provider))
+                .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_DELETE_MESSAGE, provider))
                 .then()
-                .doOnSuccess(result -> log.logEndingProcess(PEC_DELETE_MESSAGE))
-                .doOnError(throwable -> log.logEndingProcess(PEC_DELETE_MESSAGE, false, throwable.getMessage()));
+                .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_DELETE_MESSAGE))
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_DELETE_MESSAGE, false, throwable.getMessage()));
     }
 
 
