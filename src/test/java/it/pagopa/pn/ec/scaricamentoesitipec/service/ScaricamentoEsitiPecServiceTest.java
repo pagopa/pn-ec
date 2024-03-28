@@ -31,13 +31,13 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
-import javax.mail.MessagingException;
+import jakarta.mail.MessagingException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static it.pagopa.pn.ec.commons.utils.EmailUtils.findAttachmentByName;
+import static it.pagopa.pn.ec.commons.utils.EmailUtils.getAttachmentFromMimeMessage;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.*;
@@ -145,7 +145,7 @@ public class ScaricamentoEsitiPecServiceTest {
     @Test
     void correzioneTipoArubaPecTest() throws MessagingException, IOException {
         RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato");
-        ArubaPostacert postacert = (ArubaPostacert) daticertService.getPostacertFromByteArray(findAttachmentByName(EmailUtils.getMimeMessage(ricezioneEsitiPecDto.getMessage()), "daticert.xml"));
+        ArubaPostacert postacert = (ArubaPostacert) daticertService.getPostacertFromByteArray(getAttachmentFromMimeMessage(EmailUtils.getMimeMessage(ricezioneEsitiPecDto.getMessage()), "daticert.xml"));
         Assertions.assertEquals(ERRORE_CONSEGNA, postacert.getTipo());
     }
 

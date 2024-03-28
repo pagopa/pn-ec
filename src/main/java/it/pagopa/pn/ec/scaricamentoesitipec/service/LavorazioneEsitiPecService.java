@@ -108,7 +108,7 @@ public class LavorazioneEsitiPecService {
                             var messageID = ricezioneEsitiPecDto.getMessageID();
                             var message = ricezioneEsitiPecDto.getMessage();
                             var mimeMessage = getMimeMessage(message);
-                            var daticert = findAttachmentByName(mimeMessage, "daticert.xml");
+                            var daticert = getAttachmentFromMimeMessage(mimeMessage, "daticert.xml");
                             var postacert = daticertService.getPostacertFromByteArray(daticert);
                             var sender = postacert.getIntestazione().getMittente();
                             var msgId = postacert.getDati().getMsgid();

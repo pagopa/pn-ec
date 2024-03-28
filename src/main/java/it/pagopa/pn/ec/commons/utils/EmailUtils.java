@@ -7,15 +7,14 @@ import lombok.CustomLog;
 import lombok.SneakyThrows;
 import org.apache.commons.io.output.CountingOutputStream;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.mail.util.MimeMessageParser;
-import javax.activation.DataHandler;
-import javax.activation.DataSource;
-import javax.mail.*;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.util.ByteArrayDataSource;
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
+import jakarta.mail.*;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.util.ByteArrayDataSource;
 import java.io.*;
 import java.util.*;
 
@@ -298,14 +297,14 @@ public class EmailUtils {
         }
     }
 
-    public static byte[] findAttachmentByName(MimeMessage mimeMessage, String attachmentName) {
-        try {
-            log.debug("Start retrieving attachment with name '{}'", attachmentName);
-            MimeMessageParser mimeMessageParser = new MimeMessageParser(mimeMessage);
-            DataSource attachment = mimeMessageParser.parse().findAttachmentByName(attachmentName);
-            return attachment == null ? null : attachment.getInputStream().readAllBytes();
-        } catch (Exception e) {
-            throw new RetrieveAttachmentException();
-        }
-    }
+//    public static byte[] findAttachmentByName(MimeMessage mimeMessage, String attachmentName) {
+//        try {
+//            log.debug("Start retrieving attachment with name '{}'", attachmentName);
+//            MimeMessageParser mimeMessageParser = new MimeMessageParser(mimeMessage);
+//            DataSource attachment = mimeMessageParser.parse().findAttachmentByName(attachmentName);
+//            return attachment == null ? null : attachment.getInputStream().readAllBytes();
+//        } catch (Exception e) {
+//            throw new RetrieveAttachmentException();
+//        }
+//    }
 }

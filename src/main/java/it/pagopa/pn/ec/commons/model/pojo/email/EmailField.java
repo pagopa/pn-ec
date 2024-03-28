@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.commons.model.pojo.email;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import javax.mail.Header;
+import jakarta.mail.Header;
 import java.util.List;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)

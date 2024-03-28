@@ -3,9 +3,9 @@ package it.pagopa.pn.ec.pec.model.pojo;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PagopaMimeMessage extends MimeMessage {
