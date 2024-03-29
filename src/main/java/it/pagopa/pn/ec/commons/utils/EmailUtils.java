@@ -276,7 +276,7 @@ public class EmailUtils {
 
             Object content = part.getContent();
             if (content instanceof InputStream || content instanceof String) {
-                if ((Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition()) || StringUtils.isNotBlank(part.getFileName())) && part.getFileName().equals(fileName)) {
+                if (StringUtils.isNotBlank(part.getFileName()) && part.getFileName().equals(fileName)) {
                     return part.getInputStream();
                 } else {
                     return null;
@@ -286,7 +286,9 @@ public class EmailUtils {
             if (content instanceof Multipart multipart) {
                 for (int i = 0; i < multipart.getCount(); i++) {
                     BodyPart bodyPart = multipart.getBodyPart(i);
-                    getAttachmentFromBodyPart(bodyPart, fileName);
+                    InputStream result = getAttachmentFromBodyPart(bodyPart, fileName);
+                    if (result != null)
+                        return result;
                 }
             }
 
