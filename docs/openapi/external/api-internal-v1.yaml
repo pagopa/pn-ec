@@ -41,7 +41,7 @@ paths:
   #############################################################################################
   ###                                DIGITAL LEGAL MESSAGES                                 ###
   #############################################################################################
-  /external-channels/v1/digital-deliveries/legal-full-message-requests/{requestIdx}:
+  /external-channel-test/v1/digital-deliveries/legal-full-message-requests/{requestIdx}:
     parameters:
       - $ref: '#/components/parameters/requestIdx'
       - $ref: '#/components/parameters/xPagopaExtchCxId'                            # NO EXTERNAL

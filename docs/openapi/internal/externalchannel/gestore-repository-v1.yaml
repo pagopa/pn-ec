@@ -15,7 +15,7 @@ tags:
     description: Operazione per la gestione delle richieste
 
 paths:
-  /external-channel/gestoreRepository/clients/{xPagopaExtchCxId}:
+  /external-channel-test/gestoreRepository/clients/{xPagopaExtchCxId}:
     parameters:
       - name: xPagopaExtchCxId
         in: path
@@ -57,7 +57,7 @@ paths:
         404:
           $ref: '#/components/responses/missingRequestedItem'
 
-  /external-channel/gestoreRepository/clients:
+  /external-channel-test/gestoreRepository/clients:
     post:
       tags:
         - ConfigurazioneClient
@@ -74,7 +74,7 @@ paths:
         409:
           $ref: '#/components/responses/requestedItemAlreadyExist'
 
-  /external-channel/gestoreRepository/requests/{requestIdx}:
+  /external-channel-test/gestoreRepository/requests/{requestIdx}:
     parameters:
       - name: x-pagopa-extch-cx-id
         in: header
@@ -122,7 +122,7 @@ paths:
         404:
           $ref: '#/components/responses/missingRequestedItem'
 
-  /external-channel/gestoreRepository/requests:
+  /external-channel-test/gestoreRepository/requests:
     post:
       tags:
         - GestoreRequest
@@ -145,7 +145,7 @@ paths:
               schema:
                 $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
 
-  /external-channel/gestoreRepository/requests/messageId/{messageId}:
+  /external-channel-test/gestoreRepository/requests/messageId/{messageId}:
     parameters:
       - name: messageId
         in: path
@@ -170,7 +170,7 @@ paths:
               schema:
                 $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
 
-  /external-channel/gestoreRepository/requests/messageId/{requestIdx}:
+  /external-channel-test/gestoreRepository/requests/messageId/{requestIdx}:
     parameters:
       - name: x-pagopa-extch-cx-id
         in: header
