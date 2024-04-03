@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
-import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
+import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.*;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
 
 @Component
@@ -95,8 +95,7 @@ public class ScaricamentoEsitiPecScheduler {
                                 .map(postacert -> {
                                     var dati = postacert.getDati();
                                     var msgId = dati.getMsgid();
-                                    if (msgId.startsWith("<") && msgId.endsWith(">"))
-                                        dati.setMsgid(msgId.substring(1, msgId.length() - 1));
+                                    dati.setMsgid(removeBracketsFromMessageId(msgId));
                                     log.debug(SCARICAMENTO_ESITI_PEC + "- PEC '{}' has '{}' msgId", finalMessageID, msgId);
                                     return postacert;
                                 })
