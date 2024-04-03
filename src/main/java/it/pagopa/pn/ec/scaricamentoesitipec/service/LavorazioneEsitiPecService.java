@@ -112,7 +112,6 @@ public class LavorazioneEsitiPecService {
                             var postacert = daticertService.getPostacertFromByteArray(daticert);
                             var sender = postacert.getIntestazione().getMittente();
                             var msgId = postacert.getDati().getMsgid();
-                            msgId = msgId.substring(1, msgId.length() - 1);
                             var presaInCaricoInfo = decodeMessageId(msgId);
 
                             MDC.put(MDC_CORR_ID_KEY, concatRequestId(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx()));
