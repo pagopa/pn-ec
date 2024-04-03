@@ -13,17 +13,17 @@ import it.pagopa.pn.library.exceptions.PnSpapiPermanentErrorException;
 import it.pagopa.pn.library.exceptions.PnSpapiTemporaryErrorException;
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.*;
+import it.pagopa.pn.library.pec.model.pojo.PnEcPecGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.ArubaService;
-import it.pagopa.pn.library.pec.service.PnPecService;
-import it.pagopa.pn.library.pec.service.impl.PnPecServiceImpl;
+import it.pagopa.pn.library.pec.service.PnEcPecService;
+import it.pagopa.pn.library.pec.service.impl.PnEcPecServiceImpl;
 import lombok.CustomLog;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
@@ -39,6 +39,8 @@ import java.util.List;
 import static it.pagopa.pn.ec.pec.service.impl.PecServiceTest.createDigitalNotificationRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.ARUBA_PROVIDER;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.NAMIRIAL_PROVIDER;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -55,8 +57,7 @@ class PnPecServiceTest {
     @MockBean
     private com.namirial.pec.library.service.PnPecServiceImpl namirialService;
     @Autowired
-    @Qualifier("pnPecServiceImpl")
-    private PnPecService pnPecService;
+    private PnEcPecService pnPecService;
     @MockBean
     private GestoreRepositoryCall gestoreRepositoryCall;
     @SpyBean
@@ -76,7 +77,7 @@ class PnPecServiceTest {
     private final String PERMANENT_EXCEPTION = "test permanent exception";
     private final String MESSAGE = "test message";
     private final String ARUBA_MESSAGE_ID = "opec21010.20231006185001.00057.206.1.59@pec.aruba.it";
-    private final String NAMIRIAL_MESSAGE_ID = "opec21010.20231006185001.00057.206.1.59@pec.namirial.it.test";
+    private final String NAMIRIAL_MESSAGE_ID = "opec21010.20231006185001.00057.206.1.59@sicurezzapostale.it";
 
     private final String DATE_R_ARUBA_W_ARUBA = "2022-12-02T00:00:00Z";
     private final String DATE_R_ARUBA_NAM_W_NAM = "2023-01-02T23:59:58Z";
@@ -230,11 +231,11 @@ class PnPecServiceTest {
             when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.just(arubaMessages));
             when(namirialService.getUnreadMessages(anyInt())).thenReturn(Mono.just(namirialProviderMessages));
 
-            Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
+            Mono<PnEcPecGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
             StepVerifier.create(combinedMessages).expectNextMatches(response ->
                             response.getNumOfMessages() == arubaMessages.getNumOfMessages() + namirialProviderMessages.getNumOfMessages()
-                                    && response.getPnListOfMessages().getMessages().size() == arubaMessages.getPnListOfMessages().getMessages().size() + namirialProviderMessages.getPnListOfMessages().getMessages().size())
+                                    && response.getPnEcPecListOfMessages().getMessages().size() == arubaMessages.getPnListOfMessages().getMessages().size() + namirialProviderMessages.getPnListOfMessages().getMessages().size())
                     .expectComplete()
                     .verify();
             verify(arubaService, times(1)).getUnreadMessages(6);
@@ -251,7 +252,7 @@ class PnPecServiceTest {
             when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.just(arubaMessages));
             when(namirialService.getUnreadMessages(anyInt())).thenReturn(Mono.error(permanentException));
 
-            Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
+            Mono<PnEcPecGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
             StepVerifier.create(combinedMessages)
                     .expectError(PnSpapiPermanentErrorException.class)
@@ -269,7 +270,7 @@ class PnPecServiceTest {
             when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.error(permanentException));
             when(namirialService.getUnreadMessages(anyInt())).thenReturn(Mono.just(namirialProviderMessages));
 
-            Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
+            Mono<PnEcPecGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
             StepVerifier.create(combinedMessages)
                     .expectError(PnSpapiPermanentErrorException.class)
@@ -286,7 +287,7 @@ class PnPecServiceTest {
             when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.error(permanentException));
             when(namirialService.getUnreadMessages(anyInt())).thenReturn(Mono.error(permanentException));
 
-            Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
+            Mono<PnEcPecGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
             StepVerifier.create(combinedMessages)
                     .expectError(PnSpapiPermanentErrorException.class)
@@ -305,11 +306,11 @@ class PnPecServiceTest {
             when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.just(arubaMessages));
             when(namirialService.getUnreadMessages(anyInt())).thenReturn(Mono.just(namirialProviderMessages));
 
-            Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
+            Mono<PnEcPecGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
             StepVerifier.create(combinedMessages)
                     .expectNextMatches(response -> response.getNumOfMessages() == 0
-                            && response.getPnListOfMessages() == null)
+                            && response.getPnEcPecListOfMessages() == null)
                     .expectComplete()
                     .verify();
 
@@ -325,7 +326,7 @@ class PnPecServiceTest {
             when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.just(arubaMessages));
             when(namirialService.getUnreadMessages(anyInt())).thenReturn(Mono.error(temporaryException));
 
-            Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
+            Mono<PnEcPecGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
             StepVerifier.create(combinedMessages)
                     .expectError(NamirialProviderMaxRetriesExceededException.class)
@@ -343,7 +344,7 @@ class PnPecServiceTest {
             when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.error(temporaryException));
             when(namirialService.getUnreadMessages(anyInt())).thenReturn(Mono.just(namirialProviderMessages));
 
-            Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
+            Mono<PnEcPecGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
             StepVerifier.create(combinedMessages)
                     .expectError(ArubaCallMaxRetriesExceededException.class)
@@ -360,7 +361,7 @@ class PnPecServiceTest {
             when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.error(temporaryException));
             when(namirialService.getUnreadMessages(anyInt())).thenReturn(Mono.error(temporaryException));
 
-            Mono<PnGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
+            Mono<PnEcPecGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
 
             StepVerifier.create(combinedMessages)
                     .expectError(ArubaCallMaxRetriesExceededException.class)
@@ -510,7 +511,7 @@ class PnPecServiceTest {
             when(arubaService.markMessageAsRead(ARUBA_MESSAGE_ID)).thenReturn(Mono.empty());
             when(namirialService.markMessageAsRead(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(permanentException));
 
-            StepVerifier.create(pnPecService.markMessageAsRead(ARUBA_MESSAGE_ID)).expectComplete().verify();
+            StepVerifier.create(pnPecService.markMessageAsRead(ARUBA_MESSAGE_ID, ARUBA_PROVIDER)).expectComplete().verify();
 
             verify(arubaService, times(1)).markMessageAsRead(ARUBA_MESSAGE_ID);
             verify(namirialService, never()).markMessageAsRead(anyString());
@@ -523,7 +524,7 @@ class PnPecServiceTest {
             when(arubaService.markMessageAsRead(NAMIRIAL_MESSAGE_ID)).thenReturn(Mono.error(permanentException));
             when(namirialService.markMessageAsRead(NAMIRIAL_MESSAGE_ID)).thenReturn(Mono.empty());
 
-            StepVerifier.create(pnPecService.markMessageAsRead(NAMIRIAL_MESSAGE_ID)).expectComplete().verify();
+            StepVerifier.create(pnPecService.markMessageAsRead(NAMIRIAL_MESSAGE_ID, NAMIRIAL_PROVIDER)).expectComplete().verify();
 
             verify(arubaService, never()).markMessageAsRead(NAMIRIAL_MESSAGE_ID);
             verify(namirialService, times(1)).markMessageAsRead(anyString());
@@ -536,7 +537,7 @@ class PnPecServiceTest {
             when(arubaService.markMessageAsRead(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(permanentException));
             when(namirialService.markMessageAsRead(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(temporaryException));
 
-            StepVerifier.create(pnPecService.markMessageAsRead(ARUBA_MESSAGE_ID)).expectError(PnSpapiPermanentErrorException.class).verify();
+            StepVerifier.create(pnPecService.markMessageAsRead(ARUBA_MESSAGE_ID, ARUBA_PROVIDER)).expectError(PnSpapiPermanentErrorException.class).verify();
 
             verify(arubaService, times(1)).markMessageAsRead(ARUBA_MESSAGE_ID);
             verify(namirialService, never()).markMessageAsRead(anyString());
@@ -549,7 +550,7 @@ class PnPecServiceTest {
             when(arubaService.markMessageAsRead(NAMIRIAL_MESSAGE_ID)).thenReturn(Mono.error(temporaryException));
             when(namirialService.markMessageAsRead(NAMIRIAL_MESSAGE_ID)).thenReturn(Mono.error(permanentException));
 
-            StepVerifier.create(pnPecService.markMessageAsRead(NAMIRIAL_MESSAGE_ID)).expectError(PnSpapiPermanentErrorException.class).verify();
+            StepVerifier.create(pnPecService.markMessageAsRead(NAMIRIAL_MESSAGE_ID, NAMIRIAL_PROVIDER)).expectError(PnSpapiPermanentErrorException.class).verify();
 
             verify(arubaService, never()).markMessageAsRead(NAMIRIAL_MESSAGE_ID);
             verify(namirialService, times(1)).markMessageAsRead(anyString());
@@ -562,7 +563,7 @@ class PnPecServiceTest {
             when(arubaService.markMessageAsRead(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(temporaryException));
             when(namirialService.markMessageAsRead(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(permanentException));
 
-            StepVerifier.create(pnPecService.markMessageAsRead(ARUBA_MESSAGE_ID)).expectError(ArubaCallMaxRetriesExceededException.class).verify();
+            StepVerifier.create(pnPecService.markMessageAsRead(ARUBA_MESSAGE_ID, ARUBA_PROVIDER)).expectError(ArubaCallMaxRetriesExceededException.class).verify();
 
             verify(arubaService, times(1)).markMessageAsRead(ARUBA_MESSAGE_ID);
             verify(namirialService, never()).markMessageAsRead(anyString());
@@ -575,7 +576,7 @@ class PnPecServiceTest {
             when(arubaService.markMessageAsRead(NAMIRIAL_MESSAGE_ID)).thenReturn(Mono.error(permanentException));
             when(namirialService.markMessageAsRead(NAMIRIAL_MESSAGE_ID)).thenReturn(Mono.error(temporaryException));
 
-            StepVerifier.create(pnPecService.markMessageAsRead(NAMIRIAL_MESSAGE_ID)).expectError(MaxRetriesExceededException.class).verify();
+            StepVerifier.create(pnPecService.markMessageAsRead(NAMIRIAL_MESSAGE_ID, NAMIRIAL_PROVIDER)).expectError(MaxRetriesExceededException.class).verify();
 
             verify(arubaService, never()).markMessageAsRead(NAMIRIAL_MESSAGE_ID);
             verify(namirialService, times(1)).markMessageAsRead(anyString());
@@ -591,7 +592,7 @@ class PnPecServiceTest {
             when(arubaService.deleteMessage(ARUBA_MESSAGE_ID)).thenReturn(Mono.empty());
             when(namirialService.deleteMessage(ARUBA_MESSAGE_ID)).thenReturn(Mono.empty());
 
-            StepVerifier.create(pnPecService.deleteMessage(ARUBA_MESSAGE_ID)).expectComplete().verify();
+            StepVerifier.create(pnPecService.deleteMessage(ARUBA_MESSAGE_ID, ARUBA_MESSAGE_ID)).expectComplete().verify();
 
             verify(arubaService, times(1)).deleteMessage(ARUBA_MESSAGE_ID);
             verify(namirialService, never()).deleteMessage(anyString());
@@ -605,7 +606,7 @@ class PnPecServiceTest {
             when(arubaService.deleteMessage(NAMIRIAL_MESSAGE_ID)).thenReturn(Mono.empty());
             when(namirialService.deleteMessage(NAMIRIAL_MESSAGE_ID)).thenReturn(Mono.empty());
 
-            StepVerifier.create(pnPecService.deleteMessage(NAMIRIAL_MESSAGE_ID)).expectComplete().verify();
+            StepVerifier.create(pnPecService.deleteMessage(NAMIRIAL_MESSAGE_ID, NAMIRIAL_MESSAGE_ID)).expectComplete().verify();
 
             verify(arubaService, never()).deleteMessage(NAMIRIAL_MESSAGE_ID);
             verify(namirialService, times(1)).deleteMessage(anyString());
@@ -619,7 +620,7 @@ class PnPecServiceTest {
             when(arubaService.deleteMessage(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(permanentException));
             when(namirialService.deleteMessage(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(temporaryException));
 
-            StepVerifier.create(pnPecService.deleteMessage(ARUBA_MESSAGE_ID)).expectError(PnSpapiPermanentErrorException.class).verify();
+            StepVerifier.create(pnPecService.deleteMessage(ARUBA_MESSAGE_ID, ARUBA_MESSAGE_ID)).expectError(PnSpapiPermanentErrorException.class).verify();
 
             verify(arubaService, times(1)).deleteMessage(ARUBA_MESSAGE_ID);
             verify(namirialService, never()).deleteMessage(anyString());
@@ -633,7 +634,7 @@ class PnPecServiceTest {
             when(namirialService.deleteMessage(NAMIRIAL_MESSAGE_ID)).thenReturn(Mono.error(permanentException));
 
 
-            StepVerifier.create(pnPecService.deleteMessage(NAMIRIAL_MESSAGE_ID)).expectError(PnSpapiPermanentErrorException.class).verify();
+            StepVerifier.create(pnPecService.deleteMessage(NAMIRIAL_MESSAGE_ID, NAMIRIAL_MESSAGE_ID)).expectError(PnSpapiPermanentErrorException.class).verify();
 
             verify(arubaService, never()).deleteMessage(NAMIRIAL_MESSAGE_ID);
             verify(namirialService, times(1)).deleteMessage(anyString());
@@ -646,7 +647,7 @@ class PnPecServiceTest {
             when(arubaService.deleteMessage(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(temporaryException));
             when(namirialService.deleteMessage(ARUBA_MESSAGE_ID)).thenReturn(Mono.error(permanentException));
 
-            StepVerifier.create(pnPecService.deleteMessage(ARUBA_MESSAGE_ID)).expectError(ArubaCallMaxRetriesExceededException.class).verify();
+            StepVerifier.create(pnPecService.deleteMessage(ARUBA_MESSAGE_ID, ARUBA_MESSAGE_ID)).expectError(ArubaCallMaxRetriesExceededException.class).verify();
 
             verify(arubaService, times(1)).deleteMessage(ARUBA_MESSAGE_ID);
             verify(namirialService, never()).deleteMessage(anyString());
@@ -659,7 +660,7 @@ class PnPecServiceTest {
             when(arubaService.deleteMessage(NAMIRIAL_MESSAGE_ID)).thenReturn(Mono.error(permanentException));
             when(namirialService.deleteMessage(NAMIRIAL_MESSAGE_ID)).thenReturn(Mono.error(temporaryException));
 
-            StepVerifier.create(pnPecService.deleteMessage(NAMIRIAL_MESSAGE_ID)).expectError(MaxRetriesExceededException.class).verify();
+            StepVerifier.create(pnPecService.deleteMessage(NAMIRIAL_MESSAGE_ID, NAMIRIAL_MESSAGE_ID)).expectError(MaxRetriesExceededException.class).verify();
 
             verify(arubaService, never()).deleteMessage(NAMIRIAL_MESSAGE_ID);
             verify(namirialService, times(1)).deleteMessage(anyString());
@@ -676,11 +677,11 @@ class PnPecServiceTest {
         messageIDs.add("opec21010.20231006185001.00057.206.1.59@test.com");
         messageIDs.add(NAMIRIAL_MESSAGE_ID);
 
-        Assertions.assertTrue(PnPecServiceImpl.isAruba(messageIDs.get(0)));
-        Assertions.assertTrue(PnPecServiceImpl.isAruba(messageIDs.get(1)));
-        Assertions.assertTrue(PnPecServiceImpl.isAruba(messageIDs.get(2)));
-        Assertions.assertFalse(PnPecServiceImpl.isAruba(messageIDs.get(3)));
-        Assertions.assertFalse(PnPecServiceImpl.isAruba(messageIDs.get(4)));
+        Assertions.assertTrue(PnEcPecServiceImpl.isAruba(messageIDs.get(0)));
+        Assertions.assertTrue(PnEcPecServiceImpl.isAruba(messageIDs.get(1)));
+        Assertions.assertTrue(PnEcPecServiceImpl.isAruba(messageIDs.get(2)));
+        Assertions.assertFalse(PnEcPecServiceImpl.isAruba(messageIDs.get(3)));
+        Assertions.assertFalse(PnEcPecServiceImpl.isAruba(messageIDs.get(4)));
 
     }
 

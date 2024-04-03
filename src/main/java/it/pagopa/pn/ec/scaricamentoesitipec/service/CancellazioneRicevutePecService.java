@@ -7,17 +7,18 @@ import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CancellazioneRicevutePecDto;
-import it.pagopa.pn.library.pec.service.PnPecService;
+import it.pagopa.pn.library.pec.service.PnEcPecService;
 import lombok.CustomLog;
+import org.apache.commons.lang3.tuple.MutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
 import java.util.concurrent.Semaphore;
 
+import static it.pagopa.pn.ec.commons.constant.Status.ACCEPTED;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 
@@ -25,11 +26,11 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 @CustomLog
 public class CancellazioneRicevutePecService {
 
-    private final PnPecService pnPecService;
+    private final PnEcPecService pnPecService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final Semaphore semaphore;
 
-    public CancellazioneRicevutePecService(@Qualifier("pnPecServiceImpl") PnPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, @Value("${cancellazione-ricevute-pec.max-thread-pool-size}") Integer maxThreadPoolSize) {
+    public CancellazioneRicevutePecService(PnEcPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, @Value("${cancellazione-ricevute-pec.max-thread-pool-size}") Integer maxThreadPoolSize) {
         this.pnPecService = pnPecService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         log.debug("{} max thread pool size : {} ", CANCELLAZIONE_RICEVUTE_PEC, maxThreadPoolSize);
@@ -66,15 +67,17 @@ public class CancellazioneRicevutePecService {
                     return Mono.justOrEmpty(requestDto.getRequestMetadata())
                             .flatMapMany(requestMetadataDto -> Flux.fromIterable(requestMetadataDto.getEventsList()))
                             .map(EventsDto::getDigProgrStatus)
-                            .filter(digitalProgressStatusDto -> digitalLegal.getEventCode().getValue().equals(digitalProgressStatusDto.getStatusCode()))
-                            .next()
-                            .doOnSuccess(digitalProgressStatusDto -> {
-                                if (digitalProgressStatusDto == null)
-                                    log.warn(NOT_VALID_FOR_DELETE, requestId);
+                            .reduce(new MutablePair<String, String>(), (pair, digitalProgressStatusDto) -> {
+                                if (digitalProgressStatusDto.getStatus().equals(ACCEPTED.getStatusTransactionTableCompliant()))
+                                    pair.setRight(digitalProgressStatusDto.getGeneratedMessage().getId());
+                                else if (digitalLegal.getEventCode().getValue().equals(digitalProgressStatusDto.getStatusCode()))
+                                    pair.setLeft(digitalProgressStatusDto.getGeneratedMessage().getId());
+                                return pair;
                             });
                 })
-                .map(digitalProgressStatusDto -> digitalProgressStatusDto.getGeneratedMessage().getId())
-                .flatMap(pnPecService::deleteMessage)
+                .filter(pair -> pair.getLeft() != null && pair.getRight() != null)
+                .doOnDiscard(Pair.class, pair -> log.warn(NOT_VALID_FOR_DELETE, requestId))
+                .flatMap(pair -> pnPecService.deleteMessage(pair.getLeft(), pair.getRight()))
                 .doOnError(throwable -> log.fatal(CANCELLAZIONE_RICEVUTE_PEC, throwable, throwable.getMessage()))
                 .doOnSuccess(result -> acknowledgment.acknowledge())
                 .doFinally(signalType -> semaphore.release());
