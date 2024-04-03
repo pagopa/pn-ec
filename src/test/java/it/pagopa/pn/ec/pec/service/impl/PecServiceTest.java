@@ -14,7 +14,8 @@ import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.library.pec.service.ArubaService;
-import it.pagopa.pn.library.pec.service.PnEcPecService;
+import it.pagopa.pn.library.pec.service.PnPecService;
+import it.pagopa.pn.library.pec.service.impl.PnPecServiceImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,7 +87,7 @@ class PecServiceTest {
     @SpyBean
     private PnPecConfigurationProperties pnPecConfigurationProperties;
     @SpyBean
-    private PnEcPecService pnPecService;
+    private PnPecServiceImpl pnPecService;
     @Mock
     private Acknowledgment acknowledgment;
     @Value("${aruba.pec.sender}")

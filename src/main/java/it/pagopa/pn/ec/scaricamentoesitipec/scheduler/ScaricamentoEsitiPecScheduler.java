@@ -2,28 +2,28 @@ package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.library.pec.model.IPostacert;
-import it.pagopa.pn.library.pec.model.pojo.PnEcPecListOfMessages;
 import it.pagopa.pn.library.pec.model.pojo.PnPostacert;
 import it.pagopa.pn.library.pec.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils;
-import it.pagopa.pn.library.pec.service.PnEcPecService;
+import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
+import it.pagopa.pn.library.pec.service.PnPecService;
 import lombok.CustomLog;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuples;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
-import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.*;
+import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.DOMAIN;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA_CERTIFICATA;
 
 @Component
@@ -32,13 +32,13 @@ public class ScaricamentoEsitiPecScheduler {
     private final DaticertService daticertService;
     private final SqsService sqsService;
     private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
-    private final PnEcPecService pnPecService;
+    private final PnPecService pnPecService;
     @Value("${scaricamento-esiti-pec.limit-rate}")
     private Integer limitRate;
     @Value("${pn.ec.storage.sqs.messages.staging.bucket}")
     private String storageSqsMessagesStagingBucket;
 
-    public ScaricamentoEsitiPecScheduler(DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, PnEcPecService pnPecService) {
+    public ScaricamentoEsitiPecScheduler(DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, @Qualifier("pnPecServiceImpl") PnPecService pnPecService) {
         this.daticertService = daticertService;
         this.sqsService = sqsService;
         this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;
@@ -47,7 +47,7 @@ public class ScaricamentoEsitiPecScheduler {
 
     private final Predicate<IPostacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
     private final Predicate<IPostacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
-    private final Predicate<PnEcPecListOfMessages> hasNoMessages = pnEcPecListOfMessages -> Objects.isNull(pnEcPecListOfMessages) || Objects.isNull(pnEcPecListOfMessages.getMessages()) || pnEcPecListOfMessages.getMessages().isEmpty();
+    private final Predicate<PnListOfMessages> hasNoMessages = pnListOfMessages -> Objects.isNull(pnListOfMessages) || Objects.isNull(pnListOfMessages.getMessages()) || pnListOfMessages.getMessages().isEmpty();
 
     @Scheduled(cron = "${PnEcCronScaricamentoEsitiPec ?:0 */5 * * * *}")
     public void scaricamentoEsitiPecScheduler() {
@@ -60,15 +60,13 @@ public class ScaricamentoEsitiPecScheduler {
         MDCUtils.addMDCToContextAndExecute(pnPecService.getMessageCount()
                 .then(Mono.defer(() -> pnPecService.getUnreadMessages(Integer.parseInt(scaricamentoEsitiPecProperties.getMessagesLimit()))))
                 .flatMap(pnGetMessagesResponse -> {
-                    var listOfMessages = pnGetMessagesResponse.getPnEcPecListOfMessages();
+                    var listOfMessages = pnGetMessagesResponse.getPnListOfMessages();
                     if (hasNoMessages.test(listOfMessages))
                         hasMessages.set(false);
                     return Mono.justOrEmpty(listOfMessages);
                 })
-                .flatMapIterable(PnEcPecListOfMessages::getMessages)
-                .flatMap(pnEcMessage -> {
-                    byte[] message = pnEcMessage.getMessage();
-                    String providerName = pnEcMessage.getProviderName();
+                .flatMapIterable(PnListOfMessages::getMessages)
+                .flatMap(message -> {
 
                     var mimeMessage = getMimeMessage(message);
                     var messageID = getMessageIdFromMimeMessage(mimeMessage);
@@ -95,7 +93,8 @@ public class ScaricamentoEsitiPecScheduler {
                                 .map(postacert -> {
                                     var dati = postacert.getDati();
                                     var msgId = dati.getMsgid();
-                                    dati.setMsgid(removeBracketsFromMessageId(msgId));
+                                    if (msgId.startsWith("<") && msgId.endsWith(">"))
+                                        dati.setMsgid(msgId.substring(1, msgId.length() - 1));
                                     log.debug(SCARICAMENTO_ESITI_PEC + "- PEC '{}' has '{}' msgId", finalMessageID, msgId);
                                     return postacert;
                                 })
@@ -121,12 +120,12 @@ public class ScaricamentoEsitiPecScheduler {
                                                  .receiversDomain(getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]))
                                                  .retry(0)
                                                  .build()))
-                                 .thenReturn(Tuples.of(finalMessageID, providerName));
+                                 .thenReturn(finalMessageID);
                     }
-                    else return Mono.just(Tuples.of(finalMessageID, providerName));
+                    else return Mono.just(finalMessageID);
                 })
                 //Marca il messaggio come letto.
-                .flatMap(tuple -> pnPecService.markMessageAsRead(tuple.getT1(), tuple.getT2()), limitRate)
+                .flatMap(pnPecService::markMessageAsRead, limitRate)
                 .doOnError(throwable -> log.fatal(SCARICAMENTO_ESITI_PEC, throwable))
                 .onErrorResume(throwable -> Mono.empty())
                 .repeat(hasMessages::get)

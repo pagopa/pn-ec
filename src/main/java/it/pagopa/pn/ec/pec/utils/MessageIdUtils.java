@@ -5,9 +5,6 @@ import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.pec.exception.MessageIdException;
 import org.springframework.util.Base64Utils;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-
 public class MessageIdUtils {
 
     private static final String SEPARATORE = "~";
@@ -50,22 +47,17 @@ public class MessageIdUtils {
      */
     public static PresaInCaricoInfo decodeMessageId(String messageId) {
         try {
-            var splitAtPipe = removeBracketsFromMessageId(messageId).split(SEPARATORE);
+            var splitAtPipe = messageId.split(SEPARATORE);
             var base64ClientId = splitAtPipe[0];
             var base64RequestId = splitAtPipe[1].split(String.valueOf(DOMAIN.charAt(0)))[0];
             var decodedClientId = new String(Base64Utils.decodeFromString(base64ClientId));
             var decodedRequestId = new String(Base64Utils.decodeFromString(base64RequestId));
-            return new PresaInCaricoInfo(decodedRequestId, decodedClientId, new StepError());
+            //Rimuove le parentesi angolari da inizio clientID e fine requestID, se presenti.
+            return new PresaInCaricoInfo(decodedRequestId.endsWith(">") ? decodedRequestId.substring(0, decodedRequestId.length() - 1) : decodedRequestId,
+                    decodedClientId.startsWith("<") ? decodedClientId.substring(1) : decodedClientId,
+                    new StepError());
         } catch (Exception e) {
             throw new MessageIdException.DecodeMessageIdException();
         }
-    }
-
-    public static String removeBracketsFromMessageId(String messageId) {
-        //Rimuove le parentesi angolari dal messageID.
-        messageId = URLDecoder.decode(messageId, StandardCharsets.UTF_8);
-        if (messageId.startsWith("<") && messageId.endsWith(">"))
-            messageId = messageId.substring(1, messageId.length() - 1);
-        return messageId;
     }
 }
