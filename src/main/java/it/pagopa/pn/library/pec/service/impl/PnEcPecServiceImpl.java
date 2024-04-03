@@ -8,10 +8,12 @@ import it.pagopa.pn.library.pec.configurationproperties.PnPecRetryStrategyProper
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.AlternativeProviderMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.MaxRetriesExceededException;
-import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
-import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
+import it.pagopa.pn.library.pec.model.pojo.PnEcPecGetMessagesResponse;
+import it.pagopa.pn.library.pec.model.pojo.PnEcPecListOfMessages;
+import it.pagopa.pn.library.pec.model.pojo.PnEcPecMessage;
 import it.pagopa.pn.library.pec.service.AlternativeProviderService;
 import it.pagopa.pn.library.pec.service.ArubaService;
+import it.pagopa.pn.library.pec.service.PnEcPecService;
 import it.pagopa.pn.library.pec.service.PnPecService;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 import reactor.util.retry.Retry;
 
 import java.time.Duration;
@@ -31,7 +34,7 @@ import static it.pagopa.pn.library.pec.utils.PnPecUtils.*;
 
 @CustomLog
 @Service
-public class PnPecServiceImpl implements PnPecService {
+public class PnEcPecServiceImpl implements PnEcPecService {
 
     private final ArubaService arubaService;
     private final AlternativeProviderService otherService;
@@ -45,10 +48,10 @@ public class PnPecServiceImpl implements PnPecService {
 
 
     @Autowired
-    public PnPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService,
-                            @Qualifier("alternativeProviderServiceImpl") AlternativeProviderService otherService,
-                            PnPecConfigurationProperties props,
-                            PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics) {
+    public PnEcPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService,
+                              @Qualifier("alternativeProviderServiceImpl") AlternativeProviderService otherService,
+                              PnPecConfigurationProperties props,
+                              PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics) {
         this.arubaService = arubaService;
         this.retryStrategyProperties = retryStrategyProperties;
         this.otherService = otherService;
@@ -77,74 +80,70 @@ public class PnPecServiceImpl implements PnPecService {
 
     @Override
     public Mono<String> sendMail(byte[] message) {
-        log.logStartingProcess(PN_PEC_SEND_MAIL);
+        log.logStartingProcess(PN_EC_PEC_SEND_MAIL);
         PnPecService provider = getProviderWrite();
         return provider
                 .sendMail(message)
-                .retryWhen(getPnPecRetryStrategy(PN_PEC_SEND_MAIL, provider))
-                .doOnSuccess(result -> log.logEndingProcess(PN_PEC_SEND_MAIL))
-                .doOnError(throwable -> log.logEndingProcess(PN_PEC_SEND_MAIL, false, throwable.getMessage()));
+                .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_SEND_MAIL, provider))
+                .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_SEND_MAIL))
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_SEND_MAIL, false, throwable.getMessage()));
     }
 
     @Override
-    public Mono<PnGetMessagesResponse> getUnreadMessages(int limit) {
-        log.logStartingProcess(PEC_GET_UNREAD_MESSAGES);
+    public Mono<PnEcPecGetMessagesResponse> getUnreadMessages(int limit) {
+        log.logStartingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES);
 
         return Flux.fromIterable(getProvidersRead())
                 .flatMap(provider -> provider.getUnreadMessages(limit)
-                        .retryWhen(getPnPecRetryStrategy(PEC_GET_UNREAD_MESSAGES, provider)))
-                .flatMap(response -> {
-                    var listOfMessages = response.getPnListOfMessages();
+                        .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_GET_UNREAD_MESSAGES, provider))
+                        .map(pnGetMessagesResponse -> Tuples.of(pnGetMessagesResponse, getProviderName(provider))))
+                .flatMap(tuple -> {
+                    var listOfMessages = tuple.getT1().getPnListOfMessages();
+                    var providerName = tuple.getT2();
                     if (listOfMessages == null) {
                         return Flux.empty();
                     } else {
-                        return Flux.fromIterable(listOfMessages.getMessages());
+                        return Flux.fromIterable(listOfMessages.getMessages()).map(message -> new PnEcPecMessage(message, providerName));
                     }
                 })
                 .collectList()
-                .flatMap(messages -> Mono.just(new PnGetMessagesResponse(messages.isEmpty() ? null : new PnListOfMessages(messages), messages.size()))
-                )
-                .doOnSuccess(result -> log.logEndingProcess(PEC_GET_UNREAD_MESSAGES))
-                .doOnError(throwable -> log.logEndingProcess(PEC_GET_UNREAD_MESSAGES, false, throwable.getMessage()));
-    }
-
-
-
-    @Override
-    public Mono<Void> markMessageAsRead(String messageID) {
-        log.logStartingProcess(PEC_MARK_MESSAGE_AS_READ);
-        PnPecService provider = getProvider(messageID);
-        return provider.markMessageAsRead(messageID)
-                .retryWhen(getPnPecRetryStrategy(PEC_MARK_MESSAGE_AS_READ, provider))
-                .then()
-                .doOnSuccess(result -> log.logEndingProcess(PEC_MARK_MESSAGE_AS_READ))
-                .doOnError(throwable -> log.logEndingProcess(PEC_MARK_MESSAGE_AS_READ, false, throwable.getMessage()));
+                .flatMap(messages -> Mono.just(new PnEcPecGetMessagesResponse(messages.isEmpty() ? null : new PnEcPecListOfMessages(messages), messages.size())))
+                .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES))
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES, false, throwable.getMessage()));
     }
 
     @Override
     public Mono<Integer> getMessageCount() {
-        log.logStartingProcess(PEC_GET_MESSAGE_COUNT);
+        log.logStartingProcess(PN_EC_PEC_GET_MESSAGE_COUNT);
         return Flux.fromIterable(getProvidersRead())
                 .flatMap(provider -> provider.getMessageCount()
                         .flatMap(count -> cloudWatchPecMetrics.publishMessageCount(Long.valueOf(count), getMetricNamespace(provider)).thenReturn(count))
-                        .retryWhen(getPnPecRetryStrategy(PEC_GET_MESSAGE_COUNT, provider)))
+                        .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_GET_MESSAGE_COUNT, provider)))
                 .reduce(0, Integer::sum)
-                .doOnSuccess(result -> log.logEndingProcess(PEC_GET_MESSAGE_COUNT))
-                .doOnError(throwable -> log.logEndingProcess(PEC_GET_MESSAGE_COUNT, false, throwable.getMessage()));
+                .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_GET_MESSAGE_COUNT))
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_MESSAGE_COUNT, false, throwable.getMessage()));
     }
 
+    @Override
+    public Mono<Void> markMessageAsRead(String messageID, String providerName) {
+        log.logStartingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ);
+        PnPecService provider = getProviderByName(providerName);
+        return provider.markMessageAsRead(messageID)
+                .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_MARK_MESSAGE_AS_READ, provider))
+                .then()
+                .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ))
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ, false, throwable.getMessage()));
+    }
 
     @Override
-    public Mono<Void> deleteMessage(String messageID) {
-        log.logStartingProcess(PEC_DELETE_MESSAGE);
-
-        PnPecService provider = getProvider(messageID);
-
+    public Mono<Void> deleteMessage(String messageID, String senderMessageID) {
+        log.logStartingProcess(PN_EC_PEC_DELETE_MESSAGE);
+        PnPecService provider = getProviderByMessageId(senderMessageID);
         return provider.deleteMessage(messageID)
-                .retryWhen(getPnPecRetryStrategy(PEC_DELETE_MESSAGE, provider))
+                .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_DELETE_MESSAGE, provider))
                 .then()
-                .doOnSuccess(result -> log.logEndingProcess(PEC_DELETE_MESSAGE))
-                .doOnError(throwable -> log.logEndingProcess(PEC_DELETE_MESSAGE, false, throwable.getMessage()));
+                .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_DELETE_MESSAGE))
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_DELETE_MESSAGE, false, throwable.getMessage()));
     }
 
 
@@ -183,18 +182,42 @@ public class PnPecServiceImpl implements PnPecService {
         return services;
     }
 
-        private PnPecService getProvider(String messageID) {
-         if (isAruba(messageID)) {
-             log.debug(ARUBA_PROVIDER_SELECTED);
-             return arubaService;
-         } else if (isOther(messageID)){
-             log.debug(OTHER_PROVIDER_SELECTED);
-             return otherService;
-         } else {
-             log.debug(ERROR_PARSING_PROPERTY_VALUES);
-             throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
-         }
+    private PnPecService getProviderByMessageId(String messageID) {
+        if (isAruba(messageID)) {
+            log.debug(ARUBA_PROVIDER_SELECTED);
+            return arubaService;
+        } else if (isOther(messageID)) {
+            log.debug(OTHER_PROVIDER_SELECTED);
+            return otherService;
+        } else {
+            log.debug(ERROR_PARSING_PROPERTY_VALUES);
+            throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
         }
+    }
+
+    private PnPecService getProviderByName(String providerName) {
+        if (providerName.equals(ARUBA_PROVIDER)) {
+            log.debug(ARUBA_PROVIDER_SELECTED);
+            return arubaService;
+        } else if (providerName.equals(OTHER_PROVIDER)) {
+            log.debug(OTHER_PROVIDER_SELECTED);
+            return otherService;
+        } else {
+            log.debug(ERROR_PARSING_PROPERTY_VALUES);
+            throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
+        }
+    }
+
+    private String getProviderName(PnPecService service) {
+        if (service instanceof ArubaService) {
+            return ARUBA_PROVIDER;
+        } else if (service instanceof AlternativeProviderService) {
+            return OTHER_PROVIDER;
+        } else {
+            log.debug(ERROR_PARSING_PROPERTY_VALUES);
+            throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
+        }
+    }
 
     private String getMetricNamespace(PnPecService service) {
         if (service instanceof ArubaService) {
