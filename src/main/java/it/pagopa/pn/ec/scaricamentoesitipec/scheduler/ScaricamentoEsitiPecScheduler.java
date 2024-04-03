@@ -70,9 +70,11 @@ public class ScaricamentoEsitiPecScheduler {
 
                     var mimeMessage = getMimeMessage(message);
                     var messageID = getMessageIdFromMimeMessage(mimeMessage);
-                    MDC.put(MDC_CORR_ID_KEY, messageID);
                     //Rimozione delle parentesi angolari dal messageID
-                    var finalMessageID = messageID.substring(1, messageID.length() - 1);
+                    if (messageID.startsWith("<") && messageID.endsWith(">"))
+                        messageID = messageID.substring(1, messageID.length() - 1);
+                    MDC.put(MDC_CORR_ID_KEY, messageID);
+                    var finalMessageID = messageID;
                     var attachBytes = getAttachmentFromMimeMessage(mimeMessage, "daticert.xml");
 
                     log.debug(SCARICAMENTO_ESITI_PEC + " - Try to download PEC '{}' daticert.xml", finalMessageID);
@@ -91,7 +93,8 @@ public class ScaricamentoEsitiPecScheduler {
                                 .map(postacert -> {
                                     var dati = postacert.getDati();
                                     var msgId = dati.getMsgid();
-                                    dati.setMsgid(msgId.substring(1, msgId.length() - 1));
+                                    if (msgId.startsWith("<") && msgId.endsWith(">"))
+                                        dati.setMsgid(msgId.substring(1, msgId.length() - 1));
                                     log.debug(SCARICAMENTO_ESITI_PEC + "- PEC '{}' has '{}' msgId", finalMessageID, msgId);
                                     return postacert;
                                 })

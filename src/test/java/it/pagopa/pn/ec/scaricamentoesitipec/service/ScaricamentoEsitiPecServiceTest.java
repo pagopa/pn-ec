@@ -166,7 +166,7 @@ public class ScaricamentoEsitiPecServiceTest {
     }
 
     private RicezioneEsitiPecDto buildRicezioneEsitiPecDto(String tipoPostacert, String tipoDestinatario) throws MessagingException, IOException {
-        String msgId = "-" + encodeMessageId(CLIENT_ID, PEC_REQUEST_IDX) + "-";
+        String msgId = encodeMessageId("<" + CLIENT_ID, PEC_REQUEST_IDX + ">");
         var daticertBytes = generateDaticertAccettazione(tipoPostacert,"sender@dgsspa.com", "receiverAddress@pagopa.it", "replyTo", "subject", "gestoreMittente", "03/11/1999", "00:00:00", msgId, tipoDestinatario).toString().getBytes(StandardCharsets.UTF_8);
         ByteArrayOutputStream daticertOutput = new ByteArrayOutputStream();
         daticertOutput.write(daticertBytes);

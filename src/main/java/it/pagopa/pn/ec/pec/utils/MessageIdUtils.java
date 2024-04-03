@@ -50,9 +50,12 @@ public class MessageIdUtils {
             var splitAtPipe = messageId.split(SEPARATORE);
             var base64ClientId = splitAtPipe[0];
             var base64RequestId = splitAtPipe[1].split(String.valueOf(DOMAIN.charAt(0)))[0];
-            return new PresaInCaricoInfo(new String(Base64Utils.decodeFromString(base64RequestId)),
-                                         new String(Base64Utils.decodeFromString(base64ClientId)),
-                                         new StepError());
+            var decodedClientId = new String(Base64Utils.decodeFromString(base64ClientId));
+            var decodedRequestId = new String(Base64Utils.decodeFromString(base64RequestId));
+            //Rimuove le parentesi angolari da inizio clientID e fine requestID, se presenti.
+            return new PresaInCaricoInfo(decodedRequestId.endsWith(">") ? decodedRequestId.substring(0, decodedRequestId.length() - 1) : decodedRequestId,
+                    decodedClientId.startsWith("<") ? decodedClientId.substring(1) : decodedClientId,
+                    new StepError());
         } catch (Exception e) {
             throw new MessageIdException.DecodeMessageIdException();
         }
