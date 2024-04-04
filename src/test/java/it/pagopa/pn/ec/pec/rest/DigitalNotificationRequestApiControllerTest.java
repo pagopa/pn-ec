@@ -68,7 +68,7 @@ public class DigitalNotificationRequestApiControllerTest {
     @SpyBean
     private SqsServiceImpl sqsService;
 
-    public static final String SEND_PEC_ENDPOINT = "/external-channels/v1/digital-deliveries/legal-full-message-requests" + "/{requestIdx}";
+    public static final String SEND_PEC_ENDPOINT = "/external-channel-test/v1/digital-deliveries/legal-full-message-requests" + "/{requestIdx}";
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
     private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
