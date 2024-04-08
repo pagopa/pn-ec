@@ -37,6 +37,8 @@
     "PnEcNamirialPoolSmtpMaxtotal": "",
     "PnEcNamirialPoolSmtpMaxidle": "",
     "PnEcNamirialPoolSmtpMinidle": "",
+    "PnEcNamirialServerMaxConnections": "32",
+    "PnEcNamirialServerPendingAcquireTimeout": "600",
     "CpuValue": "1024",
     "MemoryAmount": "4GB"
   }
