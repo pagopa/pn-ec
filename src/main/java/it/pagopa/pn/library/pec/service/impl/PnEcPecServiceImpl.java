@@ -44,6 +44,10 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     private String arubaProviderNamespace;
     @Value("${library.pec.cloudwatch.namespace.namirial}")
     private String namirialProviderNamespace;
+    @Value("${library.pec.cloudwatch.metric.response-time.mark-message-as-read}")
+    private String markMessageAsReadResponseTimeMetric;
+    @Value("${library.pec.cloudwatch.metric.response-time.delete-message}")
+    private String deleteMessageResponseTimeMetric;
 
 
     @Autowired
@@ -125,7 +129,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     public Mono<Void> markMessageAsRead(String messageID, String providerName) {
         log.logStartingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ);
         PnPecService provider = getProviderByName(providerName);
-        return provider.markMessageAsRead(messageID)
+        return cloudWatchPecMetrics.executeAndPublishResponseTime(provider.markMessageAsRead(messageID), getMetricNamespace(provider), markMessageAsReadResponseTimeMetric)
                 .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_MARK_MESSAGE_AS_READ, provider))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ))
@@ -136,7 +140,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     public Mono<Void> deleteMessage(String messageID, String senderMessageID) {
         log.logStartingProcess(PN_EC_PEC_DELETE_MESSAGE);
         PnPecService provider = getProviderByMessageId(senderMessageID);
-        return provider.deleteMessage(messageID)
+        return cloudWatchPecMetrics.executeAndPublishResponseTime(provider.deleteMessage(messageID), getMetricNamespace(provider), deleteMessageResponseTimeMetric)
                 .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_DELETE_MESSAGE, provider))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_DELETE_MESSAGE))
