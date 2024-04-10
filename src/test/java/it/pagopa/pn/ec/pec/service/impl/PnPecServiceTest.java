@@ -70,6 +70,10 @@ class PnPecServiceTest {
     private String arubaProviderNamespace;
     @Value("${library.pec.cloudwatch.namespace.namirial}")
     private String namirialProviderNamespace;
+    @Value("${library.pec.cloudwatch.metric.response-time.mark-message-as-read}")
+    private String markMessageAsReadResponseTimeMetric;
+    @Value("${library.pec.cloudwatch.metric.response-time.delete-message}")
+    private String deleteMessageResponseTimeMetric;
 
     private String PROVIDER_SWITCH_READ_DEFAULT = "1970-01-01T00:00:00Z;aruba";
     private String PROVIDER_SWITCH_WRITE_DEFAULT = "1970-01-01T00:00:00Z;aruba";
@@ -515,6 +519,7 @@ class PnPecServiceTest {
 
             verify(arubaService, times(1)).markMessageAsRead(ARUBA_MESSAGE_ID);
             verify(namirialService, never()).markMessageAsRead(anyString());
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(markMessageAsReadResponseTimeMetric), anyLong());
         }
 
         @Test
@@ -528,6 +533,7 @@ class PnPecServiceTest {
 
             verify(arubaService, never()).markMessageAsRead(NAMIRIAL_MESSAGE_ID);
             verify(namirialService, times(1)).markMessageAsRead(anyString());
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(markMessageAsReadResponseTimeMetric), anyLong());
         }
 
         @Test
@@ -596,6 +602,7 @@ class PnPecServiceTest {
 
             verify(arubaService, times(1)).deleteMessage(ARUBA_MESSAGE_ID);
             verify(namirialService, never()).deleteMessage(anyString());
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(deleteMessageResponseTimeMetric), anyLong());
         }
 
         @Test
@@ -610,6 +617,7 @@ class PnPecServiceTest {
 
             verify(arubaService, never()).deleteMessage(NAMIRIAL_MESSAGE_ID);
             verify(namirialService, times(1)).deleteMessage(anyString());
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(deleteMessageResponseTimeMetric), anyLong());
         }
 
         @Test

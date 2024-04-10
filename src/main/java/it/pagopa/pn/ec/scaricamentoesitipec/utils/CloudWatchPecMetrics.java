@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
@@ -90,6 +91,32 @@ public class CloudWatchPecMetrics {
                         .build()).build()))
                 .onErrorResume(throwable -> {
                     log.error(EXCEPTION_IN_PROCESS, PUBLISH_PEC_MESSAGE_COUNT, throwable, throwable.getMessage());
+                    return Mono.empty();
+                }).then();
+    }
+
+    //Method to execute a Mono<Void> and publish its response time to CloudWatch.
+    public Mono<Void> executeAndPublishResponseTime(Mono<Void> mono, String namespace, String metricName) {
+        return mono.thenReturn(true)
+                .elapsed()
+                .flatMap(tuple -> publishResponseTime(namespace, metricName, tuple.getT1()));
+    }
+
+    //Method to publish a response time related CloudWatch metric.
+    public Mono<Void> publishResponseTime(String namespace, String metricName, long elapsedTime) {
+        return Mono.fromCompletionStage(() -> {
+                    log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_RESPONSE_TIME, Stream.of(namespace, metricName, elapsedTime).toList());
+                    return cloudWatchAsyncClient.putMetricData(PutMetricDataRequest.builder()
+                            .namespace(namespace)
+                            .metricData(MetricDatum.builder()
+                                    .unit(StandardUnit.MILLISECONDS)
+                                    .metricName(metricName)
+                                    .value((double) elapsedTime)
+                                    .timestamp(Instant.now())
+                                    .build()).build());
+                })
+                .onErrorResume(throwable -> {
+                    log.error(EXCEPTION_IN_PROCESS, PUBLISH_RESPONSE_TIME, throwable, throwable.getMessage());
                     return Mono.empty();
                 }).then();
     }
