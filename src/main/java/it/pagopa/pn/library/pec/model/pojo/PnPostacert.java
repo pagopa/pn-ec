@@ -1,16 +1,17 @@
-package it.pagopa.pn.library.pec.pojo;
+package it.pagopa.pn.library.pec.model.pojo;
 
-import it.pagopa.pn.library.pec.model.pojo.IPostacert;
-import it.pagopa.pn.library.pec.model.pojo.Postacert;
+
+import it.pagopa.pn.library.pec.model.IPostacert;
+
 
 public class PnPostacert extends Postacert implements IPostacert {
-	
-	public PnPostacert( Postacert postacert) {
-		this.dati = postacert.getDati();
-		this.errore = postacert.getErrore();
-		this.intestazione = postacert.getIntestazione();
-		this.tipo = postacert.getTipo();
-	}
+
+    public PnPostacert(Postacert postacert) {
+        this.dati = postacert.getDati();
+        this.errore = postacert.getErrore();
+        this.intestazione = postacert.getIntestazione();
+        this.tipo = postacert.getTipo();
+    }
 
     @Override
     public String getErrore() {
@@ -37,3 +38,5 @@ public class PnPostacert extends Postacert implements IPostacert {
         }
     }
 }
+
+

@@ -1,6 +1,6 @@
 {
   "Parameters": {
-    "PnEcIdentityPec":"pn/identity/pec",
+    "PnEcIdentityPec":"Pn-EC-PEC",
     "PnEcConsolidatoreBaseURL":"http://internal-pn-re-Appli-17ZRKQ0S21KXS-1215481206.eu-south-1.elb.amazonaws.com:8080",
     "PnEcEmailDefaultSender": "noreply@mail.dev.notifichedigitali.it",
     "ConsolidatoreClientId": "pn-cons-000",
@@ -8,8 +8,8 @@
     "MinTasksNumber": "6",
     "MaxTasksNumber": "12",
     "AutoscalingThreshold": "10000",
-    "ArubaCallRetryStrategyMaxAttempts": "4",
-    "ArubaCallRetryStrategyMinBackoff": "3",
+    "PnPecRetryStrategyMaxAttempts": "4",
+    "PnPecRetryStrategyMinBackoff": "3",
     "LavorazionePecMaxThreadPoolSize": "50",
     "LavorazioneSMSMaxThreadPoolSize": "75",
     "LavorazioneEmailMaxThreadPoolSize": "75",
@@ -24,7 +24,20 @@
     "PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked": "true",
     "PnEcPECMaxMessageSizeMB": "100",
     "PnEcPECAttachmentRule": "LIMIT",
-    "PnEcPECTipoRicevutaBreve": "true",
-    "PnEcProviderSwitch": "aruba"
+    "PnEcPECTipoRicevutaBreve": "false;2024-03-14T23:00:00Z;true",
+    "PnEcProviderSwitchRead": "1970-01-01T00:00:00Z;aruba",
+    "PnEcProviderSwitchWrite": "1970-01-01T00:00:00Z;aruba",
+    "PnEcNamirialServerImapAddress": "",
+    "PnEcNamirialServerSmtpAddress": "",
+    "PnEcNamirialServerImapPort": "",
+    "PnEcNamirialServerSmtpPort": "",
+    "PnEcNamirialPoolImapMaxtotal": "",
+    "PnEcNamirialPoolImapMaxidle": "",
+    "PnEcNamirialPoolImapMinidle": "",
+    "PnEcNamirialPoolSmtpMaxtotal": "",
+    "PnEcNamirialPoolSmtpMaxidle": "",
+    "PnEcNamirialPoolSmtpMinidle": "",
+    "CpuValue": "1024",
+    "MemoryAmount": "4GB"
   }
 }

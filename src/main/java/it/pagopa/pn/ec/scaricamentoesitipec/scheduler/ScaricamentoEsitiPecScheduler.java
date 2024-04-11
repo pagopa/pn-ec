@@ -1,22 +1,22 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.library.pec.model.pojo.IPostacert;
-import it.pagopa.pn.library.pec.pojo.PnPostacert;
+import it.pagopa.pn.library.pec.model.IPostacert;
+import it.pagopa.pn.library.pec.model.pojo.PnEcPecListOfMessages;
+import it.pagopa.pn.library.pec.model.pojo.PnPostacert;
 import it.pagopa.pn.library.pec.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils;
-import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
-import it.pagopa.pn.library.pec.service.PnPecService;
+import it.pagopa.pn.library.pec.service.PnEcPecService;
 import lombok.CustomLog;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,13 +32,13 @@ public class ScaricamentoEsitiPecScheduler {
     private final DaticertService daticertService;
     private final SqsService sqsService;
     private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
-    private final PnPecService pnPecService;
+    private final PnEcPecService pnPecService;
     @Value("${scaricamento-esiti-pec.limit-rate}")
     private Integer limitRate;
     @Value("${pn.ec.storage.sqs.messages.staging.bucket}")
     private String storageSqsMessagesStagingBucket;
 
-    public ScaricamentoEsitiPecScheduler(DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, @Qualifier("pnPecServiceImpl") PnPecService pnPecService) {
+    public ScaricamentoEsitiPecScheduler(DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, PnEcPecService pnPecService) {
         this.daticertService = daticertService;
         this.sqsService = sqsService;
         this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;
@@ -47,6 +47,7 @@ public class ScaricamentoEsitiPecScheduler {
 
     private final Predicate<IPostacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
     private final Predicate<IPostacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
+    private final Predicate<PnEcPecListOfMessages> hasNoMessages = pnEcPecListOfMessages -> Objects.isNull(pnEcPecListOfMessages) || Objects.isNull(pnEcPecListOfMessages.getMessages()) || pnEcPecListOfMessages.getMessages().isEmpty();
 
     @Scheduled(cron = "${PnEcCronScaricamentoEsitiPec ?:0 */5 * * * *}")
     public void scaricamentoEsitiPecScheduler() {
@@ -59,13 +60,15 @@ public class ScaricamentoEsitiPecScheduler {
         MDCUtils.addMDCToContextAndExecute(pnPecService.getMessageCount()
                 .then(Mono.defer(() -> pnPecService.getUnreadMessages(Integer.parseInt(scaricamentoEsitiPecProperties.getMessagesLimit()))))
                 .flatMap(pnGetMessagesResponse -> {
-                    var listOfMessages = pnGetMessagesResponse.getPnListOfMessages();
-                    if (Objects.isNull(listOfMessages))
+                    var listOfMessages = pnGetMessagesResponse.getPnEcPecListOfMessages();
+                    if (hasNoMessages.test(listOfMessages))
                         hasMessages.set(false);
                     return Mono.justOrEmpty(listOfMessages);
                 })
-                .flatMapIterable(PnListOfMessages::getMessages)
-                .flatMap(message -> {
+                .flatMapIterable(PnEcPecListOfMessages::getMessages)
+                .flatMap(pnEcMessage -> {
+                    byte[] message = pnEcMessage.getMessage();
+                    String providerName = pnEcMessage.getProviderName();
 
                     var mimeMessage = getMimeMessage(message);
                     var messageID = getMessageIdFromMimeMessage(mimeMessage);
@@ -116,12 +119,12 @@ public class ScaricamentoEsitiPecScheduler {
                                                  .receiversDomain(getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]))
                                                  .retry(0)
                                                  .build()))
-                                 .thenReturn(finalMessageID);
+                                 .thenReturn(Tuples.of(finalMessageID, providerName));
                     }
-                    else return Mono.just(finalMessageID);
+                    else return Mono.just(Tuples.of(finalMessageID, providerName));
                 })
                 //Marca il messaggio come letto.
-                .flatMap(pnPecService::markMessageAsRead, limitRate)
+                .flatMap(tuple -> pnPecService.markMessageAsRead(tuple.getT1(), tuple.getT2()), limitRate)
                 .doOnError(throwable -> log.fatal(SCARICAMENTO_ESITI_PEC, throwable))
                 .onErrorResume(throwable -> Mono.empty())
                 .repeat(hasMessages::get)

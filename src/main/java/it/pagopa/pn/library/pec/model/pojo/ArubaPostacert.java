@@ -1,13 +1,12 @@
 package it.pagopa.pn.library.pec.model.pojo;
 
-import it.pagopa.pn.library.pec.pojo.PnPostacert;
-import it.pagopa.pn.library.pec.model.pojo.Postacert;
+
 import lombok.CustomLog;
 
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.ERRORE_CONSEGNA;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.PREAVVISO_ERRORE_CONSEGNA;
-@CustomLog
 
+@CustomLog
 public class ArubaPostacert extends PnPostacert {
     @Override
     public String getTipo() {
@@ -25,6 +24,7 @@ public class ArubaPostacert extends PnPostacert {
 
 
     public ArubaPostacert(Postacert postacert) {
+
         super(postacert);
     }
 }

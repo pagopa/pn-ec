@@ -102,14 +102,14 @@ Parameters:
     Description: 'Alarm threshold to trigger autoscaling of the microservice'
     Default: 10000
 
-  ArubaCallRetryStrategyMaxAttempts:
+  PnPecRetryStrategyMaxAttempts:
     Type: String
-    Description: 'Retry strategy Aruba max attempts'
+    Description: 'Retry strategy max attempts'
     Default: ''
 
-  ArubaCallRetryStrategyMinBackoff:
+  PnPecRetryStrategyMinBackoff:
     Type: String
-    Description: 'Retry strategy Aruba min delay'
+    Description: 'Retry strategy min delay'
     Default: ''
   
   LavorazionePecMaxThreadPoolSize:
@@ -268,9 +268,13 @@ Parameters:
 
   ######### LAVORAZIONE : PEC  ##########
 
-  PnEcProviderSwitch:
+  PnEcProviderSwitchRead:
     Type: String
-    Description: 'Regola per lo switch del provider PEC'
+    Description: 'Regola per lo switch del provider PEC per le operazioni in READ'
+
+  PnEcProviderSwitchWrite:
+    Type: String
+    Description: 'Regola per lo switch del provider PEC per le operazioni in WRITE'
 
   PnEcPECMaxMessageSizeMB:
     Type: String
@@ -809,6 +813,47 @@ Parameters:
     Default: 7200
     Description: Value in seconds
 
+  PnEcNamirialServerImapAddress:
+    Type: String
+
+  PnEcNamirialServerSmtpAddress:
+    Type: String
+
+  PnEcNamirialServerImapPort:
+    Type: String
+
+  PnEcNamirialServerSmtpPort:
+    Type: String
+
+  PnEcNamirialPoolImapMaxtotal:
+    Type: String
+
+  PnEcNamirialPoolImapMaxidle:
+    Type: String
+
+  PnEcNamirialPoolImapMinidle:
+    Type: String
+
+  PnEcNamirialPoolSmtpMaxtotal:
+    Type: String
+
+  PnEcNamirialPoolSmtpMaxidle:
+    Type: String
+
+  PnEcNamirialPoolSmtpMinidle:
+    Type: String
+
+  CpuValue:
+    Type: Number
+    Default: 1024
+    Description: Fargate virtual CPU quantity 1024 equals one vCPU
+
+  MemoryAmount:
+    Type: String
+    Default: '2GB'
+    Description: Memory amount reserved to the task pod.
+    AllowedValues: [ 2GB, 4GB, 6GB, 8GB ]
+
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
@@ -823,8 +868,8 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/ecs-service.yaml"
       Parameters:
         MicroServiceUniqueName: !Sub '${ProjectName}-external-channel'
-        CpuValue: 4096
-        MemoryAmount: 8GB
+        CpuValue: !Ref CpuValue
+        MemoryAmount: !Ref MemoryAmount
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Sub '${ContainerImageUri}'
         ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
@@ -870,8 +915,8 @@ Resources:
         ContainerEnvEntry41: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
         ContainerEnvEntry42: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
         ContainerEnvEntry43: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
-        ContainerEnvEntry44: !Sub 'ArubaCallRetryStrategyMaxAttempts=${ArubaCallRetryStrategyMaxAttempts}'
-        ContainerEnvEntry45: !Sub 'ArubaCallRetryStrategyMinBackoff=${ArubaCallRetryStrategyMinBackoff}'
+        ContainerEnvEntry44: !Sub 'PnPecRetryStrategyMaxAttempts=${PnPecRetryStrategyMaxAttempts}'
+        ContainerEnvEntry45: !Sub 'PnPecRetryStrategyMinBackoff=${PnPecRetryStrategyMinBackoff}'
         ContainerEnvEntry46: !Sub 'LavorazionePecMaxThreadPoolSize=${LavorazionePecMaxThreadPoolSize}'
         ContainerEnvEntry47: !Sub 'LavorazioneEsitiPecMaxThreadPoolSize=${LavorazioneEsitiPecMaxThreadPoolSize}'
         ContainerEnvEntry48: !Sub 'ScaricamentoEsitiPecLimitRate=${ScaricamentoEsitiPecLimitRate}'
@@ -889,7 +934,19 @@ Resources:
         ContainerEnvEntry60: !Sub 'PnEcPECAttachmentRule=${PnEcPECAttachmentRule}'
         ContainerEnvEntry61: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
         ContainerEnvEntry62: !Sub 'PnEcSqsMessagesStagingBucketName=${PnEcSqsMessagesStagingBucketName}'
-        ContainerEnvEntry63: !Sub 'PnEcProviderSwitch=${PnEcProviderSwitch}'
+        ContainerEnvEntry63: !Sub 'PnEcProviderSwitchRead=${PnEcProviderSwitchRead}'
+        ContainerEnvEntry64: !Sub 'PnEcProviderSwitchWrite=${PnEcProviderSwitchWrite}'
+        ContainerEnvEntry65: !Sub 'PnEcIdentityPec=${PnEcIdentityPec}'
+        ContainerEnvEntry66: !Sub 'PnEcNamirialServerImapAddress=${PnEcNamirialServerImapAddress}'
+        ContainerEnvEntry67: !Sub 'PnEcNamirialServerSmtpAddress=${PnEcNamirialServerSmtpAddress}'
+        ContainerEnvEntry68: !Sub 'PnEcNamirialServerImapPort=${PnEcNamirialServerImapPort}'
+        ContainerEnvEntry69: !Sub 'PnEcNamirialServerSmtpPort=${PnEcNamirialServerSmtpPort}'
+        ContainerEnvEntry70: !Sub 'PnEcNamirialPoolImapMaxtotal=${PnEcNamirialPoolImapMaxtotal}'
+        ContainerEnvEntry71: !Sub 'PnEcNamirialPoolImapMaxidle=${PnEcNamirialPoolImapMaxidle}'
+        ContainerEnvEntry72: !Sub 'PnEcNamirialPoolImapMinidle=${PnEcNamirialPoolImapMinidle}'
+        ContainerEnvEntry73: !Sub 'PnEcNamirialPoolSmtpMaxtotal=${PnEcNamirialPoolSmtpMaxtotal}'
+        ContainerEnvEntry74: !Sub 'PnEcNamirialPoolSmtpMaxidle=${PnEcNamirialPoolSmtpMaxidle}'
+        ContainerEnvEntry75: !Sub 'PnEcNamirialPoolSmtpMinidle=${PnEcNamirialPoolSmtpMinidle}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -987,7 +1044,7 @@ Resources:
             Resource:
               - '*'
           - Effect: Allow
-            Sid: 'ReadFromSecretsManagerInvioPEC'
+            Sid: 'ReadFromSecretsManagerIdentityPec'
             Action:
               - 'secretsmanager:DescribeSecret'
               - 'secretsmanager:GetSecretValue'

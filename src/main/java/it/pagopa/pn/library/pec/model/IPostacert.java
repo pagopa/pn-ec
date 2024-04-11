@@ -1,4 +1,5 @@
-package it.pagopa.pn.library.pec.model.pojo;
+package it.pagopa.pn.library.pec.model;
+
 
 import it.pagopa.pn.library.pec.model.pojo.Dati;
 import it.pagopa.pn.library.pec.model.pojo.Intestazione;
@@ -12,6 +13,7 @@ public interface IPostacert {
     String getErrore();
 
     void setErrore(String value);
+
 
     Intestazione getIntestazione();
 

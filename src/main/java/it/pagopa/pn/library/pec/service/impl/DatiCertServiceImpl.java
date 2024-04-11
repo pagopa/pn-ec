@@ -2,8 +2,8 @@ package it.pagopa.pn.library.pec.service.impl;
 
 import it.pagopa.pn.ec.commons.exception.XmlParserException;
 import it.pagopa.pn.library.pec.exception.daticert.DaticertServiceException;
+import it.pagopa.pn.library.pec.model.IPostacert;
 import it.pagopa.pn.library.pec.service.DaticertService;
-import it.pagopa.pn.library.pec.model.pojo.IPostacert;
 import it.pagopa.pn.library.pec.model.pojo.Data;
 import it.pagopa.pn.library.pec.model.pojo.Postacert;
 import jakarta.xml.bind.JAXBContext;
@@ -26,7 +26,6 @@ public class DatiCertServiceImpl implements DaticertService {
 
     @Value("${library.pec.postacert.path}")
     String postacertClassType;
-
     public DatiCertServiceImpl(JAXBContext jaxbContext) {
         this.jaxbContext = jaxbContext;
     }
@@ -34,7 +33,6 @@ public class DatiCertServiceImpl implements DaticertService {
     @Override
     public IPostacert getPostacertFromByteArray(byte[] bytes) {
         try {
-
 //          This method could be called in a non-thread safe context; is good to create for each unmarshall operation a jakarta.xml.bind
 //          .JAXBContext.Unmarshaller object instead of a Spring Bean ?
 //          Yes the jakarta.xml.bind.JAXBContext is thread safe but jakarta.xml.bind.JAXBContext.Unmarshaller no
@@ -43,9 +41,10 @@ public class DatiCertServiceImpl implements DaticertService {
             Class<?> dynamicClass = Class.forName(postacertClassType).asSubclass(Postacert.class);
             return (IPostacert) dynamicClass.getDeclaredConstructor(Postacert.class).newInstance((Postacert) jaxbContext.createUnmarshaller().unmarshal(new ByteArrayInputStream(bytes)));
         } catch (JAXBException e) {
+
             throw new XmlParserException("JAXBException during input stream unmarshalling");
         } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
-            throw new DaticertServiceException("Exception during custom Postacert object instantiation : " + e.getMessage());
+            throw new DaticertServiceException("Exception during custom Postacert object instantiation : " + e);
         }
     }
 

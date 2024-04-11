@@ -16,7 +16,6 @@ import it.pagopa.pn.ec.commons.service.S3Service;
 import it.pagopa.pn.library.pec.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
-import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.LegalMessageSentDetails;
@@ -29,6 +28,7 @@ import it.pagopa.pn.library.pec.model.pojo.Destinatari;
 import lombok.CustomLog;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -53,6 +53,7 @@ import static it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUti
 
 
 @CustomLog
+@DependsOn("pnPecCredentialConf")
 @Service
 public class LavorazioneEsitiPecService {
 
@@ -61,7 +62,6 @@ public class LavorazioneEsitiPecService {
     private final StatusPullService statusPullService;
     private final CloudWatchPecMetrics cloudWatchPecMetrics;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
-    private final ArubaSecretValue arubaSecretValue;
     private final FileCall fileCall;
     private final WebClient uploadWebClient;
     private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
@@ -73,13 +73,12 @@ public class LavorazioneEsitiPecService {
     private final Semaphore semaphore;
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
 
-    public LavorazioneEsitiPecService(SqsService sqsService, DaticertService daticertService, StatusPullService statusPullService, CloudWatchPecMetrics cloudWatchPecMetrics, NotificationTrackerSqsName notificationTrackerSqsName, ArubaSecretValue arubaSecretValue, FileCall fileCall, WebClient uploadWebClient, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, S3Service s3Service, @Value("${lavorazione-esiti-pec.max-thread-pool-size}") Integer maxThreadPoolSize, @Value("${pn.ec.storage.sqs.messages.staging.bucket}") String storageSqsMessagesStagingBucket) {
+    public LavorazioneEsitiPecService(SqsService sqsService, DaticertService daticertService, StatusPullService statusPullService, CloudWatchPecMetrics cloudWatchPecMetrics, NotificationTrackerSqsName notificationTrackerSqsName, FileCall fileCall, WebClient uploadWebClient, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, S3Service s3Service, @Value("${lavorazione-esiti-pec.max-thread-pool-size}") Integer maxThreadPoolSize, @Value("${pn.ec.storage.sqs.messages.staging.bucket}") String storageSqsMessagesStagingBucket) {
         this.sqsService = sqsService;
         this.daticertService = daticertService;
         this.statusPullService = statusPullService;
         this.cloudWatchPecMetrics = cloudWatchPecMetrics;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
-        this.arubaSecretValue = arubaSecretValue;
         this.fileCall = fileCall;
         this.uploadWebClient = uploadWebClient;
         this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;
@@ -111,6 +110,7 @@ public class LavorazioneEsitiPecService {
                             var mimeMessage = getMimeMessage(message);
                             var daticert = findAttachmentByName(mimeMessage, "daticert.xml");
                             var postacert = daticertService.getPostacertFromByteArray(daticert);
+                            var sender = postacert.getIntestazione().getMittente();
                             var msgId = postacert.getDati().getMsgid();
                             msgId = msgId.substring(1, msgId.length() - 1);
                             var presaInCaricoInfo = decodeMessageId(msgId);
@@ -177,8 +177,7 @@ public class LavorazioneEsitiPecService {
                                         requestIdx.set(requestDto.getRequestIdx());
                                         var xPagopaExtchCxId = requestDto.getxPagopaExtchCxId();
                                         var eventDetails = postacert.getErrore();
-                                        var senderDigitalAddress = arubaSecretValue.getPecUsername();
-                                        var senderDomain = getDomainFromAddress(senderDigitalAddress);
+                                        var senderDomain = getDomainFromAddress(sender);
                                         var receiversDomain = ricezioneEsitiPecDto.getReceiversDomain();
 
                                         return generateLocation(requestIdx.get(), message)

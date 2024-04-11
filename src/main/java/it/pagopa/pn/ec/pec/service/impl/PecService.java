@@ -5,8 +5,7 @@ import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.exception.aruba.ArubaCallMaxRetriesExceededException;
-import it.pagopa.pn.ec.commons.exception.aruba.ArubaSendException;
+import it.pagopa.pn.ec.commons.exception.pec.PecCallMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.email.ComposeMimeMessageException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
@@ -27,15 +26,14 @@ import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.exception.MaxSizeExceededException;
-import it.pagopa.pn.ec.pec.model.pojo.ArubaSecretValue;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import it.pagopa.pn.library.pec.service.PnPecService;
+import it.pagopa.pn.library.pec.service.PnEcPecService;
 import lombok.CustomLog;
 import org.apache.commons.io.output.CountingOutputStream;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -71,31 +69,29 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INT
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
 
 @Service
+@DependsOn("pnPecCredentialConf")
 @CustomLog
 public class PecService extends PresaInCaricoService implements QueueOperationsService {
 
     private final SqsService sqsService;
-    private final PnPecService pnPecService;
+    private final PnEcPecService pnPecService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final AttachmentServiceImpl attachmentService;
     private final DownloadCall downloadCall;
-    private final ArubaSecretValue arubaSecretValue;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
     private final PecSqsQueueName pecSqsQueueName;
     private final Semaphore semaphore;
     private final PnPecConfigurationProperties pnPecProps;
     private String idSaved;
 
-    protected PecService(AuthService authService,@Qualifier("pnPecServiceImpl") PnPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
-            , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, ArubaSecretValue arubaSecretValue,
-                         NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName, @Value("${lavorazione-pec.max-thread-pool-size}") Integer maxThreadPoolSize, PnPecConfigurationProperties pnPecProps) {
+    protected PecService(AuthService authService, PnEcPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
+            , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName, @Value("${lavorazione-pec.max-thread-pool-size}") Integer maxThreadPoolSize, PnPecConfigurationProperties pnPecProps) {
         super(authService);
         this.pnPecService = pnPecService;
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.attachmentService = attachmentService;
         this.downloadCall = downloadCall;
-        this.arubaSecretValue = arubaSecretValue;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
         this.pecSqsQueueName = pecSqsQueueName;
         this.semaphore = new Semaphore(maxThreadPoolSize);
@@ -230,7 +226,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 //                              Create EmailField object with request info and attachments
 
                 .flatMap(emailAttachments -> sendMail(xPagopaExtchCxId, requestIdx, digitalNotificationRequest, emailAttachments)
-                        .onErrorResume(ArubaCallMaxRetriesExceededException.class, throwable -> {
+                        .onErrorResume(PecCallMaxRetriesExceededException.class, throwable -> {
                             var stepError = new StepError();
                             pecPresaInCaricoInfo.setStepError(stepError);
                             pecPresaInCaricoInfo.getStepError().setStep(ARUBA_SEND_MAIL_STEP);
@@ -294,9 +290,10 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
     private Mono<GeneratedMessageDto> sendMail(String xPagopaExtchCxId, String requestIdx, DigitalNotificationRequest digitalNotificationRequest, List<EmailAttachment> attachments) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS + " - {}", PEC_SEND_MAIL, digitalNotificationRequest, attachments);
+        String sender = pnPecProps.getPnPecSender();
         return Mono.just(attachments).map(fileDownloadResponses -> EmailField.builder()
                 .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
-                .from(arubaSecretValue.getPecUsername())
+                .from(sender)
                 .to(digitalNotificationRequest.getReceiverDigitalAddress())
                 .subject(digitalNotificationRequest.getSubjectText())
                 .text(digitalNotificationRequest.getMessageText())
@@ -311,7 +308,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                         pnPecProps.getTipoRicevutaBreve()))
                 .map(EmailUtils::getMimeMessageByteArray)
                 .flatMap(pnPecService::sendMail)
-                .map(this::createGeneratedMessageDto)
+                .map(messageID -> createGeneratedMessageDto(messageID, sender))
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_SEND_MAIL, result));
     }
 
@@ -332,8 +329,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_SEND_MESSAGE, result));
     }
 
-    private GeneratedMessageDto createGeneratedMessageDto(String messageID) {
-        return new GeneratedMessageDto().id(messageID).system(getDomainFromAddress(arubaSecretValue.getPecUsername()));
+    private GeneratedMessageDto createGeneratedMessageDto(String messageID, String sender) {
+        return new GeneratedMessageDto().id(messageID).system(getDomainFromAddress(sender));
     }
 
     @Scheduled(cron = "${PnEcCronGestioneRetryPec ?:0 */5 * * * *}")

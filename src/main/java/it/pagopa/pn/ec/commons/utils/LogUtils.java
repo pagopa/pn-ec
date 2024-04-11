@@ -97,12 +97,8 @@ public class LogUtils {
     public static final String PEC_GET_ATTACHMENTS = "PecService.getAttachments()";
     public static final String PEC_DOWNLOAD_ATTACHMENT = "PecService.downloadAttachment()";
     public static final String PEC_SEND_MAIL = "PecService.sendMail()";
-    public static final String PN_PEC_SEND_MAIL = "PnPecService.sendMail()";
-    public static final String PEC_SEND_MESSAGE = "PnPecService.sendMessage()";
-    public static final String PEC_GET_UNREAD_MESSAGES = "PnPecService.getUnreadMessages()";
+    public static final String PEC_SEND_MESSAGE = "PecService.sendMessage()";
     public static final String PEC_SET_MESSAGE_ID_IN_REQUEST_METADATA = "PecService.setMessageIdInRequestMetadata()";
-    public static final String PEC_MARK_MESSAGE_AS_READ = "PnPecService.markMessageAsRead()";
-
 
     //PAPER
     public static final String SEND_PAPER_ENGAGE_REQUEST = "sendPaperEngageRequest";
@@ -176,15 +172,19 @@ public class LogUtils {
     public static final String CLIENT_METHOD_RETURN_WITH_ERROR = "Return client method '{}' with error: {} - {}";
 
     //ARUBA
-    public static final String ARUBA_GET_MESSAGES = "ArubaCall.getMessages()";
-    public static final String ARUBA_GET_MESSAGE_ID = "ArubaCall.getMessageId()";
-    public static final String ARUBA_SEND_MAIL = "ArubaCall.sendMail()";
-    public static final String ARUBA_GET_ATTACH = "ArubaCall.getAttach()";
+    public static final String ARUBA_MARK_MESSAGE_AS_READ = "ArubaService.markMessageAsRead()";
+    public static final String ARUBA_SEND_MAIL = "ArubaService.sendMail()";
     public static final String ARUBA_GET_MESSAGE_COUNT = "ArubaService.getMessageCount()";
     public static final String ARUBA_DELETE_MAIL = "ArubaService.deleteMail()";
     public static final String ARUBA_GET_UNREAD_MESSAGES = "ArubaService.getUnreadMessages()";
-
     public static final String INITIALIZING_ARUBA_PROXY_CLIENT = "Initializing Aruba proxy client for '{}' : ArubaServerAddress : {}, EndpointName : {}, ServiceName : {}";
+
+    //ALTERNATIVE PROVIDER
+    public static final String ALT_GET_UNREAD_MESSAGES = "AlternativeProviderService.getUnreadMessages()";
+    public static final String ALT_MARK_MESSAGE_AS_READ = "AlternativeProviderService.markMessageAsRead()";
+    public static final String ALT_SEND_MAIL = "AlternativeProviderService.sendMail()";
+    public static final String ALT_GET_MESSAGE_COUNT = "AlternativeProviderService.getMessageCount()";
+    public static final String ALT_DELETE_MAIL = "AlternativeProviderService.deleteMail()";
 
     //SES
     public static final String SES_SEND_MAIL = "SesService.sendMail()";
@@ -225,8 +225,11 @@ public class LogUtils {
 
     //PN-PEC
     public static final String PN_PEC = "pn-pec";
-    public static final String PEC_GET_MESSAGE_COUNT = "PnPecService.getMessagesCount()";
-    public static final String PEC_DELETE_MESSAGE = "PnPecService.deleteMessage()";
+    public static final String PN_EC_PEC_SEND_MAIL = "PnEcPecService.sendMail()";
+    public static final String PN_EC_PEC_GET_UNREAD_MESSAGES = "PnEcPecService.getUnreadMessages()";
+    public static final String PN_EC_PEC_GET_MESSAGE_COUNT = "PnEcPecService.getMessagesCount()";
+    public static final String PN_EC_PEC_MARK_MESSAGE_AS_READ = "PnEcPecService.markMessageAsRead()";
+    public static final String PN_EC_PEC_DELETE_MESSAGE = "PnEcPecService.deleteMessage()";
     public static final String NOT_VALID_FOR_DELETE = "Event with requestId '{}' is not valid for delete.";
 
 }
