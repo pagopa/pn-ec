@@ -6,7 +6,11 @@ public class LogUtils {
         throw new IllegalStateException("LogUtils is a utility class");
     }
 
+    public static String concatIds(String id1, String id2) {
+        return String.format("%s%s%s", id1, "~", id2);
+    }
     public static final String MDC_CORR_ID_KEY = "cx_id";
+    public static final String MDC_GUM_UUID_KEY = "get_unread_messages_uuid";
     public static final String INVALID_API_KEY = "Invalid API key";
 
     public static final String INVOKING_OPERATION_LABEL_WITH_ARGS = "Invoking operation '{}' with args: {}";

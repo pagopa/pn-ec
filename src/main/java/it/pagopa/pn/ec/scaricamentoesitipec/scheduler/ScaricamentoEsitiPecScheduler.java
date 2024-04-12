@@ -16,11 +16,12 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
-import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
@@ -51,9 +52,9 @@ public class ScaricamentoEsitiPecScheduler {
     private final Predicate<IPostacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
     private final Predicate<PnEcPecListOfMessages> hasNoMessages = pnEcPecListOfMessages -> Objects.isNull(pnEcPecListOfMessages) || Objects.isNull(pnEcPecListOfMessages.getMessages()) || pnEcPecListOfMessages.getMessages().isEmpty();
 
-    @Scheduled(cron = "${PnEcCronScaricamentoEsitiPec ?:0 */5 * * * *}")
+    @Scheduled(cron = "${PnEcCronScaricamentoEsitiPec ?:0 */1 * * * *}")
     public void scaricamentoEsitiPecScheduler() {
-
+        MDC.clear();
         log.logStartingProcess(SCARICAMENTO_ESITI_PEC);
         ScaricamentoEsitiPecUtils.sleepRandomSeconds();
         AtomicBoolean hasMessages = new AtomicBoolean();
@@ -67,7 +68,10 @@ public class ScaricamentoEsitiPecScheduler {
                         hasMessages.set(false);
                     return Mono.justOrEmpty(listOfMessages);
                 })
-                .flatMapIterable(PnEcPecListOfMessages::getMessages)
+                .flatMapMany(pnEcPecListOfMessages -> {
+                    MDC.put(MDC_GUM_UUID_KEY, UUID.randomUUID().toString());
+                    return Flux.fromIterable(pnEcPecListOfMessages.getMessages());
+                })
                 .flatMap(this::lavorazioneEsito, limitRate)
                 .doOnError(throwable -> log.fatal(SCARICAMENTO_ESITI_PEC, throwable))
                 .onErrorResume(throwable -> Mono.empty())
@@ -86,7 +90,7 @@ public class ScaricamentoEsitiPecScheduler {
         //Rimozione delle parentesi angolari dal messageID
         if (messageID.startsWith("<") && messageID.endsWith(">"))
             messageID = messageID.substring(1, messageID.length() - 1);
-        MDC.put(MDC_CORR_ID_KEY, messageID);
+        MDC.put(MDC_CORR_ID_KEY, concatIds(messageID, MDC.get(MDC_GUM_UUID_KEY)));
         var finalMessageID = messageID;
 
         return MDCUtils.addMDCToContextAndExecute(Mono.defer(() -> {
