@@ -77,7 +77,7 @@ public class ScaricamentoEsitiPecScheduler {
                 .onErrorResume(throwable -> Mono.empty())
                 .repeat(hasMessages::get)
                 .doOnComplete(() -> log.logEndingProcess(SCARICAMENTO_ESITI_PEC))
-                .subscribe();
+                .blockLast();
 
     }
 
