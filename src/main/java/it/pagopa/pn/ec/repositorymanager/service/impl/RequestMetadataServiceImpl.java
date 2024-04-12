@@ -1,5 +1,7 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
@@ -16,8 +18,13 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.DYNAMO_OPTIMISTIC_LOCKING_RETRY;
@@ -30,6 +37,8 @@ import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 @Service
 @CustomLog
 public class RequestMetadataServiceImpl implements RequestMetadataService {
+
+    private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX");
 
     private final DynamoDbAsyncTableDecorator<RequestMetadata> requestMetadataDynamoDbTable;
 
@@ -95,6 +104,9 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                            return Mono.error(new RepositoryManagerException.RequestMalformedException(
                                    "Valorizzare solamente un tipologia di richiesta metadata"));
                        }
+
+                       OffsetDateTime lastUpdateTimestamp = OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MILLIS);
+                       requestMetadata.setLastUpdateTimestamp(lastUpdateTimestamp.format(dtf));
                        return insertRequestMetadataInDynamoDb(requestMetadata);
                    })
                    .doOnError(RepositoryManagerException.RequestMalformedException.class, throwable -> log.debug(throwable.getMessage()))
@@ -102,7 +114,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                    .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, INSERT_REQUEST_METADATA_OP, result));
     }
 
-    private Mono<RequestMetadata> managePatch(String requestId, Patch patch, RequestMetadata retrieveRequestMetadata) {
+   private Mono<RequestMetadata> managePatch(String requestId, Patch patch, RequestMetadata retrieveRequestMetadata) {
         var retry = patch.getRetry();
 
         if (retry != null) {
@@ -121,6 +133,10 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
             var eventsList = retrieveRequestMetadata.getEventsList();
             eventsCheck(event, eventsList, requestId);
             var newEventsList = new ArrayList<>(eventsList != null ? eventsList : Collections.emptyList());
+
+            OffsetDateTime insertTimestamp = OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MILLIS);
+            event.setInsertTimestamp(insertTimestamp.format(dtf));
+
             newEventsList.add(event);
             retrieveRequestMetadata.setEventsList(newEventsList);
             if (event.getDigProgrStatus() != null) {
@@ -165,6 +181,11 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                 .flatMap(retrieveRequestMetadata -> managePatch(concatRequestId,
                         patch,
                         retrieveRequestMetadata))
+                .map(requestMetadata -> {
+                    OffsetDateTime lastUpdateTimestamp = OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MILLIS);
+                    requestMetadata.setLastUpdateTimestamp(lastUpdateTimestamp.format(dtf));
+                    return requestMetadata;
+                })
                 .flatMap(this::updateRequestMetadataInDynamoDb)
                 .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY)
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, PATCH_REQUEST_METADATA_OP, result));
@@ -187,6 +208,8 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     public Mono<RequestMetadata> setMessageIdInRequestMetadata(String concatRequestId) {
         return getRequestMetadata(concatRequestId).flatMap(retrievedRequestMetadata -> {
             retrievedRequestMetadata.setMessageId(encodeMessageId(concatRequestId));
+            OffsetDateTime lastUpdateTimestamp = OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MILLIS);
+            retrievedRequestMetadata.setLastUpdateTimestamp(lastUpdateTimestamp.format(dtf));
             return Mono.fromCompletionStage(requestMetadataDynamoDbTable.updateItem(retrievedRequestMetadata));
         }).retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
     }
