@@ -151,9 +151,14 @@ public class LavorazioneEsitiPecService {
                                             nextStatus = decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
                                         }
 
+                                        String previousStatus = requestDto.getStatusRequest();
+                                        if (previousStatus == null) {
+                                            log.debug("The request has null status: {}", requestDto);
+                                        }
+
                                         var nextEventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
                                         var cloudWatchPecMetricsInfo = CloudWatchTransitionElapsedTimeMetricsInfo.builder()
-                                                .previousStatus(requestDto.getStatusRequest())
+                                                .previousStatus(previousStatus)
                                                 .previousEventTimestamp(
                                                         legalMessageSentDetails.getEventTimestamp())
                                                 .nextStatus(nextStatus)
