@@ -4,7 +4,6 @@ import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
 
-import javax.mail.MessagingException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;

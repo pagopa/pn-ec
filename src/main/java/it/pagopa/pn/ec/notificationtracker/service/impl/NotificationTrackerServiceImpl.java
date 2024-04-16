@@ -222,12 +222,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         singleStatusUpdate.setEventTimestamp(OffsetDateTime.now());
                                         return putEvents.putEventExternal(singleStatusUpdate, processId);
                                     })
-                                    .doOnSuccess(result -> acknowledgment.acknowledge())
                                     .then()
-                                    .doOnError(InvalidNextStatusException.class, throwable -> {
-                                        log.debug(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId, throwable, throwable.getMessage());
-                                        acknowledgment.acknowledge();
-                                    })
+                                    .doOnError(InvalidNextStatusException.class, throwable -> log.debug(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId, throwable, throwable.getMessage()))
                                     .onErrorResume(InvalidNextStatusException.class, e -> {
                                         var retry = notificationTrackerQueueDto.getRetry();
                                         notificationTrackerQueueDto.setRetry(retry + 1);
@@ -237,10 +233,11 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                             return sqsService.send(ntStatoErroreQueueName, notificationTrackerQueueDto).then();
                                         }
                                     })
-                                    .doOnError(throwable -> {
-                                        log.warn(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId, throwable, throwable.getMessage());
+                                    .doOnSuccess(result -> {
+                                        acknowledgment.acknowledge();
+                                        log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, NT_HANDLE_REQUEST_STATUS_CHANGE, result);
                                     })
-                                   .doOnSuccess(result->log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, NT_HANDLE_REQUEST_STATUS_CHANGE, result));
+                                    .doOnError(throwable -> log.warn(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId, throwable, throwable.getMessage()));
     }
 
     @Override

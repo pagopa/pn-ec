@@ -74,9 +74,8 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                     Key partitionKey = getKey(concatRequestId);
                     return requestMetadataDynamoDbTable.getItem(partitionKey);
                 })
-                   .onErrorResume(e -> Mono.empty())
                    .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(concatRequestId)))
-                   .doOnError(RepositoryManagerException.RequestNotFoundException.class, throwable -> log.debug(throwable.getMessage()))
+                   .doOnError(throwable -> log.debug(EXCEPTION_IN_PROCESS, GET_REQUEST_METADATA_OP, throwable, throwable.getMessage()))
                    .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL,concatRequestId, GET_REQUEST_OP, result));
     }
 
