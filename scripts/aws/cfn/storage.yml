@@ -233,6 +233,7 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         DelaySeconds: 0
         VisibilityTimeout: 600
+        HighThroughput: 'true'
 
   PnEcTrackerStatoPECQueuePolicy:
     Type: AWS::SQS::QueuePolicy
