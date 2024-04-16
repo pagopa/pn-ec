@@ -23,6 +23,7 @@ import reactor.util.function.Tuples;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
@@ -57,6 +58,7 @@ public class ScaricamentoEsitiPecScheduler {
         MDC.clear();
         log.logStartingProcess(SCARICAMENTO_ESITI_PEC);
         ScaricamentoEsitiPecUtils.sleepRandomSeconds();
+        AtomicReference<String> getUnreadMessagesUUID = new AtomicReference<>();
         AtomicBoolean hasMessages = new AtomicBoolean();
         hasMessages.set(true);
 
@@ -69,10 +71,10 @@ public class ScaricamentoEsitiPecScheduler {
                     return Mono.justOrEmpty(listOfMessages);
                 })
                 .flatMapMany(pnEcPecListOfMessages -> {
-                    MDC.put(MDC_GUM_UUID_KEY, UUID.randomUUID().toString());
+                    getUnreadMessagesUUID.set(UUID.randomUUID().toString());
                     return Flux.fromIterable(pnEcPecListOfMessages.getMessages());
                 })
-                .flatMap(this::lavorazioneEsito, limitRate)
+                .flatMap(pnEcPecMessage -> lavorazioneEsito(pnEcPecMessage, getUnreadMessagesUUID.get()), limitRate)
                 .doOnError(throwable -> log.fatal(SCARICAMENTO_ESITI_PEC, throwable))
                 .onErrorResume(throwable -> Mono.empty())
                 .repeat(hasMessages::get)
@@ -81,7 +83,7 @@ public class ScaricamentoEsitiPecScheduler {
 
     }
 
-    public Mono<Void> lavorazioneEsito(PnEcPecMessage pecMessage) {
+    public Mono<Void> lavorazioneEsito(PnEcPecMessage pecMessage, String getUnreadMessagesUUID) {
 
         byte[] message = pecMessage.getMessage();
         String providerName = pecMessage.getProviderName();
@@ -90,7 +92,7 @@ public class ScaricamentoEsitiPecScheduler {
         //Rimozione delle parentesi angolari dal messageID
         if (messageID.startsWith("<") && messageID.endsWith(">"))
             messageID = messageID.substring(1, messageID.length() - 1);
-        MDC.put(MDC_CORR_ID_KEY, concatIds(messageID, MDC.get(MDC_GUM_UUID_KEY)));
+        MDC.put(MDC_CORR_ID_KEY, concatIds(messageID, getUnreadMessagesUUID));
         var finalMessageID = messageID;
 
         return MDCUtils.addMDCToContextAndExecute(Mono.defer(() -> {
