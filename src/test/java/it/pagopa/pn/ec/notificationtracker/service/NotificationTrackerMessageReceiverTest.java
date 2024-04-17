@@ -31,6 +31,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
@@ -39,14 +40,17 @@ import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.services.sqs.SqsAsyncClient;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import software.amazon.awssdk.services.sqs.model.SqsException;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
@@ -66,6 +70,8 @@ public class NotificationTrackerMessageReceiverTest {
     private NotificationTrackerSqsName notificationTrackerSqsName;
     @SpyBean
     private PutEvents putEvents;
+    @SpyBean
+    private SqsAsyncClient sqsAsyncClient;
     @SpyBean
     private SqsService sqsService;
     @SpyBean
@@ -185,7 +191,21 @@ public class NotificationTrackerMessageReceiverTest {
         verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
         verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
         verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(processId));
+    }
 
+    @ParameterizedTest
+    @MethodSource("provideArguments")
+    void digitalNtStatusValidationAndSqsSendKo(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+
+        //WHEN
+        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.error(new InvalidNextStatusException("", "", "", "")));
+        Mockito.doReturn(CompletableFuture.failedFuture(SqsException.builder().build())).when(sqsAsyncClient).sendMessage(any(SendMessageRequest.class));
+        mockStatusDecode();
+
+        //THEN
+        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId);
+
+        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
     }
 
     @ParameterizedTest

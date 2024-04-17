@@ -6,7 +6,11 @@ public class LogUtils {
         throw new IllegalStateException("LogUtils is a utility class");
     }
 
+    public static String concatIds(String id1, String id2) {
+        return String.format("%s%s%s", id1, "~", id2);
+    }
     public static final String MDC_CORR_ID_KEY = "cx_id";
+    public static final String MDC_GUM_UUID_KEY = "get_unread_messages_uuid";
     public static final String INVALID_API_KEY = "Invalid API key";
 
     public static final String INVOKING_OPERATION_LABEL_WITH_ARGS = "Invoking operation '{}' with args: {}";
@@ -179,13 +183,6 @@ public class LogUtils {
     public static final String ARUBA_GET_UNREAD_MESSAGES = "ArubaService.getUnreadMessages()";
     public static final String INITIALIZING_ARUBA_PROXY_CLIENT = "Initializing Aruba proxy client for '{}' : ArubaServerAddress : {}, EndpointName : {}, ServiceName : {}";
 
-    //ALTERNATIVE PROVIDER
-    public static final String ALT_GET_UNREAD_MESSAGES = "AlternativeProviderService.getUnreadMessages()";
-    public static final String ALT_MARK_MESSAGE_AS_READ = "AlternativeProviderService.markMessageAsRead()";
-    public static final String ALT_SEND_MAIL = "AlternativeProviderService.sendMail()";
-    public static final String ALT_GET_MESSAGE_COUNT = "AlternativeProviderService.getMessageCount()";
-    public static final String ALT_DELETE_MAIL = "AlternativeProviderService.deleteMail()";
-
     //SES
     public static final String SES_SEND_MAIL = "SesService.sendMail()";
 
@@ -219,6 +216,7 @@ public class LogUtils {
     //CLOUD WATCH
     public static final String PUBLISH_CUSTOM_PEC_METRICS = "CloudWatchPecMetrics.publishCustomPecMetrics()";
     public static final String PUBLISH_PEC_MESSAGE_COUNT=  "CloudWatchPecMetrics.publishMessageCount()";
+    public static final String PUBLISH_RESPONSE_TIME = "CloudWatchPecMetrics.publishResponseTime()";
 
     //EVENT BRIDGE
     public static final String EVENT_BRIDGE_PUT_EVENT_EXTERNAL = "EventBridge - PutEvents.putEventExternal()";

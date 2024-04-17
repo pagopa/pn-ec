@@ -70,7 +70,7 @@ public class CancellazioneRicevutePecService {
                             .reduce(new MutablePair<String, String>(), (pair, digitalProgressStatusDto) -> {
                                 if (digitalProgressStatusDto.getStatus().equals(ACCEPTED.getStatusTransactionTableCompliant()))
                                     pair.setRight(digitalProgressStatusDto.getGeneratedMessage().getId());
-                                else if (digitalLegal.getEventCode().getValue().equals(digitalProgressStatusDto.getStatusCode()))
+                                if (digitalLegal.getEventCode().getValue().equals(digitalProgressStatusDto.getStatusCode()))
                                     pair.setLeft(digitalProgressStatusDto.getGeneratedMessage().getId());
                                 return pair;
                             });
