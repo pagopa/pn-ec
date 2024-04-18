@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.commons.configuration.aws.cloudwatch;
 
 import it.pagopa.pn.ec.commons.exception.cloudwatch.CloudWatchResourceNotFoundException;
+import it.pagopa.pn.ec.commons.model.pojo.cloudwatch.CloudWatchMetricsPublisherWrapper;
 import lombok.CustomLog;
 import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +37,7 @@ public class CloudWatchMetricPublisherConfiguration {
     @Value("${library.pec.cloudwatch.metric.response-time.delete-message}")
     private String deleteMessageResponseTimeMetric;
     private final CloudWatchAsyncClient cloudWatchAsyncClient;
-    private final Map<String, MetricPublisher> cloudWatchMetricPublishers = new HashMap<>();
+    private final Map<String, CloudWatchMetricsPublisherWrapper> cloudWatchMetricPublishers = new HashMap<>();
     private final Map<String, SdkMetric<?>> cloudWatchSdkMetrics = new HashMap<>();
     private final Map<String, MetricCollector> cloudWatchMetricCollectors = new HashMap<>();
 
@@ -71,7 +72,7 @@ public class CloudWatchMetricPublisherConfiguration {
     /*
 
      */
-    public MetricPublisher getMetricPublisherByNamespace(String namespace) {
+    public CloudWatchMetricsPublisherWrapper getMetricPublisherByNamespace(String namespace) {
         try {
             return cloudWatchMetricPublishers.get(namespace);
         } catch (NullPointerException e) {
@@ -114,8 +115,8 @@ public class CloudWatchMetricPublisherConfiguration {
      * If maximumCallsPerUpload and uploadFrequencyMillis fields are null, CloudWatchMetricPublisher class will use its default values.
      */
     private void initCloudWatchMetricPublishers() {
-        cloudWatchMetricPublishers.put(arubaPecNamespace, CloudWatchMetricPublisher.builder().detailedMetrics().cloudWatchClient(cloudWatchAsyncClient).namespace(arubaPecNamespace).maximumCallsPerUpload(maximumCallsPerUpload).uploadFrequency(Duration.ofMillis(uploadFrequencyMillis)).build());
-        cloudWatchMetricPublishers.put(namirialPecNamespace, CloudWatchMetricPublisher.builder().cloudWatchClient(cloudWatchAsyncClient).namespace(namirialPecNamespace).maximumCallsPerUpload(maximumCallsPerUpload).uploadFrequency(Duration.ofMillis(uploadFrequencyMillis)).build());
+        cloudWatchMetricPublishers.put(arubaPecNamespace, new CloudWatchMetricsPublisherWrapper(arubaPecNamespace, maximumCallsPerUpload, Duration.ofMillis(uploadFrequencyMillis), cloudWatchAsyncClient));
+        cloudWatchMetricPublishers.put(namirialPecNamespace, new CloudWatchMetricsPublisherWrapper(namirialPecNamespace, maximumCallsPerUpload, Duration.ofMillis(uploadFrequencyMillis), cloudWatchAsyncClient));
     }
 
     /**
