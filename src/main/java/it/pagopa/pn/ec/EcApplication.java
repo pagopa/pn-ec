@@ -69,6 +69,10 @@ import org.springframework.context.annotation.PropertySource;
 
 //NAMIRIAL
 @PropertySource("classpath:namirial/namirial.properties")
+
+//CLOUDWATCH
+@PropertySource("classpath:cloudwatch/cloudwatch.properties")
+
 public class EcApplication {
 
     public static void main(String[] args) {
