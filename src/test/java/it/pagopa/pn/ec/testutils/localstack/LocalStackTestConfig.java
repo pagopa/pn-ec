@@ -12,6 +12,7 @@ import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
+import it.pagopa.pn.ec.testutils.configuration.CloudWatchTestConfiguration;
 import it.pagopa.pn.ec.testutils.configuration.DynamoTestConfiguration;
 import it.pagopa.pn.ec.testutils.configuration.SqsTestConfiguration;
 import it.pagopa.pn.ec.testutils.exception.DynamoDbInitTableCreationException;
@@ -49,7 +50,7 @@ import static org.testcontainers.containers.localstack.LocalStackContainer.Servi
 import static software.amazon.awssdk.services.dynamodb.model.TableStatus.ACTIVE;
 
 @TestConfiguration
-@Import({SqsTestConfiguration.class, DynamoTestConfiguration.class, LocalStackClientConfig.class})
+@Import({SqsTestConfiguration.class, DynamoTestConfiguration.class, LocalStackClientConfig.class, CloudWatchTestConfiguration.class})
 @CustomLog
 public class LocalStackTestConfig {
 

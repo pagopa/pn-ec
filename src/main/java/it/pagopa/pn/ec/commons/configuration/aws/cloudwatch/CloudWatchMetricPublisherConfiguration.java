@@ -2,12 +2,13 @@ package it.pagopa.pn.ec.commons.configuration.aws.cloudwatch;
 
 import it.pagopa.pn.ec.commons.exception.cloudwatch.CloudWatchResourceNotFoundException;
 import lombok.CustomLog;
+import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.metrics.*;
-import software.amazon.awssdk.metrics.internal.DefaultSdkMetric;
 import software.amazon.awssdk.metrics.publishers.cloudwatch.CloudWatchMetricPublisher;
+import software.amazon.awssdk.metrics.publishers.cloudwatch.internal.CloudWatchMetricLogger;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 
 import javax.annotation.PostConstruct;
@@ -54,11 +55,11 @@ public class CloudWatchMetricPublisherConfiguration {
      */
     @PostConstruct
     private void init() {
-        log.info(arubaPecNamespace);
+        log.debug("Initializing CloudWatchMetricPublisher configurations.");
         initCloudWatchMetricPublishers();
         initCloudWatchSdkMetrics();
         initCloudWatchMetricCollectors();
-    }
+   }
 
     /**
      * Gets metric publisher by namespace.
