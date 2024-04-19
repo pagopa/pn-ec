@@ -844,7 +844,7 @@ Parameters:
     Type: String
 
   PnEcNamirialServerCache:
-    Type: Boolean
+    Type: String
 
   PnEcNamirialServerCacheEndpoint:
     Type: String
