@@ -39,7 +39,6 @@ public class CloudWatchMetricPublisherConfiguration {
     private final CloudWatchAsyncClient cloudWatchAsyncClient;
     private final Map<String, CloudWatchMetricsPublisherWrapper> cloudWatchMetricPublishers = new HashMap<>();
     private final Map<String, SdkMetric<?>> cloudWatchSdkMetrics = new HashMap<>();
-    private final Map<String, MetricCollector> cloudWatchMetricCollectors = new HashMap<>();
 
     /**
      * Instantiates a new CloudWatchMetricPublisherConfiguration.
@@ -59,7 +58,6 @@ public class CloudWatchMetricPublisherConfiguration {
         log.debug("Initializing CloudWatchMetricPublisher configurations.");
         initCloudWatchMetricPublishers();
         initCloudWatchSdkMetrics();
-        initCloudWatchMetricCollectors();
    }
 
     /**
@@ -77,21 +75,6 @@ public class CloudWatchMetricPublisherConfiguration {
             return cloudWatchMetricPublishers.get(namespace);
         } catch (NullPointerException e) {
             throw new CloudWatchResourceNotFoundException.MetricPublisherNotFoundException(namespace);
-        }
-    }
-
-    /**
-     * Gets metric collector by metric name.
-     *
-     * @param metricName the metric name
-     * @return the metric collector by metric name
-     * @throws CloudWatchResourceNotFoundException.MetricCollectorNotFoundException if there is no metric collector for the given metric name
-     */
-    public MetricCollector getMetricCollectorByMetricName(String metricName) {
-        try {
-            return cloudWatchMetricCollectors.get(metricName);
-        } catch (NullPointerException e) {
-            throw new CloudWatchResourceNotFoundException.MetricCollectorNotFoundException(metricName);
         }
     }
 
@@ -125,14 +108,6 @@ public class CloudWatchMetricPublisherConfiguration {
     private void initCloudWatchSdkMetrics() {
         cloudWatchSdkMetrics.put(markMessageAsReadResponseTimeMetric, SdkMetric.create(markMessageAsReadResponseTimeMetric, Long.class, MetricLevel.INFO, MetricCategory.HTTP_CLIENT));
         cloudWatchSdkMetrics.put(deleteMessageResponseTimeMetric, SdkMetric.create(deleteMessageResponseTimeMetric, Long.class, MetricLevel.INFO, MetricCategory.HTTP_CLIENT));
-    }
-
-    /**
-     * Init method to initialize MetricCollectors
-     */
-    private void initCloudWatchMetricCollectors() {
-        cloudWatchMetricCollectors.put(markMessageAsReadResponseTimeMetric, MetricCollector.create(markMessageAsReadResponseTimeMetric));
-        cloudWatchMetricCollectors.put(deleteMessageResponseTimeMetric, MetricCollector.create(deleteMessageResponseTimeMetric));
     }
 
 }

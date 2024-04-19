@@ -140,8 +140,8 @@ public class CloudWatchPecMetrics {
     public Mono<Void> publishResponseTime(String namespace, String metricName, long elapsedTime) {
         return Mono.fromRunnable(() -> {
                     log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_RESPONSE_TIME, Stream.of(namespace, metricName, elapsedTime).toList());
-                    MetricCollector metricCollector = cloudWatchMetricPublisherConfiguration.getMetricCollectorByMetricName(metricName);
                     SdkMetric<Long> responseTimeMetric = (SdkMetric<Long>) cloudWatchMetricPublisherConfiguration.getSdkMetricByMetricName(metricName);
+                    MetricCollector metricCollector = MetricCollector.create(metricName);
                     metricCollector.reportMetric(responseTimeMetric, elapsedTime);
                     MetricCollection metricCollection = metricCollector.collect();
                     cloudWatchMetricPublisherConfiguration.getMetricPublisherByNamespace(namespace).publish(metricCollection);

@@ -50,7 +50,6 @@ public class CloudWatchMetricsPublisherWrapper {
      * @param metricCollection the metric collection to publish
      */
     public void publish(MetricCollection metricCollection) {
-        log.debug("Publishing metric collection: {} ,namespace= {}", metricCollection, namespace);
         cloudWatchMetricPublisher.publish(metricCollection);
     }
 
