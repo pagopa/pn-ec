@@ -705,43 +705,6 @@ Parameters:
     Type: String
     Description: 'ARN Bucket Staging per messaggi SQS troppo grandi'
 
-  #### CRON Rules ####
-  PnEcCronScaricamentoEsitiPec:
-    Type: String
-    Default: ''
-    
-  PnEcCronLavorazioneBatchSms:
-    Type: String
-    Default: ''
-
-  PnEcCronLavorazioneBatchEmail:
-    Type: String
-    Default: ''
-
-  PnEcCronLavorazioneBatchPec:
-    Type: String
-    Default: ''
-
-  PnEcCronLavorazioneBatchCartaceo:
-    Type: String
-    Default: ''
-
-  PnEcCronGestioneRetryEmail:
-    Type: String
-    Default: ''
-
-  PnEcCronGestioneRetryPec:
-    Type: String
-    Default: ''
-
-  PnEcCronGestioneRetrySms:
-    Type: String
-    Default: ''
-
-  PnEcCronGestioneRetryCartaceo:
-    Type: String
-    Default: ''
-
   #### Parametri Indipendenti ####
 
   PnEcConsolidatoreBaseURL:
@@ -903,58 +866,49 @@ Resources:
         ContainerEnvEntry23: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
         ContainerEnvEntry24: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
         ContainerEnvEntry25: !Sub 'PnEcQueueNameScaricamentoEsitiPEC=${PnEcQueueNameScaricamentoEsitiPEC}'
-        ContainerEnvEntry26: !Sub 'PnEcCronScaricamentoEsitiPec=${PnEcCronScaricamentoEsitiPec}'
-        ContainerEnvEntry27: !Sub 'PnEcCronLavorazioneBatchSms=${PnEcCronLavorazioneBatchSms}'
-        ContainerEnvEntry28: !Sub 'PnEcCronLavorazioneBatchEmail=${PnEcCronLavorazioneBatchEmail}'
-        ContainerEnvEntry29: !Sub 'PnEcCronLavorazioneBatchPec=${PnEcCronLavorazioneBatchPec}'
-        ContainerEnvEntry30: !Sub 'PnEcCronLavorazioneBatchCartaceo=${PnEcCronLavorazioneBatchCartaceo}'
-        ContainerEnvEntry31: !Sub 'PnEcCronGestioneRetryEmail=${PnEcCronGestioneRetryEmail}'
-        ContainerEnvEntry32: !Sub 'PnEcCronGestioneRetryPec=${PnEcCronGestioneRetryPec}'
-        ContainerEnvEntry33: !Sub 'PnEcCronGestioneRetrySms=${PnEcCronGestioneRetrySms}'
-        ContainerEnvEntry34: !Sub 'PnEcCronGestioneRetryCartaceo=${PnEcCronGestioneRetryCartaceo}'
-        ContainerEnvEntry35: 'SafeStorageClientId=pn-external-channels'
-        ContainerEnvEntry36: 'SafeStorageClientApiKey=pn-external-channels_api_key'
-        ContainerEnvEntry37: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
-        ContainerEnvEntry38: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry39: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry40: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry41: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
-        ContainerEnvEntry42: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
-        ContainerEnvEntry43: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
-        ContainerEnvEntry44: !Sub 'PnPecRetryStrategyMaxAttempts=${PnPecRetryStrategyMaxAttempts}'
-        ContainerEnvEntry45: !Sub 'PnPecRetryStrategyMinBackoff=${PnPecRetryStrategyMinBackoff}'
-        ContainerEnvEntry46: !Sub 'LavorazionePecMaxThreadPoolSize=${LavorazionePecMaxThreadPoolSize}'
-        ContainerEnvEntry47: !Sub 'LavorazioneEsitiPecMaxThreadPoolSize=${LavorazioneEsitiPecMaxThreadPoolSize}'
-        ContainerEnvEntry48: !Sub 'ScaricamentoEsitiPecLimitRate=${ScaricamentoEsitiPecLimitRate}'
-        ContainerEnvEntry49: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
-        ContainerEnvEntry50: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
-        ContainerEnvEntry51: !Sub 'PnEcQueueElapsedTimeSeconds=${PnEcQueueElapsedTimeSeconds}'
-        ContainerEnvEntry52: !Sub 'LavorazioneSMSMaxThreadPoolSize=${LavorazioneSMSMaxThreadPoolSize}'
-        ContainerEnvEntry53: !Sub 'LavorazioneEmailMaxThreadPoolSize=${LavorazioneEmailMaxThreadPoolSize}'
-        ContainerEnvEntry54: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
-        ContainerEnvEntry55: !Sub 'PnEcTaskExecutionPoolMaxSize=${PnEcTaskExecutionPoolMaxSize}'
-        ContainerEnvEntry56: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueNameCancellazioneRicevutePEC}'
-        ContainerEnvEntry57: !Sub 'CancellazioneRicevutePecMaxThreadPoolSize=${CancellazioneRicevutePecMaxThreadPoolSize}'
-        ContainerEnvEntry58: !Sub 'PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked=${PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked}'
-        ContainerEnvEntry59: !Sub 'PnEcPECMaxMessageSizeMB=${PnEcPECMaxMessageSizeMB}'
-        ContainerEnvEntry60: !Sub 'PnEcPECAttachmentRule=${PnEcPECAttachmentRule}'
-        ContainerEnvEntry61: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
-        ContainerEnvEntry62: !Sub 'PnEcSqsMessagesStagingBucketName=${PnEcSqsMessagesStagingBucketName}'
-        ContainerEnvEntry63: !Sub 'PnEcProviderSwitchRead=${PnEcProviderSwitchRead}'
-        ContainerEnvEntry64: !Sub 'PnEcProviderSwitchWrite=${PnEcProviderSwitchWrite}'
-        ContainerEnvEntry65: !Sub 'PnEcIdentityPec=${PnEcIdentityPec}'
-        ContainerEnvEntry66: !Sub 'PnEcNamirialServerImapAddress=${PnEcNamirialServerImapAddress}'
-        ContainerEnvEntry67: !Sub 'PnEcNamirialServerSmtpAddress=${PnEcNamirialServerSmtpAddress}'
-        ContainerEnvEntry68: !Sub 'PnEcNamirialServerImapPort=${PnEcNamirialServerImapPort}'
-        ContainerEnvEntry69: !Sub 'PnEcNamirialServerSmtpPort=${PnEcNamirialServerSmtpPort}'
-        ContainerEnvEntry70: !Sub 'PnEcNamirialPoolImapMaxtotal=${PnEcNamirialPoolImapMaxtotal}'
-        ContainerEnvEntry71: !Sub 'PnEcNamirialPoolImapMaxidle=${PnEcNamirialPoolImapMaxidle}'
-        ContainerEnvEntry72: !Sub 'PnEcNamirialPoolImapMinidle=${PnEcNamirialPoolImapMinidle}'
-        ContainerEnvEntry73: !Sub 'PnEcNamirialPoolSmtpMaxtotal=${PnEcNamirialPoolSmtpMaxtotal}'
-        ContainerEnvEntry74: !Sub 'PnEcNamirialPoolSmtpMaxidle=${PnEcNamirialPoolSmtpMaxidle}'
-        ContainerEnvEntry75: !Sub 'PnEcNamirialPoolSmtpMinidle=${PnEcNamirialPoolSmtpMinidle}'
-        ContainerEnvEntry76: !Sub 'PnEcNamirialServerCache=${PnEcNamirialServerCache}'
-        ContainerEnvEntry77: !Sub 'PnEcNamirialServerCacheEndpoint=${PnEcNamirialServerCacheEndpoint}'
+        ContainerEnvEntry26: 'SafeStorageClientId=pn-external-channels'
+        ContainerEnvEntry27: 'SafeStorageClientApiKey=pn-external-channels_api_key'
+        ContainerEnvEntry28: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
+        ContainerEnvEntry29: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry30: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry31: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry32: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
+        ContainerEnvEntry33: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
+        ContainerEnvEntry34: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
+        ContainerEnvEntry35: !Sub 'PnPecRetryStrategyMaxAttempts=${PnPecRetryStrategyMaxAttempts}'
+        ContainerEnvEntry36: !Sub 'PnPecRetryStrategyMinBackoff=${PnPecRetryStrategyMinBackoff}'
+        ContainerEnvEntry37: !Sub 'LavorazionePecMaxThreadPoolSize=${LavorazionePecMaxThreadPoolSize}'
+        ContainerEnvEntry38: !Sub 'LavorazioneEsitiPecMaxThreadPoolSize=${LavorazioneEsitiPecMaxThreadPoolSize}'
+        ContainerEnvEntry39: !Sub 'ScaricamentoEsitiPecLimitRate=${ScaricamentoEsitiPecLimitRate}'
+        ContainerEnvEntry40: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
+        ContainerEnvEntry41: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
+        ContainerEnvEntry42: !Sub 'PnEcQueueElapsedTimeSeconds=${PnEcQueueElapsedTimeSeconds}'
+        ContainerEnvEntry43: !Sub 'LavorazioneSMSMaxThreadPoolSize=${LavorazioneSMSMaxThreadPoolSize}'
+        ContainerEnvEntry44: !Sub 'LavorazioneEmailMaxThreadPoolSize=${LavorazioneEmailMaxThreadPoolSize}'
+        ContainerEnvEntry45: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
+        ContainerEnvEntry46: !Sub 'PnEcTaskExecutionPoolMaxSize=${PnEcTaskExecutionPoolMaxSize}'
+        ContainerEnvEntry47: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueNameCancellazioneRicevutePEC}'
+        ContainerEnvEntry48: !Sub 'CancellazioneRicevutePecMaxThreadPoolSize=${CancellazioneRicevutePecMaxThreadPoolSize}'
+        ContainerEnvEntry49: !Sub 'PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked=${PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked}'
+        ContainerEnvEntry50: !Sub 'PnEcPECMaxMessageSizeMB=${PnEcPECMaxMessageSizeMB}'
+        ContainerEnvEntry51: !Sub 'PnEcPECAttachmentRule=${PnEcPECAttachmentRule}'
+        ContainerEnvEntry52: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
+        ContainerEnvEntry53: !Sub 'PnEcSqsMessagesStagingBucketName=${PnEcSqsMessagesStagingBucketName}'
+        ContainerEnvEntry54: !Sub 'PnEcProviderSwitchRead=${PnEcProviderSwitchRead}'
+        ContainerEnvEntry55: !Sub 'PnEcProviderSwitchWrite=${PnEcProviderSwitchWrite}'
+        ContainerEnvEntry56: !Sub 'PnEcIdentityPec=${PnEcIdentityPec}'
+        ContainerEnvEntry57: !Sub 'PnEcNamirialServerImapAddress=${PnEcNamirialServerImapAddress}'
+        ContainerEnvEntry58: !Sub 'PnEcNamirialServerSmtpAddress=${PnEcNamirialServerSmtpAddress}'
+        ContainerEnvEntry59: !Sub 'PnEcNamirialServerImapPort=${PnEcNamirialServerImapPort}'
+        ContainerEnvEntry60: !Sub 'PnEcNamirialServerSmtpPort=${PnEcNamirialServerSmtpPort}'
+        ContainerEnvEntry61: !Sub 'PnEcNamirialPoolImapMaxtotal=${PnEcNamirialPoolImapMaxtotal}'
+        ContainerEnvEntry62: !Sub 'PnEcNamirialPoolImapMaxidle=${PnEcNamirialPoolImapMaxidle}'
+        ContainerEnvEntry63: !Sub 'PnEcNamirialPoolImapMinidle=${PnEcNamirialPoolImapMinidle}'
+        ContainerEnvEntry64: !Sub 'PnEcNamirialPoolSmtpMaxtotal=${PnEcNamirialPoolSmtpMaxtotal}'
+        ContainerEnvEntry65: !Sub 'PnEcNamirialPoolSmtpMaxidle=${PnEcNamirialPoolSmtpMaxidle}'
+        ContainerEnvEntry66: !Sub 'PnEcNamirialPoolSmtpMinidle=${PnEcNamirialPoolSmtpMinidle}'
+        ContainerEnvEntry67: !Sub 'PnEcNamirialServerCache=${PnEcNamirialServerCache}'
+        ContainerEnvEntry68: !Sub 'PnEcNamirialServerCacheEndpoint=${PnEcNamirialServerCacheEndpoint}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
