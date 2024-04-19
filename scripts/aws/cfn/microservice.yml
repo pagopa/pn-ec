@@ -843,6 +843,12 @@ Parameters:
   PnEcNamirialPoolSmtpMinidle:
     Type: String
 
+  PnEcNamirialServerCache:
+    Type: Boolean
+
+  PnEcNamirialServerCacheEndpoint:
+    Type: String
+
   CpuValue:
     Type: Number
     Default: 1024
@@ -947,6 +953,8 @@ Resources:
         ContainerEnvEntry73: !Sub 'PnEcNamirialPoolSmtpMaxtotal=${PnEcNamirialPoolSmtpMaxtotal}'
         ContainerEnvEntry74: !Sub 'PnEcNamirialPoolSmtpMaxidle=${PnEcNamirialPoolSmtpMaxidle}'
         ContainerEnvEntry75: !Sub 'PnEcNamirialPoolSmtpMinidle=${PnEcNamirialPoolSmtpMinidle}'
+        ContainerEnvEntry76: !Sub 'PnEcNamirialServerCache=${PnEcNamirialServerCache}'
+        ContainerEnvEntry77: !Sub 'PnEcNamirialServerCacheEndpoint=${PnEcNamirialServerCacheEndpoint}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
