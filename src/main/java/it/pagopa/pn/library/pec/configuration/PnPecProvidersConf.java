@@ -25,7 +25,9 @@ public class PnPecProvidersConf {
             "namirial.pool.imap.minidle",
             "namirial.pool.smtp.maxtotal",
             "namirial.pool.smtp.maxidle",
-            "namirial.pool.smtp.minidle");
+            "namirial.pool.smtp.minidle",
+            "namirial.server.cache",
+            "namirial.server.cache.endpoint");
 
     @Bean
     public PnPecServiceImpl namirialService(@Autowired Environment env) {
