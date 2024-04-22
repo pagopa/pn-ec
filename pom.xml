@@ -288,6 +288,13 @@
         </dependency>
         <!-- End SOAP dependencies -->
 
+		<!-- https://mvnrepository.com/artifact/redis.clients/jedis -->
+		<dependency>
+		    <groupId>redis.clients</groupId>
+		    <artifactId>jedis</artifactId>
+		    <version>5.1.2</version>
+		</dependency>
+
         <!-- TEST DEPENDENCIES-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
