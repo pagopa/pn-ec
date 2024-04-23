@@ -82,7 +82,7 @@
         <dependency>
             <groupId>com.namirial.pec.library</groupId>
             <artifactId>pn-ec-namirial-pec</artifactId>
-            <version>1.1.0</version>
+            <version>1.2.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
@@ -287,6 +287,13 @@
             <version>4.0.0</version>
         </dependency>
         <!-- End SOAP dependencies -->
+
+		<!-- https://mvnrepository.com/artifact/redis.clients/jedis -->
+		<dependency>
+		    <groupId>redis.clients</groupId>
+		    <artifactId>jedis</artifactId>
+		    <version>5.1.2</version>
+		</dependency>
 
         <!-- TEST DEPENDENCIES-->
         <dependency>
