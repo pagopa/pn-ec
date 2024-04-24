@@ -230,4 +230,9 @@ public class LogUtils {
     public static final String PN_EC_PEC_DELETE_MESSAGE = "PnEcPecService.deleteMessage()";
     public static final String NOT_VALID_FOR_DELETE = "Event with requestId '{}' is not valid for delete.";
 
+    //CloudWatch
+
+    public static final String CLOUD_WATCH_METRICS_PUBLISHER_WRAPPER = "CloudWatchMetricsPublisherWrapper";
+    public static final String CLOUD_WATCH_METRICS_PUBLISH= CLOUD_WATCH_METRICS_PUBLISHER_WRAPPER +".publish()";
+
 }

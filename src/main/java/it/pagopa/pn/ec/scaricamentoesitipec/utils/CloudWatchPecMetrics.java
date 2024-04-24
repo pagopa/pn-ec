@@ -1,15 +1,13 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.utils;
 
+import it.pagopa.pn.ec.commons.configuration.aws.cloudwatch.CloudWatchMetricPublisherConfiguration;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchTransitionElapsedTimeMetricsInfo;
 import lombok.CustomLog;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import software.amazon.awssdk.metrics.*;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
-import software.amazon.awssdk.services.cloudwatch.model.Dimension;
-import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
-import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
-import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.*;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -21,16 +19,17 @@ import java.util.stream.Stream;
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
+/**
+ * A service class to publish CloudWatch metrics. It can directly publish metrics to CloudWatch or make use of the CloudWatchMetricPublisherConfiguration class.
+ *
+ * @see it.pagopa.pn.ec.commons.configuration.aws.cloudwatch.CloudWatchMetricPublisherConfiguration
+ */
 @Component
 @CustomLog
 public class CloudWatchPecMetrics {
 
     private final CloudWatchAsyncClient cloudWatchAsyncClient;
-
-    public CloudWatchPecMetrics(CloudWatchAsyncClient cloudWatchAsyncClient) {
-        this.cloudWatchAsyncClient = cloudWatchAsyncClient;
-    }
-
+    private final CloudWatchMetricPublisherConfiguration cloudWatchMetricPublisherConfiguration;
     private static final PutMetricDataRequest.Builder NAMESPACE = PutMetricDataRequest.builder().namespace("PEC");
     private static final Dimension DIMENSION = Dimension.builder().name("Event").value("StatusChange").build();
     private static final MetricDatum.Builder DATUM = MetricDatum.builder().unit(StandardUnit.SECONDS).dimensions(DIMENSION);
@@ -40,10 +39,23 @@ public class CloudWatchPecMetrics {
     private static final String TRANSACTION_ACCEPTED_AND_NOT_DELIVERED = "TimeElapsedBetweenAcceptedAndNotDelivered";
 
     /**
-     * In order not to block the chain with an error, the method emits onComplete() even if an error occurred while publishing the metric
+     * Instantiates a new Cloud watch pec metrics.
+     *
+     * @param cloudWatchAsyncClient                  the cloud watch async client
+     * @param cloudWatchMetricPublisherConfiguration the cloud watch metric publisher configuration
      */
+    public CloudWatchPecMetrics(CloudWatchAsyncClient cloudWatchAsyncClient, CloudWatchMetricPublisherConfiguration cloudWatchMetricPublisherConfiguration) {
+        this.cloudWatchAsyncClient = cloudWatchAsyncClient;
+        this.cloudWatchMetricPublisherConfiguration = cloudWatchMetricPublisherConfiguration;
+    }
 
-    //pubblica il tempo necessario tra le ericevute elapsed time , refacto method andclass
+    /**
+     * Method for publishing a metric related to the time between receipt arrivals.
+     * In order not to block the chain with an error, the method emits onComplete() even if an error occurred while publishing the metric.
+     *
+     * @param cloudWatchTransitionElapsedTimeMetricsInfo the cloud watch transition elapsed time metrics related info
+     * @return a void Mono
+     */
     public Mono<Void> publishTransitionElapsedTimeMetrics(CloudWatchTransitionElapsedTimeMetricsInfo cloudWatchTransitionElapsedTimeMetricsInfo) {
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_CUSTOM_PEC_METRICS, cloudWatchTransitionElapsedTimeMetricsInfo);
         return Mono.fromCallable(() -> {
@@ -79,6 +91,13 @@ public class CloudWatchPecMetrics {
         }).then();
     }
 
+    /**
+     * Method to publish the count of messages in a PEC folder.
+     *In order not to block the chain with an error, the method emits onComplete() even if an error occurred while publishing the metric.
+     * @param count     the count of messages
+     * @param namespace the metric namespace
+     * @return the mono
+     */
     public Mono<Void> publishMessageCount(Long count, String namespace) {
         log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_PEC_MESSAGE_COUNT, count);
         return Mono.fromCompletionStage(cloudWatchAsyncClient.putMetricData(PutMetricDataRequest.builder()
@@ -95,25 +114,37 @@ public class CloudWatchPecMetrics {
                 }).then();
     }
 
-    //Method to execute a Mono<Void> and publish its response time to CloudWatch.
+    /**
+     * Method to execute a void Mono and publish its execution time to CloudWatch
+     *
+     * @param mono       the mono to execute
+     * @param namespace  the metric namespace
+     * @param metricName the metric name
+     * @return the mono
+     */
     public Mono<Void> executeAndPublishResponseTime(Mono<Void> mono, String namespace, String metricName) {
         return mono.thenReturn(true)
                 .elapsed()
                 .flatMap(tuple -> publishResponseTime(namespace, metricName, tuple.getT1()));
     }
 
-    //Method to publish a response time related CloudWatch metric.
+    /**
+     * Method to publish a response time related CloudWatch metric, using the CloudWatchMetricPublisherConfiguration class.
+     * In order not to block the chain with an error, the method emits onComplete() even if an error occurred while publishing the metric.
+     *
+     * @param namespace   the metric namespace
+     * @param metricName  the metric name
+     * @param elapsedTime the response time
+     * @return a void Mono
+     */
     public Mono<Void> publishResponseTime(String namespace, String metricName, long elapsedTime) {
-        return Mono.fromCompletionStage(() -> {
+        return Mono.fromRunnable(() -> {
                     log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_RESPONSE_TIME, Stream.of(namespace, metricName, elapsedTime).toList());
-                    return cloudWatchAsyncClient.putMetricData(PutMetricDataRequest.builder()
-                            .namespace(namespace)
-                            .metricData(MetricDatum.builder()
-                                    .unit(StandardUnit.MILLISECONDS)
-                                    .metricName(metricName)
-                                    .value((double) elapsedTime)
-                                    .timestamp(Instant.now())
-                                    .build()).build());
+                    SdkMetric<Long> responseTimeMetric = (SdkMetric<Long>) cloudWatchMetricPublisherConfiguration.getSdkMetricByMetricName(metricName);
+                    MetricCollector metricCollector = MetricCollector.create(metricName);
+                    metricCollector.reportMetric(responseTimeMetric, elapsedTime);
+                    MetricCollection metricCollection = metricCollector.collect();
+                    cloudWatchMetricPublisherConfiguration.getMetricPublisherByNamespace(namespace).publish(metricCollection);
                 })
                 .onErrorResume(throwable -> {
                     log.error(EXCEPTION_IN_PROCESS, PUBLISH_RESPONSE_TIME, throwable, throwable.getMessage());
