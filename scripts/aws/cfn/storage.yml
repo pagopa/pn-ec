@@ -1446,6 +1446,6 @@ Outputs:
     Description: 'ARN Bucket SS'
     Value: !GetAtt PnEcSqsMessagesStagingBucket.Arn
 
-#  EcsLogGroup:
-#    Value: !GetAtt EcsLogGroup.Outputs.LogGroupName
+  EcsLogGroup:
+    Value: !GetAtt EcsLogGroup.Outputs.LogGroupName
 
