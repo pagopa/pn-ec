@@ -44,6 +44,11 @@ Parameters:
 
 Conditions:
   IsDevEnv: !Equals [ !Ref EnvType, 'dev']
+  HasCucumberTest: !Or
+  - !Condition IsDevEnv
+  - !Equals ["test", !Ref "EnvType"]
+  - !Equals ["uat", !Ref "EnvType"]
+  - !Equals ["hotfix", !Ref "EnvType"]
 
 Resources:
   PCKmsEncDecDynamoDataKey:
@@ -495,6 +500,115 @@ Resources:
         QueueHasAlarm: 'true'
         OncallDLQLimit: '1'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
+
+  ###### Cucumber Test Queue ######
+
+  PnEcQueueCucumberTestStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: HasCucumberTest
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-cucumber-test-queue'
+        SqsManagedSseEnabled: true
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 1
+        VisibilityTimeout: 1
+
+  PnEcQueuePolicyCucumberTest:
+    Type: AWS::SQS::QueuePolicy
+    Condition: HasCucumberTest
+    Properties:
+      Queues:
+        - !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueURL
+      PolicyDocument:
+        Statement:
+          - Sid: 'AllowAccessSameAccount'
+            Action:
+              - 'sqs:*'
+            Effect: 'Allow'
+            Resource: !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueARN
+            Principal:
+              AWS: !Ref AWS::AccountId
+          - Sid: 'AllowPutEventsFromEventRule'
+            Action:
+              - 'sqs:SendMessage'
+            Effect: 'Allow'
+            Resource: !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueARN
+            Principal:
+              Service:
+              - 'events.amazonaws.com'
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt PnEcEventRuleCucumberTest.Arn
+
+  PnEcEventRuleCucumberTestDigitalCourtesy:
+    Type: AWS::Events::Rule
+    Condition: HasCucumberTest
+    Properties:
+      Description: 'This Event rule is used to forward Cucumber digitalCourtesy test events to the queue PnEcQueueCucumberTestStack'
+      EventBusName: !Ref PnEcEventBusTrackerExternalNotification
+      EventPattern:
+        source:
+          - 'NOTIFICATION TRACKER'
+        account:
+          - !Ref AWS::AccountId
+        region:
+          - !Ref AWS::Region
+        detail:
+          digitalCourtesy:
+            - prefix: 'PnEcMsCucumberTest'
+      State: 'ENABLED'
+      Targets:
+        - Arn: !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueARN
+          Id: 'PnEcCucumberTestQueueTargetdigitalCourtesy'
+
+  PnEcEventRuleCucumberTestDigitalLegal:
+    Type: AWS::Events::Rule
+    Condition: HasCucumberTest
+    Properties:
+      Description: 'This Event rule is used to forward Cucumber digitalLegal test events to the queue PnEcQueueCucumberTestStack'
+      EventBusName: !Ref PnEcEventBusTrackerExternalNotification
+      EventPattern:
+        source:
+          - 'NOTIFICATION TRACKER'
+        account:
+          - !Ref AWS::AccountId
+        region:
+          - !Ref AWS::Region
+        detail:
+          digitalLegal:
+            - prefix: 'PnEcMsCucumberTest'
+      State: 'ENABLED'
+      Targets:
+        - Arn: !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueARN
+          Id: 'PnEcCucumberTestQueueTargetDigitalLegal'
+
+  PnEcEventRuleCucumberTestAnalogMail:
+    Type: AWS::Events::Rule
+    Condition: HasCucumberTest
+    Properties:
+      Description: 'This Event rule is used to forward Cucumber analogMail test events to the queue PnEcQueueCucumberTestStack'
+      EventBusName: !Ref PnEcEventBusTrackerExternalNotification
+      EventPattern:
+        source:
+          - 'NOTIFICATION TRACKER'
+        account:
+          - !Ref AWS::AccountId
+        region:
+          - !Ref AWS::Region
+        detail:
+          analogMail:
+            - prefix: 'PnEcMsCucumberTest'
+      State: 'ENABLED'
+      Targets:
+        - Arn: !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueARN
+          Id: 'PnEcCucumberTestQueueTargetAnalogMail'
 
   ###### CHANNEL : SMS #######
 
