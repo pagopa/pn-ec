@@ -545,7 +545,7 @@ Resources:
               - 'events.amazonaws.com'
             Condition:
               ArnEquals:
-                aws:SourceArn:
+                aws:SourceArn: 
                   - !GetAtt PnEcEventRuleCucumberTestDigitalCourtesy.Arn
                   - !GetAtt PnEcEventRuleCucumberTestDigitalLegal.Arn
                   - !GetAtt PnEcEventRuleCucumberTestAnalogMail.Arn
@@ -1446,6 +1446,6 @@ Outputs:
     Description: 'ARN Bucket SS'
     Value: !GetAtt PnEcSqsMessagesStagingBucket.Arn
 
-  EcsLogGroup:
-    Value: !GetAtt EcsLogGroup.Outputs.LogGroupName
+#  EcsLogGroup:
+#    Value: !GetAtt EcsLogGroup.Outputs.LogGroupName
 
