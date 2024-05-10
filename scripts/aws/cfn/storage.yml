@@ -501,7 +501,7 @@ Resources:
         OncallDLQLimit: '1'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
-   ###### Cucumber Test Queue ######
+  ###### Cucumber Test Queue ######
 
   PnEcQueueCucumberTestStack:
     Type: AWS::CloudFormation::Stack
@@ -545,10 +545,7 @@ Resources:
               - 'events.amazonaws.com'
             Condition:
               ArnEquals:
-                aws:SourceArn: 
-                  - !GetAtt PnEcEventRuleCucumberTestDigitalCourtesy.Arn
-                  - !GetAtt PnEcEventRuleCucumberTestDigitalLegal.Arn
-                  - !GetAtt PnEcEventRuleCucumberTestAnalogMail.Arn
+                aws:SourceArn: !GetAtt PnEcEventRuleCucumberTest.Arn
 
   PnEcEventRuleCucumberTestDigitalCourtesy:
     Type: AWS::Events::Rule
@@ -565,8 +562,7 @@ Resources:
           - !Ref AWS::Region
         detail:
           digitalCourtesy:
-            requestId:
-              - prefix: 'PnEcMsCucumberTest'
+            - prefix: 'PnEcMsCucumberTest'
       State: 'ENABLED'
       Targets:
         - Arn: !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueARN
@@ -587,8 +583,7 @@ Resources:
           - !Ref AWS::Region
         detail:
           digitalLegal:
-            requestId:
-              - prefix: 'PnEcMsCucumberTest'
+            - prefix: 'PnEcMsCucumberTest'
       State: 'ENABLED'
       Targets:
         - Arn: !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueARN
@@ -609,13 +604,11 @@ Resources:
           - !Ref AWS::Region
         detail:
           analogMail:
-            requestId:
-              - prefix: 'PnEcMsCucumberTest'
+            - prefix: 'PnEcMsCucumberTest'
       State: 'ENABLED'
       Targets:
         - Arn: !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueARN
           Id: 'PnEcCucumberTestQueueTargetAnalogMail'
-
 
   ###### CHANNEL : SMS #######
 
