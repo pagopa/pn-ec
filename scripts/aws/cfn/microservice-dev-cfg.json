@@ -22,7 +22,7 @@
     "PnEcTaskExecutionPoolMaxSize": "512",
     "CancellazioneRicevutePecEventRuleStatus": "ENABLED",
     "PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked": "true",
-    "PnEcPECMaxMessageSizeMB": "100",
+    "PnEcPECMaxMessageSizeMB": "30",
     "PnEcPECAttachmentRule": "LIMIT",
     "PnEcPECTipoRicevutaBreve": "false;2024-03-14T23:00:00Z;true",
     "PnEcProviderSwitchRead": "1970-01-01T00:00:00Z;aruba|namirial",
