@@ -160,6 +160,8 @@ public class ScaricamentoEsitiPecServiceTest {
         StepVerifier.create(testMono).expectError().verify();
     }
 
+
+
     private RequestDto pecRequest() {
         var requestPersonal = new RequestPersonalDto().digitalRequestPersonal(new DigitalRequestPersonalDto());
         var requestMetadata = new RequestMetadataDto().digitalRequestMetadata(new DigitalRequestMetadataDto().channel(DigitalRequestMetadataDto.ChannelEnum.PEC));
@@ -188,5 +190,7 @@ public class ScaricamentoEsitiPecServiceTest {
 
         return RicezioneEsitiPecDto.builder().retry(0).receiversDomain("receiverDomain@pagopa.it").messageID("messageID").message(emailOutput.toByteArray()).build();
     }
+
+
 
 }
