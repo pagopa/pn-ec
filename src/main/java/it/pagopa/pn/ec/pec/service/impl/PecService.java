@@ -218,7 +218,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 //      Get attachment presigned url Flux
         return MDCUtils.addMDCToContextAndExecute(getAttachments(xPagopaExtchCxId, digitalNotificationRequest)
 
-                .flatMap(this::downloadAttachment)
+                .flatMapSequential(this::downloadAttachment)
 
 //                              Convert to Mono<List>
                 .collectList()
