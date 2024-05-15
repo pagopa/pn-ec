@@ -265,7 +265,8 @@ public class EmailUtils {
                     }
                 }
             }
-            throw new RetrieveAttachmentException();
+            log.error("Attachment with name '{}' not found", attachmentName);
+            return new byte[0];
         } catch (IOException | MessagingException e) {
             throw new RetrieveAttachmentException();
         }
