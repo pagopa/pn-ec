@@ -54,7 +54,7 @@ public class AttachmentServiceImpl implements AttachmentService {
                        }
                    })
                    .cast(String.class)
-                   .concatMap(attachmentUrl -> uriBuilderCall.getFile(attachmentUrl.substring(ATTACHMENT_PREFIX.length()), xPagopaExtchCxId, metadataOnly))
+                   .flatMapSequential(attachmentUrl -> uriBuilderCall.getFile(attachmentUrl.substring(ATTACHMENT_PREFIX.length()), xPagopaExtchCxId, metadataOnly))
                    .switchIfEmpty(Mono.just(new FileDownloadResponse()))
                    .doOnComplete(() -> log.info(SUCCESSFUL_OPERATION_NO_RESULT_LABEL, GET_ALLEGATI_PRESIGNED_URL_OR_METADATA));
     }
