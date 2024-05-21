@@ -191,11 +191,10 @@ public class EmailUtils {
     }
 
     @SneakyThrows({IOException.class, MessagingException.class})
-    public static MimeMessage addAttachmentToMimeMessage(MimeMessage mimeMessage, MimeBodyPart mimeBodyPart) {
+    public static void addAttachmentToMimeMessage(MimeMessage mimeMessage, MimeBodyPart mimeBodyPart) {
         log.debug("Adding attachment '{}' to mimeMessage...", mimeBodyPart.getFileName());
         ((MimeMultipart) mimeMessage.getContent()).addBodyPart(mimeBodyPart);
         mimeMessage.saveChanges();
-        return mimeMessage;
     }
 
     @SneakyThrows({IOException.class, MessagingException.class})
@@ -205,11 +204,14 @@ public class EmailUtils {
         return byteArrayOutputStream;
     }
 
-    @SneakyThrows({IOException.class, MessagingException.class})
-    public static int getMimeMessageSizeInBytes(MimeMessage mimeMessage, CountingOutputStream countingOutputStream) {
+    @SneakyThrows
+    ({IOException.class, MessagingException.class})
+    public static int getMimeMessageSizeInBytes(MimeMessage mimeMessage) {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        CountingOutputStream countingOutputStream = new CountingOutputStream(byteArrayOutputStream);
         mimeMessage.writeTo(countingOutputStream);
         var mimeMessageSize = countingOutputStream.getCount();
-        countingOutputStream.resetCount();
+        countingOutputStream.close();
         return mimeMessageSize;
     }
 
