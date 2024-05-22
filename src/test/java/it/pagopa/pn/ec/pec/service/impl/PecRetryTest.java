@@ -140,6 +140,7 @@ class PecRetryTest {
         List<BigDecimal> retries = new ArrayList<>();
         retries.add(0, BigDecimal.valueOf(5));
         retries.add(1, BigDecimal.valueOf(10));
+        retries.add(2, BigDecimal.valueOf(20));
         retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
         retryDto.setRetryStep(BigDecimal.valueOf(0));
         retryDto.setRetryPolicy(retries);
