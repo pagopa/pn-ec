@@ -197,7 +197,11 @@ components:
           additionalProperties:
             type: string
           description: >-
-            Servizi a valore aggiunto       
+            Servizi a valore aggiunto
+        duplicateCheckPassthrough:
+          type: boolean
+          description: >-
+            Indica se il controllo sui duplicati deve essere bypassato per quella specifica richiesta
 
     PaperProgressStatusDto:
       title: Avanzamento di stato di una richiesta cartacea
