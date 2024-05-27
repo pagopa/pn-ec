@@ -142,7 +142,7 @@ public class LogUtils {
     public static final String SEND_PAPER_REPLICAS_ENGAGEMENT_REQUEST = "sendPaperReplicasEngagementRequest";
     public static final String GET_PAPER_REPLICAS_PROGRESSES_REQUEST = "getPaperReplicasProgressesRequest";
     public static final String VERIFICA_ESITO_DA_CONSOLIDATORE = "RicezioneEsitiCartaceoService.verificaEsitoDaConsolidatore()";
-    public static final String VERIFICA_ATTACHMENTS = "RicezioneEsitiCartaceoService.verificaEsitoDaConsolidatore()";
+    public static final String VERIFICA_ATTACHMENTS = "RicezioneEsitiCartaceoService.verificaAttachments()";
     public static final String VERIFICA_ERRORI_SEMANTICI = "RicezioneEsitiCartaceoService.verificaErroriSemantici()";
     public static final String PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER = "RicezioneEsitiCartaceoService.pubblicaEsitoCodaNotificationTracker()";
     public static final String PUBLISH_ON_QUEUE = "RicezioneEsitiCartaceoService.publishOnQueue()";

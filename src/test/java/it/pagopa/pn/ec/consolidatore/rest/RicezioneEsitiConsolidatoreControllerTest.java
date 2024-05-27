@@ -16,6 +16,7 @@ import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
+import it.pagopa.pn.ec.consolidatore.service.impl.RicezioneEsitiCartaceoServiceImpl;
 import it.pagopa.pn.ec.consolidatore.utils.PaperElem;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,6 +30,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 
@@ -67,6 +69,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
     
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
+	@SpyBean
+	private RicezioneEsitiCartaceoServiceImpl ricezioneEsitiCartaceoServiceImpl;
     
     private static final String RICEZIONE_ESITI_ENDPOINT = "/consolidatore-ingress/v1/push-progress-events/";
     
@@ -190,7 +194,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	private RequestDto getRequestDto(EventsDto... eventsDtos) {
 		return new RequestDto().requestIdx(requestId)
 				.xPagopaExtchCxId(xPagopaExtchServiceIdHeaderValue)
-				.requestMetadata(new RequestMetadataDto().eventsList(List.of(eventsDtos)));
+				.requestMetadata(new RequestMetadataDto().eventsList(List.of(eventsDtos))
+														.paperRequestMetadata(new PaperRequestMetadataDto()));
 	}
 
 	private Stream<Arguments> provideArguments() {
@@ -859,4 +864,107 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.expectStatus()
 				.isOk();
 	}
+
+	//con evento duplicato:
+	// configurazione globale non attiva -> verifichiamo che non ci sia chiamata al controllo di duplicazione
+	// configurazione globale attiva + passthrough a true -> verifichiamo che non ci sia chiamata al controllo di duplicazione
+	// configurazione globale attiva + passthrough a false -> verifichiamo che ci sia chiamata al controllo di duplicazione e che venga ritornata eccezione
+
+	//CG NA:
+	@Test
+	void ricezioneEsitiDuplicatesCheckNoActiveConfigOk()  {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiDuplicatesCheckNoActiveConfigOk() : START");
+		ConsolidatoreIngressPaperProgressStatusEvent event = getProgressStatusEventWithoutAttachments();
+		EventsDto con010 = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(event.getStatusCode())
+																						.statusDateTime(event.getStatusDateTime())
+																						.statusDescription(event.getStatusDescription())
+																						.iun(event.getIun())
+																						.productType(event.getProductType())
+																						.clientRequestTimeStamp(event.getClientRequestTimeStamp())
+		);
+		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", false);
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(BOOKED_EVENT,SENT_EVENT, con010)));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(event);
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isOk();
+	}
+
+	@Test
+	void ricezioneEsitiDuplicatesCheckActiveConfigActivePassthroughOk()  {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiDuplicatesCheckNoActiveConfigOk() : START");
+		ConsolidatoreIngressPaperProgressStatusEvent event = getProgressStatusEventWithoutAttachments();
+		EventsDto con010 = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(event.getStatusCode())
+																						.statusDateTime(event.getStatusDateTime())
+																						.statusDescription(event.getStatusDescription())
+																						.iun(event.getIun())
+																						.productType(event.getProductType())
+																						.clientRequestTimeStamp(event.getClientRequestTimeStamp())
+		);
+		RequestDto requestDto = getRequestDto(BOOKED_EVENT, SENT_EVENT, con010);
+		requestDto.getRequestMetadata().getPaperRequestMetadata().setDuplicateCheckPassthrough(true);
+		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", true);
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(requestDto));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(event);
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isOk();
+	}
+
+	@Test
+	void ricezioneEsitiDuplicatesCheckActiveConfigNoActivePassthroughOk()  {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiDuplicatesCheckNoActiveConfigOk() : START");
+		ConsolidatoreIngressPaperProgressStatusEvent event = getProgressStatusEventWithoutAttachments();
+		EventsDto con010 = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(event.getStatusCode())
+																						.statusDateTime(event.getStatusDateTime())
+																						.statusDescription(event.getStatusDescription())
+																						.iun(event.getIun())
+																						.productType(event.getProductType())
+																						.clientRequestTimeStamp(event.getClientRequestTimeStamp())
+		);
+		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", true);
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(BOOKED_EVENT,SENT_EVENT, con010)));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(event);
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isBadRequest(); // da cambiare con status code appropriato
+	}
+
+
 }

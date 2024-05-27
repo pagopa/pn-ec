@@ -53,11 +53,13 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private final StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses;
 	private final StatusPullService statusPullService;
 	private boolean considerEventsWithoutSentStatusAsBooked;
+	private final boolean duplicatesCheck;
 
 	public RicezioneEsitiCartaceoServiceImpl(GestoreRepositoryCall gestoreRepositoryCall,
 											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
 											 SqsService sqsService, StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses, StatusPullService statusPullService,
-											 @Value("${ricezione-esiti-cartaceo.consider-event-without-sent-status-as-booked}") boolean considerEventsWithoutStatusAsBooked) {
+											 @Value("${ricezione-esiti-cartaceo.consider-event-without-sent-status-as-booked}") boolean considerEventsWithoutStatusAsBooked,
+											 @Value("${ricezione-esiti-cartaceo.duplicates-check}") boolean duplicatesCheck) {
 		super();
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.fileCall = fileCall;
@@ -67,6 +69,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		this.statusCodesToDeliveryFailureCauses = statusCodesToDeliveryFailureCauses;
 		this.statusPullService = statusPullService;
 		this.considerEventsWithoutSentStatusAsBooked = considerEventsWithoutStatusAsBooked;
+		this.duplicatesCheck = duplicatesCheck;
 	}
 
 	private OperationResultCodeResponse getOperationResultCodeResponse(
@@ -243,6 +246,10 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			})
 			.doOnError(throwable -> log.warn(EXCEPTION_IN_PROCESS_FOR, VERIFICA_ATTACHMENTS, requestId, throwable, throwable.getMessage()))
 			.doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, requestId, VERIFICA_ATTACHMENTS, result));
+	}
+
+	public Mono<RequestDto> verificaDuplicati(RequestDto requestDto){
+		return null;
 	}
 
 	@Override
