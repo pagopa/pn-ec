@@ -35,6 +35,7 @@ import java.util.List;
 
 import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
+import static it.pagopa.pn.ec.commons.utils.CompareUtils.isSameEvent;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperConstant.*;
@@ -248,8 +249,21 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			.doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, requestId, VERIFICA_ATTACHMENTS, result));
 	}
 
-	public Mono<RequestDto> verificaDuplicati(RequestDto requestDto){
-		return null;
+	public Mono<RequestDto> verificaDuplicati(RequestDto requestDto, ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent) {
+		return Mono.defer(() -> {
+			Boolean passthrough = requestDto.getRequestMetadata().getPaperRequestMetadata().getDuplicateCheckPassthrough();
+			if (duplicatesCheck && (Boolean.FALSE.equals(passthrough) || passthrough == null)) {
+				return Flux.fromIterable(requestDto.getRequestMetadata().getEventsList()).any(event -> isSameEvent(event.getPaperProgrStatus(), progressStatusEvent));
+			}
+			return Mono.just(false);
+		}).handle((isDuplicated, sink)-> {
+			if (Boolean.FALSE.equals(isDuplicated)) {
+				sink.next(requestDto);
+			} else {
+				// TODO: sistemare eventuali audit log
+				sink.error(new RicezioneEsitiCartaceoException("400.02", errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE), List.of(DUPLICATED_EVENT), null));
+			}
+		});
 	}
 
 	@Override
@@ -260,6 +274,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		  var requestId = progressStatusEvent.getRequestId();
 		  return Mono.just(progressStatusEvent)
 				 .flatMap(unused -> gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceId, progressStatusEvent.getRequestId()))
+				 .flatMap(requestDto -> verificaDuplicati(requestDto, progressStatusEvent))
 			     .flatMap(requestDto -> verificaErroriSemantici(progressStatusEvent, requestDto, xPagopaExtchServiceId))
 			     .flatMap(unused -> verificaAttachments(xPagopaExtchServiceId, requestId, progressStatusEvent.getAttachments()))
 				 .flatMap(unused -> Mono.just(new RicezioneEsitiDto(progressStatusEvent,

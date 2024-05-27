@@ -940,6 +940,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiDuplicatesCheckNoActiveConfigOk() : START");
 		ConsolidatoreIngressPaperProgressStatusEvent event = getProgressStatusEventWithoutAttachments();
 		EventsDto con010 = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(event.getStatusCode())
+																						.statusCode(event.getStatusCode())
 																						.statusDateTime(event.getStatusDateTime())
 																						.statusDescription(event.getStatusDescription())
 																						.iun(event.getIun())
@@ -948,7 +949,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		);
 		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", true);
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
-		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(BOOKED_EVENT,SENT_EVENT, con010)));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(BOOKED_EVENT, SENT_EVENT, con010)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
 
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
@@ -963,7 +964,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.body(BodyInserters.fromValue(events))
 				.exchange()
 				.expectStatus()
-				.isBadRequest(); // da cambiare con status code appropriato
+				.isBadRequest();
 	}
 
 

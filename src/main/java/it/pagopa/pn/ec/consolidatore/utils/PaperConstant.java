@@ -21,4 +21,5 @@ public class PaperConstant {
     public static final String ATTACHMENT_DOCUMENT_TYPE_LABEL = "attachment.documentType";
     public static final String ATTACHMENT_URI_LABEL = "attachment.uri";
 
+    public static final String DUPLICATED_EVENT = "DUPLICATED_EVENT";
 }
