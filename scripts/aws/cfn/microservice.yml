@@ -738,7 +738,7 @@ Parameters:
   SpringCodecMaxInMemorySize:
     Type: String
     Description: 'Spring Codec Max Memory Size'
-    Default: '350'
+    Default: '350KB'
 
   ###### pn-core Event Bus #######
 
