@@ -936,7 +936,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	}
 
 	@Test
-	void ricezioneEsitiDuplicatesCheckActiveConfigNoActivePassthroughOk()  {
+	void ricezioneEsitiDuplicatesCheckActiveConfigNoActivePassthroughKo()  {
 		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiDuplicatesCheckNoActiveConfigOk() : START");
 		ConsolidatoreIngressPaperProgressStatusEvent event = getProgressStatusEventWithoutAttachments();
 		EventsDto con010 = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(event.getStatusCode())
