@@ -696,7 +696,7 @@ Parameters:
     Default: 'false'
 
   PnEcConsRefinementDuration:
-    Type: Duration
+    Type: String
     Description: "[Cartaceo - Ricezione Esiti] Offset usato per traslare il controllo nel futuro su statusDateTime e clientRequestTimestamp"
     Default: 'PT1M'
 
