@@ -20,5 +20,7 @@ public class PaperConstant {
     public static final String DELIVERY_FAILURE_CAUSE_LABEL = "deliveryFailureCause";
     public static final String ATTACHMENT_DOCUMENT_TYPE_LABEL = "attachment.documentType";
     public static final String ATTACHMENT_URI_LABEL = "attachment.uri";
+    public static final String CLIENT_REQUEST_TIMESTAMP_LABEL = "clientRequestTimeStamp";
+
 
 }
