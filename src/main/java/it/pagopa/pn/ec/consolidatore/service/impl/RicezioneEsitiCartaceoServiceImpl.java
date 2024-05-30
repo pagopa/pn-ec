@@ -146,7 +146,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 									.requestId(requestId)
 									.error(ERR_CONS_BAD_STATUS_DATE_TIME.getValue())
 									.description("Status date time is in the future."));
-							errorList.add(String.format(NOT_VALID, STATUS_DATE_TIME_LABEL, statusDateTime));
+							errorList.add(String.format(NOT_VALID_FUTURE_DATE, STATUS_DATE_TIME_LABEL, statusDateTime));
 						}
 
 
@@ -158,7 +158,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 									.requestId(requestId)
 									.error(ERR_CONS_BAD_CLIENT_REQUEST_TIMESTAMP.getValue())
 									.description("Client request timestamp is in the future."));
-							errorList.add(String.format(NOT_VALID, CLIENT_REQUEST_TIMESTAMP_LABEL, clientRequestTimestamp));
+							errorList.add(String.format(NOT_VALID_FUTURE_DATE, CLIENT_REQUEST_TIMESTAMP_LABEL, clientRequestTimestamp));
 						}
 					}
 

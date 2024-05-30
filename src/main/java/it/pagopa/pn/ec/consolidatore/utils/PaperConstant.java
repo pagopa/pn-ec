@@ -9,6 +9,7 @@ public class PaperConstant {
     public static final String UNRECOGNIZED_ERROR = "%s unrecognized : value = \"%s\"";
     public static final String UNRECOGNIZED_ERROR_NO_VALUE = "%s unrecognized";
     public static final String NOT_VALID = "%s is not valid : value = \"%s\"";
+    public static final String NOT_VALID_FUTURE_DATE = "%s is in the future: value = \"%s\"";
 
     public static final String LOG_VERIF_LABEL = "RicezioneEsitiCartaceoServiceImpl.verificaEsitoDaConsolidatore() : ";
     public static final String LOG_PUB_LABEL = "RicezioneEsitiCartaceoServiceImpl.pubblicaEsitoCodaNotificationTracker() : ";
