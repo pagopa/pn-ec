@@ -28,9 +28,9 @@ import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.exception.MaxSizeExceededException;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.library.exceptions.PnSpapiPermanentErrorException;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import lombok.CustomLog;
-import org.apache.commons.io.output.CountingOutputStream;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
@@ -46,13 +46,13 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 import jakarta.mail.Header;
 import jakarta.mail.Multipart;
 import jakarta.mail.internet.MimeMessage;
-import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
@@ -83,6 +83,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private final Semaphore semaphore;
     private final PnPecConfigurationProperties pnPecProps;
     private String idSaved;
+    private final Predicate<Throwable> isAddressException = throwable -> throwable instanceof PnSpapiPermanentErrorException && throwable.getMessage() != null && throwable.getMessage().contains("jakarta.mail.internet.AddressException");
 
     protected PecService(AuthService authService, PnEcPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
             , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName, @Value("${lavorazione-pec.max-thread-pool-size}") Integer maxThreadPoolSize, PnPecConfigurationProperties pnPecProps) {
@@ -256,6 +257,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                         }))
 
                 .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, LAVORAZIONE_RICHIESTA_PEC, throwable, throwable.getMessage()))
+
+                .onErrorResume(isAddressException, addressException -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo, ADDRESS_ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto()))
 
                 .onErrorResume(throwable -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                         RETRY.getStatusTransactionTableCompliant(),
@@ -513,6 +516,10 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                     log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.errorName());
                                     return deleteMessageFromErrorQueue(message);
                                 })
+
+                                .onErrorResume(isAddressException, addressException -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo, ADDRESS_ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
+                                        .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message)))
+
                                 .onErrorResume(sqsPublishException -> {
                                     log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_PEC, sqsPublishException, sqsPublishException.getMessage());
                                     return checkTentativiEccessiviPec(requestIdx,
