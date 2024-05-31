@@ -257,7 +257,6 @@ components:
                 - C009
                 - C010
                 - C011
-                - C012
               description: >-
                 * STATUS     EVENTCODE
                 * PROGRESS   C000 = PEC - PREACCETTAZIONE (Conferma avvenuta comunicazione con Wrapper Pec)
@@ -270,6 +269,5 @@ components:
                 * ERROR      C008 = PEC - ERRORE_COMUNICAZIONE_SERVER_PEC
                 * ERROR      C009 = PEC - ERRORE_DOMINIO_PEC_NON_VALIDO
                 * ERROR      C010 = PEC - ERROR_INVIO_PEC
-                * ERROR      C011 = PEC - COMPOSITION_ERROR
-                * ERROR      C012 = PEC - ADDRESS_ERROR
+                * ERROR      C011 = PEC - ADDRESS_ERROR
                 * OK         C003 = PEC - StatusPec.AVVENUTA_CONSEGNA

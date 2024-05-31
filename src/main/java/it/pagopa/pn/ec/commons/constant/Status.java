@@ -19,9 +19,6 @@ public enum Status {
     DELETED("deleted"),
     INTERNAL_ERROR("internalError"),
 
-    //  <-- ONLY EMAIL AND PEC -->
-    COMPOSITION_ERROR("compError"),
-
     //  <-- PEC STATUS -->
     ACCEPTED("accepted"),
     NOT_ACCEPTED("notAccepted"),
