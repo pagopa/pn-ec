@@ -16,12 +16,13 @@ import java.util.UUID;
 
 @RestController
 @CustomLog
-public class DiscardedEventController implements DiscardedEventsApi {
+public class DiscardedEventsController implements DiscardedEventsApi {
 
     private final DiscardedEventsService discardedEventsService;
     private final ObjectMapper objectMapper;
 
-    public DiscardedEventController(DiscardedEventsService discardedEventsService, ObjectMapper objectMapper) {
+
+    public DiscardedEventsController(DiscardedEventsService discardedEventsService, ObjectMapper objectMapper) {
         this.discardedEventsService = discardedEventsService;
         this.objectMapper = objectMapper;
     }

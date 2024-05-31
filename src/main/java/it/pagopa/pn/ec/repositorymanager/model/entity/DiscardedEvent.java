@@ -20,4 +20,6 @@ public class DiscardedEvent {
     String dataRicezione;
     String codiceScarto;
     String jsonRicevuto;
+    String payloadHash;
+    String details;
 }

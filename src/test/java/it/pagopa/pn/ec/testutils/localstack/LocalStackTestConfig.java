@@ -8,6 +8,7 @@ import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
+import it.pagopa.pn.ec.repositorymanager.model.entity.DiscardedEvent;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
@@ -235,7 +236,8 @@ public class LocalStackTestConfig {
         Map<String, Class<?>> tableNameWithEntityClass =
                 Map.ofEntries(entry(repositoryManagerDynamoTableName.anagraficaClientName(), ClientConfiguration.class),
                         entry(repositoryManagerDynamoTableName.richiestePersonalName(), RequestPersonal.class),
-                        entry(repositoryManagerDynamoTableName.richiesteMetadataName(), RequestMetadata.class));
+                        entry(repositoryManagerDynamoTableName.richiesteMetadataName(), RequestMetadata.class),
+                        entry(repositoryManagerDynamoTableName.scartiConsolidatoreName(), DiscardedEvent.class));
 
         tableNameWithEntityClass.forEach((tableName, entityClass) -> {
             try {

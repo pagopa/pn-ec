@@ -397,6 +397,13 @@ components:
 
     DiscardedEventDto:
       type: object
+      required:
+        - requestId
+        - timestampRicezione
+        - dataRicezione
+        - codiceScarto
+        - jsonRicevuto
+        - payloadHash
       properties:
         requestId:
           type: string
@@ -407,4 +414,8 @@ components:
         codiceScarto:
           type: string
         jsonRicevuto:
+          type: string
+        payloadHash:
+          type: string
+        details:
           type: string

@@ -421,4 +421,8 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		return errors;
 	}
 
+	public Flux<DiscardedEventDto> insertDiscardedEvents(List<DiscardedEventDto> discardedEvents) {
+		return gestoreRepositoryCall.insertDiscardedEvents(Flux.fromIterable(discardedEvents));
+	}
+
 }
