@@ -896,7 +896,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 																						.productType(event.getProductType())
 																						.clientRequestTimeStamp(event.getClientRequestTimeStamp())
 		);
-		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", false);
+		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", PRODUCT_TYPE_AR);
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(BOOKED_EVENT,SENT_EVENT, con010)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
@@ -929,7 +929,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		);
 		RequestDto requestDto = getRequestDto(BOOKED_EVENT, SENT_EVENT, con010);
 		requestDto.getRequestMetadata().getPaperRequestMetadata().setDuplicateCheckPassthrough(true);
-		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", true);
+		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", PRODUCT_TYPE_AR);
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(requestDto));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
@@ -961,7 +961,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 																						.productType(event.getProductType())
 																						.clientRequestTimeStamp(event.getClientRequestTimeStamp())
 		);
-		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", true);
+		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", "ProductType|"+PRODUCT_TYPE_AR+"|OtherProductType");
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(BOOKED_EVENT, SENT_EVENT, con010)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));

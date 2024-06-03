@@ -42,6 +42,6 @@
     "CpuValue": "1024",
     "MemoryAmount": "4GB",
     "SpringCodecMaxInMemorySize": "350",
-    "PnEcDuplicatesCheck": "false"
+    "PnEcDuplicatesCheck": "|TEST | AR|890"
   }
 }

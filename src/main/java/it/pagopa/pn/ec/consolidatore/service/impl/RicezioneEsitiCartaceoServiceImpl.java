@@ -54,13 +54,13 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private final StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses;
 	private final StatusPullService statusPullService;
 	private boolean considerEventsWithoutSentStatusAsBooked;
-	private final boolean duplicatesCheck;
+	private final String duplicatesCheck;
 
 	public RicezioneEsitiCartaceoServiceImpl(GestoreRepositoryCall gestoreRepositoryCall,
 											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
 											 SqsService sqsService, StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses, StatusPullService statusPullService,
 											 @Value("${ricezione-esiti-cartaceo.consider-event-without-sent-status-as-booked}") boolean considerEventsWithoutStatusAsBooked,
-											 @Value("${ricezione-esiti-cartaceo.duplicates-check}") boolean duplicatesCheck) {
+											 @Value("${ricezione-esiti-cartaceo.duplicates-check}") String duplicatesCheck) {
 		super();
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.fileCall = fileCall;
@@ -252,7 +252,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	public Mono<RequestDto> verificaDuplicati(RequestDto requestDto, ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent) {
 		return Mono.defer(() -> {
 			Boolean passthrough = requestDto.getRequestMetadata().getPaperRequestMetadata().getDuplicateCheckPassthrough();
-			if (duplicatesCheck && (Boolean.FALSE.equals(passthrough) || passthrough == null)) {
+			if (duplicatesCheck.contains(progressStatusEvent.getProductType()) && (Boolean.FALSE.equals(passthrough) || passthrough == null)) {
 				return Flux.fromIterable(requestDto.getRequestMetadata().getEventsList()).any(event -> isSameEvent(event.getPaperProgrStatus(), progressStatusEvent));
 			}
 			return Mono.just(false);
