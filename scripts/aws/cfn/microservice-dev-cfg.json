@@ -41,6 +41,6 @@
     "PnEcNamirialServerCacheEndpoint": "18.102.130.190:6379",
     "CpuValue": "1024",
     "MemoryAmount": "4GB",
-    "SpringCodecMaxInMemorySize": "350"
+    "SpringCodecMaxInMemorySize": "350KB"
   }
 }
