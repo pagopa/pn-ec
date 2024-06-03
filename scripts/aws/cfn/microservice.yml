@@ -735,6 +735,11 @@ Parameters:
     Type: String
     Description: 'System properties and parameters for the JVM'
 
+  SpringCodecMaxInMemorySize:
+    Type: String
+    Description: 'Spring Codec Max Memory Size'
+    Default: '350'
+
   ###### pn-core Event Bus #######
 
   # Log group parameters
@@ -909,6 +914,7 @@ Resources:
         ContainerEnvEntry66: !Sub 'PnEcNamirialPoolSmtpMinidle=${PnEcNamirialPoolSmtpMinidle}'
         ContainerEnvEntry67: !Sub 'PnEcNamirialServerCache=${PnEcNamirialServerCache}'
         ContainerEnvEntry68: !Sub 'PnEcNamirialServerCacheEndpoint=${PnEcNamirialServerCacheEndpoint}'
+        ContainerEnvEntry69: !Sub 'SpringCodecMaxInMemorySize=${SpringCodecMaxInMemorySize}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'

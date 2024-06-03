@@ -218,7 +218,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 //      Get attachment presigned url Flux
         return MDCUtils.addMDCToContextAndExecute(getAttachments(xPagopaExtchCxId, digitalNotificationRequest)
 
-                .flatMap(this::downloadAttachment)
+                .flatMapSequential(this::downloadAttachment)
 
 //                              Convert to Mono<List>
                 .collectList()
@@ -583,11 +583,10 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
     private Mono<MimeMessage> setAttachmentsInMimeMessage(MimeMessage mimeMessage, EmailField emailField, Integer maxMessageSizeInBytes, String mimeMessageRule) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, SET_ATTACHMENTS_IN_MIME_MESSAGE, Stream.of(emailField, maxMessageSizeInBytes, mimeMessageRule).toList());
-        CountingOutputStream sizeCounter = new CountingOutputStream(new ByteArrayOutputStream());
         return Flux.fromIterable(emailField.getEmailAttachments())
                 .map(EmailUtils::buildAttachmentPart)
-                .map(mimeBodyPart -> addAttachmentToMimeMessage(mimeMessage, mimeBodyPart))
-                .map(mime -> getMimeMessageSizeInBytes(mime, sizeCounter))
+                .doOnNext(mimeBodyPart -> addAttachmentToMimeMessage(mimeMessage, mimeBodyPart))
+                .map(unused -> getMimeMessageSizeInBytes(mimeMessage))
                 .takeUntil(mimeMessageSize -> mimeMessageSize > maxMessageSizeInBytes)
                 .last(0)
                 .flatMap(mimeMessageSize -> {
@@ -599,7 +598,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private Mono<MimeMessage> handleMaxSizeExceeded(MimeMessage mimeMessage, String mimeMessageRule) {
-        return Mono.just(mimeMessage).handle((mime, sink) -> {
+        return Mono.fromSupplier(() -> mimeMessage).handle((mime, sink) -> {
                     Multipart multipart = getMultipartFromMimeMessage(mime);
                     if (getMultipartCount(multipart) <= 2)
                         sink.error(new MaxSizeExceededException("MimeMessage has exceeded the max available size with the first attachment."));
