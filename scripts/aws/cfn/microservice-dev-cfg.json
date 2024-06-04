@@ -42,5 +42,6 @@
     "CpuValue": "1024",
     "MemoryAmount": "4GB",
     "SpringCodecMaxInMemorySize": "350KB"
+    "PnEcConsRefinementDuration": "PT1M"
   }
 }
