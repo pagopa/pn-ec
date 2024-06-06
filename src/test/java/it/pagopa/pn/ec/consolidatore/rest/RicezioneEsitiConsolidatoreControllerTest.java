@@ -1040,6 +1040,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
 
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(bookedEvent,retryEvent,clientRequestTimeStamp)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
+
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
 		events.add(getProgressStatusEventWithoutAttachments().statusDateTime(now.plusDays(1)));
 		events.add(getProgressStatusEventWithoutAttachments().clientRequestTimeStamp(now.plusDays(1)));
