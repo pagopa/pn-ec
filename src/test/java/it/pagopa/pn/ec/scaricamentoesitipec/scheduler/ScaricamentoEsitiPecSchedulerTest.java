@@ -6,14 +6,12 @@ import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
-import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.library.pec.model.pojo.PnEcPecMessage;
 import it.pagopa.pn.library.pec.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
-import it.pagopa.pn.library.pec.service.PnPecService;
 import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,7 +46,7 @@ class ScaricamentoEsitiPecSchedulerTest {
     private PnEcPecService pnPecService;
 
 
-    @Autowired
+    @SpyBean
     private DaticertService daticertService;
 
     @MockBean
@@ -133,6 +131,27 @@ class ScaricamentoEsitiPecSchedulerTest {
                 .verify();
 
         verify(pnPecService, times(1)).markMessageAsRead(any(),any());
+    }
+
+    @Test
+    void lavorazioneEsitoNamirialMessageIdNull() throws MessagingException, IOException {
+        ByteArrayOutputStream messageBA = buildRicezioneEsitiPecDto( "tipoPostacert", "tipoDestinatario", true);
+        var mimeMessage = EmailUtils.getMimeMessage(messageBA.toByteArray());
+        mimeMessage.removeHeader("Message-ID");
+        var mimeMessageBA = EmailUtils.getMimeMessageByteArray(mimeMessage);
+
+        PnEcPecMessage message = new PnEcPecMessage()
+                .message(mimeMessageBA)
+                .providerName("namirial");
+
+        when(namirialService.markMessageAsRead(any())).thenReturn(Mono.empty());
+
+        StepVerifier.create(scaricamentoEsitiPecScheduler.lavorazioneEsito(message,UUID))
+                .expectComplete()
+                .verify();
+
+        verify(pnPecService, never()).markMessageAsRead(any(),any());
+        verify(daticertService, never()).getPostacertFromByteArray(any());
     }
 
     private ByteArrayOutputStream buildRicezioneEsitiPecDto(String tipoPostacert, String tipoDestinatario, boolean hasDatiCert) throws MessagingException, IOException {

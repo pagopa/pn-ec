@@ -302,6 +302,13 @@ public class EmailUtils {
         }
     }
 
+    @SneakyThrows (MessagingException.class)
+    public static List<String> getHeaders(MimeMessage mimeMessage) {
+        List<String> headerList = new ArrayList<>();
+        mimeMessage.getAllHeaderLines().asIterator().forEachRemaining(headerList::add);
+        return headerList;
+    }
+
 //    public static byte[] findAttachmentByName(MimeMessage mimeMessage, String attachmentName) {
 //        try {
 //            log.debug("Start retrieving attachment with name '{}'", attachmentName);
@@ -312,4 +319,5 @@ public class EmailUtils {
 //            throw new RetrieveAttachmentException();
 //        }
 //    }
+
 }
