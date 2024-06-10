@@ -134,15 +134,12 @@ class ScaricamentoEsitiPecSchedulerTest {
     }
 
     @Test
-    void lavorazioneEsitoNamirialMessageIdNull() throws MessagingException, IOException {
-        ByteArrayOutputStream messageBA = buildRicezioneEsitiPecDto( "tipoPostacert", "tipoDestinatario", true);
-        var mimeMessage = EmailUtils.getMimeMessage(messageBA.toByteArray());
-        mimeMessage.removeHeader("Message-ID");
-        var mimeMessageBA = EmailUtils.getMimeMessageByteArray(mimeMessage);
+    void lavorazioneEsitoNamirialEmptyMessage() throws MessagingException, IOException {
+        byte[] messageContent = new byte[0];
 
         PnEcPecMessage message = new PnEcPecMessage()
-                .message(mimeMessageBA)
-                .providerName("namirial");
+                .message(messageContent)
+                .providerName("");
 
         when(namirialService.markMessageAsRead(any())).thenReturn(Mono.empty());
 

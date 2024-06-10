@@ -96,14 +96,6 @@ public class ScaricamentoEsitiPecScheduler {
         var mimeMessage = getMimeMessage(message);
         var messageID = getMessageIdFromMimeMessage(mimeMessage);
 
-        // TODO: rimuovere una volta verificata assenza di dati sensibili
-        log.debug("Message headers: {}", EmailUtils.getHeaders(mimeMessage));
-
-        // controllo del message id e log degli header per reperimento alternativo del messaggio
-        if (messageID == null) {
-            log.warn("MessageID is null, message headers: {}", EmailUtils.getHeaders(mimeMessage));
-            return Mono.empty();
-        }
         //Rimozione delle parentesi angolari dal messageID
         if (messageID.startsWith("<") && messageID.endsWith(">"))
             messageID = messageID.substring(1, messageID.length() - 1);
