@@ -87,6 +87,11 @@ public class ScaricamentoEsitiPecScheduler {
     public Mono<Void> lavorazioneEsito(PnEcPecMessage pecMessage, String getUnreadMessagesUUID) {
 
         byte[] message = pecMessage.getMessage();
+        // controllo dell'effettiva valorizazione del messaggio
+        if (message.length == 0) {
+            log.warn("Message is empty.");
+            return Mono.empty();
+        }
         String providerName = pecMessage.getProviderName();
         var mimeMessage = getMimeMessage(message);
         var messageID = getMessageIdFromMimeMessage(mimeMessage);
