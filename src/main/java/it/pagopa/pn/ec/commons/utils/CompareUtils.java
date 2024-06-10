@@ -28,7 +28,6 @@ public class CompareUtils {
        return  Objects.equals(paperProgressStatusEvent.getRegisteredLetterCode(),consolidatoreIngressPaperProgressStatusEvent.getRegisteredLetterCode())
                 && Objects.equals(paperProgressStatusEvent.getProductType(), consolidatoreIngressPaperProgressStatusEvent.getProductType())
                 && Objects.equals(paperProgressStatusEvent.getIun(), consolidatoreIngressPaperProgressStatusEvent.getIun())
-                && Objects.equals(paperProgressStatusEvent.getStatus(), consolidatoreIngressPaperProgressStatusEvent.getStatusCode())
                 && Objects.equals(paperProgressStatusEvent.getStatusCode(), consolidatoreIngressPaperProgressStatusEvent.getStatusCode())
                 && Objects.equals(paperProgressStatusEvent.getStatusDescription(), consolidatoreIngressPaperProgressStatusEvent.getStatusDescription())
                 && paperProgressStatusEvent.getStatusDateTime().truncatedTo(SECONDS).isEqual(consolidatoreIngressPaperProgressStatusEvent.getStatusDateTime().truncatedTo(SECONDS))
