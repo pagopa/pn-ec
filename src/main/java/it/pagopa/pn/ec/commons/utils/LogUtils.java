@@ -146,6 +146,7 @@ public class LogUtils {
     public static final String VERIFICA_ERRORI_SEMANTICI = "RicezioneEsitiCartaceoService.verificaErroriSemantici()";
     public static final String PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER = "RicezioneEsitiCartaceoService.pubblicaEsitoCodaNotificationTracker()";
     public static final String PUBLISH_ON_QUEUE = "RicezioneEsitiCartaceoService.publishOnQueue()";
+    public static final String VERIFICA_DUPLICATI = "RicezioneEsitiCartaceoService.verificaDuplicati()";
 
 
     //STATEMACHINE

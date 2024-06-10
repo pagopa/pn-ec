@@ -4,7 +4,6 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.ObjLongConsumer;
 
 import static java.time.temporal.ChronoUnit.SECONDS;
 
@@ -32,7 +31,7 @@ public class CompareUtils {
                 && Objects.equals(paperProgressStatusEvent.getStatus(), consolidatoreIngressPaperProgressStatusEvent.getStatusCode())
                 && Objects.equals(paperProgressStatusEvent.getStatusCode(), consolidatoreIngressPaperProgressStatusEvent.getStatusCode())
                 && Objects.equals(paperProgressStatusEvent.getStatusDescription(), consolidatoreIngressPaperProgressStatusEvent.getStatusDescription())
-                && paperProgressStatusEvent.getStatusDateTime().isEqual(consolidatoreIngressPaperProgressStatusEvent.getStatusDateTime())
+                && paperProgressStatusEvent.getStatusDateTime().truncatedTo(SECONDS).isEqual(consolidatoreIngressPaperProgressStatusEvent.getStatusDateTime().truncatedTo(SECONDS))
                 && Objects.equals(paperProgressStatusEvent.getDeliveryFailureCause(), consolidatoreIngressPaperProgressStatusEvent.getDeliveryFailureCause())
                 && isSameAttachments(paperProgressStatusEvent.getAttachments(), consolidatoreIngressPaperProgressStatusEvent.getAttachments())
                 && isSameAddress(paperProgressStatusEvent.getDiscoveredAddress(), consolidatoreIngressPaperProgressStatusEvent.getDiscoveredAddress());
