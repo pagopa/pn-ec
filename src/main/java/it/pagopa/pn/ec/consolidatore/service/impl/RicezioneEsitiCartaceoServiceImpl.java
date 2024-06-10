@@ -289,7 +289,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		return Mono.defer(() -> {
 			Boolean passthrough = requestDto.getRequestMetadata().getPaperRequestMetadata().getDuplicateCheckPassthrough();
 			if ((passthrough == null || !passthrough) && duplicatesCheck.contains(progressStatusEvent.getProductType())) {
-				log.debug(VERIFICA_DUPLICATI + ": checking for duplicates");
+				log.debug(VERIFICA_DUPLICATI + ": checking {} for duplicates", requestDto.getRequestIdx());
 				return Flux.fromIterable(requestDto.getRequestMetadata().getEventsList()).any(event -> isSameEvent(event.getPaperProgrStatus(), progressStatusEvent));
 			}
 			return Mono.just(false);
