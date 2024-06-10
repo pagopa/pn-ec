@@ -134,7 +134,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
 
-  PnEcScartiConsolidatore:
+  PnEcTableScartiConsolidatore:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: 'pn-EcScartiConsolidatore'
@@ -974,6 +974,14 @@ Outputs:
   PnEcTableArnRichiesteMetadati:
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
     Value: !GetAtt PnEcTableRichiesteMetadati.Arn
+
+  PnEcTableNameScartiConsolidatore:
+    Description: 'Nome della Tabella DynamoDB relativa agli scarti consolidatore'
+    Value: !Ref PnEcTableScartiConsolidatore
+
+  PnEcTableArnScartiConsolidatore:
+    Description: 'ARN della Tabella DynamoDB relativa agli scarti consolidatore'
+    Value: !GetAtt PnEcTableScartiConsolidatore.Arn
 
   ######### QUEUES  ############
   ######### TRACKER : SMS  ##########

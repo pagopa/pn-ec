@@ -177,6 +177,14 @@ Parameters:
     Type: String
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
 
+  PnEcTableNameScartiConsolidatore:
+    Type: String
+    Description: 'Nome della Tabella DynamoDB relativa agli scarti consolidatore'
+
+  PnEcTableArnScartiConsolidatore:
+    Type: String
+    Description: 'ARN della Tabella DynamoDB relativa agli scarti consolidatore'
+
   ### QUEUES  ###
   ### TRACKER : SMS  ###
 
@@ -925,6 +933,7 @@ Resources:
         ContainerEnvEntry69: !Sub 'SpringCodecMaxInMemorySize=${SpringCodecMaxInMemorySize}'
         ContainerEnvEntry70: !Sub 'PnEcDuplicatesCheck=${PnEcDuplicatesCheck}'
         ContainerEnvEntry71: !Sub 'PnEcConsRefinementDuration=${PnEcConsRefinementDuration}'
+        ContainerEnvEntry72: !Sub 'PnEcTableNameScartiConsolidatore=${PnEcTableNameScartiConsolidatore}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -968,6 +977,7 @@ Resources:
               - !Ref PnEcTableArnAnagrafica
               - !Ref PnEcTableArnRichieste
               - !Ref PnEcTableArnRichiesteMetadati
+              - !Ref PnEcTableArnScartiConsolidatore
           - Effect: Allow
             Action:
               - kms:Encrypt
@@ -1319,6 +1329,7 @@ Resources:
           - - !Ref PnEcTableNameAnagrafica
             - !Ref PnEcTableNameRichieste
             - !Ref PnEcTableNameRichiesteMetadati
+            - !Ref PnEcTableNameScartiConsolidatore
         QueueArns:
           !Join
           - ','
@@ -1367,6 +1378,7 @@ Resources:
           - - !Ref PnEcTableNameAnagrafica
             - !Ref PnEcTableNameRichieste
             - !Ref PnEcTableNameRichiesteMetadati
+            - !Ref PnEcTableNameScartiConsolidatore
         QueueArns:
           !Join
           - ','
