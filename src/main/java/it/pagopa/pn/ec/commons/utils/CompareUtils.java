@@ -38,10 +38,20 @@ public class CompareUtils {
     }
 
     private static boolean isSameAttachments(List<AttachmentsProgressEventDto> paperProgressAttachmentList, List<ConsolidatoreIngressPaperProgressStatusEventAttachments> consolidatoreIngressPaperProgressStatusEventAttachmentsList) {
-        if ( paperProgressAttachmentList == null && consolidatoreIngressPaperProgressStatusEventAttachmentsList == null) {
+
+        if(paperProgressAttachmentList == null) {
+            paperProgressAttachmentList = List.of();
+        }
+
+        if(consolidatoreIngressPaperProgressStatusEventAttachmentsList == null) {
+            consolidatoreIngressPaperProgressStatusEventAttachmentsList = List.of();
+        }
+
+        if(consolidatoreIngressPaperProgressStatusEventAttachmentsList.isEmpty() && paperProgressAttachmentList.isEmpty()) {
             return true;
         }
-        if (paperProgressAttachmentList == null || consolidatoreIngressPaperProgressStatusEventAttachmentsList == null ) {
+
+        if (paperProgressAttachmentList.isEmpty() || consolidatoreIngressPaperProgressStatusEventAttachmentsList.isEmpty()) {
             return false;
         }
 
@@ -68,8 +78,11 @@ public class CompareUtils {
         if (discoveredAddress == null && consolidatoreIngressPaperProgressStatusEventDiscoveredAddress == null) {
             return true;
         }
-        if (discoveredAddress == null || consolidatoreIngressPaperProgressStatusEventDiscoveredAddress==null) {
-            return false;
+        if (discoveredAddress == null) {
+            discoveredAddress = new DiscoveredAddressDto();
+        }
+        if (consolidatoreIngressPaperProgressStatusEventDiscoveredAddress == null) {
+            consolidatoreIngressPaperProgressStatusEventDiscoveredAddress = new ConsolidatoreIngressPaperProgressStatusEventDiscoveredAddress();
         }
         return  Objects.equals(discoveredAddress.getName(), consolidatoreIngressPaperProgressStatusEventDiscoveredAddress.getName())
                 && Objects.equals(discoveredAddress.getNameRow2(), consolidatoreIngressPaperProgressStatusEventDiscoveredAddress.getNameRow2())
