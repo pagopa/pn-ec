@@ -78,11 +78,8 @@ public class CompareUtils {
         if (discoveredAddress == null && consolidatoreIngressPaperProgressStatusEventDiscoveredAddress == null) {
             return true;
         }
-        if (discoveredAddress == null) {
-            discoveredAddress = new DiscoveredAddressDto();
-        }
-        if (consolidatoreIngressPaperProgressStatusEventDiscoveredAddress == null) {
-            consolidatoreIngressPaperProgressStatusEventDiscoveredAddress = new ConsolidatoreIngressPaperProgressStatusEventDiscoveredAddress();
+        if (discoveredAddress == null || consolidatoreIngressPaperProgressStatusEventDiscoveredAddress==null) {
+            return false;
         }
         return  Objects.equals(discoveredAddress.getName(), consolidatoreIngressPaperProgressStatusEventDiscoveredAddress.getName())
                 && Objects.equals(discoveredAddress.getNameRow2(), consolidatoreIngressPaperProgressStatusEventDiscoveredAddress.getNameRow2())
