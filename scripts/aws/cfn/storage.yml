@@ -134,10 +134,10 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
 
-  PnEcTableScartiConsolidatore:
+  PnEcTableScartiConsolidatoreBIS:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: 'pn-EcScartiConsolidatore'
+      TableName: 'pn-EcScartiConsolidatore-bis'
       AttributeDefinitions:
         - AttributeName: 'requestId'
           AttributeType: 'S'
