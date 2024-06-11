@@ -89,7 +89,7 @@ public class ScaricamentoEsitiPecScheduler {
         byte[] message = pecMessage.getMessage();
         // controllo dell'effettiva valorizazione del messaggio
         if (message.length == 0) {
-            log.warn("Message is empty.");
+            log.warn("PEC message byte array is empty.");
             return Mono.empty();
         }
         String providerName = pecMessage.getProviderName();
