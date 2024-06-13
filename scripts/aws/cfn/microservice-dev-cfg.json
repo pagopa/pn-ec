@@ -38,9 +38,9 @@
     "PnEcNamirialPoolSmtpMaxidle": "40",
     "PnEcNamirialPoolSmtpMinidle": "1",
     "PnEcNamirialServerCache": "false",
-    "PnEcNamirialServerCacheEndpoint": "18.102.130.190:6379",
+    "PnEcNamirialServerCacheEndpoint": "",
     "SpringCodecMaxInMemorySize": "350KB",
-    "PnEcConsRefinementDuration": "PT1M",
+    "PnEcConsRefinementDuration": "1m",
     "CpuValue": "1024",
     "MemoryAmount": "4GB"
   }
