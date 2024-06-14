@@ -698,7 +698,6 @@ Parameters:
   PnEcConsRefinementDuration:
     Type: String
     Description: "[Cartaceo - Ricezione Esiti] Offset usato per traslare il controllo nel futuro su statusDateTime e clientRequestTimestamp"
-    Default: ''
 
 ### S3 BUCKET FOR OVERSIZE SQS MESSAGES ###
 
