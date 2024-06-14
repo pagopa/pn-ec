@@ -130,6 +130,30 @@ public class LocalStackTestConfig {
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
+
+        try {
+            localStackContainer.execInContainer("awslocal",
+                    "ssm",
+                    "put-parameter",
+                    "--name",
+                    "Pn-EC-Pec-MetricsSchema",
+                    "--type",
+                    "String",
+                    "--value",
+                    "{\n" +
+                            "    \"PayloadSizeRange\": {\n" +
+                            "        \"0k-10k\": [ 0, 10 ],\n" +
+                            "        \"100k+\": [ 100 ]\n" +
+                            "    },\n" +
+                            "    \"MessageCountRange\": {\n" +
+                            "        \"0-10\": [ 0, 10 ],\n" +
+                            "        \"100+\": [ 100 ]\n" +
+                            "    }\n" +
+                            "}");
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     private void createTable(final String tableName, final Class<?> entityClass) {

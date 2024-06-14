@@ -1,9 +1,11 @@
 package it.pagopa.pn.library.pec.service.impl;
 
+import com.namirial.pec.library.service.PnPecServiceImpl;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.library.exceptions.PnSpapiTemporaryErrorException;
+import it.pagopa.pn.library.pec.configurationproperties.PnPecMetricNames;
 import it.pagopa.pn.library.pec.configurationproperties.PnPecRetryStrategyProperties;
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.NamirialProviderMaxRetriesExceededException;
@@ -40,24 +42,21 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     private final PnPecConfigurationProperties props;
     private final PnPecRetryStrategyProperties retryStrategyProperties;
     private final CloudWatchPecMetrics cloudWatchPecMetrics;
+    private final PnPecMetricNames pnPecMetricNames;
     @Value("${library.pec.cloudwatch.namespace.aruba}")
     private String arubaProviderNamespace;
     @Value("${library.pec.cloudwatch.namespace.namirial}")
     private String namirialProviderNamespace;
-    @Value("${library.pec.cloudwatch.metric.response-time.mark-message-as-read}")
-    private String markMessageAsReadResponseTimeMetric;
-    @Value("${library.pec.cloudwatch.metric.response-time.delete-message}")
-    private String deleteMessageResponseTimeMetric;
-
 
     @Autowired
-    public PnEcPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService, com.namirial.pec.library.service.PnPecServiceImpl namirialService, PnPecConfigurationProperties props,
-                            PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics) {
+    public PnEcPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService, PnPecServiceImpl namirialService, PnPecConfigurationProperties props,
+                              PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics, PnPecMetricNames pnPecMetricNames) {
         this.arubaService = arubaService;
         this.namirialService = namirialService;
         this.retryStrategyProperties = retryStrategyProperties;
         this.props = props;
         this.cloudWatchPecMetrics = cloudWatchPecMetrics;
+        this.pnPecMetricNames = pnPecMetricNames;
     }
 
     private Retry getPnPecRetryStrategy(String clientMethodName, PnPecService service) {
@@ -129,7 +128,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     public Mono<Void> markMessageAsRead(String messageID, String providerName) {
         log.logStartingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ);
         PnPecService provider = getProviderByName(providerName);
-        return cloudWatchPecMetrics.executeAndPublishResponseTime(provider.markMessageAsRead(messageID), getMetricNamespace(provider), markMessageAsReadResponseTimeMetric)
+        return cloudWatchPecMetrics.executeAndPublishResponseTime(provider.markMessageAsRead(messageID), getMetricNamespace(provider), pnPecMetricNames.getMarkMessageAsReadResponseTime())
                 .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_MARK_MESSAGE_AS_READ, provider))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ))
@@ -140,7 +139,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     public Mono<Void> deleteMessage(String messageID, String senderMessageID) {
         log.logStartingProcess(PN_EC_PEC_DELETE_MESSAGE);
         PnPecService provider = getProviderByMessageId(senderMessageID);
-        return cloudWatchPecMetrics.executeAndPublishResponseTime(provider.deleteMessage(messageID), getMetricNamespace(provider), deleteMessageResponseTimeMetric)
+        return cloudWatchPecMetrics.executeAndPublishResponseTime(provider.deleteMessage(messageID), getMetricNamespace(provider), pnPecMetricNames.getDeleteMessageResponseTime())
                 .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_DELETE_MESSAGE, provider))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_DELETE_MESSAGE))

@@ -42,6 +42,7 @@
     "SpringCodecMaxInMemorySize": "350KB",
     "PnEcConsRefinementDuration": "PT1M",
     "CpuValue": "1024",
-    "MemoryAmount": "4GB"
+    "MemoryAmount": "4GB",
+    "PnEcPecMetricsSchema": "Pn-EC-Pec-MetricsSchema"
   }
 }

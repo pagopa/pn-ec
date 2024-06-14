@@ -70,6 +70,10 @@ Parameters:
     Type: String
     Description: 'Secret ID for Identity Pec'
 
+  PnEcPecMetricsSchema:
+    Type: String
+    Description: 'Name of the AWS parameter that contains the schema for the metric dimensions of pec services'
+
   Version:
     Type: String
     Description: 'keep track of used projects commitIds'
@@ -921,6 +925,7 @@ Resources:
         ContainerEnvEntry68: !Sub 'PnEcNamirialServerCacheEndpoint=${PnEcNamirialServerCacheEndpoint}'
         ContainerEnvEntry69: !Sub 'SpringCodecMaxInMemorySize=${SpringCodecMaxInMemorySize}'
         ContainerEnvEntry70: !Sub 'PnEcConsRefinementDuration=${PnEcConsRefinementDuration}'
+        ContainerEnvEntry71: !Sub 'PnEcPecMetricsSchema=${PnEcPecMetricsSchema}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'

@@ -115,34 +115,56 @@ public class CloudWatchPecMetrics {
     }
 
     /**
-     * Method to execute a void Mono and publish its execution time to CloudWatch
+     * Method to execute a Mono and publish its execution time to CloudWatch
+     * It handles both valued and void monos.
      *
      * @param mono       the mono to execute
      * @param namespace  the metric namespace
      * @param metricName the metric name
-     * @return the mono
+     * @return the mono with the result
      */
-    public Mono<Void> executeAndPublishResponseTime(Mono<Void> mono, String namespace, String metricName) {
-        return mono.thenReturn(true)
-                .elapsed()
-                .flatMap(tuple -> publishResponseTime(namespace, metricName, tuple.getT1()));
+    public <T> Mono<T> executeAndPublishResponseTime(Mono<T> mono, String namespace, String metricName, Dimension... dimensions) {
+        return Mono.defer(() -> {
+            Instant start = Instant.now();
+            return mono
+                    //If mono emits a value.
+                    .flatMap(result -> {
+                        long elapsed = Duration.between(start, Instant.now()).toMillis();
+                        return publishResponseTime(namespace, metricName, elapsed, dimensions).thenReturn(result);
+                    })
+                    //If mono doesn't emit any value (Mono<Void>)
+                    .switchIfEmpty(Mono.defer(() -> {
+                        long elapsed = Duration.between(start, Instant.now()).toMillis();
+                        return publishResponseTime(namespace, metricName, elapsed, dimensions).then(Mono.empty());
+                    }));
+        });
     }
 
     /**
-     * Method to publish a response time related CloudWatch metric, using the CloudWatchMetricPublisherConfiguration class.
+     * Method to publish a response time related CloudWatch metric with its dimensions, using the CloudWatchMetricPublisherConfiguration class.
      * In order not to block the chain with an error, the method emits onComplete() even if an error occurred while publishing the metric.
      *
      * @param namespace   the metric namespace
      * @param metricName  the metric name
      * @param elapsedTime the response time
+     * @param dimensions  the metric dimensions
      * @return a void Mono
      */
-    public Mono<Void> publishResponseTime(String namespace, String metricName, long elapsedTime) {
+    public Mono<Void> publishResponseTime(String namespace, String metricName, long elapsedTime, Dimension... dimensions) {
         return Mono.fromRunnable(() -> {
                     log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_RESPONSE_TIME, Stream.of(namespace, metricName, elapsedTime).toList());
-                    SdkMetric<Long> responseTimeMetric = (SdkMetric<Long>) cloudWatchMetricPublisherConfiguration.getSdkMetricByMetricName(metricName);
                     MetricCollector metricCollector = MetricCollector.create(metricName);
+
+                    //Report metric.
+                    SdkMetric<Long> responseTimeMetric = (SdkMetric<Long>) cloudWatchMetricPublisherConfiguration.getSdkMetricByMetricName(metricName);
                     metricCollector.reportMetric(responseTimeMetric, elapsedTime);
+
+                    //Report metric dimensions.
+                    for (Dimension dimension : dimensions) {
+                        SdkMetric<Long> dimensionMetric = (SdkMetric<Long>) cloudWatchMetricPublisherConfiguration.getSdkMetricByMetricName(dimension.name());
+                        metricCollector.reportMetric(dimensionMetric, Long.valueOf(dimension.value()));
+                    }
+
                     MetricCollection metricCollection = metricCollector.collect();
                     cloudWatchMetricPublisherConfiguration.getMetricPublisherByNamespace(namespace).publish(metricCollection);
                 })
