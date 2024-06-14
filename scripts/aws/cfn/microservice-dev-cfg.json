@@ -40,7 +40,6 @@
     "PnEcNamirialServerCache": "false",
     "PnEcNamirialServerCacheEndpoint": "",
     "SpringCodecMaxInMemorySize": "350KB",
-    "PnEcConsRefinementDuration": "1m",
     "CpuValue": "1024",
     "MemoryAmount": "4GB"
   }
