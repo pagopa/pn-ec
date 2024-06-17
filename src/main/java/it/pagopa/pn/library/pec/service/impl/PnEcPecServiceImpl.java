@@ -5,6 +5,7 @@ import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.library.exceptions.PnSpapiTemporaryErrorException;
+import it.pagopa.pn.library.pec.configuration.MetricsDimensionConfiguration;
 import it.pagopa.pn.library.pec.configurationproperties.PnPecMetricNames;
 import it.pagopa.pn.library.pec.configurationproperties.PnPecRetryStrategyProperties;
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
@@ -13,6 +14,7 @@ import it.pagopa.pn.library.pec.exception.pecservice.MaxRetriesExceededException
 import it.pagopa.pn.library.pec.model.pojo.PnEcPecGetMessagesResponse;
 import it.pagopa.pn.library.pec.model.pojo.PnEcPecListOfMessages;
 import it.pagopa.pn.library.pec.model.pojo.PnEcPecMessage;
+import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import it.pagopa.pn.library.pec.service.PnPecService;
@@ -23,12 +25,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 import reactor.util.retry.Retry;
+import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.library.pec.utils.PnPecUtils.*;
@@ -43,6 +48,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     private final PnPecRetryStrategyProperties retryStrategyProperties;
     private final CloudWatchPecMetrics cloudWatchPecMetrics;
     private final PnPecMetricNames pnPecMetricNames;
+    private final MetricsDimensionConfiguration metricsDimensionConfiguration;
     @Value("${library.pec.cloudwatch.namespace.aruba}")
     private String arubaProviderNamespace;
     @Value("${library.pec.cloudwatch.namespace.namirial}")
@@ -50,13 +56,14 @@ public class PnEcPecServiceImpl implements PnEcPecService {
 
     @Autowired
     public PnEcPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService, PnPecServiceImpl namirialService, PnPecConfigurationProperties props,
-                              PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics, PnPecMetricNames pnPecMetricNames) {
+                              PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics, PnPecMetricNames pnPecMetricNames, MetricsDimensionConfiguration metricsDimensionConfiguration) {
         this.arubaService = arubaService;
         this.namirialService = namirialService;
         this.retryStrategyProperties = retryStrategyProperties;
         this.props = props;
         this.cloudWatchPecMetrics = cloudWatchPecMetrics;
         this.pnPecMetricNames = pnPecMetricNames;
+        this.metricsDimensionConfiguration = metricsDimensionConfiguration;
     }
 
     private Retry getPnPecRetryStrategy(String clientMethodName, PnPecService service) {
@@ -78,15 +85,48 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 });
     }
 
+
+    /**
+     * A function to execute the sendMail operations and handle related metrics.
+     */
+    private Function<Mono<PnPecService>, Mono<String>> sendMailAndHandleMetrics(byte[] message) {
+        Dimension payloadSizeRangeDimension = metricsDimensionConfiguration.getDimension(pnPecMetricNames.getPayloadSizeRange(), (long) message.length);
+        return tFlux -> tFlux.flatMap(provider -> cloudWatchPecMetrics.executeAndPublishResponseTime(provider.sendMail(message), getMetricNamespace(provider), pnPecMetricNames.getSendMailResponseTime(), payloadSizeRangeDimension)
+                .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_SEND_MAIL, provider)));
+    }
+
     @Override
     public Mono<String> sendMail(byte[] message) {
         log.logStartingProcess(PN_EC_PEC_SEND_MAIL);
-        PnPecService provider = getProviderWrite();
-        return provider
-                .sendMail(message)
-                .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_SEND_MAIL, provider))
+        return Mono.fromSupplier(this::getProviderWrite)
+                .transform(sendMailAndHandleMetrics(message))
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_SEND_MAIL))
                 .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_SEND_MAIL, false, throwable.getMessage()));
+    }
+
+    /**
+     * A function to execute the getUnreadMessages operations and handle related metrics.
+     */
+    private Function<Flux<PnPecService>, Flux<PnEcPecMessage>> getUnreadMessagesAndHandleMetrics(int limit) {
+        return tFlux -> tFlux.flatMap(provider -> cloudWatchPecMetrics.executeAndPublishResponseTime(provider.getUnreadMessages(limit), getMetricNamespace(provider), pnPecMetricNames.getGetUnreadMessagesResponseTime())
+                        .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_GET_UNREAD_MESSAGES, provider))
+                        .map(pnGetMessagesResponse -> Tuples.of(pnGetMessagesResponse, getProviderName(provider))))
+                .transform(handleGetUnreadMessagesResponses());
+    }
+
+    /**
+     * A function to handle the responses from the getUnreadMessages operations
+     */
+    private Function<Flux<Tuple2<PnGetMessagesResponse, String>>, Flux<PnEcPecMessage>> handleGetUnreadMessagesResponses() {
+        return tFlux -> tFlux.flatMap(tuple -> {
+            var listOfMessages = tuple.getT1().getPnListOfMessages();
+            var providerName = tuple.getT2();
+            if (listOfMessages == null) {
+                return Flux.empty();
+            } else {
+                return Flux.fromIterable(listOfMessages.getMessages()).map(message -> new PnEcPecMessage(message, providerName));
+            }
+        });
     }
 
     @Override
@@ -94,31 +134,27 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         log.logStartingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES);
 
         return Flux.fromIterable(getProvidersRead())
-                .flatMap(provider -> provider.getUnreadMessages(limit)
-                        .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_GET_UNREAD_MESSAGES, provider))
-                        .map(pnGetMessagesResponse -> Tuples.of(pnGetMessagesResponse, getProviderName(provider))))
-                .flatMap(tuple -> {
-                    var listOfMessages = tuple.getT1().getPnListOfMessages();
-                    var providerName = tuple.getT2();
-                    if (listOfMessages == null) {
-                        return Flux.empty();
-                    } else {
-                        return Flux.fromIterable(listOfMessages.getMessages()).map(message -> new PnEcPecMessage(message, providerName));
-                    }
-                })
+                .transform(getUnreadMessagesAndHandleMetrics(limit))
                 .collectList()
                 .flatMap(messages -> Mono.just(new PnEcPecGetMessagesResponse(messages.isEmpty() ? null : new PnEcPecListOfMessages(messages), messages.size())))
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES))
                 .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES, false, throwable.getMessage()));
     }
 
+    /**
+     * A function to execute the getMessageCount operation and handle related metrics.
+     */
+    private Function<Flux<PnPecService>, Flux<Integer>> getMessageCountAndHandleMetrics() {
+        return tFlux -> tFlux.flatMap(provider -> cloudWatchPecMetrics.executeAndPublishResponseTime(provider.getMessageCount(), getMetricNamespace(provider), pnPecMetricNames.getGetMessageCountResponseTime())
+                .flatMap(count -> cloudWatchPecMetrics.publishMessageCount(Long.valueOf(count), getMetricNamespace(provider)).thenReturn(count))
+                .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_GET_MESSAGE_COUNT, provider)));
+    }
+
     @Override
     public Mono<Integer> getMessageCount() {
         log.logStartingProcess(PN_EC_PEC_GET_MESSAGE_COUNT);
         return Flux.fromIterable(getProvidersRead())
-                .flatMap(provider -> provider.getMessageCount()
-                        .flatMap(count -> cloudWatchPecMetrics.publishMessageCount(Long.valueOf(count), getMetricNamespace(provider)).thenReturn(count))
-                        .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_GET_MESSAGE_COUNT, provider)))
+                .transform(getMessageCountAndHandleMetrics())
                 .reduce(0, Integer::sum)
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_GET_MESSAGE_COUNT))
                 .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_MESSAGE_COUNT, false, throwable.getMessage()));

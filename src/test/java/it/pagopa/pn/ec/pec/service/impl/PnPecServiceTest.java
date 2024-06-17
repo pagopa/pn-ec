@@ -129,7 +129,7 @@ class PnPecServiceTest {
 
             verify(arubaService, times(1)).sendMail(any());
             verify(namirialService, never()).sendMail(any());
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getSendMailResponseTime()), anyLong(), ArgumentMatchers.argThat(arg -> arg.length == 1));
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getSendMailResponseTime()), anyLong(), argThat(list -> list.size() == 1));
         }
 
         @Test
@@ -146,7 +146,7 @@ class PnPecServiceTest {
 
             verify(namirialService, times(1)).sendMail(any());
             verify(arubaService, never()).sendMail(any());
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(pnPecMetricNames.getSendMailResponseTime()), anyLong(), ArgumentMatchers.argThat(arg -> arg.length == 1));
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(pnPecMetricNames.getSendMailResponseTime()), anyLong(), argThat(list -> list.size() == 1));
         }
 
         @Test
@@ -246,8 +246,8 @@ class PnPecServiceTest {
                     .verify();
             verify(arubaService, times(1)).getUnreadMessages(6);
             verify(namirialService, times(1)).getUnreadMessages(6);
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), ArgumentMatchers.argThat(arg -> arg.length == 1));
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), ArgumentMatchers.argThat(arg -> arg.length == 1));
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), argThat(list -> list.size() == 1));
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), argThat(list -> list.size() == 1));
         }
 
         @Test
@@ -267,7 +267,7 @@ class PnPecServiceTest {
 
             verify(arubaService, times(1)).getUnreadMessages(6);
             verify(namirialService, times(1)).getUnreadMessages(6);
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), ArgumentMatchers.argThat(arg -> arg.length == 1));
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), argThat(list -> list.size() == 1));
             verify(cloudWatchPecMetrics, never()).publishResponseTime(eq(namirialProviderNamespace), any(), anyLong(), any());
         }
 
@@ -327,8 +327,8 @@ class PnPecServiceTest {
 
             verify(arubaService, times(1)).getUnreadMessages(6);
             verify(namirialService, times(1)).getUnreadMessages(6);
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), ArgumentMatchers.argThat(arg -> arg.length == 1));
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), ArgumentMatchers.argThat(arg -> arg.length == 1));
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), argThat(list -> list.size() == 1));
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), argThat(list -> list.size() == 1));
         }
 
         @Test
@@ -347,8 +347,8 @@ class PnPecServiceTest {
 
             verify(arubaService, times(1)).getUnreadMessages(6);
             verify(namirialService, times(1)).getUnreadMessages(6);
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), ArgumentMatchers.argThat(arg -> arg.length == 1));
-            verify(cloudWatchPecMetrics, never()).publishResponseTime(eq(arubaProviderNamespace), any(), anyLong(), any());
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), argThat(list -> list.size() == 1));
+            verify(cloudWatchPecMetrics, never()).publishResponseTime(eq(namirialProviderNamespace), any(), anyLong(), any());
         }
 
         @Test
@@ -416,8 +416,8 @@ class PnPecServiceTest {
             verify(namirialService, times(1)).getMessageCount();
             verify(cloudWatchPecMetrics, times(1)).publishMessageCount(3L, arubaProviderNamespace);
             verify(cloudWatchPecMetrics, times(1)).publishMessageCount(3L, namirialProviderNamespace);
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetMessageCountResponseTime()), anyLong());
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(pnPecMetricNames.getGetMessageCountResponseTime()), anyLong());
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetMessageCountResponseTime()), anyLong(), argThat(list -> list.size() == 0));
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(pnPecMetricNames.getGetMessageCountResponseTime()), anyLong(), argThat(list -> list.size() == 0));
         }
 
         @Test
@@ -435,8 +435,8 @@ class PnPecServiceTest {
             verify(namirialService, times(1)).getMessageCount();
             verify(cloudWatchPecMetrics, times(1)).publishMessageCount(3L, arubaProviderNamespace);
             verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), eq(namirialProviderNamespace));
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetMessageCountResponseTime()), anyLong());
-            verify(cloudWatchPecMetrics, never()).publishResponseTime(eq(namirialProviderNamespace), any(), anyLong());
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetMessageCountResponseTime()), anyLong(), argThat(list -> list.size() == 0));
+            verify(cloudWatchPecMetrics, never()).publishResponseTime(eq(namirialProviderNamespace), any(), anyLong(), argThat(list -> list.size() == 0));
         }
 
         @Test
@@ -453,7 +453,7 @@ class PnPecServiceTest {
             verify(arubaService, times(1)).getMessageCount();
             verify(namirialService, times(0)).getMessageCount();
             verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), anyString());
-            verify(cloudWatchPecMetrics, never()).publishResponseTime(any(), any(), anyLong());
+            verify(cloudWatchPecMetrics, never()).publishResponseTime(any(), any(), anyLong(), argThat(list -> list.size() == 0));
         }
 
         @Test
@@ -470,7 +470,7 @@ class PnPecServiceTest {
             verify(arubaService, times(1)).getMessageCount();
             verify(namirialService, times(0)).getMessageCount();
             verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), anyString());
-            verify(cloudWatchPecMetrics, never()).publishResponseTime(any(), any(), anyLong());
+            verify(cloudWatchPecMetrics, never()).publishResponseTime(any(), any(), anyLong(), argThat(list -> list.size() == 0));
         }
 
         @Test
@@ -487,7 +487,7 @@ class PnPecServiceTest {
             verify(arubaService, times(1)).getMessageCount();
             verify(namirialService, times(0)).getMessageCount();
             verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), anyString());
-            verify(cloudWatchPecMetrics, never()).publishResponseTime(any(), any(), anyLong());
+            verify(cloudWatchPecMetrics, never()).publishResponseTime(any(), any(), anyLong(), argThat(list -> list.size() == 0));
         }
 
         @Test
@@ -505,8 +505,8 @@ class PnPecServiceTest {
             verify(namirialService, times(1)).getMessageCount();
             verify(cloudWatchPecMetrics, times(1)).publishMessageCount(3L, arubaProviderNamespace);
             verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), eq(namirialProviderNamespace));
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetMessageCountResponseTime()), anyLong());
-            verify(cloudWatchPecMetrics, never()).publishResponseTime(eq(namirialProviderNamespace), any(), anyLong());
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetMessageCountResponseTime()), anyLong(), argThat(list -> list.size() == 0));
+            verify(cloudWatchPecMetrics, never()).publishResponseTime(eq(namirialProviderNamespace), any(), anyLong(), argThat(list -> list.size() == 0));
         }
 
         @Test
@@ -525,7 +525,7 @@ class PnPecServiceTest {
             verify(arubaService, times(1)).getMessageCount();
             verify(namirialService, times(0)).getMessageCount();
             verify(cloudWatchPecMetrics, never()).publishMessageCount(anyLong(), anyString());
-            verify(cloudWatchPecMetrics, never()).publishResponseTime(any(), any(), anyLong());
+            verify(cloudWatchPecMetrics, never()).publishResponseTime(any(), any(), anyLong(), argThat(list -> list.size() == 0));
         }
     }
 
@@ -542,7 +542,7 @@ class PnPecServiceTest {
 
             verify(arubaService, times(1)).markMessageAsRead(ARUBA_MESSAGE_ID);
             verify(namirialService, never()).markMessageAsRead(anyString());
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getMarkMessageAsReadResponseTime()), anyLong());
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getMarkMessageAsReadResponseTime()), anyLong(), argThat(list -> list.size() == 0));
         }
 
         @Test
@@ -556,7 +556,7 @@ class PnPecServiceTest {
 
             verify(arubaService, never()).markMessageAsRead(NAMIRIAL_MESSAGE_ID);
             verify(namirialService, times(1)).markMessageAsRead(anyString());
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(pnPecMetricNames.getMarkMessageAsReadResponseTime()), anyLong());
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(pnPecMetricNames.getMarkMessageAsReadResponseTime()), anyLong(), argThat(list -> list.size() == 0));
         }
 
         @Test
@@ -625,7 +625,7 @@ class PnPecServiceTest {
 
             verify(arubaService, times(1)).deleteMessage(ARUBA_MESSAGE_ID);
             verify(namirialService, never()).deleteMessage(anyString());
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getDeleteMessageResponseTime()), anyLong());
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getDeleteMessageResponseTime()), anyLong(), argThat(list -> list.size() == 0));
         }
 
         @Test
@@ -640,7 +640,7 @@ class PnPecServiceTest {
 
             verify(arubaService, never()).deleteMessage(NAMIRIAL_MESSAGE_ID);
             verify(namirialService, times(1)).deleteMessage(anyString());
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(pnPecMetricNames.getDeleteMessageResponseTime()), anyLong());
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(pnPecMetricNames.getDeleteMessageResponseTime()), anyLong(), argThat(list -> list.size() == 0));
         }
 
         @Test
