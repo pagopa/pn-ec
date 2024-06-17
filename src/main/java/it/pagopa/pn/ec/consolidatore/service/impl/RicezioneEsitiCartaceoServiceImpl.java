@@ -61,7 +61,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
 											 SqsService sqsService, StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses, StatusPullService statusPullService,
 											 @Value("${ricezione-esiti-cartaceo.consider-event-without-sent-status-as-booked}") boolean considerEventsWithoutStatusAsBooked,
-											 @Value("${ricezione-esiti-cartaceo.refinement-duration}") String offsetDuration) {
+											 @Value("${ricezione-esiti-cartaceo.allowed-future-offset-duration}") Duration offsetDuration) {
 		super();
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.fileCall = fileCall;
@@ -71,10 +71,10 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		this.statusCodesToDeliveryFailureCauses = statusCodesToDeliveryFailureCauses;
 		this.statusPullService = statusPullService;
 		this.considerEventsWithoutSentStatusAsBooked = considerEventsWithoutStatusAsBooked;
-		if(offsetDuration != null && !offsetDuration.isBlank()) {
-			this.offsetDuration = Duration.parse(offsetDuration);
-		} else {
+		if (offsetDuration== null){
 			this.offsetDuration = Duration.ofSeconds(-1);
+		} else {
+			this.offsetDuration = offsetDuration;
 		}
 	}
 
