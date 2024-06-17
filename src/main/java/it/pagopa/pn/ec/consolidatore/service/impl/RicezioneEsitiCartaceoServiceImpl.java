@@ -61,7 +61,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
 											 SqsService sqsService, StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses, StatusPullService statusPullService,
 											 @Value("${ricezione-esiti-cartaceo.consider-event-without-sent-status-as-booked}") boolean considerEventsWithoutStatusAsBooked,
-											 @Value("${ricezione-esiti-cartaceo.refinement-duration}") Duration offsetDuration) {
+											 @Value("${ricezione-esiti-cartaceo.allowed-future-offset-duration}") Duration offsetDuration) {
 		super();
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.fileCall = fileCall;
