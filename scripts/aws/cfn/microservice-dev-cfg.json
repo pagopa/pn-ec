@@ -25,7 +25,7 @@
     "PnEcPECMaxMessageSizeMB": "30",
     "PnEcPECAttachmentRule": "FIRST",
     "PnEcPECTipoRicevutaBreve": "false;2024-03-14T23:00:00Z;true",
-    "PnEcProviderSwitchRead": "1970-01-01T00:00:00Z;aruba|namirial",
+    "PnEcProviderSwitchRead": "1970-01-01T00:00:00Z;namirial",
     "PnEcProviderSwitchWrite": "1970-01-01T00:00:00Z;namirial",
     "PnEcNamirialServerImapAddress": "send.sicurezzapostale.it",
     "PnEcNamirialServerSmtpAddress": "send.sicurezzapostale.it",
