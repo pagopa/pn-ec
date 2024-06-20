@@ -301,7 +301,8 @@ public class EmailUtils {
             throw new RetrieveAttachmentException();
         }
     }
-
+    
+// questo metodo è stato introdotto ma al momento non è utilizzato
     @SneakyThrows (MessagingException.class)
     public static List<String> getHeaders(MimeMessage mimeMessage) {
         List<String> headerList = new ArrayList<>();
