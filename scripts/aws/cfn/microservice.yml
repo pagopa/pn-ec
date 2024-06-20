@@ -695,10 +695,10 @@ Parameters:
     Description: "[Cartaceo- Ricezione Esiti] Stato della funzionalità che considera BOOKED gli eventi senza uno stato SENT"
     Default: 'false'
 
-  PnEcConsRefinementDuration:
+  PnEcConsAllowedFutureOffsetDuration:
     Type: String
     Description: "[Cartaceo - Ricezione Esiti] Offset usato per traslare il controllo nel futuro su statusDateTime e clientRequestTimestamp"
-    Default: 'PT1M'
+    Default: '1m'
 
 ### S3 BUCKET FOR OVERSIZE SQS MESSAGES ###
 
@@ -743,7 +743,7 @@ Parameters:
   SpringCodecMaxInMemorySize:
     Type: String
     Description: 'Spring Codec Max Memory Size'
-    Default: '350KB'
+    Default: '256KB'
 
   ###### pn-core Event Bus #######
 
@@ -920,7 +920,7 @@ Resources:
         ContainerEnvEntry67: !Sub 'PnEcNamirialServerCache=${PnEcNamirialServerCache}'
         ContainerEnvEntry68: !Sub 'PnEcNamirialServerCacheEndpoint=${PnEcNamirialServerCacheEndpoint}'
         ContainerEnvEntry69: !Sub 'SpringCodecMaxInMemorySize=${SpringCodecMaxInMemorySize}'
-        ContainerEnvEntry70: !Sub 'PnEcConsRefinementDuration=${PnEcConsRefinementDuration}'
+        ContainerEnvEntry70: !Sub 'PnEcConsAllowedFutureOffsetDuration=${PnEcConsAllowedFutureOffsetDuration}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
