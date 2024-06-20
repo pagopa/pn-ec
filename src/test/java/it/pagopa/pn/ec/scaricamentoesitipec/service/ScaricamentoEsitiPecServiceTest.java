@@ -86,7 +86,7 @@ public class ScaricamentoEsitiPecServiceTest {
     @ValueSource(strings = {"certificato", "esterno"})
     void lavorazioneEsitiPecOk(String tipoDestinatario) throws IOException, MessagingException {
 
-        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(ACCETTAZIONE, tipoDestinatario);
+        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(ACCETTAZIONE, tipoDestinatario, ARUBA_PROVIDER);
         var request = pecRequest();
 
         when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, PEC_REQUEST_IDX)).thenReturn(Mono.just(request));
@@ -101,7 +101,7 @@ public class ScaricamentoEsitiPecServiceTest {
     @ValueSource(strings = {"certificato", "esterno"})
     void lavorazioneEsitiPec_S3Payload_Ok(String tipoDestinatario) throws IOException, MessagingException {
 
-        String pointerFileKey = s3Service.convertAndPutObject(storageSqsMessagesStagingBucket, buildRicezioneEsitiPecDto(ACCETTAZIONE, tipoDestinatario)).block();
+        String pointerFileKey = s3Service.convertAndPutObject(storageSqsMessagesStagingBucket, buildRicezioneEsitiPecDto(ACCETTAZIONE, tipoDestinatario, ARUBA_PROVIDER)).block();
         RicezioneEsitiPecDto ricezioneEsitiPecDto = RicezioneEsitiPecDto.builder().pointerFileKey(pointerFileKey).build();
         var request = pecRequest();
 
@@ -134,7 +134,7 @@ public class ScaricamentoEsitiPecServiceTest {
     @Test
     void lavorazioneEsitiPecDeliveryWarn24h() throws IOException, MessagingException {
 
-        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato");
+        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato", ARUBA_PROVIDER);
         var request = pecRequest();
 
         when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, PEC_REQUEST_IDX)).thenReturn(Mono.just(request));
@@ -148,14 +148,14 @@ public class ScaricamentoEsitiPecServiceTest {
 
     @Test
     void correzioneTipoArubaPecTest() throws MessagingException, IOException {
-        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato");
+        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato", ARUBA_PROVIDER);
         ArubaPostacert postacert = (ArubaPostacert) daticertService.getPostacertFromByteArray(getAttachmentFromMimeMessage(EmailUtils.getMimeMessage(ricezioneEsitiPecDto.getMessage()), "daticert.xml"), ARUBA_PROVIDER);
         Assertions.assertEquals(ERRORE_CONSEGNA, postacert.getTipo());
     }
 
     @Test
     void correzioneTipoNamirialPecTest() throws MessagingException, IOException {
-        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato");
+        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato", NAMIRIAL_PROVIDER);
         PnPostacert postacert = (PnPostacert) daticertService.getPostacertFromByteArray(getAttachmentFromMimeMessage(EmailUtils.getMimeMessage(ricezioneEsitiPecDto.getMessage()), "daticert.xml"), NAMIRIAL_PROVIDER);
         Assertions.assertEquals(PREAVVISO_ERRORE_CONSEGNA, postacert.getTipo());
     }
@@ -163,7 +163,7 @@ public class ScaricamentoEsitiPecServiceTest {
     @Test
     void lavorazioneEsitiPecKo() throws IOException, MessagingException {
 
-        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(ACCETTAZIONE, "certificato");
+        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(ACCETTAZIONE, "certificato", ARUBA_PROVIDER);
         when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, PEC_REQUEST_IDX)).thenReturn(Mono.error(new RepositoryManagerException.RequestNotFoundException(PEC_REQUEST_IDX)));
 
         Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
@@ -178,7 +178,7 @@ public class ScaricamentoEsitiPecServiceTest {
         return new RequestDto().requestIdx(PEC_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).requestPersonal(requestPersonal).requestMetadata(requestMetadata);
     }
 
-    private RicezioneEsitiPecDto buildRicezioneEsitiPecDto(String tipoPostacert, String tipoDestinatario) throws MessagingException, IOException {
+    private RicezioneEsitiPecDto buildRicezioneEsitiPecDto(String tipoPostacert, String tipoDestinatario, String providerName) throws MessagingException, IOException {
         String msgId = URLEncoder.encode("<" + encodeMessageId(CLIENT_ID, PEC_REQUEST_IDX) + ">", StandardCharsets.UTF_8);
         var daticertBytes = generateDaticertAccettazione(tipoPostacert,"sender@dgsspa.com", "receiverAddress@pagopa.it", "replyTo", "subject", "gestoreMittente", "03/11/1999", "00:00:00", msgId, tipoDestinatario).toString().getBytes(StandardCharsets.UTF_8);
         ByteArrayOutputStream daticertOutput = new ByteArrayOutputStream();
@@ -198,7 +198,7 @@ public class ScaricamentoEsitiPecServiceTest {
         var emailOutput = new ByteArrayOutputStream();
         EmailUtils.getMimeMessage(emailField).writeTo(emailOutput);
 
-        return RicezioneEsitiPecDto.builder().retry(0).receiversDomain("receiverDomain@pagopa.it").messageID("messageID").message(emailOutput.toByteArray()).build();
+        return RicezioneEsitiPecDto.builder().retry(0).receiversDomain("receiverDomain@pagopa.it").messageID("messageID").message(emailOutput.toByteArray()).providerName(providerName).build();
     }
 
 
