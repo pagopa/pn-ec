@@ -15,6 +15,7 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.library.pec.model.pojo.ArubaPostacert;
+import it.pagopa.pn.library.pec.model.pojo.PnPostacert;
 import it.pagopa.pn.library.pec.service.DaticertService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +44,8 @@ import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.*;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.PecUtils.generateDaticertAccettazione;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.ARUBA_PROVIDER;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.NAMIRIAL_PROVIDER;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -146,8 +149,15 @@ public class ScaricamentoEsitiPecServiceTest {
     @Test
     void correzioneTipoArubaPecTest() throws MessagingException, IOException {
         RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato");
-        ArubaPostacert postacert = (ArubaPostacert) daticertService.getPostacertFromByteArray(getAttachmentFromMimeMessage(EmailUtils.getMimeMessage(ricezioneEsitiPecDto.getMessage()), "daticert.xml"));
+        ArubaPostacert postacert = (ArubaPostacert) daticertService.getPostacertFromByteArray(getAttachmentFromMimeMessage(EmailUtils.getMimeMessage(ricezioneEsitiPecDto.getMessage()), "daticert.xml"), ARUBA_PROVIDER);
         Assertions.assertEquals(ERRORE_CONSEGNA, postacert.getTipo());
+    }
+
+    @Test
+    void correzioneTipoNamirialPecTest() throws MessagingException, IOException {
+        RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato");
+        PnPostacert postacert = (PnPostacert) daticertService.getPostacertFromByteArray(getAttachmentFromMimeMessage(EmailUtils.getMimeMessage(ricezioneEsitiPecDto.getMessage()), "daticert.xml"), NAMIRIAL_PROVIDER);
+        Assertions.assertEquals(PREAVVISO_ERRORE_CONSEGNA, postacert.getTipo());
     }
 
     @Test
