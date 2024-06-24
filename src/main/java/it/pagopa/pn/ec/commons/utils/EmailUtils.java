@@ -301,6 +301,14 @@ public class EmailUtils {
             throw new RetrieveAttachmentException();
         }
     }
+    
+// questo metodo è stato introdotto ma al momento non è utilizzato
+    @SneakyThrows (MessagingException.class)
+    public static List<String> getHeaders(MimeMessage mimeMessage) {
+        List<String> headerList = new ArrayList<>();
+        mimeMessage.getAllHeaderLines().asIterator().forEachRemaining(headerList::add);
+        return headerList;
+    }
 
 //    public static byte[] findAttachmentByName(MimeMessage mimeMessage, String attachmentName) {
 //        try {
@@ -312,4 +320,5 @@ public class EmailUtils {
 //            throw new RetrieveAttachmentException();
 //        }
 //    }
+
 }
