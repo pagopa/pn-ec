@@ -64,7 +64,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 											 SqsService sqsService, StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses, StatusPullService statusPullService,
 											 @Value("${ricezione-esiti-cartaceo.consider-event-without-sent-status-as-booked}") boolean considerEventsWithoutStatusAsBooked,
 											 @Value("${ricezione-esiti-cartaceo.duplicates-check}") String duplicatesCheck,
-											 @Value("${ricezione-esiti-cartaceo.refinement-duration}") String offsetDuration) {
+											 @Value("${ricezione-esiti-cartaceo.allowed-future-offset-duration}") Duration offsetDuration) {
 		super();
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.fileCall = fileCall;
@@ -75,10 +75,10 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		this.statusPullService = statusPullService;
 		this.considerEventsWithoutSentStatusAsBooked = considerEventsWithoutStatusAsBooked;
 		this.duplicatesCheck = duplicatesCheck;
-		if(offsetDuration != null && !offsetDuration.isBlank()) {
-			this.offsetDuration = Duration.parse(offsetDuration);
+		if (offsetDuration== null){
+            this.offsetDuration = Duration.ofSeconds(-1);
 		} else {
-			this.offsetDuration = Duration.ofSeconds(-1);
+			this.offsetDuration = offsetDuration;
 		}
 	}
 
