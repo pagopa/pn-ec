@@ -4,10 +4,12 @@ import lombok.CustomLog;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
 import software.amazon.awssdk.metrics.MetricCollection;
+import software.amazon.awssdk.metrics.SdkMetric;
 import software.amazon.awssdk.metrics.publishers.cloudwatch.CloudWatchMetricPublisher;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 
 import java.time.Duration;
+import java.util.List;
 
 
 @Getter
@@ -20,6 +22,7 @@ public class CloudWatchMetricsPublisherWrapper {
     int maximumCallsPerUpload;
     Duration uploadFrequency;
     CloudWatchAsyncClient cloudWatchClient;
+    List<SdkMetric<String>> dimensions;
 
 
     /**
@@ -29,18 +32,21 @@ public class CloudWatchMetricsPublisherWrapper {
      * @param maximumCallsPerUpload the maximum calls per upload
      * @param uploadFrequency       the upload frequency
      * @param cloudWatchClient      the cloud watch client
+     * @param dimensions            the dimensions
      */
-    public CloudWatchMetricsPublisherWrapper(String nameSpace, int maximumCallsPerUpload, Duration uploadFrequency, CloudWatchAsyncClient cloudWatchClient) {
+    public CloudWatchMetricsPublisherWrapper(String nameSpace, int maximumCallsPerUpload, Duration uploadFrequency, CloudWatchAsyncClient cloudWatchClient, List<SdkMetric<String>> dimensions) {
         log.debug("Initializing CloudWatchMetricPublisher wrapper with args: nameSpace={}, maximumCallsPerUpload={}, uploadFrequencyMillis={}", nameSpace, maximumCallsPerUpload, uploadFrequency.toSeconds()+"s");
         this.namespace = nameSpace;
         this.maximumCallsPerUpload = maximumCallsPerUpload;
         this.uploadFrequency = uploadFrequency;
         this.cloudWatchClient = cloudWatchClient;
+        this.dimensions = dimensions;
         this.cloudWatchMetricPublisher = CloudWatchMetricPublisher.builder()
                 .cloudWatchClient(cloudWatchClient)
                 .namespace(nameSpace)
                 .maximumCallsPerUpload(maximumCallsPerUpload)
                 .uploadFrequency(uploadFrequency)
+                .dimensions(dimensions)
                 .build();
     }
 
