@@ -179,8 +179,8 @@ public class CloudWatchPecMetrics {
 
                     //Report metric dimensions.
                     for (Dimension dimension : dimensions) {
-                        SdkMetric<Long> dimensionMetric = (SdkMetric<Long>) cloudWatchMetricPublisherConfiguration.getSdkMetricByMetricName(dimension.name());
-                        metricCollector.reportMetric(dimensionMetric, Long.valueOf(dimension.value()));
+                        SdkMetric<String> dimensionMetric = (SdkMetric<String>) cloudWatchMetricPublisherConfiguration.getSdkMetricByMetricName(dimension.name());
+                        metricCollector.reportMetric(dimensionMetric, dimension.value());
                     }
 
                     MetricCollection metricCollection = metricCollector.collect();
