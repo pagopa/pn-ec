@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.consolidatore.controller;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
+import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.consolidatore.exception.SemanticException;
 import it.pagopa.pn.ec.consolidatore.exception.SyntaxException;
@@ -24,7 +24,15 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
@@ -42,16 +50,18 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     private final ConsolidatoreServiceImpl consolidatoreServiceImpl;
     private final RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService;
 
-    private final SafeStorageEndpointProperties safeStorageEndpointProperties;
+    private final static String PATTERN_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+    private final static String PATTERN_DATE_FORMAT = "yyyy-MM-dd";
+    DateTimeFormatter TIMESTAMP_RICEZIONE_FORMATTER = DateTimeFormatter.ofPattern(PATTERN_FORMAT).withZone(ZoneId.from(ZoneOffset.UTC));
+    DateTimeFormatter DATA_RICEZIONE_FORMATTER = DateTimeFormatter.ofPattern(PATTERN_DATE_FORMAT).withZone(ZoneId.from(ZoneOffset.UTC));
+
     @Autowired
     private AuthService authService;
 
     public ConsolidatoreApiController(ConsolidatoreServiceImpl consolidatoreServiceImpl
-            , RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService,
-                                      SafeStorageEndpointProperties safeStorageEndpointProperties) {
+            , RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService) {
         this.consolidatoreServiceImpl = consolidatoreServiceImpl;
         this.ricezioneEsitiCartaceoService = ricezioneEsitiCartaceoService;
-        this.safeStorageEndpointProperties = safeStorageEndpointProperties;
     }
 
     private OperationResultCodeResponse getOperationResultCodeResponse(String resultCode, String resultDescription, List<String> errors) {
@@ -102,6 +112,9 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                                                             final ServerWebExchange exchange) {
         MDC.clear();
         log.logStartingProcess(SEND_PAPER_PROGRESS_STATUS_REQUEST);
+        OffsetDateTime now = OffsetDateTime.now();
+        String timestampRicezione = now.format(TIMESTAMP_RICEZIONE_FORMATTER);
+        String dataRicezione = now.format(DATA_RICEZIONE_FORMATTER);
         return authService.clientAuth(xPagopaExtchServiceId)
                 .flatMap(clientConfiguration -> {
                     log.logChecking(X_API_KEY_VALIDATION);
@@ -145,13 +158,27 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                 // errori
                                 var listErrors = new ArrayList<OperationResultCodeResponse>();
                                 var consAuditLogErrorList = new ArrayList<ConsAuditLogError>();
+                                var discardedEventsDtoList = new ArrayList<DiscardedEventDto>();
 
+                                String jsonRequestBody = exchange.getAttribute("requestBody");
+                                String jsonRequestBodyHash = generateSha256(jsonRequestBody.getBytes(StandardCharsets.UTF_8));
                                 listErrorResponse.forEach(dto -> {
                                     if (dto.getConsAuditLogErrorList() != null) {
                                         consAuditLogErrorList.addAll(dto.getConsAuditLogErrorList());
                                     }
 
                                     if (dto.getOperationResultCodeResponse() != null) {
+                                        String requestId= dto.getPaperProgressStatusEvent().getRequestId();
+                                        dto.getOperationResultCodeResponse().getErrorList().forEach(error -> {
+                                            DiscardedEventDto discardedEventDto = new DiscardedEventDto();
+                                            discardedEventDto.setDataRicezione(dataRicezione);
+                                                discardedEventDto.setJsonRicevuto(jsonRequestBody);
+                                                discardedEventDto.setPayloadHash(jsonRequestBodyHash);
+                                            discardedEventDto.setCodiceScarto(error);
+                                            discardedEventDto.setTimestampRicezione(timestampRicezione);
+                                            discardedEventDto.setRequestId(requestId);
+                                            discardedEventsDtoList.add(discardedEventDto);
+                                        });
                                         listErrors.add(dto.getOperationResultCodeResponse());
                                     }
                                 });
@@ -163,11 +190,17 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                         listErrors.get(0).getResultCode(),
                                         listErrors.get(0).getResultDescription(),
                                         errors);
-                                return Mono.just(ResponseEntity
+
+                                var response = ResponseEntity
                                         .badRequest()
                                         .body(getOperationResultCodeResponse(listErrors.get(0).getResultCode(),
                                                 listErrors.get(0).getResultDescription(),
-                                                errors)));
+                                                errors));
+
+                                if (!discardedEventsDtoList.isEmpty()) {
+                                    return ricezioneEsitiCartaceoService.insertDiscardedEvents(discardedEventsDtoList).then(Mono.just(response));
+                                }
+                                return Mono.just(response);
                             }
                         })
                         .doOnSuccess(result -> log.logEndingProcess(SEND_PAPER_PROGRESS_STATUS_REQUEST))
@@ -191,6 +224,18 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
             consAuditLogErrorList.add(consAuditLogError);
         }
         log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(request).errorList(consAuditLogErrorList));
+    }
+
+    private String generateSha256(byte[] fileBytes) {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("SHA256");
+            md.update(fileBytes);
+            byte[] digest = md.digest();
+            return Base64.getEncoder().encodeToString(digest);
+        } catch (NoSuchAlgorithmException | NullPointerException e) {
+            throw new ShaGenerationException(e.getMessage());
+        }
     }
 
 }
