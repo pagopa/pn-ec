@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.consolidatore.controller;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
+import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.consolidatore.exception.SemanticException;
 import it.pagopa.pn.ec.consolidatore.exception.SyntaxException;
@@ -23,13 +24,16 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
-import java.util.Objects;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
@@ -157,7 +161,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                 var discardedEventsDtoList = new ArrayList<DiscardedEventDto>();
 
                                 String jsonRequestBody = exchange.getAttribute("requestBody");
-                                String jsonRequestBodyHash = Objects.hashCode(jsonRequestBody) + "";
+                                String jsonRequestBodyHash = generateSha256(jsonRequestBody.getBytes(StandardCharsets.UTF_8));
                                 listErrorResponse.forEach(dto -> {
                                     if (dto.getConsAuditLogErrorList() != null) {
                                         consAuditLogErrorList.addAll(dto.getConsAuditLogErrorList());
@@ -220,6 +224,18 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
             consAuditLogErrorList.add(consAuditLogError);
         }
         log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(request).errorList(consAuditLogErrorList));
+    }
+
+    private String generateSha256(byte[] fileBytes) {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("SHA256");
+            md.update(fileBytes);
+            byte[] digest = md.digest();
+            return Base64.getEncoder().encodeToString(digest);
+        } catch (NoSuchAlgorithmException | NullPointerException e) {
+            throw new ShaGenerationException(e.getMessage());
+        }
     }
 
 }
