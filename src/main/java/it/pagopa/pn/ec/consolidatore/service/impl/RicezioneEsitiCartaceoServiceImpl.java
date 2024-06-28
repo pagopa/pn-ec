@@ -29,7 +29,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,14 +53,11 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private final StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses;
 	private final StatusPullService statusPullService;
 	private boolean considerEventsWithoutSentStatusAsBooked;
-	private final Duration offsetDuration;
-
 
 	public RicezioneEsitiCartaceoServiceImpl(GestoreRepositoryCall gestoreRepositoryCall,
 											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
 											 SqsService sqsService, StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses, StatusPullService statusPullService,
-											 @Value("${ricezione-esiti-cartaceo.consider-event-without-sent-status-as-booked}") boolean considerEventsWithoutStatusAsBooked,
-											 @Value("${ricezione-esiti-cartaceo.allowed-future-offset-duration}") Duration offsetDuration) {
+											 @Value("${ricezione-esiti-cartaceo.consider-event-without-sent-status-as-booked}") boolean considerEventsWithoutStatusAsBooked) {
 		super();
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.fileCall = fileCall;
@@ -71,11 +67,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		this.statusCodesToDeliveryFailureCauses = statusCodesToDeliveryFailureCauses;
 		this.statusPullService = statusPullService;
 		this.considerEventsWithoutSentStatusAsBooked = considerEventsWithoutStatusAsBooked;
-		if (offsetDuration== null){
-			this.offsetDuration = Duration.ofSeconds(-1);
-		} else {
-			this.offsetDuration = offsetDuration;
-		}
 	}
 
 	private OperationResultCodeResponse getOperationResultCodeResponse(
@@ -114,8 +105,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 					List<String> errorList = new ArrayList<>();
 					List<ConsAuditLogError> auditLogErrorList = new ArrayList<>();
 
-					OffsetDateTime now = OffsetDateTime.now();
-
 					//Status date time
 					OffsetDateTime statusDateTime = progressStatusEvent.getStatusDateTime();
 					EventsDto sentEvent = requestDto.getRequestMetadata().getEventsList()
@@ -136,30 +125,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 					if (statusDateTime.isBefore(sentEvent.getPaperProgrStatus().getStatusDateTime())) {
 						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_STATUS_DATE_TIME.getValue()).description("Status date time is not valid."));
 						errorList.add(String.format(NOT_VALID, STATUS_DATE_TIME_LABEL, statusDateTime));
-					}
-
-					if(!offsetDuration.isNegative()) {
-						// Calcolo della data corrente con l'offset
-						OffsetDateTime nowWithOffset = now.plus(offsetDuration);
-						if (statusDateTime.isAfter(nowWithOffset)) {
-							auditLogErrorList.add(new ConsAuditLogError()
-									.requestId(requestId)
-									.error(ERR_CONS_BAD_STATUS_DATE_TIME.getValue())
-									.description("Status date time is in the future."));
-							errorList.add(String.format(NOT_VALID_FUTURE_DATE, STATUS_DATE_TIME_LABEL, statusDateTime));
-						}
-
-
-						//Client request timestamp
-						// Verifica client request timestamp non sia al futuro
-						OffsetDateTime clientRequestTimestamp = progressStatusEvent.getClientRequestTimeStamp();
-						if (clientRequestTimestamp.isAfter(nowWithOffset)) {
-							auditLogErrorList.add(new ConsAuditLogError()
-									.requestId(requestId)
-									.error(ERR_CONS_BAD_CLIENT_REQUEST_TIMESTAMP.getValue())
-									.description("Client request timestamp is in the future."));
-							errorList.add(String.format(NOT_VALID_FUTURE_DATE, CLIENT_REQUEST_TIMESTAMP_LABEL, clientRequestTimestamp));
-						}
 					}
 
 					//Iun

@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.commons.utils.EmailUtils;
 import it.pagopa.pn.library.pec.model.IPostacert;
 import it.pagopa.pn.library.pec.model.pojo.PnEcPecListOfMessages;
 import it.pagopa.pn.library.pec.model.pojo.PnEcPecMessage;
@@ -87,15 +86,9 @@ public class ScaricamentoEsitiPecScheduler {
     public Mono<Void> lavorazioneEsito(PnEcPecMessage pecMessage, String getUnreadMessagesUUID) {
 
         byte[] message = pecMessage.getMessage();
-        // controllo dell'effettiva valorizazione del messaggio
-        if (message.length == 0) {
-            log.warn("PEC message byte array is empty.");
-            return Mono.empty();
-        }
         String providerName = pecMessage.getProviderName();
         var mimeMessage = getMimeMessage(message);
         var messageID = getMessageIdFromMimeMessage(mimeMessage);
-
         //Rimozione delle parentesi angolari dal messageID
         if (messageID.startsWith("<") && messageID.endsWith(">"))
             messageID = messageID.substring(1, messageID.length() - 1);
