@@ -6,11 +6,15 @@ import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
+import it.pagopa.pn.ec.pdfraster.model.dto.PdfRasterResponse;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.pdfraster.PdfRasterCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.pdfraster.model.dto.RequestConversionDto;
+import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
@@ -54,6 +58,8 @@ class CartaceoServiceTest {
     private SqsService sqsService;
     @Autowired
     private CartaceoSqsQueueName cartaceoSqsQueueName;
+    @SpyBean
+    private DynamoPdfRasterService dynamoPdfRasterService;
 
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
@@ -88,40 +94,33 @@ class CartaceoServiceTest {
     void lavorazioneRichiestaPdfRasterOk(){
 
         // Mock di una generica getRichiesta.
-        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));//TODO devo settare il tipo documento??
+        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));
 
         //Mock chiamata pdfRaster
-        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.just(""));
-
-        //Mock chiamata scrittura su tabella
-        //TODO completare la scrittura delle entity, richiamare poi il servizio
-
-        //Mock AvailabilityManager
-        //TODO scrittura del componente Avalaibility Manager 
-
-        when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
+        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.just(PdfRasterResponse.builder().newFileKey("").build()));
 
         Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
 
-        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
+        verify(dynamoPdfRasterService, times(1)).insertRequestConversion(any(RequestConversionDto.class));
+        verify(cartaceoService, never()).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
     }
 
+    //TODO Gestione Codici errore (1 metodo per eccezione)
     @Test
-    void lavorazioneRichiestaKoPdfRaster(){
-        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));//TODO devo settare il tipo documento??
+    void lavorazioneRichiestaKoPdfRasterNotFound(){
+        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));
 
         //Mock chiamata pdfRaster
-        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.just(""));
+        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.error(new AttachmentNotAvailableException("")));
+
+        Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
+        //TODO Perchè non va in errore
+        StepVerifier.create(lavorazioneRichiesta).expectError(AttachmentNotAvailableException.class);
     }
 
     @Test
-    void lavorazioneRichiestaKoEntityManager(){
-
-    }
-
-    @Test
-    void lavorazioneRichiestaKoAvailabilityManager(){
+    void lavorazioneRichiestaKoDynamoDb() {
 
     }
 
