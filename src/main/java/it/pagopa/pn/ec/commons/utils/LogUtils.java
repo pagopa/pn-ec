@@ -147,6 +147,8 @@ public class LogUtils {
     public static final String PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER = "RicezioneEsitiCartaceoService.pubblicaEsitoCodaNotificationTracker()";
     public static final String PUBLISH_ON_QUEUE = "RicezioneEsitiCartaceoService.publishOnQueue()";
 
+    //PDF RASTER
+    public static final String CONVERT_PDF = "convertPdf";
 
     //STATEMACHINE
     public static final String STATE_MACHINE_SERVICE = "pn-statemachinemanager";
@@ -168,6 +170,7 @@ public class LogUtils {
 
     //MICROSERVIZI ESTERNI
     public static final String CONSOLIDATORE_SERVICE = "Consolidatore";
+    public static final String PDF_RASTER_SERVICE = "Pdf Raster";
 
     //SERVIZI ESTERNI
     public static final String CLIENT_METHOD_INVOCATION_WITH_ARGS = "Client method {} - args: {}";
