@@ -9,6 +9,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
+import it.pagopa.pn.ec.commons.rest.call.pdfraster.PdfRasterCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
@@ -46,6 +47,8 @@ class CartaceoServiceTest {
     @MockBean
     private PaperMessageCall paperMessageCall;
     @MockBean
+    private PdfRasterCall pdfRasterCall;
+    @MockBean
     private GestoreRepositoryCall gestoreRepositoryCall;
     @SpyBean
     private SqsService sqsService;
@@ -82,6 +85,47 @@ class CartaceoServiceTest {
     }
 
     @Test
+    void lavorazioneRichiestaPdfRasterOk(){
+
+        // Mock di una generica getRichiesta.
+        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));//TODO devo settare il tipo documento??
+
+        //Mock chiamata pdfRaster
+        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.just(""));
+
+        //Mock chiamata scrittura su tabella
+        //TODO completare la scrittura delle entity, richiamare poi il servizio
+
+        //Mock AvailabilityManager
+        //TODO scrittura del componente Avalaibility Manager 
+
+        when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
+
+        Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
+
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
+    }
+
+    @Test
+    void lavorazioneRichiestaKoPdfRaster(){
+        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));//TODO devo settare il tipo documento??
+
+        //Mock chiamata pdfRaster
+        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.just(""));
+    }
+
+    @Test
+    void lavorazioneRichiestaKoEntityManager(){
+
+    }
+
+    @Test
+    void lavorazioneRichiestaKoAvailabilityManager(){
+
+    }
+
+    @Test
     void lavorazioneRichiestaMaxRetriesExceeded() {
 
         // Mock di una generica getRichiesta.
@@ -96,9 +140,7 @@ class CartaceoServiceTest {
 
         //Verifica che la richiesta sia stata mandata in fase di Retry.
         verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
-
     }
-
 
     /**
      * <h3>CRCLR.100.3</h3>

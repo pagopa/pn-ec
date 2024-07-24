@@ -224,6 +224,10 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         return MDCUtils.addMDCToContextAndExecute(gestoreRepositoryCall.getRichiesta(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(),
                         cartaceoPresaInCaricoInfo.getRequestIdx())
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                //TODO Controllare tipoDocumento allegati per verificare che tipo di lavorazione effettuare
+                //TODO Inserimento lavorazione richiesta PDFRaster (return FileKey immediata)
+                //TODO Inserimento sulla nuova tabella
+                //
                 .flatMap(requestDto ->
                         // Try to send PAPER
                         paperMessageCall.putRequest(paperEngageRequestDst)
