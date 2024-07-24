@@ -116,7 +116,9 @@ class CartaceoServiceTest {
 
         Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
         //TODO Perchè non va in errore
-        StepVerifier.create(lavorazioneRichiesta).expectError(AttachmentNotAvailableException.class);
+        StepVerifier.create(lavorazioneRichiesta)
+                .expectError(AttachmentNotAvailableException.class)
+                .verify();
     }
 
     @Test
