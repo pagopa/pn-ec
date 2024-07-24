@@ -833,6 +833,18 @@ Parameters:
     Description: Memory amount reserved to the task pod.
     AllowedValues: [ 2GB, 4GB, 6GB, 8GB ]
 
+  PdfRasterFeatureFlagNothing:
+    Type: String
+    Description: 'Nuova funzionalità completamente disabilitatà'
+
+  PdfRasterFeatureFlagAll:
+    Type: String
+    Description: 'Tutti gli allegati del tipo specificato verrano convertiti'
+
+  PnPaperAttachment:
+    Type: String
+    Description: 'Nuova tipologia documento per l''archiviazione su Safe Storage'
+
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
@@ -921,6 +933,9 @@ Resources:
         ContainerEnvEntry68: !Sub 'PnEcNamirialServerCacheEndpoint=${PnEcNamirialServerCacheEndpoint}'
         ContainerEnvEntry69: !Sub 'SpringCodecMaxInMemorySize=${SpringCodecMaxInMemorySize}'
         ContainerEnvEntry70: !Sub 'PnEcConsAllowedFutureOffsetDuration=${PnEcConsAllowedFutureOffsetDuration}'
+        ContainerEnvEntry71: !Sub 'PdfRasterFeatureFlagNothing=${PdfRasterFeatureFlagNothing}'
+        ContainerEnvEntry72: !Sub 'PdfRasterFeatureFlagAll=${PdfRasterFeatureFlagAll}'
+        ContainerEnvEntry73: !Sub 'PnPaperAttachment=${PnPaperAttachment}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
