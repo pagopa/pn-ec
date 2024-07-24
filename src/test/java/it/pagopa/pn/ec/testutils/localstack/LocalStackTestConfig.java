@@ -2,6 +2,8 @@ package it.pagopa.pn.ec.testutils.localstack;
 
 
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
+import it.pagopa.pn.ec.pdfraster.model.entity.PdfConversionEntity;
+import it.pagopa.pn.ec.pdfraster.model.entity.RequestConversionEntity;
 import it.pagopa.pn.ec.commons.configurationproperties.AwsConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
@@ -235,7 +237,10 @@ public class LocalStackTestConfig {
         Map<String, Class<?>> tableNameWithEntityClass =
                 Map.ofEntries(entry(repositoryManagerDynamoTableName.anagraficaClientName(), ClientConfiguration.class),
                         entry(repositoryManagerDynamoTableName.richiestePersonalName(), RequestPersonal.class),
-                        entry(repositoryManagerDynamoTableName.richiesteMetadataName(), RequestMetadata.class));
+                        entry(repositoryManagerDynamoTableName.richiesteMetadataName(), RequestMetadata.class),
+                        entry(repositoryManagerDynamoTableName.richiesteConversioneRequestName(), RequestConversionEntity.class),
+                        entry(repositoryManagerDynamoTableName.richiesteConversionePdfName(), PdfConversionEntity.class)
+                );
 
         tableNameWithEntityClass.forEach((tableName, entityClass) -> {
             try {
