@@ -8,6 +8,7 @@ import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
+import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic500ErrorException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.pdfraster.model.dto.PdfRasterResponse;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
@@ -23,6 +24,8 @@ import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -115,12 +118,15 @@ class CartaceoServiceTest {
         verify(cartaceoService, never()).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
     }
 
-    @Test
-    void lavorazioneRichiestaKoPdfRaster(){
+    @ParameterizedTest
+    @ValueSource(classes = {AttachmentNotAvailableException.class,ClientNotAuthorizedException.class,Generic400ErrorException.class, Generic500ErrorException.class})
+    void lavorazioneRichiestaKoPdfRaster(Class<Exception> e){
         when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));
 
+        Exception exception = handleExceptionLavorazioneRichiesta(e);
+
         //Mock chiamata pdfRaster
-        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.error(new Exception()));
+        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.error(exception));
 
         Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER);
 
@@ -129,6 +135,25 @@ class CartaceoServiceTest {
                     .verifyComplete();
 
         verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
+    }
+
+    /**
+     * Metodo ausilirare per la gestione delle eccezioni
+     * @param e
+     * @return
+     */
+    private static Exception handleExceptionLavorazioneRichiesta(Class<Exception> e) {
+        Exception exception = null;
+        if(e.isInstance(new AttachmentNotAvailableException(""))){
+            exception = new AttachmentNotAvailableException("");
+        } else if (e.isInstance(new ClientNotAuthorizedException(""))) {
+            exception = new ClientNotAuthorizedException("");
+        } else if (e.isInstance(new Generic400ErrorException("",""))){
+            exception = new Generic400ErrorException("","");
+        } else {
+            exception = new Generic500ErrorException("","");
+        }
+        return exception;
     }
 
     @Test

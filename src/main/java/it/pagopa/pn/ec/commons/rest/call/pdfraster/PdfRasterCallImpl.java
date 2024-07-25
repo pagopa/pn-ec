@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.commons.rest.call.pdfraster;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.pdfraster.PdfRasterEndpointProperties;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
+import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic500ErrorException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.pdfraster.model.dto.PdfRasterResponse;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
@@ -12,9 +13,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
-import static org.springframework.http.HttpStatus.FORBIDDEN;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.*;
 
 
 @Component
@@ -38,6 +37,7 @@ public class PdfRasterCallImpl implements PdfRasterCall{
                                      .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new AttachmentNotAvailableException(fileKey)))
                                      .onStatus(FORBIDDEN::equals, clientResponse -> Mono.error(new ClientNotAuthorizedException("")))
                                      .onStatus(BAD_REQUEST::equals, clientResponse -> clientResponse.createException().map(e -> new Generic400ErrorException("",e.getMessage())))
+                                     .onStatus(INTERNAL_SERVER_ERROR::equals, clientResponse -> clientResponse.createException().map(e -> new Generic500ErrorException("",e.getMessage())))
                                      .bodyToMono(PdfRasterResponse.class);
     }
 }
