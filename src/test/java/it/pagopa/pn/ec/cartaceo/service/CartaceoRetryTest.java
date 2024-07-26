@@ -24,6 +24,8 @@ import it.pagopa.pn.ec.sms.service.SmsService;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -38,6 +40,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.INTERNAL_ERROR;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
@@ -237,15 +240,13 @@ class CartaceoRetryTest {
     }*/
     
     @ParameterizedTest
-    @ValueSource(classes = {AttachmentNotAvailableException.class,ClientNotAuthorizedException.class,Generic400ErrorException.class, Generic500ErrorException.class})
-    void gestioneRetryCartaceoPdfRaster_RetryKo(Class<Exception> e) {
+    @MethodSource("exceptionsPdfRaster")
+    void gestioneRetryCartaceoPdfRaster_RetryKo(Exception e) {
 
         RequestDto requestDto= buildRequestDto(2);
 
         String requestId=requestDto.getRequestIdx();
         String clientId = requestDto.getxPagopaExtchCxId();
-
-        Exception exception = handleExceptionLavorazioneRichiesta(e);
 
         // Mock di una generica getRichiesta.
         when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(requestDto));
@@ -254,7 +255,7 @@ class CartaceoRetryTest {
         when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
 
         // Mock della chiamata a pdf raster
-        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.error(exception));
+        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.error(e));
 
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
@@ -296,22 +297,15 @@ class CartaceoRetryTest {
     }
 
     /**
-     * Metodo ausilirare per la gestione delle eccezioni
-     * @param e
+     *
      * @return
      */
-    private static Exception handleExceptionLavorazioneRichiesta(Class<Exception> e) {
-        Exception exception = null;
-        if(e.isInstance(new AttachmentNotAvailableException(""))){
-            exception = new AttachmentNotAvailableException("");
-        } else if (e.isInstance(new ClientNotAuthorizedException(""))) {
-            exception = new ClientNotAuthorizedException("");
-        } else if (e.isInstance(new Generic400ErrorException("",""))){
-            exception = new Generic400ErrorException("","");
-        } else {
-            exception = new Generic500ErrorException("","");
-        }
-        return exception;
+    private static Stream<Arguments> exceptionsPdfRaster(){
+        return Stream.of(
+                Arguments.of(new AttachmentNotAvailableException("")),
+                Arguments.of(new ClientNotAuthorizedException("")),
+                Arguments.of(new Generic400ErrorException("","")),
+                Arguments.of(new Generic500ErrorException("",""))
+        );
     }
-
 }
