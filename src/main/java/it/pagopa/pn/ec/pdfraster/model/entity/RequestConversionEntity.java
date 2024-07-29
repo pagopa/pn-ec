@@ -5,6 +5,9 @@ import lombok.experimental.FieldDefaults;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -16,4 +19,8 @@ public class RequestConversionEntity {
 
     @Getter(onMethod=@__({@DynamoDbPartitionKey}))
     String requestId;
+    String requestTimestamp;
+    BigDecimal expiration;
+    OriginalRequest originalRequest;
+    List<AttachmentToConvert> attachments;
 }

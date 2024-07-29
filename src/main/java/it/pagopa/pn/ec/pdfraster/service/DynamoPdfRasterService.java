@@ -7,5 +7,12 @@ import reactor.core.publisher.Mono;
 public interface DynamoPdfRasterService {
 
     Mono<RequestConversionDto> insertRequestConversion(RequestConversionDto request);
+
     Mono<PdfConversionDto> insertPdfConversion(PdfConversionDto request);
+
+    Mono<RequestConversionDto> updateRequestConversion(RequestConversionDto requestConversionDto);
+
+
+
+
 }

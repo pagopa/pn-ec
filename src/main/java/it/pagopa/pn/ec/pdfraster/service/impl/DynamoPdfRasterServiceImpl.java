@@ -14,7 +14,15 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
     }
 
     @Override
+    public Mono<RequestConversionDto> updateRequestConversion(RequestConversionDto requestConversionDto) {
+        return null;
+    }
+
+    @Override
     public Mono<PdfConversionDto> insertPdfConversion(PdfConversionDto request) {
         return null;
     }
+
+
+
 }
