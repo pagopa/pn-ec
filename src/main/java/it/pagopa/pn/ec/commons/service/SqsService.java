@@ -4,6 +4,7 @@ import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import software.amazon.awssdk.services.sqs.model.ChangeMessageVisibilityResponse;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
@@ -21,6 +22,8 @@ public interface SqsService {
     <T> Mono<SendMessageResponse> sendWithLargePayload(final String queueName, String messageGroupId, String bucketName, final T queuePayload) throws SqsClientException;
 
     <T> Mono<SqsMessageWrapper<T>> getOneMessage(final String queueName, final Class<T> messageContentClass);
+
+    Mono<ChangeMessageVisibilityResponse> changeMessageVisibility(String queueName, Integer visibilityTimeout, String receiptHandle);
 
     <T> Flux<SqsMessageWrapper<T>> getMessages(final String queueName, final Class<T> messageContentClass);
 

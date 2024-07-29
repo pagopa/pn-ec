@@ -8,9 +8,9 @@ import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic500ErrorException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
-import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
+import it.pagopa.pn.ec.commons.policy.Policy;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.pdfraster.PdfRasterCall;
@@ -22,39 +22,46 @@ import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.service.SmsService;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
+import software.amazon.awssdk.services.sqs.model.ChangeMessageVisibilityResponse;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.SqsResponse;
 
+import javax.validation.constraints.Null;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static it.pagopa.pn.ec.commons.constant.Status.INTERNAL_ERROR;
-import static it.pagopa.pn.ec.commons.constant.Status.SENT;
+import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.OK_CODE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
 class CartaceoRetryTest {
+
+    @SpyBean
+    SqsService sqsService;
 
     @Autowired
     private CartaceoSqsQueueName cartaceoSqsQueueName;
@@ -72,9 +79,6 @@ class CartaceoRetryTest {
     PaperMessageCall paperMessageCall;
 
     @SpyBean
-    SqsService sqsService;
-
-    @SpyBean
     private DynamoPdfRasterService dynamoPdfRasterService;
 
     @MockBean
@@ -83,37 +87,31 @@ class CartaceoRetryTest {
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
 
-
     Message message = Message.builder().build();
 
+    private static final String REQUEST_ID = "idTest";
 
-    private static final CartaceoPresaInCaricoInfo CARTACEO_PRESA_IN_CARICO_INFO = CartaceoPresaInCaricoInfo.builder()
-            .requestIdx("idTest")
-            .xPagopaExtchCxId(
-                    DEFAULT_ID_CLIENT_HEADER_VALUE)
-            .paperEngageRequest(new PaperEngageRequest())
-            .build();
+    private static final String CLIENT_ID = "DEFAULT_ID_CLIENT_HEADER_VALUE";
 
-    private static final CartaceoPresaInCaricoInfo CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER = CartaceoPresaInCaricoInfo.builder().requestIdx(DEFAULT_REQUEST_IDX)
-            .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
-            .paperEngageRequest(PaperEngageRequestFactory.createDtoPaperRequestPdfRaster(2))
-            .build();
+    @AfterEach
+    void cleanup() {
+        ReflectionTestUtils.setField(cartaceoService, "idSaved", null);
+    }
 
+    private CartaceoPresaInCaricoInfo createCartaceoPresaInCaricoInfo() {
+        return CartaceoPresaInCaricoInfo.builder()
+                .requestIdx(REQUEST_ID)
+                .xPagopaExtchCxId(CLIENT_ID)
+                .paperEngageRequest(new PaperEngageRequest())
+                .build();
+    }
 
-    private static final StepError STEP_ERROR = StepError.builder()
-            .step(NOTIFICATION_TRACKER_STEP)
-            .operationResultCodeResponse(new OperationResultCodeResponse().resultCode(OK_CODE))
-            .build();
-
-    private static final CartaceoPresaInCaricoInfo CARTACEO_PRESA_IN_CARICO_INFO_STEP_ERROR = CartaceoPresaInCaricoInfo.builder()
-            .requestIdx("idTest")
-            .xPagopaExtchCxId(
-                    DEFAULT_ID_CLIENT_HEADER_VALUE)
-            .stepError(STEP_ERROR)
-            .paperEngageRequest(new PaperEngageRequest())
-            .build();
-
-    private final SqsMessageWrapper<CartaceoPresaInCaricoInfo> sqsPresaInCaricoInfo = new SqsMessageWrapper<>(message, CARTACEO_PRESA_IN_CARICO_INFO);
+    private CartaceoPresaInCaricoInfo createCartaceoPresaInCaricoInfoPdfRaster() {
+        return CartaceoPresaInCaricoInfo.builder().requestIdx(REQUEST_ID)
+                .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .paperEngageRequest(PaperEngageRequestFactory.createDtoPaperRequestPdfRaster(2))
+                .build();
+    }
 
     @Test
     void gestioneRetryCartaceoScheduler() {
@@ -129,35 +127,186 @@ class CartaceoRetryTest {
 
     }
 
-    private static RequestDto buildRequestDto(int valueRetry)
+    @ParameterizedTest
+    @MethodSource("gestioneRetryOkArgsProvider")
+    void gestioneRetryCartaceoPdfRaster_RetryOk(BigDecimal retryStep, long timeElapsed) {
+
+        RequestDto requestDto= buildRequestDto();
+
+        String requestId=requestDto.getRequestIdx();
+        String clientId = requestDto.getxPagopaExtchCxId();
+
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfoPdfRaster();
+
+        if (retryStep != null) {
+            requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(timeElapsed));
+            requestDto.getRequestMetadata().getRetry().setRetryStep(retryStep);
+        } else requestDto.getRequestMetadata().setRetry(null);
+
+
+        // Mock di una generica getRichiesta.
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+
+        // Mock di una generica patchRichiesta.
+        when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
+
+        // Mock della chiamata a pdf raster
+        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.just(PdfRasterResponse.builder().newFileKey("").build()));
+
+        doReturn(Mono.just(ChangeMessageVisibilityResponse.builder().build())).when(sqsService).changeMessageVisibility(any(), any(), any());
+
+        Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(cartaceoService, times(1)).sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo);
+        verify(cartaceoService, times(1)).deleteMessageFromErrorQueue(message);
+        verify(dynamoPdfRasterService, times(1)).insertRequestConversion(any(RequestConversionDto.class));
+    }
+
+    @ParameterizedTest
+    @MethodSource("gestioneRetryKoArgsProvider")
+    void gestioneRetryCartaceoPdfRaster_RetryKoDynamo(BigDecimal retryStep, long timeElapsed) {
+
+        RequestDto requestDto= buildRequestDto();
+
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfoPdfRaster();
+
+        String requestId=requestDto.getRequestIdx();
+        String clientId = requestDto.getxPagopaExtchCxId();
+
+        if (retryStep != null) {
+            requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(timeElapsed));
+            requestDto.getRequestMetadata().getRetry().setRetryStep(retryStep);
+        } else requestDto.getRequestMetadata().setRetry(null);
+
+
+        // Mock di una generica getRichiesta.
+        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(requestDto));
+
+        // Mock di una generica patchRichiesta.
+        when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
+
+        // Mock della chiamata a pdf raster
+        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.just(PdfRasterResponse.builder().build()));
+
+        when(dynamoPdfRasterService.insertRequestConversion(any())).thenReturn(Mono.error(DynamoDbException.builder().build()));
+
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        doReturn(Mono.just(ChangeMessageVisibilityResponse.builder().build())).when(sqsService).changeMessageVisibility(any(), any(), any());
+
+        Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(cartaceoService, times(1)).sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo);
+        verify(cartaceoService, times(1)).deleteMessageFromErrorQueue(message);
+
+    }
+
+    @ParameterizedTest
+    @MethodSource("gestioneRetryKoArgsProvider")
+    void gestioneRetryCartaceoPdfRaster_RetryKo_NotFound(BigDecimal retryStep, long timeElapsed) {
+        pdfRasterKoBase(retryStep, timeElapsed, new AttachmentNotAvailableException(""));
+    }
+
+    @ParameterizedTest
+    @MethodSource("gestioneRetryKoArgsProvider")
+    void gestioneRetryCartaceoPdfRaster_RetryKo_Forbidden(BigDecimal retryStep, long timeElapsed) {
+        pdfRasterKoBase(retryStep, timeElapsed, new ClientNotAuthorizedException(""));
+    }
+
+    @ParameterizedTest
+    @MethodSource("gestioneRetryKoArgsProvider")
+    void gestioneRetryCartaceoPdfRaster_RetryKo_BadRequest(BigDecimal retryStep, long timeElapsed) {
+        pdfRasterKoBase(retryStep, timeElapsed, new Generic400ErrorException("",""));
+    }
+
+    @ParameterizedTest
+    @MethodSource("gestioneRetryKoArgsProvider")
+    void gestioneRetryCartaceoPdfRaster_RetryKo_InternalServerError(BigDecimal retryStep, long timeElapsed) {
+        pdfRasterKoBase(retryStep, timeElapsed, new Generic500ErrorException("",""));
+    }
+
+    private void pdfRasterKoBase(BigDecimal retryStep, long timeElapsed, Exception e) {
+        RequestDto requestDto= buildRequestDto();
+
+        String requestId=requestDto.getRequestIdx();
+        String clientId = requestDto.getxPagopaExtchCxId();
+
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfoPdfRaster();
+
+        if (retryStep != null) {
+            requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(timeElapsed));
+            requestDto.getRequestMetadata().getRetry().setRetryStep(retryStep);
+        } else requestDto.getRequestMetadata().setRetry(null);
+
+        // Mock di una generica getRichiesta.
+        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(requestDto));
+
+        // Mock di una generica patchRichiesta.
+        when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
+
+        // Mock della chiamata a pdf raster
+        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.error(e));
+
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        doReturn(Mono.just(ChangeMessageVisibilityResponse.builder().build())).when(sqsService).changeMessageVisibility(any(), any(), any());
+
+        Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(cartaceoService, times(1)).sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo);
+        verify(cartaceoService, times(1)).deleteMessageFromErrorQueue(message);
+    }
+
+    private static RequestDto buildRequestDto()
     {
+        Policy retryPolicies = new Policy();
         //RetryDTO
         RetryDto retryDto=new RetryDto();
-        List<BigDecimal> retries = new ArrayList<>();
-        retries.add(0, BigDecimal.valueOf(5));
-        retries.add(1, BigDecimal.valueOf(10));
-        retryDto.setRetryPolicy(retries);
-        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
-        retryDto.setRetryStep(BigDecimal.valueOf(valueRetry));
+        retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PAPER"));
 
         //RequestMetadataDTO
         RequestMetadataDto requestMetadata = new RequestMetadataDto();
+        requestMetadata.setEventsList(List.of(new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+                .status(RETRY.getStatusTransactionTableCompliant())
+                .statusDateTime(OffsetDateTime.now().minusMinutes(10)))));
         requestMetadata.setRetry(retryDto);
 
         //RequestDTO
         RequestDto requestDto = new RequestDto();
         requestDto.setStatusRequest("statusTest");
-        requestDto.setRequestIdx(CARTACEO_PRESA_IN_CARICO_INFO.getRequestIdx());
-        requestDto.setxPagopaExtchCxId(CARTACEO_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId());
+        requestDto.setRequestIdx(REQUEST_ID);
+        requestDto.setxPagopaExtchCxId(CLIENT_ID);
         requestDto.setRequestMetadata(requestMetadata);
 
         return requestDto;
     }
 
-    @Test
-    void gestioneRetryCartaceo_RetryOk() {
+    private static Stream<Arguments> gestioneRetryOkArgsProvider() {
+        return Stream.of(Arguments.of(null, 0), Arguments.of(BigDecimal.ZERO, 15), Arguments.of(BigDecimal.ONE, 25), Arguments.of(BigDecimal.valueOf(2), 45));
+    }
 
-        RequestDto requestDto= buildRequestDto(0);
+    private static Stream<Arguments> gestioneRetryKoArgsProvider() {
+        return Stream.of(Arguments.of(null, 0), Arguments.of(BigDecimal.ZERO, 15), Arguments.of(BigDecimal.ONE, 25));
+    }
+
+    /**
+     * Test di successo per ogni tentativo disponibile di retry.
+     *
+     * @param retryStep   lo step di retry corrente
+     * @param timeElapsed il tempo passato dall'ultima retry
+     */
+    @ParameterizedTest
+    @MethodSource("gestioneRetryOkArgsProvider")
+    void gestioneRetryCartaceo_RetryOk(BigDecimal retryStep, long timeElapsed) {
+
+        RequestDto requestDto = buildRequestDto();
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfo();
+
+        if (retryStep != null) {
+            requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(timeElapsed));
+            requestDto.getRequestMetadata().getRetry().setRetryStep(retryStep);
+        } else requestDto.getRequestMetadata().setRetry(null);
 
         String requestId=requestDto.getRequestIdx();
         String clientId = requestDto.getxPagopaExtchCxId();
@@ -172,140 +321,104 @@ class CartaceoRetryTest {
         when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
-
-        Mono<DeleteMessageResponse> response = cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO, message);
-//        Mono<DeleteMessageResponse> response = cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO_STEP_ERROR, message);
-        StepVerifier.create(response).expectNextCount(1).verifyComplete();
-
-        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO),eq(SENT.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
-//        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_STEP_ERROR),eq(SENT.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
-        verify(cartaceoService, times(1)).deleteMessageFromErrorQueue(any(Message.class));
-    }
-
-    @Test
-    void gestioneRetryCartaceoPdfRaster_RetryOk() {
-
-        RequestDto requestDto= buildRequestDto(3);
-
-        String requestId=requestDto.getRequestIdx();
-        String clientId = requestDto.getxPagopaExtchCxId();
-
-        // Mock di una generica getRichiesta.
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
-
-        // Mock di una generica patchRichiesta.
-        when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
-
-        // Mock della chiamata a pdf raster
-        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.just(PdfRasterResponse.builder().newFileKey("").build()));
-
-        Mono<DeleteMessageResponse> response = cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER, message);
-//        Mono<DeleteMessageResponse> response = cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO_STEP_ERROR, message);
-        StepVerifier.create(response).expectNextCount(1).verifyComplete();
-
-        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER),eq(SENT.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
-//        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_STEP_ERROR),eq(SENT.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
-        verify(cartaceoService, times(1)).deleteMessageFromErrorQueue(any(Message.class));
-
-        verify(dynamoPdfRasterService, times(1)).insertRequestConversion(any(RequestConversionDto.class));
-    }
-
-   /* @Test
-    void gestioneRetryCartaceoPdfRaster_RetryKoOverStep() {
-
-        RequestDto requestDto = buildRequestDto(3);
-
-        String requestId = requestDto.getRequestIdx();
-        String clientId = requestDto.getxPagopaExtchCxId();
-        // Mock di una generica getRichiesta.
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
-
-        // Mock di una generica patchRichiesta.
-        when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
-
         when(sqsService.deleteMessageFromQueue(any(Message.class), eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
-        Mono<DeleteMessageResponse> response = cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO_STEP_ERROR, message);
-//        Mono<DeleteMessageResponse> response = cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO_STEP_ERROR, message);
+        Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_STEP_ERROR), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
-//        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_STEP_ERROR),eq(SENT.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo),eq(SENT.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
         verify(cartaceoService, times(1)).deleteMessageFromErrorQueue(any(Message.class));
 
-        verify(paperMessageCall, never()).putRequest(any());
-
-        fail();
-    }*/
-    
-    @ParameterizedTest
-    @MethodSource("exceptionsPdfRaster")
-    void gestioneRetryCartaceoPdfRaster_RetryKo(Exception e) {
-
-        RequestDto requestDto= buildRequestDto(2);
-
-        String requestId=requestDto.getRequestIdx();
-        String clientId = requestDto.getxPagopaExtchCxId();
-
-        // Mock di una generica getRichiesta.
-        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(requestDto));
-
-        // Mock di una generica patchRichiesta.
-        when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
-
-        // Mock della chiamata a pdf raster
-        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.error(e));
-
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
-
-        Mono<DeleteMessageResponse> response = cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER, message);
-
-        StepVerifier.create(response).verifyComplete();
-
-        verify(cartaceoService, never()).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER),eq(SENT.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
-        verify(cartaceoService, never()).deleteMessageFromErrorQueue(any(Message.class));
-    }
-
-    @Test
-    void gestioneRetryCartaceoPdfRaster_RetryKoDynamo() {
-
-        RequestDto requestDto= buildRequestDto(2);
-
-        String requestId=requestDto.getRequestIdx();
-        String clientId = requestDto.getxPagopaExtchCxId();
-
-        // Mock di una generica getRichiesta.
-        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(requestDto));
-
-        // Mock di una generica patchRichiesta.
-        when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
-
-        // Mock della chiamata a pdf raster
-        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.just(PdfRasterResponse.builder().build()));
-
-        when(dynamoPdfRasterService.insertRequestConversion(any())).thenReturn(Mono.error(DynamoDbException.builder().build()));
-
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
-
-        Mono<DeleteMessageResponse> response = cartaceoService.gestioneRetryCartaceo(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER, message);
-
-        StepVerifier.create(response).verifyComplete();
-
-        verify(cartaceoService, never()).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER),eq(SENT.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
-        verify(cartaceoService, never()).deleteMessageFromErrorQueue(any(Message.class));
     }
 
     /**
+     * Test di KO per la gestione retry. La chiamata putRequest() va in errore con un'eccezione generica.
+     * Utilizzo di tutti i tentativi possibili.
      *
-     * @return
+     * @param retryStep   lo step di retry corrente
+     * @param timeElapsed il tempo passato dall'ultima retry
      */
-    private static Stream<Arguments> exceptionsPdfRaster(){
-        return Stream.of(
-                Arguments.of(new AttachmentNotAvailableException("")),
-                Arguments.of(new ClientNotAuthorizedException("")),
-                Arguments.of(new Generic400ErrorException("","")),
-                Arguments.of(new Generic500ErrorException("",""))
-        );
+    @ParameterizedTest
+    @MethodSource({"gestioneRetryKoArgsProvider"})
+    void gestioneRetryCartaceo_Retry_PutRequestKo(BigDecimal retryStep, long timeElapsed, Exception e) {
+
+        RequestDto requestDto = buildRequestDto();
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfo();
+
+        if (retryStep != null) {
+            requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(timeElapsed));
+            requestDto.getRequestMetadata().getRetry().setRetryStep(retryStep);
+        } else requestDto.getRequestMetadata().setRetry(null);
+
+        String requestId=requestDto.getRequestIdx();
+        String clientId = requestDto.getxPagopaExtchCxId();
+
+        // Mock di una generica getRichiesta.
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+
+        // Mock di una generica patchRichiesta.
+        when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
+
+        // Mock di una generica putRequest che va in errore.
+        when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.error(new RuntimeException("KO")));
+
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        doReturn(Mono.just(ChangeMessageVisibilityResponse.builder().build())).when(sqsService).changeMessageVisibility(any(), any(), any());
+
+        Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(cartaceoService, times(1)).sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo);
+        verify(cartaceoService, times(1)).deleteMessageFromErrorQueue(message);
     }
+
+    /**
+     * Test di KO per la gestione retry. Superamento dei tentativi massimi disponibili.
+     */
+    @Test
+    void gestioneRetryCartaceo_Retry_PutRequestKo_MaxRetriesExceeded() {
+
+        RequestDto requestDto = buildRequestDto();
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfo();
+
+        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(45));
+        requestDto.getRequestMetadata().getRetry().setRetryStep(BigDecimal.valueOf(2));
+
+        String requestId = requestDto.getRequestIdx();
+        String clientId = requestDto.getxPagopaExtchCxId();
+
+        // Mock di una generica getRichiesta.
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+
+        // Mock di una generica patchRichiesta.
+        when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
+
+        // Mock di una generica putRequest che va in errore.
+        when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.error(new RuntimeException("KO")));
+
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        doReturn(Mono.just(ChangeMessageVisibilityResponse.builder().build())).when(sqsService).changeMessageVisibility(any(), any(), any());
+
+        Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(ERROR.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
+        verify(cartaceoService, times(1)).sendNotificationOnDlqErrorQueue(cartaceoPresaInCaricoInfo);
+        verify(cartaceoService, times(1)).deleteMessageFromErrorQueue(message);
+    }
+
+//    /**
+//     *
+//     * @return
+//     */
+//    private static Stream<Arguments> exceptionsPdfRaster(){
+//        return Stream.of(
+//                Arguments.of(new AttachmentNotAvailableException("")),
+//                Arguments.of(new ClientNotAuthorizedException("")),
+//                Arguments.of(new Generic400ErrorException("","")),
+//                Arguments.of(new Generic500ErrorException("",""))
+//        );
+//    }
 }
