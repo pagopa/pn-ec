@@ -1,14 +1,14 @@
 package it.pagopa.pn.ec.pdfraster.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dockerjava.api.exception.ConflictException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic500ErrorException;
-import it.pagopa.pn.ec.pdfraster.model.dto.PdfConversionDto;
-import it.pagopa.pn.ec.pdfraster.model.dto.RequestConversionDto;
-import it.pagopa.pn.ec.pdfraster.model.entity.PdfConversionEntity;
-import it.pagopa.pn.ec.pdfraster.model.entity.RequestConversionEntity;
-import it.pagopa.pn.ec.pdfraster.model.entity.AttachmentToConvert;
+import it.pagopa.pn.ec.pdfraster.model.entity.*;
 
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
+import it.pagopa.pn.ec.rest.v1.dto.AttachmentToConvertDto;
+import it.pagopa.pn.ec.rest.v1.dto.PdfConversionDto;
+import it.pagopa.pn.ec.rest.v1.dto.RequestConversionDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +36,8 @@ class DynamoPdfRasterServiceTest {
 
     @Autowired
     private RepositoryManagerDynamoTableName repositoryManagerDynamoTableName;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private static DynamoDbTable<PdfConversionEntity> pdfConversionEntityDynamoDbTable;
     private static DynamoDbTable<RequestConversionEntity> requestConversionEntityDynamoDbTable;
@@ -53,23 +55,23 @@ class DynamoPdfRasterServiceTest {
 
 
     private static RequestConversionDto MockRequestConversionDto() {
-        return RequestConversionDto.builder().requestId("123456789")
+        return new RequestConversionDto().requestId("123456789")
                 .attachments(Collections.singletonList(
-                        AttachmentToConvert.builder().newFileKey("12345").build()
-                )).build();
+                        new AttachmentToConvertDto().newFileKey("12345")
+                ));
     }
 
     private static RequestConversionDto MockRequestConversionDtoUpdate() {
-        return RequestConversionDto.builder().requestId("987654333")
+        return new RequestConversionDto().requestId("987654333")
                 .attachments(Collections.singletonList(
-                        AttachmentToConvert.builder().newFileKey("33333").build()
-                )).build();
+                        new AttachmentToConvertDto().newFileKey("33333")
+                ));
     }
 
 
     private static PdfConversionDto MockPdfConversionDto() {
-        return PdfConversionDto.builder().requestId("123456789")
-                .fileKey("123456789").build();
+        return new PdfConversionDto().requestId("123456789")
+                .fileKey("123456789");
     }
 
     @Test
@@ -83,7 +85,7 @@ class DynamoPdfRasterServiceTest {
         RequestConversionEntity responseTable = requestConversionEntityDynamoDbTable.getItem(builder -> builder.key(Key.builder().partitionValue(requestConversionDto.getRequestId()).build()));
         Assertions.assertNotNull(responseTable);
 
-        for (AttachmentToConvert keyValue : requestConversionDto.getAttachments()) {
+        for (AttachmentToConvertDto keyValue : requestConversionDto.getAttachments()) {
             PdfConversionEntity result = pdfConversionEntityDynamoDbTable.getItem(builder -> builder.key(Key.builder().partitionValue(keyValue.getNewFileKey()).build()));
             Assertions.assertNotNull(result);
             Assertions.assertEquals(requestConversionDto.getRequestId(), result.getRequestId());

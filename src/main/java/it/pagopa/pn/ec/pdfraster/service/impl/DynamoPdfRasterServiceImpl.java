@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.pdfraster.service.impl;
 
-import it.pagopa.pn.ec.pdfraster.model.dto.PdfConversionDto;
-import it.pagopa.pn.ec.pdfraster.model.dto.RequestConversionDto;
 import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
+import it.pagopa.pn.ec.rest.v1.dto.PdfConversionDto;
+import it.pagopa.pn.ec.rest.v1.dto.RequestConversionDto;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
