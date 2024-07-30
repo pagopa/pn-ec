@@ -930,7 +930,7 @@ Resources:
         ContainerEnvEntry69: !Sub 'SpringCodecMaxInMemorySize=${SpringCodecMaxInMemorySize}'
         ContainerEnvEntry70: !Sub 'PnEcConsAllowedFutureOffsetDuration=${PnEcConsAllowedFutureOffsetDuration}'
         ContainerEnvEntry71: !Sub 'PdfRasterFeatureFlag=${PdfRasterFeatureFlag}'
-        ContainerEnvEntry73: !Sub 'PdfRasterDocumentTypeToConvert=${PdfRasterDocumentTypeToConvert}'
+        ContainerEnvEntry72: !Sub 'PdfRasterDocumentTypeToConvert=${PdfRasterDocumentTypeToConvert}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'

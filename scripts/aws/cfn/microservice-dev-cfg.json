@@ -44,6 +44,6 @@
     "CpuValue": "1024",
     "MemoryAmount": "4GB",
     "PdfRasterFeatureFlag": "NOTHING",
-    "PdfRasterDocumentTypeToConvert": "PN_NOTIFICATION_ATTACHMENT"
+    "PdfRasterDocumentTypeToConvert": "PN_NOTIFICATION_ATTACHMENTS"
   }
 }
