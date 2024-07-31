@@ -433,6 +433,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                                             message);}));
                     }
                 })
+                // Se riceviamo un Mono.empty(), ritorniamo una DeleteMessageResponse vuota per evitare che
+                // lo schedulatore annulli lo scaricamento di messaggi dalla coda
+                .defaultIfEmpty(DeleteMessageResponse.builder().build())
 //              Catch errore tirato per lo stato toDelete
                 .onErrorResume(StatusToDeleteException.class, exception -> {
                     log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, cartaceoSqsQueueName.errorName());

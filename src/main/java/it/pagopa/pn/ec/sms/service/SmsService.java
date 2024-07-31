@@ -385,6 +385,9 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                          });
     }
 })
+// Se riceviamo un Mono.empty(), ritorniamo una DeleteMessageResponse vuota per evitare che
+// lo schedulatore annulli lo scaricamento di messaggi dalla coda
+.defaultIfEmpty(DeleteMessageResponse.builder().build())
 //                                   Catch errore tirato per lo stato toDelete
 .onErrorResume(StatusToDeleteException.class, exception -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                      DELETED.getStatusTransactionTableCompliant(),
