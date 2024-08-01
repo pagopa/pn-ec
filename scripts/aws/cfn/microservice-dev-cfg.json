@@ -42,6 +42,8 @@
     "SpringCodecMaxInMemorySize": "256KB",
     "PnEcConsAllowedFutureOffsetDuration": "1m",
     "CpuValue": "1024",
-    "MemoryAmount": "4GB"
+    "MemoryAmount": "4GB",
+    "PdfRasterFeatureFlag": "NOTHING",
+    "PdfRasterDocumentTypeToConvert": "PN_NOTIFICATION_ATTACHMENTS"
   }
 }
