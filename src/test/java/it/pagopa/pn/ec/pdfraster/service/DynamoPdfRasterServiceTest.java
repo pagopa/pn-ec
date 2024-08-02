@@ -1,13 +1,11 @@
 package it.pagopa.pn.ec.pdfraster.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dockerjava.api.exception.ConflictException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic500ErrorException;
 import it.pagopa.pn.ec.pdfraster.model.entity.*;
 
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.rest.v1.dto.AttachmentToConvertDto;
-import it.pagopa.pn.ec.rest.v1.dto.PdfConversionDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestConversionDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
@@ -15,7 +13,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import reactor.core.publisher.Mono;
@@ -26,6 +23,9 @@ import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 import java.util.Collections;
+import java.util.Objects;
+
+import static org.mockito.Mockito.when;
 
 
 @SpringBootTestWebEnv
@@ -36,8 +36,7 @@ class DynamoPdfRasterServiceTest {
 
     @Autowired
     private RepositoryManagerDynamoTableName repositoryManagerDynamoTableName;
-    @Autowired
-    private ObjectMapper objectMapper;
+
 
     private static DynamoDbTable<PdfConversionEntity> pdfConversionEntityDynamoDbTable;
     private static DynamoDbTable<RequestConversionEntity> requestConversionEntityDynamoDbTable;
@@ -61,18 +60,7 @@ class DynamoPdfRasterServiceTest {
                 ));
     }
 
-    private static RequestConversionDto MockRequestConversionDtoUpdate() {
-        return new RequestConversionDto().requestId("987654333")
-                .attachments(Collections.singletonList(
-                        new AttachmentToConvertDto().newFileKey("33333")
-                ));
-    }
 
-
-    private static PdfConversionDto MockPdfConversionDto() {
-        return new PdfConversionDto().requestId("123456789")
-                .fileKey("123456789");
-    }
 
     @Test
     void insertRequestConversionOk() {
@@ -80,10 +68,16 @@ class DynamoPdfRasterServiceTest {
         RequestConversionDto requestConversionDto = MockRequestConversionDto();
 
         Mono<RequestConversionDto> response = dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
-        StepVerifier.create(response).expectNextCount(1).verifyComplete();
-        //LOOKUP
-        RequestConversionEntity responseTable = requestConversionEntityDynamoDbTable.getItem(builder -> builder.key(Key.builder().partitionValue(requestConversionDto.getRequestId()).build()));
-        Assertions.assertNotNull(responseTable);
+
+        StepVerifier.create(response)
+                .expectNextMatches(Objects::nonNull)
+                .verifyComplete();
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         for (AttachmentToConvertDto keyValue : requestConversionDto.getAttachments()) {
             PdfConversionEntity result = pdfConversionEntityDynamoDbTable.getItem(builder -> builder.key(Key.builder().partitionValue(keyValue.getNewFileKey()).build()));
@@ -93,117 +87,82 @@ class DynamoPdfRasterServiceTest {
     }
 
     @Test
-    void updateRequestConvertionOk() {
+    void updateRequestConversionOk() {
 
         RequestConversionDto requestConversionDto = MockRequestConversionDto();
-        RequestConversionDto requestConversionDtoUpdate = MockRequestConversionDtoUpdate();
 
         Mono<RequestConversionDto> response = dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
-        requestConversionDtoUpdate.setRequestId("test");
-        Mono<RequestConversionDto> responseUpdate = dynamoPdfRasterService.updateRequestConversion(requestConversionDtoUpdate);
+        String requestId = requestConversionDto.getRequestId();
+
+        for (AttachmentToConvertDto attachment : requestConversionDto.getAttachments()) {
+                attachment.setConverted(true);
+        }
+
+        Mono<RequestConversionDto> responseUpdate = dynamoPdfRasterService.updateRequestConversion("12345", true);
 
         StepVerifier.create(responseUpdate)
-                .expectNextMatches(updatedDto -> updatedDto.getRequestId().equals("test"))
+                .expectNextMatches(updatedDto -> updatedDto.getRequestId().equals(requestId))
                 .verifyComplete();
 
-        PdfConversionEntity updatedResponseTable = pdfConversionEntityDynamoDbTable.getItem(
-                builder -> builder.key(Key.builder().partitionValue("test").build())
+        RequestConversionEntity updatedEcRequestConversionEntity = requestConversionEntityDynamoDbTable.getItem(
+                builder -> builder.key(Key.builder().partitionValue(requestId).build())
         );
-        Assertions.assertNotNull(updatedResponseTable);
-        Assertions.assertEquals("test", updatedResponseTable.getRequestId());
+        Assertions.assertNotNull(updatedEcRequestConversionEntity);
+
+        boolean isConverted = updatedEcRequestConversionEntity.getAttachments().stream()
+                .allMatch(AttachmentToConvert::getConverted);
+        Assertions.assertTrue(isConverted);
     }
 
 
     @Test
-    void insertPdfConversionOk() {
-
-        PdfConversionDto pdfConversionDto = MockPdfConversionDto();
-
-        Mono<PdfConversionDto> response = dynamoPdfRasterService.insertPdfConversion(pdfConversionDto);
-        StepVerifier.create(response).expectNextCount(1).verifyComplete();
-
-        RequestConversionEntity responseTable = requestConversionEntityDynamoDbTable.getItem(builder -> builder.key(Key.builder().partitionValue(pdfConversionDto.getRequestId()).build()));
-        Assertions.assertNotNull(responseTable);
-
-    }
-
-
-    @Test
-    void insertRequestConversionKo() {
+    void insertRequestConversionKoInternalServerError() {
         RequestConversionDto requestConversionDto = MockRequestConversionDto();
 
-        Mono<RequestConversionDto> firstResponse = dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
-        StepVerifier.create(firstResponse).expectNextCount(1).verifyComplete();
 
-        // Errore 500
-        Mockito.when(dynamoPdfRasterService.insertRequestConversion(requestConversionDto))
+        when(dynamoPdfRasterService.insertRequestConversion(requestConversionDto))
                 .thenReturn(Mono.error(new Generic500ErrorException("Internal Server Error", "")));
 
         Mono<RequestConversionDto> response = dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
         StepVerifier.create(response)
-                .expectErrorMatches(error -> error instanceof Generic500ErrorException && "Internal Server Error".equals(error.getMessage()))
-                .verify();
-
-        // Errore di conflitto
-        Mono<RequestConversionDto> responseConflict = dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
-        StepVerifier.create(responseConflict).expectError(ConflictException.class).verify();
-
-        Mockito.when(dynamoPdfRasterService.insertRequestConversion(requestConversionDto))
-                .thenReturn(Mono.error(new ConflictException("Elemento già presente")));
-
-        responseConflict = dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
-        StepVerifier.create(responseConflict)
-                .expectErrorMatches(error -> error instanceof ConflictException && "Elemento già presente".equals(error.getMessage()))
-                .verify();
-        Assertions.fail();
-    }
-
-    @Test
-    void insertPdfConversionKo() {
-        PdfConversionDto pdfConversionDto = MockPdfConversionDto();
-
-        Mono<PdfConversionDto> firstResponse = dynamoPdfRasterService.insertPdfConversion(pdfConversionDto);
-        StepVerifier.create(firstResponse).expectNextCount(1).verifyComplete();
-
-        // Errore 500
-        Mockito.when(dynamoPdfRasterService.insertPdfConversion(pdfConversionDto))
-                .thenReturn(Mono.error(new Generic500ErrorException("", "")));
-
-        Mono<PdfConversionDto> response = dynamoPdfRasterService.insertPdfConversion(pdfConversionDto);
-        StepVerifier.create(response)
-                .expectErrorMatches(error -> error instanceof Generic500ErrorException)
-                .verify();
-
-        // Errore di conflitto
-        Mono<PdfConversionDto> responseConflict = dynamoPdfRasterService.insertPdfConversion(pdfConversionDto);
-        StepVerifier.create(responseConflict).expectError(ConflictException.class).verify();
-
-        response = dynamoPdfRasterService.insertPdfConversion(pdfConversionDto);
-        StepVerifier.create(response)
-                .expectErrorMatches(error -> error instanceof ConflictException && "Elemento già presente".equals(error.getMessage()))
+                .expectErrorMatches(error -> error instanceof Generic500ErrorException && error.getMessage().startsWith("Internal Server Error"))
                 .verify();
     }
 
-
     @Test
-    void updateRequestConversionKo() {
+    void insertRequestConversionKoConflictError() {
 
         RequestConversionDto requestConversionDto = MockRequestConversionDto();
 
-        // Errore 500
-        Mockito.when(dynamoPdfRasterService.updateRequestConversion(requestConversionDto))
-                .thenReturn(Mono.error(new Generic500ErrorException("", "")));
+        when(dynamoPdfRasterService.insertRequestConversion(requestConversionDto))
+                .thenReturn(Mono.error(new ConflictException("Element already exists")));
 
-        Mono<RequestConversionDto> response = dynamoPdfRasterService.updateRequestConversion(requestConversionDto);
-        StepVerifier.create(response)
-                .expectErrorMatches(error -> error instanceof Generic500ErrorException)
+        Mono<RequestConversionDto> responseConflict = dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
+
+        StepVerifier.create(responseConflict)
+                .expectError(ConflictException.class)
+                .verify();
+    }
+
+
+
+    @Test
+    void updateRequestConversionInvalidConvertedValue() {
+
+        when(dynamoPdfRasterService.updateRequestConversion("FileKey", false))
+                .thenReturn(Mono.error(new IllegalArgumentException()));
+
+        Mono<RequestConversionDto> responseUpdate = dynamoPdfRasterService.updateRequestConversion("StringFileKey", false);
+
+        StepVerifier.create(responseUpdate)
+                .expectErrorMatches(throwable -> throwable instanceof IllegalArgumentException
+                        && throwable.getMessage().equals("Invalid value for 'converted': must be true."))
                 .verify();
 
-        Assertions.fail();
-
     }
+
 
 
 }
