@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.pdfraster.service.impl;
 
+import com.amazonaws.services.kms.model.NotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.pdfraster.model.entity.PdfConversionEntity;
@@ -19,6 +20,8 @@ import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.PutItemEnhancedRequest;
 
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+
 
 @Service
 @CustomLog
@@ -28,7 +31,6 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
     private final DynamoDbAsyncTableDecorator<RequestConversionEntity> requestTable;
     private final DynamoDbAsyncTableDecorator<PdfConversionEntity> conversionTable;
     private final ObjectMapper objectMapper;
-
 
 
     public DynamoPdfRasterServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
@@ -44,6 +46,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
     @Override
     public Mono<RequestConversionDto> insertRequestConversion(RequestConversionDto requestConversionDto) {
         return Mono.fromCallable(() -> {
+                    log.logStartingProcess(PDF_RASTER_INSERT_REQUEST_CONVERSION);
                     RequestConversionEntity requestConversionEntity = objectMapper.convertValue(requestConversionDto, RequestConversionEntity.class);
 
                     requestTable.putItem(PutItemEnhancedRequest.builder(RequestConversionEntity.class)
@@ -67,15 +70,15 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                             .then(Mono.just(requestConversionEntity));
                 })
                 .map(requestConversionEntity -> objectMapper.convertValue(requestConversionEntity, RequestConversionDto.class))
-                .doOnSuccess(result -> log.info("Successfully inserted request conversion with ID: {}", result.getRequestId()))
-                .doOnError(error -> log.error("Failed to insert request conversion", error));
+                .doOnSuccess(result -> log.logEndingProcess(PDF_RASTER_INSERT_REQUEST_CONVERSION))
+                .doOnError(throwable -> log.logEndingProcess(PDF_RASTER_INSERT_REQUEST_CONVERSION, false, throwable.getMessage()));
     }
-
-
 
 
     @Override
     public Mono<RequestConversionDto> updateRequestConversion(String fileKey, Boolean converted) {
+
+        log.logStartingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION);
 
         if (converted == null || !converted) {
             return Mono.error(new IllegalArgumentException("Invalid value for 'converted': must be true."));
@@ -85,7 +88,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                 .map(pdfConversionEntity ->
                         objectMapper.convertValue(pdfConversionEntity, PdfConversionDto.class)
                 )
-                .switchIfEmpty(Mono.error(new RuntimeException("Not found for fileKey: " + fileKey)))
+                .switchIfEmpty(Mono.error(new NotFoundException("Not found for fileKey: " + fileKey)))
                 .flatMap(existingRequest -> {
 
                     String requestId = existingRequest.getRequestId();
@@ -104,11 +107,9 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                 })
 
                 .map(requestConversionEntity -> objectMapper.convertValue(requestConversionEntity, RequestConversionDto.class))
-                .doOnSuccess(result -> log.info("Update successful with fileKey: {}", fileKey))
-                .onErrorResume(e -> {
-                    log.error("Error updating request conversion with fileKey: {}", fileKey, e);
-                    return Mono.error(new RuntimeException("Error updating request conversion", e));
-                });
+                .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_CARTACEO))
+                .doOnError(exception -> log.logEndingProcess(GESTIONE_RETRY_CARTACEO, false, exception.getMessage()));
+
     }
 
     private Mono<RequestConversionEntity> getRequestConversionFromDynamoDb(String requestId) {
@@ -118,8 +119,6 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
     private Mono<PdfConversionEntity> getPdfConversionFromDynamoDb(String fileKey) {
         return Mono.fromCompletionStage(() -> conversionTable.getItem(Key.builder().partitionValue(fileKey).build()));
     }
-
-
 
 
 }

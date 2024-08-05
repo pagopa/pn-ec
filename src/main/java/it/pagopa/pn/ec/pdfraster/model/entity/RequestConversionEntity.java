@@ -1,7 +1,9 @@
 package it.pagopa.pn.ec.pdfraster.model.entity;
 
+import it.pagopa.pn.ec.commons.model.entity.DocumentVersion;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import software.amazon.awssdk.enhanced.dynamodb.extensions.annotations.DynamoDbVersionAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
@@ -15,7 +17,7 @@ import java.util.List;
 @Setter
 @Builder
 @DynamoDbBean
-public class RequestConversionEntity {
+public class RequestConversionEntity extends DocumentVersion {
 
     @Getter(onMethod=@__({@DynamoDbPartitionKey}))
     String requestId;

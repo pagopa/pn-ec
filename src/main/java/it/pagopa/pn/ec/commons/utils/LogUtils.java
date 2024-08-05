@@ -235,4 +235,11 @@ public class LogUtils {
     public static final String CLOUD_WATCH_METRICS_PUBLISHER_WRAPPER = "CloudWatchMetricsPublisherWrapper";
     public static final String CLOUD_WATCH_METRICS_PUBLISH= CLOUD_WATCH_METRICS_PUBLISHER_WRAPPER +".publish()";
 
+    //PDFRASTER
+
+    public static final String PDF_RASTER_INSERT_REQUEST_CONVERSION = "DynamoPdfRasterServiceImpl.insertRequestConversion()";
+    public static final String PDF_RASTER_UPDATE_REQUEST_CONVERSION = "DynamoPdfRasterServiceImpl.updateRequestConversion()";
+
+
+
 }

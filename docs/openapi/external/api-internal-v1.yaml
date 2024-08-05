@@ -476,10 +476,6 @@ components:
       $ref: 'schemas-paper-v1.1.yaml#/components/schemas/PaperEngageRequest'
     PaperProgressStatusEvent:
       $ref: 'schemas-paper-v1.1.yaml#/components/schemas/PaperProgressStatusEvent'
-    RequestConversionDto:
-      $ref: 'schemas-paper-v1.1.yaml#/components/schemas/RequestConversionDto'
-    PdfConversionDto:
-      $ref: 'schemas-paper-v1.1.yaml#/components/schemas/PdfConversionDto'
 
 
 

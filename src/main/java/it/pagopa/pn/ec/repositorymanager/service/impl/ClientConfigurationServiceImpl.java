@@ -90,7 +90,6 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, DELETE_CLIENT, result.getCxId()));
     }
 
-  //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     private Mono<ClientConfigurationInternal> getClientConfigurationFromDynamoDb(String cxId) {
         return Mono.fromCompletionStage(() -> clientConfigurationDynamoDbTableInternal.getItem(getKey(cxId)));
