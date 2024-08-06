@@ -9,11 +9,15 @@ public class LogUtils {
     public static String concatIds(String id1, String id2) {
         return String.format("%s%s%s", id1, "~", id2);
     }
+
     public static final String MDC_CORR_ID_KEY = "cx_id";
     public static final String MDC_GUM_UUID_KEY = "get_unread_messages_uuid";
     public static final String INVALID_API_KEY = "Invalid API key";
 
     public static final String INVOKING_OPERATION_LABEL_WITH_ARGS = "Invoking operation '{}' with args: {}";
+
+    public static final String LOGGING_OPERATION_WITH_ARGS = "Invoking operation '{}' with args: {} and {}";
+
     public static final String INVOKING_OPERATION_LABEL = "Invoking operation '{}'";
     public static final String SUCCESSFUL_OPERATION_LABEL = "Successful operation: '{}' = {}";
 
@@ -215,7 +219,7 @@ public class LogUtils {
 
     //CLOUD WATCH
     public static final String PUBLISH_CUSTOM_PEC_METRICS = "CloudWatchPecMetrics.publishCustomPecMetrics()";
-    public static final String PUBLISH_PEC_MESSAGE_COUNT=  "CloudWatchPecMetrics.publishMessageCount()";
+    public static final String PUBLISH_PEC_MESSAGE_COUNT = "CloudWatchPecMetrics.publishMessageCount()";
     public static final String PUBLISH_RESPONSE_TIME = "CloudWatchPecMetrics.publishResponseTime()";
 
     //EVENT BRIDGE
@@ -233,12 +237,24 @@ public class LogUtils {
     //CloudWatch
 
     public static final String CLOUD_WATCH_METRICS_PUBLISHER_WRAPPER = "CloudWatchMetricsPublisherWrapper";
-    public static final String CLOUD_WATCH_METRICS_PUBLISH= CLOUD_WATCH_METRICS_PUBLISHER_WRAPPER +".publish()";
+    public static final String CLOUD_WATCH_METRICS_PUBLISH = CLOUD_WATCH_METRICS_PUBLISHER_WRAPPER + ".publish()";
 
     //PDFRASTER
 
     public static final String PDF_RASTER_INSERT_REQUEST_CONVERSION = "DynamoPdfRasterServiceImpl.insertRequestConversion()";
     public static final String PDF_RASTER_UPDATE_REQUEST_CONVERSION = "DynamoPdfRasterServiceImpl.updateRequestConversion()";
+    public static final String PDF_RASTER_CONVERT_TO_ENTITY = "DynamoPdfRasterServiceImpl.convertToEntity()";
+    public static final String PDF_RASTER_SAVE_REQUEST_CONVERSION_ENTITY = "DynamoPdfRasterServiceImpl.saveRequestConversionEntity()";
+    public static final String PDF_RASTER_SAVE_PDF_CONVERSIONS = "DynamoPdfRasterServiceImpl.savePdfConversion()";
+    public static final String PDF_RASTER_SAVE_PDF_CONVERSION = "DynamoPdfRasterServiceImpl.savePdfConversion()";
+    public static final String PDF_RASTER_CONVERT_TO_DTO = "DynamoPdfRasterServiceImpl.convertToDto()";
+    public static final String PDF_RASTER_UPDATE_ATTACHMENT_CONVERSION = "DynamoPdfRasterServiceImpl.updateAttachmentConversion()";
+    public static final String PDF_RASTER_GET_REQUEST_CONVERSION_FROM_DYNAMO_DB = "DynamoPdfRasterServiceImpl.getRequestConversionFromDynamoDb()";
+    public static final String PDF_RASTER_GET_PDF_CONVERSION_FROM_DYNAMO_DB = "DynamoPdfRasterServiceImpl.getPdfConversionFromDynamoDb()";
+
+
+
+
 
 
 

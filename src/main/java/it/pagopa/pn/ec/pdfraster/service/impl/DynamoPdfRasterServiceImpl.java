@@ -20,6 +20,7 @@ import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.PutItemEnhancedRequest;
 
+import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.DYNAMO_OPTIMISTIC_LOCKING_RETRY;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 
@@ -45,6 +46,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
 
     @Override
     public Mono<RequestConversionDto> insertRequestConversion(RequestConversionDto requestConversionDto) {
+        log.logStartingProcess(PDF_RASTER_INSERT_REQUEST_CONVERSION);
         return Mono.fromCallable(() -> convertToEntity(requestConversionDto))
                 .flatMap(this::saveRequestConversionEntity)
                 .flatMap(this::savePdfConversions)
@@ -54,28 +56,35 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
     }
 
     private RequestConversionEntity convertToEntity(RequestConversionDto dto) {
-        log.logStartingProcess(PDF_RASTER_INSERT_REQUEST_CONVERSION);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PDF_RASTER_CONVERT_TO_ENTITY, dto);
         return objectMapper.convertValue(dto, RequestConversionEntity.class);
     }
 
     private Mono<RequestConversionEntity> saveRequestConversionEntity(RequestConversionEntity entity) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PDF_RASTER_SAVE_REQUEST_CONVERSION_ENTITY, entity);
         return Mono.fromCallable(() -> {
-            requestTable.putItem(PutItemEnhancedRequest.builder(RequestConversionEntity.class)
-                    .item(entity)
-                    .build());
-            return entity;
-        });
+                    requestTable.putItem(PutItemEnhancedRequest.builder(RequestConversionEntity.class)
+                            .item(entity)
+                            .build());
+                    return entity;
+                }).doOnSuccess(result -> log.info(PDF_RASTER_SAVE_REQUEST_CONVERSION_ENTITY));
+
+
     }
 
     private Mono<RequestConversionEntity> savePdfConversions(RequestConversionEntity entity) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PDF_RASTER_SAVE_PDF_CONVERSIONS, entity);
         String requestId = entity.getRequestId();
         return Flux.fromIterable(entity.getAttachments())
                 .map(attachment -> createPdfConversion(attachment, requestId))
                 .flatMap(this::savePdfConversion)
-                .then(Mono.just(entity));
+                .then(Mono.just(entity))
+                .doOnSuccess(result -> log.info(PDF_RASTER_SAVE_PDF_CONVERSION));
+
     }
 
     private PdfConversionEntity createPdfConversion(AttachmentToConvert attachment, String requestId) {
+        log.debug(LOGGING_OPERATION_WITH_ARGS, PDF_RASTER_SAVE_PDF_CONVERSION, attachment, requestId);
         PdfConversionEntity pdfConversion = new PdfConversionEntity();
         pdfConversion.setFileKey(attachment.getNewFileKey().replace("safestorage://", ""));
         pdfConversion.setRequestId(requestId);
@@ -84,15 +93,22 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
     }
 
     private Mono<Void> savePdfConversion(PdfConversionEntity pdfConversion) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PDF_RASTER_SAVE_PDF_CONVERSIONS, pdfConversion);
+
         return Mono.fromCallable(() -> {
-            conversionTable.putItem(PutItemEnhancedRequest.builder(PdfConversionEntity.class)
-                    .item(pdfConversion)
-                    .build());
-            return null;
-        });
+                    conversionTable.putItem(PutItemEnhancedRequest.builder(PdfConversionEntity.class)
+                            .item(pdfConversion)
+                            .build());
+                    return null;
+                })
+                .then()
+                .doOnSuccess(aVoid -> log.info(PDF_RASTER_SAVE_PDF_CONVERSION));
     }
 
+
+
     private RequestConversionDto convertToDto(RequestConversionEntity entity) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PDF_RASTER_CONVERT_TO_DTO, entity);
         return objectMapper.convertValue(entity, RequestConversionDto.class);
     }
 
@@ -107,30 +123,42 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
 
         return getPdfConversionFromDynamoDb(fileKey)
                 .switchIfEmpty(Mono.error(new NotFoundException("Not found for fileKey: " + fileKey)))
-                .flatMap(pdfConversionEntity -> getRequestConversionFromDynamoDb(pdfConversionEntity.getRequestId())
-                        .flatMap(requestConversionEntity -> updateAttachmentConversion(requestConversionEntity, fileKey, converted))
-                        .map(this::convertToDto)
-                        .doOnSuccess(result -> log.logEndingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION))
-                        .doOnError(exception -> log.logEndingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION, false, exception.getMessage()))
-                );
+                .flatMap(pdfConversionEntity ->
+                        getRequestConversionFromDynamoDb(pdfConversionEntity.getRequestId())
+                                .flatMap(requestConversionEntity ->
+                                        updateAttachmentConversion(requestConversionEntity, fileKey, converted)
+                                                .map(this::convertToDto)
+                                )
+                )
+                .doOnSuccess(result -> log.info(PDF_RASTER_UPDATE_REQUEST_CONVERSION))
+                .doOnError(exception -> log.logEndingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION, false, exception.getMessage()))
+                .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
     }
 
     private Mono<RequestConversionEntity> updateAttachmentConversion(RequestConversionEntity requestConversionEntity, String fileKey, Boolean converted) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PDF_RASTER_UPDATE_ATTACHMENT_CONVERSION, requestConversionEntity);
         requestConversionEntity.getAttachments().stream()
                 .filter(attachment -> attachment.getNewFileKey().equals(fileKey))
                 .findFirst()
                 .ifPresent(attachment -> attachment.setConverted(converted));
 
         return Mono.fromFuture(requestTable.putItem(requestConversionEntity))
-                .thenReturn(requestConversionEntity);
+                .thenReturn(requestConversionEntity)
+                .doOnSuccess(result -> log.info(PDF_RASTER_UPDATE_ATTACHMENT_CONVERSION));
     }
 
     private Mono<RequestConversionEntity> getRequestConversionFromDynamoDb(String requestId) {
-        return Mono.fromCompletionStage(() -> requestTable.getItem(Key.builder().partitionValue(requestId).build()));
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PDF_RASTER_GET_REQUEST_CONVERSION_FROM_DYNAMO_DB, requestId);
+        return Mono.fromCompletionStage(() -> requestTable.getItem(Key.builder().partitionValue(requestId).build()))
+                .doOnSuccess(result -> log.info(PDF_RASTER_GET_REQUEST_CONVERSION_FROM_DYNAMO_DB));
+
     }
 
     private Mono<PdfConversionEntity> getPdfConversionFromDynamoDb(String fileKey) {
-        return Mono.fromCompletionStage(() -> conversionTable.getItem(Key.builder().partitionValue(fileKey).build()));
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PDF_RASTER_GET_PDF_CONVERSION_FROM_DYNAMO_DB, fileKey);
+        return Mono.fromCompletionStage(() -> conversionTable.getItem(Key.builder().partitionValue(fileKey).build()))
+                .doOnSuccess(result -> log.info(PDF_RASTER_GET_PDF_CONVERSION_FROM_DYNAMO_DB));
+
     }
 
 
