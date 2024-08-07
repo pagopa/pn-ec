@@ -23,6 +23,10 @@ public interface QueueOperationsService {
         return null;
     }
 
+    default Mono<SendMessageResponse> sendNotificationOnDlqErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
+        return null;
+    }
+
     default Mono<SendMessageResponse> sendNotificationOnBatchQueue(PresaInCaricoInfo presaInCaricoInfo) {
         return null;
     }

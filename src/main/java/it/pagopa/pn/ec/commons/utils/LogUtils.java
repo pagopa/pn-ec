@@ -26,6 +26,7 @@ public class LogUtils {
     public static final String SUCCESSFUL_OPERATION_NO_RESULT_LABEL = "Successful operation: '{}'";
     public static final String INSERTING_DATA_IN_SQS = "Inserting data {} in SQS '{}'";
     public static final String INSERTED_DATA_IN_SQS = "Inserted data in SQS '{}'";
+    public static final String CHANGE_MESSAGE_VISIBILITY = "SqsService.changeMessageVisibility()";
     public static final String PRESA_IN_CARICO = "PresaInCaricoService.presaInCarico()";
     public static final String MESSAGE_REMOVED_FROM_ERROR_QUEUE = "The message has been successfully handled and removed from the error queue '{}'";
     public static final String EXCEPTION_IN_PROCESS_FOR = "Exception in '{}' for request '{}' - {}, {}";
@@ -119,7 +120,8 @@ public class LogUtils {
     public static final String PRESA_IN_CARICO_CARTACEO = "CartaceoService.presaInCarico()";
     public static final String PROCESS_WITH_ATTACH_RETRY = "CartaceoService.processWithAttachRetry()";
     public static final String PROCESS_ONLY_BODY_RETRY = "CartaceoService.processOnlyBodyRetry()";
-
+    public static final String NOTIFICATION_TRACKER_STEP_CARTACEO = "CartaceoService.notificationTrackerStep()";
+    public static final String CARTACEO_PUT_REQUEST_STEP = "CartaceoService.putRequestStep()";
     //EMAIL
     public static final String SEND_DIGITAL_COURTESY_MESSAGE = "sendDigitalCourtesyMessage";
     public static final String GET_DIGITAL_COURTESY_MESSAGE_STATUS = "getDigitalCourtesyMessageStatus";
@@ -151,6 +153,8 @@ public class LogUtils {
     public static final String PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER = "RicezioneEsitiCartaceoService.pubblicaEsitoCodaNotificationTracker()";
     public static final String PUBLISH_ON_QUEUE = "RicezioneEsitiCartaceoService.publishOnQueue()";
 
+    //PDF RASTER
+    public static final String CONVERT_PDF = "convertPdf";
 
     //STATEMACHINE
     public static final String STATE_MACHINE_SERVICE = "pn-statemachinemanager";
@@ -172,6 +176,7 @@ public class LogUtils {
 
     //MICROSERVIZI ESTERNI
     public static final String CONSOLIDATORE_SERVICE = "Consolidatore";
+    public static final String PDF_RASTER_SERVICE = "Pdf Raster";
 
     //SERVIZI ESTERNI
     public static final String CLIENT_METHOD_INVOCATION_WITH_ARGS = "Client method {} - args: {}";
