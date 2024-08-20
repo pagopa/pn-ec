@@ -6,28 +6,19 @@ import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
-import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
-import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
-import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic500ErrorException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
-import it.pagopa.pn.ec.pdfraster.model.dto.PdfRasterResponse;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.commons.rest.call.pdfraster.PdfRasterCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.pdfraster.model.dto.RequestConversionDto;
 import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
+import it.pagopa.pn.ec.rest.v1.dto.RequestConversionDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -36,15 +27,12 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
-import java.util.stream.Stream;
-
-import static it.pagopa.pn.ec.commons.constant.Status.*;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.*;
+import static it.pagopa.pn.ec.commons.constant.Status.RETRY;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.CODE_TO_STATUS_MAP;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.OK_CODE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
-import static org.mockito.AdditionalMatchers.not;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -59,8 +47,6 @@ class CartaceoServiceTest {
     private CartaceoMapper cartaceoMapper;
     @MockBean
     private PaperMessageCall paperMessageCall;
-    @MockBean
-    private PdfRasterCall pdfRasterCall;
     @MockBean
     private GestoreRepositoryCall gestoreRepositoryCall;
     @SpyBean
@@ -111,9 +97,6 @@ class CartaceoServiceTest {
         // Mock di una generica getRichiesta.
         when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));
 
-        //Mock chiamata pdfRaster
-        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.just(PdfRasterResponse.builder().newFileKey("").build()));
-
         when(paperMessageCall.putRequest(any()))
                 .thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
 
@@ -122,23 +105,6 @@ class CartaceoServiceTest {
 
         verify(dynamoPdfRasterService, times(1)).insertRequestConversion(any(RequestConversionDto.class));
         verify(cartaceoService, never()).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
-    }
-
-    @ParameterizedTest
-    @MethodSource("exceptionsPdfRaster")
-    void lavorazioneRichiestaKoPdfRaster(Exception e){
-        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));
-
-        //Mock chiamata pdfRaster
-        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.error(e));
-
-        Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER);
-
-        StepVerifier.create(lavorazioneRichiesta)
-                    .expectNextCount(1)
-                    .verifyComplete();
-
-        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
     }
 
     @Test
@@ -254,16 +220,4 @@ class CartaceoServiceTest {
         assertTrue(testImplemented);
     }
 
-    /**
-     *
-     * @return
-     */
-    private static Stream<Arguments> exceptionsPdfRaster(){
-        return Stream.of(
-                Arguments.of(new AttachmentNotAvailableException("")),
-                Arguments.of(new ClientNotAuthorizedException("")),
-                Arguments.of(new Generic400ErrorException("","")),
-                Arguments.of(new Generic500ErrorException("",""))
-        );
-    }
 }
