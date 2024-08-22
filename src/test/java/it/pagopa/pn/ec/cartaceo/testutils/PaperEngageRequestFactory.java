@@ -29,7 +29,7 @@ public class PaperEngageRequestFactory {
 	 * @return
 	 */
 	public static it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest createDtoPaperRequestPdfRaster(int attachNum) {
-		var paperEngageRequestAttachments = getPaperEngageRequestAttachments("PN_NOTIFICATION_ATTACHMENT");
+		var paperEngageRequestAttachments = getPaperEngageRequestAttachments("PN_NOTIFICATION_ATTACHMENTS");
 
 		return getPaperEngageRequest(paperEngageRequestAttachments);
 	}
