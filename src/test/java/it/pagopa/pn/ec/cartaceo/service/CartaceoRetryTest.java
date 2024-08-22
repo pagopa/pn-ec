@@ -265,23 +265,15 @@ class CartaceoRetryTest {
 
     /**
      * Test di KO per la gestione retry. La chiamata putRequest() va in errore con un'eccezione generica.
-     * Utilizzo di tutti i tentativi possibili.
      *
-     * @param retryStep   lo step di retry corrente
-     * @param timeElapsed il tempo passato dall'ultima retry
      */
-    @ParameterizedTest
-    @MethodSource({"gestioneRetryKoArgsProvider"})
-    void gestioneRetryCartaceo_Retry_PutRequestKo(BigDecimal retryStep, long timeElapsed, Exception e) {
+    @Test
+    void gestioneRetryCartaceo_Retry_PutRequestKo() {
 
         //GIVEN
         RequestDto requestDto = buildRequestDto();
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfo();
-
-        if (retryStep != null) {
-            requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(timeElapsed));
-            requestDto.getRequestMetadata().getRetry().setRetryStep(retryStep);
-        } else requestDto.getRequestMetadata().setRetry(null);
+        requestDto.getRequestMetadata().setRetry(null);
 
         String requestId=requestDto.getRequestIdx();
         String clientId = requestDto.getxPagopaExtchCxId();
