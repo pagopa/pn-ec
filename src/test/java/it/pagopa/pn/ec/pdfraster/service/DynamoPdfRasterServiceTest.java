@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Assertions;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -121,7 +122,7 @@ class DynamoPdfRasterServiceTest {
 
         markAttachmentsAsConverted(requestConversionDto);
 
-        Mono<RequestConversionDto> updateResponse = dynamoPdfRasterService.updateRequestConversion("12345", true);
+        Mono<RequestConversionDto> updateResponse = dynamoPdfRasterService.updateRequestConversion("12345", true, RandomStringUtils.randomAlphanumeric(10));
 
 
         StepVerifier.create(updateResponse)
@@ -194,14 +195,14 @@ class DynamoPdfRasterServiceTest {
         simulateInvalidConvertedValueError(fileKey, convertedValue);
 
 
-        StepVerifier.create(dynamoPdfRasterService.updateRequestConversion(fileKey, convertedValue))
+        StepVerifier.create(dynamoPdfRasterService.updateRequestConversion(fileKey, convertedValue, RandomStringUtils.randomAlphanumeric(10)))
                 .expectErrorMatches(throwable -> throwable instanceof IllegalArgumentException
                         && throwable.getMessage().equals("Invalid value for 'converted': must be true."))
                 .verify();
     }
 
     private void simulateInvalidConvertedValueError(String fileKey, boolean converted) {
-        when(dynamoPdfRasterService.updateRequestConversion(fileKey, converted))
+        when(dynamoPdfRasterService.updateRequestConversion(fileKey, converted, RandomStringUtils.randomAlphanumeric(10)))
                 .thenReturn(Mono.error(new IllegalArgumentException("Invalid value for 'converted': must be true.")));
     }
 

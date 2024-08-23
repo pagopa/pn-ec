@@ -385,6 +385,9 @@ components:
         converted:
           type: boolean
           description: Stato della conversione
+        sha256:
+          type: string
+          description: Hash del file
       required:
         - originalFileKey
         - newFileKey
