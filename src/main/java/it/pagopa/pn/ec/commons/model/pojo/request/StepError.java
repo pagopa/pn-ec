@@ -26,7 +26,10 @@ public class StepError {
         SES_SEND_STEP("SES_SEND_STEP"),
         ARUBA_SEND_MAIL_STEP("ARUBA_SEND_MAIL_STEP"),
         SET_MESSAGE_ID_STEP("SET_MESSAGE_ID_STEP"),
-        PUT_REQUEST_STEP("PUT_REQUEST_STEP");
+        PUT_REQUEST_STEP("PUT_REQUEST_STEP"),
+        PDF_RASTER_STEP("PDF_RASTER_STEP"),
+        END("END"),
+        EXCEPTION("EXCEPTION");
 
         private String value;
 

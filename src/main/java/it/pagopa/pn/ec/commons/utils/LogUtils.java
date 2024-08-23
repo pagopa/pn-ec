@@ -120,8 +120,10 @@ public class LogUtils {
     public static final String PRESA_IN_CARICO_CARTACEO = "CartaceoService.presaInCarico()";
     public static final String PROCESS_WITH_ATTACH_RETRY = "CartaceoService.processWithAttachRetry()";
     public static final String PROCESS_ONLY_BODY_RETRY = "CartaceoService.processOnlyBodyRetry()";
+    public static final String UPLOAD_ATTACHMENT_TO_CONVERT = "CartaceoService.uploadAttachmentToConvert()";
     public static final String NOTIFICATION_TRACKER_STEP_CARTACEO = "CartaceoService.notificationTrackerStep()";
     public static final String CARTACEO_PUT_REQUEST_STEP = "CartaceoService.putRequestStep()";
+    public static final String CARTACEO_PDF_RASTER_STEP = "CartaceoService.pdfRasterStep()";
     //EMAIL
     public static final String SEND_DIGITAL_COURTESY_MESSAGE = "sendDigitalCourtesyMessage";
     public static final String GET_DIGITAL_COURTESY_MESSAGE_STATUS = "getDigitalCourtesyMessageStatus";

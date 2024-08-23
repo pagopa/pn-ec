@@ -28,10 +28,10 @@ public class PaperEngageRequestFactory {
 	 * @param attachNum
 	 * @return
 	 */
-	public static it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest createDtoPaperRequestPdfRaster(int attachNum) {
-		var paperEngageRequestAttachments = getPaperEngageRequestAttachments("PN_NOTIFICATION_ATTACHMENT");
+	public static it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest createDtoPaperRequestPdfRaster(String requestPaId) {
+		var paperEngageRequestAttachments = getPaperEngageRequestAttachments("PN_NOTIFICATION_ATTACHMENTS");
 
-		return getPaperEngageRequest(paperEngageRequestAttachments);
+		return getPaperEngageRequest(paperEngageRequestAttachments).requestPaId(requestPaId);
 	}
 
 	private static @NotNull PaperEngageRequest getPaperEngageRequest(PaperEngageRequestAttachments paperEngageRequestAttachments) {
