@@ -1,29 +1,23 @@
 package it.pagopa.pn.ec.cartaceo.service;
 
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
+import it.pagopa.pn.ec.cartaceo.configurationproperties.RasterProperties;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
-import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
-import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
-import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic500ErrorException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.commons.rest.call.pdfraster.PdfRasterCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.rest.call.upload.UploadCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.pdfraster.model.dto.PdfRasterResponse;
+import it.pagopa.pn.ec.cartaceo.configuration.RasterConfiguration;
 import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
@@ -33,7 +27,6 @@ import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.io.ByteArrayOutputStream;
-import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.RETRY;
 import static it.pagopa.pn.ec.consolidatore.utils.ContentTypes.APPLICATION_PDF;
@@ -55,8 +48,6 @@ class CartaceoServiceTest {
     @MockBean
     private PaperMessageCall paperMessageCall;
     @MockBean
-    private PdfRasterCall pdfRasterCall;
-    @MockBean
     private GestoreRepositoryCall gestoreRepositoryCall;
     @MockBean
     private DownloadCall downloadCall;
@@ -70,6 +61,10 @@ class CartaceoServiceTest {
     private CartaceoSqsQueueName cartaceoSqsQueueName;
     @SpyBean
     private DynamoPdfRasterService dynamoPdfRasterService;
+    @SpyBean
+    private RasterProperties rasterProperties;
+    @Autowired
+    private RasterConfiguration rasterConfiguration;
 
     private static final String DOWNLOAD_URL = "http://downloadUrl";
 
@@ -81,9 +76,15 @@ class CartaceoServiceTest {
             .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
             .paperEngageRequest(PaperEngageRequestFactory.createDtoPaperRequest(2)).build();
 
-    private static final CartaceoPresaInCaricoInfo CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER = CartaceoPresaInCaricoInfo.builder().requestIdx(DEFAULT_REQUEST_IDX)
-            .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
-            .paperEngageRequest(PaperEngageRequestFactory.createDtoPaperRequestPdfRaster(2)).build();
+    private static CartaceoPresaInCaricoInfo getCartaceoPresaInCaricoInfo() {
+        return getCartaceoPresaInCaricoInfo("requestPaId");
+    }
+
+    private static CartaceoPresaInCaricoInfo getCartaceoPresaInCaricoInfo(String requestPaId) {
+        return CartaceoPresaInCaricoInfo.builder().requestIdx(DEFAULT_REQUEST_IDX)
+                .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .paperEngageRequest(PaperEngageRequestFactory.createDtoPaperRequestPdfRaster(requestPaId)).build();
+    }
 
     @Test
     void lavorazioneRichiestaOk() {
@@ -125,43 +126,105 @@ class CartaceoServiceTest {
         verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
     }
 
+    /**
+     * Test lavorazione richiesta con step PDF Raster e configurazione PnECPaperPAIdToRaster = ALL (feature sempre abilitata).
+     */
     @Test
-    void lavorazioneRichiestaPdfRasterOk() {
+    void lavorazioneRichiestaPdfRaster_All_Ok() {
+
+        //GIVEN
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
 
         //WHEN
         mockGestoreRepository();
         mockPutRequest();
         mockPdfRasterAttachmentSteps();
-
-        //Mock chiamata pdfRaster
-        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.just(PdfRasterResponse.builder().newFileKey("").build()));
+        when(rasterProperties.paIdToRaster()).thenReturn("ALL");
 
         //THEN
-        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER);
+        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
         verify(dynamoPdfRasterService, times(1)).insertRequestConversion(any(RequestConversionDto.class));
-        verify(cartaceoService, never()).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
+        verify(cartaceoService, never()).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
     }
 
-    @ParameterizedTest
-    @MethodSource("exceptionsPdfRaster")
-    void lavorazioneRichiestaKoPdfRaster(Exception e){
-        when(gestoreRepositoryCall.getRichiesta(any(), any())).thenReturn(Mono.just(new RequestDto()));
+    /**
+     * Test lavorazione richiesta con step PDF Raster e configurazione PnECPaperPAIdToRaster = NOTHING (feature sempre disabilitata).
+     *
+     */
+    @Test
+    void lavorazioneRichiestaPdfRaster_Nothing_Ok() {
 
-        //Mock chiamata pdfRaster
-        when(pdfRasterCall.convertPdf(any())).thenReturn(Mono.error(e));
+        //GIVEN
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
 
-        Mono<SendMessageResponse> lavorazioneRichiesta=cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER);
+        //WHEN
+        mockGestoreRepository();
+        mockPutRequest();
+        mockPdfRasterAttachmentSteps();
+        when(rasterProperties.paIdToRaster()).thenReturn("NOTHING");
 
-        StepVerifier.create(lavorazioneRichiesta)
-                    .expectNextCount(1)
-                    .verifyComplete();
+        //THEN
+        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
+        StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
+        verify(dynamoPdfRasterService, never()).insertRequestConversion(any(RequestConversionDto.class));
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
+    }
 
-        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
+    /**
+     * Test lavorazione richiesta con step PDF Raster e configurazione PnECPaperPAIdToRaster = <elenco di ID delle PA>.
+     * Il requestPaId della richiesta è presente nella configurazione. La funzionalità è quindi abilitata.
+     *
+     */
+    @Test
+    void lavorazioneRichiestaPdfRaster_PaIdInList_Ok() {
+
+        //GIVEN
+        String requestPaIdToCheck = "validRequestPaId";
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo(requestPaIdToCheck);
+
+        //WHEN
+        mockGestoreRepository();
+        mockPutRequest();
+        mockPdfRasterAttachmentSteps();
+        when(rasterProperties.paIdToRaster()).thenReturn("requestPaId1;requestPaId2;" + requestPaIdToCheck);
+
+        //THEN
+        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
+        StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
+        verify(dynamoPdfRasterService, times(1)).insertRequestConversion(any(RequestConversionDto.class));
+        verify(cartaceoService, never()).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
+    }
+
+    /**
+     * Test lavorazione richiesta con step PDF Raster e configurazione PnECPaperPAIdToRaster = <elenco di ID delle PA>.
+     * Il requestPaId della richiesta NON è presente nella configurazione. La funzionalità viene quindi disattivata per la specifica richiesta.
+     *
+     */
+    @Test
+    void lavorazioneRichiestaPdfRaster_PaIdNotInList_Ok() {
+
+        //GIVEN
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
+
+        //WHEN
+        mockGestoreRepository();
+        mockPutRequest();
+        mockPdfRasterAttachmentSteps();
+        when(rasterProperties.paIdToRaster()).thenReturn("requestPaId1;requestPaId2");
+
+        //THEN
+        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
+        StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
+        verify(dynamoPdfRasterService, never()).insertRequestConversion(any(RequestConversionDto.class));
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
     }
 
     @Test
     void lavorazioneRichiestaPdfRaster_KoGetFile() {
+
+        //GIVEN
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
 
         //WHEN
         mockGestoreRepository();
@@ -170,13 +233,16 @@ class CartaceoServiceTest {
         when(fileCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException("fileKey")));
 
         //THEN
-        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER);
+        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
-        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
     }
 
     @Test
     void lavorazioneRichiestaPdfRaster_KoDownloadCall() {
+
+        //GIVEN
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
 
         //WHEN
         mockGestoreRepository();
@@ -185,13 +251,16 @@ class CartaceoServiceTest {
         when(downloadCall.downloadFile(DOWNLOAD_URL)).thenReturn(Mono.error(new RuntimeException()));
 
         //THEN
-        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER);
+        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
-        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
     }
 
     @Test
     void lavorazioneRichiestaPdfRaster_KoPostFile() {
+
+        //GIVEN
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
 
         //WHEN
         mockGestoreRepository();
@@ -200,13 +269,16 @@ class CartaceoServiceTest {
         when(fileCall.postFile(anyString(), anyString(), any(FileCreationRequest.class))).thenReturn(Mono.error(new RuntimeException()));
 
         //THEN
-        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER);
+        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
-        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
     }
 
     @Test
     void lavorazioneRichiestaPdfRaster_KoUploadCall() {
+
+        //GIVEN
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
 
         //WHEN
         mockGestoreRepository();
@@ -215,13 +287,16 @@ class CartaceoServiceTest {
         when(uploadCall.uploadFile(anyString(), anyString(), anyString(), anyString(), any(), anyString(), any(byte[].class))).thenReturn(Mono.error(new RuntimeException()));
 
         //THEN
-        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER);
+        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
-        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
     }
 
     @Test
     void lavorazioneRichiestaPdfRaster_KoDynamo() {
+
+        //GIVEN
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
 
         //WHEN
         mockGestoreRepository();
@@ -230,9 +305,9 @@ class CartaceoServiceTest {
         when(dynamoPdfRasterService.insertRequestConversion(any())).thenReturn(Mono.error(DynamoDbException.builder().build()));
 
         //THEN
-        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER);
+        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
-        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO_PDFRASTER), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
     }
 
     private void mockPdfRasterAttachmentSteps() {
@@ -250,23 +325,14 @@ class CartaceoServiceTest {
 
     private void mockGestoreRepository() {
         // Mock di una generica getRichiesta.
-        when(gestoreRepositoryCall.getRichiesta(eq(DEFAULT_ID_CLIENT_HEADER_VALUE), eq(DEFAULT_REQUEST_IDX))).thenReturn(Mono.just(new RequestDto()));
+        RequestDto requestDto = new RequestDto();
+        RequestMetadataDto requestMetadata = new RequestMetadataDto().paperRequestMetadata(new PaperRequestMetadataDto().requestPaId("requestPaId"));
+        requestDto.requestMetadata(requestMetadata);
+        when(gestoreRepositoryCall.getRichiesta(eq(DEFAULT_ID_CLIENT_HEADER_VALUE), eq(DEFAULT_REQUEST_IDX))).thenReturn(Mono.just(requestDto));
     }
 
     private void mockPutRequest() {
         when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
     }
 
-    /**
-     *
-     * @return
-     */
-    private static Stream<Arguments> exceptionsPdfRaster(){
-        return Stream.of(
-                Arguments.of(new AttachmentNotAvailableException("")),
-                Arguments.of(new ClientNotAuthorizedException("")),
-                Arguments.of(new Generic400ErrorException("","")),
-                Arguments.of(new Generic500ErrorException("",""))
-        );
-    }
 }

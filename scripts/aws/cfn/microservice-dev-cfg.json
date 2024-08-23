@@ -43,7 +43,9 @@
     "PnEcConsAllowedFutureOffsetDuration": "1m",
     "CpuValue": "1024",
     "MemoryAmount": "4GB",
-    "PdfRasterFeatureFlag": "NOTHING",
-    "PdfRasterDocumentTypeToConvert": "PN_NOTIFICATION_ATTACHMENTS"
+    "PnECPaperDocumentTypeToRaster": "PN_NOTIFICATION_ATTACHMENTS",
+    "PnECPaperDocumentTypeForRasterized": "PN_PAPER_ATTACHMENTS",
+    "PnECPaperPAIdToRaster": "ALL",
+    "PnECPaperPAIdOverride": ""
   }
 }

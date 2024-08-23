@@ -833,13 +833,27 @@ Parameters:
     Description: Memory amount reserved to the task pod.
     AllowedValues: [ 2GB, 4GB, 6GB, 8GB ]
 
-  PdfRasterFeatureFlag:
+  PnECPaperPAIdToRaster:
     Type: String
-    Description: 'Nuova funzionalità completamente disabilitatà'
+    Description: 'Feature flag per la funzionalità di conversione degli allegati cartacei.
+    Può assumere tre valori:
+    - la sola stringa “NOTHING”: significa che la nuova funzionalità è completamente disabilitata
+    - la sola stringa “ALL”: tutti gli allegati del tipo specificato verranno convertiti
+    - <elenco di ID delle PA>: se il campo requestPaId della richiesta è contenuto in questo elenco, allora verrà applicata la conversione dei PDF del tipo specificato, altrimenti si procederà come di consueto
+    '
 
-  PdfRasterDocumentTypeToConvert:
+  PnECPaperDocumentTypeToRaster:
     Type: String
     Description: 'Tipologia per la selezione del documento da convertire'
+
+  PnECPaperDocumentTypeForRasterized:
+    Type: String
+    Description: 'Tipologia da applicare agli allegati cartacei convertiti'
+
+  PnECPaperPAIdOverride:
+    Type: String
+    Description: 'Valore del requestPaID da sovrascrivere nella richiesta cartacea. Se non valorizzato, la funzionalità è disattivata'
+    
 
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
@@ -929,8 +943,10 @@ Resources:
         ContainerEnvEntry68: !Sub 'PnEcNamirialServerCacheEndpoint=${PnEcNamirialServerCacheEndpoint}'
         ContainerEnvEntry69: !Sub 'SpringCodecMaxInMemorySize=${SpringCodecMaxInMemorySize}'
         ContainerEnvEntry70: !Sub 'PnEcConsAllowedFutureOffsetDuration=${PnEcConsAllowedFutureOffsetDuration}'
-        ContainerEnvEntry71: !Sub 'PdfRasterFeatureFlag=${PdfRasterFeatureFlag}'
-        ContainerEnvEntry72: !Sub 'PdfRasterDocumentTypeToConvert=${PdfRasterDocumentTypeToConvert}'
+        ContainerEnvEntry71: !Sub 'PnECPaperPAIdToRaster=${PnECPaperPAIdToRaster}'
+        ContainerEnvEntry72: !Sub 'PnECPaperDocumentTypeToRaster=${PnECPaperDocumentTypeToRaster}'
+        ContainerEnvEntry73: !Sub 'PnECPaperDocumentTypeForRasterized=${PnECPaperDocumentTypeForRasterized}'
+        ContainerEnvEntry74: !Sub 'PnECPaperPAIdOverride=${PnECPaperPAIdOverride}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
