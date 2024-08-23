@@ -114,7 +114,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
 
 
     @Override
-    public Mono<RequestConversionDto> updateRequestConversion(String fileKey, Boolean converted) {
+    public Mono<RequestConversionDto> updateRequestConversion(String fileKey, Boolean converted, String fileHash) {
         log.logStartingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION);
 
         if (converted == null || !converted) {
@@ -126,7 +126,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                 .flatMap(pdfConversionEntity ->
                         getRequestConversionFromDynamoDb(pdfConversionEntity.getRequestId())
                                 .flatMap(requestConversionEntity ->
-                                        updateAttachmentConversion(requestConversionEntity, fileKey, converted)
+                                        updateAttachmentConversion(requestConversionEntity, fileKey, converted, fileHash)
                                                 .map(this::convertToDto)
                                 )
                 )
@@ -135,12 +135,15 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                 .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
     }
 
-    private Mono<RequestConversionEntity> updateAttachmentConversion(RequestConversionEntity requestConversionEntity, String fileKey, Boolean converted) {
+    private Mono<RequestConversionEntity> updateAttachmentConversion(RequestConversionEntity requestConversionEntity, String fileKey, Boolean converted, String fileHash) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PDF_RASTER_UPDATE_ATTACHMENT_CONVERSION, requestConversionEntity);
         requestConversionEntity.getAttachments().stream()
                 .filter(attachment -> attachment.getNewFileKey().equals(fileKey))
                 .findFirst()
-                .ifPresent(attachment -> attachment.setConverted(converted));
+                .ifPresent(attachment -> {
+                    attachment.setConverted(converted);
+                    attachment.setSha256(fileHash);
+                });
 
         return Mono.fromFuture(requestTable.putItem(requestConversionEntity))
                 .thenReturn(requestConversionEntity)

@@ -16,4 +16,5 @@ public class AttachmentToConvert {
     String originalFileKey;
     String newFileKey;
     Boolean converted;
+    String sha256;
 }

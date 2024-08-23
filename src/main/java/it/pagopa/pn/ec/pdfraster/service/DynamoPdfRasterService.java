@@ -7,7 +7,7 @@ public interface DynamoPdfRasterService {
 
     Mono<RequestConversionDto> insertRequestConversion(RequestConversionDto request);
 
-    Mono<RequestConversionDto> updateRequestConversion(String fileKey, Boolean converted);
+    Mono<RequestConversionDto> updateRequestConversion(String fileKey, Boolean converted, String fileHash);
 
 
 
