@@ -412,12 +412,16 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AttachmentToConvertDto'
+        xPagopaExtchCxId:
+          type: string
+          description: ID del client
       required:
         - requestId
         - requestTimestamp
         - expiration
         - originalRequest
         - attachments
+        - xPagopaExtchCxId
 
     PdfConversionDto:
       type: object
