@@ -531,6 +531,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .doOnDiscard(List.class, list -> log.debug("No attachments to convert were processed."))
                 .flatMap(attachmentsToConvert -> {
                     RequestConversionDto requestConversionDto = new RequestConversionDto();
+                    requestConversionDto.setxPagopaExtchCxId(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId());
                     requestConversionDto.setRequestId(cartaceoPresaInCaricoInfo.getRequestIdx());
                     requestConversionDto.setOriginalRequest(paperEngageRequestSrc);
                     requestConversionDto.setAttachments(attachmentsToConvert);

@@ -82,4 +82,19 @@ public class RepositoryManagerException extends RuntimeException {
                                 requestId));
         }
     }
+
+    public static class RequestConversionNotFoundException extends RepositoryManagerException {
+
+        public RequestConversionNotFoundException(String requestId) {
+            super(String.format("Request conversion with request id '%s' not found", requestId));
+        }
+    }
+
+    public static class PdfConversionNotFoundException extends RepositoryManagerException {
+
+        public PdfConversionNotFoundException(String fileKey) {
+            super(String.format("PDF conversion with file key '%s' not found", fileKey));
+        }
+    }
+
 }

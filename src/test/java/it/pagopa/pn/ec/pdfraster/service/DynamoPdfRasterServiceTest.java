@@ -57,17 +57,17 @@ class DynamoPdfRasterServiceTest {
 
 
 
-    private RequestConversionDto createMockRequestConversionDto() {
+    private RequestConversionDto createMockRequestConversionDto(String requestId, String newFileKey) {
         return new RequestConversionDto()
-                .requestId("123456789")
+                .requestId(requestId)
                 .attachments(Collections.singletonList(
-                        new AttachmentToConvertDto().newFileKey("12345")
+                        new AttachmentToConvertDto().newFileKey(newFileKey)
                 ));
     }
 
     @Test
     void insertRequestConversionOk() {
-        RequestConversionDto requestConversionDto = createMockRequestConversionDto();
+        RequestConversionDto requestConversionDto = createMockRequestConversionDto("123456", "1");
 
         Mono<RequestConversionDto> response = dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
 
@@ -91,7 +91,7 @@ class DynamoPdfRasterServiceTest {
     }
 
     private boolean verifyPdfConversionEntitiesExist() {
-        for (AttachmentToConvertDto attachmentDto : createMockRequestConversionDto().getAttachments()) {
+        for (AttachmentToConvertDto attachmentDto : createMockRequestConversionDto("123456", "1").getAttachments()) {
             PdfConversionEntity result = pdfConversionEntityDynamoDbTable.getItem(builder ->
                     builder.key(Key.builder().partitionValue(attachmentDto.getNewFileKey()).build()));
             if (result == null) {
@@ -113,7 +113,7 @@ class DynamoPdfRasterServiceTest {
 
     @Test
     void updateRequestConversionOk() {
-        RequestConversionDto requestConversionDto = createMockRequestConversionDto();
+        RequestConversionDto requestConversionDto = createMockRequestConversionDto("12345678", "3");
 
         Mono<RequestConversionDto> insertResponse = dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
         StepVerifier.create(insertResponse)
@@ -122,7 +122,7 @@ class DynamoPdfRasterServiceTest {
 
         markAttachmentsAsConverted(requestConversionDto);
 
-        Mono<RequestConversionDto> updateResponse = dynamoPdfRasterService.updateRequestConversion("12345", true, RandomStringUtils.randomAlphanumeric(10));
+        Mono<RequestConversionDto> updateResponse = dynamoPdfRasterService.updateRequestConversion("3", true, RandomStringUtils.randomAlphanumeric(10));
 
 
         StepVerifier.create(updateResponse)
@@ -151,7 +151,7 @@ class DynamoPdfRasterServiceTest {
 
     @Test
     void insertRequestConversionKoInternalServerError() {
-        RequestConversionDto requestConversionDto = createMockRequestConversionDto();
+        RequestConversionDto requestConversionDto = createMockRequestConversionDto("123456789", "4");
 
         simulateInternalServerError();
 
@@ -171,7 +171,7 @@ class DynamoPdfRasterServiceTest {
     @Test
     void insertRequestConversionKoConflictError() {
 
-        RequestConversionDto requestConversionDto = createMockRequestConversionDto();
+        RequestConversionDto requestConversionDto = createMockRequestConversionDto("1234567890", "5");
 
         simulateConflictError();
 

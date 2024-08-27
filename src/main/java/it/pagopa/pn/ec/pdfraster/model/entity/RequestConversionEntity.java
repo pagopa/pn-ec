@@ -17,6 +17,7 @@ import java.util.List;
 @Setter
 @Builder
 @DynamoDbBean
+@ToString
 public class RequestConversionEntity extends DocumentVersion {
 
     @Getter(onMethod=@__({@DynamoDbPartitionKey}))
@@ -25,4 +26,6 @@ public class RequestConversionEntity extends DocumentVersion {
     BigDecimal expiration;
     OriginalRequest originalRequest;
     List<AttachmentToConvert> attachments;
+    String xPagopaExtchCxId;
+
 }

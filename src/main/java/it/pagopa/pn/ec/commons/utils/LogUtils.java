@@ -258,8 +258,7 @@ public class LogUtils {
     public static final String PDF_RASTER_UPDATE_ATTACHMENT_CONVERSION = "DynamoPdfRasterServiceImpl.updateAttachmentConversion()";
     public static final String PDF_RASTER_GET_REQUEST_CONVERSION_FROM_DYNAMO_DB = "DynamoPdfRasterServiceImpl.getRequestConversionFromDynamoDb()";
     public static final String PDF_RASTER_GET_PDF_CONVERSION_FROM_DYNAMO_DB = "DynamoPdfRasterServiceImpl.getPdfConversionFromDynamoDb()";
-
-
+    public static final String HANDLE_AVAILABILITY_MANAGER = "AvailabilityManagerService.handleAvailabilityManager()";
 
 
 
