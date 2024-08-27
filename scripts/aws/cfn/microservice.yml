@@ -710,6 +710,19 @@ Parameters:
     Type: String
     Description: 'ARN Bucket Staging per messaggi SQS troppo grandi'
 
+### PdfRaster - Availability queue  ###
+  PnEcQueueNamePdfRasterAvailability:
+    Description: 'Nome della coda Disponibilità per pdf-raster'
+    Type: String
+
+  PnEcQueueArnPdfRasterAvailability:
+    Description: 'ARN della coda Disponibilità per pdf-raster'
+    Type: String
+
+  PnEcQueueUrlPdfRasterAvailability:
+    Description: 'Url della coda Disponibilità per pdf-raster'
+    Type: String
+
   #### Parametri Indipendenti ####
 
   PnEcConsolidatoreBaseURL:
@@ -947,6 +960,7 @@ Resources:
         ContainerEnvEntry72: !Sub 'PnECPaperDocumentTypeToRaster=${PnECPaperDocumentTypeToRaster}'
         ContainerEnvEntry73: !Sub 'PnECPaperDocumentTypeForRasterized=${PnECPaperDocumentTypeForRasterized}'
         ContainerEnvEntry74: !Sub 'PnECPaperPAIdOverride=${PnECPaperPAIdOverride}'
+        ContainerEnvEntry75: !Sub 'PnEcQueueArnPdfRasterAvailability=${PnEcQueueArnPdfRasterAvailability}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -1027,6 +1041,7 @@ Resources:
               - !Ref PnEcQueueArnErroriCARTACEO
               - !Ref PnEcQueueArnScaricamentoEsitiPEC
               - !Ref PnEcQueueArnCancellazioneRicevutePEC
+              - !Ref PnEcQueueArnPdfRasterAvailability
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
@@ -1620,3 +1635,41 @@ Resources:
               return { batchItemFailures} ;
             }))
           }
+
+
+### PdfRaster - Availability queue  ###
+
+  PnEcQueuePolicyPdfRasterAvailability:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref PnEcQueueUrlPdfRasterAvailability
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - 'sqs:*'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnPdfRasterAvailability
+            Principal:
+              AWS: !Ref AWS::AccountId
+
+  PnEcEventRulePdfRasterAvailability:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: 'This Event rule is used to forward availability events for paper attachments to the queue PnEcQueuePdfRasterAvailabilityStack'
+      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      EventPattern:
+        source:
+          - 'GESTORE DISPONIBILITA'
+        account:
+          - !Ref AWS::AccountId
+        region:
+          - !Ref AWS::Region
+        detail:
+          documentType: PN_PAPER_ATTACHMENT
+            
+      State: 'ENABLED'
+      Targets:
+        - Arn: !Ref PnEcQueueArnPdfRasterAvailability
+          Id: 'PnEcQueuePdfRasterAvailability'
