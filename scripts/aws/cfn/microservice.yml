@@ -960,7 +960,7 @@ Resources:
         ContainerEnvEntry72: !Sub 'PnECPaperDocumentTypeToRaster=${PnECPaperDocumentTypeToRaster}'
         ContainerEnvEntry73: !Sub 'PnECPaperDocumentTypeForRasterized=${PnECPaperDocumentTypeForRasterized}'
         ContainerEnvEntry74: !Sub 'PnECPaperPAIdOverride=${PnECPaperPAIdOverride}'
-        ContainerEnvEntry75: !Sub 'PnEcQueueArnPdfRasterAvailability=${PnEcQueueArnPdfRasterAvailability}'
+        ContainerEnvEntry75: !Sub 'PnEcQueueNamePdfRasterAvailability=${PnEcQueueNamePdfRasterAvailability}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
