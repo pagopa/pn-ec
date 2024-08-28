@@ -579,13 +579,13 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     fileCreationRequest.setDocumentType(rasterConfiguration.getDocumentTypeForRasterized());
                     fileCreationRequest.setContentType(fileDownloadResponse.getContentType());
                     log.debug("Posting file for originalFileKey: {}", originalFileKey);
-                    return Mono.zip(Mono.just(downloadedFileStream), fileCall.postFile(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(), fileDownloadResponse.getChecksum(), fileCreationRequest));
+                    return Mono.zip(Mono.just(downloadedFileStream), fileCall.postFile(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(), fileDownloadResponse.getChecksum(), fileCreationRequest), Mono.just(fileDownloadResponse.getContentType()));
                 })
                 .flatMap(tuple -> {
                     ByteArrayOutputStream downloadedFileStream = tuple.getT1();
                     FileCreationResponse fileCreationResponse = tuple.getT2();
                     log.debug("Uploading file to new URL for originalFileKey: {}", originalFileKey);
-                    return uploadCall.uploadFile(fileCreationResponse.getKey(), fileCreationResponse.getUploadUrl(), fileCreationResponse.getSecret(), "application/pdf", DocumentTypeConfiguration.ChecksumEnum.SHA256, attachment.getSha256(), downloadedFileStream.toByteArray())
+                    return uploadCall.uploadFile(fileCreationResponse.getKey(), fileCreationResponse.getUploadUrl(), fileCreationResponse.getSecret(),tuple.getT3(), DocumentTypeConfiguration.ChecksumEnum.SHA256, attachment.getSha256(), downloadedFileStream.toByteArray())
                             .thenReturn(fileCreationResponse.getKey());
                 })
                 .flatMap(newFileKey -> {
