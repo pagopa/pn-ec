@@ -735,15 +735,15 @@ Parameters:
     Description: 'ARN Bucket Staging per messaggi SQS troppo grandi'
 
 ### PdfRaster - Availability queue  ###
-  PnEcQueueNamePdfRasterAvailability:
+  PnEcQueueNameAvailabilityManager:
     Description: 'Nome della coda Disponibilità per pdf-raster'
     Type: String
 
-  PnEcQueueArnPdfRasterAvailability:
+  PnEcQueueArnAvailabilityManager:
     Description: 'ARN della coda Disponibilità per pdf-raster'
     Type: String
 
-  PnEcQueueUrlPdfRasterAvailability:
+  PnEcQueueUrlAvailabilityManager:
     Description: 'Url della coda Disponibilità per pdf-raster'
     Type: String
 
@@ -984,8 +984,8 @@ Resources:
         ContainerEnvEntry72: !Sub 'PnECPaperDocumentTypeToRaster=${PnECPaperDocumentTypeToRaster}'
         ContainerEnvEntry73: !Sub 'PnECPaperDocumentTypeForRasterized=${PnECPaperDocumentTypeForRasterized}'
         ContainerEnvEntry74: !Sub 'PnECPaperPAIdOverride=${PnECPaperPAIdOverride}'
-        ContainerEnvEntry75: !Sub 'PnEcQueueNamePdfRasterAvailability=${PnEcQueueNamePdfRasterAvailability}'
-        ContainerEnvEntry76: !Sub 'PnEcDLQueueNameTrackerErroriCARTACEO=${PnEcDLQueueNameTrackerErroriCARTACEO}'
+        ContainerEnvEntry75: !Sub 'PnEcQueueNameAvailabilityManager=${PnEcQueueNameAvailabilityManager}'
+        ContainerEnvEntry76: !Sub 'PnEcDLQueueNameErroriCARTACEO=${PnEcDLQueueNameErroriCARTACEO}'
         ContainerEnvEntry77: !Sub 'PnEcTableNameRichiesteConversione=${PnEcTableNameRichiesteConversione}'
         ContainerEnvEntry78: !Sub 'PnEcTableNameConversionePdf=${PnEcTableNameConversionePdf}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
@@ -1070,8 +1070,8 @@ Resources:
               - !Ref PnEcQueueArnErroriCARTACEO
               - !Ref PnEcQueueArnScaricamentoEsitiPEC
               - !Ref PnEcQueueArnCancellazioneRicevutePEC
-              - !Ref PnEcQueueArnPdfRasterAvailability
-              - !Ref PnEcDLQueueArnTrackerErroriCARTACEO
+              - !Ref PnEcQueueArnAvailabilityManager
+              - !Ref PnEcDLQueueNameErroriCARTACEO
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
@@ -1669,25 +1669,25 @@ Resources:
 
 ### PdfRaster - Availability queue  ###
 
-  PnEcQueuePolicyPdfRasterAvailability:
+  PnEcQueuePolicyAvailabilityManager:
     Type: AWS::SQS::QueuePolicy
     Properties:
       Queues:
-        - !Ref PnEcQueueUrlPdfRasterAvailability
+        - !Ref PnEcQueueUrlAvailabilityManager
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
           - Action:
               - 'sqs:*'
             Effect: 'Allow'
-            Resource: !Ref PnEcQueueArnPdfRasterAvailability
+            Resource: !Ref PnEcQueueArnAvailabilityManager
             Principal:
               AWS: !Ref AWS::AccountId
 
-  PnEcEventRulePdfRasterAvailability:
+  PnEcEventRuleAvailabilityManager:
     Type: AWS::Events::Rule
     Properties:
-      Description: 'This Event rule is used to forward availability events for paper attachments to the queue PnEcQueuePdfRasterAvailabilityStack'
+      Description: 'This Event rule is used to forward availability events for paper attachments to the queue PnEcQueueAvailabilityManagerStack'
       EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
       EventPattern:
         source:
@@ -1701,5 +1701,5 @@ Resources:
             
       State: 'ENABLED'
       Targets:
-        - Arn: !Ref PnEcQueueArnPdfRasterAvailability
-          Id: 'PnEcQueuePdfRasterAvailability'
+        - Arn: !Ref PnEcQueueArnAvailabilityManager
+          Id: 'PnEcQueueAvailabilityManager'
