@@ -1688,7 +1688,8 @@ Resources:
         region:
           - !Ref AWS::Region
         detail:
-          documentType: PN_PAPER_ATTACHMENT
+          documentType:
+          - PN_PAPER_ATTACHMENT
             
       State: 'ENABLED'
       Targets:
