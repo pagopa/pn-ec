@@ -1159,6 +1159,14 @@ Outputs:
     Description: '[Notification Tracker: canale CARTACEO] ARN della Coda Errori afferenti al canale CARTACEO'
     Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.QueueARN
 
+  PnEcDLQueueNameTrackerErroriCARTACEO:
+    Description: '[Notification Tracker: canale CARTACEO] Nome della DLQ della Coda Errori afferenti al canale CARTACEO'
+    Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.DeadLetterQueueName
+
+  PnEcDLQueueArnTrackerErroriCARTACEO:
+    Description: '[Notification Tracker: canale CARTACEO] ARN della DLQ della Coda Errori afferenti al canale CARTACEO'
+    Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.DeadLetterQueueARN
+
   PnEcQueueUrlTrackerErroriCARTACEO:
     Description: '[Notification Tracker: canale CARTACEO] URL della Coda Errori afferenti al canale CARTACEO'
     Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.QueueURL
