@@ -56,11 +56,6 @@ Parameters:
     Type: String
     Description: 'Base URL of the load balancer where the service is going to be reachable'
 
-  NetworkLoadBalancerLink:
-    Type: String
-    Description: 'network load balancer link for API-GW'
-    Default: ''
-
   PnCoreTargetEventBus:
     Type: String
     Description: 'ARN of Pn Core Event Bus where to forward external notifications'
@@ -69,10 +64,6 @@ Parameters:
   PnEcIdentityPec:
     Type: String
     Description: 'Secret ID for Identity Pec'
-
-  Version:
-    Type: String
-    Description: 'keep track of used projects commitIds'
 
   PnEcManagedPolicyName:
     Type: String
