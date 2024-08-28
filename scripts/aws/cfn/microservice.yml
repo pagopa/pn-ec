@@ -1022,8 +1022,8 @@ Resources:
               - !Ref PnEcTableArnAnagrafica
               - !Ref PnEcTableArnRichieste
               - !Ref PnEcTableArnRichiesteMetadati
-              - !Ref PnEcTableNameRichiesteConversione
-              - !Ref PnEcTableNameConversionePdf
+              - !Ref PnEcTableArnRichiesteConversione
+              - !Ref PnEcTableArnConversionePdf
           - Effect: Allow
             Action:
               - kms:Encrypt
@@ -1062,7 +1062,7 @@ Resources:
               - !Ref PnEcQueueArnScaricamentoEsitiPEC
               - !Ref PnEcQueueArnCancellazioneRicevutePEC
               - !Ref PnEcQueueArnAvailabilityManager
-              - !Ref PnEcDLQueueNameErroriCARTACEO
+              - !Ref PnEcDLQueueArnErroriCARTACEO
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
