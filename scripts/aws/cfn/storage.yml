@@ -953,7 +953,7 @@ Resources:
 
   ###### PdfRaster - Availability queue  ######
 
-  PnEcQueuePdfRasterAvailabilityStack:
+  PnEcQueueAvailabilityManagerStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
@@ -1535,14 +1535,14 @@ Outputs:
 ### PdfRaster - Availability queue  ###
   PnEcQueueNameAvailabilityManager:
     Description: 'Nome della coda Disponibilità per pdf-raster'
-    Value: !GetAtt  PnEcQueuePdfRasterAvailabilityStack.Outputs.QueueName
+    Value: !GetAtt  PnEcQueueAvailabilityManagerStack.Outputs.QueueName
 
   PnEcQueueArnAvailabilityManager:
     Description: 'ARN della coda Disponibilità per pdf-raster'
-    Value: !GetAtt  PnEcQueuePdfRasterAvailabilityStack.Outputs.QueueARN
+    Value: !GetAtt  PnEcQueueAvailabilityManagerStack.Outputs.QueueARN
 
   PnEcQueueUrlAvailabilityManager:
     Description: 'Url della coda Disponibilità per pdf-raster'
-    Value: !GetAtt  PnEcQueuePdfRasterAvailabilityStack.Outputs.QueueURL
+    Value: !GetAtt  PnEcQueueAvailabilityManagerStack.Outputs.QueueURL
 
 
