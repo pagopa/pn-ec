@@ -954,6 +954,26 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         VisibilityTimeout: 300
 
+
+  ###### PdfRaster - Availability queue  ######
+
+  PnEcQueuePdfRasterAvailabilityStack:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-availabilitymanager-queue'
+        SqsManagedSseEnabled: true
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 60
+
+
 #########  OUTPUTS  ##########
 
 Outputs:
@@ -1499,4 +1519,18 @@ Outputs:
 
   EcsLogGroup:
     Value: !GetAtt EcsLogGroup.Outputs.LogGroupName
+
+### PdfRaster - Availability queue  ###
+  PnEcQueueNamePdfRasterAvailability:
+    Description: 'Nome della coda Disponibilità per pdf-raster'
+    Value: !GetAtt  PnEcQueuePdfRasterAvailabilityStack.Outputs.QueueName
+
+  PnEcQueueArnPdfRasterAvailability:
+    Description: 'ARN della coda Disponibilità per pdf-raster'
+    Value: !GetAtt  PnEcQueuePdfRasterAvailabilityStack.Outputs.QueueARN
+
+  PnEcQueueUrlPdfRasterAvailability:
+    Description: 'Url della coda Disponibilità per pdf-raster'
+    Value: !GetAtt  PnEcQueuePdfRasterAvailabilityStack.Outputs.QueueURL
+
 
