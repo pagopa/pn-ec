@@ -34,7 +34,7 @@ public class UploadCallImpl implements UploadCall {
 
     @Override
     public Mono<Void> uploadFile(String fileKey, String url, String secret, String contentType, DocumentTypeConfiguration.ChecksumEnum checksum, String checksumValue, byte[] fileBytes) {
-        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, DOWNLOAD_FILE, url);
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, UPLOAD_FILE, url);
         String checksumHeaderName = switch (checksum) {
             case MD5 -> "Content-MD5";
             case SHA256 -> "x-amz-checksum-sha256";
@@ -54,7 +54,7 @@ public class UploadCallImpl implements UploadCall {
                 .header(checksumHeaderName, checksumValue)
                 .body(BodyInserters.fromMultipartData(multipartData))
                 .exchangeToMono(ClientResponse::releaseBody)
-                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, DOWNLOAD_FILE, url))
+                .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, UPLOAD_FILE, url))
                 .doOnError(e -> log.error("Error in uploadFile class: {}", e.getMessage()));
     }
 }
