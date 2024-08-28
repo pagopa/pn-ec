@@ -177,6 +177,22 @@ Parameters:
     Type: String
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
 
+  PnEcTableNameRichiesteConversione:
+    Type: String
+    Description: 'Nome della Tabella DynamoDB relativa alle richieste di conversione dei PDF'
+
+  PnEcTableArnRichiesteConversione:
+    Type: String 
+    Description: 'ARN della Tabella DynamoDB relativa alle richieste di conversione dei PDF'
+
+  PnEcTableNameConversionePdf:
+    Type: String
+    Description: 'Nome della Tabella DynamoDB di supporto per la tabella RichiesteConversione'
+
+  PnEcTableArnConversionePdf:
+    Type: String
+    Description: 'ARN della Tabella DynamoDB di upporto per la tabella RichiesteConversione'
+
   ### QUEUES  ###
   ### TRACKER : SMS  ###
 
@@ -613,6 +629,14 @@ Parameters:
     Type: String
     Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
 
+  PnEcDLQueueNameTrackerErroriCARTACEO:
+    Type: String
+    Description: '[Notification Tracker: canale CARTACEO] Nome della DLQ della Coda Errori afferenti al canale CARTACEO'
+
+  PnEcDLQueueArnTrackerErroriCARTACEO:
+    Type: String
+    Description: '[Notification Tracker: canale CARTACEO] ARN della DLQ della Coda Errori afferenti al canale CARTACEO'
+
   PnEcAlarmArnQueueErroriCARTACEO:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriCARTACEO"
@@ -961,6 +985,9 @@ Resources:
         ContainerEnvEntry73: !Sub 'PnECPaperDocumentTypeForRasterized=${PnECPaperDocumentTypeForRasterized}'
         ContainerEnvEntry74: !Sub 'PnECPaperPAIdOverride=${PnECPaperPAIdOverride}'
         ContainerEnvEntry75: !Sub 'PnEcQueueNamePdfRasterAvailability=${PnEcQueueNamePdfRasterAvailability}'
+        ContainerEnvEntry76: !Sub 'PnEcDLQueueNameTrackerErroriCARTACEO=${PnEcDLQueueNameTrackerErroriCARTACEO}'
+        ContainerEnvEntry77: !Sub 'PnEcTableNameRichiesteConversione=${PnEcTableNameRichiesteConversione}'
+        ContainerEnvEntry78: !Sub 'PnEcTableNameConversionePdf=${PnEcTableNameConversionePdf}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -1004,6 +1031,8 @@ Resources:
               - !Ref PnEcTableArnAnagrafica
               - !Ref PnEcTableArnRichieste
               - !Ref PnEcTableArnRichiesteMetadati
+              - !Ref PnEcTableNameRichiesteConversione
+              - !Ref PnEcTableNameConversionePdf
           - Effect: Allow
             Action:
               - kms:Encrypt
@@ -1042,6 +1071,7 @@ Resources:
               - !Ref PnEcQueueArnScaricamentoEsitiPEC
               - !Ref PnEcQueueArnCancellazioneRicevutePEC
               - !Ref PnEcQueueArnPdfRasterAvailability
+              - !Ref PnEcDLQueueArnTrackerErroriCARTACEO
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'

@@ -1014,6 +1014,22 @@ Outputs:
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
     Value: !GetAtt PnEcTableRichiesteMetadati.Arn
 
+  PnEcTableNameRichiesteConversione:
+    Description: 'Nome della Tabella DynamoDB relativa alle richieste di conversione dei PDF'
+    Value: !Ref PnEcTableRichiesteConversione
+
+  PnEcTableArnRichiesteConversione:
+    Description: 'ARN della Tabella DynamoDB relativa alle richieste di conversione dei PDF'
+    Value: !GetAtt PnEcTableRichiesteConversione.Arn
+
+  PnEcTableNameConversionePdf:
+    Description: 'Nome della Tabella DynamoDB di supporto per la tabella RichiesteConversione'
+    Value: !Ref PnEcTableConversionePdf
+
+  PnEcTableArnConversionePdf:
+    Description: 'ARN della Tabella DynamoDB di upporto per la tabella RichiesteConversione'
+    Value: !GetAtt PnEcTableConversionePdf.Arn
+
   ######### QUEUES  ############
   ######### TRACKER : SMS  ##########
 
