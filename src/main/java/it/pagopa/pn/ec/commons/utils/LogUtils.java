@@ -207,6 +207,7 @@ public class LogUtils {
 
     //DOWNLOAD CALL
     public static final String DOWNLOAD_FILE = "DownloadCall.downloadFile()";
+    public static final String UPLOAD_FILE = "UploadCall.uploadFile()";
 
     //SCARICAMENTO/LAVORAZIONE ESITI PEC
     public static final String STARTING_SCHEDULED = "Starting scheduled process '{}'";
