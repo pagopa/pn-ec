@@ -177,6 +177,22 @@ Parameters:
     Type: String
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
 
+  PnEcTableNameRichiesteConversione:
+    Type: String
+    Description: 'Nome della Tabella DynamoDB relativa alle richieste di conversione dei PDF'
+
+  PnEcTableArnRichiesteConversione:
+    Type: String 
+    Description: 'ARN della Tabella DynamoDB relativa alle richieste di conversione dei PDF'
+
+  PnEcTableNameConversionePdf:
+    Type: String
+    Description: 'Nome della Tabella DynamoDB di supporto per la tabella RichiesteConversione'
+
+  PnEcTableArnConversionePdf:
+    Type: String
+    Description: 'ARN della Tabella DynamoDB di upporto per la tabella RichiesteConversione'
+
   ### QUEUES  ###
   ### TRACKER : SMS  ###
 
@@ -613,6 +629,14 @@ Parameters:
     Type: String
     Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
 
+  PnEcDLQueueNameErroriCARTACEO:
+    Type: String
+    Description: '[Canale CARTACEO] Nome della DLQ della Coda Errori afferenti al canale CARTACEO'
+
+  PnEcDLQueueArnErroriCARTACEO:
+    Type: String
+    Description: '[Canale CARTACEO] ARN della DLQ della Coda Errori afferenti al canale CARTACEO'
+
   PnEcAlarmArnQueueErroriCARTACEO:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriCARTACEO"
@@ -709,6 +733,19 @@ Parameters:
   PnEcSqsMessagesStagingBucketArn:
     Type: String
     Description: 'ARN Bucket Staging per messaggi SQS troppo grandi'
+
+### PdfRaster - Availability queue  ###
+  PnEcQueueNameAvailabilityManager:
+    Description: 'Nome della coda Disponibilità per pdf-raster'
+    Type: String
+
+  PnEcQueueArnAvailabilityManager:
+    Description: 'ARN della coda Disponibilità per pdf-raster'
+    Type: String
+
+  PnEcQueueUrlAvailabilityManager:
+    Description: 'Url della coda Disponibilità per pdf-raster'
+    Type: String
 
   #### Parametri Indipendenti ####
 
@@ -947,6 +984,10 @@ Resources:
         ContainerEnvEntry72: !Sub 'PnECPaperDocumentTypeToRaster=${PnECPaperDocumentTypeToRaster}'
         ContainerEnvEntry73: !Sub 'PnECPaperDocumentTypeForRasterized=${PnECPaperDocumentTypeForRasterized}'
         ContainerEnvEntry74: !Sub 'PnECPaperPAIdOverride=${PnECPaperPAIdOverride}'
+        ContainerEnvEntry75: !Sub 'PnEcQueueNameAvailabilityManager=${PnEcQueueNameAvailabilityManager}'
+        ContainerEnvEntry76: !Sub 'PnEcDLQueueNameErroriCARTACEO=${PnEcDLQueueNameErroriCARTACEO}'
+        ContainerEnvEntry77: !Sub 'PnEcTableNameRichiesteConversione=${PnEcTableNameRichiesteConversione}'
+        ContainerEnvEntry78: !Sub 'PnEcTableNameConversionePdf=${PnEcTableNameConversionePdf}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -990,6 +1031,8 @@ Resources:
               - !Ref PnEcTableArnAnagrafica
               - !Ref PnEcTableArnRichieste
               - !Ref PnEcTableArnRichiesteMetadati
+              - !Ref PnEcTableNameRichiesteConversione
+              - !Ref PnEcTableNameConversionePdf
           - Effect: Allow
             Action:
               - kms:Encrypt
@@ -1027,6 +1070,8 @@ Resources:
               - !Ref PnEcQueueArnErroriCARTACEO
               - !Ref PnEcQueueArnScaricamentoEsitiPEC
               - !Ref PnEcQueueArnCancellazioneRicevutePEC
+              - !Ref PnEcQueueArnAvailabilityManager
+              - !Ref PnEcDLQueueNameErroriCARTACEO
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
@@ -1620,3 +1665,41 @@ Resources:
               return { batchItemFailures} ;
             }))
           }
+
+
+### PdfRaster - Availability queue  ###
+
+  PnEcQueuePolicyAvailabilityManager:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref PnEcQueueUrlAvailabilityManager
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - 'sqs:*'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnAvailabilityManager
+            Principal:
+              AWS: !Ref AWS::AccountId
+
+  PnEcEventRuleAvailabilityManager:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: 'This Event rule is used to forward availability events for paper attachments to the queue PnEcQueueAvailabilityManagerStack'
+      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      EventPattern:
+        source:
+          - 'GESTORE DISPONIBILITA'
+        account:
+          - !Ref AWS::AccountId
+        region:
+          - !Ref AWS::Region
+        detail:
+          documentType: PN_PAPER_ATTACHMENT
+            
+      State: 'ENABLED'
+      Targets:
+        - Arn: !Ref PnEcQueueArnAvailabilityManager
+          Id: 'PnEcQueueAvailabilityManager'
