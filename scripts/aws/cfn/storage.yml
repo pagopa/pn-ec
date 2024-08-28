@@ -147,8 +147,6 @@ Resources:
       KeySchema:
         - AttributeName: 'requestId'
           KeyType: 'HASH'
-      StreamSpecification:
-        StreamViewType: 'NEW_AND_OLD_IMAGES'
       BillingMode: 'PAY_PER_REQUEST'
       TableClass: 'STANDARD'
       PointInTimeRecoverySpecification:
@@ -169,8 +167,6 @@ Resources:
       KeySchema:
         - AttributeName: 'fileKey'
           KeyType: 'HASH'
-      StreamSpecification:
-        StreamViewType: 'NEW_AND_OLD_IMAGES'
       BillingMode: 'PAY_PER_REQUEST'
       TableClass: 'STANDARD'
       PointInTimeRecoverySpecification:
