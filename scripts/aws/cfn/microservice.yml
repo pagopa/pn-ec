@@ -629,13 +629,13 @@ Parameters:
     Type: String
     Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
 
-  PnEcDLQueueNameTrackerErroriCARTACEO:
+  PnEcDLQueueNameErroriCARTACEO:
     Type: String
-    Description: '[Notification Tracker: canale CARTACEO] Nome della DLQ della Coda Errori afferenti al canale CARTACEO'
+    Description: '[Canale CARTACEO] Nome della DLQ della Coda Errori afferenti al canale CARTACEO'
 
-  PnEcDLQueueArnTrackerErroriCARTACEO:
+  PnEcDLQueueArnErroriCARTACEO:
     Type: String
-    Description: '[Notification Tracker: canale CARTACEO] ARN della DLQ della Coda Errori afferenti al canale CARTACEO'
+    Description: '[Canale CARTACEO] ARN della DLQ della Coda Errori afferenti al canale CARTACEO'
 
   PnEcAlarmArnQueueErroriCARTACEO:
     Type: String
