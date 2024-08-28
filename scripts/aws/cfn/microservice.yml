@@ -1679,7 +1679,7 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Description: 'This Event rule is used to forward availability events for paper attachments to the queue PnEcQueueAvailabilityManagerStack'
-      EventBusName: !Ref PnEcEventBusNameTrackerExternalNotification
+      EventBusName: 'Pn-Ss-Notifications-Bus'
       EventPattern:
         source:
           - 'GESTORE DISPONIBILITA'
