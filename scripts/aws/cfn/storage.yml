@@ -133,7 +133,51 @@ Resources:
         PointInTimeRecoveryEnabled: true
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    
+  PnEcTableRichiesteConversione:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'pn-EcRichiesteConversione'
+      TimeToLiveSpecification:
+          AttributeName: 'expiration'
+          Enabled: true
+      AttributeDefinitions:
+        - AttributeName: 'requestId'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'requestId'
+          KeyType: 'HASH'
+      StreamSpecification:
+        StreamViewType: 'NEW_AND_OLD_IMAGES'
+      BillingMode: 'PAY_PER_REQUEST'
+      TableClass: 'STANDARD'
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
 
+  PnEcTableConversionePdf:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'pn-EcConversionePDF'
+      TimeToLiveSpecification:
+          AttributeName: 'expiration'
+          Enabled: true
+      AttributeDefinitions:
+        - AttributeName: 'fileKey'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'fileKey'
+          KeyType: 'HASH'
+      StreamSpecification:
+        StreamViewType: 'NEW_AND_OLD_IMAGES'
+      BillingMode: 'PAY_PER_REQUEST'
+      TableClass: 'STANDARD'
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    
   ######### S3 BUCKET FOR OVERSIZE SQS MESSAGES #########
 
   PnEcSqsMessagesStagingBucket:
