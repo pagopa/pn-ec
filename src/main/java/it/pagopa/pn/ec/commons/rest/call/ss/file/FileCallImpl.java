@@ -94,6 +94,7 @@ public class FileCallImpl implements FileCall {
         log.logInvokingExternalService(SAFE_STORAGE_SERVICE, POST_FILE);
         return ssWebClient.post().uri(filesEndpointProperties.postFile())
                 .header(safeStorageEndpointProperties.clientHeaderName(), xPagopaExtchServiceId)
+                .header(safeStorageEndpointProperties.apiKeyHeaderName(), "")
                 .header(safeStorageEndpointProperties.checksumValueHeaderName(), checksumValue)
                 .body(BodyInserters.fromValue(fileCreationRequest))
                 .retrieve()
