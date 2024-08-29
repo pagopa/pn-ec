@@ -133,6 +133,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                                                 .map(entry -> Map.entry(convertToDto(entry.getKey()),entry.getValue()))
                                 )
                 )
+                .filter(tuples -> tuples.getT2().getValue())
                 .map(tuples -> {
                     PdfConversionEntity pdfConversionEntity = tuples.getT1();
                     Map.Entry<RequestConversionDto, Boolean> requestConversion = tuples.getT2();
@@ -147,7 +148,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
 
     private Mono<Map.Entry<RequestConversionEntity,Boolean>> updateAttachmentConversion(RequestConversionEntity requestConversionEntity, String fileKey, Boolean converted, String fileHash) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PDF_RASTER_UPDATE_ATTACHMENT_CONVERSION, requestConversionEntity);
-        if(requestConversionEntity.getAttachments().parallelStream().allMatch(AttachmentToConvert::getConverted))
+        if(requestConversionEntity.getAttachments().parallelStream().anyMatch(attachmentToConvert -> attachmentToConvert.getNewFileKey().equals(fileKey) && attachmentToConvert.getConverted()))
             return Mono.just(Map.entry(requestConversionEntity, false));
         requestConversionEntity.getAttachments().stream()
                 .filter(attachment -> attachment.getNewFileKey().equals(fileKey))
