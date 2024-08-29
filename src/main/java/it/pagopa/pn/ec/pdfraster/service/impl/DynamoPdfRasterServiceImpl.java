@@ -20,6 +20,9 @@ import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.PutItemEnhancedRequest;
 
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.DYNAMO_OPTIMISTIC_LOCKING_RETRY;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
@@ -122,13 +125,18 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
         }
 
         return getPdfConversionFromDynamoDb(fileKey)
-                .flatMap(pdfConversionEntity ->
+                .zipWhen(pdfConversionEntity ->
                         getRequestConversionFromDynamoDb(pdfConversionEntity.getRequestId())
                                 .flatMap(requestConversionEntity ->
                                         updateAttachmentConversion(requestConversionEntity, fileKey, converted, fileHash)
                                                 .map(this::convertToDto)
                                 )
                 )
+                .map(tuples -> {
+                    tuples.getT1().setExpiration(BigDecimal.valueOf(OffsetDateTime.now().plusDays(1).toInstant().toEpochMilli()));
+                    conversionTable.putItem(tuples.getT1());
+                    return tuples.getT2();
+                })
                 .doOnSuccess(result -> log.info(PDF_RASTER_UPDATE_REQUEST_CONVERSION))
                 .doOnError(exception -> log.logEndingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION, false, exception.getMessage()))
                 .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
@@ -143,7 +151,6 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                     attachment.setConverted(converted);
                     attachment.setSha256(fileHash);
                 });
-
         return Mono.fromFuture(requestTable.putItem(requestConversionEntity))
                 .thenReturn(requestConversionEntity)
                 .doOnSuccess(result -> log.info(PDF_RASTER_UPDATE_ATTACHMENT_CONVERSION));
