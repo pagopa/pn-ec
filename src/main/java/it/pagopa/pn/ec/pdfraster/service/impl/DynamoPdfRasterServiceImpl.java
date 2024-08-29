@@ -133,9 +133,11 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                                 )
                 )
                 .map(tuples -> {
-                    tuples.getT1().setExpiration(BigDecimal.valueOf(OffsetDateTime.now().plusDays(1).toInstant().toEpochMilli()));
-                    conversionTable.putItem(tuples.getT1());
-                    return tuples.getT2();
+                    PdfConversionEntity pdfConversionEntity = tuples.getT1();
+                    RequestConversionDto requestConversionDto = tuples.getT2();
+                    pdfConversionEntity.setExpiration(BigDecimal.valueOf(OffsetDateTime.now().plusDays(1).toInstant().getEpochSecond()));
+                    conversionTable.putItem(pdfConversionEntity);
+                    return requestConversionDto;
                 })
                 .doOnSuccess(result -> log.info(PDF_RASTER_UPDATE_REQUEST_CONVERSION))
                 .doOnError(exception -> log.logEndingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION, false, exception.getMessage()))
