@@ -22,6 +22,7 @@ import software.amazon.awssdk.enhanced.dynamodb.model.PutItemEnhancedRequest;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Map;
 
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.DYNAMO_OPTIMISTIC_LOCKING_RETRY;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
@@ -117,7 +118,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
 
 
     @Override
-    public Mono<RequestConversionDto> updateRequestConversion(String fileKey, Boolean converted, String fileHash) {
+    public Mono<Map.Entry<RequestConversionDto, Boolean>> updateRequestConversion(String fileKey, Boolean converted, String fileHash) {
         log.logStartingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION);
 
         if (converted == null || !converted) {
@@ -137,7 +138,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                     RequestConversionDto requestConversionDto = tuples.getT2();
                     pdfConversionEntity.setExpiration(BigDecimal.valueOf(OffsetDateTime.now().plusDays(1).toInstant().getEpochSecond()));
                     conversionTable.putItem(pdfConversionEntity);
-                    return requestConversionDto;
+                    return Map.entry(requestConversionDto,true);
                 })
                 .doOnSuccess(result -> log.info(PDF_RASTER_UPDATE_REQUEST_CONVERSION))
                 .doOnError(exception -> log.logEndingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION, false, exception.getMessage()))
