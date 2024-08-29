@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.pdfraster.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import it.pagopa.pn.ec.commons.model.entity.DocumentVersion;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -26,6 +27,7 @@ public class RequestConversionEntity extends DocumentVersion {
     BigDecimal expiration;
     OriginalRequest originalRequest;
     List<AttachmentToConvert> attachments;
+    @JsonProperty("xPagopaExtchCxId")
     String xPagopaExtchCxId;
 
 }
