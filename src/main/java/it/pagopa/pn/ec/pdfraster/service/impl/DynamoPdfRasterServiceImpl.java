@@ -130,23 +130,25 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                         getRequestConversionFromDynamoDb(pdfConversionEntity.getRequestId())
                                 .flatMap(requestConversionEntity ->
                                         updateAttachmentConversion(requestConversionEntity, fileKey, converted, fileHash)
-                                                .map(this::convertToDto)
+                                                .map(entry -> Map.entry(convertToDto(entry.getKey()),entry.getValue()))
                                 )
                 )
                 .map(tuples -> {
                     PdfConversionEntity pdfConversionEntity = tuples.getT1();
-                    RequestConversionDto requestConversionDto = tuples.getT2();
+                    Map.Entry<RequestConversionDto, Boolean> requestConversion = tuples.getT2();
                     pdfConversionEntity.setExpiration(BigDecimal.valueOf(OffsetDateTime.now().plusDays(1).toInstant().getEpochSecond()));
                     conversionTable.putItem(pdfConversionEntity);
-                    return Map.entry(requestConversionDto,true);
+                    return requestConversion;
                 })
                 .doOnSuccess(result -> log.info(PDF_RASTER_UPDATE_REQUEST_CONVERSION))
                 .doOnError(exception -> log.logEndingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION, false, exception.getMessage()))
                 .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY);
     }
 
-    private Mono<RequestConversionEntity> updateAttachmentConversion(RequestConversionEntity requestConversionEntity, String fileKey, Boolean converted, String fileHash) {
+    private Mono<Map.Entry<RequestConversionEntity,Boolean>> updateAttachmentConversion(RequestConversionEntity requestConversionEntity, String fileKey, Boolean converted, String fileHash) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PDF_RASTER_UPDATE_ATTACHMENT_CONVERSION, requestConversionEntity);
+        if(requestConversionEntity.getAttachments().parallelStream().allMatch(AttachmentToConvert::getConverted))
+            return Mono.just(Map.entry(requestConversionEntity, false));
         requestConversionEntity.getAttachments().stream()
                 .filter(attachment -> attachment.getNewFileKey().equals(fileKey))
                 .findFirst()
@@ -155,7 +157,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                     attachment.setSha256(fileHash);
                 });
         return Mono.fromFuture(requestTable.putItem(requestConversionEntity))
-                .thenReturn(requestConversionEntity)
+                .thenReturn(Map.entry(requestConversionEntity,true))
                 .doOnSuccess(result -> log.info(PDF_RASTER_UPDATE_ATTACHMENT_CONVERSION));
     }
 
