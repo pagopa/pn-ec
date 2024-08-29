@@ -88,7 +88,10 @@ public class AvailabilityManagerService {
 
                     return info;
                 }).flatMap(cartaceoPresaInCaricoInfo -> sqsService.send(cartaceoSqsQueueName.batchName(), cartaceoPresaInCaricoInfo))
-                .doOnSuccess(throwable -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER))
+                .doOnSuccess(throwable -> {
+                    log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER);
+                    acknowledgment.acknowledge();
+                })
                 .doOnError(throwable -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER, false, throwable.getMessage()))
                 .then();
 
