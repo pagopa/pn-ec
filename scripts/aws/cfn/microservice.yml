@@ -1674,6 +1674,17 @@ Resources:
             Resource: !Ref PnEcQueueArnAvailabilityManager
             Principal:
               AWS: !Ref AWS::AccountId
+          - Sid: 'AllowPutEventsFromEventRule'
+            Action:
+              - 'sqs:SendMessage'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnAvailabilityManager
+            Principal:
+              Service:
+              - 'events.amazonaws.com'
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt PnEcEventRuleAvailabilityManager.Arn
 
   PnEcEventRuleAvailabilityManager:
     Type: AWS::Events::Rule
