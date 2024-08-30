@@ -25,6 +25,7 @@ import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Map;
 
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
@@ -122,11 +123,11 @@ class DynamoPdfRasterServiceTest {
 
         markAttachmentsAsConverted(requestConversionDto);
 
-        Mono<RequestConversionDto> updateResponse = dynamoPdfRasterService.updateRequestConversion("3", true, RandomStringUtils.randomAlphanumeric(10));
+        Mono<Map.Entry<RequestConversionDto, Boolean>> updateResponse = dynamoPdfRasterService.updateRequestConversion("3", true, RandomStringUtils.randomAlphanumeric(10));
 
 
         StepVerifier.create(updateResponse)
-                .expectNextMatches(updatedDto -> updatedDto.getRequestId().equals(requestConversionDto.getRequestId()))
+                .expectNextMatches(updatedDto -> updatedDto.getKey().getRequestId().equals(requestConversionDto.getRequestId()))
                 .verifyComplete();
 
         verifyUpdatedRequestConversionEntity(requestConversionDto.getRequestId());

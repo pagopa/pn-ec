@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Map;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.HANDLE_AVAILABILITY_MANAGER;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
@@ -56,7 +57,9 @@ public class AvailabilityManagerService {
                     String sha256 = detailDto.getChecksum();
 
                     return dynamoPdfRasterService.updateRequestConversion(newFilekey, true, sha256);
-                }).filter(this::allAttachmentsConverted)
+                })
+                .filter(Map.Entry::getValue).map(Map.Entry::getKey)
+                .filter(this::allAttachmentsConverted)
                 .map(requestConversionDto -> {
                     List<AttachmentToConvertDto> attachments = requestConversionDto.getAttachments();
                     PaperEngageRequest originalRequest = requestConversionDto.getOriginalRequest();
@@ -85,7 +88,10 @@ public class AvailabilityManagerService {
 
                     return info;
                 }).flatMap(cartaceoPresaInCaricoInfo -> sqsService.send(cartaceoSqsQueueName.batchName(), cartaceoPresaInCaricoInfo))
-                .doOnSuccess(throwable -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER))
+                .doOnSuccess(throwable -> {
+                    log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER);
+                    acknowledgment.acknowledge();
+                })
                 .doOnError(throwable -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER, false, throwable.getMessage()))
                 .then();
 
