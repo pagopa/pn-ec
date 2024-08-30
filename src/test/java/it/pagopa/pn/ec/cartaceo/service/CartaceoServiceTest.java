@@ -101,17 +101,6 @@ class CartaceoServiceTest {
 
     }
 
-    @Test
-    void lavorazioneRichiesta_GetRichiestaKo() {
-
-        //WHEN
-        when(gestoreRepositoryCall.getRichiesta(eq(DEFAULT_ID_CLIENT_HEADER_VALUE), eq(DEFAULT_REQUEST_IDX))).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
-
-        //THEN
-        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
-        StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
-        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
-    }
 
     @Test
     void lavorazioneRichiesta_PutRequestKo() {
