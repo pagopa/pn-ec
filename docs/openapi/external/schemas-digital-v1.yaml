@@ -93,7 +93,8 @@ components:
               type: string
               enum:
                 - PEC
-                - REM            
+                - REM
+                - SERCQ
               description: >-
                 Canale di recapito con cui il Sender chiede l’erogazione del servizio. In un primo momento sarà PEC, 
                 ma il dominio dovrà prevedere a breve SERQ, PEC_REM, ed in futuro ogni forma di recapito digitale a valore legale.            

@@ -40,11 +40,24 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
         log.logStartingProcess(SEND_DIGITAL_LEGAL_MESSAGE);
         return MDCUtils.addMDCToContextAndExecute(digitalNotificationRequest
-                .flatMap(request -> pecService.presaInCarico(PecPresaInCaricoInfo.builder()
-                        .requestIdx(requestIdx)
-                        .xPagopaExtchCxId(xPagopaExtchCxId)
-                        .digitalNotificationRequest(request)
-                        .build()))
+                .flatMap(request -> {
+                    if (request.getChannel().equals(DigitalNotificationRequest.ChannelEnum.PEC)) {
+                        return pecService.presaInCarico(PecPresaInCaricoInfo.builder()
+                                .requestIdx(requestIdx)
+                                .xPagopaExtchCxId(xPagopaExtchCxId)
+                                .digitalNotificationRequest(request)
+                                .build());
+                    } else if (request.getChannel().equals(DigitalNotificationRequest.ChannelEnum.SERCQ)) {
+//                        return sercqService.presaInCarico(SercqPresaInCaricoInfo.builder()
+//                                .requestIdx(requestIdx)
+//                                .xPagopaExtchCxId(xPagopaExtchCxId)
+//                                .digitalNotificationRequest(request)
+//                                .build());
+                        return Mono.empty();
+                    } else {
+                        return Mono.error(new UnsupportedOperationException("Unsupported channel: " + request.getChannel()));
+                    }
+                })
                 .doOnSuccess(result -> log.logEndingProcess(SEND_DIGITAL_LEGAL_MESSAGE))
                 .doOnError(throwable -> log.logEndingProcess(SEND_DIGITAL_LEGAL_MESSAGE, false, throwable.getMessage()))
                 .thenReturn(new ResponseEntity<>(OK)));
