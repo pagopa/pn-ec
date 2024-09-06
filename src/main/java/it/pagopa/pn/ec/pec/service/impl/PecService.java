@@ -123,7 +123,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .flatMap(requestDto -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                         BOOKED.getStatusTransactionTableCompliant(),
                         new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY))
-//----
+
                 .flatMap(sendMessageResponse -> {
                     DigitalNotificationRequest.QosEnum qos = pecPresaInCaricoInfo.getDigitalNotificationRequest().getQos();
                     if (qos == INTERACTIVE) {

@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.pec.service.impl;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AttachmentService;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
@@ -15,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.annotation.DirtiesContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -25,7 +28,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.SERCQ;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
@@ -38,10 +40,10 @@ import static org.mockito.Mockito.*;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class SercqServiceTest {
 
-    @Mock
-    private AttachmentService attachmentService;
+    @MockBean
+    private AttachmentServiceImpl attachmentService;
 
-    @Mock
+    @MockBean
     GestoreRepositoryCall gestoreRepositoryCall;
 
     private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
@@ -76,10 +78,10 @@ public class SercqServiceTest {
         return digitalNotificationRequest;
     }
 
-    @InjectMocks
+    @SpyBean
     private SercqService sercqService;
 
-    @Mock
+    @MockBean
     private SqsService sqsService;
 
 
@@ -105,16 +107,17 @@ public class SercqServiceTest {
         Mono<Void> result = sercqService.specificPresaInCarico(SERCQ_PRESA_IN_CARICO_INFO);
 
         StepVerifier.create(result)
-                .expectNextCount(1).verifyComplete();
+               .verifyComplete();
 
         verify(attachmentService, times(1))
-                .getAllegatiPresignedUrlOrMetadata(anyString(), eq(SERCQ_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId()), eq(true));
+                .getAllegatiPresignedUrlOrMetadata(SERCQ_PRESA_IN_CARICO_INFO.getDigitalNotificationRequest()
+                        .getAttachmentUrls(), SERCQ_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId(), true);
 
         verify(sercqService, times(1))
                 .insertRequestFromSercq(any(), eq(SERCQ_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId()));
 
-        verify(sercqService, times(1))
-                .sendNotificationOnStatusQueue(SERCQ_PRESA_IN_CARICO_INFO, anyString(), new DigitalProgressStatusDto());
+        verify(sqsService, times(1))
+                .send(any(),any());
     }
 
 
