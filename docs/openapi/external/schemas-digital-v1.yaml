@@ -224,9 +224,6 @@ components:
                 - S003
                 - S008
                 - S010
-                - Q011
-                - Q010
-                - Q003
               description: >-
                 * STATUS     EVENTCODE
                 * OK         M003 = MAIL - Sent

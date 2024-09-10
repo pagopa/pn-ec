@@ -149,6 +149,6 @@
 {"processClientId":{"S":"SERCQ"},"currStatus":{"S":"_any_"},"targetStatus":{"L":[{"S":"internalError"}]}}
 {"processClientId":{"S":"SERCQ"},"currStatus":{"S":"_start_"},"targetStatus":{"L":[{"S":"booked"}]}}
 {"processClientId":{"S":"SERCQ"},"currStatus":{"S":"booked"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"addressError"}]}}
-{"processClientId":{"S":"SERCQ"},"currStatus":{"S":"addressError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"Q011"},"targetStatus":{"L":[{"S":"_end_"}]}}
-{"processClientId":{"S":"SERCQ"},"currStatus":{"S":"internalError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"Q010"},"targetStatus":{"L":[{"S":"_end_"}]}}
-{"processClientId":{"S":"SERCQ"},"currStatus":{"S":"sent"},"externalStatus":{"S":"OK"},"logicStatus":{"S":"Q003"},"targetStatus":{"L":[{"S":"_end_"}]}}
+{"processClientId":{"S":"SERCQ"},"currStatus":{"S":"addressError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"C011"},"targetStatus":{"L":[{"S":"_end_"}]}}
+{"processClientId":{"S":"SERCQ"},"currStatus":{"S":"internalError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"C010"},"targetStatus":{"L":[{"S":"_end_"}]}}
+{"processClientId":{"S":"SERCQ"},"currStatus":{"S":"sent"},"externalStatus":{"S":"OK"},"logicStatus":{"S":"C003"},"targetStatus":{"L":[{"S":"_end_"}]}}

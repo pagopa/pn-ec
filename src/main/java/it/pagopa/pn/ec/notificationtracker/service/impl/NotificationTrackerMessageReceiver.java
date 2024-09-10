@@ -153,13 +153,6 @@ public class NotificationTrackerMessageReceiver {
                 .subscribe();
     }
 
-    /*
-        1.Inserire il nome della coda dalle property
-        2.Inserire i riferimenti in NotificationTrackerQueueDto
-        3.Inserire i riferimenti in NotificationTrackerSqsName
-        4.Inserire i riferimenti in TransactionProcessConfigurationProperties
-        5.Inserire nuova macchina a stati per gestire SERCQ
-     */
     @SqsListener(value = "${sqs.queue.notification-tracker.stato-sercq-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void receiveSercqObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());

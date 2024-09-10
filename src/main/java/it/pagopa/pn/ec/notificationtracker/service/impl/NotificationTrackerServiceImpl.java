@@ -138,7 +138,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                             digitalMessageReference.setSystem(generatedMessage.getSystem());
                                             digitalMessageReference.setLocation(generatedMessage.getLocation());
 
-                                            if (transactionProcessConfigurationProperties.pec().equals(processId)) {
+                                            if (transactionProcessConfigurationProperties.pec().equals(processId) || transactionProcessConfigurationProperties.sercq().equals(processId)) {
 
                                                 LegalMessageSentDetails legalMessageSentDetails = new LegalMessageSentDetails();
 
