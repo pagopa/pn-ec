@@ -183,7 +183,9 @@ public class LocalStackTestConfig {
                 notificationTrackerSqsName.statoPecName(),
                 notificationTrackerSqsName.statoPecErratoName(),
                 notificationTrackerSqsName.statoCartaceoName(),
-                notificationTrackerSqsName.statoCartaceoErratoName());
+                notificationTrackerSqsName.statoCartaceoErratoName(),
+                notificationTrackerSqsName.statoSercqName(),
+                notificationTrackerSqsName.statoSercqErratoName());
 
         List<String> smsQueueNames = List.of(smsSqsQueueName.interactiveName(), smsSqsQueueName.batchName(), smsSqsQueueName.errorName());
 
@@ -192,7 +194,6 @@ public class LocalStackTestConfig {
         List<String> cartceoQueueNames = List.of(cartaceoSqsQueueName.batchName(), cartaceoSqsQueueName.errorName());
 //        cartaceoSqsQueueName.interactiveName(),
         List<String> pecQueueNames = List.of(pecSqsQueueName.interactiveName(), pecSqsQueueName.batchName(), pecSqsQueueName.errorName(), scaricamentoEsitiPecProperties.sqsQueueName());
-
 
         List<String> allQueueName = new ArrayList<>();
         allQueueName.addAll(notificationTrackerQueueNames);

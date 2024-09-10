@@ -88,6 +88,10 @@ public class LogUtils {
 
     public static final String NT_RECEIVE_CARTACEO_ERROR = "receiveCartaceoObjectFromErrorQueue()";
 
+    public static final String NT_RECEIVE_SERCQ = "receiveSercqObjectMessage()";
+
+    public static final String NT_RECEIVE_SERCQ_ERROR = "receiveSercqObjectFromErrorQueue()";
+
 
     //PEC
     public static final String GET_DIGITAL_LEGAL_MESSAGE_STATUS = "getDigitalLegalMessageStatus";

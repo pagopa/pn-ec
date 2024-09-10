@@ -153,4 +153,33 @@ public class NotificationTrackerMessageReceiver {
                 .subscribe();
     }
 
+    @SqsListener(value = "${sqs.queue.notification-tracker.stato-sercq-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void receiveSercqObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+        String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
+        MDC.clear();
+        MDC.put(MDC_CORR_ID_KEY, concatRequestId);
+        log.logStartingProcess(NT_RECEIVE_SERCQ);
+        logIncomingMessage(notificationTrackerSqsName.statoSercqName(), notificationTrackerQueueDto);
+        MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
+                                transactionProcessConfigurationProperties.sercq(),
+                                notificationTrackerSqsName.statoSercqName(),
+                                notificationTrackerSqsName.statoSercqErratoName(),
+                                acknowledgment)
+                        .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_SERCQ))
+                        .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_SERCQ, false, throwable.getMessage())))
+                .subscribe();
+    }
+
+    @SqsListener(value = "${sqs.queue.notification-tracker.stato-sercq-errato-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void receiveSercqObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+        String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
+        MDC.clear();
+        MDC.put(MDC_CORR_ID_KEY, concatRequestId);
+        log.logStartingProcess(NT_RECEIVE_SERCQ_ERROR);
+        logIncomingMessage(notificationTrackerSqsName.statoSercqErratoName(), notificationTrackerQueueDto);
+        MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoSercqName(), acknowledgment)
+                        .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_SERCQ_ERROR))
+                        .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_SERCQ_ERROR, false, throwable.getMessage())))
+                .subscribe();
+    }
 }
