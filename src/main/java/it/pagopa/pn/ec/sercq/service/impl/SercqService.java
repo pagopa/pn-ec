@@ -99,7 +99,6 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
     @Override
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    DigitalProgressStatusDto digitalProgressStatusDto) {
-        return sqsService.send("",
+        return sqsService.send(notificationTrackerSqsName.statoSercqName(),
                 createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));    }
-    // In attesa di inserimento della nuova coda
 }
