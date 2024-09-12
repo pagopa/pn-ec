@@ -25,6 +25,7 @@ import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.SqsException;
 
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -85,7 +86,7 @@ public class SercqServiceTest {
         digitalNotificationRequest.eventType("string");
         digitalNotificationRequest.setClientRequestTimeStamp(OffsetDateTime.now());
         digitalNotificationRequest.setQos(INTERACTIVE);
-        digitalNotificationRequest.setReceiverDigitalAddress("pippo@pec.it");
+        digitalNotificationRequest.setReceiverDigitalAddress("x-pagopa-pn-sercq:SEND-self:notification-already-delivered?timestamp=" + Instant.now());
         digitalNotificationRequest.setMessageText("string");
         digitalNotificationRequest.channel(SERCQ);
         digitalNotificationRequest.setSubjectText("prova testo");

@@ -6,7 +6,6 @@ import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.*;
-import it.pagopa.pn.ec.commons.utils.LogUtils;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.CustomLog;
@@ -18,8 +17,9 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 import java.time.Duration;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
-import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
+import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoSercq;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.ec.commons.utils.RequestUtils.insertRequestFromDigitalNotificationRequest;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.SERCQ;
 
 
@@ -79,35 +79,9 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_SERCQ, digitalNotificationRequest);
 
 
-        return Mono.fromCallable(() -> {
-                    var requestDto = new RequestDto();
-                    requestDto.setRequestIdx(digitalNotificationRequest.getRequestId());
-                    requestDto.setClientRequestTimeStamp(digitalNotificationRequest.getClientRequestTimeStamp());
-                    requestDto.setxPagopaExtchCxId(xPagopaExtchCxId);
-
-                    var requestPersonalDto = new RequestPersonalDto();
-                    var digitalRequestPersonalDto = new DigitalRequestPersonalDto();
-                    digitalRequestPersonalDto.setQos(DigitalRequestPersonalDto.QosEnum.valueOf(digitalNotificationRequest.getQos().name()));
-                    digitalRequestPersonalDto.setReceiverDigitalAddress(digitalNotificationRequest.getReceiverDigitalAddress());
-                    digitalRequestPersonalDto.setMessageText(digitalNotificationRequest.getMessageText());
-                    digitalRequestPersonalDto.setSenderDigitalAddress(digitalNotificationRequest.getSenderDigitalAddress());
-                    digitalRequestPersonalDto.setSubjectText(digitalNotificationRequest.getSubjectText());
-                    digitalRequestPersonalDto.setAttachmentsUrls(digitalNotificationRequest.getAttachmentUrls());
-                    requestPersonalDto.setDigitalRequestPersonal(digitalRequestPersonalDto);
-
-                    var requestMetadataDto = new RequestMetadataDto();
-                    var digitalRequestMetadataDto = new DigitalRequestMetadataDto();
-                    digitalRequestMetadataDto.setCorrelationId(digitalNotificationRequest.getCorrelationId());
-                    digitalRequestMetadataDto.setEventType(digitalNotificationRequest.getEventType());
-                    digitalRequestMetadataDto.setTags(digitalNotificationRequest.getTags());
-                    digitalRequestMetadataDto.setChannel(SERCQ);
-                    digitalRequestMetadataDto.setMessageContentType(DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN);
-                    requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
-
-                    requestDto.setRequestPersonal(requestPersonalDto);
-                    requestDto.setRequestMetadata(requestMetadataDto);
-                    return requestDto;
-                }).flatMap(gestoreRepositoryCall::insertRichiesta).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
+        return Mono.fromCallable(() ->
+                    insertRequestFromDigitalNotificationRequest(digitalNotificationRequest, xPagopaExtchCxId, SERCQ)
+                ).flatMap(gestoreRepositoryCall::insertRichiesta).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_FROM_SERCQ, result));
     }
 
@@ -115,7 +89,7 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    DigitalProgressStatusDto digitalProgressStatusDto) {
         return sqsService.send(notificationTrackerSqsName.statoSercqName(),
-                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
+                createNotificationTrackerQueueDtoSercq(presaInCaricoInfo, status, digitalProgressStatusDto));
 
     }
 
@@ -125,6 +99,6 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
                 if(receiverDigitalAddress.equals(substringDigitalAddress)){
             return SENT;
         }
-        return ERROR;
+        return ADDRESS_ERROR;
     }
 }
