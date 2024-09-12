@@ -257,6 +257,9 @@ components:
                 - C008
                 - C009
                 - C010
+                - Q003
+                - Q010
+                - Q011
               description: >-
                 * STATUS     EVENTCODE
                 * PROGRESS   C000 = PEC - PREACCETTAZIONE (Conferma avvenuta comunicazione con Wrapper Pec)
