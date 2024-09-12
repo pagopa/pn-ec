@@ -1,21 +1,26 @@
 package it.pagopa.pn.ec.sercq.service.impl;
 
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.constant.Status;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.*;
+import it.pagopa.pn.ec.commons.utils.LogUtils;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.CustomLog;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 import java.time.Duration;
-import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
+
+import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.SERCQ;
 
 
 @Service
@@ -25,6 +30,9 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final SqsService sqsService;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
+
+    @Value("${sercq.receiver-digital-address}")
+    private String receiverDigitalAddress;
 
 
     private final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
@@ -56,14 +64,21 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
                 .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
                 .then(insertRequestFromSercq(digitalNotificationRequest, xPagopaExtchCxId))
                 .flatMap(requestDto -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                        BOOKED.getStatusTransactionTableCompliant(),
+                        controlloReciverDigitalAddress(pecPresaInCaricoInfo.getDigitalNotificationRequest().getReceiverDigitalAddress()).getStatusTransactionTableCompliant(),
                         new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY))
+                .onErrorResume(SqsClientException.class,
+                        sqsClientException -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
+                                INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                                new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY).then(Mono.error(
+                                sqsClientException)))
                 .then()
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PRESA_IN_CARICO_SERCQ, result));
     }
 
     public Mono<RequestDto> insertRequestFromSercq(final DigitalNotificationRequest digitalNotificationRequest, String xPagopaExtchCxId) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_SERCQ, digitalNotificationRequest);
+
+
         return Mono.fromCallable(() -> {
                     var requestDto = new RequestDto();
                     requestDto.setRequestIdx(digitalNotificationRequest.getRequestId());
@@ -85,7 +100,7 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
                     digitalRequestMetadataDto.setCorrelationId(digitalNotificationRequest.getCorrelationId());
                     digitalRequestMetadataDto.setEventType(digitalNotificationRequest.getEventType());
                     digitalRequestMetadataDto.setTags(digitalNotificationRequest.getTags());
-                    digitalRequestMetadataDto.setChannel(PEC);
+                    digitalRequestMetadataDto.setChannel(SERCQ);
                     digitalRequestMetadataDto.setMessageContentType(DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN);
                     requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
 
@@ -100,5 +115,16 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    DigitalProgressStatusDto digitalProgressStatusDto) {
         return sqsService.send(notificationTrackerSqsName.statoSercqName(),
-                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));    }
+                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
+
+    }
+
+
+    private Status controlloReciverDigitalAddress (String digitalAddress){
+        String substringDigitalAddress = digitalAddress.split("\\?")[0];
+                if(receiverDigitalAddress.equals(substringDigitalAddress)){
+            return SENT;
+        }
+        return ERROR;
+    }
 }

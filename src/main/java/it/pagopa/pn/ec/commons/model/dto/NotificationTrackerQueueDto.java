@@ -1,11 +1,17 @@
 package it.pagopa.pn.ec.commons.model.dto;
 
+import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
+import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
+import it.pagopa.pn.ec.rest.v1.dto.CourtesyMessageProgressEvent;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
+import it.pagopa.pn.ec.rest.v1.dto.ProgressEventCategory;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
+
+import java.time.OffsetDateTime;
 
 import static java.time.OffsetDateTime.now;
 
@@ -40,6 +46,18 @@ public class NotificationTrackerQueueDto extends PresaInCaricoInfo {
         return notificationTrackerQueueDto;
     }
 
+    public static NotificationTrackerQueueDto createNotificationTrackerQueueDtoDigitalSercq(PresaInCaricoInfo presaInCaricoInfo,
+                                                                                            String nextStatus,
+                                                                                            DigitalProgressStatusDto digitalProgressStatusDto) {
+        var notificationTrackerQueueDto = createNotificationTrackerQueueDto(presaInCaricoInfo, nextStatus);
+        String timestampSercq = ((PecPresaInCaricoInfo) presaInCaricoInfo).getDigitalNotificationRequest().getReceiverDigitalAddress();
+        digitalProgressStatusDto.setEventTimestamp(OffsetDateTime.parse(getTimepstampFromDigitalRecieverAddress(timestampSercq)));
+        return notificationTrackerQueueDto;
+    }
+
+    private static String getTimepstampFromDigitalRecieverAddress(String digitalRecieverAddress){
+       return digitalRecieverAddress.substring(digitalRecieverAddress.indexOf("timestamp="));
+    }
     public static NotificationTrackerQueueDto createNotificationTrackerQueueDtoPaper(PresaInCaricoInfo presaInCaricoInfo,
                                                                                      String nextStatus,
                                                                                      PaperProgressStatusDto paperProgressStatusDto) {

@@ -242,4 +242,7 @@ public class LogUtils {
     public static final String CLOUD_WATCH_METRICS_PUBLISHER_WRAPPER = "CloudWatchMetricsPublisherWrapper";
     public static final String CLOUD_WATCH_METRICS_PUBLISH= CLOUD_WATCH_METRICS_PUBLISHER_WRAPPER +".publish()";
 
+    //SERCQ
+    public static final String SEND_TO_SERCQ_SEND_SUCCESS = "OK, consegna da SeND a SERCQ-SeND conclusa con successo";
+
 }
