@@ -42,6 +42,10 @@
     "SpringCodecMaxInMemorySize": "256KB",
     "PnEcConsAllowedFutureOffsetDuration": "1m",
     "CpuValue": "1024",
-    "MemoryAmount": "4GB"
+    "MemoryAmount": "4GB",
+    "PnECPaperDocumentTypeToRaster": "PN_NOTIFICATION_ATTACHMENTS",
+    "PnECPaperDocumentTypeForRasterized": "PN_PAPER_ATTACHMENT",
+    "PnECPaperPAIdToRaster": "ALL",
+    "PnECPaperPAIdOverride": "15376371009"
   }
 }
