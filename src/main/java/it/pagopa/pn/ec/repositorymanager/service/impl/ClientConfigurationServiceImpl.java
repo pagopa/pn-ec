@@ -57,6 +57,7 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
     }
 
     @Override
+
     public Mono<ClientConfigurationInternal> insertClient(ClientConfigurationInternal clientConfiguration) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_CLIENT, clientConfiguration.getCxId());
         return getClientConfigurationFromDynamoDb(clientConfiguration.getCxId())
@@ -88,6 +89,7 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
                 .flatMap(clientToDelete -> deleteClientConfigurationFromDynamoDb(cxId))
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, DELETE_CLIENT, result.getCxId()));
     }
+
 
     private Mono<ClientConfigurationInternal> getClientConfigurationFromDynamoDb(String cxId) {
         return Mono.fromCompletionStage(() -> clientConfigurationDynamoDbTableInternal.getItem(getKey(cxId)));

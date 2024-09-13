@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
+import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.OptionalUtils.getFirstListElement;
@@ -128,6 +129,17 @@ public class SqsServiceImpl implements SqsService {
                 .map(message -> new SqsMessageWrapper<>(message,
                         jsonUtils.convertJsonStringToObject(message.body(),
                                 messageContentClass)))
+                .onErrorResume(throwable -> {
+                    log.error(throwable.getMessage(), throwable);
+                    return Mono.error(new SqsClientException(queueName));
+                });
+    }
+
+    @Override
+    public Mono<ChangeMessageVisibilityResponse> changeMessageVisibility(String queueName, Integer visibilityTimeout, String receiptHandle) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CHANGE_MESSAGE_VISIBILITY, Stream.of(queueName, visibilityTimeout, receiptHandle).toList());
+        return getQueueUrlFromName(queueName).flatMap(queueUrl -> Mono.fromCompletionStage(sqsAsyncClient.changeMessageVisibility(builder -> builder.queueUrl(
+                        queueUrl).visibilityTimeout(visibilityTimeout).receiptHandle(receiptHandle))))
                 .onErrorResume(throwable -> {
                     log.error(throwable.getMessage(), throwable);
                     return Mono.error(new SqsClientException(queueName));
