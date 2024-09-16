@@ -1,9 +1,9 @@
 package it.pagopa.pn.ec.commons.model.dto;
 
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
-import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
+import it.pagopa.pn.ec.sercq.model.pojo.SercqPresaInCaricoInfo;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
@@ -47,8 +47,12 @@ public class NotificationTrackerQueueDto extends PresaInCaricoInfo {
                                                                                      String nextStatus,
                                                                                      DigitalProgressStatusDto digitalProgressStatusDto) {
         var notificationTrackerQueueDto = createNotificationTrackerQueueDto(presaInCaricoInfo, nextStatus);
-        String timestampSercq = ((PecPresaInCaricoInfo) presaInCaricoInfo).getDigitalNotificationRequest().getReceiverDigitalAddress();
-        digitalProgressStatusDto.setEventTimestamp(OffsetDateTime.parse(getTimepstampFromDigitalRecieverAddress(timestampSercq)));
+
+        String timestampSercq = ((SercqPresaInCaricoInfo) presaInCaricoInfo).getDigitalNotificationRequest().getReceiverDigitalAddress();
+        String getTimestamp = getTimepstampFromDigitalRecieverAddress(timestampSercq);
+        OffsetDateTime timestamp = OffsetDateTime.parse(getTimestamp);
+        digitalProgressStatusDto.setEventTimestamp(timestamp);
+
         return notificationTrackerQueueDto;
     }
 

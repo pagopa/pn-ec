@@ -1,9 +1,6 @@
 package it.pagopa.pn.ec.commons.utils;
 
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import reactor.core.publisher.Mono;
-
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.SERCQ;
 
 public class RequestUtils {
     private static final String SEPARATORE = "~";

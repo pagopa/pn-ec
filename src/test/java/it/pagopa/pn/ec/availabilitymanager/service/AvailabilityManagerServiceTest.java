@@ -27,7 +27,7 @@ import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
 @CustomLog
-public class AvailabilityManagerServiceTest {
+class AvailabilityManagerServiceTest {
 
     @Value("${sqs.queue.availabilitymanager.name}")
     String availabilityManagerQueueName;
@@ -72,7 +72,7 @@ public class AvailabilityManagerServiceTest {
     }
 
     @Test
-    public void convertPDFNotAllConvertedOk() {
+    void convertPDFNotAllConvertedOk() {
 
         // GIVEN: oggetti necessari al test (Dto)
         String originalFileKey1 = "originalFileKey1";
@@ -91,7 +91,7 @@ public class AvailabilityManagerServiceTest {
     }
 
     @Test
-    public void convertPDFAllConvertedOk() {
+    void convertPDFAllConvertedOk() {
 
         // GIVEN: oggetti necessari al test (Dto)
         String originalFileKey2 = "originalFileKey2";
@@ -109,10 +109,9 @@ public class AvailabilityManagerServiceTest {
     }
 
     @Test
-    public void convertPDFNotFoundKo() {
+    void convertPDFNotFoundKo() {
 
         // GIVEN: oggetti necessari al test (Dto)
-        String originalFileKey3 = "originalFileKey3";
         String newFileKey3 = "newFileKey3";
         String sha256 = "76453734532";
         AvailabilityManagerDto dto = createAvailabilityManagerDto(newFileKey3, sha256);
