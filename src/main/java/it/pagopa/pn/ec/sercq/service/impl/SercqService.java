@@ -6,8 +6,8 @@ import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.*;
-import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.sercq.model.pojo.SercqPresaInCaricoInfo;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -50,7 +50,7 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
     @Override
     public Mono<Void> specificPresaInCarico(PresaInCaricoInfo presaInCaricoInfo) {
 
-        var pecPresaInCaricoInfo = (PecPresaInCaricoInfo) presaInCaricoInfo;
+        var pecPresaInCaricoInfo = (SercqPresaInCaricoInfo) presaInCaricoInfo;
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();

@@ -45,8 +45,7 @@ public class PaperEngageRequestFactory {
 		var vas = new HashMap<String, String>();
 		vas.put("Servizi", "valore aggiunto");
 		var odt = OffsetDateTime.parse("2023-02-01T07:41:35.717Z");
-		var paperEngageRequestFactory = getPaperEngageRequest(odt, attachments, vas);
-		return paperEngageRequestFactory;
+        return getPaperEngageRequest(odt, attachments, vas);
 	}
 
 	private static @NotNull PaperEngageRequestAttachments getPaperEngageRequestAttachments(String documentTypeArchiving) {
