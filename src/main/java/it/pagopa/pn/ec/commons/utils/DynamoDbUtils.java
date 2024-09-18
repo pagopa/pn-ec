@@ -7,7 +7,10 @@ import software.amazon.awssdk.services.dynamodb.model.TransactionCanceledExcepti
 
 public class DynamoDbUtils {
 
-    public static final Retry DYNAMO_OPTIMISTIC_LOCKING_RETRY = Retry.indefinitely().filter(throwable -> (throwable instanceof TransactionCanceledException tce)
+    public static final Retry DYNAMO_OPTIMISTIC_LOCKING_RETRY = Retry.indefinitely().filter(ConditionalCheckFailedException.class::isInstance);
+
+    public static final Retry DYNAMO_TRANSACTIONAL_OPTIMISTIC_LOCKING_RETRY
+            = Retry.indefinitely().filter(throwable -> (throwable instanceof TransactionCanceledException tce)
             && tce.cancellationReasons().stream().anyMatch(reason -> "ConditionalCheckFailed".equals(reason.code())));
 
     private DynamoDbUtils() {
