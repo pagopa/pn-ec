@@ -367,6 +367,6 @@ components:
 
 
     RequestConversionDto:
-      $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/RequestConversionDto'
+      $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/RequestConversionDto'
     PdfConversionDto:
-      $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/PdfConversionDto'
+      $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/PdfConversionDto'

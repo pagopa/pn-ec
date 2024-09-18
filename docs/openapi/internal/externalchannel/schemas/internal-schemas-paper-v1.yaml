@@ -407,7 +407,7 @@ components:
           format: float
           description: Scadenza della entry in formato decimale
         originalRequest:
-          $ref: '../../external/schemas-paper-v1.1.yaml#/components/schemas/PaperEngageRequest'
+          $ref: '../../../external/schemas-paper-v1.1.yaml#/components/schemas/PaperEngageRequest'
         attachments:
           type: array
           items:
