@@ -365,8 +365,8 @@ components:
               come da specifiche di configurazione delle retry policy per la sola parte di interesse del canale
             example: '"SMS":[5,10,20,40],"EMAIL":[5,10,20,40],"PEC":[5,10,20,40],"PAPER":[5,10,20,40]'
 
-
+    #Non usati internamente ma ref necessaria per la loro generazione.
     RequestConversionDto:
-      $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/RequestConversionDto'
+      $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/RequestConversionDto'
     PdfConversionDto:
-      $ref: '../schemas/internal-schemas-paper-v1.yaml#/components/schemas/PdfConversionDto'
+      $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/PdfConversionDto'
