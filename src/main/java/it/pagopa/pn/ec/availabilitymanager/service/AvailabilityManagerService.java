@@ -73,10 +73,11 @@ public class AvailabilityManagerService {
                             if (oldFileKey.equals(toConvert.getOriginalFileKey())) {
                                 newFileKey = toConvert.getNewFileKey();
                                 checkSum = toConvert.getSha256();
+                                paperAttachment.setUri("safestorage://" + newFileKey);
+                                paperAttachment.setSha256(checkSum);
                             }
                         }
-                        paperAttachment.setUri("safestorage://" + newFileKey);
-                        paperAttachment.setSha256(checkSum);
+
                     }
 
                     originalRequest.setAttachments(originalRequestAttachments);
