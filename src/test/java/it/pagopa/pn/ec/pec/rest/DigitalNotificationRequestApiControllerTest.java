@@ -74,7 +74,7 @@ public class DigitalNotificationRequestApiControllerTest {
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
     private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
     private static final String DEFAULT_ATTACHMENT_URL = "safestorage://prova.pdf";
-    private static final String SERCQ_ADDRESS = "x-pagopa-pn-sercq:SEND-self:notification-already-delivered?timestamp=" + OffsetDateTime.now();
+    private static final String SERCQ_ADDRESS = "x-pagopa-pn-sercq:send-self:notification-already-delivered?timestamp=" + OffsetDateTime.now();
     private static final String PEC_ADDRESS = "pippo@pec.it";
 
 
