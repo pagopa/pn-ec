@@ -407,7 +407,7 @@ components:
           format: float
           description: Scadenza della entry in formato decimale
         originalRequest:
-          $ref: '../../external/schemas-paper-v1.1.yaml#/components/schemas/PaperEngageRequest'
+          $ref: '../../../external/schemas-paper-v1.1.yaml#/components/schemas/PaperEngageRequest'
         attachments:
           type: array
           items:
@@ -415,6 +415,9 @@ components:
         xPagopaExtchCxId:
           type: string
           description: ID del client
+        version:
+          type: number
+          description: versione del record
       required:
         - requestId
         - requestTimestamp
@@ -436,6 +439,9 @@ components:
           type: number
           format: float
           description: Scadenza della entry in formato decimale
+        version:
+          type: number
+          description: versione del record
       required:
         - fileKey
         - requestId

@@ -79,6 +79,9 @@ import org.springframework.context.annotation.PropertySource;
 //SERCQ
 @PropertySource("classpath:sercq/sercq.properties")
 
+//PDFRASTER
+@PropertySource("classpath:pdfraster/pdf-raster.properties")
+
 public class EcApplication {
 
     public static void main(String[] args) {
