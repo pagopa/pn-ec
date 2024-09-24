@@ -84,7 +84,7 @@ public class SercqServiceTest {
         digitalNotificationRequest.eventType("string");
         digitalNotificationRequest.setClientRequestTimeStamp(OffsetDateTime.now());
         digitalNotificationRequest.setQos(INTERACTIVE);
-        digitalNotificationRequest.setReceiverDigitalAddress("x-pagopa-pn-sercq:SEND-self:notification-already-delivered?timestamp=" + Instant.now());
+        digitalNotificationRequest.setReceiverDigitalAddress("x-pagopa-pn-sercq:send-self:notification-already-delivered?timestamp=" + Instant.now());
         digitalNotificationRequest.setMessageText("string");
         digitalNotificationRequest.channel(SERCQ);
         digitalNotificationRequest.setSubjectText("prova testo");
