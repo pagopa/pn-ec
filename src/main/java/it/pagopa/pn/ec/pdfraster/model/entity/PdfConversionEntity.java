@@ -15,10 +15,11 @@ import java.math.BigDecimal;
 @Setter
 @Builder
 @DynamoDbBean
-public class PdfConversionEntity extends DocumentVersion {
+public class PdfConversionEntity {
 
     @Getter(onMethod=@__({@DynamoDbPartitionKey}))
     String fileKey;
     String requestId;
     BigDecimal expiration;
+    Long version;
 }
