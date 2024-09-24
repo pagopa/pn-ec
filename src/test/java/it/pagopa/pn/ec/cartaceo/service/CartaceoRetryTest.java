@@ -12,11 +12,15 @@ import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.rest.call.upload.UploadCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
+import it.pagopa.pn.ec.pdfraster.model.entity.PdfConversionEntity;
+import it.pagopa.pn.ec.pdfraster.model.entity.RequestConversionEntity;
 import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
+import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -28,6 +32,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import software.amazon.awssdk.enhanced.dynamodb.*;
 import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
 import software.amazon.awssdk.services.sqs.model.ChangeMessageVisibilityResponse;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
@@ -90,10 +95,28 @@ class CartaceoRetryTest {
     private static final String UPLOAD_URL = "http://uploadUrl";
 
     private static final String SECRET = "secret";
+    private static DynamoDbTable<RequestConversionEntity> requestConversionEntityDynamoDbAsyncTable;
+    private static DynamoDbTable<PdfConversionEntity> pdfConversionEntityDynamoDbAsyncTable;
+
+    @BeforeAll
+    static void init(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient, @Autowired RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
+        requestConversionEntityDynamoDbAsyncTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversioneRequestName(), TableSchema.fromBean(RequestConversionEntity.class));
+        pdfConversionEntityDynamoDbAsyncTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversionePdfName(), TableSchema.fromBean(PdfConversionEntity.class));
+    }
 
     @AfterEach
     void cleanup() {
         ReflectionTestUtils.setField(cartaceoService, "idSaved", null);
+        for (var page : requestConversionEntityDynamoDbAsyncTable.scan()) {
+            for (var item : page.items()) {
+                requestConversionEntityDynamoDbAsyncTable.deleteItem(item);
+            }
+        }
+        for (var page : pdfConversionEntityDynamoDbAsyncTable.scan()) {
+            for (var item : page.items()) {
+                pdfConversionEntityDynamoDbAsyncTable.deleteItem(item);
+            }
+        }
     }
 
     private CartaceoPresaInCaricoInfo createCartaceoPresaInCaricoInfo() {
