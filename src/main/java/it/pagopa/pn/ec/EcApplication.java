@@ -76,9 +76,6 @@ import org.springframework.context.annotation.PropertySource;
 //AVAILABILIYMANAGER
 @PropertySource("classpath:availabilitymanager/availability-manager.properties")
 
-//PDFRASTER
-@PropertySource("classpath:pdfraster/pdf-raster.properties")
-
 public class EcApplication {
 
     public static void main(String[] args) {

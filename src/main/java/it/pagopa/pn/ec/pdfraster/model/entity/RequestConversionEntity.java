@@ -18,7 +18,7 @@ import java.util.List;
 @Builder
 @DynamoDbBean
 @ToString
-public class RequestConversionEntity {
+public class RequestConversionEntity extends DocumentVersion {
 
     @Getter(onMethod=@__({@DynamoDbPartitionKey}))
     String requestId;
@@ -28,6 +28,5 @@ public class RequestConversionEntity {
     List<AttachmentToConvert> attachments;
     @JsonProperty("xPagopaExtchCxId")
     String xPagopaExtchCxId;
-    Long version;
 
 }
