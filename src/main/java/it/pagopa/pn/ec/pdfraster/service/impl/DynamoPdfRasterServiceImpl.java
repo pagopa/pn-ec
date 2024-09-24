@@ -55,6 +55,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
         this.conversionTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversionePdfName(),
                 TableSchema.fromBean(PdfConversionEntity.class)));
         this.pdfRasterRetryStrategy = Retry.backoff(pdfRasterProperties.maxRetryAttempts(), Duration.ofSeconds(pdfRasterProperties.minRetryBackoff()))
+                .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure())
                 .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
     }
 
