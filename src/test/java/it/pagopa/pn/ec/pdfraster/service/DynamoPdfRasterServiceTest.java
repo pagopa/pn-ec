@@ -9,7 +9,6 @@ import it.pagopa.pn.ec.rest.v1.dto.AttachmentToConvertDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestConversionDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
-import org.junit.Before;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
@@ -81,6 +80,7 @@ class DynamoPdfRasterServiceTest {
 
         verifyPdfConversionEntities(requestConversionDto);
     }
+
 
     private boolean validateNonNullResponse(RequestConversionDto responseDto) {
         return responseDto != null;
