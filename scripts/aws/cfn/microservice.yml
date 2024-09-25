@@ -1039,6 +1039,7 @@ Resources:
               - 'sqs:PurgeQueue'
               - 'sqs:SendMessage'
               - 'sqs:Get*'
+              - 'sqs:ChangeMessageVisibility'
             Resource:
               - !Ref PnEcQueueArnTrackerStatoSMS
               - !Ref PnEcQueueArnTrackerErroriSMS
