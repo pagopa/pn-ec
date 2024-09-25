@@ -609,7 +609,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnDlqErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(cartaceoSqsQueueName.dlqErrorName(), presaInCaricoInfo);
+        return sqsService.sendWithDeduplicationId(cartaceoSqsQueueName.dlqErrorName(), presaInCaricoInfo);
     }
 
     @Override
