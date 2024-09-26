@@ -48,6 +48,7 @@ public class SqsServiceImpl implements SqsService {
     private final S3Service s3Service;
     private final RetryBackoffSpec sqsRetryStrategy;
     private static final int MESSAGE_GROUP_ID_LENGTH = 64;
+    private static final int MESSAGE_DEDUPLICATION_ID_LENGTH = 64;
     @Value("${sqs.queue.max-message-size}")
     private Integer sqsQueueMaxMessageSize;
     @Value("${SqsQueueMaxMessages:#{1000}}")
@@ -69,17 +70,22 @@ public class SqsServiceImpl implements SqsService {
     }
 
     @Override
+    public <T> Mono<SendMessageResponse> sendWithDeduplicationId(String queueName, T queuePayload) throws SqsClientException {
+        return send(queueName, RandomStringUtils.randomAlphanumeric(MESSAGE_GROUP_ID_LENGTH), RandomStringUtils.randomAlphanumeric(MESSAGE_DEDUPLICATION_ID_LENGTH), null, queuePayload);
+    }
+
+    @Override
     public <T> Mono<SendMessageResponse> send(String queueName, Integer delaySeconds, T queuePayload) throws SqsClientException {
-        return send(queueName, RandomStringUtils.randomAlphanumeric(MESSAGE_GROUP_ID_LENGTH), delaySeconds, queuePayload);
+        return send(queueName, RandomStringUtils.randomAlphanumeric(MESSAGE_GROUP_ID_LENGTH), null, delaySeconds, queuePayload);
     }
 
     @Override
     public <T> Mono<SendMessageResponse> send(String queueName, String messageGroupId, T queuePayload) throws SqsClientException {
-        return send(queueName, messageGroupId, null, queuePayload);
+        return send(queueName, messageGroupId, null, null, queuePayload);
     }
 
     @Override
-    public <T> Mono<SendMessageResponse> send(String queueName, String messageGroupId, Integer delaySeconds, T queuePayload) throws SqsClientException {
+    public <T> Mono<SendMessageResponse> send(String queueName, String messageGroupId, String messageDeduplicationId, Integer delaySeconds, T queuePayload) throws SqsClientException {
         log.debug(INSERTING_DATA_IN_SQS, queuePayload, queueName);
         return Mono.fromCallable(() -> objectMapper.writeValueAsString(queuePayload))
                 .doOnSuccess(sendMessageResponse -> log.info("Try to publish on {} with payload {}", queueName, queuePayload))
@@ -87,6 +93,7 @@ public class SqsServiceImpl implements SqsService {
                 .flatMap(objects -> Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> builder.queueUrl(objects.getT2())
                         .messageBody(objects.getT1())
                         .messageGroupId(messageGroupId)
+                        .messageDeduplicationId(messageDeduplicationId)
                         .delaySeconds(delaySeconds))))
                 .retryWhen(getSqsRetryStrategy())
                 .onErrorResume(throwable -> {
