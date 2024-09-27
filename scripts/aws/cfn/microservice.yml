@@ -142,6 +142,11 @@ Parameters:
     Description: 'SpringBoot configuration Task Execution Max Pool Siza'
     Default: '512'
 
+  ### INPUT PARAMETERS  ###
+  SQSMaxBatchSubscribedMsgs:
+    Type: String
+    Description: 'Max batch massages number'
+
   ### TABLES  ###
 
   PnEcTableNameAnagrafica:
@@ -979,6 +984,7 @@ Resources:
         ContainerEnvEntry76: !Sub 'PnEcDLQueueNameErroriCARTACEO=${PnEcDLQueueNameErroriCARTACEO}'
         ContainerEnvEntry77: !Sub 'PnEcTableNameRichiesteConversione=${PnEcTableNameRichiesteConversione}'
         ContainerEnvEntry78: !Sub 'PnEcTableNameConversionePdf=${PnEcTableNameConversionePdf}'
+        ContainerEnvEntry79: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
