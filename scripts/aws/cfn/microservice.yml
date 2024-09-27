@@ -146,6 +146,7 @@ Parameters:
   SQSMaxBatchSubscribedMsgs:
     Type: String
     Description: 'Max batch massages number'
+    Default: '20'
 
   ### TABLES  ###
 
