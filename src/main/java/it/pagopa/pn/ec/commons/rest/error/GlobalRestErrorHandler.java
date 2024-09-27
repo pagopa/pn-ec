@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.support.WebExchangeBindException;
+import org.springframework.web.server.ServerWebInputException;
 
 import javax.validation.ConstraintViolationException;
 import javax.validation.Path;
@@ -81,6 +82,16 @@ public class GlobalRestErrorHandler {
 						return problemError;
 					}).toList());
 		}
+		return new ResponseEntity<>(problem, BAD_REQUEST);
+	}
+
+	@ExceptionHandler(ServerWebInputException.class)
+	public final ResponseEntity<Problem> handleServerWebInputException(ServerWebInputException exception) {
+		var problem = new Problem();
+		problem.setStatus(BAD_REQUEST.value());
+		problem.setTitle("Bad request");
+		problem.setDetail(exception.getMessage());
+		problem.setTraceId(UUID.randomUUID().toString());
 		return new ResponseEntity<>(problem, BAD_REQUEST);
 	}
 
