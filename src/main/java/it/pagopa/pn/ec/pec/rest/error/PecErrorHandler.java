@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.pec.rest.error;
 
+import it.pagopa.pn.ec.commons.exception.InvalidReceiverDigitalAddressException;
 import it.pagopa.pn.ec.pec.exception.MessageIdException;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +31,16 @@ public class PecErrorHandler {
         problem.setStatus(BAD_REQUEST.value());
         problem.setTitle("Malformed messageId");
         problem.setDetail(decodeMessageIdException.getMessage());
+        problem.setTraceId(UUID.randomUUID().toString());
+        return new ResponseEntity<>(problem, BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidReceiverDigitalAddressException.class)
+    public final ResponseEntity<Problem> handleInvalidReceiverDigitalAddressException(InvalidReceiverDigitalAddressException invalidReceiverDigitalAddressException) {
+        var problem = new Problem();
+        problem.setStatus(BAD_REQUEST.value());
+        problem.setTitle("Invalid receiver digital address");
+        problem.setDetail(invalidReceiverDigitalAddressException.getMessage());
         problem.setTraceId(UUID.randomUUID().toString());
         return new ResponseEntity<>(problem, BAD_REQUEST);
     }
