@@ -52,6 +52,7 @@ public class NotificationTrackerQueueDto extends PresaInCaricoInfo {
         String getTimestamp = getTimepstampFromDigitalRecieverAddress(timestampSercq);
         OffsetDateTime timestamp = OffsetDateTime.parse(getTimestamp);
         digitalProgressStatusDto.setEventTimestamp(timestamp);
+        notificationTrackerQueueDto.setDigitalProgressStatusDto(digitalProgressStatusDto);
 
         return notificationTrackerQueueDto;
     }
