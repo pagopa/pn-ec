@@ -40,6 +40,7 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.*;
@@ -75,6 +76,9 @@ public class DigitalNotificationRequestApiControllerTest {
     private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
     private static final String DEFAULT_ATTACHMENT_URL = "safestorage://prova.pdf";
     private static final String SERCQ_ADDRESS = "x-pagopa-pn-sercq:send-self:notification-already-delivered?timestamp=" + OffsetDateTime.now();
+    private static final String SERCQ_ADDRESS_INCORRECT = "-pagopa-pn-sercq:send-self:notification-already-delivered?timestamp=" + OffsetDateTime.now();
+
+
     private static final String PEC_ADDRESS = "pippo@pec.it";
 
 
@@ -282,6 +286,25 @@ public class DigitalNotificationRequestApiControllerTest {
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                     .isEqualTo(INTERNAL_SERVER_ERROR)
                                                                                                     .expectBody(Problem.class);
+    }
+
+    @Test
+    void sendPecInvalidReceiverDigitalAddress() {
+        digitalNotificationRequest.setChannel(SERCQ);
+        digitalNotificationRequest.setReceiverDigitalAddress(SERCQ_ADDRESS_INCORRECT);
+
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
+
+        sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
+                                                                                                 .isEqualTo(BAD_REQUEST)
+                                                                                                 .expectBody(Problem.class)
+                                                                                                 .value(problem -> {
+                                                                                                     String detail = problem.getDetail();
+                                                                                                     String pattern = "Invalid receiver digital address";
+                                                                                                     assertEquals(detail, pattern, "Detail does not contain the expected text");
+                                                                                                 });
     }
 
 private static Stream<Arguments> getChannelAndAddress() {

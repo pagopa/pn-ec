@@ -1,11 +1,13 @@
 package it.pagopa.pn.ec.pec.service.impl;
 
+import it.pagopa.pn.ec.commons.exception.InvalidReceiverDigitalAddressException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.InvalidAttachmentSchemaException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest;
+import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.sercq.model.pojo.SercqPresaInCaricoInfo;
@@ -21,6 +23,7 @@ import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 
 import java.time.Instant;
@@ -28,6 +31,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.SERCQ;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
@@ -37,7 +41,6 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class SercqServiceTest {
 
     @MockBean
@@ -66,25 +69,44 @@ public class SercqServiceTest {
             .digitalNotificationRequest(createDigitalNotificationRequest())
             .build();
 
-    private static final SercqPresaInCaricoInfo SERCQ_PRESA_IN_CARICO_INFO_KO = SercqPresaInCaricoInfo.builder()
+    private static final SercqPresaInCaricoInfo SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS = SercqPresaInCaricoInfo.builder()
             .requestIdx(DEFAULT_REQUEST_IDX)
             .xPagopaExtchCxId(
                     DEFAULT_ID_CLIENT_HEADER_VALUE)
-            .digitalNotificationRequest(createInvalidDigitalNotificationRequestKO())
+            .digitalNotificationRequest(createInvalidAddressDigitalNotificationRequest())
+            .build();
+
+    private static final SercqPresaInCaricoInfo SERCQ_PRESA_IN_CARICO_INFO_INVALID_ATTACHMENT = SercqPresaInCaricoInfo.builder()
+            .requestIdx(DEFAULT_REQUEST_IDX)
+            .xPagopaExtchCxId(
+                    DEFAULT_ID_CLIENT_HEADER_VALUE)
+            .digitalNotificationRequest(createInvalidAttachmentDigitalNotificationRequest())
             .build();
 
 
     public static DigitalNotificationRequest createDigitalNotificationRequest() {
+        return createDigitalNotificationRequest("x-pagopa-pn-sercq:send-self:notification-already-delivered?timestamp=" + Instant.now(), DEFAULT_ATTACHMENT_URL);
+    }
+
+    public static DigitalNotificationRequest createInvalidAttachmentDigitalNotificationRequest() {
+        return createDigitalNotificationRequest("x-pagopa-pn-sercq:send-self:notification-already-delivered?timestamp=" + Instant.now(), DEFAULT_ATTACHMENT_URL_KO);
+    }
+
+    public static DigitalNotificationRequest createInvalidAddressDigitalNotificationRequest() {
+        return createDigitalNotificationRequest("invalid-address", DEFAULT_ATTACHMENT_URL_KO);
+    }
+
+    public static DigitalNotificationRequest createDigitalNotificationRequest(String receiverDigitalAddress, String attachmentUrl) {
         DigitalNotificationRequest digitalNotificationRequest= new DigitalNotificationRequest();
 
         List<String> defaultListAttachmentUrls = new ArrayList<>();
-        defaultListAttachmentUrls.add(DEFAULT_ATTACHMENT_URL);
+        defaultListAttachmentUrls.add(attachmentUrl);
 
         digitalNotificationRequest.setRequestId("requestIdx");
         digitalNotificationRequest.eventType("string");
         digitalNotificationRequest.setClientRequestTimeStamp(OffsetDateTime.now());
         digitalNotificationRequest.setQos(INTERACTIVE);
-        digitalNotificationRequest.setReceiverDigitalAddress("x-pagopa-pn-sercq:send-self:notification-already-delivered?timestamp=" + Instant.now());
+        digitalNotificationRequest.setReceiverDigitalAddress(receiverDigitalAddress);
         digitalNotificationRequest.setMessageText("string");
         digitalNotificationRequest.channel(SERCQ);
         digitalNotificationRequest.setSubjectText("prova testo");
@@ -92,27 +114,6 @@ public class SercqServiceTest {
         digitalNotificationRequest.setAttachmentUrls(defaultListAttachmentUrls);
         return digitalNotificationRequest;
     }
-
-    public static DigitalNotificationRequest createInvalidDigitalNotificationRequestKO() {
-        DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
-
-        List<String> invalidListAttachmentUrls = new ArrayList<>();
-        invalidListAttachmentUrls.add(DEFAULT_ATTACHMENT_URL_KO);
-
-        digitalNotificationRequest.setRequestId("");
-        digitalNotificationRequest.eventType("");
-        digitalNotificationRequest.setClientRequestTimeStamp(null);
-        digitalNotificationRequest.setQos(INTERACTIVE);
-        digitalNotificationRequest.setReceiverDigitalAddress("test-test");
-        digitalNotificationRequest.setMessageText("test");
-        digitalNotificationRequest.channel(SERCQ);
-        digitalNotificationRequest.setSubjectText("");
-        digitalNotificationRequest.setMessageContentType(PLAIN);
-        digitalNotificationRequest.setAttachmentUrls(invalidListAttachmentUrls);
-
-        return digitalNotificationRequest;
-    }
-
 
     @BeforeEach
     void setUp() {
@@ -131,7 +132,7 @@ public class SercqServiceTest {
                 .thenReturn(Mono.just(new RequestDto()));
 
         when(sqsService.send(any(),any()))
-                .thenReturn(Mono.empty());
+                .thenReturn(Mono.just(SendMessageResponse.builder().build()));
 
         Mono<Void> result = sercqService.specificPresaInCarico(SERCQ_PRESA_IN_CARICO_INFO);
 
@@ -145,8 +146,8 @@ public class SercqServiceTest {
         verify(sercqService, times(1))
                 .insertRequestFromSercq(any(), eq(SERCQ_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId()));
 
-        verify(sqsService, times(1))
-                .send(any(),any());
+        verify(sercqService).sendNotificationOnStatusQueue(any(), eq(BOOKED.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        verify(sercqService).sendNotificationOnStatusQueue(any(), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
 
     @Test
@@ -155,10 +156,10 @@ public class SercqServiceTest {
         when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(),any(),anyBoolean()))
                 .thenReturn(Flux.error(new InvalidAttachmentSchemaException()));
 
-        Mono<Void> result = sercqService.specificPresaInCarico(SERCQ_PRESA_IN_CARICO_INFO_KO);
+        Mono<Void> result = sercqService.specificPresaInCarico(SERCQ_PRESA_IN_CARICO_INFO_INVALID_ATTACHMENT);
 
         StepVerifier.create(result)
-                .expectError(Exceptions.retryExhausted("", null).getClass())
+                .expectError(InvalidAttachmentSchemaException.class)
                 .verify();
 
         verifyNoInteractions(gestoreRepositoryCall);
@@ -183,7 +184,7 @@ public class SercqServiceTest {
         Mono<Void> result = sercqService.specificPresaInCarico(SERCQ_PRESA_IN_CARICO_INFO);
 
         StepVerifier.create(result)
-                .expectError(Exceptions.retryExhausted("", null).getClass())
+                .expectError(SqsClientException.class)
                 .verify();
 
         verify(attachmentService, times(1))
@@ -193,10 +194,42 @@ public class SercqServiceTest {
         verify(sercqService, times(1))
                 .insertRequestFromSercq(any(), eq(SERCQ_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId()));
 
-        verify(sqsService, times(1))
-                .send(any(),any());
+        verify(sercqService).sendNotificationOnStatusQueue(any(), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
 
+    }
+
+    @Test
+    void testSpecificPresaInCaricoInvalidAddressKo(){
+
+        when(sqsService.send(any(),any()))
+                .thenReturn(Mono.just(SendMessageResponse.builder().build()));
+
+        FileDownloadResponse mockedResponse = new FileDownloadResponse();
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getDigitalNotificationRequest()
+                .getAttachmentUrls(), SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getXPagopaExtchCxId(), true))
+                .thenReturn(Flux.just(mockedResponse));
+
+        when(gestoreRepositoryCall.insertRichiesta(any()))
+                .thenReturn(Mono.just(new RequestDto()));
+
+        Mono<Void> result = sercqService.specificPresaInCarico(SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS);
+
+        StepVerifier.create(result)
+                .expectError(InvalidReceiverDigitalAddressException.class)
+                .verify();
+
+        verify(attachmentService, times(1))
+                .getAllegatiPresignedUrlOrMetadata(SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getDigitalNotificationRequest()
+                        .getAttachmentUrls(), SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getXPagopaExtchCxId(), true);
+
+        verify(sercqService, times(1))
+                .insertRequestFromSercq(any(), eq(SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getXPagopaExtchCxId()));
+
+        verify(sercqService).sendNotificationOnStatusQueue(any(), eq(ADDRESS_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+
+        verify(sercqService, never())
+                .sendNotificationOnStatusQueue(any(), eq(BOOKED.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
 
 

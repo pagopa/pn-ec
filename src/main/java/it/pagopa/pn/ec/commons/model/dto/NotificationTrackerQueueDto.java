@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.commons.model.dto;
 
+import it.pagopa.pn.ec.commons.exception.InvalidReceiverDigitalAddressException;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
@@ -49,16 +50,18 @@ public class NotificationTrackerQueueDto extends PresaInCaricoInfo {
         var notificationTrackerQueueDto = createNotificationTrackerQueueDto(presaInCaricoInfo, nextStatus);
 
         String timestampSercq = ((SercqPresaInCaricoInfo) presaInCaricoInfo).getDigitalNotificationRequest().getReceiverDigitalAddress();
-        String getTimestamp = getTimepstampFromDigitalRecieverAddress(timestampSercq);
-        OffsetDateTime timestamp = OffsetDateTime.parse(getTimestamp);
+        OffsetDateTime timestamp = getTimepstampFromDigitalRecieverAddress(timestampSercq);
         digitalProgressStatusDto.setEventTimestamp(timestamp);
         notificationTrackerQueueDto.setDigitalProgressStatusDto(digitalProgressStatusDto);
 
         return notificationTrackerQueueDto;
     }
 
-    private static String getTimepstampFromDigitalRecieverAddress(String digitalRecieverAddress){
-       return digitalRecieverAddress.split("timestamp=")[1];
+    private static OffsetDateTime getTimepstampFromDigitalRecieverAddress(String digitalRecieverAddress) {
+        String[] timestampArray = digitalRecieverAddress.split("timestamp=");
+        if (timestampArray.length > 1) {
+            return OffsetDateTime.parse(timestampArray[1]);
+        } else return now();
     }
     public static NotificationTrackerQueueDto createNotificationTrackerQueueDtoPaper(PresaInCaricoInfo presaInCaricoInfo,
                                                                                      String nextStatus,
