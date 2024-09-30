@@ -65,7 +65,8 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
                 .then(insertRequestFromSercq(digitalNotificationRequest, xPagopaExtchCxId))
                 .flatMap(requestDto -> {
                     if (isReceiverDigitalAddressValid(pecPresaInCaricoInfo.getDigitalNotificationRequest().getReceiverDigitalAddress())) {
-                        return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, BOOKED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto());
+                        return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, BOOKED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
+                                .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY);
                     } else return Mono.error(new InvalidReceiverDigitalAddressException());
                 })
                 .then(Mono.defer(() -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
