@@ -80,7 +80,8 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
                                 INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                                 new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY).then(Mono.error(sqsClientException)))
                 .then()
-                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PRESA_IN_CARICO_SERCQ, result));
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PRESA_IN_CARICO_SERCQ, result))
+                .doOnError(throwable -> log.warn(EXCEPTION_IN_PROCESS,PRESA_IN_CARICO_SERCQ, throwable, throwable.getMessage()));
     }
 
     public Mono<RequestDto> insertRequestFromSercq(final DigitalNotificationRequest digitalNotificationRequest, String xPagopaExtchCxId) {
