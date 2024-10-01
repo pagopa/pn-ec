@@ -15,6 +15,7 @@ import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 import java.time.Duration;
+import java.util.UUID;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoSercq;
@@ -30,6 +31,7 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final SqsService sqsService;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
+    private static final String SERCQ_SENDER = "@send-self";
 
     @Value("${sercq.receiver-digital-address}")
     private String receiverDigitalAddress;
@@ -69,8 +71,14 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
                                 .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY);
                     } else return Mono.error(new InvalidReceiverDigitalAddressException());
                 })
-                .then(Mono.defer(() -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
-                        .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)))
+                .then(Mono.defer(() -> {
+                         DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();
+                         GeneratedMessageDto generatedMessageDto = new GeneratedMessageDto();
+                         generatedMessageDto.setId(UUID.randomUUID().toString());
+                         generatedMessageDto.system(SERCQ_SENDER);
+                         digitalProgressStatusDto.setGeneratedMessage(generatedMessageDto);
+                         return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), digitalProgressStatusDto)
+                        .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY);}))
                 .onErrorResume(InvalidReceiverDigitalAddressException.class,
                         throwable -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                                 ADDRESS_ERROR.getStatusTransactionTableCompliant(),

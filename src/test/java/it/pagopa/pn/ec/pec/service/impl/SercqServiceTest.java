@@ -6,15 +6,14 @@ import it.pagopa.pn.ec.commons.exception.ss.attachment.InvalidAttachmentSchemaEx
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
-import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
-import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
+import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sercq.model.pojo.SercqPresaInCaricoInfo;
 import it.pagopa.pn.ec.sercq.service.impl.SercqService;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockitoAnnotations;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
@@ -30,6 +29,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.SERCQ;
@@ -37,6 +37,8 @@ import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageCont
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -135,9 +137,11 @@ public class SercqServiceTest {
                 .thenReturn(Mono.just(SendMessageResponse.builder().build()));
 
         Mono<Void> result = sercqService.specificPresaInCarico(SERCQ_PRESA_IN_CARICO_INFO);
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
 
         StepVerifier.create(result)
                .verifyComplete();
+
 
         verify(attachmentService, times(1))
                 .getAllegatiPresignedUrlOrMetadata(SERCQ_PRESA_IN_CARICO_INFO.getDigitalNotificationRequest()
@@ -232,5 +236,45 @@ public class SercqServiceTest {
                 .sendNotificationOnStatusQueue(any(), eq(BOOKED.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
 
+    @Test
+    void testGeneratedMessageDto() {
+        FileDownloadResponse mockedResponse = new FileDownloadResponse();
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(SERCQ_PRESA_IN_CARICO_INFO.getDigitalNotificationRequest()
+                .getAttachmentUrls(), SERCQ_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId(), true))
+                .thenReturn(Flux.just(mockedResponse));
+
+        when(gestoreRepositoryCall.insertRichiesta(any()))
+                .thenReturn(Mono.just(new RequestDto()));
+
+        when(sqsService.send(any(), any()))
+                .thenReturn(Mono.just(SendMessageResponse.builder().build()));
+
+        Mono<Void> result = sercqService.specificPresaInCarico(SERCQ_PRESA_IN_CARICO_INFO);
+
+        StepVerifier.create(result)
+                .verifyComplete();
+
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+
+        verify(attachmentService, times(1))
+                .getAllegatiPresignedUrlOrMetadata(SERCQ_PRESA_IN_CARICO_INFO.getDigitalNotificationRequest()
+                        .getAttachmentUrls(), SERCQ_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId(), true);
+
+        verify(sercqService, times(1))
+                .insertRequestFromSercq(any(), eq(SERCQ_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId()));
+
+        verify(sercqService).sendNotificationOnStatusQueue(any(), eq(BOOKED.getStatusTransactionTableCompliant()), captor.capture());
+        verify(sercqService).sendNotificationOnStatusQueue(any(), eq(SENT.getStatusTransactionTableCompliant()), captor.capture());
+
+        List<DigitalProgressStatusDto> capturedDtos = captor.getAllValues();
+        Assertions.assertEquals(2, capturedDtos.size());
+
+        DigitalProgressStatusDto bookedDto = capturedDtos.get(0);
+        DigitalProgressStatusDto sentDto = capturedDtos.get(1);
+
+        Assertions.assertTrue(Objects.nonNull(sentDto.getGeneratedMessage().getId()));
+        Assertions.assertEquals("@send-self", sentDto.getGeneratedMessage().getSystem());
+        Assertions.assertFalse(Objects.nonNull(bookedDto.getGeneratedMessage()));
+    }
 
     }
