@@ -103,19 +103,20 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         var digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
 
                                         if (digitalProgressStatusDto != null) {
+                                            OffsetDateTime eventTimestamp = digitalProgressStatusDto.getEventTimestamp();
+                                            // Se lo stato è relativo a SERCQ, non bisogna troncare il timestamp.
+                                            if (logicStatus != null && !logicStatus.startsWith("Q")) {
+                                                eventTimestamp = eventTimestamp.truncatedTo(SECONDS);
+                                            }
                                             digitalProgressStatusDto.status(nextStatus)
                                                                     .statusCode(logicStatus)
-                                                                    .eventTimestamp(digitalProgressStatusDto.getEventTimestamp()
-                                                                                                            .truncatedTo(SECONDS));
+                                                                    .eventTimestamp(eventTimestamp);
                                         } else if (paperProgressStatusDto != null) {
                                             paperProgressStatusDto.status(nextStatus)
                                                                   .statusDescription(paperProgressStatusDto.getStatusDescription())
                                                                   .statusCode(macchinaStatiDecodeResponseDto.getLogicStatus())
                                                                   .statusDateTime(paperProgressStatusDto.getStatusDateTime()
                                                                                                         .truncatedTo(SECONDS));
-                                            if (logicStatus!= null && logicStatus.startsWith("Q")){
-                                                paperProgressStatusDto.statusDateTime(paperProgressStatusDto.getStatusDateTime());
-                                            }
                                         }
 
                                         return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getXPagopaExtchCxId(),
