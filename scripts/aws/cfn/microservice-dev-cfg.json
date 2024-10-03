@@ -45,7 +45,8 @@
     "MemoryAmount": "4GB",
     "PnECPaperDocumentTypeToRaster": "PN_NOTIFICATION_ATTACHMENTS",
     "PnECPaperDocumentTypeForRasterized": "PN_PAPER_ATTACHMENT",
-    "PnECPaperPAIdToRaster": "ALL",
-    "PnECPaperPAIdOverride": "15376371009"
+    "PnECPaperPAIdToRaster": "NOTHING",
+    "PnECPaperPAIdOverride": "15376371009",
+    "SQSMaxBatchSubscribedMsgs": "20"
   }
 }
