@@ -51,7 +51,7 @@ public class SqsServiceImpl implements SqsService {
     private static final int MESSAGE_DEDUPLICATION_ID_LENGTH = 64;
     @Value("${sqs.queue.max-message-size}")
     private Integer sqsQueueMaxMessageSize;
-    @Value("${SqsQueueMaxMessages:#{1000}}")
+    @Value("${sqs.queue.max-batch-subscribed-msgs}")
     private Integer maxMessages;
 
     public SqsServiceImpl(SqsAsyncClient sqsAsyncClient, ObjectMapper objectMapper, JsonUtils jsonUtils, S3Service s3Service, SqsRetryStrategyProperties sqsRetryStrategyProperties) {
