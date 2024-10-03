@@ -142,6 +142,12 @@ Parameters:
     Description: 'SpringBoot configuration Task Execution Max Pool Siza'
     Default: '512'
 
+  ### INPUT PARAMETERS  ###
+  SQSMaxBatchSubscribedMsgs:
+    Type: String
+    Description: 'Max batch massages number'
+    Default: '20'
+
   ### TABLES  ###
 
   PnEcTableNameAnagrafica:
@@ -396,10 +402,6 @@ Parameters:
     Type: String
     Description: '[Canale SMS] ARN della Coda per la modalità SMS-Batch'
 
-  PnEcQueueUrlBatchSMS:
-    Type: String
-    Description: '[Canale SMS] URL della Coda per la modalità SMS-Batch'
-
   PnEcAlarmArnQueueBatchSMS:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchSMS"
@@ -440,10 +442,6 @@ Parameters:
     Type: String
     Description: '[Canale SMS] ARN della Coda Errori SMS'
 
-  PnEcQueueUrlErroriSMS:
-    Type: String
-    Description: '[Canale SMS] URL della Coda Errori SMS'
-
   PnEcAlarmArnQueueErroriSMS:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriSMS"
@@ -461,10 +459,6 @@ Parameters:
   PnEcQueueArnBatchPEC:
     Type: String
     Description: '[Canale PEC] ARN della Coda per la modalità PEC-Batch'
-
-  PnEcQueueUrlBatchPEC:
-    Type: String
-    Description: '[Canale PEC] URL della Coda per la modalità PEC-Batch'
 
   PnEcAlarmArnQueueBatchPEC:
     Type: String
@@ -506,10 +500,6 @@ Parameters:
     Type: String
     Description: '[Canale PEC] ARN della Coda Errori PEC'
 
-  PnEcQueueUrlErroriPEC:
-    Type: String
-    Description: '[Canale PEC] URL della Coda Errori PEC'
-
   PnEcAlarmArnQueueErroriPEC:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriPEC"
@@ -527,10 +517,6 @@ Parameters:
   PnEcQueueArnBatchEMAIL:
     Type: String
     Description: '[Canale EMAIL] ARN della Coda per la modalità EMAIL-Batch'
-
-  PnEcQueueUrlBatchEMAIL:
-    Type: String
-    Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Batch'
 
   PnEcAlarmArnQueueBatchEMAIL:
     Type: String
@@ -572,10 +558,6 @@ Parameters:
     Type: String
     Description: '[Canale EMAIL] ARN della Coda Errori EMAIL'
 
-  PnEcQueueUrlErroriEMAIL:
-    Type: String
-    Description: '[Canale EMAIL] URL della Coda Errori EMAIL'
-
   PnEcAlarmArnQueueErroriEMAIL:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriEMAIL"
@@ -594,10 +576,6 @@ Parameters:
     Type: String
     Description: '[Canale CARTACEO] ARN della Coda per la modalità CARTACEO-Batch'
 
-  PnEcQueueUrlBatchCARTACEO:
-    Type: String
-    Description: '[Canale CARTACEO] URL della Coda per la modalità CARTACEO-Batch'
-
   PnEcAlarmArnQueueBatchCARTACEO:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchCARTACEO"
@@ -615,10 +593,6 @@ Parameters:
   PnEcQueueArnErroriCARTACEO:
     Type: String
     Description: '[Canale CARTACEO] ARN della Coda Errori CARTACEO'
-
-  PnEcQueueUrlErroriCARTACEO:
-    Type: String
-    Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
 
   PnEcDLQueueNameErroriCARTACEO:
     Type: String
@@ -979,6 +953,7 @@ Resources:
         ContainerEnvEntry76: !Sub 'PnEcDLQueueNameErroriCARTACEO=${PnEcDLQueueNameErroriCARTACEO}'
         ContainerEnvEntry77: !Sub 'PnEcTableNameRichiesteConversione=${PnEcTableNameRichiesteConversione}'
         ContainerEnvEntry78: !Sub 'PnEcTableNameConversionePdf=${PnEcTableNameConversionePdf}'
+        ContainerEnvEntry79: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
