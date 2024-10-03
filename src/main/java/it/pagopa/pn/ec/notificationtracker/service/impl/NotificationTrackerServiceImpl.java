@@ -113,7 +113,11 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                                   .statusCode(macchinaStatiDecodeResponseDto.getLogicStatus())
                                                                   .statusDateTime(paperProgressStatusDto.getStatusDateTime()
                                                                                                         .truncatedTo(SECONDS));
+                                            if (logicStatus!= null && logicStatus.startsWith("Q")){
+                                                paperProgressStatusDto.statusDateTime(paperProgressStatusDto.getStatusDateTime());
+                                            }
                                         }
+
                                         return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getXPagopaExtchCxId(),
                                                                                          notificationTrackerQueueDto.getRequestIdx(),
                                                                                          new EventsDto().digProgrStatus(digitalProgressStatusDto)
