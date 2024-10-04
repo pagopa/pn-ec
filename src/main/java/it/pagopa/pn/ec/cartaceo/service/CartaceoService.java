@@ -318,7 +318,6 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         String toDelete = "toDelete";
         var requestId = cartaceoPresaInCaricoInfo.getRequestIdx();
         var clientId = cartaceoPresaInCaricoInfo.getXPagopaExtchCxId();
-        String concatRequestId = concatRequestId(clientId, requestId);
         Policy retryPolicies = new Policy();
 
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, FILTER_REQUEST_CARTACEO, cartaceoPresaInCaricoInfo);

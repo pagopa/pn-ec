@@ -29,7 +29,9 @@ public enum Status {
     INFECTED("infected"),
     NOT_DELIVERED("notDelivered"),
     DELIVERY_WARNING("deliveryWarn"),
-    NOT_PEC("nonPEC");
+    NOT_PEC("nonPEC"),
+
+    ADDRESS_ERROR("addressError");
 
     final String statusTransactionTableCompliant;
 }

@@ -418,6 +418,59 @@ Resources:
         DelaySeconds: 300
         VisibilityTimeout: 120
 
+  ######### TRACKER : SERCQ  #########
+
+  PnEcQueueTrackerStatoSERCQStack:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-tracker-sercq-send-stato-queue'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
+        VisibilityTimeout: 600
+
+  PnEcTrackerStatoSERCQQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !GetAtt PnEcQueueTrackerStatoSERCQStack.Outputs.QueueURL
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - 'sqs:*'
+            Effect: 'Allow'
+            Resource: !GetAtt PnEcQueueTrackerStatoSERCQStack.Outputs.QueueARN
+            Principal:
+              AWS: '*'
+
+  PnEcQueueTrackerErroriSERCQStack:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-tracker-sercq-send-errori-queue'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 300
+        VisibilityTimeout: 120
+
   ###########  TRACKER: EXTERNAL NOTIFICATION  ###########
 
   PnEcQueueNotificheDebugDevStack:
@@ -1059,9 +1112,9 @@ Outputs:
     Description: '[Notification Tracker: canale SMS] ARN della Coda Errori afferenti al canale SMS'
     Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.QueueARN
 
-  PnEcQueueUrlTrackerErroriSMS:
-    Description: '[Notification Tracker: canale SMS] URL della Coda Errori afferenti al canale SMS'
-    Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.QueueURL
+  # PnEcQueueUrlTrackerErroriSMS:
+  #   Description: '[Notification Tracker: canale SMS] URL della Coda Errori afferenti al canale SMS'
+  #   Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueTrackerErroriSMS:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriSMS"
@@ -1103,9 +1156,9 @@ Outputs:
     Description: '[Notification Tracker: canale PEC] ARN della Coda Errori afferenti al canale PEC'
     Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.QueueARN
 
-  PnEcQueueUrlTrackerErroriPEC:
-    Description: '[Notification Tracker: canale PEC] URL della Coda Errori afferenti al canale PEC'
-    Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.QueueURL
+  # PnEcQueueUrlTrackerErroriPEC:
+  #   Description: '[Notification Tracker: canale PEC] URL della Coda Errori afferenti al canale PEC'
+  #   Value: !GetAtt PnEcQueueTrackerErroriPECStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueTrackerErroriPEC:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriPEC"
@@ -1147,9 +1200,9 @@ Outputs:
     Description: '[Notification Tracker: canale EMAIL] ARN della Coda Errori afferenti al canale EMAIL'
     Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.QueueARN
 
-  PnEcQueueUrlTrackerErroriEMAIL:
-    Description: '[Notification Tracker: canale EMAIL] URL della Coda Errori afferenti al canale EMAIL'
-    Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.QueueURL
+  # # PnEcQueueUrlTrackerErroriEMAIL:
+  # #   Description: '[Notification Tracker: canale EMAIL] URL della Coda Errori afferenti al canale EMAIL'
+  # #   Value: !GetAtt PnEcQueueTrackerErroriEMAILStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueTrackerErroriEMAIL:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriEMAIL"
@@ -1191,9 +1244,9 @@ Outputs:
     Description: '[Notification Tracker: canale CARTACEO] ARN della Coda Errori afferenti al canale CARTACEO'
     Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.QueueARN
 
-  PnEcQueueUrlTrackerErroriCARTACEO:
-    Description: '[Notification Tracker: canale CARTACEO] URL della Coda Errori afferenti al canale CARTACEO'
-    Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.QueueURL
+  # PnEcQueueUrlTrackerErroriCARTACEO:
+  #   Description: '[Notification Tracker: canale CARTACEO] URL della Coda Errori afferenti al canale CARTACEO'
+  #   Value: !GetAtt  PnEcQueueTrackerErroriCARTACEOStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueTrackerErroriCARTACEO:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriCARTACEO"
@@ -1203,6 +1256,50 @@ Outputs:
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriCARTACEO"
     Value: !GetAtt PnEcQueueTrackerErroriCARTACEOStack.Outputs.SqsDLQAlarmArn
 
+  ######### TRACKER : SERCQ  ##########
+
+  PnEcQueueNameTrackerStatoSERCQ:
+    Description: '[Notification Tracker: canale SERCQ] Nome della Coda per aggiornamenti di stato afferenti al canale SERCQ'
+    Value: !GetAtt PnEcQueueTrackerStatoSERCQStack.Outputs.QueueName
+
+  PnEcQueueArnTrackerStatoSERCQ:
+    Description: '[Notification Tracker: canale SERCQ] ARN della Coda per aggiornamenti di stato afferenti al canale SERCQ'
+    Value: !GetAtt PnEcQueueTrackerStatoSERCQStack.Outputs.QueueARN
+
+  PnEcQueueUrlTrackerStatoSERCQ:
+    Description: '[Notification Tracker: canale SERCQ] URL della Coda per aggiornamenti di stato afferenti al canale SERCQ'
+    Value: !GetAtt PnEcQueueTrackerStatoSERCQStack.Outputs.QueueURL
+
+  PnEcAlarmArnQueueTrackerStatoSERCQ:
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoSERCQ"
+    Value: !GetAtt PnEcQueueTrackerStatoSERCQStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueTrackerStatoSERCQ:
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoSERCQ"
+    Value: !GetAtt PnEcQueueTrackerStatoSERCQStack.Outputs.SqsDLQAlarmArn
+
+  ######### TRACKER : ERRORI SERCQ  ##########
+
+  PnEcQueueNameTrackerErroriSERCQ:
+    Description: '[Notification Tracker: canale SERCQ] Nome della Coda Errori afferenti al canale SERCQ'
+    Value: !GetAtt  PnEcQueueTrackerErroriSERCQStack.Outputs.QueueName
+
+  PnEcQueueArnTrackerErroriSERCQ:
+    Description: '[Notification Tracker: canale SERCQ] ARN della Coda Errori afferenti al canale SERCQ'
+    Value: !GetAtt  PnEcQueueTrackerErroriSERCQStack.Outputs.QueueARN
+
+  # PnEcQueueUrlTrackerErroriSERCQ:
+  #   Description: '[Notification Tracker: canale SERCQ] URL della Coda Errori afferenti al canale SERCQ'
+  #   Value: !GetAtt  PnEcQueueTrackerErroriSERCQStack.Outputs.QueueURL
+
+  PnEcAlarmArnQueueTrackerErroriSERCQ:
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriSERCQ"
+    Value: !GetAtt PnEcQueueTrackerErroriSERCQStack.Outputs.SqsAgeAlarmArn
+
+  PnEcAlarmArnDLQueueTrackerErroriSERCQ:
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriSERCQ"
+    Value: !GetAtt PnEcQueueTrackerErroriSERCQStack.Outputs.SqsDLQAlarmArn
+  
   ###### BATCH : SMS #######
 
   PnEcQueueNameBatchSMS:
@@ -1213,9 +1310,9 @@ Outputs:
     Description: '[Canale SMS] ARN della Coda per la modalità SMS-Batch'
     Value: !GetAtt  PnEcQueueBatchSMSStack.Outputs.QueueARN
 
-  PnEcQueueUrlBatchSMS:
-    Description: '[Canale SMS] URL della Coda per la modalità SMS-Batch'
-    Value: !GetAtt  PnEcQueueBatchSMSStack.Outputs.QueueURL
+  # PnEcQueueUrlBatchSMS:
+  #   Description: '[Canale SMS] URL della Coda per la modalità SMS-Batch'
+  #   Value: !GetAtt  PnEcQueueBatchSMSStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueBatchSMS:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchSMS"
@@ -1257,9 +1354,9 @@ Outputs:
     Description: '[Canale SMS] ARN della Coda Errori SMS'
     Value: !GetAtt  PnEcQueueErroriSMSStack.Outputs.QueueARN
 
-  PnEcQueueUrlErroriSMS:
-    Description: '[Canale SMS] URL della Coda Errori SMS'
-    Value: !GetAtt  PnEcQueueErroriSMSStack.Outputs.QueueURL
+  # PnEcQueueUrlErroriSMS:
+  #   Description: '[Canale SMS] URL della Coda Errori SMS'
+  #   Value: !GetAtt  PnEcQueueErroriSMSStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueErroriSMS:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriSMS"
@@ -1279,9 +1376,9 @@ Outputs:
     Description: '[Canale PEC] ARN della Coda per la modalità PEC-Batch'
     Value: !GetAtt  PnEcQueueBatchPECStack.Outputs.QueueARN
 
-  PnEcQueueUrlBatchPEC:
-    Description: '[Canale PEC] URL della Coda per la modalità PEC-Batch'
-    Value: !GetAtt  PnEcQueueBatchPECStack.Outputs.QueueURL
+  # PnEcQueueUrlBatchPEC:
+  #   Description: '[Canale PEC] URL della Coda per la modalità PEC-Batch'
+  #   Value: !GetAtt  PnEcQueueBatchPECStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueBatchPEC:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchPEC"
@@ -1323,9 +1420,9 @@ Outputs:
     Description: '[Canale PEC] ARN della Coda Errori PEC'
     Value: !GetAtt  PnEcQueueErroriPECStack.Outputs.QueueARN
 
-  PnEcQueueUrlErroriPEC:
-    Description: '[Canale PEC] URL della Coda Errori PEC'
-    Value: !GetAtt  PnEcQueueErroriPECStack.Outputs.QueueURL
+  # PnEcQueueUrlErroriPEC:
+  #   Description: '[Canale PEC] URL della Coda Errori PEC'
+  #   Value: !GetAtt  PnEcQueueErroriPECStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueErroriPEC:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriPEC"
@@ -1345,9 +1442,9 @@ Outputs:
     Description: '[Canale EMAIL] ARN della Coda per la modalità EMAIL-Batch'
     Value: !GetAtt  PnEcQueueBatchEMAILStack.Outputs.QueueARN
 
-  PnEcQueueUrlBatchEMAIL:
-    Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Batch'
-    Value: !GetAtt  PnEcQueueBatchEMAILStack.Outputs.QueueURL
+  # PnEcQueueUrlBatchEMAIL:
+  #   Description: '[Canale EMAIL] URL della Coda per la modalità EMAIL-Batch'
+  #   Value: !GetAtt  PnEcQueueBatchEMAILStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueBatchEMAIL:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchEMAIL"
@@ -1389,9 +1486,9 @@ Outputs:
     Description: '[Canale EMAIL] ARN della Coda Errori EMAIL'
     Value: !GetAtt  PnEcQueueErroriEMAILStack.Outputs.QueueARN
 
-  PnEcQueueUrlErroriEMAIL:
-    Description: '[Canale EMAIL] URL della Coda Errori EMAIL'
-    Value: !GetAtt  PnEcQueueErroriEMAILStack.Outputs.QueueURL
+  # PnEcQueueUrlErroriEMAIL:
+  #   Description: '[Canale EMAIL] URL della Coda Errori EMAIL'
+  #   Value: !GetAtt  PnEcQueueErroriEMAILStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueErroriEMAIL:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriEMAIL"
@@ -1411,9 +1508,9 @@ Outputs:
     Description: '[Canale CARTACEO] ARN della Coda per la modalità CARTACEO-Batch'
     Value: !GetAtt  PnEcQueueBatchCARTACEOStack.Outputs.QueueARN
 
-  PnEcQueueUrlBatchCARTACEO:
-    Description: '[Canale CARTACEO] URL della Coda per la modalità CARTACEO-Batch'
-    Value: !GetAtt  PnEcQueueBatchCARTACEOStack.Outputs.QueueURL
+  # PnEcQueueUrlBatchCARTACEO:
+  #   Description: '[Canale CARTACEO] URL della Coda per la modalità CARTACEO-Batch'
+  #   Value: !GetAtt  PnEcQueueBatchCARTACEOStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueBatchCARTACEO:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchCARTACEO"
@@ -1433,9 +1530,9 @@ Outputs:
     Description: '[Canale CARTACEO] ARN della Coda Errori CARTACEO'
     Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.QueueARN
 
-  PnEcQueueUrlErroriCARTACEO:
-    Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
-    Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.QueueURL
+  # PnEcQueueUrlErroriCARTACEO:
+  #   Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
+  #   Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.QueueURL
 
   PnEcDLQueueNameErroriCARTACEO:
     Description: '[Canale CARTACEO] Nome della DLQ della Coda Errori afferenti al canale CARTACEO'
@@ -1455,9 +1552,9 @@ Outputs:
 
   ###### pn-core Event Bus #######
 
-  PnEcQueueNameEventsDLQueuePnCoreTargetEventBus:
-    Description: 'Nome DLQ per forward degli eventi al bus PnCoreTargetEventBus'
-    Value: !GetAtt PnEcEventsDLQueuePnCoreTargetEventBusStack.Outputs.QueueName
+  # PnEcQueueNameEventsDLQueuePnCoreTargetEventBus:
+  #   Description: 'Nome DLQ per forward degli eventi al bus PnCoreTargetEventBus'
+  #   Value: !GetAtt PnEcEventsDLQueuePnCoreTargetEventBusStack.Outputs.QueueName
 
   PnEcQueueArnEventsDLQueuePnCoreTargetEventBus:
     Description: 'ARN DLQ per forward degli eventi al bus PnCoreTargetEventBus'
@@ -1485,9 +1582,9 @@ Outputs:
     Description: '[PEC- Scaricamento Esiti] ARN della Coda per lo scaricamento esiti PEC'
     Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueARN
 
-  PnEcQueueUrlScaricamentoEsitiPEC:
-    Description: '[PEC- Scaricamento Esiti] URL della Coda per lo scaricamento esiti PEC'
-    Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueURL
+  # PnEcQueueUrlScaricamentoEsitiPEC:
+  #   Description: '[PEC- Scaricamento Esiti] URL della Coda per lo scaricamento esiti PEC'
+  #   Value: !GetAtt  PnEcQueueScaricamentoEsitiPECStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueScaricamentoEsitiPEC:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueScaricamentoEsitiPEC"

@@ -65,11 +65,11 @@ components:
           description: |
             Id di correlazione, permette al sender di correlare eventualmente la response. Se assente viene inizializzato con il requestId
         eventType:
-          type: string
           description: |
             Tipologia di richiesta. Permette di identificare il tipo di informazione che viene richiesto. 
             Permette di clusterizzare le tipologie di comunicazione in ingresso 
             (se sender diversi usano EventType diversi, a fini ad es di fatturazione diventa semplice individuare gli oggetti).
+            type: string
         tags:
           type: object
           properties:
@@ -86,9 +86,10 @@ components:
         channel:
           type: string
           enum:
-            - SMS
             - EMAIL
             - PEC
+            - SMS
+            - SERCQ
           description: |
             Canale di recapito con cui il Sender chiede l’erogazione del servizio. In un primo momento sarà PEC, 
             ma il dominio dovrà prevedere a breve SERQ, PEC_REM, ed in futuro ogni forma di recapito digitale a valore legale.
