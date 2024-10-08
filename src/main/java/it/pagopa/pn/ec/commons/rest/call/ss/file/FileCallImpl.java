@@ -88,5 +88,17 @@ public class FileCallImpl implements FileCall {
                 .bodyToMono(FileCreationResponse.class);
     }
 
+    //no xApiKey header for convertPdf
+    @Override
+    public Mono<FileCreationResponse> postFile(String xPagopaExtchServiceId, String checksumValue, FileCreationRequest fileCreationRequest) {
+        log.logInvokingExternalService(SAFE_STORAGE_SERVICE, POST_FILE);
+        return ssWebClient.post().uri(filesEndpointProperties.postFile())
+                .header(safeStorageEndpointProperties.clientHeaderName(), xPagopaExtchServiceId)
+                .header(safeStorageEndpointProperties.apiKeyHeaderName(), "")
+                .header(safeStorageEndpointProperties.checksumValueHeaderName(), checksumValue)
+                .body(BodyInserters.fromValue(fileCreationRequest))
+                .retrieve()
+                .bodyToMono(FileCreationResponse.class);
+    }
 
 }

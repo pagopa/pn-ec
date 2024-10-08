@@ -2,6 +2,8 @@ package it.pagopa.pn.ec.testutils.localstack;
 
 
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
+import it.pagopa.pn.ec.pdfraster.model.entity.PdfConversionEntity;
+import it.pagopa.pn.ec.pdfraster.model.entity.RequestConversionEntity;
 import it.pagopa.pn.ec.commons.configurationproperties.AwsConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
@@ -183,16 +185,17 @@ public class LocalStackTestConfig {
                 notificationTrackerSqsName.statoPecName(),
                 notificationTrackerSqsName.statoPecErratoName(),
                 notificationTrackerSqsName.statoCartaceoName(),
-                notificationTrackerSqsName.statoCartaceoErratoName());
+                notificationTrackerSqsName.statoCartaceoErratoName(),
+                notificationTrackerSqsName.statoSercqName(),
+                notificationTrackerSqsName.statoSercqErratoName());
 
         List<String> smsQueueNames = List.of(smsSqsQueueName.interactiveName(), smsSqsQueueName.batchName(), smsSqsQueueName.errorName());
 
         List<String> emailQueueNames =
                 List.of(emailSqsQueueName.interactiveName(), emailSqsQueueName.batchName(), emailSqsQueueName.errorName());
-        List<String> cartceoQueueNames = List.of(cartaceoSqsQueueName.batchName(), cartaceoSqsQueueName.errorName());
+        List<String> cartceoQueueNames = List.of(cartaceoSqsQueueName.batchName(), cartaceoSqsQueueName.errorName(), cartaceoSqsQueueName.dlqErrorName());
 //        cartaceoSqsQueueName.interactiveName(),
         List<String> pecQueueNames = List.of(pecSqsQueueName.interactiveName(), pecSqsQueueName.batchName(), pecSqsQueueName.errorName(), scaricamentoEsitiPecProperties.sqsQueueName());
-
 
         List<String> allQueueName = new ArrayList<>();
         allQueueName.addAll(notificationTrackerQueueNames);
@@ -235,7 +238,10 @@ public class LocalStackTestConfig {
         Map<String, Class<?>> tableNameWithEntityClass =
                 Map.ofEntries(entry(repositoryManagerDynamoTableName.anagraficaClientName(), ClientConfiguration.class),
                         entry(repositoryManagerDynamoTableName.richiestePersonalName(), RequestPersonal.class),
-                        entry(repositoryManagerDynamoTableName.richiesteMetadataName(), RequestMetadata.class));
+                        entry(repositoryManagerDynamoTableName.richiesteMetadataName(), RequestMetadata.class),
+                        entry(repositoryManagerDynamoTableName.richiesteConversioneRequestName(), RequestConversionEntity.class),
+                        entry(repositoryManagerDynamoTableName.richiesteConversionePdfName(), PdfConversionEntity.class)
+                );
 
         tableNameWithEntityClass.forEach((tableName, entityClass) -> {
             try {
