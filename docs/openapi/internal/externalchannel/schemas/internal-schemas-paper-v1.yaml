@@ -371,3 +371,82 @@ components:
         anonymous:
           type: boolean
           description: default false, diventa true durante la lettura dell'aggiornamento dello stato
+
+
+    ################################################################
+    ###      PDF RASTER - DTO PER RICHIESTE CONVERSIONE PDF      ###
+    ################################################################
+
+    AttachmentToConvertDto:
+      type: object
+      properties:
+        originalFileKey:
+          type: string
+          description: Chiave del file originale
+        newFileKey:
+          type: string
+          description: Chiave del nuovo file
+        converted:
+          type: boolean
+          description: Stato della conversione
+        sha256:
+          type: string
+          description: Hash del file
+      required:
+        - originalFileKey
+        - newFileKey
+
+    RequestConversionDto:
+      type: object
+      properties:
+        requestId:
+          type: string
+          description: ID della richiesta
+        requestTimestamp:
+          type: string
+          format: date-time
+          description: Timestamp della richiesta
+        expiration:
+          type: number
+          format: float
+          description: Scadenza della entry in formato decimale
+        originalRequest:
+          $ref: '../../../external/schemas-paper-v1.1.yaml#/components/schemas/PaperEngageRequest'
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttachmentToConvertDto'
+        xPagopaExtchCxId:
+          type: string
+          description: ID del client
+        version:
+          type: number
+          description: versione del record
+      required:
+        - requestId
+        - requestTimestamp
+        - expiration
+        - originalRequest
+        - attachments
+        - xPagopaExtchCxId
+
+    PdfConversionDto:
+      type: object
+      properties:
+        fileKey:
+          type: string
+          description: Chiave del file
+        requestId:
+          type: string
+          description: ID della richiesta
+        expiration:
+          type: number
+          format: float
+          description: Scadenza della entry in formato decimale
+        version:
+          type: number
+          description: versione del record
+      required:
+        - fileKey
+        - requestId
+        - expiration

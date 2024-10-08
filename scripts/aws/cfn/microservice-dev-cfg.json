@@ -45,5 +45,11 @@
     "MemoryAmount": "4GB",
     "SpringCodecMaxInMemorySize": "350KB",
     "PnEcDuplicatesCheck": "|TEST | AR|890"
+    "MemoryAmount": "4GB",
+    "PnECPaperDocumentTypeToRaster": "PN_NOTIFICATION_ATTACHMENTS",
+    "PnECPaperDocumentTypeForRasterized": "PN_PAPER_ATTACHMENT",
+    "PnECPaperPAIdToRaster": "NOTHING",
+    "PnECPaperPAIdOverride": "15376371009",
+    "SQSMaxBatchSubscribedMsgs": "20"
   }
 }

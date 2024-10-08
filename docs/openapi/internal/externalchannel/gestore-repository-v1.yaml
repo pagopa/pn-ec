@@ -419,3 +419,9 @@ components:
           type: string
         details:
           type: string
+
+    #Non usati internamente ma ref necessaria per la loro generazione.
+    RequestConversionDto:
+      $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/RequestConversionDto'
+    PdfConversionDto:
+      $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/PdfConversionDto'
