@@ -44,6 +44,11 @@ Parameters:
 
 Conditions:
   IsDevEnv: !Equals [ !Ref EnvType, 'dev']
+  HasCucumberTest: !Or
+  - !Condition IsDevEnv
+  - !Equals ["test", !Ref "EnvType"]
+  - !Equals ["uat", !Ref "EnvType"]
+  - !Equals ["hotfix", !Ref "EnvType"]
 
 Resources:
   PCKmsEncDecDynamoDataKey:
@@ -128,7 +133,47 @@ Resources:
         PointInTimeRecoveryEnabled: true
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    
+  PnEcTableRichiesteConversione:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'pn-EcRichiesteConversione'
+      TimeToLiveSpecification:
+          AttributeName: 'expiration'
+          Enabled: true
+      AttributeDefinitions:
+        - AttributeName: 'requestId'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'requestId'
+          KeyType: 'HASH'
+      BillingMode: 'PAY_PER_REQUEST'
+      TableClass: 'STANDARD'
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
 
+  PnEcTableConversionePdf:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'pn-EcConversionePDF'
+      TimeToLiveSpecification:
+          AttributeName: 'expiration'
+          Enabled: true
+      AttributeDefinitions:
+        - AttributeName: 'fileKey'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'fileKey'
+          KeyType: 'HASH'
+      BillingMode: 'PAY_PER_REQUEST'
+      TableClass: 'STANDARD'
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    
   ######### S3 BUCKET FOR OVERSIZE SQS MESSAGES #########
 
   PnEcSqsMessagesStagingBucket:
@@ -496,6 +541,121 @@ Resources:
         OncallDLQLimit: '1'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
+  ###### Cucumber Test Queue ######
+
+  PnEcQueueCucumberTestStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: HasCucumberTest
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-cucumber-test-queue'
+        SqsManagedSseEnabled: true
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 1
+        VisibilityTimeout: 1
+
+  PnEcQueuePolicyCucumberTest:
+    Type: AWS::SQS::QueuePolicy
+    Condition: HasCucumberTest
+    Properties:
+      Queues:
+        - !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueURL
+      PolicyDocument:
+        Statement:
+          - Sid: 'AllowAccessSameAccount'
+            Action:
+              - 'sqs:*'
+            Effect: 'Allow'
+            Resource: !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueARN
+            Principal:
+              AWS: !Ref AWS::AccountId
+          - Sid: 'AllowPutEventsFromEventRule'
+            Action:
+              - 'sqs:SendMessage'
+            Effect: 'Allow'
+            Resource: !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueARN
+            Principal:
+              Service:
+              - 'events.amazonaws.com'
+            Condition:
+              ArnEquals:
+                aws:SourceArn:
+                  - !GetAtt PnEcEventRuleCucumberTestDigitalCourtesy.Arn
+                  - !GetAtt PnEcEventRuleCucumberTestDigitalLegal.Arn
+                  - !GetAtt PnEcEventRuleCucumberTestAnalogMail.Arn
+
+  PnEcEventRuleCucumberTestDigitalCourtesy:
+    Type: AWS::Events::Rule
+    Condition: HasCucumberTest
+    Properties:
+      Description: 'This Event rule is used to forward Cucumber digitalCourtesy test events to the queue PnEcQueueCucumberTestStack'
+      EventBusName: !Ref PnEcEventBusTrackerExternalNotification
+      EventPattern:
+        source:
+          - 'NOTIFICATION TRACKER'
+        account:
+          - !Ref AWS::AccountId
+        region:
+          - !Ref AWS::Region
+        detail:
+          digitalCourtesy:
+            requestId:
+              - prefix: 'PnEcMsCucumberTest'
+      State: 'ENABLED'
+      Targets:
+        - Arn: !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueARN
+          Id: 'PnEcCucumberTestQueueTargetdigitalCourtesy'
+
+  PnEcEventRuleCucumberTestDigitalLegal:
+    Type: AWS::Events::Rule
+    Condition: HasCucumberTest
+    Properties:
+      Description: 'This Event rule is used to forward Cucumber digitalLegal test events to the queue PnEcQueueCucumberTestStack'
+      EventBusName: !Ref PnEcEventBusTrackerExternalNotification
+      EventPattern:
+        source:
+          - 'NOTIFICATION TRACKER'
+        account:
+          - !Ref AWS::AccountId
+        region:
+          - !Ref AWS::Region
+        detail:
+          digitalLegal:
+            requestId:
+              - prefix: 'PnEcMsCucumberTest'
+      State: 'ENABLED'
+      Targets:
+        - Arn: !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueARN
+          Id: 'PnEcCucumberTestQueueTargetDigitalLegal'
+
+  PnEcEventRuleCucumberTestAnalogMail:
+    Type: AWS::Events::Rule
+    Condition: HasCucumberTest
+    Properties:
+      Description: 'This Event rule is used to forward Cucumber analogMail test events to the queue PnEcQueueCucumberTestStack'
+      EventBusName: !Ref PnEcEventBusTrackerExternalNotification
+      EventPattern:
+        source:
+          - 'NOTIFICATION TRACKER'
+        account:
+          - !Ref AWS::AccountId
+        region:
+          - !Ref AWS::Region
+        detail:
+          analogMail:
+            requestId:
+              - prefix: 'PnEcMsCucumberTest'
+      State: 'ENABLED'
+      Targets:
+        - Arn: !GetAtt PnEcQueueCucumberTestStack.Outputs.QueueARN
+          Id: 'PnEcCucumberTestQueueTargetAnalogMail'
+
   ###### CHANNEL : SMS #######
 
   PnEcQueueBatchSMSStack:
@@ -790,6 +950,26 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         VisibilityTimeout: 300
 
+
+  ###### PdfRaster - Availability queue  ######
+
+  PnEcQueueAvailabilityManagerStack:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-availabilitymanager-queue'
+        SqsManagedSseEnabled: true
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 60
+
+
 #########  OUTPUTS  ##########
 
 Outputs:
@@ -829,6 +1009,22 @@ Outputs:
   PnEcTableArnRichiesteMetadati:
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
     Value: !GetAtt PnEcTableRichiesteMetadati.Arn
+
+  PnEcTableNameRichiesteConversione:
+    Description: 'Nome della Tabella DynamoDB relativa alle richieste di conversione dei PDF'
+    Value: !Ref PnEcTableRichiesteConversione
+
+  PnEcTableArnRichiesteConversione:
+    Description: 'ARN della Tabella DynamoDB relativa alle richieste di conversione dei PDF'
+    Value: !GetAtt PnEcTableRichiesteConversione.Arn
+
+  PnEcTableNameConversionePdf:
+    Description: 'Nome della Tabella DynamoDB di supporto per la tabella RichiesteConversione'
+    Value: !Ref PnEcTableConversionePdf
+
+  PnEcTableArnConversionePdf:
+    Description: 'ARN della Tabella DynamoDB di upporto per la tabella RichiesteConversione'
+    Value: !GetAtt PnEcTableConversionePdf.Arn
 
   ######### QUEUES  ############
   ######### TRACKER : SMS  ##########
@@ -1241,6 +1437,14 @@ Outputs:
     Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
     Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.QueueURL
 
+  PnEcDLQueueNameErroriCARTACEO:
+    Description: '[Canale CARTACEO] Nome della DLQ della Coda Errori afferenti al canale CARTACEO'
+    Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.DeadLetterQueueName
+
+  PnEcDLQueueArnErroriCARTACEO:
+    Description: '[Canale CARTACEO] ARN della DLQ della Coda Errori afferenti al canale CARTACEO'
+    Value: !GetAtt  PnEcQueueErroriCARTACEOStack.Outputs.DeadLetterQueueARN
+
   PnEcAlarmArnQueueErroriCARTACEO:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriCARTACEO"
     Value: !GetAtt PnEcQueueErroriCARTACEOStack.Outputs.SqsAgeAlarmArn
@@ -1327,4 +1531,18 @@ Outputs:
 
   EcsLogGroup:
     Value: !GetAtt EcsLogGroup.Outputs.LogGroupName
+
+### PdfRaster - Availability queue  ###
+  PnEcQueueNameAvailabilityManager:
+    Description: 'Nome della coda Disponibilità per pdf-raster'
+    Value: !GetAtt  PnEcQueueAvailabilityManagerStack.Outputs.QueueName
+
+  PnEcQueueArnAvailabilityManager:
+    Description: 'ARN della coda Disponibilità per pdf-raster'
+    Value: !GetAtt  PnEcQueueAvailabilityManagerStack.Outputs.QueueARN
+
+  PnEcQueueUrlAvailabilityManager:
+    Description: 'Url della coda Disponibilità per pdf-raster'
+    Value: !GetAtt  PnEcQueueAvailabilityManagerStack.Outputs.QueueURL
+
 
