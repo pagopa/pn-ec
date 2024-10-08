@@ -43,6 +43,11 @@
     "PnEcConsAllowedFutureOffsetDuration": "1m",
     "CpuValue": "1024",
     "MemoryAmount": "4GB",
+    "PnECPaperDocumentTypeToRaster": "PN_NOTIFICATION_ATTACHMENTS",
+    "PnECPaperDocumentTypeForRasterized": "PN_PAPER_ATTACHMENT",
+    "PnECPaperPAIdToRaster": "NOTHING",
+    "PnECPaperPAIdOverride": "15376371009",
+    "SQSMaxBatchSubscribedMsgs": "20",
     "PnEcPecMetricsSchema": "Pn-EC-Pec-MetricsSchema"
   }
 }
