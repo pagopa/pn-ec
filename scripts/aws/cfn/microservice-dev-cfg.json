@@ -43,9 +43,7 @@
     "PnEcConsAllowedFutureOffsetDuration": "1m",
     "CpuValue": "1024",
     "MemoryAmount": "4GB",
-    "SpringCodecMaxInMemorySize": "350KB",
-    "PnEcDuplicatesCheck": "|TEST | AR|890"
-    "MemoryAmount": "4GB",
+    "PnEcDuplicatesCheck": "|TEST | AR|890",
     "PnECPaperDocumentTypeToRaster": "PN_NOTIFICATION_ATTACHMENTS",
     "PnECPaperDocumentTypeForRasterized": "PN_PAPER_ATTACHMENT",
     "PnECPaperPAIdToRaster": "NOTHING",

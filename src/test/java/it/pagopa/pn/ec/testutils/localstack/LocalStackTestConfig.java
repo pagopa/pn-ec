@@ -241,10 +241,9 @@ public class LocalStackTestConfig {
                         entry(repositoryManagerDynamoTableName.richiestePersonalName(), RequestPersonal.class),
                         entry(repositoryManagerDynamoTableName.richiesteMetadataName(), RequestMetadata.class),
                         entry(repositoryManagerDynamoTableName.richiesteConversioneRequestName(), RequestConversionEntity.class),
-                        entry(repositoryManagerDynamoTableName.richiesteConversionePdfName(), PdfConversionEntity.class)
+                        entry(repositoryManagerDynamoTableName.richiesteConversionePdfName(), PdfConversionEntity.class),
+                        entry(repositoryManagerDynamoTableName.scartiConsolidatoreName(), DiscardedEvent.class)
                 );
-                        entry(repositoryManagerDynamoTableName.richiesteMetadataName(), RequestMetadata.class),
-                        entry(repositoryManagerDynamoTableName.scartiConsolidatoreName(), DiscardedEvent.class));
 
         tableNameWithEntityClass.forEach((tableName, entityClass) -> {
             try {
