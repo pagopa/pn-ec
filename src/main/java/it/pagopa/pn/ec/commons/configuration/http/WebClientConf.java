@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.commons.configuration.http;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.ConsolidatoreEndpointProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.ExternalChannelEndpointProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.pdfraster.PdfRasterEndpointProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.statemachine.StateMachineEndpointProperties;
 import org.springframework.context.annotation.Bean;
@@ -72,6 +73,16 @@ public class WebClientConf {
         if (consolidatoreBaseUrl.startsWith(HTTPS) && consolidatoreEndpointProperties.trustAll()) {
             return trustAllConsolidatoreWebClient(consolidatoreEndpointProperties);
         } else return defaultConsolidatoreWebClient(consolidatoreEndpointProperties);
+    }
+
+    @Bean
+    public WebClient pdfRasterWebClient(PdfRasterEndpointProperties pdfRasterEndpointProperties,SafeStorageEndpointProperties safeStorageEndpointProperties){
+        String pdfRasterBaseUrl = pdfRasterEndpointProperties.baseUrl();
+
+        return defaultJsonWebClientBuilder().baseUrl(pdfRasterBaseUrl).defaultHeaders(httpHeaders -> {
+            httpHeaders.set(safeStorageEndpointProperties.clientHeaderName(),pdfRasterEndpointProperties.clientHeaderValue());
+            httpHeaders.set(safeStorageEndpointProperties.apiKeyHeaderName(),pdfRasterEndpointProperties.clientHeaderApiKey());
+        }).build();
     }
 
     private WebClient defaultConsolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties)

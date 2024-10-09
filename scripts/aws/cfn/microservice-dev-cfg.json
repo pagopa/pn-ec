@@ -25,7 +25,7 @@
     "PnEcPECMaxMessageSizeMB": "30",
     "PnEcPECAttachmentRule": "FIRST",
     "PnEcPECTipoRicevutaBreve": "false;2024-03-14T23:00:00Z;true",
-    "PnEcProviderSwitchRead": "1970-01-01T00:00:00Z;aruba|namirial",
+    "PnEcProviderSwitchRead": "1970-01-01T00:00:00Z;namirial",
     "PnEcProviderSwitchWrite": "1970-01-01T00:00:00Z;namirial",
     "PnEcNamirialServerImapAddress": "send.sicurezzapostale.it",
     "PnEcNamirialServerSmtpAddress": "send.sicurezzapostale.it",
@@ -38,10 +38,15 @@
     "PnEcNamirialPoolSmtpMaxidle": "40",
     "PnEcNamirialPoolSmtpMinidle": "1",
     "PnEcNamirialServerCache": "false",
-    "PnEcNamirialServerCacheEndpoint": "18.102.130.190:6379",
-    "SpringCodecMaxInMemorySize": "350KB",
-    "PnEcConsRefinementDuration": "PT1M",
+    "PnEcNamirialServerCacheEndpoint": "",
+    "SpringCodecMaxInMemorySize": "256KB",
+    "PnEcConsAllowedFutureOffsetDuration": "1m",
     "CpuValue": "1024",
-    "MemoryAmount": "4GB"
+    "MemoryAmount": "4GB",
+    "PnECPaperDocumentTypeToRaster": "PN_NOTIFICATION_ATTACHMENTS",
+    "PnECPaperDocumentTypeForRasterized": "PN_PAPER_ATTACHMENT",
+    "PnECPaperPAIdToRaster": "NOTHING",
+    "PnECPaperPAIdOverride": "15376371009",
+    "SQSMaxBatchSubscribedMsgs": "20"
   }
 }
