@@ -17,8 +17,9 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import java.util.concurrent.Semaphore;
+import java.util.function.Predicate;
 
-import static it.pagopa.pn.ec.commons.constant.Status.ACCEPTED;
+import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 
@@ -50,6 +51,10 @@ public class CancellazioneRicevutePecService {
                 .subscribe();
     }
 
+    private final Predicate<String> isRelevantStatus = status -> status.equals(ACCEPTED.getStatusTransactionTableCompliant())
+            || status.equals(NOT_ACCEPTED.getStatusTransactionTableCompliant())
+            || status.equals(NOT_PEC.getStatusTransactionTableCompliant());
+
     public Mono<Void> cancellazioneRicevutePec(final CancellazioneRicevutePecDto cancellazioneRicevutePecDto, String requestId, Acknowledgment acknowledgment) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CANCELLAZIONE_RICEVUTE_PEC, cancellazioneRicevutePecDto);
 
@@ -68,7 +73,7 @@ public class CancellazioneRicevutePecService {
                             .flatMapMany(requestMetadataDto -> Flux.fromIterable(requestMetadataDto.getEventsList()))
                             .map(EventsDto::getDigProgrStatus)
                             .reduce(new MutablePair<String, String>(), (pair, digitalProgressStatusDto) -> {
-                                if (digitalProgressStatusDto.getStatus().equals(ACCEPTED.getStatusTransactionTableCompliant()))
+                                if (isRelevantStatus.test(digitalProgressStatusDto.getStatus()))
                                     pair.setRight(digitalProgressStatusDto.getGeneratedMessage().getId());
                                 if (digitalLegal.getEventCode().getValue().equals(digitalProgressStatusDto.getStatusCode()))
                                     pair.setLeft(digitalProgressStatusDto.getGeneratedMessage().getId());
