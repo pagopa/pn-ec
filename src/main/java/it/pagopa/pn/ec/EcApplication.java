@@ -73,6 +73,15 @@ import org.springframework.context.annotation.PropertySource;
 //CLOUDWATCH
 @PropertySource("classpath:cloudwatch/cloudwatch.properties")
 
+//AVAILABILIYMANAGER
+@PropertySource("classpath:availabilitymanager/availability-manager.properties")
+
+//SERCQ
+@PropertySource("classpath:sercq/sercq.properties")
+
+//PDFRASTER
+@PropertySource("classpath:pdfraster/pdf-raster.properties")
+
 public class EcApplication {
 
     public static void main(String[] args) {
