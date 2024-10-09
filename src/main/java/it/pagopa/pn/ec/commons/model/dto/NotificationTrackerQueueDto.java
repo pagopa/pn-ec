@@ -1,11 +1,15 @@
 package it.pagopa.pn.ec.commons.model.dto;
 
+import it.pagopa.pn.ec.commons.exception.InvalidReceiverDigitalAddressException;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
+import it.pagopa.pn.ec.sercq.model.pojo.SercqPresaInCaricoInfo;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
+
+import java.time.OffsetDateTime;
 
 import static java.time.OffsetDateTime.now;
 
@@ -40,6 +44,25 @@ public class NotificationTrackerQueueDto extends PresaInCaricoInfo {
         return notificationTrackerQueueDto;
     }
 
+    public static NotificationTrackerQueueDto createNotificationTrackerQueueDtoSercq(PresaInCaricoInfo presaInCaricoInfo,
+                                                                                     String nextStatus,
+                                                                                     DigitalProgressStatusDto digitalProgressStatusDto) {
+        var notificationTrackerQueueDto = createNotificationTrackerQueueDto(presaInCaricoInfo, nextStatus);
+
+        String timestampSercq = ((SercqPresaInCaricoInfo) presaInCaricoInfo).getDigitalNotificationRequest().getReceiverDigitalAddress();
+        OffsetDateTime timestamp = getTimepstampFromDigitalRecieverAddress(timestampSercq);
+        digitalProgressStatusDto.setEventTimestamp(timestamp);
+        notificationTrackerQueueDto.setDigitalProgressStatusDto(digitalProgressStatusDto);
+
+        return notificationTrackerQueueDto;
+    }
+
+    private static OffsetDateTime getTimepstampFromDigitalRecieverAddress(String digitalRecieverAddress) {
+        String[] timestampArray = digitalRecieverAddress.split("timestamp=");
+        if (timestampArray.length > 1) {
+            return OffsetDateTime.parse(timestampArray[1]);
+        } else return now();
+    }
     public static NotificationTrackerQueueDto createNotificationTrackerQueueDtoPaper(PresaInCaricoInfo presaInCaricoInfo,
                                                                                      String nextStatus,
                                                                                      PaperProgressStatusDto paperProgressStatusDto) {

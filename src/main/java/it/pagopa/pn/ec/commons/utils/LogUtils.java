@@ -93,6 +93,10 @@ public class LogUtils {
 
     public static final String NT_RECEIVE_CARTACEO_ERROR = "receiveCartaceoObjectFromErrorQueue()";
 
+    public static final String NT_RECEIVE_SERCQ = "receiveSercqObjectMessage()";
+
+    public static final String NT_RECEIVE_SERCQ_ERROR = "receiveSercqObjectFromErrorQueue()";
+
 
     //PEC
     public static final String GET_DIGITAL_LEGAL_MESSAGE_STATUS = "getDigitalLegalMessageStatus";
@@ -101,8 +105,11 @@ public class LogUtils {
     public static final String FILTER_REQUEST_PEC = "PecService.filterRequestPec()";
     public static final String LAVORAZIONE_RICHIESTA_PEC = "lavorazioneRichiestaPec()";
     public static final String PRESA_IN_CARICO_PEC = "PecService.presaInCarico()";
+    public static final String PRESA_IN_CARICO_SERCQ = "SercqService.presaInCarico()";
     public static final String GESTIONE_RETRY_PEC = "gestioneRetryPec()";
     public static final String INSERT_REQUEST_FROM_PEC = "PecService.insertRequestFromPec()";
+    public static final String INSERT_REQUEST_FROM_SERCQ = "PecService.insertRequestFromSercq()";
+
     public static final String PEC_GET_ATTACHMENTS = "PecService.getAttachments()";
     public static final String PEC_DOWNLOAD_ATTACHMENT = "PecService.downloadAttachment()";
     public static final String PEC_SEND_MAIL = "PecService.sendMail()";
@@ -264,5 +271,8 @@ public class LogUtils {
 
 
 
+
+    //SERCQ
+    public static final String SEND_TO_SERCQ_SEND_SUCCESS = "OK, consegna da SeND a SERCQ-SeND conclusa con successo";
 
 }
