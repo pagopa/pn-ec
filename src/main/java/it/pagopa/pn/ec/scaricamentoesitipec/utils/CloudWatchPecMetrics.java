@@ -2,6 +2,9 @@ package it.pagopa.pn.ec.scaricamentoesitipec.utils;
 
 import it.pagopa.pn.ec.commons.configuration.aws.cloudwatch.CloudWatchMetricPublisherConfiguration;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchTransitionElapsedTimeMetricsInfo;
+import it.pagopa.pn.library.pec.configuration.MetricsDimensionConfiguration;
+import it.pagopa.pn.library.pec.configurationproperties.PnPecMetricNames;
+import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import lombok.CustomLog;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -14,6 +17,9 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
@@ -30,6 +36,8 @@ public class CloudWatchPecMetrics {
 
     private final CloudWatchAsyncClient cloudWatchAsyncClient;
     private final CloudWatchMetricPublisherConfiguration cloudWatchMetricPublisherConfiguration;
+    private final MetricsDimensionConfiguration metricsDimensionConfiguration;
+    private final PnPecMetricNames pnPecMetricNames;
     private static final PutMetricDataRequest.Builder NAMESPACE = PutMetricDataRequest.builder().namespace("PEC");
     private static final Dimension DIMENSION = Dimension.builder().name("Event").value("StatusChange").build();
     private static final MetricDatum.Builder DATUM = MetricDatum.builder().unit(StandardUnit.SECONDS).dimensions(DIMENSION);
@@ -43,10 +51,14 @@ public class CloudWatchPecMetrics {
      *
      * @param cloudWatchAsyncClient                  the cloud watch async client
      * @param cloudWatchMetricPublisherConfiguration the cloud watch metric publisher configuration
+     * @param metricsDimensionConfiguration          the metrics dimension configuration
+     * @param pnPecMetricNames                       the pn pec metric names
      */
-    public CloudWatchPecMetrics(CloudWatchAsyncClient cloudWatchAsyncClient, CloudWatchMetricPublisherConfiguration cloudWatchMetricPublisherConfiguration) {
+    public CloudWatchPecMetrics(CloudWatchAsyncClient cloudWatchAsyncClient, CloudWatchMetricPublisherConfiguration cloudWatchMetricPublisherConfiguration, MetricsDimensionConfiguration metricsDimensionConfiguration, PnPecMetricNames pnPecMetricNames) {
         this.cloudWatchAsyncClient = cloudWatchAsyncClient;
         this.cloudWatchMetricPublisherConfiguration = cloudWatchMetricPublisherConfiguration;
+        this.metricsDimensionConfiguration = metricsDimensionConfiguration;
+        this.pnPecMetricNames = pnPecMetricNames;
     }
 
     /**
@@ -115,34 +127,62 @@ public class CloudWatchPecMetrics {
     }
 
     /**
-     * Method to execute a void Mono and publish its execution time to CloudWatch
+     * Method to execute a Mono and publish its execution time to CloudWatch
+     * It handles both valued and void monos.
      *
      * @param mono       the mono to execute
      * @param namespace  the metric namespace
      * @param metricName the metric name
-     * @return the mono
+     * @return the mono with the result
      */
-    public Mono<Void> executeAndPublishResponseTime(Mono<Void> mono, String namespace, String metricName) {
-        return mono.thenReturn(true)
-                .elapsed()
-                .flatMap(tuple -> publishResponseTime(namespace, metricName, tuple.getT1()));
+    public <T> Mono<T> executeAndPublishResponseTime(Mono<T> mono, String namespace, String metricName, Dimension... dimensions) {
+        var dimensionsList = new ArrayList<>(Arrays.asList(dimensions));
+        return Mono.defer(() -> {
+            Instant start = Instant.now();
+            return mono
+                    //If mono emits a value.
+                    .flatMap(result -> {
+                        long elapsed = Duration.between(start, Instant.now()).toMillis();
+                        //Needed because the messageCountRange dimension is created from the getUnreadMessages operation result.
+                        if (result instanceof PnGetMessagesResponse) {
+                            Dimension messageCountRangeDimension = metricsDimensionConfiguration.getDimension(pnPecMetricNames.getMessageCountRange(), (long) ((PnGetMessagesResponse) result).getNumOfMessages());
+                            dimensionsList.add(messageCountRangeDimension);
+                        }
+                        return publishResponseTime(namespace, metricName, elapsed, dimensionsList).thenReturn(result);
+                    })
+                    //If mono doesn't emit any value (Mono<Void>)
+                    .switchIfEmpty(Mono.defer(() -> {
+                        long elapsed = Duration.between(start, Instant.now()).toMillis();
+                        return publishResponseTime(namespace, metricName, elapsed, dimensionsList).then(Mono.empty());
+                    }));
+        });
     }
 
     /**
-     * Method to publish a response time related CloudWatch metric, using the CloudWatchMetricPublisherConfiguration class.
+     * Method to publish a response time related CloudWatch metric with its dimensions, using the CloudWatchMetricPublisherConfiguration class.
      * In order not to block the chain with an error, the method emits onComplete() even if an error occurred while publishing the metric.
      *
      * @param namespace   the metric namespace
      * @param metricName  the metric name
      * @param elapsedTime the response time
+     * @param dimensions  the metric dimensions
      * @return a void Mono
      */
-    public Mono<Void> publishResponseTime(String namespace, String metricName, long elapsedTime) {
+    public Mono<Void> publishResponseTime(String namespace, String metricName, long elapsedTime, List<Dimension> dimensions) {
         return Mono.fromRunnable(() -> {
                     log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_RESPONSE_TIME, Stream.of(namespace, metricName, elapsedTime).toList());
-                    SdkMetric<Long> responseTimeMetric = (SdkMetric<Long>) cloudWatchMetricPublisherConfiguration.getSdkMetricByMetricName(metricName);
                     MetricCollector metricCollector = MetricCollector.create(metricName);
+
+                    //Report metric.
+                    SdkMetric<Long> responseTimeMetric = (SdkMetric<Long>) cloudWatchMetricPublisherConfiguration.getSdkMetricByMetricName(metricName);
                     metricCollector.reportMetric(responseTimeMetric, elapsedTime);
+
+                    //Report metric dimensions.
+                    for (Dimension dimension : dimensions) {
+                        SdkMetric<String> dimensionMetric = (SdkMetric<String>) cloudWatchMetricPublisherConfiguration.getSdkMetricByMetricName(dimension.name());
+                        metricCollector.reportMetric(dimensionMetric, dimension.value());
+                    }
+
                     MetricCollection metricCollection = metricCollector.collect();
                     cloudWatchMetricPublisherConfiguration.getMetricPublisherByNamespace(namespace).publish(metricCollection);
                 })
