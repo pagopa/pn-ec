@@ -220,7 +220,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, INSERT_REQUEST_FROM_CARTACEO, result));
     }
 
-    @Scheduled(cron = "${PnEcCronLavorazioneBatchCartaceo ?:0 */1 * * * *}")
+    @Scheduled(cron = "${PnEcCronLavorazioneBatchCartaceo ?:0 */5 * * * *}")
     public void lavorazioneRichiestaBatch() {
         MDC.clear();
         log.logStartingProcess(LAVORAZIONE_RICHIESTA_CARTACEO_BATCH);
