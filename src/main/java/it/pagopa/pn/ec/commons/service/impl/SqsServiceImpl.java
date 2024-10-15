@@ -155,37 +155,7 @@ public class SqsServiceImpl implements SqsService {
 
     @Override
     public <T> Flux<SqsMessageWrapper<T>> getMessages(String queueName, Class<T> messageContentClass) {
-
-        AtomicInteger actualMessages = new AtomicInteger();
-        AtomicBoolean listIsEmpty = new AtomicBoolean();
-        listIsEmpty.set(false);
-
-        BooleanSupplier condition = () -> (actualMessages.get() <= maxMessages && !listIsEmpty.get());
-
-        return getQueueUrlFromName(queueName).flatMap(queueUrl -> Mono.fromCompletionStage(sqsAsyncClient.receiveMessage(builder -> builder.queueUrl(
-                        queueUrl))))
-                .retryWhen(getSqsRetryStrategy())
-                .flatMap(receiveMessageResponse ->
-                        {
-                            var messages = receiveMessageResponse.messages();
-                            if (messages.isEmpty())
-                                listIsEmpty.set(true);
-                            return Mono.justOrEmpty(messages);
-                        }
-                )
-                .flatMapMany(Flux::fromIterable)
-                .map(message ->
-                {
-                    actualMessages.incrementAndGet();
-                    return new SqsMessageWrapper<>(message,
-                            jsonUtils.convertJsonStringToObject(message.body(),
-                                    messageContentClass));
-                })
-                .onErrorResume(throwable -> {
-                    log.error(throwable.getMessage(), throwable);
-                    return Mono.error(new SqsClientException(queueName));
-                })
-                .repeat(condition);
+        return getMessages(queueName, messageContentClass, maxMessages);
     }
 
     @Override
