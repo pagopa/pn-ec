@@ -47,6 +47,7 @@
     "PnECPaperDocumentTypeForRasterized": "PN_PAPER_ATTACHMENT",
     "PnECPaperPAIdToRaster": "NOTHING",
     "PnECPaperPAIdOverride": "15376371009",
-    "SQSMaxBatchSubscribedMsgs": "20"
+    "SQSMaxBatchSubscribedMsgs": "20",
+    "SQSCartaceoMaxBatchSubscribedMsgs": "10"
   }
 }
