@@ -29,6 +29,8 @@ public interface SqsService {
 
     <T> Flux<SqsMessageWrapper<T>> getMessages(final String queueName, final Class<T> messageContentClass);
 
+    <T> Flux<SqsMessageWrapper<T>> getMessages(final String queueName, final Class<T> messageContentClass, final Integer maxMessages);
+
     Mono<DeleteMessageResponse> deleteMessageFromQueue(final Message message, final String queueName);
 
     Mono<String> getQueueUrlFromName(final String queueName);
