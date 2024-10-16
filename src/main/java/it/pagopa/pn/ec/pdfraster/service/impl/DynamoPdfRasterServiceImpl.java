@@ -151,7 +151,6 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                 .map(attachment -> createPdfConversion(attachment, entity.getRequestId()))
                 .map(pdfConversionEntity -> {
                     pdfConversionEntity.setVersion(1L);
-                    TableSchema<PdfConversionEntity> pdfConversionTableSchema = TableSchema.fromBean(PdfConversionEntity.class);
                     Map<String, AttributeValue> pdfAttributes = pdfConversionTableSchema.itemToMap(pdfConversionEntity, true);
                     return TransactWriteItem.builder()
                             .put(put -> put
@@ -162,7 +161,6 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                 .collectList()
                 .map(transactWriteItems -> {
                     entity.setVersion(1L);
-                    TableSchema<RequestConversionEntity> requestConversionTableSchema = TableSchema.fromBean(RequestConversionEntity.class);
                     Map<String, AttributeValue> itemAttributes = requestConversionTableSchema.itemToMap(entity, true);
                     TransactWriteItem transactWriteItemRequestConversion = TransactWriteItem.builder()
                             .put(put -> put
