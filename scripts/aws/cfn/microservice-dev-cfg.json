@@ -17,7 +17,7 @@
     "LavorazioneEsitiPecMaxThreadPoolSize" : "50",
     "CancellazioneRicevutePecMaxThreadPoolSize" : "5",
     "ScaricamentoEsitiPecLimitRate" : "50",
-    "JavaToolOptions": "-XX:MaxDirectMemorySize=128M -XX:MaxMetaspaceSize=1024M -verbose:class",
+    "JavaToolOptions": "-XX:MaxDirectMemorySize=128M -XX:MaxMetaspaceSize=1024M",
     "PnEcQueueElapsedTimeSeconds": "7200",
     "PnEcTaskExecutionPoolMaxSize": "512",
     "CancellazioneRicevutePecEventRuleStatus": "ENABLED",

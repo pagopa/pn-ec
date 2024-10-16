@@ -40,6 +40,8 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
 
     private final DynamoDbAsyncTableDecorator<RequestConversionEntity> requestTable;
     private final DynamoDbAsyncTableDecorator<PdfConversionEntity> conversionTable;
+    private final TableSchema<PdfConversionEntity> pdfConversionTableSchema;
+    private final TableSchema<RequestConversionEntity> requestConversionTableSchema;
     private final ObjectMapper objectMapper;
     private final DynamoDbAsyncClient dynamoDbAsyncClient;
     private final Retry pdfRasterRetryStrategy;
@@ -50,10 +52,10 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                                       RepositoryManagerDynamoTableName repositoryManagerDynamoTableName, ObjectMapper objectMapper, DynamoDbAsyncClient dynamoDbAsyncClient, PdfRasterProperties pdfRasterProperties) {
         this.objectMapper = objectMapper;
         this.dynamoDbAsyncClient = dynamoDbAsyncClient;
-        this.requestTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversioneRequestName(),
-                TableSchema.fromBean(RequestConversionEntity.class)));
-        this.conversionTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversionePdfName(),
-                TableSchema.fromBean(PdfConversionEntity.class)));
+        this.requestConversionTableSchema = TableSchema.fromBean(RequestConversionEntity.class);
+        this.pdfConversionTableSchema = TableSchema.fromBean(PdfConversionEntity.class);
+        this.requestTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversioneRequestName(), this.requestConversionTableSchema));
+        this.conversionTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversionePdfName(), this.pdfConversionTableSchema));
         this.pdfRasterRetryStrategy = Retry.backoff(pdfRasterProperties.maxRetryAttempts(), Duration.ofSeconds(pdfRasterProperties.minRetryBackoff()))
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure())
                 .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
@@ -180,7 +182,6 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                 .map(entity -> {
                     Long currVersion = pdfConversionEntity.getVersion();
                     entity.setVersion(currVersion + 1L);
-                    TableSchema<PdfConversionEntity> pdfConversionTableSchema = TableSchema.fromBean(PdfConversionEntity.class);
                     Map<String, AttributeValue> pdfItemAttributes = pdfConversionTableSchema.itemToMap(entity, true);
                     return TransactWriteItem.builder()
                             .put(put -> put
@@ -194,7 +195,6 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                     Long currVersion = requestConversionEntity.getVersion();
                     requestConversionEntity.setVersion(currVersion + 1L);
                     List<TransactWriteItem> transactWriteItemsList = new ArrayList<>();
-                    TableSchema<RequestConversionEntity> requestConversionTableSchema = TableSchema.fromBean(RequestConversionEntity.class);
                     Map<String, AttributeValue> requestItemAttributes = requestConversionTableSchema.itemToMap(requestConversionEntity, true);
                     TransactWriteItem transactWriteItemRequestConversion = TransactWriteItem.builder()
                             .put(put -> put
