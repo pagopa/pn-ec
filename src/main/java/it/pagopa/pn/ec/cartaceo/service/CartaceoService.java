@@ -226,7 +226,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         log.logStartingProcess(LAVORAZIONE_RICHIESTA_CARTACEO_BATCH);
         AtomicBoolean hasMessages = new AtomicBoolean();
         hasMessages.set(true);
-        sqsService.getMessages(cartaceoSqsQueueName.batchName(), CartaceoPresaInCaricoInfo.class, cartaceoMaxBatchSubscribedMsgs)
+        Mono.defer(() -> sqsService.getMessages(cartaceoSqsQueueName.batchName(), CartaceoPresaInCaricoInfo.class, cartaceoMaxBatchSubscribedMsgs)
                 .doOnNext(cartaceoPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(cartaceoSqsQueueName.batchName()
                         , cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                 .flatMap(cartaceoPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessage())
@@ -234,7 +234,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .flatMap(cartaceoPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(
                         cartaceoPresaInCaricoInfoSqsMessageWrapper.getT1(),
                         cartaceoSqsQueueName.batchName()))
-                .collectList()
+                .collectList())
                 .doOnNext(list -> hasMessages.set(!list.isEmpty()))
                 .repeat(hasMessages::get)
                 .doOnError(e -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_CARTACEO_BATCH, false, e.getMessage()))
