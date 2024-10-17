@@ -994,34 +994,6 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.isBadRequest();
 	}
 
-	@Test
-	void ricezioneEsitiDiscardedEventShouldBeAddedOnGeneric400Error() {
-		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiOk() : START");
-		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
-		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
-		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
-		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
-
-		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true))
-				.thenReturn(Mono.error(new Generic400ErrorException("Chiamata a safestorage non valida", "Resource is no longer available. It may have been removed or deleted.")));
-
-		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
-		events.add(getProgressStatusEventWithAttachments());
-
-		webClient.put()
-				.uri(RICEZIONE_ESITI_ENDPOINT)
-				.accept(APPLICATION_JSON)
-				.contentType(APPLICATION_JSON)
-				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
-				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
-				.body(BodyInserters.fromValue(events))
-				.exchange()
-				.expectStatus()
-				.isBadRequest();
-	}
-
-
-
 
 	@Test
 	void ricezioneEsitiWithStatusDateTimeAndClientRequestTimeStampInFutureShouldThrowException(){

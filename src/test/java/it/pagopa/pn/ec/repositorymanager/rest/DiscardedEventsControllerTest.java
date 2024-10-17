@@ -27,7 +27,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 @AutoConfigureWebTestClient
 @SpringBootTestWebEnv
 @DirtiesContext
-public class DiscardedEventsControllerTest {
+class DiscardedEventsControllerTest {
 
     @Autowired
     DiscardedEventsController discardedEventsController;
