@@ -133,7 +133,7 @@ Resources:
         PointInTimeRecoveryEnabled: true
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
-    
+
   PnEcTableRichiesteConversione:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -148,6 +148,31 @@ Resources:
         - AttributeName: 'requestId'
           KeyType: 'HASH'
       BillingMode: 'PAY_PER_REQUEST'
+      TableClass: 'STANDARD'
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+  PnEcTableScartiConsolidatore:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'pn-EcScartiConsolidatore'
+      AttributeDefinitions:
+        - AttributeName: 'requestId'
+          AttributeType: 'S'
+        - AttributeName: 'timestampRicezione'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'requestId'
+          KeyType: 'HASH'
+        - AttributeName: 'timestampRicezione'
+          KeyType: 'RANGE'
+      BillingMode: 'PAY_PER_REQUEST'
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: 'KMS'
+        KMSMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
       TableClass: 'STANDARD'
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
@@ -173,7 +198,7 @@ Resources:
         PointInTimeRecoveryEnabled: true
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
-    
+
   ######### S3 BUCKET FOR OVERSIZE SQS MESSAGES #########
 
   PnEcSqsMessagesStagingBucket:
@@ -1063,6 +1088,14 @@ Outputs:
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
     Value: !GetAtt PnEcTableRichiesteMetadati.Arn
 
+  PnEcTableNameScartiConsolidatore:
+    Description: 'Nome della Tabella DynamoDB relativa agli scarti consolidatore'
+    Value: !Ref PnEcTableScartiConsolidatore
+
+  PnEcTableArnScartiConsolidatore:
+    Description: 'ARN della Tabella DynamoDB relativa agli scarti consolidatore'
+    Value: !GetAtt PnEcTableScartiConsolidatore.Arn
+
   PnEcTableNameRichiesteConversione:
     Description: 'Nome della Tabella DynamoDB relativa alle richieste di conversione dei PDF'
     Value: !Ref PnEcTableRichiesteConversione
@@ -1299,7 +1332,7 @@ Outputs:
   PnEcAlarmArnDLQueueTrackerErroriSERCQ:
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriSERCQ"
     Value: !GetAtt PnEcQueueTrackerErroriSERCQStack.Outputs.SqsDLQAlarmArn
-  
+
   ###### BATCH : SMS #######
 
   PnEcQueueNameBatchSMS:

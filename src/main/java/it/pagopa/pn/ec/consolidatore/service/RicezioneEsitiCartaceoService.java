@@ -2,8 +2,10 @@ package it.pagopa.pn.ec.consolidatore.service;
 
 import it.pagopa.pn.ec.consolidatore.model.dto.RicezioneEsitiDto;
 import it.pagopa.pn.ec.rest.v1.dto.ConsolidatoreIngressPaperProgressStatusEvent;
+import it.pagopa.pn.ec.rest.v1.dto.DiscardedEventDto;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import org.springframework.http.ResponseEntity;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -18,4 +20,6 @@ public interface RicezioneEsitiCartaceoService {
 
 	Mono<ResponseEntity<OperationResultCodeResponse>> publishOnQueue(List<ConsolidatoreIngressPaperProgressStatusEvent> listEvents, String xPagopaExtchServiceId);
 
-}
+	Flux<DiscardedEventDto> insertDiscardedEvents(List<DiscardedEventDto> discardedEvents);
+
+	}
