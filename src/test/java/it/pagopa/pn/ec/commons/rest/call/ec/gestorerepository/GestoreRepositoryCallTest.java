@@ -13,6 +13,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -31,11 +33,16 @@ class GestoreRepositoryCallTest {
     @Autowired
     private GestoreRepositoryCall gestoreRepositoryCall;
 
+    @DynamicPropertySource
+    static void setProperties(DynamicPropertyRegistry r) {
+        // Overriding of internal base url property to point to mock server
+        r.add("internal-endpoint.ec.container-base-url", () -> "http://localhost:" + mockBackEnd.getPort());
+    }
+
     @BeforeAll
     static void setUp() throws IOException {
         mockBackEnd = new MockWebServer();
         mockBackEnd.start();
-        System.setProperty("internal-endpoint.ec.container-base-url", String.format("http://localhost:%s", mockBackEnd.getPort()));
     }
 
     @AfterAll
