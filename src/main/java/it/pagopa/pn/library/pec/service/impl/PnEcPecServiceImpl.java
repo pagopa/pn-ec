@@ -6,12 +6,11 @@ import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.library.exceptions.PnSpapiTemporaryErrorException;
 import it.pagopa.pn.library.pec.configurationproperties.PnPecRetryStrategyProperties;
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
-import it.pagopa.pn.library.pec.exception.pecservice.AlternativeProviderMaxRetriesExceededException;
+import it.pagopa.pn.library.pec.exception.pecservice.NamirialProviderMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.MaxRetriesExceededException;
 import it.pagopa.pn.library.pec.model.pojo.PnEcPecGetMessagesResponse;
 import it.pagopa.pn.library.pec.model.pojo.PnEcPecListOfMessages;
 import it.pagopa.pn.library.pec.model.pojo.PnEcPecMessage;
-import it.pagopa.pn.library.pec.service.AlternativeProviderService;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import it.pagopa.pn.library.pec.service.PnPecService;
@@ -37,24 +36,26 @@ import static it.pagopa.pn.library.pec.utils.PnPecUtils.*;
 public class PnEcPecServiceImpl implements PnEcPecService {
 
     private final ArubaService arubaService;
-    private final AlternativeProviderService otherService;
+    private final com.namirial.pec.library.service.PnPecServiceImpl namirialService;
     private final PnPecConfigurationProperties props;
     private final PnPecRetryStrategyProperties retryStrategyProperties;
     private final CloudWatchPecMetrics cloudWatchPecMetrics;
     @Value("${library.pec.cloudwatch.namespace.aruba}")
     private String arubaProviderNamespace;
-    @Value("${library.pec.cloudwatch.namespace.alternative}")
-    private String otherProviderNamespace;
+    @Value("${library.pec.cloudwatch.namespace.namirial}")
+    private String namirialProviderNamespace;
+    @Value("${library.pec.cloudwatch.metric.response-time.mark-message-as-read}")
+    private String markMessageAsReadResponseTimeMetric;
+    @Value("${library.pec.cloudwatch.metric.response-time.delete-message}")
+    private String deleteMessageResponseTimeMetric;
 
 
     @Autowired
-    public PnEcPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService,
-                              @Qualifier("alternativeProviderServiceImpl") AlternativeProviderService otherService,
-                              PnPecConfigurationProperties props,
-                              PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics) {
+    public PnEcPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService, com.namirial.pec.library.service.PnPecServiceImpl namirialService, PnPecConfigurationProperties props,
+                            PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics) {
         this.arubaService = arubaService;
+        this.namirialService = namirialService;
         this.retryStrategyProperties = retryStrategyProperties;
-        this.otherService = otherService;
         this.props = props;
         this.cloudWatchPecMetrics = cloudWatchPecMetrics;
     }
@@ -70,8 +71,8 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
                     if (service instanceof ArubaService) {
                         return new ArubaCallMaxRetriesExceededException(RETRIES_EXCEEDED_MESSAGE + clientMethodName, retrySignal.failure());
-                    } else if (service instanceof AlternativeProviderService) {
-                        return new AlternativeProviderMaxRetriesExceededException(RETRIES_EXCEEDED_MESSAGE + clientMethodName, retrySignal.failure());
+                    } else if (service instanceof com.namirial.pec.library.service.PnPecServiceImpl) {
+                        return new NamirialProviderMaxRetriesExceededException(RETRIES_EXCEEDED_MESSAGE + clientMethodName, retrySignal.failure());
                     } else {
                         return new MaxRetriesExceededException(RETRIES_EXCEEDED_MESSAGE + clientMethodName, retrySignal.failure());
                     }
@@ -128,7 +129,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     public Mono<Void> markMessageAsRead(String messageID, String providerName) {
         log.logStartingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ);
         PnPecService provider = getProviderByName(providerName);
-        return provider.markMessageAsRead(messageID)
+        return cloudWatchPecMetrics.executeAndPublishResponseTime(provider.markMessageAsRead(messageID), getMetricNamespace(provider), markMessageAsReadResponseTimeMetric)
                 .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_MARK_MESSAGE_AS_READ, provider))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ))
@@ -139,7 +140,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     public Mono<Void> deleteMessage(String messageID, String senderMessageID) {
         log.logStartingProcess(PN_EC_PEC_DELETE_MESSAGE);
         PnPecService provider = getProviderByMessageId(senderMessageID);
-        return provider.deleteMessage(messageID)
+        return cloudWatchPecMetrics.executeAndPublishResponseTime(provider.deleteMessage(messageID), getMetricNamespace(provider), deleteMessageResponseTimeMetric)
                 .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_DELETE_MESSAGE, provider))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_DELETE_MESSAGE))
@@ -153,9 +154,9 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 log.debug(ARUBA_PROVIDER_SELECTED);
                 yield arubaService;
             }
-            case OTHER_PROVIDER -> {
-                log.debug(OTHER_PROVIDER_SELECTED);
-                yield otherService;
+            case NAMIRIAL_PROVIDER -> {
+                log.debug(NAMIRIAL_PROVIDER_SELECTED);
+                yield namirialService;
             }
             default -> {
                 log.debug(ERROR_PARSING_PROPERTY_VALUES);
@@ -171,9 +172,9 @@ public class PnEcPecServiceImpl implements PnEcPecService {
             if (provider.equals(ARUBA_PROVIDER)) {
                 log.debug(ARUBA_PROVIDER_SELECTED);
                 services.add(arubaService);
-            } else if (provider.equals(OTHER_PROVIDER)) {
-                log.debug(OTHER_PROVIDER_SELECTED);
-                services.add(otherService);
+            } else if (provider.equals(NAMIRIAL_PROVIDER)) {
+                log.debug(NAMIRIAL_PROVIDER_SELECTED);
+                services.add(namirialService);
             } else {
                 log.debug(ERROR_PARSING_PROPERTY_VALUES);
                 throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES + " : " + provider);
@@ -186,12 +187,9 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         if (isAruba(messageID)) {
             log.debug(ARUBA_PROVIDER_SELECTED);
             return arubaService;
-        } else if (isOther(messageID)) {
-            log.debug(OTHER_PROVIDER_SELECTED);
-            return otherService;
         } else {
-            log.debug(ERROR_PARSING_PROPERTY_VALUES);
-            throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
+            log.debug(NAMIRIAL_PROVIDER_SELECTED);
+            return namirialService;
         }
     }
 
@@ -199,9 +197,9 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         if (providerName.equals(ARUBA_PROVIDER)) {
             log.debug(ARUBA_PROVIDER_SELECTED);
             return arubaService;
-        } else if (providerName.equals(OTHER_PROVIDER)) {
-            log.debug(OTHER_PROVIDER_SELECTED);
-            return otherService;
+        } else if (providerName.equals(NAMIRIAL_PROVIDER)) {
+            log.debug(NAMIRIAL_PROVIDER_SELECTED);
+            return namirialService;
         } else {
             log.debug(ERROR_PARSING_PROPERTY_VALUES);
             throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
@@ -211,8 +209,8 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     private String getProviderName(PnPecService service) {
         if (service instanceof ArubaService) {
             return ARUBA_PROVIDER;
-        } else if (service instanceof AlternativeProviderService) {
-            return OTHER_PROVIDER;
+        } else if (service instanceof com.namirial.pec.library.service.PnPecServiceImpl) {
+            return NAMIRIAL_PROVIDER;
         } else {
             log.debug(ERROR_PARSING_PROPERTY_VALUES);
             throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
@@ -222,17 +220,13 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     private String getMetricNamespace(PnPecService service) {
         if (service instanceof ArubaService) {
             return arubaProviderNamespace;
-        } else if (service instanceof AlternativeProviderService) {
-            return otherProviderNamespace;
+        } else if (service instanceof com.namirial.pec.library.service.PnPecServiceImpl) {
+            return namirialProviderNamespace;
         } else {
             log.debug(ERROR_RETRIEVING_METRIC_NAMESPACE);
             throw new IllegalArgumentException(ERROR_RETRIEVING_METRIC_NAMESPACE);
         }
     }
-
-        public static boolean isOther(String messageID) {
-            return true;
-        }
 
         public static boolean isAruba(String messageID) {
             return messageID.trim().toLowerCase().endsWith(ARUBA_PATTERN_STRING);

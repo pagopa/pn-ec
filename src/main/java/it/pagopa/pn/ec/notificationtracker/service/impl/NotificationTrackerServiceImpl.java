@@ -103,10 +103,14 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         var digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
 
                                         if (digitalProgressStatusDto != null) {
+                                            OffsetDateTime eventTimestamp = digitalProgressStatusDto.getEventTimestamp();
+                                            // Se lo stato è relativo a SERCQ, non bisogna troncare il timestamp.
+                                            if (logicStatus != null && !logicStatus.startsWith("Q")) {
+                                                eventTimestamp = eventTimestamp.truncatedTo(SECONDS);
+                                            }
                                             digitalProgressStatusDto.status(nextStatus)
                                                                     .statusCode(logicStatus)
-                                                                    .eventTimestamp(digitalProgressStatusDto.getEventTimestamp()
-                                                                                                            .truncatedTo(SECONDS));
+                                                                    .eventTimestamp(eventTimestamp);
                                         } else if (paperProgressStatusDto != null) {
                                             paperProgressStatusDto.status(nextStatus)
                                                                   .statusDescription(paperProgressStatusDto.getStatusDescription())
@@ -114,6 +118,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                                   .statusDateTime(paperProgressStatusDto.getStatusDateTime()
                                                                                                         .truncatedTo(SECONDS));
                                         }
+
                                         return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getXPagopaExtchCxId(),
                                                                                          notificationTrackerQueueDto.getRequestIdx(),
                                                                                          new EventsDto().digProgrStatus(digitalProgressStatusDto)
@@ -138,7 +143,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                             digitalMessageReference.setSystem(generatedMessage.getSystem());
                                             digitalMessageReference.setLocation(generatedMessage.getLocation());
 
-                                            if (transactionProcessConfigurationProperties.pec().equals(processId)) {
+                                            if (transactionProcessConfigurationProperties.pec().equals(processId) || transactionProcessConfigurationProperties.sercq().equals(processId)) {
 
                                                 LegalMessageSentDetails legalMessageSentDetails = new LegalMessageSentDetails();
 
@@ -222,12 +227,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         singleStatusUpdate.setEventTimestamp(OffsetDateTime.now());
                                         return putEvents.putEventExternal(singleStatusUpdate, processId);
                                     })
-                                    .doOnSuccess(result -> acknowledgment.acknowledge())
                                     .then()
-                                    .doOnError(InvalidNextStatusException.class, throwable -> {
-                                        log.debug(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId, throwable, throwable.getMessage());
-                                        acknowledgment.acknowledge();
-                                    })
+                                    .doOnError(InvalidNextStatusException.class, throwable -> log.debug(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId, throwable, throwable.getMessage()))
                                     .onErrorResume(InvalidNextStatusException.class, e -> {
                                         var retry = notificationTrackerQueueDto.getRetry();
                                         notificationTrackerQueueDto.setRetry(retry + 1);
@@ -237,10 +238,11 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                             return sqsService.send(ntStatoErroreQueueName, notificationTrackerQueueDto).then();
                                         }
                                     })
-                                    .doOnError(throwable -> {
-                                        log.warn(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId, throwable, throwable.getMessage());
+                                    .doOnSuccess(result -> {
+                                        acknowledgment.acknowledge();
+                                        log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, NT_HANDLE_REQUEST_STATUS_CHANGE, result);
                                     })
-                                   .doOnSuccess(result->log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, NT_HANDLE_REQUEST_STATUS_CHANGE, result));
+                                    .doOnError(throwable -> log.warn(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId, throwable, throwable.getMessage()));
     }
 
     @Override

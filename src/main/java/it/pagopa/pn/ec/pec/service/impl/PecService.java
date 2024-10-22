@@ -43,9 +43,10 @@ import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
-import javax.mail.Header;
-import javax.mail.Multipart;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.Header;
+import jakarta.mail.Multipart;
+import jakarta.mail.internet.MimeMessage;
+
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -61,12 +62,14 @@ import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
+import static it.pagopa.pn.ec.commons.utils.RequestUtils.insertRequestFromDigitalNotificationRequest;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.SERCQ;
 
 @Service
 @DependsOn("pnPecCredentialConf")
@@ -146,36 +149,10 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromPec(final DigitalNotificationRequest digitalNotificationRequest, String xPagopaExtchCxId) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_PEC, digitalNotificationRequest);
-        return Mono.fromCallable(() -> {
-            var requestDto = new RequestDto();
-            requestDto.setRequestIdx(digitalNotificationRequest.getRequestId());
-            requestDto.setClientRequestTimeStamp(digitalNotificationRequest.getClientRequestTimeStamp());
-            requestDto.setxPagopaExtchCxId(xPagopaExtchCxId);
-
-            var requestPersonalDto = new RequestPersonalDto();
-            var digitalRequestPersonalDto = new DigitalRequestPersonalDto();
-            digitalRequestPersonalDto.setQos(DigitalRequestPersonalDto.QosEnum.valueOf(digitalNotificationRequest.getQos().name()));
-            digitalRequestPersonalDto.setReceiverDigitalAddress(digitalNotificationRequest.getReceiverDigitalAddress());
-            digitalRequestPersonalDto.setMessageText(digitalNotificationRequest.getMessageText());
-            digitalRequestPersonalDto.setSenderDigitalAddress(digitalNotificationRequest.getSenderDigitalAddress());
-            digitalRequestPersonalDto.setSubjectText(digitalNotificationRequest.getSubjectText());
-            digitalRequestPersonalDto.setAttachmentsUrls(digitalNotificationRequest.getAttachmentUrls());
-            requestPersonalDto.setDigitalRequestPersonal(digitalRequestPersonalDto);
-
-            var requestMetadataDto = new RequestMetadataDto();
-            var digitalRequestMetadataDto = new DigitalRequestMetadataDto();
-            digitalRequestMetadataDto.setCorrelationId(digitalNotificationRequest.getCorrelationId());
-            digitalRequestMetadataDto.setEventType(digitalNotificationRequest.getEventType());
-            digitalRequestMetadataDto.setTags(digitalNotificationRequest.getTags());
-            digitalRequestMetadataDto.setChannel(PEC);
-            digitalRequestMetadataDto.setMessageContentType(DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN);
-            requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
-
-            requestDto.setRequestPersonal(requestPersonalDto);
-            requestDto.setRequestMetadata(requestMetadataDto);
-            return requestDto;
-        }).flatMap(gestoreRepositoryCall::insertRichiesta).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
-        .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_FROM_PEC, result));
+        return Mono.fromCallable(() ->
+                        insertRequestFromDigitalNotificationRequest(digitalNotificationRequest, xPagopaExtchCxId, PEC)
+                ).flatMap(gestoreRepositoryCall::insertRichiesta).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_FROM_PEC, result));
     }
 
     @SqsListener(value = "${sqs.queue.pec.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
@@ -218,7 +195,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 //      Get attachment presigned url Flux
         return MDCUtils.addMDCToContextAndExecute(getAttachments(xPagopaExtchCxId, digitalNotificationRequest)
 
-                .flatMap(this::downloadAttachment)
+                .flatMapSequential(this::downloadAttachment)
 
 //                              Convert to Mono<List>
                 .collectList()
@@ -292,16 +269,16 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS + " - {}", PEC_SEND_MAIL, digitalNotificationRequest, attachments);
         String sender = pnPecProps.getPnPecSender();
         return Mono.just(attachments).map(fileDownloadResponses -> EmailField.builder()
-                .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
-                .from(sender)
-                .to(digitalNotificationRequest.getReceiverDigitalAddress())
-                .subject(digitalNotificationRequest.getSubjectText())
-                .text(digitalNotificationRequest.getMessageText())
-                .contentType(digitalNotificationRequest.getMessageContentType()
-                        .getValue())
-                .emailAttachments(fileDownloadResponses)
-                .headersList(List.of(new Header(pnPecProps.getTipoRicevutaHeaderName(), pnPecProps.getTipoRicevutaHeaderValue())))
-                .build())
+                        .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
+                        .from(sender)
+                        .to(digitalNotificationRequest.getReceiverDigitalAddress())
+                        .subject(digitalNotificationRequest.getSubjectText())
+                        .text(digitalNotificationRequest.getMessageText())
+                        .contentType(digitalNotificationRequest.getMessageContentType()
+                                .getValue())
+                        .emailAttachments(fileDownloadResponses)
+                        .headersList(List.of(new Header(pnPecProps.getTipoRicevutaHeaderName(), pnPecProps.getTipoRicevutaHeaderValue())))
+                        .build())
                 .flatMap(emailField -> getMonoMimeMessage(emailField,
                         pnPecProps.getAttachmentRule(),
                         pnPecProps.getMaxMessageSizeMb() * MB_TO_BYTES,
@@ -353,7 +330,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
         Policy retryPolicies = new Policy();
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
-        var clientId=pecPresaInCaricoInfo.getXPagopaExtchCxId();
+        var clientId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, FILTER_REQUEST_PEC, pecPresaInCaricoInfo);
 
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
@@ -570,7 +547,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName());
     }
 
-    public  Mono<MimeMessage> getMonoMimeMessage(EmailField emailField, String mimeMessageRule, Integer maxMessageSizeInBytes, boolean canInsertXTipoRicevutaHeader) {
+    public Mono<MimeMessage> getMonoMimeMessage(EmailField emailField, String mimeMessageRule, Integer maxMessageSizeInBytes, boolean canInsertXTipoRicevutaHeader) {
         return Mono.fromSupplier(() -> {
                     log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GET_MONO_MIME_MESSAGE, Stream.of(emailField, mimeMessageRule, maxMessageSizeInBytes, canInsertXTipoRicevutaHeader).toList());
                     return buildMimeMessage(emailField);
@@ -583,11 +560,10 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
     private Mono<MimeMessage> setAttachmentsInMimeMessage(MimeMessage mimeMessage, EmailField emailField, Integer maxMessageSizeInBytes, String mimeMessageRule) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, SET_ATTACHMENTS_IN_MIME_MESSAGE, Stream.of(emailField, maxMessageSizeInBytes, mimeMessageRule).toList());
-        CountingOutputStream sizeCounter = new CountingOutputStream(new ByteArrayOutputStream());
         return Flux.fromIterable(emailField.getEmailAttachments())
                 .map(EmailUtils::buildAttachmentPart)
-                .map(mimeBodyPart -> addAttachmentToMimeMessage(mimeMessage, mimeBodyPart))
-                .map(mime -> getMimeMessageSizeInBytes(mime, sizeCounter))
+                .doOnNext(mimeBodyPart -> addAttachmentToMimeMessage(mimeMessage, mimeBodyPart))
+                .map(unused -> getMimeMessageSizeInBytes(mimeMessage))
                 .takeUntil(mimeMessageSize -> mimeMessageSize > maxMessageSizeInBytes)
                 .last(0)
                 .flatMap(mimeMessageSize -> {
@@ -599,7 +575,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private Mono<MimeMessage> handleMaxSizeExceeded(MimeMessage mimeMessage, String mimeMessageRule) {
-        return Mono.just(mimeMessage).handle((mime, sink) -> {
+        return Mono.fromSupplier(() -> mimeMessage).handle((mime, sink) -> {
                     Multipart multipart = getMultipartFromMimeMessage(mime);
                     if (getMultipartCount(multipart) <= 2)
                         sink.error(new MaxSizeExceededException("MimeMessage has exceeded the max available size with the first attachment."));
@@ -615,7 +591,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 });
     }
 
-    private  Mono<MimeMessage> setHeadersInMimeMessage(MimeMessage mimeMessage, List<Header> headers, boolean canInsertXTipoRicevutaHeader) {
+    private Mono<MimeMessage> setHeadersInMimeMessage(MimeMessage mimeMessage, List<Header> headers, boolean canInsertXTipoRicevutaHeader) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, SET_HEADERS_IN_MIME_MESSAGE, Stream.of(headers, canInsertXTipoRicevutaHeader).toList());
         return Flux.fromIterable(headers)
                 .filter(header -> !header.getName().equals(pnPecProps.getTipoRicevutaHeaderName()))

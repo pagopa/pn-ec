@@ -35,6 +35,8 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
 import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -108,11 +110,10 @@ public class LavorazioneEsitiPecService {
                             var messageID = ricezioneEsitiPecDto.getMessageID();
                             var message = ricezioneEsitiPecDto.getMessage();
                             var mimeMessage = getMimeMessage(message);
-                            var daticert = findAttachmentByName(mimeMessage, "daticert.xml");
+                            var daticert = getAttachmentFromMimeMessage(mimeMessage, "daticert.xml");
                             var postacert = daticertService.getPostacertFromByteArray(daticert);
                             var sender = postacert.getIntestazione().getMittente();
                             var msgId = postacert.getDati().getMsgid();
-                            msgId = msgId.substring(1, msgId.length() - 1);
                             var presaInCaricoInfo = decodeMessageId(msgId);
 
                             MDC.put(MDC_CORR_ID_KEY, concatRequestId(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx()));
@@ -150,9 +151,14 @@ public class LavorazioneEsitiPecService {
                                             nextStatus = decodePecStatusToMachineStateStatus(postacert.getTipo()).getStatusTransactionTableCompliant();
                                         }
 
+                                        String previousStatus = requestDto.getStatusRequest();
+                                        if (previousStatus == null) {
+                                            log.debug("The request has null status: {}", requestDto);
+                                        }
+
                                         var nextEventTimestamp = createTimestampFromDaticertDate(postacert.getDati().getData());
                                         var cloudWatchPecMetricsInfo = CloudWatchTransitionElapsedTimeMetricsInfo.builder()
-                                                .previousStatus(requestDto.getStatusRequest())
+                                                .previousStatus(previousStatus)
                                                 .previousEventTimestamp(
                                                         legalMessageSentDetails.getEventTimestamp())
                                                 .nextStatus(nextStatus)

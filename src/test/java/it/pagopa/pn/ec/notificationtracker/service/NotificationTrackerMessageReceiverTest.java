@@ -31,6 +31,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
@@ -39,14 +40,17 @@ import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.services.sqs.SqsAsyncClient;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import software.amazon.awssdk.services.sqs.model.SqsException;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
@@ -67,6 +71,8 @@ public class NotificationTrackerMessageReceiverTest {
     @SpyBean
     private PutEvents putEvents;
     @SpyBean
+    private SqsAsyncClient sqsAsyncClient;
+    @SpyBean
     private SqsService sqsService;
     @SpyBean
     private NotificationTrackerService notificationTrackerService;
@@ -82,6 +88,7 @@ public class NotificationTrackerMessageReceiverTest {
     private static final String EMAIL_REQUEST_IDX = "EMAIL_REQUEST_IDX";
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
     private static final String PAPER_REQUEST_IDX = "PAPER_REQUEST_IDX";
+    private static final String SERCQ_REQUEST_IDX = "SERCQ_REQUEST_IDX";
     private static final String CLIENT_ID = "CLIENT_ID";
 
     private static final List<JSONObject> stateMachine = new ArrayList<>();
@@ -103,6 +110,7 @@ public class NotificationTrackerMessageReceiverTest {
         insertEmailRequest();
         insertPecRequest();
         insertPaperRequest();
+        insertSercqRequest();
     }
 
     @BeforeEach
@@ -168,7 +176,9 @@ public class NotificationTrackerMessageReceiverTest {
     private Stream<Arguments> provideArguments() {
         return Stream.of(Arguments.of(SMS_REQUEST_IDX, transactionProcessConfigurationProperties.sms(), notificationTrackerSqsName.statoSmsName(), notificationTrackerSqsName.statoSmsErratoName()),
                 Arguments.of(EMAIL_REQUEST_IDX, transactionProcessConfigurationProperties.email(), notificationTrackerSqsName.statoEmailName(), notificationTrackerSqsName.statoEmailErratoName()),
-                Arguments.of(PEC_REQUEST_IDX, transactionProcessConfigurationProperties.pec(), notificationTrackerSqsName.statoPecName(), notificationTrackerSqsName.statoPecErratoName()));
+                Arguments.of(PEC_REQUEST_IDX, transactionProcessConfigurationProperties.pec(), notificationTrackerSqsName.statoPecName(), notificationTrackerSqsName.statoPecErratoName()),
+                Arguments.of(SERCQ_REQUEST_IDX, transactionProcessConfigurationProperties.sercq(), notificationTrackerSqsName.statoSercqName(), notificationTrackerSqsName.statoSercqErratoName())
+        );
     }
 
     @ParameterizedTest
@@ -185,7 +195,21 @@ public class NotificationTrackerMessageReceiverTest {
         verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
         verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
         verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(processId));
+    }
 
+    @ParameterizedTest
+    @MethodSource("provideArguments")
+    void digitalNtStatusValidationAndSqsSendKo(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+
+        //WHEN
+        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.error(new InvalidNextStatusException("", "", "", "")));
+        Mockito.doReturn(CompletableFuture.failedFuture(SqsException.builder().build())).when(sqsAsyncClient).sendMessage(any(SendMessageRequest.class));
+        mockStatusDecode();
+
+        //THEN
+        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId);
+
+        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
     }
 
     @ParameterizedTest
@@ -338,6 +362,8 @@ public class NotificationTrackerMessageReceiverTest {
                     notificationTrackerMessageReceiver.receiveEmailObjectMessage(notificationTrackerQueueDto, acknowledgment);
             case "PEC" ->
                     notificationTrackerMessageReceiver.receivePecObjectMessage(notificationTrackerQueueDto, acknowledgment);
+            case "SERCQ" ->
+                    notificationTrackerMessageReceiver.receiveSercqObjectMessage(notificationTrackerQueueDto,acknowledgment);
         }
 
         return notificationTrackerQueueDto;
@@ -353,6 +379,8 @@ public class NotificationTrackerMessageReceiverTest {
                     notificationTrackerMessageReceiver.receiveEmailObjectFromErrorQueue(notificationTrackerQueueDto, acknowledgment);
             case "PEC" ->
                     notificationTrackerMessageReceiver.receivePecObjectFromErrorQueue(notificationTrackerQueueDto, acknowledgment);
+            case "SERCQ" ->
+                    notificationTrackerMessageReceiver.receiveSercqObjectFromErrorQueue(notificationTrackerQueueDto,acknowledgment);
         }
 
     }
@@ -376,6 +404,13 @@ public class NotificationTrackerMessageReceiverTest {
         requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestPersonal(DigitalRequestPersonal.builder().build()).build()));
         Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(OffsetDateTime.now()).build()).build();
         requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("PEC").build()).build()));
+    }
+
+    private static void insertSercqRequest() {
+        var concatRequestId = CLIENT_ID + "~" + SERCQ_REQUEST_IDX;
+        requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestPersonal(DigitalRequestPersonal.builder().build()).build()));
+        Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(OffsetDateTime.now()).build()).build();
+        requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("SERCQ").build()).build()));
     }
 
     private static void insertPaperRequest() {

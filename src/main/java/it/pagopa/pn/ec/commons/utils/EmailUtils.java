@@ -7,15 +7,14 @@ import lombok.CustomLog;
 import lombok.SneakyThrows;
 import org.apache.commons.io.output.CountingOutputStream;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.mail.util.MimeMessageParser;
-import javax.activation.DataHandler;
-import javax.activation.DataSource;
-import javax.mail.*;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.util.ByteArrayDataSource;
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
+import jakarta.mail.*;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.util.ByteArrayDataSource;
 import java.io.*;
 import java.util.*;
 
@@ -192,11 +191,10 @@ public class EmailUtils {
     }
 
     @SneakyThrows({IOException.class, MessagingException.class})
-    public static MimeMessage addAttachmentToMimeMessage(MimeMessage mimeMessage, MimeBodyPart mimeBodyPart) {
+    public static void addAttachmentToMimeMessage(MimeMessage mimeMessage, MimeBodyPart mimeBodyPart) {
         log.debug("Adding attachment '{}' to mimeMessage...", mimeBodyPart.getFileName());
         ((MimeMultipart) mimeMessage.getContent()).addBodyPart(mimeBodyPart);
         mimeMessage.saveChanges();
-        return mimeMessage;
     }
 
     @SneakyThrows({IOException.class, MessagingException.class})
@@ -206,11 +204,14 @@ public class EmailUtils {
         return byteArrayOutputStream;
     }
 
-    @SneakyThrows({IOException.class, MessagingException.class})
-    public static int getMimeMessageSizeInBytes(MimeMessage mimeMessage, CountingOutputStream countingOutputStream) {
+    @SneakyThrows
+    ({IOException.class, MessagingException.class})
+    public static int getMimeMessageSizeInBytes(MimeMessage mimeMessage) {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        CountingOutputStream countingOutputStream = new CountingOutputStream(byteArrayOutputStream);
         mimeMessage.writeTo(countingOutputStream);
         var mimeMessageSize = countingOutputStream.getCount();
-        countingOutputStream.resetCount();
+        countingOutputStream.close();
         return mimeMessageSize;
     }
 
@@ -266,7 +267,8 @@ public class EmailUtils {
                     }
                 }
             }
-            throw new RetrieveAttachmentException();
+            log.error("Attachment with name '{}' not found", attachmentName);
+            return new byte[0];
         } catch (IOException | MessagingException e) {
             throw new RetrieveAttachmentException();
         }
@@ -277,7 +279,7 @@ public class EmailUtils {
 
             Object content = part.getContent();
             if (content instanceof InputStream || content instanceof String) {
-                if ((Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition()) || StringUtils.isNotBlank(part.getFileName())) && part.getFileName().equals(fileName)) {
+                if (StringUtils.isNotBlank(part.getFileName()) && part.getFileName().equals(fileName)) {
                     return part.getInputStream();
                 } else {
                     return null;
@@ -287,7 +289,9 @@ public class EmailUtils {
             if (content instanceof Multipart multipart) {
                 for (int i = 0; i < multipart.getCount(); i++) {
                     BodyPart bodyPart = multipart.getBodyPart(i);
-                    getAttachmentFromBodyPart(bodyPart, fileName);
+                    InputStream result = getAttachmentFromBodyPart(bodyPart, fileName);
+                    if (result != null)
+                        return result;
                 }
             }
 
@@ -297,15 +301,24 @@ public class EmailUtils {
             throw new RetrieveAttachmentException();
         }
     }
-
-    public static byte[] findAttachmentByName(MimeMessage mimeMessage, String attachmentName) {
-        try {
-            log.debug("Start retrieving attachment with name '{}'", attachmentName);
-            MimeMessageParser mimeMessageParser = new MimeMessageParser(mimeMessage);
-            DataSource attachment = mimeMessageParser.parse().findAttachmentByName(attachmentName);
-            return attachment == null ? null : attachment.getInputStream().readAllBytes();
-        } catch (Exception e) {
-            throw new RetrieveAttachmentException();
-        }
+    
+// questo metodo è stato introdotto ma al momento non è utilizzato
+    @SneakyThrows (MessagingException.class)
+    public static List<String> getHeaders(MimeMessage mimeMessage) {
+        List<String> headerList = new ArrayList<>();
+        mimeMessage.getAllHeaderLines().asIterator().forEachRemaining(headerList::add);
+        return headerList;
     }
+
+//    public static byte[] findAttachmentByName(MimeMessage mimeMessage, String attachmentName) {
+//        try {
+//            log.debug("Start retrieving attachment with name '{}'", attachmentName);
+//            MimeMessageParser mimeMessageParser = new MimeMessageParser(mimeMessage);
+//            DataSource attachment = mimeMessageParser.parse().findAttachmentByName(attachmentName);
+//            return attachment == null ? null : attachment.getInputStream().readAllBytes();
+//        } catch (Exception e) {
+//            throw new RetrieveAttachmentException();
+//        }
+//    }
+
 }
