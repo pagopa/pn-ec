@@ -7,6 +7,8 @@ import it.pagopa.pn.ec.pec.service.impl.PecService;
 import it.pagopa.pn.ec.rest.v1.api.DigitalLegalMessagesApi;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.LegalMessageSentDetails;
+import it.pagopa.pn.ec.sercq.model.pojo.SercqPresaInCaricoInfo;
+import it.pagopa.pn.ec.sercq.service.impl.SercqService;
 import lombok.CustomLog;
 import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
@@ -25,10 +27,12 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
 
     private final PecService pecService;
     private final StatusPullService statusPullService;
+    private final SercqService sercqService;
 
-    public DigitalLegalMessagesApiController(PecService pecService, StatusPullService statusPullService) {
+    public DigitalLegalMessagesApiController(PecService pecService, StatusPullService statusPullService, SercqService sercqService) {
         this.pecService = pecService;
         this.statusPullService = statusPullService;
+        this.sercqService = sercqService;
     }
 
     @Override
@@ -40,11 +44,23 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
         log.logStartingProcess(SEND_DIGITAL_LEGAL_MESSAGE);
         return MDCUtils.addMDCToContextAndExecute(digitalNotificationRequest
-                .flatMap(request -> pecService.presaInCarico(PecPresaInCaricoInfo.builder()
-                        .requestIdx(requestIdx)
-                        .xPagopaExtchCxId(xPagopaExtchCxId)
-                        .digitalNotificationRequest(request)
-                        .build()))
+                .flatMap(request -> {
+                    if (request.getChannel().equals(DigitalNotificationRequest.ChannelEnum.PEC)) {
+                        return pecService.presaInCarico(PecPresaInCaricoInfo.builder()
+                                .requestIdx(requestIdx)
+                                .xPagopaExtchCxId(xPagopaExtchCxId)
+                                .digitalNotificationRequest(request)
+                                .build());
+                    } else if (request.getChannel().equals(DigitalNotificationRequest.ChannelEnum.SERCQ)) {
+                        return sercqService.presaInCarico(SercqPresaInCaricoInfo.builder()
+                                .requestIdx(requestIdx)
+                                .xPagopaExtchCxId(xPagopaExtchCxId)
+                                .digitalNotificationRequest(request)
+                                .build());
+                    } else {
+                        return Mono.error(new UnsupportedOperationException("Unsupported channel: " + request.getChannel()));
+                    }
+                })
                 .doOnSuccess(result -> log.logEndingProcess(SEND_DIGITAL_LEGAL_MESSAGE))
                 .doOnError(throwable -> log.logEndingProcess(SEND_DIGITAL_LEGAL_MESSAGE, false, throwable.getMessage()))
                 .thenReturn(new ResponseEntity<>(OK)));
