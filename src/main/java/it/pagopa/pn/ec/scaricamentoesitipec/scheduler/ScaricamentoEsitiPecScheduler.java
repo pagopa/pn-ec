@@ -114,7 +114,7 @@ public class ScaricamentoEsitiPecScheduler {
                 log.debug(SCARICAMENTO_ESITI_PEC + " - PEC '{}' has daticert.xml", finalMessageID);
 
 //                      Deserialize daticert.xml. Start a new Mono inside the flatMap
-                return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(attachBytes))
+                return Mono.fromCallable(() -> daticertService.getPostacertFromByteArray(attachBytes, providerName))
 //                                 Escludere questi daticert. Non sono delle 'comunicazione esiti'
                         .filter(isPostaCertificataPredicate.negate())
 
@@ -146,6 +146,7 @@ public class ScaricamentoEsitiPecScheduler {
                                         .messageID(finalMessageID)
                                         .message(message)
                                         .receiversDomain(getDomainFromAddress(getFromFromMimeMessage(mimeMessage)[0]))
+                                        .providerName(providerName)
                                         .retry(0)
                                         .build()))
                         .thenReturn(Tuples.of(finalMessageID, providerName));
