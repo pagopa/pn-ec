@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.consolidatore.controller;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
+import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.consolidatore.exception.SemanticException;
 import it.pagopa.pn.ec.consolidatore.exception.SyntaxException;
@@ -13,7 +13,6 @@ import it.pagopa.pn.ec.rest.v1.api.ConsolidatoreApi;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.CustomLog;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -24,7 +23,15 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
@@ -39,19 +46,21 @@ import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.*;
 public class ConsolidatoreApiController implements ConsolidatoreApi {
 
     private static final Integer NRO_MAX_ERRORS = 50;
+    public static final String REQUEST_BODY = "requestBody";
+    public static final String LOG_FORMAT = "{} - {}";
     private final ConsolidatoreServiceImpl consolidatoreServiceImpl;
     private final RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService;
-
-    private final SafeStorageEndpointProperties safeStorageEndpointProperties;
-    @Autowired
-    private AuthService authService;
+    private final AuthService authService;
+    private static final String PATTERN_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+    private static final String PATTERN_DATE_FORMAT = "yyyy-MM-dd";
+    private static final DateTimeFormatter TIMESTAMP_RICEZIONE_FORMATTER = DateTimeFormatter.ofPattern(PATTERN_FORMAT).withZone(ZoneId.from(ZoneOffset.UTC));
+    private static final DateTimeFormatter DATA_RICEZIONE_FORMATTER = DateTimeFormatter.ofPattern(PATTERN_DATE_FORMAT).withZone(ZoneId.from(ZoneOffset.UTC));
 
     public ConsolidatoreApiController(ConsolidatoreServiceImpl consolidatoreServiceImpl
-            , RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService,
-                                      SafeStorageEndpointProperties safeStorageEndpointProperties) {
+            , RicezioneEsitiCartaceoService ricezioneEsitiCartaceoService, AuthService authService) {
         this.consolidatoreServiceImpl = consolidatoreServiceImpl;
         this.ricezioneEsitiCartaceoService = ricezioneEsitiCartaceoService;
-        this.safeStorageEndpointProperties = safeStorageEndpointProperties;
+        this.authService = authService;
     }
 
     private OperationResultCodeResponse getOperationResultCodeResponse(String resultCode, String resultDescription, List<String> errors) {
@@ -75,9 +84,9 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
         return MDCUtils.addMDCToContextAndExecute(consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
                 .doOnSuccess(result -> log.logEndingProcess(GET_FILE))
                 .doOnError(throwable -> log.logEndingProcess(GET_FILE, false, throwable.getMessage()))
-                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody")))
-                .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
-                .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
+                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute(REQUEST_BODY)))
+                .doOnError(SemanticException.class, e -> log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(e.getAuditLogErrorList())))
+                .doOnError(SyntaxException.class, e -> log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(e.getAuditLogErrorList())))
                 .map(ResponseEntity::ok));
     }
 
@@ -89,9 +98,9 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
         return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
                 .doOnSuccess(result -> log.logEndingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS))
                 .doOnError(throwable -> log.logEndingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS, false, throwable.getMessage()))
-                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody")))
-                .doOnError(SemanticException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
-                .doOnError(SyntaxException.class, e -> log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(e.getAuditLogErrorList())))
+                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute(REQUEST_BODY)))
+                .doOnError(SemanticException.class, e -> log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(e.getAuditLogErrorList())))
+                .doOnError(SyntaxException.class, e -> log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(e.getAuditLogErrorList())))
                 .map(ResponseEntity::ok);
     }
 
@@ -102,6 +111,9 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                                                             final ServerWebExchange exchange) {
         MDC.clear();
         log.logStartingProcess(SEND_PAPER_PROGRESS_STATUS_REQUEST);
+        OffsetDateTime now = OffsetDateTime.now();
+        String timestampRicezione = now.format(TIMESTAMP_RICEZIONE_FORMATTER);
+        String dataRicezione = now.format(DATA_RICEZIONE_FORMATTER);
         return authService.clientAuth(xPagopaExtchServiceId)
                 .flatMap(clientConfiguration -> {
                     log.logChecking(X_API_KEY_VALIDATION);
@@ -145,34 +157,54 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                 // errori
                                 var listErrors = new ArrayList<OperationResultCodeResponse>();
                                 var consAuditLogErrorList = new ArrayList<ConsAuditLogError>();
+                                var discardedEventsDtoList = new ArrayList<DiscardedEventDto>();
 
+                                String jsonRequestBody = exchange.getAttribute(REQUEST_BODY);
+                                String jsonRequestBodyHash = generateSha256(jsonRequestBody.getBytes(StandardCharsets.UTF_8));
                                 listErrorResponse.forEach(dto -> {
                                     if (dto.getConsAuditLogErrorList() != null) {
                                         consAuditLogErrorList.addAll(dto.getConsAuditLogErrorList());
                                     }
 
                                     if (dto.getOperationResultCodeResponse() != null) {
+                                        String requestId= dto.getPaperProgressStatusEvent().getRequestId();
+                                        dto.getOperationResultCodeResponse().getErrorList().forEach(error -> {
+                                            DiscardedEventDto discardedEventDto = new DiscardedEventDto();
+                                            discardedEventDto.setDataRicezione(dataRicezione);
+                                                discardedEventDto.setJsonRicevuto(jsonRequestBody);
+                                                discardedEventDto.setPayloadHash(jsonRequestBodyHash);
+                                            discardedEventDto.setCodiceScarto(error);
+                                            discardedEventDto.setTimestampRicezione(timestampRicezione);
+                                            discardedEventDto.setRequestId(requestId);
+                                            discardedEventsDtoList.add(discardedEventDto);
+                                        });
                                         listErrors.add(dto.getOperationResultCodeResponse());
                                     }
                                 });
 
-                                log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute("requestBody")).errorList(consAuditLogErrorList));
+                                log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(consAuditLogErrorList));
 
                                 var errors = getAllErrors(listErrors);
                                 log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "syntax/semantic errors : result code = '{}' : result description = '{}' : specific errors identified = {}",
                                         listErrors.get(0).getResultCode(),
                                         listErrors.get(0).getResultDescription(),
                                         errors);
-                                return Mono.just(ResponseEntity
+
+                                var response = ResponseEntity
                                         .badRequest()
                                         .body(getOperationResultCodeResponse(listErrors.get(0).getResultCode(),
                                                 listErrors.get(0).getResultDescription(),
-                                                errors)));
+                                                errors));
+
+                                if (!discardedEventsDtoList.isEmpty()) {
+                                    return ricezioneEsitiCartaceoService.insertDiscardedEvents(discardedEventsDtoList).then(Mono.just(response));
+                                }
+                                return Mono.just(response);
                             }
                         })
                         .doOnSuccess(result -> log.logEndingProcess(SEND_PAPER_PROGRESS_STATUS_REQUEST))
                         .doOnError(throwable -> log.logEndingProcess(SEND_PAPER_PROGRESS_STATUS_REQUEST, false, throwable.getMessage()))
-                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute("requestBody"))))
+                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute(REQUEST_BODY))))
                         .onErrorResume(RuntimeException.class, throwable -> {
                             String fatalMessage = throwable.getClass() == WebExchangeBindException.class ? "" : "* FATAL * ";
                             log.error(SEND_PAPER_PROGRESS_STATUS_REQUEST +  fatalMessage + "errore generico = {}, {}", throwable, throwable.getMessage());
@@ -190,7 +222,19 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
             var consAuditLogError = new ConsAuditLogError().description(description).error(ERR_CONS_BAD_JSON_FORMAT.getValue());
             consAuditLogErrorList.add(consAuditLogError);
         }
-        log.error("{} - {}", ERR_CONS, new ConsAuditLogEvent<>().request(request).errorList(consAuditLogErrorList));
+        log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(request).errorList(consAuditLogErrorList));
+    }
+
+    private String generateSha256(byte[] fileBytes) {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("SHA256");
+            md.update(fileBytes);
+            byte[] digest = md.digest();
+            return Base64.getEncoder().encodeToString(digest);
+        } catch (NoSuchAlgorithmException | NullPointerException e) {
+            throw new ShaGenerationException(e.getMessage());
+        }
     }
 
 }
