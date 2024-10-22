@@ -156,4 +156,5 @@ class ClientConfigurationControllerTest {
                  .isNotFound();
     }
 
+
 }

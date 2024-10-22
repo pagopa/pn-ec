@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.notificationtracker.service;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
@@ -190,11 +191,28 @@ public class NotificationTrackerMessageReceiverTest {
         mockStatusDecode();
 
         //THEN
-        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId);
+        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId, SENT, new GeneratedMessageDto().id("id").system("system").location("location"));
 
         verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
         verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
         verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(processId));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideArguments")
+    void digitalNtGeneratedMessageNullOk(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+
+        //WHEN
+        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
+        mockStatusDecode();
+
+        //THEN
+        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId, SENT, null);
+
+        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
+        verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
+        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(processId));
+
     }
 
     @ParameterizedTest
@@ -207,7 +225,7 @@ public class NotificationTrackerMessageReceiverTest {
         mockStatusDecode();
 
         //THEN
-        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId);
+        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId, SENT,null);
 
         verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
     }
@@ -328,6 +346,21 @@ public class NotificationTrackerMessageReceiverTest {
     }
 
     @Test
+    void pecNtAddressError() {
+
+        //WHEN
+        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
+        mockStatusDecode();
+
+        //THEN
+        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(PEC_REQUEST_IDX, transactionProcessConfigurationProperties.pec(), ADDRESS_ERROR, new GeneratedMessageDto().id("id").system("system").location("location"));
+
+        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, transactionProcessConfigurationProperties.pec(), notificationTrackerSqsName.statoPecName(), notificationTrackerSqsName.statoPecErratoName(), acknowledgment);
+        verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
+        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(transactionProcessConfigurationProperties.pec()));
+    }
+
+    @Test
     void ntNullLogicStatusOk() {
 
         //GIVEN
@@ -348,11 +381,11 @@ public class NotificationTrackerMessageReceiverTest {
 
     }
 
-    private NotificationTrackerQueueDto receiveDigitalObjectMessage(String requestId, String processId) {
+    private NotificationTrackerQueueDto receiveDigitalObjectMessage(String requestId, String processId, Status nextStatus, GeneratedMessageDto generatedMessageDto) {
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(requestId).xPagopaExtchCxId(CLIENT_ID).build();
-        DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).generatedMessage(new GeneratedMessageDto().id("id").system("system").location("location"));
-        NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), digitalProgressStatusDto);
+        DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).generatedMessage(generatedMessageDto);
+        NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, nextStatus.getStatusTransactionTableCompliant(), digitalProgressStatusDto);
 
         //THEN
         switch (processId) {

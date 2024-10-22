@@ -13,6 +13,7 @@ import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import it.pagopa.pn.library.exceptions.PnSpapiPermanentErrorException;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import org.junit.jupiter.api.AfterEach;
@@ -192,6 +193,26 @@ class PecServiceTest {
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+
+    }
+
+    @Test
+    void lavorazionePec_BadAddressKo() {
+
+        var requestDto = buildRequestDto();
+
+        var clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(arubaService.sendMail(any())).thenReturn(Mono.error(new PnSpapiPermanentErrorException("class jakarta.mail.internet.AddressException Local address starts with dot")));
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+
+        Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(ADDRESS_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
     }
 

@@ -19,9 +19,6 @@ public enum Status {
     DELETED("deleted"),
     INTERNAL_ERROR("internalError"),
 
-    //  <-- ONLY EMAIL AND PEC -->
-    COMPOSITION_ERROR("compError"),
-
     //  <-- PEC STATUS -->
     ACCEPTED("accepted"),
     NOT_ACCEPTED("notAccepted"),
@@ -30,7 +27,6 @@ public enum Status {
     NOT_DELIVERED("notDelivered"),
     DELIVERY_WARNING("deliveryWarn"),
     NOT_PEC("nonPEC"),
-
     ADDRESS_ERROR("addressError");
 
     final String statusTransactionTableCompliant;
