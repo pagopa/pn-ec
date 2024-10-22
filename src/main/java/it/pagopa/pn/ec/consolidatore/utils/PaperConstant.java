@@ -24,4 +24,5 @@ public class PaperConstant {
     public static final String CLIENT_REQUEST_TIMESTAMP_LABEL = "clientRequestTimeStamp";
 
 
+    public static final String DUPLICATED_EVENT = "DUPLICATED_EVENT";
 }
