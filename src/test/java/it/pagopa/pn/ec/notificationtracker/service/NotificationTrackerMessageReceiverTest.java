@@ -89,6 +89,7 @@ public class NotificationTrackerMessageReceiverTest {
     private static final String EMAIL_REQUEST_IDX = "EMAIL_REQUEST_IDX";
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
     private static final String PAPER_REQUEST_IDX = "PAPER_REQUEST_IDX";
+    private static final String SERCQ_REQUEST_IDX = "SERCQ_REQUEST_IDX";
     private static final String CLIENT_ID = "CLIENT_ID";
 
     private static final List<JSONObject> stateMachine = new ArrayList<>();
@@ -110,6 +111,7 @@ public class NotificationTrackerMessageReceiverTest {
         insertEmailRequest();
         insertPecRequest();
         insertPaperRequest();
+        insertSercqRequest();
     }
 
     @BeforeEach
@@ -175,7 +177,9 @@ public class NotificationTrackerMessageReceiverTest {
     private Stream<Arguments> provideArguments() {
         return Stream.of(Arguments.of(SMS_REQUEST_IDX, transactionProcessConfigurationProperties.sms(), notificationTrackerSqsName.statoSmsName(), notificationTrackerSqsName.statoSmsErratoName()),
                 Arguments.of(EMAIL_REQUEST_IDX, transactionProcessConfigurationProperties.email(), notificationTrackerSqsName.statoEmailName(), notificationTrackerSqsName.statoEmailErratoName()),
-                Arguments.of(PEC_REQUEST_IDX, transactionProcessConfigurationProperties.pec(), notificationTrackerSqsName.statoPecName(), notificationTrackerSqsName.statoPecErratoName()));
+                Arguments.of(PEC_REQUEST_IDX, transactionProcessConfigurationProperties.pec(), notificationTrackerSqsName.statoPecName(), notificationTrackerSqsName.statoPecErratoName()),
+                Arguments.of(SERCQ_REQUEST_IDX, transactionProcessConfigurationProperties.sercq(), notificationTrackerSqsName.statoSercqName(), notificationTrackerSqsName.statoSercqErratoName())
+        );
     }
 
     @ParameterizedTest
@@ -391,6 +395,8 @@ public class NotificationTrackerMessageReceiverTest {
                     notificationTrackerMessageReceiver.receiveEmailObjectMessage(notificationTrackerQueueDto, acknowledgment);
             case "PEC" ->
                     notificationTrackerMessageReceiver.receivePecObjectMessage(notificationTrackerQueueDto, acknowledgment);
+            case "SERCQ" ->
+                    notificationTrackerMessageReceiver.receiveSercqObjectMessage(notificationTrackerQueueDto,acknowledgment);
         }
 
         return notificationTrackerQueueDto;
@@ -406,6 +412,8 @@ public class NotificationTrackerMessageReceiverTest {
                     notificationTrackerMessageReceiver.receiveEmailObjectFromErrorQueue(notificationTrackerQueueDto, acknowledgment);
             case "PEC" ->
                     notificationTrackerMessageReceiver.receivePecObjectFromErrorQueue(notificationTrackerQueueDto, acknowledgment);
+            case "SERCQ" ->
+                    notificationTrackerMessageReceiver.receiveSercqObjectFromErrorQueue(notificationTrackerQueueDto,acknowledgment);
         }
 
     }
@@ -429,6 +437,13 @@ public class NotificationTrackerMessageReceiverTest {
         requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestPersonal(DigitalRequestPersonal.builder().build()).build()));
         Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(OffsetDateTime.now()).build()).build();
         requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("PEC").build()).build()));
+    }
+
+    private static void insertSercqRequest() {
+        var concatRequestId = CLIENT_ID + "~" + SERCQ_REQUEST_IDX;
+        requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestPersonal(DigitalRequestPersonal.builder().build()).build()));
+        Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(OffsetDateTime.now()).build()).build();
+        requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("SERCQ").build()).build()));
     }
 
     private static void insertPaperRequest() {

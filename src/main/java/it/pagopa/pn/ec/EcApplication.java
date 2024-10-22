@@ -76,6 +76,9 @@ import org.springframework.context.annotation.PropertySource;
 //AVAILABILIYMANAGER
 @PropertySource("classpath:availabilitymanager/availability-manager.properties")
 
+//SERCQ
+@PropertySource("classpath:sercq/sercq.properties")
+
 //PDFRASTER
 @PropertySource("classpath:pdfraster/pdf-raster.properties")
 
