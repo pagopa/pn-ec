@@ -18,7 +18,6 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import lombok.CustomLog;
-import lombok.CustomLog;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -385,6 +384,9 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                          });
     }
 })
+// Se riceviamo un Mono.empty(), ritorniamo una DeleteMessageResponse vuota per evitare che
+// lo schedulatore annulli lo scaricamento di messaggi dalla coda
+.defaultIfEmpty(DeleteMessageResponse.builder().build())
 //                                   Catch errore tirato per lo stato toDelete
 .onErrorResume(StatusToDeleteException.class, exception -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                      DELETED.getStatusTransactionTableCompliant(),

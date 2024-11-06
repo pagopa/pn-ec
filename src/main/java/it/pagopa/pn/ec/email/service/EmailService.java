@@ -482,7 +482,11 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                             message);
                                 });
                     }
-                })//              Catch errore tirato per lo stato toDelete
+                })
+                // Se riceviamo un Mono.empty(), ritorniamo una DeleteMessageResponse vuota per evitare che
+                // lo schedulatore annulli lo scaricamento di messaggi dalla coda
+                .defaultIfEmpty(DeleteMessageResponse.builder().build())
+                //              Catch errore tirato per lo stato toDelete
                 .onErrorResume(RetryAttemptsExceededExeption.class,
                         retryAttemptsExceededExeption ->
                              sendNotificationOnStatusQueue(emailPresaInCaricoInfo,

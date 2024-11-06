@@ -47,7 +47,6 @@ import jakarta.mail.Header;
 import jakarta.mail.Multipart;
 import jakarta.mail.internet.MimeMessage;
 
-import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -500,6 +499,9 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                     }
 
                 })
+                // Se riceviamo un Mono.empty(), ritorniamo una DeleteMessageResponse vuota per evitare che
+                // lo schedulatore annulli lo scaricamento di messaggi dalla coda
+                .defaultIfEmpty(DeleteMessageResponse.builder().build())
                 //              Catch errore tirato per lo stato toDelete
                 .onErrorResume(it.pagopa.pn.ec.commons.exception.StatusToDeleteException.class, statusToDeleteException -> {
                     log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.errorName());

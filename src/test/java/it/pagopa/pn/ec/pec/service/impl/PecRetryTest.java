@@ -335,7 +335,7 @@ class PecRetryTest {
         when(sqsService.deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
-        StepVerifier.create(response).verifyComplete();
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
         verify(arubaService, never()).sendMail(any());
     }
 
