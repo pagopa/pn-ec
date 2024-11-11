@@ -1,7 +1,7 @@
 #!/bin/bash
 
 region=eu-south-1
-account=089813480515
+account=""
 
 while getopts 'a:i:r:p:' opt ; do
   case "$opt" in 
@@ -35,6 +35,11 @@ fi
 
 if [[ ! $profile ]] ; then
   >&2 echo "-p parameter is mandatory"
+  exit 1
+fi
+
+if [[ -z $account ]] ; then
+  >&2 echo "-a parameter is mandatory"
   exit 1
 fi
 
