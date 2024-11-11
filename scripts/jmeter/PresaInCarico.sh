@@ -37,8 +37,10 @@ fi
 
 if [ x$sendSMS == x1 ] ; then
 
-  SMSSender="+393293707683"
-  SMSReceiver="+393293707683"
+  if [ -z "$SMSSender" ] || [ -z "$SMSReceiver" ]; then
+    echo "Error: SMSSender and SMSReceiver variables must be set to send an SMS."
+    exit 1
+  fi
 
   SMSRequestId="TestSMS-"$(date +%s)
 
@@ -53,8 +55,10 @@ fi
 
 if [ x$sendEmail == x1 ] ; then
 
-  EmailSender="federicotestpn@outlook.it"
-  EmailReceiver="mario.ottone@dgsspa.com"
+  if [ -z "$EmailSender" ] || [ -z "$EmailReceiver" ]; then
+    echo "Error: EmailSender and EmailReceiver variables must be set to send an Email."
+    exit 1
+  fi
 
   EmailRequestId="TestEmail-"$(date +%s)
 
@@ -69,8 +73,10 @@ fi
 
 if [ x$sendPEC == x1 ] ; then
 
-  PECSender="pectest@pec.pagopa.it"
-  PECReceiver="mario.ottone@arubapec.it"
+  if [ -z "$PECSender" ] || [ -z "$PECReceiver" ]; then
+    echo "Error: PECSender and PECReceiver variables must be set to send a PEC."
+    exit 1
+  fi
 
   PECRequestId="TestPEC-"$(date +%s)
 
