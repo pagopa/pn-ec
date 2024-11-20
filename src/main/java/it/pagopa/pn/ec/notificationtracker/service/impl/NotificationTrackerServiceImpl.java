@@ -6,6 +6,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigu
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsMaxTimeElapsedException;
+import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
@@ -68,7 +69,6 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                         if (!Objects.isNull(eventsList) && !eventsList.isEmpty()) {
 
-                                            //PaperProgressStatusDto paperProgressStatusDto = notificationTrackerQueueDto.getPaperProgressStatusDto();
                                             DigitalProgressStatusDto digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
 
                                             if (digitalProgressStatusDto != null) {
@@ -145,77 +145,39 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                             if (transactionProcessConfigurationProperties.pec().equals(processId) || transactionProcessConfigurationProperties.sercq().equals(processId)) {
 
-                                                LegalMessageSentDetails legalMessageSentDetails = new LegalMessageSentDetails();
-
-                                                legalMessageSentDetails.setRequestId(requestDto.getRequestIdx());
-                                                legalMessageSentDetails.setStatus(Enum.valueOf(ProgressEventCategory.class, macchinaStatiDecodeResponseDto.getExternalStatus()));
-                                                legalMessageSentDetails.setEventCode(LegalMessageSentDetails.EventCodeEnum.fromValue(macchinaStatiDecodeResponseDto.getLogicStatus()));
-                                                legalMessageSentDetails.setEventDetails(lastEventUpdatedDigital.getEventDetails());
-                                                legalMessageSentDetails.setEventTimestamp(lastEventUpdatedDigital.getEventTimestamp());
-                                                legalMessageSentDetails.setGeneratedMessage(digitalMessageReference);
+                                                LegalMessageSentDetails legalMessageSentDetails = createLegalMessageSentDetails(requestDto, macchinaStatiDecodeResponseDto, lastEventUpdatedDigital, digitalMessageReference);
 
                                                 singleStatusUpdate.setDigitalLegal(legalMessageSentDetails);
 
                                             } else {
 
-                                                CourtesyMessageProgressEvent courtesyMessageProgressEvent = new CourtesyMessageProgressEvent();
-
-                                                courtesyMessageProgressEvent.setRequestId(requestDto.getRequestIdx());
-                                                courtesyMessageProgressEvent.setStatus(Enum.valueOf(ProgressEventCategory.class, macchinaStatiDecodeResponseDto.getExternalStatus()));
-                                                courtesyMessageProgressEvent.setEventCode(CourtesyMessageProgressEvent.EventCodeEnum.fromValue(macchinaStatiDecodeResponseDto.getLogicStatus()));
-                                                courtesyMessageProgressEvent.setEventDetails(lastEventUpdatedDigital.getEventDetails());
-                                                courtesyMessageProgressEvent.setEventTimestamp(lastEventUpdatedDigital.getEventTimestamp());
-                                                courtesyMessageProgressEvent.setGeneratedMessage(digitalMessageReference);
+                                                CourtesyMessageProgressEvent courtesyMessageProgressEvent = createCourtesyMessageProgressEvent(requestDto, macchinaStatiDecodeResponseDto, lastEventUpdatedDigital, digitalMessageReference);
 
                                                 singleStatusUpdate.setDigitalCourtesy(courtesyMessageProgressEvent);
 
                                             }
                                         } else {
-                                            PaperProgressStatusEvent paperProgressStatusEvent = new PaperProgressStatusEvent();
 
                                             var lastEventUpdatedPaper = requestDto.getRequestMetadata().getEventsList().get(lastEventIndex).getPaperProgrStatus();
 
-                                            paperProgressStatusEvent.setRequestId(requestDto.getRequestIdx());
-                                            paperProgressStatusEvent.setRegisteredLetterCode(lastEventUpdatedPaper.getRegisteredLetterCode());
-
-                                            var paperRequest = requestDto.getRequestMetadata().getPaperRequestMetadata();
-                                            paperProgressStatusEvent.setProductType(lastEventUpdatedPaper.getProductType());
-                                            paperProgressStatusEvent.setIun(lastEventUpdatedPaper.getIun());
-                                            paperProgressStatusEvent.setStatusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
-                                            paperProgressStatusEvent.setStatusDescription(lastEventUpdatedPaper.getStatusDescription());
-                                            paperProgressStatusEvent.setStatusDateTime(lastEventUpdatedPaper.getStatusDateTime());
-                                            paperProgressStatusEvent.setDeliveryFailureCause(lastEventUpdatedPaper.getDeliveryFailureCause());
+                                            PaperProgressStatusEvent paperProgressStatusEvent = createPaperProgressStatusEvent(requestDto, macchinaStatiDecodeResponseDto, lastEventUpdatedPaper);
 
                                             var attachmentsDetailsList = new ArrayList<AttachmentDetails>();
 
-                                            List<AttachmentsProgressEventDto> attachmentsProgressEventDtolist= new ArrayList<>();
+                                            List<AttachmentsProgressEventDto> attachmentsProgressEventDtolist;
 
                                             if(!Objects.isNull(lastEventUpdatedPaper.getAttachments())) {
                                                 attachmentsProgressEventDtolist = lastEventUpdatedPaper.getAttachments();
                                                 for (AttachmentsProgressEventDto attachmentsProgressEventDto :
                                                         attachmentsProgressEventDtolist) {
-                                                    var attachmentsDetails = new AttachmentDetails();
-                                                    attachmentsDetails.setSha256(attachmentsProgressEventDto.getSha256());
-                                                    attachmentsDetails.setId(attachmentsProgressEventDto.getId());
-                                                    attachmentsDetails.setDocumentType(attachmentsProgressEventDto.getDocumentType());
-                                                    attachmentsDetails.setUri(attachmentsProgressEventDto.getUri());
-                                                    attachmentsDetails.setDate(attachmentsProgressEventDto.getDate());
+                                                    var attachmentsDetails = createAttachmentDetails(attachmentsProgressEventDto);
                                                     attachmentsDetailsList.add(attachmentsDetails);
                                                 }
                                             }
                                             paperProgressStatusEvent.setAttachments(attachmentsDetailsList);
                                             var lastDiscoveredAddress = lastEventUpdatedPaper.getDiscoveredAddress();
                                             if (!Objects.isNull(lastDiscoveredAddress)) {
-                                                var discoveredAddress = new DiscoveredAddress();
-                                                discoveredAddress.setName(lastDiscoveredAddress.getName());
-                                                discoveredAddress.setNameRow2(lastDiscoveredAddress.getNameRow2());
-                                                discoveredAddress.setAddress(lastDiscoveredAddress.getAddress());
-                                                discoveredAddress.setAddressRow2(lastDiscoveredAddress.getAddressRow2());
-                                                discoveredAddress.setCap(lastDiscoveredAddress.getCap());
-                                                discoveredAddress.setCity(lastDiscoveredAddress.getCity());
-                                                discoveredAddress.setCity2(lastDiscoveredAddress.getCity2());
-                                                discoveredAddress.setPr(lastDiscoveredAddress.getPr());
-                                                discoveredAddress.setCountry(lastDiscoveredAddress.getCountry());
+                                                var discoveredAddress = createDiscoverdAddress(lastDiscoveredAddress);
                                                 paperProgressStatusEvent.setDiscoveredAddress(discoveredAddress);
                                             }
 
@@ -272,4 +234,63 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
     }
 
 
+    private LegalMessageSentDetails createLegalMessageSentDetails(RequestDto requestDto, MacchinaStatiDecodeResponseDto macchinaStatiDecodeResponseDto, DigitalProgressStatusDto lastEventUpdatedDigital, DigitalMessageReference digitalMessageReference){
+        LegalMessageSentDetails legalMessageSentDetails = new LegalMessageSentDetails();
+        legalMessageSentDetails.setRequestId(requestDto.getRequestIdx());
+        legalMessageSentDetails.setStatus(Enum.valueOf(ProgressEventCategory.class, macchinaStatiDecodeResponseDto.getExternalStatus()));
+        legalMessageSentDetails.setEventCode(LegalMessageSentDetails.EventCodeEnum.fromValue(macchinaStatiDecodeResponseDto.getLogicStatus()));
+        legalMessageSentDetails.setEventDetails(lastEventUpdatedDigital.getEventDetails());
+        legalMessageSentDetails.setEventTimestamp(lastEventUpdatedDigital.getEventTimestamp());
+        legalMessageSentDetails.setGeneratedMessage(digitalMessageReference);
+        return legalMessageSentDetails;
+    }
+
+    private CourtesyMessageProgressEvent createCourtesyMessageProgressEvent(RequestDto requestDto, MacchinaStatiDecodeResponseDto macchinaStatiDecodeResponseDto, DigitalProgressStatusDto lastEventUpdatedDigital, DigitalMessageReference digitalMessageReference){
+        CourtesyMessageProgressEvent courtesyMessageProgressEvent = new CourtesyMessageProgressEvent();
+        courtesyMessageProgressEvent.setRequestId(requestDto.getRequestIdx());
+        courtesyMessageProgressEvent.setStatus(Enum.valueOf(ProgressEventCategory.class, macchinaStatiDecodeResponseDto.getExternalStatus()));
+        courtesyMessageProgressEvent.setEventCode(CourtesyMessageProgressEvent.EventCodeEnum.fromValue(macchinaStatiDecodeResponseDto.getLogicStatus()));
+        courtesyMessageProgressEvent.setEventDetails(lastEventUpdatedDigital.getEventDetails());
+        courtesyMessageProgressEvent.setEventTimestamp(lastEventUpdatedDigital.getEventTimestamp());
+        courtesyMessageProgressEvent.setGeneratedMessage(digitalMessageReference);
+        return courtesyMessageProgressEvent;
+
+    }
+
+    private PaperProgressStatusEvent createPaperProgressStatusEvent(RequestDto requestDto, MacchinaStatiDecodeResponseDto macchinaStatiDecodeResponseDto, PaperProgressStatusDto lastEventUpdatedPaper){
+        PaperProgressStatusEvent paperProgressStatusEvent = new PaperProgressStatusEvent();
+        paperProgressStatusEvent.setRequestId(requestDto.getRequestIdx());
+        paperProgressStatusEvent.setRegisteredLetterCode(lastEventUpdatedPaper.getRegisteredLetterCode());
+        paperProgressStatusEvent.setProductType(lastEventUpdatedPaper.getProductType());
+        paperProgressStatusEvent.setIun(lastEventUpdatedPaper.getIun());
+        paperProgressStatusEvent.setStatusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
+        paperProgressStatusEvent.setStatusDescription(lastEventUpdatedPaper.getStatusDescription());
+        paperProgressStatusEvent.setStatusDateTime(lastEventUpdatedPaper.getStatusDateTime());
+        paperProgressStatusEvent.setDeliveryFailureCause(lastEventUpdatedPaper.getDeliveryFailureCause());
+        return paperProgressStatusEvent;
+    }
+
+    private AttachmentDetails createAttachmentDetails(AttachmentsProgressEventDto attachmentsProgressEventDto){
+        AttachmentDetails attachmentsDetails = new AttachmentDetails();
+        attachmentsDetails.setSha256(attachmentsProgressEventDto.getSha256());
+        attachmentsDetails.setId(attachmentsProgressEventDto.getId());
+        attachmentsDetails.setDocumentType(attachmentsProgressEventDto.getDocumentType());
+        attachmentsDetails.setUri(attachmentsProgressEventDto.getUri());
+        attachmentsDetails.setDate(attachmentsProgressEventDto.getDate());
+        return  attachmentsDetails;
+    }
+
+    private DiscoveredAddress createDiscoverdAddress(DiscoveredAddressDto lastDiscoveredAddress){
+        DiscoveredAddress discoveredAddress = new DiscoveredAddress();
+        discoveredAddress.setName(lastDiscoveredAddress.getName());
+        discoveredAddress.setNameRow2(lastDiscoveredAddress.getNameRow2());
+        discoveredAddress.setAddress(lastDiscoveredAddress.getAddress());
+        discoveredAddress.setAddressRow2(lastDiscoveredAddress.getAddressRow2());
+        discoveredAddress.setCap(lastDiscoveredAddress.getCap());
+        discoveredAddress.setCity(lastDiscoveredAddress.getCity());
+        discoveredAddress.setCity2(lastDiscoveredAddress.getCity2());
+        discoveredAddress.setPr(lastDiscoveredAddress.getPr());
+        discoveredAddress.setCountry(lastDiscoveredAddress.getCountry());
+        return  discoveredAddress;
+    }
 }

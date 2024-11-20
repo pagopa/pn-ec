@@ -62,15 +62,6 @@ class SmsRetryTest {
             .generatedMessageDto(new GeneratedMessageDto().id("1221313223"))
             .step(NOTIFICATION_TRACKER_STEP)
             .build();
-    private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO1 = SmsPresaInCaricoInfo.builder()
-            .requestIdx("idTest")
-            .xPagopaExtchCxId(
-                    DEFAULT_ID_CLIENT_HEADER_VALUE)
-            .stepError(STEP_ERROR)
-            .digitalCourtesySmsRequest(createSmsRequest())
-            .build();
-
-    private final SqsMessageWrapper<SmsPresaInCaricoInfo> sqsPresaInCaricoInfo = new SqsMessageWrapper<>(message, SMS_PRESA_IN_CARICO_INFO);
 
     private static RequestDto buildRequestDto()
     {
@@ -129,12 +120,11 @@ class SmsRetryTest {
 
 
         Mono<DeleteMessageResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
-//        Mono<DeleteMessageResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO1, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-//        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO1), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
+
     @Test
     void gestioneRetrySms_GenericError() {
 

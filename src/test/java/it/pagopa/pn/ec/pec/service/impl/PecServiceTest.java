@@ -101,8 +101,8 @@ class PecServiceTest {
     private static Integer MAX_MESSAGE_SIZE_KB;
     private String TIPO_RICEVUTA_BREVE_DEFAULT;
     private String PROVIDER_SWITCH_WRITE_DEFAULT;
-    private final static String PROVIDER_SWITCH_WRITE_ARUBA = "1970-01-01T00:00:00Z;aruba";
-    private final static String PROVIDER_SWITCH_WRITE_NAMIRIAL = "1970-01-01T00:00:00Z;namirial";
+    private static final String PROVIDER_SWITCH_WRITE_ARUBA = "1970-01-01T00:00:00Z;aruba";
+    private static final String PROVIDER_SWITCH_WRITE_NAMIRIAL = "1970-01-01T00:00:00Z;namirial";
     public static DigitalNotificationRequest createDigitalNotificationRequest() {
 //        Mock an existing request. Set the requestIdx
         requestDto.setRequestIdx("requestIdx");

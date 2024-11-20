@@ -77,7 +77,6 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     public static final String SEND_EMAIL_ENDPOINT =
             "/external-channels/v1/digital-deliveries/courtesy-full-message-requests" + "/{requestIdx}";
     private static final DigitalCourtesyMailRequest digitalCourtesyMailRequest = new DigitalCourtesyMailRequest();
-    private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
     private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
 

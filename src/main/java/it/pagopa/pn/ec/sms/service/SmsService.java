@@ -18,7 +18,6 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import lombok.CustomLog;
-import lombok.CustomLog;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -81,7 +80,6 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         var smsPresaInCaricoInfo = (SmsPresaInCaricoInfo) presaInCaricoInfo;
         var requestIdx = smsPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
-        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_SMS, presaInCaricoInfo);
 
         var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
@@ -118,7 +116,6 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromSms(final DigitalCourtesySmsRequest digitalCourtesySmsRequest, String xPagopaExtchCxId) {
-        String concatRequestId = concatRequestId(xPagopaExtchCxId, digitalCourtesySmsRequest.getRequestId());
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_SMS, digitalCourtesySmsRequest);
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
