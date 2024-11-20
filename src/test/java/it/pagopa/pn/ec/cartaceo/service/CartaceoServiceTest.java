@@ -317,7 +317,7 @@ class CartaceoServiceTest {
         RequestDto requestDto = new RequestDto();
         RequestMetadataDto requestMetadata = new RequestMetadataDto().paperRequestMetadata(new PaperRequestMetadataDto().requestPaId("requestPaId"));
         requestDto.requestMetadata(requestMetadata);
-        when(gestoreRepositoryCall.getRichiesta((DEFAULT_ID_CLIENT_HEADER_VALUE), eq(DEFAULT_REQUEST_IDX))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(eq(DEFAULT_ID_CLIENT_HEADER_VALUE), eq(DEFAULT_REQUEST_IDX))).thenReturn(Mono.just(requestDto));
     }
 
     private void mockPutRequest() {

@@ -479,7 +479,7 @@ class CartaceoRetryTest {
 
     private void mockGestoreRepository(String clientId, String requestId, RequestDto requestDto) {
         // Mock di una generica getRichiesta.
-        when(gestoreRepositoryCall.getRichiesta((clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
 
         // Mock di una generica patchRichiesta.
         when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
