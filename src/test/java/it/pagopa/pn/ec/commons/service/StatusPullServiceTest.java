@@ -14,7 +14,6 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
@@ -23,7 +22,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
-public class StatusPullServiceTest {
+class StatusPullServiceTest {
 
     @Autowired
     private StatusPullService statusPullService;
@@ -36,7 +35,6 @@ public class StatusPullServiceTest {
     @MockBean
     private CallMacchinaStati callMacchinaStati;
     private static final String SMS_REQUEST_IDX = "SMS_REQUEST_IDX";
-    private static final String EMAIL_REQUEST_IDX = "EMAIL_REQUEST_IDX";
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
     private static final String PAPER_REQUEST_IDX = "PAPER_REQUEST_IDX";
     private static final String CLIENT_ID = "CLIENT_ID";

@@ -1,18 +1,8 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.utils;
 
-import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
-import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
-import it.pagopa.pn.ec.commons.utils.EmailUtils;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Base64;
-import java.util.List;
 import java.util.Random;
-
-import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
 
 public class PecUtils {
 

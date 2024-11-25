@@ -37,11 +37,6 @@ public class PaperEngageRequestFactory {
 	private static @NotNull PaperEngageRequest getPaperEngageRequest(PaperEngageRequestAttachments paperEngageRequestAttachments) {
 		var attachments = new ArrayList<PaperEngageRequestAttachments>();
 		attachments.add(paperEngageRequestAttachments);
-		/*for (int idx = 0; idx < attachNum; idx++) {
-			paperEngageRequestAttachments.setOrder(new BigDecimal(idx));
-
-		}*/
-
 		var vas = new HashMap<String, String>();
 		vas.put("Servizi", "valore aggiunto");
 		var odt = OffsetDateTime.parse("2023-02-01T07:41:35.717Z");

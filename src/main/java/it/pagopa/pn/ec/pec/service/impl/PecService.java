@@ -30,7 +30,6 @@ import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import lombok.CustomLog;
-import org.apache.commons.io.output.CountingOutputStream;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
@@ -69,7 +68,6 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.SERCQ;
 
 @Service
 @DependsOn("pnPecCredentialConf")
@@ -330,7 +328,6 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
         Policy retryPolicies = new Policy();
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
-        var clientId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, FILTER_REQUEST_PEC, pecPresaInCaricoInfo);
 
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();

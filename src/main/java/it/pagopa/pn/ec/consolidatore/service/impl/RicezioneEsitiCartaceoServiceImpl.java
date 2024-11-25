@@ -27,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
 import java.time.Duration;
@@ -89,143 +90,157 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 	// errore semantico -> resultDescription: 'Semantic Error'
 	private Mono<OperationResultCodeResponse> verificaErroriSemantici(ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent, RequestDto requestDto, String xPagopaExtchServiceId)
-			throws RicezioneEsitiCartaceoException
-	{
-		final String LOG_LABEL = "RicezioneEsitiCartaceoServiceImpl.verificaErroriSemantici() ";
-		final String ERROR_LABEL = "error = {}";
-
-		var requestId=progressStatusEvent.getRequestId();
+			throws RicezioneEsitiCartaceoException {
+		var requestId = progressStatusEvent.getRequestId();
 		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, VERIFICA_ERRORI_SEMANTICI, progressStatusEvent);
 
-
 		return statusPullService.paperPullService(requestId, xPagopaExtchServiceId)
-				.onErrorResume(StatusNotFoundException.class, throwable ->
-				{
+				.onErrorResume(StatusNotFoundException.class, throwable -> {
 					log.warn(EXCEPTION_IN_PROCESS_FOR, VERIFICA_ERRORI_SEMANTICI, requestId, throwable, throwable.getMessage());
-					ConsAuditLogError consAuditLogError = new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_STATUS.getValue()).description("Unable to decode last status");
-					return Mono.error(new RicezioneEsitiCartaceoException(SEMANTIC_ERROR_CODE, errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE), List.of("Unable to decode last status"), List.of(consAuditLogError)));
+					ConsAuditLogError consAuditLogError = new ConsAuditLogError()
+							.requestId(requestId)
+							.error(ERR_CONS_BAD_STATUS.getValue())
+							.description("Unable to decode last status");
+					return Mono.error(new RicezioneEsitiCartaceoException(
+							SEMANTIC_ERROR_CODE,
+							errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
+							List.of("Unable to decode last status"),
+							List.of(consAuditLogError)
+					));
 				})
 				.map(progressStatusEventToCheck ->
-				{
-
-					var iun = progressStatusEventToCheck.getIun();
-					var productType = progressStatusEventToCheck.getProductType();
-
-					List<String> errorList = new ArrayList<>();
-					List<ConsAuditLogError> auditLogErrorList = new ArrayList<>();
-
-					OffsetDateTime now = OffsetDateTime.now();
-
-					//Status date time
-					OffsetDateTime statusDateTime = progressStatusEvent.getStatusDateTime();
-					EventsDto sentEvent = requestDto.getRequestMetadata().getEventsList()
-							.stream()
-							.filter(eventsDto -> eventsDto.getPaperProgrStatus().getStatus().equals(SENT.getStatusTransactionTableCompliant()))
-							.findFirst()
-							.orElseGet(() -> {
-								if (considerEventsWithoutSentStatusAsBooked) {
-									return requestDto.getRequestMetadata().getEventsList()
-											.stream()
-											.filter(eventsDto -> eventsDto.getPaperProgrStatus().getStatus().equals(BOOKED.getStatusTransactionTableCompliant()))
-											.findFirst()
-											.orElseThrow(() -> new NoSuchEventException(BOOKED.getStatusTransactionTableCompliant()));
-								} else {
-									throw new NoSuchEventException(SENT.getStatusTransactionTableCompliant());
-								}
-							});
-					if (statusDateTime.isBefore(sentEvent.getPaperProgrStatus().getStatusDateTime())) {
-						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_STATUS_DATE_TIME.getValue()).description("Status date time is not valid."));
-						errorList.add(String.format(NOT_VALID, STATUS_DATE_TIME_LABEL, statusDateTime));
-					}
-
-					if(!offsetDuration.isNegative()) {
-						// Calcolo della data corrente con l'offset
-						OffsetDateTime nowWithOffset = now.plus(offsetDuration);
-						if (statusDateTime.isAfter(nowWithOffset)) {
-							auditLogErrorList.add(new ConsAuditLogError()
-									.requestId(requestId)
-									.error(ERR_CONS_BAD_STATUS_DATE_TIME.getValue())
-									.description("Status date time is in the future."));
-							errorList.add(String.format(NOT_VALID_FUTURE_DATE, STATUS_DATE_TIME_LABEL, statusDateTime));
-						}
-
-
-						//Client request timestamp
-						// Verifica client request timestamp non sia al futuro
-						OffsetDateTime clientRequestTimestamp = progressStatusEvent.getClientRequestTimeStamp();
-						if (clientRequestTimestamp.isAfter(nowWithOffset)) {
-							auditLogErrorList.add(new ConsAuditLogError()
-									.requestId(requestId)
-									.error(ERR_CONS_BAD_CLIENT_REQUEST_TIMESTAMP.getValue())
-									.description("Client request timestamp is in the future."));
-							errorList.add(String.format(NOT_VALID_FUTURE_DATE, CLIENT_REQUEST_TIMESTAMP_LABEL, clientRequestTimestamp));
-						}
-					}
-
-					//Iun
-					if (!StringUtils.isBlank(iun) && !progressStatusEvent.getIun().equals(iun)) {
-						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_IUN.getValue()).description("Iun is not valid."));
-						errorList.add(String.format(UNRECOGNIZED_ERROR, IUN_LABEL, iun));
-					}
-					// StatusCode
-					if (!statusCodeDescriptionMap().containsKey(progressStatusEvent.getStatusCode())) {
-						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_STATUS_CODE.getValue()).description("Status code is not valid."));
-						errorList.add(String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()));
-					}
-					// DeliveryFailureCause non è un campo obbligatorio
-                    boolean isOk = false;
-                    if (progressStatusEvent.getDeliveryFailureCause() != null
-                            && !progressStatusEvent.getDeliveryFailureCause().isBlank()) {
-                        isOk = deliveryFailureCausemap().containsKey(progressStatusEvent.getDeliveryFailureCause());
-                        if (isOk) {
-                            isOk = statusCodesToDeliveryFailureCauses.isDeliveryFailureCauseInStatusCode(progressStatusEvent.getStatusCode(), progressStatusEvent.getDeliveryFailureCause());
-                        }
-                        if (!isOk) {
-                            auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_DEL_FAILURE_CAUSE.getValue()).description("DeliveryFailureCause is not valid."));
-                            errorList.add(String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
-                        }
-                    }
-
-                    //TODO COMMENTATO PER UN CASO PARTICOLARE CHE ANDRA' GESTITO IN FUTURO.
-//					if (!progressStatusEvent.getProductType().equals(productType)) {
-//						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getStatusCode()));
-//						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, productType));
-//					}
-					// PN-7989
-					if(progressStatusEvent.getStatusCode().startsWith("REC")) {
-						if (progressStatusEvent.getAttachments() != null && !progressStatusEvent.getAttachments().isEmpty()) {
-							for (ConsolidatoreIngressPaperProgressStatusEventAttachments attachment : progressStatusEvent.getAttachments()) {
-								if (!attachmentDocumentTypeMap().contains(attachment.getDocumentType())) {
-									auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_DOC_TYPE.getValue()).description("Document type is not valid."));
-									log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, ATTACHMENT_DOCUMENT_TYPE_LABEL, attachment.getDocumentType()));
-									errorList.add(String.format(UNRECOGNIZED_ERROR, ATTACHMENT_DOCUMENT_TYPE_LABEL, attachment.getDocumentType()));
-								}
-							}
-						}
-					}
-					// ProductTypeMap
-//					if (!productTypeMap().containsKey(progressStatusEvent.getProductType())) {
-//						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
-//						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
-//					}
-						return Tuples.of(errorList, auditLogErrorList);
-					})
-				.handle((tuple, syncrhonousSink) ->
-				{
+						checkProgressStatusEvent(progressStatusEventToCheck, progressStatusEvent, requestDto, requestId)
+				)
+				.handle((tuple, syncrhonousSink) -> {
 					var errorList = tuple.getT1();
 					var auditLogErrorList = tuple.getT2();
 
 					if (errorList.isEmpty()) {
-						syncrhonousSink.next(getOperationResultCodeResponse(COMPLETED_OK_CODE, COMPLETED_MESSAGE, null));
+						syncrhonousSink.next(getOperationResultCodeResponse(
+								COMPLETED_OK_CODE,
+								COMPLETED_MESSAGE,
+								null
+						));
 					} else {
 						syncrhonousSink.error(new RicezioneEsitiCartaceoException(
 								SEMANTIC_ERROR_CODE,
 								errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-								errorList, auditLogErrorList));
+								errorList,
+								auditLogErrorList
+						));
 					}
 				})
 				.cast(OperationResultCodeResponse.class)
 				.doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, requestId, VERIFICA_ERRORI_SEMANTICI, result));
+	}
+
+	private Tuple2<List<String>, List<ConsAuditLogError>> checkProgressStatusEvent(PaperProgressStatusEvent progressStatusEventToCheck, ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent, RequestDto requestDto, String requestId) {
+
+		List<String> errorList = new ArrayList<>();
+		List<ConsAuditLogError> auditLogErrorList = new ArrayList<>();
+
+		OffsetDateTime now = OffsetDateTime.now();
+
+		validateStatusDateTime(progressStatusEvent, requestDto, now, errorList, auditLogErrorList, requestId);
+		validateClientRequestTimestamp(progressStatusEvent, now, errorList, auditLogErrorList, requestId);
+		validateIun(progressStatusEventToCheck, progressStatusEvent, errorList, auditLogErrorList, requestId);
+		validateStatusCode(progressStatusEvent, errorList, auditLogErrorList, requestId);
+		validateDeliveryFailureCause(progressStatusEvent, errorList, auditLogErrorList, requestId);
+		validateAttachmentsForRecStatusCode(progressStatusEvent, errorList, auditLogErrorList, requestId);
+
+		return Tuples.of(errorList, auditLogErrorList);
+	}
+
+	private void validateStatusDateTime(ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent, RequestDto requestDto, OffsetDateTime now, List<String> errorList, List<ConsAuditLogError> auditLogErrorList, String requestId) {
+		OffsetDateTime statusDateTime = progressStatusEvent.getStatusDateTime();
+		EventsDto sentEvent = getSentOrBookedEvent(requestDto);
+
+		if (statusDateTime.isBefore(sentEvent.getPaperProgrStatus().getStatusDateTime())) {
+			addError(errorList, auditLogErrorList, requestId, ERR_CONS_BAD_STATUS_DATE_TIME.getValue(), "Status date time is not valid.",
+					STATUS_DATE_TIME_LABEL, statusDateTime);
+		}
+
+		if (!offsetDuration.isNegative()) {
+			OffsetDateTime nowWithOffset = now.plus(offsetDuration);
+			if (statusDateTime.isAfter(nowWithOffset)) {
+				addError(errorList, auditLogErrorList, requestId, ERR_CONS_BAD_STATUS_DATE_TIME.getValue(), "Status date time is in the future.",
+						STATUS_DATE_TIME_LABEL, statusDateTime);
+			}
+		}
+	}
+
+	private void validateClientRequestTimestamp(ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent, OffsetDateTime now, List<String> errorList, List<ConsAuditLogError> auditLogErrorList, String requestId) {
+		OffsetDateTime clientRequestTimestamp = progressStatusEvent.getClientRequestTimeStamp();
+		if (!offsetDuration.isNegative()) {
+			OffsetDateTime nowWithOffset = now.plus(offsetDuration);
+			if (clientRequestTimestamp.isAfter(nowWithOffset)) {
+				addError(errorList, auditLogErrorList, requestId, ERR_CONS_BAD_CLIENT_REQUEST_TIMESTAMP.getValue(),
+						"Client request timestamp is in the future.", CLIENT_REQUEST_TIMESTAMP_LABEL, clientRequestTimestamp);
+			}
+		}
+	}
+
+	private void validateIun(PaperProgressStatusEvent progressStatusEventToCheck, ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent, List<String> errorList, List<ConsAuditLogError> auditLogErrorList, String requestId) {
+		String iun = progressStatusEventToCheck.getIun();
+		if (!StringUtils.isBlank(iun) && !progressStatusEvent.getIun().equals(iun)) {
+			addError(errorList, auditLogErrorList, requestId, ERR_CONS_BAD_IUN.getValue(), "Iun is not valid.", IUN_LABEL, iun);
+		}
+	}
+
+	private void validateStatusCode(ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent, List<String> errorList, List<ConsAuditLogError> auditLogErrorList, String requestId) {
+		if (!statusCodeDescriptionMap().containsKey(progressStatusEvent.getStatusCode())) {
+			addError(errorList, auditLogErrorList, requestId, ERR_CONS_BAD_STATUS_CODE.getValue(), "Status code is not valid.",
+					STATUS_CODE_LABEL, progressStatusEvent.getStatusCode());
+		}
+	}
+
+	private void validateDeliveryFailureCause(ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent, List<String> errorList, List<ConsAuditLogError> auditLogErrorList, String requestId) {
+		String deliveryFailureCause = progressStatusEvent.getDeliveryFailureCause();
+		if (deliveryFailureCause != null && !deliveryFailureCause.isBlank()) {
+			boolean isValid = deliveryFailureCausemap().containsKey(deliveryFailureCause) &&
+					statusCodesToDeliveryFailureCauses.isDeliveryFailureCauseInStatusCode(progressStatusEvent.getStatusCode(),
+							deliveryFailureCause);
+
+			if (!isValid) {
+				addError(errorList, auditLogErrorList, requestId, ERR_CONS_BAD_DEL_FAILURE_CAUSE.getValue(),
+						"DeliveryFailureCause is not valid.", DELIVERY_FAILURE_CAUSE_LABEL, deliveryFailureCause);
+			}
+		}
+	}
+
+	private void validateAttachmentsForRecStatusCode(ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent, List<String> errorList, List<ConsAuditLogError> auditLogErrorList, String requestId) {
+		if (progressStatusEvent.getStatusCode().startsWith("REC") && progressStatusEvent.getAttachments() != null) {
+			for (ConsolidatoreIngressPaperProgressStatusEventAttachments attachment : progressStatusEvent.getAttachments()) {
+				if (!attachmentDocumentTypeMap().contains(attachment.getDocumentType())) {
+					addError(errorList, auditLogErrorList, requestId, ERR_CONS_BAD_DOC_TYPE.getValue(), "Document type is not valid.",
+							ATTACHMENT_DOCUMENT_TYPE_LABEL, attachment.getDocumentType());
+				}
+			}
+		}
+	}
+
+	private EventsDto getSentOrBookedEvent(RequestDto requestDto) {
+		return requestDto.getRequestMetadata().getEventsList()
+				.stream()
+				.filter(eventsDto -> eventsDto.getPaperProgrStatus().getStatus().equals(SENT.getStatusTransactionTableCompliant()))
+				.findFirst()
+				.orElseGet(() -> {
+					if (considerEventsWithoutSentStatusAsBooked) {
+						return requestDto.getRequestMetadata().getEventsList()
+								.stream()
+								.filter(eventsDto -> eventsDto.getPaperProgrStatus().getStatus().equals(BOOKED.getStatusTransactionTableCompliant()))
+								.findFirst()
+								.orElseThrow(() -> new NoSuchEventException(BOOKED.getStatusTransactionTableCompliant()));
+					} else {
+						throw new NoSuchEventException(SENT.getStatusTransactionTableCompliant());
+					}
+				});
+	}
+
+	private void addError(List<String> errorList, List<ConsAuditLogError> auditLogErrorList, String requestId,
+						  String errorCode, String description, String label, Object value) {
+		auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(errorCode).description(description));
+		errorList.add(String.format(UNRECOGNIZED_ERROR, label, value));
 	}
 
 

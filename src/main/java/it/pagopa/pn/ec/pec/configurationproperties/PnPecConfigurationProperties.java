@@ -40,11 +40,11 @@ public class PnPecConfigurationProperties {
 
 
     private TreeMap<DateTime, List<String>> splitDateProviders(String propertyString) {
-        TreeMap<DateTime, List<String>> dateProviders = new TreeMap<DateTime, List<String>>();
+        TreeMap<DateTime, List<String>> dateProviders = new TreeMap<>();
         String[] propertyArray = propertyString.split(",");
         for (String property : propertyArray) {
             DateTime key;
-            List<String> values = new ArrayList<String>();
+            List<String> values = new ArrayList<>();
             String[] propertyBase = property.split(";");
             key = DateTime.parse(propertyBase[0]);
             String[] providerProperty = propertyBase[1].split("\\|");

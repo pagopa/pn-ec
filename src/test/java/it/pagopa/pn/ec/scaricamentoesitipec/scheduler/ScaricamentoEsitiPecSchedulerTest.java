@@ -69,10 +69,6 @@ class ScaricamentoEsitiPecSchedulerTest {
     private static final String CLIENT_ID = "CLIENT_ID";
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
     private static final String UUID = "UUID";
-    @Test
-    void scaricamentoEsitiPecOk() {
-
-    }
 
 
     @Test
