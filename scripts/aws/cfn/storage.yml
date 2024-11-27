@@ -55,6 +55,7 @@ Resources:
     Type: 'AWS::KMS::Key'
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    EnableKeyRotation: true
     Properties:
       Description: A symmetric encryption KMS key AES-256-GCM
       KeySpec: SYMMETRIC_DEFAULT
