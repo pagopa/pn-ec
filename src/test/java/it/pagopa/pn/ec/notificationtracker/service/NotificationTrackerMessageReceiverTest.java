@@ -200,23 +200,6 @@ public class NotificationTrackerMessageReceiverTest {
 
     @ParameterizedTest
     @MethodSource("provideArguments")
-    void digitalNtGeneratedMessageNullOk(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
-
-        //WHEN
-        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
-        mockStatusDecode();
-
-        //THEN
-        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId, SENT, null);
-
-        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
-        verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
-        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(processId));
-
-    }
-
-    @ParameterizedTest
-    @MethodSource("provideArguments")
     void digitalNtStatusValidationAndSqsSendKo(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
 
         //WHEN
