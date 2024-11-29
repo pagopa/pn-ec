@@ -116,7 +116,7 @@
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"authenticationError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P013"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"booked"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"syntaxError"},{"S":"semanticError"},{"S":"authenticationError"},{"S":"duplicatedRequest"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"duplicatedRequest"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P014"},"targetStatus":{"L":[{"S":"_end_"}]}}
-{"processClientId":{"S":"PAPER"},"currStatus":{"S":"error"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P008"},"targetStatus":{"L":[{"S":"_end_"}]}}
+{"processClientId":{"S":"PAPER"},"currStatus":{"S":"error"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"P008"},"targetStatus":{"L":[{"S":"_any_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"inprogress"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"P001"},"targetStatus":{"L":[{"S":"inprogress"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"internalError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P010"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"retry"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"error"}]}}
