@@ -4,6 +4,7 @@ import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.RasterProperties;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
+import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
@@ -27,8 +28,9 @@ import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.io.ByteArrayOutputStream;
+import java.util.List;
 
-import static it.pagopa.pn.ec.commons.constant.Status.RETRY;
+import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.consolidatore.utils.ContentTypes.APPLICATION_PDF;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.CODE_TO_STATUS_MAP;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.OK_CODE;
@@ -299,6 +301,22 @@ class CartaceoServiceTest {
         verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
     }
 
+    @Test
+    void lavorazioneRichiestaAlreadyInSent() {
+
+        //WHEN
+        mockGestoreRepository(SENT);
+        mockPutRequest();
+        mockPdfRasterAttachmentSteps();
+
+        //THEN
+        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
+        verify(paperMessageCall, never()).putRequest(any());
+        verify(cartaceoService, never()).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
+
+    }
+
     private void mockPdfRasterAttachmentSteps() {
         String originalFileKey = randomAlphanumeric(10);
         FileDownloadInfo fileDownloadInfo = new FileDownloadInfo().url(DOWNLOAD_URL);
@@ -313,12 +331,22 @@ class CartaceoServiceTest {
     }
 
     private void mockGestoreRepository() {
+        mockGestoreRepository(BOOKED);
+    }
+
+    private void mockGestoreRepository(Status status) {
         // Mock di una generica getRichiesta.
         RequestDto requestDto = new RequestDto();
-        RequestMetadataDto requestMetadata = new RequestMetadataDto().paperRequestMetadata(new PaperRequestMetadataDto().requestPaId("requestPaId"));
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto();
+        paperProgressStatusDto.status(status.getStatusTransactionTableCompliant());
+        EventsDto eventsDto = new EventsDto();
+        eventsDto.setPaperProgrStatus(paperProgressStatusDto);
+        RequestMetadataDto requestMetadata = new RequestMetadataDto().paperRequestMetadata(new PaperRequestMetadataDto().requestPaId("requestPaId")).eventsList(List.of(eventsDto));
+
         requestDto.requestMetadata(requestMetadata);
         when(gestoreRepositoryCall.getRichiesta(eq(DEFAULT_ID_CLIENT_HEADER_VALUE), eq(DEFAULT_REQUEST_IDX))).thenReturn(Mono.just(requestDto));
     }
+
 
     private void mockPutRequest() {
         when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));

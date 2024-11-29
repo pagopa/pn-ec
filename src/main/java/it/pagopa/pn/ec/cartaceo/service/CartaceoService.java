@@ -471,7 +471,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
      */
     private Mono<OperationResultCodeResponse> putRequestStep(CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest paperEngageRequestDst) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CARTACEO_PUT_REQUEST_STEP, cartaceoPresaInCaricoInfo);
-        return Mono.just(overridePaIdIfRequired(paperEngageRequestDst))
+        return filterIfSent(cartaceoPresaInCaricoInfo)
+                .flatMap(requestDto -> Mono.just(overridePaIdIfRequired(paperEngageRequestDst)))
                 .flatMap(requestDto -> paperMessageCall.putRequest(paperEngageRequestDst).retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY))
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, cartaceoPresaInCaricoInfo.getRequestIdx(), CARTACEO_PUT_REQUEST_STEP, result))
                 .doOnError(MaxRetriesExceededException.class, throwable -> {
@@ -481,6 +482,18 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     cartaceoPresaInCaricoInfo.setStepError(stepError);
                 });
     }
+
+    private Mono<RequestDto> filterIfSent(CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo) {
+        return gestoreRepositoryCall.getRichiesta(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(), cartaceoPresaInCaricoInfo.getRequestIdx())
+                .filter(requestDto -> requestDto.getRequestMetadata().getEventsList().stream().noneMatch(eventsDto -> eventsDto.getPaperProgrStatus().getStatus().equals(SENT.getStatusTransactionTableCompliant())))
+                .switchIfEmpty(Mono.fromRunnable(() -> {
+                    log.warn("Request already sent to the Consolidatore service. Skipping the operation.");
+                    StepError stepError = new StepError();
+                    stepError.setStep(END);
+                    cartaceoPresaInCaricoInfo.setStepError(stepError);
+                }));
+    }
+
 
     private  it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest overridePaIdIfRequired( it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest paperEngageRequest) {
         String paIdOverride = rasterConfiguration.getPaIdOverride();
