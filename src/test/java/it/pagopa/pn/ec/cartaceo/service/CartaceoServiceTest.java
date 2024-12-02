@@ -6,6 +6,7 @@ import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
+import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage.PaperMessageCall;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
@@ -317,6 +319,57 @@ class CartaceoServiceTest {
 
     }
 
+    @Test
+    void chooseStepTest(){
+        //WHEN
+        RequestDto requestDto = mockGestoreRepository(BOOKED);
+        mockPutRequest();
+        mockPdfRasterAttachmentSteps();
+
+        StepError stepError = new StepError();
+        stepError.setStep(StepError.StepErrorEnum.PUT_REQUEST_STEP);
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = CartaceoPresaInCaricoInfo.builder().requestIdx(DEFAULT_REQUEST_IDX)
+                .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .stepError(stepError)
+                .paperEngageRequest(PaperEngageRequestFactory.createDtoPaperRequest(2)).build();
+
+        //THEN
+        Mono<SendMessageResponse> chooseStep = ReflectionTestUtils.invokeMethod(cartaceoService, "chooseStep", cartaceoPresaInCaricoInfo,
+                new it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest(),
+                new it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest(),
+                requestDto);
+
+        assert chooseStep != null;
+        StepVerifier.create(chooseStep).expectNextCount(1).verifyComplete();
+        verify(paperMessageCall, times(1)).putRequest(any());
+    }
+
+    @Test
+    void chooseStepAlreadyInSent(){
+        //WHEN
+        RequestDto requestDto = mockGestoreRepository(SENT);
+        mockPutRequest();
+        mockPdfRasterAttachmentSteps();
+
+        StepError stepError = new StepError();
+        stepError.setStep(StepError.StepErrorEnum.PUT_REQUEST_STEP);
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = CartaceoPresaInCaricoInfo.builder().requestIdx(DEFAULT_REQUEST_IDX)
+                .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .stepError(stepError)
+                .paperEngageRequest(PaperEngageRequestFactory.createDtoPaperRequest(2)).build();
+
+        //THEN
+        Mono<SendMessageResponse> chooseStep = ReflectionTestUtils.invokeMethod(cartaceoService, "chooseStep", cartaceoPresaInCaricoInfo,
+                new it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest(),
+                new it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest(),
+                requestDto);
+
+
+        assert chooseStep != null;
+        StepVerifier.create(chooseStep).expectNextCount(1).verifyComplete();
+        verify(paperMessageCall, never()).putRequest(any());
+    }
+
     private void mockPdfRasterAttachmentSteps() {
         String originalFileKey = randomAlphanumeric(10);
         FileDownloadInfo fileDownloadInfo = new FileDownloadInfo().url(DOWNLOAD_URL);
@@ -334,7 +387,7 @@ class CartaceoServiceTest {
         mockGestoreRepository(BOOKED);
     }
 
-    private void mockGestoreRepository(Status status) {
+    private RequestDto mockGestoreRepository(Status status) {
         // Mock di una generica getRichiesta.
         RequestDto requestDto = new RequestDto();
         PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto();
@@ -345,6 +398,7 @@ class CartaceoServiceTest {
 
         requestDto.requestMetadata(requestMetadata);
         when(gestoreRepositoryCall.getRichiesta(eq(DEFAULT_ID_CLIENT_HEADER_VALUE), eq(DEFAULT_REQUEST_IDX))).thenReturn(Mono.just(requestDto));
+        return requestDto;
     }
 
 
