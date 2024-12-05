@@ -151,6 +151,10 @@ Resources:
       TableClass: 'STANDARD'
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: 'KMS'
+        KMSMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
 
