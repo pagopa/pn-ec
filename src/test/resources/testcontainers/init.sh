@@ -43,6 +43,10 @@ S3_BUCKETS=(
   "pn-ec-storage-sqs-messages-staging"
 )
 
+SES_EMAILS=(
+  "test@pagopa.com"
+)
+
 # Creazione delle tabelle DynamoDB
 create_dynamodb_table() {
   local table_name=$1
@@ -112,6 +116,14 @@ create_secret() {
     --secret-string "$secret_value"
 }
 
+authorize_ses_email() {
+  local email_address=$1
+  aws ses verify-email-identity \
+    --region "$AWS_REGION" \
+    --endpoint-url "$LOCALSTACK_ENDPOINT" \
+    --email-address "$email_address"
+}
+
 for queue in "${SQS_QUEUES[@]}"; do
   create_sqs_queue "$queue" &
 done
@@ -119,6 +131,11 @@ wait
 
 for bucket in "${S3_BUCKETS[@]}"; do
   create_s3_bucket "$bucket" &
+done
+wait
+
+for email in "${SES_EMAILS[@]}"; do
+  authorize_ses_email "$email" &
 done
 wait
 
