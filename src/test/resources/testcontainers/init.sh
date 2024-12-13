@@ -29,6 +29,7 @@ SQS_QUEUES=(
   "pn-ec-pec-errori-queue.fifo"
   "pn-ec-pec-errori-queue-DLQ.fifo"
   "pn-ec-pec-scaricamento-esiti-queue.fifo"
+  "pn-ec-pec-cancellazione-ricevute-queue.fifo"
 
   "pn-ec-tracker-cartaceo-stato-queue.fifo"
   "pn-ec-tracker-cartaceo-errori-queue.fifo"
@@ -38,10 +39,12 @@ SQS_QUEUES=(
 
   "pn-ec-tracker-sercq-send-stato-queue.fifo"
   "pn-ec-tracker-sercq-send-errori-queue.fifo"
+
+  "pn-ec-availabilitymanager-queue.fifo"
 )
 
 S3_BUCKETS=(
-  "pn-ec-storage-sqs-messages-staging"
+  "pn-sqs-messages-staging"
 )
 
 SES_EMAILS=(
@@ -87,8 +90,8 @@ create_dynamodb_table() {
   local pk=$2
 
   log "Creating DynamoDB table: $table_name"
-  if ! aws dynamodb describe-table --table-name "$table_name" --endpoint-url "$DYNAMODB_ENDPOINT" ; then
-    if ! silent aws dynamodb create-table \
+  if ! silent aws dynamodb describe-table --table-name "$table_name" --region "$AWS_REGION" --endpoint-url "$LOCALSTACK_ENDPOINT" ; then
+    if ! aws dynamodb create-table \
       --region "$AWS_REGION" \
       --endpoint-url "$LOCALSTACK_ENDPOINT" \
       --table-name "$table_name" \
@@ -123,6 +126,13 @@ create_sqs_queue() {
 create_s3_bucket() {
   local bucket_name=$1
   echo "Crating S3 bucket: $bucket_name"
+
+  silent aws s3api head-bucket \
+    --region "$AWS_REGION" \
+    --endpoint-url "$LOCALSTACK_ENDPOINT" \
+    --bucket "$bucket_name" && \
+  log "Bucket already exists: $bucket_name" && return 0
+
   aws s3api create-bucket \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
@@ -143,6 +153,15 @@ create_ssm_parameter() {
   local parameter_name=$1
   local parameter_value=$2
   echo "Creating parameter: $parameter_name"
+  echo "Parameter value: $parameter_value"
+
+  silent aws ssm get-parameter \
+    --region "$AWS_REGION" \
+    --endpoint-url "$LOCALSTACK_ENDPOINT" \
+    --name "$parameter_name" && \
+    log "Parameter already exists: $parameter_name" && \
+    return 0
+
   aws ssm put-parameter \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
@@ -158,10 +177,25 @@ create_secret() {
   local secret_name=$1
   local secret_value=$2
   echo "Creating secret: $secret_name"
+  echo "Secret value: $secret_value"
+
+  silent aws secretsmanager get-secret-value \
+    --region "$AWS_REGION" \
+    --endpoint-url "$LOCALSTACK_ENDPOINT" \
+    --secret-id "$secret_name" && \
+    log "Secret already exists: $secret_name" && \
+    return 0
+
   aws secretsmanager create-secret \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
     --name "$secret_name" \
+    --secret-string "$secret_value" && \
+
+  aws secretsmanager put-secret-value \
+    --region "$AWS_REGION" \
+    --endpoint-url "$LOCALSTACK_ENDPOINT" \
+    --secret-id "$secret_name" \
     --secret-string "$secret_value" && \
     log "Secret created: $secret_name" || \
   { log "Failed to create secret: $secret_name"; return 1; }
@@ -240,7 +274,7 @@ main(){
     }
   }' &
   pids+=("$!")
-  create_secret "pn/identity/pec" '{
+  create_secret "Pn-EC-PEC" '{
     "aruba.pec.username": "aruba_username@dgsspa.com",
     "aruba.pec.password": "aruba_password",
     "aruba.pec.sender": "aruba_sender@dgsspa.com",
