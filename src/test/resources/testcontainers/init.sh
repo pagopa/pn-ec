@@ -6,6 +6,7 @@ set -e
 VERBOSE=true
 AWS_REGION="eu-south-1"
 LOCALSTACK_ENDPOINT="http://localhost:4566"
+NOTIFICATIONS_BUS_NAME="notifications-bus-name-test"
 
 SQS_QUEUES=(
   "pn-ec-tracker-sms-stato-queue.fifo"
@@ -29,7 +30,7 @@ SQS_QUEUES=(
   "pn-ec-pec-errori-queue.fifo"
   "pn-ec-pec-errori-queue-DLQ.fifo"
   "pn-ec-pec-scaricamento-esiti-queue.fifo"
-  "pn-ec-pec-cancellazione-ricevute-queue.fifo"
+  "pn-ec-pec-cancellazione-ricevute-queue"
 
   "pn-ec-tracker-cartaceo-stato-queue.fifo"
   "pn-ec-tracker-cartaceo-errori-queue.fifo"
@@ -40,7 +41,13 @@ SQS_QUEUES=(
   "pn-ec-tracker-sercq-send-stato-queue.fifo"
   "pn-ec-tracker-sercq-send-errori-queue.fifo"
 
-  "pn-ec-availabilitymanager-queue.fifo"
+  "pn-ec-availabilitymanager-queue"
+  "pn-ec-notifiche-esterne-dev-debug-queue"
+  "pn-ec-cucumber-test-queue"
+)
+
+DEBUG_QUEUS=(
+
 )
 
 S3_BUCKETS=(
@@ -112,14 +119,16 @@ create_dynamodb_table() {
 create_sqs_queue() {
   local queue_name=$1
   log "Creating SQS queue: $queue_name"
-
-  silent aws sqs create-queue \
-    --region "$AWS_REGION" \
-    --endpoint-url "$LOCALSTACK_ENDPOINT" \
-    --queue-name "$queue_name" \
-    --attributes FifoQueue=true,ContentBasedDeduplication=true && \
-    log "Queue created: $queue_name" || \
-  { log "Failed to create queue: $queue_name"; return 1; }
+  base_cmd_args="--region ${AWS_REGION} --endpoint-url ${LOCALSTACK_ENDPOINT} --queue-name ${queue_name}"
+   if [[ $queue_name == *.fifo ]]; then
+    base_cmd_args="${base_cmd_args} --attributes FifoQueue=true,ContentBasedDeduplication=true"
+  fi
+  if ! silent aws sqs create-queue ${base_cmd_args}; then
+    log "Failed to create queue: $queue_name"
+    return 1
+  else
+    log "Queue created: $queue_name"
+  fi
 }
 
 # Creazione dei bucket S3
@@ -201,6 +210,67 @@ create_secret() {
   { log "Failed to create secret: $secret_name"; return 1; }
 }
 
+create_event_bus()
+{
+  local event_bus_name=$1
+
+  silent aws events describe-event-bus \
+    --region "$AWS_REGION" \
+    --endpoint-url "$LOCALSTACK_ENDPOINT" \
+    --name $event_bus_name && \
+    log "Event bus already exists: $event_bus_name" && \
+    return 0
+
+  aws events create-event-bus \
+    --region "$AWS_REGION" \
+    --endpoint-url "$LOCALSTACK_ENDPOINT" \
+    --name $event_bus_name
+    log "Event bus created: $event_bus_name" || \
+  { log "Failed to create event bus: $event_bus_name"; return 1; }
+}
+
+create_eventbridge_rule() {
+   local event_name=$1
+   local event_pattern=$2
+   aws events put-rule \
+    --endpoint-url="$LOCALSTACK_ENDPOINT" \
+    --region "$AWS_REGION" \
+    --name $event_name \
+    --event-bus-name "$NOTIFICATIONS_BUS_NAME" \
+    --event-pattern "$event_pattern" \
+    --state "ENABLED"
+    log "Event rule created: $event_name" || \
+  { log "Failed to create event rule: $event_name"; return 1; }
+}
+
+put_sqs_as_rule_target() {
+  local queue_name=$1
+  local rule_name=$2
+  echo "Putting queue $queue_name as target for rule $rule_name"
+
+  queue_url=$(aws sqs get-queue-url --region $AWS_REGION --endpoint-url $LOCALSTACK_ENDPOINT --queue-name $queue_name --query "QueueUrl" --output text | tr -d '\r')
+
+  if [[ $? -eq 0 ]]; then
+    echo "Queue URL: $queue_url"
+    queue_arn=$(aws sqs get-queue-attributes --region "$AWS_REGION" --endpoint-url "$LOCALSTACK_ENDPOINT" --queue-url "$queue_url" --attribute-names "QueueArn" --query "Attributes.QueueArn" --output text | tr -d '\r')
+    if [[ $? -eq 0 ]]; then
+      echo "Queue ARN: $queue_arn"
+    else
+      echo "Failed to get ARN for queue: $queue_name"
+    fi
+  else
+    echo "Failed to get URL for queue: $queue_name"
+  fi
+
+  aws events put-targets \
+    --region "$AWS_REGION" \
+    --endpoint-url "$LOCALSTACK_ENDPOINT" \
+    --event-bus-name "$NOTIFICATIONS_BUS_NAME" \
+    --rule "$rule_name" \
+    --targets "Id=${queue_name}-target,Arn=${queue_arn}"
+}
+
+
 authorize_ses_email() {
   local email_address=$1
   aws ses verify-email-identity \
@@ -254,11 +324,37 @@ initialize_dynamo() {
   return $return_code
 }
 
+initialize_event_bridge()
+{
+    log "Initializing event bridge"
+    create_event_bus $NOTIFICATIONS_BUS_NAME && \
+    create_eventbridge_rule "PnEcEventRuleCancellazioneRicevutePEC" '{
+          "source": ["NOTIFICATION TRACKER"],
+          "region": ["eu-south-1"],
+          "detail": {
+            "digitalLegal": {
+              "eventCode": ["C001", "C002", "C003", "C004", "C006", "C007", "C009"]
+            }
+          }
+        }' && \
+    create_eventbridge_rule "PnEcEventRuleAvailabilityManager" '{
+              "source": ["GESTORE DISPONIBILITA"],
+              "region": ["eu-south-1"]
+            }'  && \
+    create_eventbridge_rule "PnEcEventRuleExternalNotifications" '{
+        "source": ["NOTIFICATION TRACKER"],
+        "region": ["eu-south-1"]
+      }' && \
+    put_sqs_as_rule_target "pn-ec-availabilitymanager-queue" "PnEcEventRuleAvailabilityManager" & \
+    put_sqs_as_rule_target "pn-ec-notifiche-esterne-dev-debug-queue" "PnEcEventRuleExternalNotifications" & \
+    put_sqs_as_rule_target "pn-ec-cucumber-test-queue" "PnEcEventRuleExternalNotifications" &
+}
+
 # Main
 main(){
   start_time=$(date +%s)
   pids=()
-  create_queues &
+  create_queues && initialize_event_bridge &
   pids+=("$!")
   create_buckets &
   pids+=("$!")
