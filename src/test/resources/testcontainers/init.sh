@@ -46,16 +46,12 @@ SQS_QUEUES=(
   "pn-ec-cucumber-test-queue"
 )
 
-DEBUG_QUEUS=(
-
-)
-
 S3_BUCKETS=(
   "pn-sqs-messages-staging"
 )
 
 SES_EMAILS=(
-  "test@pagopa.com"
+  "noreply@mail.dev.notifichedigitali.it"
 )
 
 DYNAMODB_TABLES=(
@@ -324,37 +320,45 @@ initialize_dynamo() {
   return $return_code
 }
 
-initialize_event_bridge()
-{
-    log "Initializing event bridge"
-    create_event_bus $NOTIFICATIONS_BUS_NAME && \
+initialize_event_bridge() {
+    log "Initializing EventBridge"
+
+    # Creating the Event Bus
+    create_event_bus $NOTIFICATIONS_BUS_NAME || return 1
+
+    # Creating EventBridge Rules
     create_eventbridge_rule "PnEcEventRuleCancellazioneRicevutePEC" '{
-          "source": ["NOTIFICATION TRACKER"],
-          "region": ["eu-south-1"],
-          "detail": {
-            "digitalLegal": {
-              "eventCode": ["C001", "C002", "C003", "C004", "C006", "C007", "C009"]
-            }
-          }
-        }' && \
-    create_eventbridge_rule "PnEcEventRuleAvailabilityManager" '{
-              "source": ["GESTORE DISPONIBILITA"],
-              "region": ["eu-south-1"]
-            }'  && \
-    create_eventbridge_rule "PnEcEventRuleExternalNotifications" '{
         "source": ["NOTIFICATION TRACKER"],
-        "region": ["eu-south-1"]
-      }' && \
-    put_sqs_as_rule_target "pn-ec-availabilitymanager-queue" "PnEcEventRuleAvailabilityManager" & \
-    put_sqs_as_rule_target "pn-ec-notifiche-esterne-dev-debug-queue" "PnEcEventRuleExternalNotifications" & \
+        "detail": {
+          "digitalLegal": {
+            "eventCode": ["C001", "C002", "C003", "C004", "C006", "C007", "C009"]
+          }
+        }
+    }' &
+
+    create_eventbridge_rule "PnEcEventRuleAvailabilityManager" '{
+        "source": ["GESTORE DISPONIBILITA"]
+    }' &
+
+    create_eventbridge_rule "PnEcEventRuleExternalNotifications" '{
+        "source": ["NOTIFICATION TRACKER"]
+    }' &
+
+    wait
+
+    # Attaching SQS queues as targets to rules
+    put_sqs_as_rule_target "pn-ec-availabilitymanager-queue" "PnEcEventRuleAvailabilityManager" &
+    put_sqs_as_rule_target "pn-ec-notifiche-esterne-dev-debug-queue" "PnEcEventRuleExternalNotifications" &
     put_sqs_as_rule_target "pn-ec-cucumber-test-queue" "PnEcEventRuleExternalNotifications" &
+
+    wait
 }
 
 # Main
 main(){
   start_time=$(date +%s)
   pids=()
-  create_queues && initialize_event_bridge &
+  (create_queues && initialize_event_bridge) &
   pids+=("$!")
   create_buckets &
   pids+=("$!")
