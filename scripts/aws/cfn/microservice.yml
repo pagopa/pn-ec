@@ -161,6 +161,11 @@ Parameters:
     Description: 'Max batch massages number'
     Default: '20'
 
+  SQSCartaceoMaxBatchSubscribedMsgs:
+    Type: String
+    Description: 'Max cartaceo batch massages number'
+    Default: '10'
+
   ### TABLES  ###
 
   PnEcTableNameAnagrafica:
@@ -698,7 +703,7 @@ Parameters:
   PnEcAlarmArnDLQueueTrackerErroriSERCQ:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriSERCQ"
-
+        
   ###### pn-core Event Bus #######
 
 #  PnEcQueueNameEventsDLQueuePnCoreTargetEventBus:
@@ -1046,6 +1051,7 @@ Resources:
         ContainerEnvEntry80: !Sub 'PnEcQueueNameTrackerErroriSERCQ=${PnEcQueueNameTrackerErroriSERCQ}'
         ContainerEnvEntry81: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
         ContainerEnvEntry82: !Sub 'PnEcPecMetricsSchema=${PnEcPecMetricsSchema}'
+        ContainerEnvEntry82: !Sub 'SQSCartaceoMaxBatchSubscribedMsgs=${SQSCartaceoMaxBatchSubscribedMsgs}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -1267,7 +1273,7 @@ Resources:
             Resource: !Ref PnEcQueueArnTrackerStatoCARTACEO
             Principal:
               AWS: !Ref AWS::AccountId
-
+              
   PnEcQueuePolicyTrackerStatoSERCQ:
     Type: AWS::SQS::QueuePolicy
     Properties:

@@ -137,11 +137,15 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                             var lastEventUpdatedDigital = requestDto.getRequestMetadata().getEventsList().get(lastEventIndex).getDigProgrStatus();
 
-                                            var digitalMessageReference = new DigitalMessageReference();
+                                            DigitalMessageReference digitalMessageReference = null;
                                             var generatedMessage = lastEventUpdatedDigital.getGeneratedMessage();
-                                            digitalMessageReference.setId(generatedMessage.getId());
-                                            digitalMessageReference.setSystem(generatedMessage.getSystem());
-                                            digitalMessageReference.setLocation(generatedMessage.getLocation());
+
+                                            if (generatedMessage != null) {
+                                                digitalMessageReference = new DigitalMessageReference();
+                                                digitalMessageReference.setId(generatedMessage.getId());
+                                                digitalMessageReference.setSystem(generatedMessage.getSystem());
+                                                digitalMessageReference.setLocation(generatedMessage.getLocation());
+                                            }
 
                                             if (transactionProcessConfigurationProperties.pec().equals(processId) || transactionProcessConfigurationProperties.sercq().equals(processId)) {
 
