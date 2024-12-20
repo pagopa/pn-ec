@@ -17,7 +17,7 @@
     "LavorazioneEsitiPecMaxThreadPoolSize" : "50",
     "CancellazioneRicevutePecMaxThreadPoolSize" : "5",
     "ScaricamentoEsitiPecLimitRate" : "50",
-    "JavaToolOptions": "-XX:MaxDirectMemorySize=128M",
+    "JavaToolOptions": "-XX:MaxDirectMemorySize=128M -XX:MaxMetaspaceSize=1024M",
     "PnEcQueueElapsedTimeSeconds": "7200",
     "PnEcTaskExecutionPoolMaxSize": "512",
     "CancellazioneRicevutePecEventRuleStatus": "ENABLED",
@@ -45,8 +45,9 @@
     "MemoryAmount": "4GB",
     "PnECPaperDocumentTypeToRaster": "PN_NOTIFICATION_ATTACHMENTS",
     "PnECPaperDocumentTypeForRasterized": "PN_PAPER_ATTACHMENT",
-    "PnECPaperPAIdToRaster": "NOTHING",
+    "PnECPaperPAIdToRaster": "15376371009",
     "PnECPaperPAIdOverride": "15376371009",
-    "SQSMaxBatchSubscribedMsgs": "20"
+    "SQSMaxBatchSubscribedMsgs": "20",
+    "SQSCartaceoMaxBatchSubscribedMsgs": "10"
   }
 }

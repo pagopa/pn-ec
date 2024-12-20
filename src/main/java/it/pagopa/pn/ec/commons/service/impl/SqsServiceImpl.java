@@ -155,6 +155,11 @@ public class SqsServiceImpl implements SqsService {
 
     @Override
     public <T> Flux<SqsMessageWrapper<T>> getMessages(String queueName, Class<T> messageContentClass) {
+        return getMessages(queueName, messageContentClass, maxMessages);
+    }
+
+    @Override
+    public <T> Flux<SqsMessageWrapper<T>> getMessages(String queueName, Class<T> messageContentClass, Integer maxMessages) {
 
         AtomicInteger actualMessages = new AtomicInteger();
         AtomicBoolean listIsEmpty = new AtomicBoolean();
