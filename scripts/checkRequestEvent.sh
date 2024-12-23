@@ -4,7 +4,7 @@ region=eu-south-1
 account=""
 
 while getopts 'a:i:r:p:' opt ; do
-  case "$opt" in 
+  case "$opt" in
     r)
       region=${OPTARG}
     ;;

@@ -59,6 +59,7 @@ Resources:
       Description: A symmetric encryption KMS key AES-256-GCM
       KeySpec: SYMMETRIC_DEFAULT
       KeyUsage: ENCRYPT_DECRYPT
+      EnableKeyRotation: true
       KeyPolicy:
         Version: 2012-10-17
         Statement:
@@ -151,6 +152,10 @@ Resources:
       TableClass: 'STANDARD'
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: 'KMS'
+        KMSMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
 
