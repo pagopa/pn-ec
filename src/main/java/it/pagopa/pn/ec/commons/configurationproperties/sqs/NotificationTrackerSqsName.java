@@ -17,6 +17,9 @@ public record NotificationTrackerSqsName(
 //      CARTACEO
         String statoCartaceoName, String statoCartaceoErratoName, String statoCartaceoDlqName,
 
+//      SERCQ
+        String statoSercqName, String statoSercqErratoName,
+
 //      COMMONS
         Integer delaySeconds, Long elapsedTimeSeconds) {
 }

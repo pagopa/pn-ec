@@ -113,6 +113,8 @@
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECRN015"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECRN015"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECAG013"},"externalStatus": {"S": "OK"},"logicStatus": {"S": "RECAG013"},"targetStatus": {"L": [{"S": "_end_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECAG015"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECAG015"},"targetStatus": {"L": [{"S": "_any_"}]}}
+{"processClientId":{"S":"PAPER"},"currStatus":{"S":"PN998"},"externalStatus":{"S":"PN998"},"targetStatus":{"L":[{"S":"_end_"}]}}
+{"processClientId":{"S":"PAPER"},"currStatus":{"S":"PN999"},"externalStatus":{"S":"PN999"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"_start_"},"targetStatus":{"L":[{"S":"booked"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"authenticationError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P013"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"booked"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"syntaxError"},{"S":"semanticError"},{"S":"authenticationError"},{"S":"duplicatedRequest"}]}}
@@ -127,8 +129,8 @@
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"_any_"},"targetStatus":{"L":[{"S":"internalError"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"_start_"},"targetStatus":{"L":[{"S":"booked"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"accepted"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"C001"},"targetStatus":{"L":[{"S":"notDelivered"},{"S":"deliveryWarn"},{"S":"delivered"}]}}
-{"processClientId":{"S":"PEC"},"currStatus":{"S":"booked"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"compError"}]}}
-{"processClientId":{"S":"PEC"},"currStatus":{"S":"compError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"C011"},"targetStatus":{"L":[{"S":"_end_"}]}}
+{"processClientId":{"S":"PEC"},"currStatus":{"S":"booked"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"addressError"}]}}
+{"processClientId":{"S":"PEC"},"currStatus":{"S":"addressError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"C011"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"delivered"},"externalStatus":{"S":"OK"},"logicStatus":{"S":"C003"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"deliveryWarn"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"C007"},"targetStatus":{"L":[{"S":"notDelivered"},{"S":"delivered"},{"S":"deliveryWarn"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"error"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"C008"},"targetStatus":{"L":[{"S":"_end_"}]}}
@@ -146,3 +148,9 @@
 {"processClientId":{"S":"SMS"},"currStatus":{"S":"internalError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"S010"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"SMS"},"currStatus":{"S":"retry"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"error"}]}}
 {"processClientId":{"S":"SMS"},"currStatus":{"S":"sent"},"externalStatus":{"S":"OK"},"logicStatus":{"S":"S003"},"targetStatus":{"L":[{"S":"_end_"}]}}
+{"processClientId":{"S":"SERCQ"},"currStatus":{"S":"_any_"},"targetStatus":{"L":[{"S":"internalError"}]}}
+{"processClientId":{"S":"SERCQ"},"currStatus":{"S":"_start_"},"targetStatus":{"L":[{"S":"booked"}]}}
+{"processClientId":{"S":"SERCQ"},"currStatus":{"S":"booked"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"addressError"}]}}
+{"processClientId":{"S":"SERCQ"},"currStatus":{"S":"addressError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"Q011"},"targetStatus":{"L":[{"S":"_end_"}]}}
+{"processClientId":{"S":"SERCQ"},"currStatus":{"S":"internalError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"Q010"},"targetStatus":{"L":[{"S":"_end_"}]}}
+{"processClientId":{"S":"SERCQ"},"currStatus":{"S":"sent"},"externalStatus":{"S":"OK"},"logicStatus":{"S":"Q003"},"targetStatus":{"L":[{"S":"_end_"}]}}

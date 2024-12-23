@@ -28,9 +28,9 @@ import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.exception.MaxSizeExceededException;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.library.exceptions.PnSpapiPermanentErrorException;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import lombok.CustomLog;
-import org.apache.commons.io.output.CountingOutputStream;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
@@ -55,6 +55,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
@@ -63,6 +64,7 @@ import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
+import static it.pagopa.pn.ec.commons.utils.RequestUtils.insertRequestFromDigitalNotificationRequest;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
@@ -85,6 +87,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private final Semaphore semaphore;
     private final PnPecConfigurationProperties pnPecProps;
     private String idSaved;
+    private final Predicate<Throwable> isAddressException = throwable -> throwable instanceof PnSpapiPermanentErrorException && throwable.getMessage() != null && throwable.getMessage().contains("jakarta.mail.internet.AddressException");
 
     protected PecService(AuthService authService, PnEcPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
             , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName, @Value("${lavorazione-pec.max-thread-pool-size}") Integer maxThreadPoolSize, PnPecConfigurationProperties pnPecProps) {
@@ -148,36 +151,10 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromPec(final DigitalNotificationRequest digitalNotificationRequest, String xPagopaExtchCxId) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_PEC, digitalNotificationRequest);
-        return Mono.fromCallable(() -> {
-            var requestDto = new RequestDto();
-            requestDto.setRequestIdx(digitalNotificationRequest.getRequestId());
-            requestDto.setClientRequestTimeStamp(digitalNotificationRequest.getClientRequestTimeStamp());
-            requestDto.setxPagopaExtchCxId(xPagopaExtchCxId);
-
-            var requestPersonalDto = new RequestPersonalDto();
-            var digitalRequestPersonalDto = new DigitalRequestPersonalDto();
-            digitalRequestPersonalDto.setQos(DigitalRequestPersonalDto.QosEnum.valueOf(digitalNotificationRequest.getQos().name()));
-            digitalRequestPersonalDto.setReceiverDigitalAddress(digitalNotificationRequest.getReceiverDigitalAddress());
-            digitalRequestPersonalDto.setMessageText(digitalNotificationRequest.getMessageText());
-            digitalRequestPersonalDto.setSenderDigitalAddress(digitalNotificationRequest.getSenderDigitalAddress());
-            digitalRequestPersonalDto.setSubjectText(digitalNotificationRequest.getSubjectText());
-            digitalRequestPersonalDto.setAttachmentsUrls(digitalNotificationRequest.getAttachmentUrls());
-            requestPersonalDto.setDigitalRequestPersonal(digitalRequestPersonalDto);
-
-            var requestMetadataDto = new RequestMetadataDto();
-            var digitalRequestMetadataDto = new DigitalRequestMetadataDto();
-            digitalRequestMetadataDto.setCorrelationId(digitalNotificationRequest.getCorrelationId());
-            digitalRequestMetadataDto.setEventType(digitalNotificationRequest.getEventType());
-            digitalRequestMetadataDto.setTags(digitalNotificationRequest.getTags());
-            digitalRequestMetadataDto.setChannel(PEC);
-            digitalRequestMetadataDto.setMessageContentType(DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN);
-            requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
-
-            requestDto.setRequestPersonal(requestPersonalDto);
-            requestDto.setRequestMetadata(requestMetadataDto);
-            return requestDto;
-        }).flatMap(gestoreRepositoryCall::insertRichiesta).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
-        .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_FROM_PEC, result));
+        return Mono.fromCallable(() ->
+                        insertRequestFromDigitalNotificationRequest(digitalNotificationRequest, xPagopaExtchCxId, PEC)
+                ).flatMap(gestoreRepositoryCall::insertRichiesta).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_FROM_PEC, result));
     }
 
     @SqsListener(value = "${sqs.queue.pec.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
@@ -259,6 +236,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
                 .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, LAVORAZIONE_RICHIESTA_PEC, throwable, throwable.getMessage()))
 
+                .onErrorResume(isAddressException, addressException -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo, ADDRESS_ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto()))
+
                 .onErrorResume(throwable -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                         RETRY.getStatusTransactionTableCompliant(),
                         new DigitalProgressStatusDto())
@@ -294,16 +273,16 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS + " - {}", PEC_SEND_MAIL, digitalNotificationRequest, attachments);
         String sender = pnPecProps.getPnPecSender();
         return Mono.just(attachments).map(fileDownloadResponses -> EmailField.builder()
-                .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
-                .from(sender)
-                .to(digitalNotificationRequest.getReceiverDigitalAddress())
-                .subject(digitalNotificationRequest.getSubjectText())
-                .text(digitalNotificationRequest.getMessageText())
-                .contentType(digitalNotificationRequest.getMessageContentType()
-                        .getValue())
-                .emailAttachments(fileDownloadResponses)
-                .headersList(List.of(new Header(pnPecProps.getTipoRicevutaHeaderName(), pnPecProps.getTipoRicevutaHeaderValue())))
-                .build())
+                        .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
+                        .from(sender)
+                        .to(digitalNotificationRequest.getReceiverDigitalAddress())
+                        .subject(digitalNotificationRequest.getSubjectText())
+                        .text(digitalNotificationRequest.getMessageText())
+                        .contentType(digitalNotificationRequest.getMessageContentType()
+                                .getValue())
+                        .emailAttachments(fileDownloadResponses)
+                        .headersList(List.of(new Header(pnPecProps.getTipoRicevutaHeaderName(), pnPecProps.getTipoRicevutaHeaderValue())))
+                        .build())
                 .flatMap(emailField -> getMonoMimeMessage(emailField,
                         pnPecProps.getAttachmentRule(),
                         pnPecProps.getMaxMessageSizeMb() * MB_TO_BYTES,
@@ -355,7 +334,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
         Policy retryPolicies = new Policy();
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
-        var clientId=pecPresaInCaricoInfo.getXPagopaExtchCxId();
+        var clientId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, FILTER_REQUEST_PEC, pecPresaInCaricoInfo);
 
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
@@ -420,7 +399,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
             idSaved = requestIdx;
         }
         var retry = requestDto.getRequestMetadata().getRetry();
-        if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size())) > 0) {
+        if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size() - 1)) >= 0) {
             // operazioni per la rimozione del messaggio
             return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                     ERROR.getStatusTransactionTableCompliant(),
@@ -515,6 +494,10 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                     log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.errorName());
                                     return deleteMessageFromErrorQueue(message);
                                 })
+
+                                .onErrorResume(isAddressException, addressException -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo, ADDRESS_ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
+                                        .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message)))
+
                                 .onErrorResume(sqsPublishException -> {
                                     log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_PEC, sqsPublishException, sqsPublishException.getMessage());
                                     return checkTentativiEccessiviPec(requestIdx,
@@ -575,7 +558,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName());
     }
 
-    public  Mono<MimeMessage> getMonoMimeMessage(EmailField emailField, String mimeMessageRule, Integer maxMessageSizeInBytes, boolean canInsertXTipoRicevutaHeader) {
+    public Mono<MimeMessage> getMonoMimeMessage(EmailField emailField, String mimeMessageRule, Integer maxMessageSizeInBytes, boolean canInsertXTipoRicevutaHeader) {
         return Mono.fromSupplier(() -> {
                     log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GET_MONO_MIME_MESSAGE, Stream.of(emailField, mimeMessageRule, maxMessageSizeInBytes, canInsertXTipoRicevutaHeader).toList());
                     return buildMimeMessage(emailField);
@@ -619,7 +602,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 });
     }
 
-    private  Mono<MimeMessage> setHeadersInMimeMessage(MimeMessage mimeMessage, List<Header> headers, boolean canInsertXTipoRicevutaHeader) {
+    private Mono<MimeMessage> setHeadersInMimeMessage(MimeMessage mimeMessage, List<Header> headers, boolean canInsertXTipoRicevutaHeader) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, SET_HEADERS_IN_MIME_MESSAGE, Stream.of(headers, canInsertXTipoRicevutaHeader).toList());
         return Flux.fromIterable(headers)
                 .filter(header -> !header.getName().equals(pnPecProps.getTipoRicevutaHeaderName()))

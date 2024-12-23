@@ -93,7 +93,8 @@ components:
               type: string
               enum:
                 - PEC
-                - REM            
+                - REM
+                - SERCQ
               description: >-
                 Canale di recapito con cui il Sender chiede l’erogazione del servizio. In un primo momento sarà PEC, 
                 ma il dominio dovrà prevedere a breve SERQ, PEC_REM, ed in futuro ogni forma di recapito digitale a valore legale.            
@@ -256,6 +257,10 @@ components:
                 - C008
                 - C009
                 - C010
+                - C011
+                - Q003
+                - Q010
+                - Q011
               description: >-
                 * STATUS     EVENTCODE
                 * PROGRESS   C000 = PEC - PREACCETTAZIONE (Conferma avvenuta comunicazione con Wrapper Pec)
@@ -268,4 +273,5 @@ components:
                 * ERROR      C008 = PEC - ERRORE_COMUNICAZIONE_SERVER_PEC
                 * ERROR      C009 = PEC - ERRORE_DOMINIO_PEC_NON_VALIDO
                 * ERROR      C010 = PEC - ERROR_INVIO_PEC
+                * ERROR      C011 = PEC - ADDRESS_ERROR
                 * OK         C003 = PEC - StatusPec.AVVENUTA_CONSEGNA
