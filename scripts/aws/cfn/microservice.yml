@@ -1051,7 +1051,7 @@ Resources:
         ContainerEnvEntry80: !Sub 'PnEcQueueNameTrackerErroriSERCQ=${PnEcQueueNameTrackerErroriSERCQ}'
         ContainerEnvEntry81: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
         ContainerEnvEntry82: !Sub 'PnEcPecMetricsSchema=${PnEcPecMetricsSchema}'
-        ContainerEnvEntry82: !Sub 'SQSCartaceoMaxBatchSubscribedMsgs=${SQSCartaceoMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry83: !Sub 'SQSCartaceoMaxBatchSubscribedMsgs=${SQSCartaceoMaxBatchSubscribedMsgs}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -1064,7 +1064,6 @@ Resources:
         TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
         EcsLogGroup: !Ref EcsLogGroup
-        LoadBalancingAlgorithm: round_robin
         AutoscalingThreshold: !Ref AutoscalingThreshold
         AutoscalingStrategy: REST-API
         MinTasksNumber: !Ref MinTasksNumber
