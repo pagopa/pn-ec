@@ -1,14 +1,23 @@
 package it.pagopa.pn.ec.commons.rest.call.machinestate;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.statemachine.StateMachineEndpointProperties;
+import it.pagopa.pn.ec.commons.configurationproperties.sm.StateMachineRetryStrategyProperties;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
+import it.pagopa.pn.ec.commons.exception.StateMachineServiceException;
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
 import lombok.CustomLog;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
+import reactor.util.retry.RetryBackoffSpec;
+
+import java.time.Duration;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -20,12 +29,17 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
 
     private final WebClient stateMachineWebClient;
     private final StateMachineEndpointProperties stateMachineEndpointProperties;
+    private final RetryBackoffSpec smRetryStrategy;
 
     private static final String CLIENT_ID_QUERY_PARAM = "clientId";
 
-    public CallMacchinaStatiImpl(WebClient stateMachineWebClient, StateMachineEndpointProperties stateMachineEndpointProperties) {
+    public CallMacchinaStatiImpl(WebClient stateMachineWebClient, StateMachineEndpointProperties stateMachineEndpointProperties, StateMachineRetryStrategyProperties smRetryStrategyProperties) {
         this.stateMachineWebClient = stateMachineWebClient;
         this.stateMachineEndpointProperties = stateMachineEndpointProperties;
+        this.smRetryStrategy = Retry.backoff(smRetryStrategyProperties.maxAttempts(), Duration.ofSeconds(smRetryStrategyProperties.minBackoff()))
+                .filter(StateMachineServiceException.class::isInstance)
+                .doBeforeRetry(retrySignal -> log.debug(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure().getMessage()))
+                .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure());
     }
 
     @Override
@@ -40,7 +54,10 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
                         .build(processId, currentStatus))
                 .retrieve()
                 .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new StatusValidationBadRequestException()))
+                .onStatus(HttpStatus::is5xxServerError, clientResponse -> clientResponse.createException().onErrorMap(WebClientResponseException.class, throwable -> new StateMachineServiceException(throwable.getMessage(), throwable)))
                 .bodyToMono(MacchinaStatiValidateStatoResponseDto.class)
+                .onErrorMap(WebClientRequestException.class, throwable -> new StateMachineServiceException(throwable.getMessage(), throwable))
+                .retryWhen(smRetryStrategy)
                 .handle((macchinaStatiValidateStatoResponseDto, sink) -> {
                     if (!macchinaStatiValidateStatoResponseDto.isAllowed()) {
                         sink.error(new InvalidNextStatusException(currentStatus,
@@ -62,7 +79,10 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
                         .build(processId, statusToDecode))
                 .retrieve()
                 .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new StatusNotFoundException(statusToDecode)))
+                .onStatus(HttpStatus::is5xxServerError, clientResponse -> clientResponse.createException().onErrorMap(WebClientResponseException.class, throwable -> new StateMachineServiceException(throwable.getMessage(), throwable)))
                 .bodyToMono(MacchinaStatiDecodeResponseDto.class)
+                .onErrorMap(WebClientRequestException.class, throwable -> new StateMachineServiceException(throwable.getMessage(), throwable))
+                .retryWhen(smRetryStrategy)
                 .handle((macchinaStatiDecodeResponseDto, sink) -> {
                     if (macchinaStatiDecodeResponseDto.getExternalStatus() == null) {
                         sink.error(new StatusNotFoundException(statusToDecode));
