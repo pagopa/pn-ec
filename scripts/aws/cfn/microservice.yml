@@ -914,6 +914,12 @@ Parameters:
   PnEcNamirialServerCacheEndpoint:
     Type: String
 
+  PnEcNamirialMetricDuplicateReceiptNamespace:
+    Type: String
+
+  PnEcNamirialMetricDuplicateReceiptName:
+    Type: String
+
   CpuValue:
     Type: Number
     Default: 1024
@@ -1047,6 +1053,8 @@ Resources:
         ContainerEnvEntry80: !Sub 'PnEcQueueNameTrackerErroriSERCQ=${PnEcQueueNameTrackerErroriSERCQ}'
         ContainerEnvEntry81: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
         ContainerEnvEntry82: !Sub 'SQSCartaceoMaxBatchSubscribedMsgs=${SQSCartaceoMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry83: !Sub 'PnEcNamirialMetricDuplicateReceiptNamespace=${PnEcNamirialMetricDuplicateReceiptNamespace}'
+        ContainerEnvEntry84: !Sub 'PnEcNamirialMetricDuplicateReceiptName=${PnEcNamirialMetricDuplicateReceiptName}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
