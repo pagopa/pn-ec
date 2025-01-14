@@ -55,20 +55,28 @@ echo ${aws_command_base_args}
 
 numOfLines=$(($(cat ${inputFileName} | wc -l)))
 lineNum=0
-while read line ;
-do
-  lineNum=$((++lineNum))
-  echo -ne "$((lineNum*100/numOfLines))%\r"
-  aws ${aws_command_base_args} dynamodb put-item --table-name ${tableName} --item "${line}" > /dev/null
-  rc=$?
-  if [[ $rc -ne 0 ]]; then
-    # Incrementa il contatore di errori
-    errorCount=$((errorCount + 1))
-    echo "Error on line $lineNum: AWS CLI command failed with exit code $rc. Line content: $line" >> $logFile
-  fi
+pids=()
+errorCount=0
+
+while read line; do
+  aws ${aws_command_base_args} dynamodb put-item --table-name ${tableName} --item "${line}" > /dev/null & \
+  pids+=($!)
 done < ${inputFileName}
 
-# Riassunto finale
+for pid in "${pids[@]}"; do
+  lineNum=$((lineNum + 1))
+  wait $pid
+  rc=$?
+  if [[ $rc -ne 0 ]]; then
+    errorCount=$((errorCount + 1))
+    echo "Error on line $lineNum: AWS CLI command failed with exit code $rc. Line content: $line" >> $logFile
+  else
+    echo -ne "$((lineNum * 100 / numOfLines))%\r"
+  fi
+
+done
+
+# Final summary
 echo -e "\nProcessing complete."
 echo "Total lines processed: $lineNum"
 echo "Total errors: $errorCount"
