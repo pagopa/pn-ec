@@ -11,8 +11,6 @@ import lombok.CustomLog;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientRequestException;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import reactor.util.retry.RetryBackoffSpec;
@@ -54,9 +52,8 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
                         .build(processId, currentStatus))
                 .retrieve()
                 .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new StatusValidationBadRequestException()))
-                .onStatus(HttpStatus::is5xxServerError, clientResponse -> clientResponse.createException().onErrorMap(WebClientResponseException.class, throwable -> new StateMachineServiceException(throwable.getMessage(), throwable)))
+                .onStatus(HttpStatus::is5xxServerError, clientResponse -> clientResponse.createException().map(throwable -> new StateMachineServiceException(throwable.getMessage(), throwable)))
                 .bodyToMono(MacchinaStatiValidateStatoResponseDto.class)
-                .onErrorMap(WebClientRequestException.class, throwable -> new StateMachineServiceException(throwable.getMessage(), throwable))
                 .retryWhen(smRetryStrategy)
                 .handle((macchinaStatiValidateStatoResponseDto, sink) -> {
                     if (!macchinaStatiValidateStatoResponseDto.isAllowed()) {
@@ -79,9 +76,8 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
                         .build(processId, statusToDecode))
                 .retrieve()
                 .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new StatusNotFoundException(statusToDecode)))
-                .onStatus(HttpStatus::is5xxServerError, clientResponse -> clientResponse.createException().onErrorMap(WebClientResponseException.class, throwable -> new StateMachineServiceException(throwable.getMessage(), throwable)))
+                .onStatus(HttpStatus::is5xxServerError, clientResponse -> clientResponse.createException().map(throwable -> new StateMachineServiceException(throwable.getMessage(), throwable)))
                 .bodyToMono(MacchinaStatiDecodeResponseDto.class)
-                .onErrorMap(WebClientRequestException.class, throwable -> new StateMachineServiceException(throwable.getMessage(), throwable))
                 .retryWhen(smRetryStrategy)
                 .handle((macchinaStatiDecodeResponseDto, sink) -> {
                     if (macchinaStatiDecodeResponseDto.getExternalStatus() == null) {
