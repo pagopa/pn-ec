@@ -18,7 +18,9 @@ import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.pojo.PnListOfMessages;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
+import it.pagopa.pn.library.pec.service.PnPecService;
 import it.pagopa.pn.library.pec.service.impl.PnEcPecServiceImpl;
+import it.pagopa.pn.template.service.DummyPecService;
 import lombok.CustomLog;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
@@ -39,8 +41,8 @@ import java.util.List;
 import static it.pagopa.pn.ec.pec.service.impl.PecServiceTest.createDigitalNotificationRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
-import static it.pagopa.pn.library.pec.utils.PnPecUtils.ARUBA_PROVIDER;
-import static it.pagopa.pn.library.pec.utils.PnPecUtils.NAMIRIAL_PROVIDER;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.*;
+import static org.apache.commons.lang3.reflect.TypeUtils.isInstance;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -56,6 +58,8 @@ class PnPecServiceTest {
     private ArubaService arubaService;
     @MockBean
     private com.namirial.pec.library.service.PnPecServiceImpl namirialService;
+    @SpyBean
+    private DummyPecService dummyPecService;
     @Autowired
     private PnEcPecService pnPecService;
     @MockBean
@@ -77,11 +81,15 @@ class PnPecServiceTest {
 
     private String PROVIDER_SWITCH_READ_DEFAULT = "1970-01-01T00:00:00Z;aruba";
     private String PROVIDER_SWITCH_WRITE_DEFAULT = "1970-01-01T00:00:00Z;aruba";
+    private String PROVIDER_SWITCH_READ_DUMMY= "1970-01-01T00:00:00Z;dummy";
+    private String PROVIDER_SWITCH_WRITE_READ_MULTIPLE_PROVIDERS= "1970-01-01T00:00:00Z;aruba|namirial|dummy";
+    private String PROVIDER_SWITCH_WRITE_DUMMY = "1970-01-01T00:00:00Z;dummy";
     private final String TEMPORARY_EXCEPTION = "test temporary exception";
     private final String PERMANENT_EXCEPTION = "test permanent exception";
     private final String MESSAGE = "test message";
     private final String ARUBA_MESSAGE_ID = "opec21010.20231006185001.00057.206.1.59@pec.aruba.it";
     private final String NAMIRIAL_MESSAGE_ID = "opec21010.20231006185001.00057.206.1.59@sicurezzapostale.it";
+    private final String DUMMY_MESSAGE_ID = "opec21010.20231006185001.00057.206.1.59@pec.dummy.it";
 
     private final String DATE_R_ARUBA_W_ARUBA = "2022-12-02T00:00:00Z";
     private final String DATE_R_ARUBA_NAM_W_NAM = "2023-01-02T23:59:58Z";
@@ -114,6 +122,23 @@ class PnPecServiceTest {
 
     @Nested
     class sendMailTests {
+
+        @Test
+        void sendMailWithDummy(){
+            log.debug("sendMailWithDummy");
+
+            setDummyProviderSwitch();
+
+            when(dummyPecService.sendMail(any())).thenReturn(Mono.just(MESSAGE));
+
+            byte[] message = MESSAGE.getBytes();
+
+            StepVerifier.create(pnPecService.sendMail(message)).expectNext(MESSAGE).expectComplete().verify();
+
+            verify(arubaService, never()).sendMail(any());
+            verify(namirialService, never()).sendMail(any());
+            verify(dummyPecService, times(1)).sendMail(any());
+        }
 
         @Test
         void sendMailArubaOk() {
@@ -223,6 +248,20 @@ class PnPecServiceTest {
         @AfterAll
         static void afterAll() {
             DateTimeUtils.setCurrentMillisSystem();
+        }
+
+
+        @Test
+        void getUnreadMessagesWithDummy(){
+            log.debug("getUnreadMessagesWithDummy");
+
+            setDummyProviderSwitch();
+
+            StepVerifier.create(pnPecService.getUnreadMessages(6)).expectNextMatches(response -> response.getNumOfMessages() == 0 && response.getPnEcPecListOfMessages() == null).expectComplete().verify();
+
+            verify(arubaService, never()).getUnreadMessages(anyInt());
+            verify(namirialService, never()).getUnreadMessages(anyInt());
+            verify(dummyPecService, times(1)).getUnreadMessages(anyInt());
         }
 
         @Test
@@ -389,6 +428,19 @@ class PnPecServiceTest {
         }
 
         @Test
+        void getMessageCountWithDummy(){
+            log.debug("getMessageCountWithDummy");
+
+            setDummyProviderSwitch();
+
+            StepVerifier.create(pnPecService.getMessageCount()).expectNext(0).expectComplete().verify();
+
+            verify(arubaService, never()).getMessageCount();
+            verify(namirialService, never()).getMessageCount();
+            verify(dummyPecService, times(1)).getMessageCount();
+        }
+
+        @Test
         void getMessageCountExpectBothOk() {
             log.debug("getUnreadMessagesExpectBoth");
 
@@ -508,6 +560,19 @@ class PnPecServiceTest {
 
     @Nested
     class MarkMessageAsReadTests {
+
+        @Test
+        void markMessageAsReadWithDummy(){
+            log.debug("markMessageAsReadWithDummy");
+
+            setDummyProviderSwitch();
+
+            StepVerifier.create(pnPecService.markMessageAsRead(DUMMY_MESSAGE_ID, DUMMY_PROVIDER)).expectComplete().verify();
+
+            verify(arubaService, never()).markMessageAsRead(ARUBA_MESSAGE_ID);
+            verify(namirialService, never()).markMessageAsRead(anyString());
+            verify(dummyPecService, times(1)).markMessageAsRead(anyString());
+        }
         @Test
         void markMessageAsReadFromArubaOk() {
             log.debug("markMessageAsReadFromArubaOk");
@@ -592,6 +657,18 @@ class PnPecServiceTest {
     @Nested
     class DeleteMessageTests {
         @Test
+        void deleteMessageWithDummy(){
+            log.debug("deleteMessageFromDummy");
+
+            setDummyProviderSwitch();
+
+            StepVerifier.create(pnPecService.deleteMessage(DUMMY_MESSAGE_ID, DUMMY_MESSAGE_ID)).expectComplete().verify();
+
+            verify(arubaService, never()).deleteMessage(ARUBA_MESSAGE_ID);
+            verify(namirialService, never()).deleteMessage(anyString());
+            verify(dummyPecService, times(1)).deleteMessage(anyString());
+        }
+        @Test
         void deleteMessageFromArubaOk() {
             log.debug("deleteMessageFromArubaOk");
 
@@ -675,6 +752,39 @@ class PnPecServiceTest {
         }
     }
 
+    @Nested
+    class DummyTests{
+        @Test
+        void getProviderWriteTest(){
+            log.debug("getProviderWriteTest");
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_DEFAULT).plusMillis(1).getMillis());
+            ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite", PROVIDER_SWITCH_WRITE_DUMMY);
+            PnPecService provider = ReflectionTestUtils.invokeMethod(pnPecService, "getProviderWrite");
+            Assertions.assertTrue(isInstance(provider, DummyPecService.class));
+        }
+
+        @Test
+        void getProviderReadSingleValueTest(){
+            log.debug("getProviderReadSingleValueTest");
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_DEFAULT).plusMillis(1).getMillis());
+            ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchRead", PROVIDER_SWITCH_READ_DUMMY);
+            List<String> providers = ReflectionTestUtils.invokeMethod(pnPecService, "getProvidersRead");
+            Assertions.assertEquals(1, providers.size());
+            Assertions.assertTrue(isInstance(providers.get(0), DummyPecService.class));
+        }
+
+        @Test
+        void getProviderReadMultipleValuesTest(){
+            log.debug("getProviderReadMultipleValuesTest");
+            DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_DEFAULT).plusMillis(1).getMillis());
+            ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchRead", PROVIDER_SWITCH_WRITE_READ_MULTIPLE_PROVIDERS);
+            List<String> providers = ReflectionTestUtils.invokeMethod(pnPecService, "getProvidersRead");
+            Assertions.assertEquals(1, providers.size());
+            Assertions.assertTrue(isInstance(providers.get(0), DummyPecService.class));
+        }
+
+    }
+
     @Test
     void isArubaTest() {
         log.debug("isArubaTest");
@@ -740,5 +850,9 @@ class PnPecServiceTest {
         namirialProviderMessagesResponse.setNumOfMessages(3);
         return namirialProviderMessagesResponse;
     }
-
+    private void setDummyProviderSwitch(){
+        DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_DEFAULT).plusMillis(1).getMillis());
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchRead", PROVIDER_SWITCH_WRITE_READ_MULTIPLE_PROVIDERS);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite", PROVIDER_SWITCH_WRITE_DUMMY);
+    }
 }

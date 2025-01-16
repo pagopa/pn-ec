@@ -18,6 +18,7 @@ import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.DUMMY_PROVIDER_NAMESPACE;
 
 /**
  * A service class to publish CloudWatch metrics. It can directly publish metrics to CloudWatch or make use of the CloudWatchMetricPublisherConfiguration class.
@@ -123,6 +124,9 @@ public class CloudWatchPecMetrics {
      * @return the mono
      */
     public Mono<Void> executeAndPublishResponseTime(Mono<Void> mono, String namespace, String metricName) {
+        if (namespace.equals(DUMMY_PROVIDER_NAMESPACE)) {
+            return Mono.empty();
+        }
         return mono.thenReturn(true)
                 .elapsed()
                 .flatMap(tuple -> publishResponseTime(namespace, metricName, tuple.getT1()));
