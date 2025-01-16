@@ -42,7 +42,7 @@ import software.amazon.awssdk.services.sqs.model.SqsResponse;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
@@ -430,19 +430,56 @@ class CartaceoRetryTest {
 
     }
 
+    @ParameterizedTest
+    @MethodSource("gestioneRetryOkArgsProvider")
+    void gestioneRetryCartaceo_RetryAlreadyInSent(BigDecimal retryStep, long timeElapsed) {
+
+        //GIVEN
+        RequestDto requestDto = buildRequestDto();
+        requestDto.getRequestMetadata().getEventsList().add(new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+                .statusDateTime(OffsetDateTime.now().minusMinutes(15)).status(SENT.getStatusTransactionTableCompliant())));
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfo();
+
+        if (retryStep != null) {
+            requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(timeElapsed));
+            requestDto.getRequestMetadata().getRetry().setRetryStep(retryStep);
+        } else requestDto.getRequestMetadata().setRetry(null);
+
+        String requestId=requestDto.getRequestIdx();
+        String clientId = requestDto.getxPagopaExtchCxId();
+
+        //WHEN
+        mockGestoreRepository(clientId, requestId, requestDto);
+        // Mock di una generica putRequest.
+        when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
+        mockSqsService();
+
+        //THEN
+        Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+        verify(paperMessageCall, never()).putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class));
+        verify(cartaceoService, never()).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo),eq(SENT.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
+        verify(cartaceoService, times(1)).deleteMessageFromErrorQueue(any(Message.class));
+
+    }
+
+
+
     private static RequestDto buildRequestDto()
     {
         Policy retryPolicies = new Policy();
         //RetryDTO
         RetryDto retryDto=new RetryDto();
         retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PAPER"));
+        ArrayList<EventsDto> eventsList = new ArrayList<>();
+        eventsList.add(new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+                .status(RETRY.getStatusTransactionTableCompliant())
+                .statusDateTime(OffsetDateTime.now().minusMinutes(10))));
 
         //RequestMetadataDTO
         RequestMetadataDto requestMetadata = new RequestMetadataDto();
         requestMetadata.paperRequestMetadata(new PaperRequestMetadataDto().requestPaId("requestPaId"));
-        requestMetadata.setEventsList(List.of(new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
-                .status(RETRY.getStatusTransactionTableCompliant())
-                .statusDateTime(OffsetDateTime.now().minusMinutes(10)))));
+        requestMetadata.setEventsList(eventsList);
         requestMetadata.setRetry(retryDto);
 
         //RequestDTO
@@ -484,5 +521,6 @@ class CartaceoRetryTest {
         // Mock di una generica patchRichiesta.
         when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
     }
+
 
 }
