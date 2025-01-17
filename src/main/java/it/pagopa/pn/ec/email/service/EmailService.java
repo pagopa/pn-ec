@@ -309,16 +309,20 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId(clientId, requestIdx));
         log.logStartingProcess(GESTIONE_RETRY_EMAIL);
-        var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-        if (!digitalCourtesyMailRequest.getAttachmentUrls().isEmpty()) {
-            return MDCUtils.addMDCToContextAndExecute(processWithAttachRetry(emailPresaInCaricoInfo, message)
-                    .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_EMAIL, false, throwable.getMessage()))
-                    .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_EMAIL)));
-        } else {
-            return MDCUtils.addMDCToContextAndExecute(processOnlyBodyRetry(emailPresaInCaricoInfo, message)
-                    .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_EMAIL, false, throwable.getMessage()))
-                    .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_EMAIL)));
-        }
+        return Mono.defer(() -> {
+            var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
+            if (!digitalCourtesyMailRequest.getAttachmentUrls().isEmpty()) {
+                return MDCUtils.addMDCToContextAndExecute(processWithAttachRetry(emailPresaInCaricoInfo, message)
+                        .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_EMAIL, false, throwable.getMessage()))
+                        .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_EMAIL)));
+            } else {
+                return MDCUtils.addMDCToContextAndExecute(processOnlyBodyRetry(emailPresaInCaricoInfo, message)
+                        .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_EMAIL, false, throwable.getMessage()))
+                        .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_EMAIL)));
+            }
+        })
+        // In caso di errore non previsto, restituiamo un DeleteMessageResponse vuota per non bloccare lo scaricamento dei messaggi.
+        .onErrorResume(throwable -> Mono.just(DeleteMessageResponse.builder().build()));
     }
 
     private Mono<RequestDto> filterRequestEmail(final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
@@ -574,6 +578,9 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                     }
 
                 })
+                // Se riceviamo un Mono.empty(), ritorniamo una DeleteMessageResponse vuota per evitare che
+                // lo schedulatore annulli lo scaricamento di messaggi dalla coda
+                .defaultIfEmpty(DeleteMessageResponse.builder().build())
                 .onErrorResume(it.pagopa.pn.ec.commons.exception.StatusToDeleteException.class,
                         statusToDeleteException ->  sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                                     DELETED.getStatusTransactionTableCompliant(),
