@@ -322,6 +322,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             }
         })
         // In caso di errore non previsto, restituiamo un DeleteMessageResponse vuota per non bloccare lo scaricamento dei messaggi.
+        .doOnError(throwable -> log.error(GENERIC_ERROR, throwable))
         .onErrorResume(throwable -> Mono.just(DeleteMessageResponse.builder().build()));
     }
 
