@@ -283,6 +283,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .flatMap(cartaceoPresaInCaricoInfoSqsMessageWrapper -> gestioneRetryCartaceo(cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent(),
                         cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessage()))
                 .map(MonoResultWrapper::new)
+                .doOnError(throwable -> log.error(GENERIC_ERROR, throwable))
+                // Restituiamo una DeleteMessageResponse vuota per non bloccare lo scaricamento dalla coda
+                .onErrorResume(throwable -> Mono.just(new MonoResultWrapper<>(DeleteMessageResponse.builder().build())))
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)

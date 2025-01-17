@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.sns.model.PublishResponse;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
@@ -242,7 +243,9 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                   .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> gestioneRetrySms(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent(),
                                                                                      smsPresaInCaricoInfoSqsMessageWrapper.getMessage()))
                   .map(MonoResultWrapper::new)
-
+                  .doOnError(throwable -> log.error(GENERIC_ERROR, throwable))
+                  // Restituiamo una DeleteMessageResponse vuota per non bloccare lo scaricamento dalla coda
+                  .onErrorResume(throwable -> Mono.just(new MonoResultWrapper<>(DeleteMessageResponse.builder().build())))
                   .defaultIfEmpty(new MonoResultWrapper<>(null))
                   .repeat()
                   .takeWhile(MonoResultWrapper::isNotEmpty)
