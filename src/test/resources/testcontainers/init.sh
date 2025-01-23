@@ -390,7 +390,6 @@ main(){
   log "Execution time: $((end_time - start_time)) seconds"
 }
 
-
 # Esecuzione del main
 main
 echo "Initialization terminated"
