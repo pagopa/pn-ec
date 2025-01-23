@@ -136,12 +136,12 @@ public class AwsConfiguration {
     }
 
     @Bean
-    public SnsAsyncClient snsClient() {
+    public SnsAsyncClient snsClient(CloudWatchAsyncClient cloudWatchAsyncClient) {
         SnsAsyncClientBuilder snsAsyncClientBuilder = SnsAsyncClient.builder()
                                                                     .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER_V2)
                                                                     .region(Region.of(awsConfigurationProperties.regionCode()))
-                                                                    .overrideConfiguration(c -> c.addMetricPublisher(
-                                                                            CloudWatchMetricPublisher.create()));
+                                                                    .overrideConfiguration(c -> c.addMetricPublisher(CloudWatchMetricPublisher.builder()
+                                                                            .cloudWatchClient(cloudWatchAsyncClient).build()));
 
         if (snsLocalStackEndpoint != null) {
             snsAsyncClientBuilder.endpointOverride(URI.create(snsLocalStackEndpoint));
@@ -151,12 +151,12 @@ public class AwsConfiguration {
     }
 
     @Bean
-    public SesAsyncClient sesClient() {
+    public SesAsyncClient sesClient(CloudWatchAsyncClient cloudWatchAsyncClient) {
         SesAsyncClientBuilder sesAsyncClientBuilder = SesAsyncClient.builder()
                                                                     .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER_V2)
                                                                     .region(Region.of(awsConfigurationProperties.regionCode()))
-                                                                    .overrideConfiguration(c -> c.addMetricPublisher(
-                                                                            CloudWatchMetricPublisher.create()));
+                                                                    .overrideConfiguration(c -> c.addMetricPublisher(CloudWatchMetricPublisher.builder()
+                                                                            .cloudWatchClient(cloudWatchAsyncClient).build()));
 
         if (sesLocalStackEndpoint != null) {
             sesAsyncClientBuilder.endpointOverride(URI.create(sesLocalStackEndpoint));

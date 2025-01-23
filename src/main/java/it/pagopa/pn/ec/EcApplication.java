@@ -5,8 +5,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.PropertySource;
 
-@SpringBootApplication(scanBasePackages = {"it.pagopa.pn.ec", "it.pagopa.pn.library.pec"})
-@ConfigurationPropertiesScan(basePackages = {"it.pagopa.pn.ec", "it.pagopa.pn.library.pec"})
+@SpringBootApplication(scanBasePackages = {"it.pagopa.pn.ec", "it.pagopa.pn.library.pec","it.pagopa.pn.template"})
+@ConfigurationPropertiesScan(basePackages = {"it.pagopa.pn.ec", "it.pagopa.pn.library.pec","it.pagopa.pn.template"})
 
 // <-- COMMONS -->
 // AWS CONFIGURATION
