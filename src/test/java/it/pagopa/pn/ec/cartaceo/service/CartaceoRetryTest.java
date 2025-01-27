@@ -19,8 +19,8 @@ import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManag
 import it.pagopa.pn.ec.rest.v1.dto.*;
 
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
+import lombok.CustomLog;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -54,7 +54,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
-@DirtiesContext
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class CartaceoRetryTest {
 
     @SpyBean
@@ -62,6 +62,12 @@ class CartaceoRetryTest {
 
     @Autowired
     private CartaceoSqsQueueName cartaceoSqsQueueName;
+
+    @Autowired
+    DynamoDbEnhancedClient dynamoDbEnhancedClient;
+
+    @Autowired
+    RepositoryManagerDynamoTableName repositoryManagerDynamoTableName;
 
     @SpyBean
     CartaceoService cartaceoService;
@@ -98,15 +104,12 @@ class CartaceoRetryTest {
     private static DynamoDbTable<RequestConversionEntity> requestConversionEntityDynamoDbAsyncTable;
     private static DynamoDbTable<PdfConversionEntity> pdfConversionEntityDynamoDbAsyncTable;
 
-    @BeforeAll
-    static void init(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient, @Autowired RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
+    @BeforeEach
+    void cleanup() {
+        // Logica di cleanup per evitare che alcuni test influiscano su altri.
+        ReflectionTestUtils.setField(cartaceoService, "idSaved", null);
         requestConversionEntityDynamoDbAsyncTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversioneRequestName(), TableSchema.fromBean(RequestConversionEntity.class));
         pdfConversionEntityDynamoDbAsyncTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversionePdfName(), TableSchema.fromBean(PdfConversionEntity.class));
-    }
-
-    @AfterEach
-    void cleanup() {
-        ReflectionTestUtils.setField(cartaceoService, "idSaved", null);
         for (var page : requestConversionEntityDynamoDbAsyncTable.scan()) {
             for (var item : page.items()) {
                 requestConversionEntityDynamoDbAsyncTable.deleteItem(item);
@@ -516,7 +519,7 @@ class CartaceoRetryTest {
 
     private void mockGestoreRepository(String clientId, String requestId, RequestDto requestDto) {
         // Mock di una generica getRichiesta.
-        when(gestoreRepositoryCall.getRichiesta(eq(clientId), eq(requestId))).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
 
         // Mock di una generica patchRichiesta.
         when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
