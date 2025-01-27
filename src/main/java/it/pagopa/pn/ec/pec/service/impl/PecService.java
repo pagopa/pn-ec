@@ -46,7 +46,9 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 import jakarta.mail.Header;
 import jakarta.mail.Multipart;
 import jakarta.mail.internet.MimeMessage;
+import software.amazon.awssdk.services.sqs.model.SqsResponse;
 
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -322,6 +324,9 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .flatMap(pecPresaInCaricoInfoSqsMessageWrapper -> gestioneRetryPec(pecPresaInCaricoInfoSqsMessageWrapper.getMessageContent(),
                         pecPresaInCaricoInfoSqsMessageWrapper.getMessage()))
                 .map(MonoResultWrapper::new)
+                .doOnError(throwable -> log.error(GENERIC_ERROR, throwable))
+                // Restituiamo una DeleteMessageResponse vuota per non bloccare lo scaricamento dalla coda
+                .onErrorResume(throwable -> Mono.just(new MonoResultWrapper<>(DeleteMessageResponse.builder().build())))
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)
@@ -506,6 +511,9 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                     }
 
                 })
+                // Se riceviamo un Mono.empty(), ritorniamo una DeleteMessageResponse vuota per evitare che
+                // lo schedulatore annulli lo scaricamento di messaggi dalla coda
+                .defaultIfEmpty(DeleteMessageResponse.builder().build())
                 //              Catch errore tirato per lo stato toDelete
                 .onErrorResume(it.pagopa.pn.ec.commons.exception.StatusToDeleteException.class, statusToDeleteException -> {
                     log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.errorName());
