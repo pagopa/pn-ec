@@ -539,7 +539,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private Mono<RequestConversionDto> pdfRasterStep(CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest paperEngageRequestDst, PaperEngageRequest paperEngageRequestSrc) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CARTACEO_PDF_RASTER_STEP, Stream.of(cartaceoPresaInCaricoInfo, paperEngageRequestDst, paperEngageRequestSrc).toList());
 
-        if (!isRasterFeatureEnabled(paperEngageRequestDst.getRequestPaId())) {
+        if (!isRasterFeatureEnabled(paperEngageRequestDst.getRequestPaId()) ||
+                paperEngageRequestSrc.getApplyRasterization() == null ||
+                Boolean.FALSE.equals(paperEngageRequestSrc.getApplyRasterization())) {
             return Mono.empty();
         }
 
