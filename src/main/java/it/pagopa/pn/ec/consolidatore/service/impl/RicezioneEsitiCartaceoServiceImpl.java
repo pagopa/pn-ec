@@ -56,14 +56,12 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private final StatusPullService statusPullService;
 	private boolean considerEventsWithoutSentStatusAsBooked;
 	private final Duration offsetDuration;
-	private final String duplicatesCheck;
 
 	public RicezioneEsitiCartaceoServiceImpl(GestoreRepositoryCall gestoreRepositoryCall,
 											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
 											 SqsService sqsService, StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses, StatusPullService statusPullService,
 											 @Value("${ricezione-esiti-cartaceo.consider-event-without-sent-status-as-booked}") boolean considerEventsWithoutStatusAsBooked,
-											 @Value("${ricezione-esiti-cartaceo.allowed-future-offset-duration}") Duration offsetDuration,
-											 @Value("${ricezione-esiti-cartaceo.duplicates-check}") String duplicatesCheck) {
+											 @Value("${ricezione-esiti-cartaceo.allowed-future-offset-duration}") Duration offsetDuration) {
 		super();
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.fileCall = fileCall;
@@ -73,7 +71,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		this.statusCodesToDeliveryFailureCauses = statusCodesToDeliveryFailureCauses;
 		this.statusPullService = statusPullService;
 		this.considerEventsWithoutSentStatusAsBooked = considerEventsWithoutStatusAsBooked;
-		this.duplicatesCheck = duplicatesCheck;
 		if (offsetDuration== null){
 			this.offsetDuration = Duration.ofSeconds(-1);
 		} else {
@@ -283,25 +280,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			.doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, requestId, VERIFICA_ATTACHMENTS, result));
 	}
 
-	public Mono<RequestDto> verificaDuplicati(RequestDto requestDto, ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent) {
-		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, VERIFICA_DUPLICATI, progressStatusEvent);
-		return Mono.defer(() -> {
-			Boolean passthrough = requestDto.getRequestMetadata().getPaperRequestMetadata().getDuplicateCheckPassthrough();
-			if ((passthrough == null || !passthrough) && duplicatesCheck.contains(progressStatusEvent.getProductType())) {
-				log.debug(VERIFICA_DUPLICATI + ": checking {} for duplicates against events {}", progressStatusEvent,requestDto.getRequestMetadata().getEventsList());
-				return Flux.fromIterable(requestDto.getRequestMetadata().getEventsList()).any(event -> isSameEvent(event.getPaperProgrStatus(), progressStatusEvent));
-			}
-			return Mono.just(false);
-		}).handle((isDuplicated, sink)-> {
-			if (Boolean.FALSE.equals(isDuplicated)) {
-				sink.next(requestDto);
-			} else {
-				sink.error(new RicezioneEsitiCartaceoException("400.02", errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE), List.of(DUPLICATED_EVENT),
-						List.of(new ConsAuditLogError(ERR_CONS_DUPLICATED_EVENT.getValue(), "The request has duplicated events", requestDto.getRequestIdx()))));
-			}
-		});
-	}
-
 	@Override
 	public Mono<RicezioneEsitiDto> verificaEsitoDaConsolidatore(
 			String xPagopaExtchServiceId, ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent)
@@ -310,7 +288,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		  var requestId = progressStatusEvent.getRequestId();
 		  return Mono.just(progressStatusEvent)
 				 .flatMap(unused -> gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceId, progressStatusEvent.getRequestId()))
-				 .flatMap(requestDto -> verificaDuplicati(requestDto, progressStatusEvent))
 			     .flatMap(requestDto -> verificaErroriSemantici(progressStatusEvent, requestDto, xPagopaExtchServiceId))
 			     .flatMap(unused -> verificaAttachments(xPagopaExtchServiceId, requestId, progressStatusEvent.getAttachments()))
 				 .flatMap(unused -> Mono.just(new RicezioneEsitiDto(progressStatusEvent,
