@@ -1,6 +1,5 @@
 package it.pagopa.pn.library.pec.exception.daticert;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 

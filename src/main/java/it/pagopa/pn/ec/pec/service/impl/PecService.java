@@ -337,7 +337,6 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
         Policy retryPolicies = new Policy();
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
-        var clientId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, FILTER_REQUEST_PEC, pecPresaInCaricoInfo);
 
         var xPagopaExtchCxId = pecPresaInCaricoInfo.getXPagopaExtchCxId();
