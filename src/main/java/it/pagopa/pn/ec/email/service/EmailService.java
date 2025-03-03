@@ -312,7 +312,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         log.logStartingProcess(GESTIONE_RETRY_EMAIL);
         return Mono.defer(() -> {
             var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-            if (!digitalCourtesyMailRequest.getAttachmentUrls().isEmpty()) {
+            if (digitalCourtesyMailRequest.getAttachmentUrls() != null && !digitalCourtesyMailRequest.getAttachmentUrls().isEmpty() ) {
                 return MDCUtils.addMDCToContextAndExecute(processWithAttachRetry(emailPresaInCaricoInfo, message)
                         .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_EMAIL, false, throwable.getMessage()))
                         .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_EMAIL)));
