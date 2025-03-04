@@ -188,7 +188,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         MDC.clear();
         sqsService.getMessages(emailSqsQueueName.batchName(), EmailPresaInCaricoInfo.class)
                 .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(emailSqsQueueName.batchName(),
-                        logSanitizer.sanitize(String.valueOf(emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))))
+                        emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                 .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(emailPresaInCaricoInfoSqsMessageWrapper.getMessage()),
                         lavorazioneRichiesta(emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
                 .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(
@@ -431,7 +431,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                 .onErrorResume(
                                         sqsPublishException -> {
                                             log.warn(EXCEPTION_IN_PROCESS, PROCESS_WITH_ATTACH_RETRY, sqsPublishException,
-                                                     logSanitizer.sanitize(String.valueOf(logSanitizer.sanitize(sqsPublishException.getMessage()))));
+                                                     logSanitizer.sanitize(sqsPublishException.getMessage()));
                                             return checkTentativiEccessiviEmail(
                                                     requestId,
                                                     requestDto,
