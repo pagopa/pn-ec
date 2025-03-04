@@ -22,6 +22,7 @@ import it.pagopa.pn.ec.email.configurationproperties.EmailDefault;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.util.LogSanitizer;
 import lombok.CustomLog;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
@@ -71,12 +72,13 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     private final DownloadCall downloadCall;
     private final Semaphore semaphore;
     private String idSaved;
+    private LogSanitizer logSanitizer;
 
 
     protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
                            SesService sesService, AttachmentServiceImpl attachmentService,
                            NotificationTrackerSqsName notificationTrackerSqsName, EmailSqsQueueName emailSqsQueueName,
-                           DownloadCall downloadCall, EmailDefault emailDefault, @Value("${lavorazione-email.max-thread-pool-size}") Integer maxThreadPoolSize) {
+                           DownloadCall downloadCall, EmailDefault emailDefault, @Value("${lavorazione-email.max-thread-pool-size}") Integer maxThreadPoolSize, LogSanitizer logSanitizer) {
         super(authService);
         this.sqsService = sqsService;
         this.sesService = sesService;
@@ -87,6 +89,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         this.emailDefault = emailDefault;
         this.downloadCall = downloadCall;
         this.semaphore=new Semaphore(maxThreadPoolSize);
+        this.logSanitizer = logSanitizer;
     }
 
     private final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
@@ -98,7 +101,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
         var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
 
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_EMAIL, presaInCaricoInfo);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_EMAIL, logSanitizer.sanitize(String.valueOf(presaInCaricoInfo)));
 
         var xPagopaExtchCxId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
@@ -141,7 +144,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromEmail(final DigitalCourtesyMailRequest digitalCourtesyMailRequest, String xPagopaExtchCxId) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_EMAIL, digitalCourtesyMailRequest);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_EMAIL, logSanitizer.sanitize(String.valueOf(digitalCourtesyMailRequest)));
+
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
             requestDto.setRequestIdx(digitalCourtesyMailRequest.getRequestId());
@@ -176,7 +180,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     @SqsListener(value = "${sqs.queue.email.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void lavorazioneRichiestaInteractive(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgment acknowledgment) {
-        logIncomingMessage(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
+        logIncomingMessage(emailSqsQueueName.interactiveName(), logSanitizer.sanitize(String.valueOf(emailPresaInCaricoInfo)));
         lavorazioneRichiesta(emailPresaInCaricoInfo).doOnSuccess(result -> acknowledgment.acknowledge()).subscribe();
     }
 
@@ -185,7 +189,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         MDC.clear();
         sqsService.getMessages(emailSqsQueueName.batchName(), EmailPresaInCaricoInfo.class)
                 .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(emailSqsQueueName.batchName(),
-                        emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
+                        logSanitizer.sanitize(String.valueOf(emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))))
                 .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(emailPresaInCaricoInfoSqsMessageWrapper.getMessage()),
                         lavorazioneRichiesta(emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
                 .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(
@@ -402,7 +406,9 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var requestId = emailPresaInCaricoInfo.getRequestIdx();
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PROCESS_WITH_ATTACH_RETRY, emailPresaInCaricoInfo);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PROCESS_WITH_ATTACH_RETRY,
+                  logSanitizer.sanitize(String.valueOf(emailPresaInCaricoInfo)));
+
 
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
@@ -501,7 +507,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                         emailPresaInCaricoInfo,
                         INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                         new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
-                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PROCESS_WITH_ATTACH_RETRY, throwable, throwable.getMessage()));
+                .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PROCESS_WITH_ATTACH_RETRY, throwable, logSanitizer.sanitize(String.valueOf(throwable.getMessage()))));
     }
 
     private Mono<? extends RequestDto> getMono(String requestId, Policy retryPolicies, RequestDto requestDto, RetryDto retryDto) {
@@ -520,7 +526,9 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var requestId = emailPresaInCaricoInfo.getRequestIdx();
         String concatRequestId = concatRequestId(clientId, requestId);
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PROCESS_WITH_ATTACH_RETRY, emailPresaInCaricoInfo);
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PROCESS_WITH_ATTACH_RETRY,
+                  logSanitizer.sanitize(String.valueOf(emailPresaInCaricoInfo)));
+
 
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
         // Try to send EMAIL
