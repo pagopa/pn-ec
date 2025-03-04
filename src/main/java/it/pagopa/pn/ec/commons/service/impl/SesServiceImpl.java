@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Properties;
 
+import it.pagopa.pn.ec.util.LogSanitizer;
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.mail.Message;
@@ -38,9 +39,11 @@ import static org.apache.commons.codec.CharEncoding.UTF_8;
 public class SesServiceImpl implements SesService {
 
     private final SesAsyncClient sesAsyncClient;
+    private final LogSanitizer logSanitizer;
 
-    public SesServiceImpl(SesAsyncClient sesAsyncClient) {
+    public SesServiceImpl(SesAsyncClient sesAsyncClient, LogSanitizer logSanitizer) {
         this.sesAsyncClient = sesAsyncClient;
+        this.logSanitizer = logSanitizer;
     }
 
     @Override
@@ -49,7 +52,7 @@ public class SesServiceImpl implements SesService {
         return Mono.fromCallable(() -> composeSendRawEmailRequest(field))
                    .flatMap(sendRawEmailRequest -> Mono.fromCompletionStage(sesAsyncClient.sendRawEmail(sendRawEmailRequest)))
                    .onErrorResume(throwable -> {
-                       log.error(throwable.getMessage());
+                       log.error(logSanitizer.sanitize(throwable.getMessage()));
                        return Mono.error(new SesSendException());
                    })
                    .doOnSuccess(sendMessageResponse -> log.debug(CLIENT_METHOD_RETURN, SES_SEND_MAIL, sendMessageResponse));
