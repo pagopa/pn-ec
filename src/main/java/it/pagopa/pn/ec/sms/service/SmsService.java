@@ -166,7 +166,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         MDC.clear();
         sqsService.getMessages(smsSqsQueueName.batchName(), SmsPresaInCaricoInfo.class)
                   .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
-                                                                                        logSanitizer.sanitize(String.valueOf(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))))
+                                                                                        smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                   .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(smsPresaInCaricoInfoSqsMessageWrapper.getMessage()),
                                                                              lavorazioneRichiesta(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
                   .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
