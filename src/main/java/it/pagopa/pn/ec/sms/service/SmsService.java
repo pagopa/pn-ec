@@ -84,8 +84,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         var requestIdx = smsPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_SMS,
-                  logSanitizer.sanitize(String.valueOf(presaInCaricoInfo)));
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_SMS, presaInCaricoInfo);
 
         var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
 
@@ -122,9 +121,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromSms(final DigitalCourtesySmsRequest digitalCourtesySmsRequest, String xPagopaExtchCxId) {
         String concatRequestId = concatRequestId(xPagopaExtchCxId, digitalCourtesySmsRequest.getRequestId());
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_SMS,
-                  logSanitizer.sanitize(String.valueOf(digitalCourtesySmsRequest)));
-
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_SMS, digitalCourtesySmsRequest);
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
 
@@ -160,8 +157,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     @SqsListener(value = "${sqs.queue.sms.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     void lavorazioneRichiestaInteractive(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgment acknowledgment) {
         MDC.clear();
-        logIncomingMessage(smsSqsQueueName.interactiveName(),
-                           logSanitizer.sanitize(String.valueOf(smsPresaInCaricoInfo)));
+        logIncomingMessage(smsSqsQueueName.interactiveName(), smsPresaInCaricoInfo);
         lavorazioneRichiesta(smsPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
     }
 
@@ -229,7 +225,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
 //                               Publish to ERRORI SMS queue
                 .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo)))
-                .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_SMS, false, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_SMS, false,logSanitizer.sanitize(throwable.getMessage())))
                 .doOnSuccess(result -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_SMS))
                 .doFinally(signalType -> semaphore.release()));
     }
@@ -244,11 +240,11 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         idSaved = null;
         sqsService.getOneMessage(smsSqsQueueName.errorName(), SmsPresaInCaricoInfo.class)
                   .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.errorName(),
-                                                                                logSanitizer.sanitize(String.valueOf(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))))
+                                                                                        smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                   .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> gestioneRetrySms(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent(),
                                                                                      smsPresaInCaricoInfoSqsMessageWrapper.getMessage()))
                   .map(MonoResultWrapper::new)
-                  .doOnError(throwable -> log.error(GENERIC_ERROR, throwable))
+                  .doOnError(throwable -> log.error(GENERIC_ERROR, throwable, logSanitizer.sanitize(String.valueOf(throwable.getMessage()))))
                   // Restituiamo una DeleteMessageResponse vuota per non bloccare lo scaricamento dalla coda
                   .onErrorResume(throwable -> Mono.just(new MonoResultWrapper<>(DeleteMessageResponse.builder().build())))
                   .defaultIfEmpty(new MonoResultWrapper<>(null))
@@ -258,8 +254,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private Mono<RequestDto> filterRequestSms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, FILTER_REQUEST_SMS,
-                  logSanitizer.sanitize(String.valueOf(smsPresaInCaricoInfo)));
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, FILTER_REQUEST_SMS, smsPresaInCaricoInfo);
 
         Policy retryPolicies = new Policy();
 
@@ -388,7 +383,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                          .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
                          .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, smsSqsQueueName.errorName()))
                          .onErrorResume(sqsPublishException -> {
-                             log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_SMS, sqsPublishException, sqsPublishException.getMessage());
+                             log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_SMS, sqsPublishException,
+                                      logSanitizer.sanitize(String.valueOf(sqsPublishException.getMessage())));
                              return checkTentativiEccessiviSms(requestId,
                                      requestDto,
                                      smsPresaInCaricoInfo,
@@ -408,7 +404,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 .onErrorResume(internalError -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                                               INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                                                               new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
-                .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_SMS, false, logSanitizer.sanitize(String.valueOf(throwable.getMessage()))))
+                .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_SMS, false, logSanitizer.sanitize(throwable.getMessage())))
                 .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_SMS)));
     }
 
