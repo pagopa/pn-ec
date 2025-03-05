@@ -19,4 +19,5 @@ public class PaperRequestMetadata {
     String productType;
     String printType;
     Map<String, String> vas;
+    Boolean duplicateCheckPassthrough;
 }
