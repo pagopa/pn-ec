@@ -180,7 +180,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 						boolean isDeliveryFailureCauseInStatusCode = statusCodesToDeliveryFailureCauses.isDeliveryFailureCauseInStatusCode(progressStatusEvent.getStatusCode(), progressStatusEvent.getDeliveryFailureCause());
 						if (!isDeliveryFailureCauseInMap || !isDeliveryFailureCauseInStatusCode) {
 							String errMsg= !isDeliveryFailureCauseInMap
-									? String.format(NOT_VALID_FOR, DELIVERY_FAILURE_CAUSE_LABEL, STATUS_CODE_LABEL, progressStatusEvent.getDeliveryFailureCause())
+									? String.format(NOT_VALID, STATUS_CODE_LABEL, progressStatusEvent.getDeliveryFailureCause())
 									: String.format(MISMATCH_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, STATUS_CODE_LABEL, progressStatusEvent.getDeliveryFailureCause());
 
 							auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_DEL_FAILURE_CAUSE.getValue()).description(errMsg));
