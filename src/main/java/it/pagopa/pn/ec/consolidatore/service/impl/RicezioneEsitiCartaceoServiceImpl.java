@@ -36,7 +36,6 @@ import java.util.List;
 
 import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
-import static it.pagopa.pn.ec.commons.utils.CompareUtils.isSameEvent;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperConstant.*;
@@ -175,18 +174,18 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 						errorList.add(String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()));
 					}
 					// DeliveryFailureCause non è un campo obbligatorio
-                    boolean isOk = false;
                     if (progressStatusEvent.getDeliveryFailureCause() != null
                             && !progressStatusEvent.getDeliveryFailureCause().isBlank()) {
-                        isOk = deliveryFailureCausemap().containsKey(progressStatusEvent.getDeliveryFailureCause());
-                        if (isOk) {
-                            isOk = statusCodesToDeliveryFailureCauses.isDeliveryFailureCauseInStatusCode(progressStatusEvent.getStatusCode(), progressStatusEvent.getDeliveryFailureCause());
-                        }
-                        if (!isOk) {
-							String errMsg = String.format(MISMATCH_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, STATUS_CODE_LABEL, progressStatusEvent.getDeliveryFailureCause());
-                            auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_DEL_FAILURE_CAUSE.getValue()).description(errMsg));
-                            errorList.add(errMsg);
-                        }
+                        boolean isDeliveryFailureCauseInMap = deliveryFailureCausemap().containsKey(progressStatusEvent.getDeliveryFailureCause());
+						boolean isDeliveryFailureCauseInStatusCode = statusCodesToDeliveryFailureCauses.isDeliveryFailureCauseInStatusCode(progressStatusEvent.getStatusCode(), progressStatusEvent.getDeliveryFailureCause());
+						if (!isDeliveryFailureCauseInMap || !isDeliveryFailureCauseInStatusCode) {
+							String errMsg= !isDeliveryFailureCauseInMap
+									? String.format(NOT_VALID_FOR, DELIVERY_FAILURE_CAUSE_LABEL, STATUS_CODE_LABEL, progressStatusEvent.getDeliveryFailureCause())
+									: String.format(MISMATCH_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, STATUS_CODE_LABEL, progressStatusEvent.getDeliveryFailureCause());
+
+							auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_DEL_FAILURE_CAUSE.getValue()).description(errMsg));
+							errorList.add(errMsg);
+						}
                     }
 
                     //TODO COMMENTATO PER UN CASO PARTICOLARE CHE ANDRA' GESTITO IN FUTURO.
