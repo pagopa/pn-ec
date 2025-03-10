@@ -484,7 +484,7 @@ components:
       required:
         - requestId
         - requestSenderId
-        - requestPAId
+        - requestPaId
         - clientRequestTimeStamp
         - eventType
         - productType
