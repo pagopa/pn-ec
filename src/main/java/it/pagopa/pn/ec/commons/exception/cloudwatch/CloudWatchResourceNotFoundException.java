@@ -27,4 +27,10 @@ public class CloudWatchResourceNotFoundException extends RuntimeException {
             super(String.format("SdkMetric with name '%s' has not been found.", metricName));
         }
     }
+
+    public static class DimensionNotFoundException extends CloudWatchResourceNotFoundException {
+        public DimensionNotFoundException(Long valueInRange) {
+            super(String.format("Dimension not found for valueInRange %s", valueInRange));
+        }
+    }
 }

@@ -35,6 +35,7 @@ public class LogUtils {
     public static final String RETRY_ATTEMPT = "{} - retry attempt number '{}'";
     public static final String ARUBA_SEND_EXCEPTION = "ArubaSendException occurred during lavorazione PEC for request '{}' - Errcode: {}, Errstr: {}, Errblock: {}";
     public static final String ARUBA_MESSAGE_MISSING = "The message '{}' is missing from folder";
+    public static final String GENERIC_ERROR = "Errore generico";
 
     //VALIDATION
     public static final String CLIENT_AUTHENTICATION = "Client authentication";
@@ -122,6 +123,7 @@ public class LogUtils {
     public static final String PAPER_PULL_SERVICE = "StatusPullService.paperPullService()";
     public static final String INSERT_REQUEST_FROM_CARTACEO = "CartaceoService.insertRequestFromCartaceo()";
     public static final String LAVORAZIONE_RICHIESTA_CARTACEO = "lavorazioneRichiestaCartaceo()";
+    public static final String LAVORAZIONE_RICHIESTA_CARTACEO_BATCH = "lavorazioneRichiestaCartaceoBatch()";
     public static final String FILTER_REQUEST_CARTACEO = "CartaceoService.filterRequestCartaceo()";
     public static final String GESTIONE_RETRY_CARTACEO = "gestioneRetryCartaceo()";
     public static final String PRESA_IN_CARICO_CARTACEO = "CartaceoService.presaInCarico()";
@@ -236,6 +238,7 @@ public class LogUtils {
     public static final String PUBLISH_CUSTOM_PEC_METRICS = "CloudWatchPecMetrics.publishCustomPecMetrics()";
     public static final String PUBLISH_PEC_MESSAGE_COUNT = "CloudWatchPecMetrics.publishMessageCount()";
     public static final String PUBLISH_RESPONSE_TIME = "CloudWatchPecMetrics.publishResponseTime()";
+    public static final String GET_DIMENSION = "MetricsDimensionConfiguration.getDimension()";
 
     //EVENT BRIDGE
     public static final String EVENT_BRIDGE_PUT_EVENT_EXTERNAL = "EventBridge - PutEvents.putEventExternal()";

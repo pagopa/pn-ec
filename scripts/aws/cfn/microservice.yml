@@ -70,6 +70,10 @@ Parameters:
     Type: String
     Description: 'Secret ID for Identity Pec'
 
+  PnEcPecMetricsSchema:
+    Type: String
+    Description: 'Name of the AWS parameter that contains the schema for the metric dimensions of pec services'
+
 #  Version:
 #    Type: String
 #    Description: 'keep track of used projects commitIds'
@@ -156,6 +160,11 @@ Parameters:
     Type: String
     Description: 'Max batch massages number'
     Default: '20'
+
+  SQSCartaceoMaxBatchSubscribedMsgs:
+    Type: String
+    Description: 'Max cartaceo batch massages number'
+    Default: '10'
 
   ### TABLES  ###
 
@@ -1041,6 +1050,8 @@ Resources:
         ContainerEnvEntry79: !Sub 'PnEcQueueNameTrackerStatoSERCQ=${PnEcQueueNameTrackerStatoSERCQ}'
         ContainerEnvEntry80: !Sub 'PnEcQueueNameTrackerErroriSERCQ=${PnEcQueueNameTrackerErroriSERCQ}'
         ContainerEnvEntry81: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry82: !Sub 'PnEcPecMetricsSchema=${PnEcPecMetricsSchema}'
+        ContainerEnvEntry83: !Sub 'SQSCartaceoMaxBatchSubscribedMsgs=${SQSCartaceoMaxBatchSubscribedMsgs}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -1053,7 +1064,6 @@ Resources:
         TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
         EcsLogGroup: !Ref EcsLogGroup
-        LoadBalancingAlgorithm: round_robin
         AutoscalingThreshold: !Ref AutoscalingThreshold
         AutoscalingStrategy: REST-API
         MinTasksNumber: !Ref MinTasksNumber
@@ -1502,7 +1512,7 @@ Resources:
             - !Ref PnEcAlarmArnDLQueueTrackerStatoSERCQ
             - !Ref PnEcAlarmArnQueueTrackerErroriSERCQ
             - !Ref PnEcAlarmArnDLQueueTrackerErroriSERCQ
-            - !Ref PnEcAlarmArnEventsDLQueuePnCoreTargetEventBus            
+            - !Ref PnEcAlarmArnEventsDLQueuePnCoreTargetEventBus
         DynamoDBTableNames:
           !Join
           - ','
