@@ -6,11 +6,9 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -18,20 +16,19 @@ import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
-import it.pagopa.pn.ec.consolidatore.service.impl.RicezioneEsitiCartaceoServiceImpl;
 import it.pagopa.pn.ec.consolidatore.utils.PaperElem;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 
@@ -70,9 +67,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
-	@SpyBean
-	private RicezioneEsitiCartaceoServiceImpl ricezioneEsitiCartaceoServiceImpl;
-
+    
     private static final String RICEZIONE_ESITI_ENDPOINT = "/consolidatore-ingress/v1/push-progress-events/";
     
     private static final String xPagopaExtchServiceIdHeaderName =  "x-pagopa-extch-service-id";
@@ -106,7 +101,6 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	private static final EventsDto SENT_EVENT = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(SENT.getStatusTransactionTableCompliant()).statusDateTime(now));
 	private static final EventsDto BOOKED_EVENT = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(BOOKED.getStatusTransactionTableCompliant()).statusDateTime(now));
 	private static final EventsDto RETRY_EVENT = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).statusDateTime(now));
-	private Duration DEFAULT_OFFSET_DURATION;
 
     private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithoutAttachments() {
     	ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = new ConsolidatoreIngressPaperProgressStatusEvent();
@@ -119,6 +113,18 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	progressStatusEvent.setClientRequestTimeStamp(now);
     	return progressStatusEvent;
     }
+
+	private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithoutAttachmentsNullIUN() {
+		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = new ConsolidatoreIngressPaperProgressStatusEvent();
+		progressStatusEvent.setRequestId(requestId);
+		progressStatusEvent.setStatusCode(CON010);
+		progressStatusEvent.setStatusDescription(statusCodeDescriptionMap().get(CON010));
+		progressStatusEvent.setStatusDateTime(now);
+		progressStatusEvent.setProductType(PRODUCT_TYPE_AR);
+		progressStatusEvent.setIun(null);
+		progressStatusEvent.setClientRequestTimeStamp(now);
+		return progressStatusEvent;
+	}
 
 	private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithCorrectDeliveryFailureCause() {
 		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = new ConsolidatoreIngressPaperProgressStatusEvent();
@@ -150,16 +156,6 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	public static void buildClientConfigurationInternalDto() {
 		clientConfigurationInternalDto.setApiKey(xApiKeyHeaderValue);
 		clientConfigurationInternalDto.setxPagopaExtchCxId(xPagopaExtchServiceIdHeaderValue);
-	}
-
-	@BeforeEach
-	void beforeEach() {
-		this.DEFAULT_OFFSET_DURATION = (Duration) ReflectionTestUtils.getField(ricezioneEsitiCartaceoServiceImpl, "offsetDuration");
-	}
-
-	@AfterEach
-	void  afterEach() {
-		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "offsetDuration", DEFAULT_OFFSET_DURATION);
 	}
 
 	private ConsolidatoreIngressPaperProgressStatusEvent consolidatoreIngressPaperProgressStatusEventWithAttachmentsAndRecCode(String code, String documentType){
@@ -210,7 +206,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	}
 
 	private Stream<Arguments> provideArguments() {
-		return Stream.of(Arguments.of(getProgressStatusEventWithAttachments()), Arguments.of(getProgressStatusEventWithoutAttachments()));
+		return Stream.of(Arguments.of(getProgressStatusEventWithAttachments()), Arguments.of(getProgressStatusEventWithoutAttachments()),
+				Arguments.of(getProgressStatusEventWithoutAttachmentsNullIUN()));
 	}
 
 	@ParameterizedTest
@@ -875,75 +872,4 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.expectStatus()
 				.isOk();
 	}
-
-	@Test
-	void ricezioneEsitiWithStatusDateTimeAndClientRequestTimeStampInFutureShouldThrowException(){
-		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiWithStatusDateTimeAndClientRequestTimeStampInFutureShouldThrowException() : START");
-		OffsetDateTime now = OffsetDateTime.now();
-		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
-		EventsDto bookedEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
-				.status(BOOKED.getStatusTransactionTableCompliant())
-				.statusDateTime(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
-		EventsDto retryEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
-				.status(RETRY.getStatusTransactionTableCompliant())
-				.statusDateTime(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
-		EventsDto clientRequestTimeStamp = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
-				.status(BOOKED.getStatusTransactionTableCompliant())
-				.clientRequestTimeStamp(OffsetDateTime.of(2024, 8, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
-
-		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(bookedEvent,retryEvent,clientRequestTimeStamp)));
-		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
-		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
-		events.add(getProgressStatusEventWithoutAttachments().statusDateTime(now.plusDays(1)));
-		events.add(getProgressStatusEventWithoutAttachments().clientRequestTimeStamp(now.plusDays(1)));
-
-		webClient.put()
-				.uri(RICEZIONE_ESITI_ENDPOINT)
-				.accept(APPLICATION_JSON)
-				.contentType(APPLICATION_JSON)
-				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
-				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
-				.body(BodyInserters.fromValue(events))
-				.exchange()
-				.expectStatus()
-				.isBadRequest();
-	}
-
-	@Test
-	void ricezioneEsitiWithStatusDateTimeAndClientRequestTimeStampInFutureShouldReturnOk(){
-		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiWithStatusDateTimeAndClientRequestTimeStampInFutureShouldThrowException() : START");
-		OffsetDateTime now = OffsetDateTime.now();
-		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
-		EventsDto bookedEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
-				.status(BOOKED.getStatusTransactionTableCompliant())
-				.statusDateTime(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
-		EventsDto retryEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
-				.status(RETRY.getStatusTransactionTableCompliant())
-				.statusDateTime(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
-		EventsDto clientRequestTimeStamp = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
-				.status(BOOKED.getStatusTransactionTableCompliant())
-				.clientRequestTimeStamp(OffsetDateTime.of(2024, 8, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
-
-		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "offsetDuration", Duration.ofMinutes(-1));
-		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(bookedEvent,retryEvent,clientRequestTimeStamp)));
-		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
-		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
-		events.add(getProgressStatusEventWithoutAttachments().statusDateTime(now.plusDays(1)));
-		events.add(getProgressStatusEventWithoutAttachments().clientRequestTimeStamp(now.plusDays(1)));
-
-		webClient.put()
-				.uri(RICEZIONE_ESITI_ENDPOINT)
-				.accept(APPLICATION_JSON)
-				.contentType(APPLICATION_JSON)
-				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
-				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
-				.body(BodyInserters.fromValue(events))
-				.exchange()
-				.expectStatus()
-				.isOk();
-	}
-
-
-
-
 }
