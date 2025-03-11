@@ -1398,7 +1398,7 @@ Resources:
             Stat: Sum
           ReturnData: False                       
         - Id: e1
-          Expression: IF((m5>=30 AND m4/m5>=0.1) OR (m3>=30 AND m2/m3>=0.1), 1, 0)
+          Expression: IF((m5>=30 AND m4/m5>=0.4) OR (m3>=30 AND m2/m3>=0.4), 1, 0)
           Label: !Sub "${ProjectName}-external-channel-ALBAlarm-oncall-metric"
 
   ApplicationLoadBalancerWorkdayAlarm:
