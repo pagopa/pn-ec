@@ -23,12 +23,12 @@ import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.CustomLog;
-import lombok.CustomLog;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 import reactor.util.retry.Retry;
 import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
@@ -72,7 +72,6 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     private final Semaphore semaphore;
     private String idSaved;
 
-    private static final String GENERIC_ERROR = "Errore generico";
 
     protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
                            SesService sesService, AttachmentServiceImpl attachmentService,
@@ -297,6 +296,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                 emailPresaInCaricoInfoSqsMessageWrapper.getMessage())))
                 .map(MonoResultWrapper::new)
                 .doOnError(throwable -> log.error(GENERIC_ERROR, throwable))
+                // Restituiamo Message e DeleteMessageResponse fittizzi per non bloccare lo scaricamento dalla coda
+                .onErrorResume(throwable -> Mono.just(new MonoResultWrapper<>(Tuples.of(Message.builder().build(), DeleteMessageResponse.builder().build()))))
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)
@@ -309,16 +310,18 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId(clientId, requestIdx));
         log.logStartingProcess(GESTIONE_RETRY_EMAIL);
-        var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-        if (!digitalCourtesyMailRequest.getAttachmentUrls().isEmpty()) {
-            return MDCUtils.addMDCToContextAndExecute(processWithAttachRetry(emailPresaInCaricoInfo, message)
-                    .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_EMAIL, false, throwable.getMessage()))
-                    .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_EMAIL)));
-        } else {
-            return MDCUtils.addMDCToContextAndExecute(processOnlyBodyRetry(emailPresaInCaricoInfo, message)
-                    .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_EMAIL, false, throwable.getMessage()))
-                    .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_EMAIL)));
-        }
+        return Mono.defer(() -> {
+            var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
+            if (!digitalCourtesyMailRequest.getAttachmentUrls().isEmpty()) {
+                return MDCUtils.addMDCToContextAndExecute(processWithAttachRetry(emailPresaInCaricoInfo, message)
+                        .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_EMAIL, false, throwable.getMessage()))
+                        .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_EMAIL)));
+            } else {
+                return MDCUtils.addMDCToContextAndExecute(processOnlyBodyRetry(emailPresaInCaricoInfo, message)
+                        .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_EMAIL, false, throwable.getMessage()))
+                        .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_EMAIL)));
+            }
+        });
     }
 
     private Mono<RequestDto> filterRequestEmail(final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
@@ -482,7 +485,11 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                             message);
                                 });
                     }
-                })//              Catch errore tirato per lo stato toDelete
+                })
+                // Se riceviamo un Mono.empty(), ritorniamo una DeleteMessageResponse vuota per evitare che
+                // lo schedulatore annulli lo scaricamento di messaggi dalla coda
+                .defaultIfEmpty(DeleteMessageResponse.builder().build())
+                //              Catch errore tirato per lo stato toDelete
                 .onErrorResume(RetryAttemptsExceededExeption.class,
                         retryAttemptsExceededExeption ->
                              sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
@@ -570,6 +577,9 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                     }
 
                 })
+                // Se riceviamo un Mono.empty(), ritorniamo una DeleteMessageResponse vuota per evitare che
+                // lo schedulatore annulli lo scaricamento di messaggi dalla coda
+                .defaultIfEmpty(DeleteMessageResponse.builder().build())
                 .onErrorResume(it.pagopa.pn.ec.commons.exception.StatusToDeleteException.class,
                         statusToDeleteException ->  sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                                     DELETED.getStatusTransactionTableCompliant(),

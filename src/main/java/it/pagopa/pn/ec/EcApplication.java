@@ -67,6 +67,9 @@ import org.springframework.context.annotation.PropertySource;
 //SQS
 @PropertySource("classpath:sqs/sqs.properties")
 
+//STATE MACHINE
+@PropertySource("classpath:statemachine/statemachine.properties")
+
 //NAMIRIAL
 @PropertySource("classpath:namirial/namirial.properties")
 

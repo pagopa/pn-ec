@@ -35,6 +35,7 @@ public class LogUtils {
     public static final String RETRY_ATTEMPT = "{} - retry attempt number '{}'";
     public static final String ARUBA_SEND_EXCEPTION = "ArubaSendException occurred during lavorazione PEC for request '{}' - Errcode: {}, Errstr: {}, Errblock: {}";
     public static final String ARUBA_MESSAGE_MISSING = "The message '{}' is missing from folder";
+    public static final String GENERIC_ERROR = "Errore generico";
 
     //VALIDATION
     public static final String CLIENT_AUTHENTICATION = "Client authentication";
@@ -237,6 +238,7 @@ public class LogUtils {
     public static final String PUBLISH_CUSTOM_PEC_METRICS = "CloudWatchPecMetrics.publishCustomPecMetrics()";
     public static final String PUBLISH_PEC_MESSAGE_COUNT = "CloudWatchPecMetrics.publishMessageCount()";
     public static final String PUBLISH_RESPONSE_TIME = "CloudWatchPecMetrics.publishResponseTime()";
+    public static final String GET_DIMENSION = "MetricsDimensionConfiguration.getDimension()";
 
     //EVENT BRIDGE
     public static final String EVENT_BRIDGE_PUT_EVENT_EXTERNAL = "EventBridge - PutEvents.putEventExternal()";
