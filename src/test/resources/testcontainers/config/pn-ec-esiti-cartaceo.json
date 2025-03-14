@@ -1,0 +1,26 @@
+{
+  "cartaceo": {
+    "RECRN004A": {
+      "deliveryFailureCause": [
+        "M05",
+        "M06",
+        "M07"
+      ]
+    },
+    "RECRN004B": {
+      "deliveryFailureCause": [
+        "M08",
+        "M09",
+        "F01",
+        "F02",
+        "TEST"
+      ]
+    },
+    "RECRN006": {
+      "deliveryFailureCause": [
+        "M03",
+        "M04"
+      ]
+    }
+  }
+}

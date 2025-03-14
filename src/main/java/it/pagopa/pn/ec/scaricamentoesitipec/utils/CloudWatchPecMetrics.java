@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.DUMMY_PROVIDER_NAMESPACE;
 
 /**
  * A service class to publish CloudWatch metrics. It can directly publish metrics to CloudWatch or make use of the CloudWatchMetricPublisherConfiguration class.
@@ -170,9 +171,12 @@ public class CloudWatchPecMetrics {
      */
     public Mono<Void> publishResponseTime(String namespace, String metricName, long elapsedTime, List<Dimension> dimensions) {
         return Mono.fromRunnable(() -> {
+                    // La libreria dummy non deve pubblicare metriche.
+                    if (namespace.equals(DUMMY_PROVIDER_NAMESPACE)) {
+                        return;
+                    }
                     log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_RESPONSE_TIME, Stream.of(namespace, metricName, elapsedTime).toList());
                     MetricCollector metricCollector = MetricCollector.create(metricName);
-
                     //Report metric.
                     SdkMetric<Long> responseTimeMetric = (SdkMetric<Long>) cloudWatchMetricPublisherConfiguration.getSdkMetricByMetricName(metricName);
                     metricCollector.reportMetric(responseTimeMetric, elapsedTime);
