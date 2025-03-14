@@ -589,6 +589,7 @@ class PnPecServiceTest {
             log.debug("markMessageAsReadWithDummy");
 
             setDummyProviderSwitch();
+            when(dummyPecService.markMessageAsRead(DUMMY_MESSAGE_ID)).thenReturn(Mono.empty());
 
             StepVerifier.create(pnPecService.markMessageAsRead(DUMMY_MESSAGE_ID, DUMMY_PROVIDER)).expectComplete().verify();
 
@@ -684,6 +685,7 @@ class PnPecServiceTest {
             log.debug("deleteMessageFromDummy");
 
             setDummyProviderSwitch();
+            when(dummyPecService.deleteMessage(DUMMY_MESSAGE_ID)).thenReturn(Mono.empty());
 
             StepVerifier.create(pnPecService.deleteMessage(DUMMY_MESSAGE_ID, DUMMY_MESSAGE_ID)).expectComplete().verify();
 

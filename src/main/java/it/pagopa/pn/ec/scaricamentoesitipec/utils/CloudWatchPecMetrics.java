@@ -153,9 +153,6 @@ public class CloudWatchPecMetrics {
                     })
                     //If mono doesn't emit any value (Mono<Void>)
                     .switchIfEmpty(Mono.defer(() -> {
-                        if (namespace.equals(DUMMY_PROVIDER_NAMESPACE)) {
-                            return Mono.empty();
-                        }
                         long elapsed = Duration.between(start, Instant.now()).toMillis();
                         return publishResponseTime(namespace, metricName, elapsed, dimensionsList).then(Mono.empty());
                     }));
@@ -174,9 +171,12 @@ public class CloudWatchPecMetrics {
      */
     public Mono<Void> publishResponseTime(String namespace, String metricName, long elapsedTime, List<Dimension> dimensions) {
         return Mono.fromRunnable(() -> {
+                    // La libreria dummy non deve pubblicare metriche.
+                    if (namespace.equals(DUMMY_PROVIDER_NAMESPACE)) {
+                        return;
+                    }
                     log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_RESPONSE_TIME, Stream.of(namespace, metricName, elapsedTime).toList());
                     MetricCollector metricCollector = MetricCollector.create(metricName);
-
                     //Report metric.
                     SdkMetric<Long> responseTimeMetric = (SdkMetric<Long>) cloudWatchMetricPublisherConfiguration.getSdkMetricByMetricName(metricName);
                     metricCollector.reportMetric(responseTimeMetric, elapsedTime);

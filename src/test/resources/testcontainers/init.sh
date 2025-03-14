@@ -2,12 +2,19 @@
 
 set -e
 
-# Configura gli endpoint e la regione AWS
+## CONFIGURATION ##
 VERBOSE=true
 AWS_REGION="eu-south-1"
 LOCALSTACK_ENDPOINT="http://localhost:4566"
 NOTIFICATIONS_BUS_NAME="notifications-bus-name-test"
 
+if [ "$RUNNING_IN_DOCKER" = "true" ]; then
+    CONFIG_FILES_DIR="/config"
+else
+    CONFIG_FILES_DIR="../src/test/resources/testcontainers/config"
+fi
+
+## DEFINITIONS ##
 SQS_QUEUES=(
   "pn-ec-tracker-sms-stato-queue.fifo"
   "pn-ec-tracker-sms-errori-queue.fifo"
@@ -62,6 +69,9 @@ DYNAMODB_TABLES=(
   "pn-EcConversionePDF:fileKey"
 )
 
+PN_EC_ESITI_CARTACEO=$(cat ${CONFIG_FILES_DIR}/pn-ec-esiti-cartaceo.json)
+PN_EC_PEC_METRICS_SCHEMA=$(cat ${CONFIG_FILES_DIR}/pn-ec-pec-metrics-schema.json)
+PN_EC_PEC_SECRET=$(cat ${CONFIG_FILES_DIR}/pn-ec-pec-secret.json)
 
 ## LOGGING FUNCTIONS ##
 log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
@@ -87,7 +97,7 @@ wait_for_pids() {
   return "$exit_code"
 }
 
-# Creazione delle tabelle DynamoDB
+## FUNCTIONS ##
 create_dynamodb_table() {
   local table_name=$1
   local pk=$2
@@ -111,7 +121,6 @@ create_dynamodb_table() {
   fi
 }
 
-# Creazione delle code SQS
 create_sqs_queue() {
   local queue_name=$1
   log "Creating SQS queue: $queue_name"
@@ -127,7 +136,6 @@ create_sqs_queue() {
   fi
 }
 
-# Creazione dei bucket S3
 create_s3_bucket() {
   local bucket_name=$1
   echo "Crating S3 bucket: $bucket_name"
@@ -153,7 +161,6 @@ create_s3_bucket() {
   { log "Failed to create bucket: $bucket_name"; return 1; }
 }
 
-# Creazione dei parametri SSM
 create_ssm_parameter() {
   local parameter_name=$1
   local parameter_value=$2
@@ -177,7 +184,6 @@ create_ssm_parameter() {
   { log "Failed to create parameter: $parameter_name"; return 1; }
 }
 
-# Creazione dei segreti Secrets Manager
 create_secret() {
   local secret_name=$1
   local secret_value=$2
@@ -320,6 +326,14 @@ initialize_dynamo() {
   return $return_code
 }
 
+initialize_ssm(){
+  log "### Initializing SSM Parameters ###"
+
+  create_ssm_parameter "pn-EC-esitiCartaceo" "$PN_EC_ESITI_CARTACEO" && \
+  create_ssm_parameter "Pn-EC-Pec-MetricsSchema" "$PN_EC_PEC_METRICS_SCHEMA" || \
+  { log "Failed to initialize SSM parameters"; return 1; }
+}
+
 initialize_event_bridge() {
     log "Initializing EventBridge"
 
@@ -350,6 +364,7 @@ initialize_event_bridge() {
     put_sqs_as_rule_target "pn-ec-availabilitymanager-queue" "PnEcEventRuleAvailabilityManager" &
     put_sqs_as_rule_target "pn-ec-notifiche-esterne-dev-debug-queue" "PnEcEventRuleExternalNotifications" &
     put_sqs_as_rule_target "pn-ec-cucumber-test-queue" "PnEcEventRuleExternalNotifications" &
+    put_sqs_as_rule_target "pn-ec-pec-cancellazione-ricevute-queue" "PnEcEventRuleCancellazioneRicevutePEC" &
 
     wait
 }
@@ -366,20 +381,9 @@ main(){
   pids+=("$!")
   initialize_dynamo &
   pids+=("$!")
-  create_ssm_parameter "pn-EC-esitiCartaceo" '{
-    "cartaceo": {
-      "RECRN004A": {"deliveryFailureCause": ["M05", "M06", "M07"]},
-      "RECRN004B": {"deliveryFailureCause": ["M08", "M09", "F01", "F02", "TEST"]},
-      "RECRN006": {"deliveryFailureCause": ["M03", "M04"]}
-    }
-  }' &
+  initialize_ssm &
   pids+=("$!")
-  create_secret "Pn-EC-PEC" '{
-    "aruba.pec.username": "aruba_username@dgsspa.com",
-    "aruba.pec.password": "aruba_password",
-    "aruba.pec.sender": "aruba_sender@dgsspa.com",
-    "namirial.pec.sender": "namirial_sender@dgsspa.com"
-  }' &
+  create_secret "Pn-EC-PEC" "${PN_EC_PEC_SECRET}" &
   pids+=("$!")
 
   wait_for_pids pids "Failed to initialize components" && \

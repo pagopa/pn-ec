@@ -53,12 +53,12 @@ if ( [ ! -z "${endpoint_url}" ] ) then
 fi
 echo ${aws_command_base_args}
 
-numOfLines=$(($(cat ${inputFileName} | wc -l)))
+numOfLines=$(grep -c '^' ${inputFileName})
 lineNum=0
 pids=()
 errorCount=0
 
-while read line; do
+while IFS= read -r line || [[ -n "$line" ]]; do
   aws ${aws_command_base_args} dynamodb put-item --table-name ${tableName} --item "${line}" > /dev/null & \
   pids+=($!)
 done < ${inputFileName}

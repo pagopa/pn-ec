@@ -55,10 +55,6 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     private String arubaProviderNamespace;
     @Value("${library.pec.cloudwatch.namespace.namirial}")
     private String namirialProviderNamespace;
-    @Value("${library.pec.cloudwatch.metric.response-time.mark-message-as-read}")
-    private String markMessageAsReadResponseTimeMetric;
-    @Value("${library.pec.cloudwatch.metric.response-time.delete-message}")
-    private String deleteMessageResponseTimeMetric;
 
     @Autowired
     public PnEcPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService, PnPecServiceImpl namirialService, PnPecConfigurationProperties props,
