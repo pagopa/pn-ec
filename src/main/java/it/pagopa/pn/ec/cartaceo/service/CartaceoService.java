@@ -539,33 +539,33 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private Mono<RequestConversionDto> pdfRasterStep(CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest paperEngageRequestDst, PaperEngageRequest paperEngageRequestSrc) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CARTACEO_PDF_RASTER_STEP, Stream.of(cartaceoPresaInCaricoInfo, paperEngageRequestDst, paperEngageRequestSrc).toList());
 
-        if (!isRasterFeatureEnabled(paperEngageRequestDst.getRequestPaId())) {
-            return Mono.empty();
-        }
+        if (isRasterFeatureEnabled(paperEngageRequestDst.getRequestPaId()) || Boolean.TRUE.equals(paperEngageRequestSrc.getApplyRasterization())) {
 
-        return Mono.justOrEmpty(paperEngageRequestDst.getAttachments())
-                .flatMapMany(Flux::fromIterable)
-                .filter(this::isAttachmentToConvert)
-                .flatMap(attachment -> uploadAttachmentToConvert(cartaceoPresaInCaricoInfo, attachment))
-                .collectList()
-                .filter(attachmentsToConvert -> !attachmentsToConvert.isEmpty())
-                .doOnDiscard(List.class, list -> log.debug("No attachments to convert were processed."))
-                .flatMap(attachmentsToConvert -> {
-                    RequestConversionDto requestConversionDto = new RequestConversionDto();
-                    requestConversionDto.setxPagopaExtchCxId(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId());
-                    requestConversionDto.setRequestId(cartaceoPresaInCaricoInfo.getRequestIdx());
-                    requestConversionDto.setOriginalRequest(paperEngageRequestSrc);
-                    requestConversionDto.setAttachments(attachmentsToConvert);
-                    requestConversionDto.setRequestTimestamp(OffsetDateTime.now());
-                    return dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
-                })
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
-                .doOnError(MaxRetriesExceededException.class, throwable -> {
-                    log.debug(EXCEPTION_IN_PROCESS, CARTACEO_PDF_RASTER_STEP, throwable, throwable.getMessage());
-                    StepError stepError = new StepError();
-                    stepError.setStep(PDF_RASTER_STEP);
-                    cartaceoPresaInCaricoInfo.setStepError(stepError);
-                });
+            return Mono.justOrEmpty(paperEngageRequestDst.getAttachments())
+                    .flatMapMany(Flux::fromIterable)
+                    .filter(this::isAttachmentToConvert)
+                    .flatMap(attachment -> uploadAttachmentToConvert(cartaceoPresaInCaricoInfo, attachment))
+                    .collectList()
+                    .filter(attachmentsToConvert -> !attachmentsToConvert.isEmpty())
+                    .doOnDiscard(List.class, list -> log.debug("No attachments to convert were processed."))
+                    .flatMap(attachmentsToConvert -> {
+                        RequestConversionDto requestConversionDto = new RequestConversionDto();
+                        requestConversionDto.setxPagopaExtchCxId(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId());
+                        requestConversionDto.setRequestId(cartaceoPresaInCaricoInfo.getRequestIdx());
+                        requestConversionDto.setOriginalRequest(paperEngageRequestSrc);
+                        requestConversionDto.setAttachments(attachmentsToConvert);
+                        requestConversionDto.setRequestTimestamp(OffsetDateTime.now());
+                        return dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
+                    })
+                    .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                    .doOnError(MaxRetriesExceededException.class, throwable -> {
+                        log.debug(EXCEPTION_IN_PROCESS, CARTACEO_PDF_RASTER_STEP, throwable, throwable.getMessage());
+                        StepError stepError = new StepError();
+                        stepError.setStep(PDF_RASTER_STEP);
+                        cartaceoPresaInCaricoInfo.setStepError(stepError);
+                    });
+        }
+        return Mono.empty();
     }
 
     private boolean isAttachmentToConvert(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequestAttachments attachment) {

@@ -127,6 +127,7 @@ class CartaceoServiceTest {
 
         //GIVEN
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
 
         //WHEN
         mockGestoreRepository();
@@ -175,6 +176,7 @@ class CartaceoServiceTest {
         //GIVEN
         String requestPaIdToCheck = "validRequestPaId";
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo(requestPaIdToCheck);
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
 
         //WHEN
         mockGestoreRepository();
@@ -218,6 +220,7 @@ class CartaceoServiceTest {
 
         //GIVEN
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
 
         //WHEN
         mockGestoreRepository();
@@ -236,6 +239,7 @@ class CartaceoServiceTest {
 
         //GIVEN
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
 
         //WHEN
         mockGestoreRepository();
@@ -254,6 +258,7 @@ class CartaceoServiceTest {
 
         //GIVEN
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
 
         //WHEN
         mockGestoreRepository();
@@ -272,6 +277,7 @@ class CartaceoServiceTest {
 
         //GIVEN
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
 
         //WHEN
         mockGestoreRepository();
@@ -290,6 +296,7 @@ class CartaceoServiceTest {
 
         //GIVEN
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
 
         //WHEN
         mockGestoreRepository();

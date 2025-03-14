@@ -7,6 +7,7 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.CustomLog;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
@@ -147,6 +148,18 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
                           .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
                           .onStatus(INTERNAL_SERVER_ERROR::equals, clientResponse -> Mono.error(new ISEForMessageIdCreationException()))
                           .bodyToMono(RequestDto.class);
+    }
+
+    @Override
+    public Flux<DiscardedEventDto> insertDiscardedEvents(Flux<DiscardedEventDto> discardedEventsDto) {
+        return ecWebClient.post()
+                .uri(gestoreRepositoryEndpointProperties.postDiscardedEvents())
+                .body(discardedEventsDto, DiscardedEventDto.class)
+                .retrieve()
+                .onStatus(BAD_REQUEST::equals,
+                        clientResponse -> Mono.error(new RepositoryManagerException.RequestMalformedException()))
+                .bodyToFlux(DiscardedEventDto.class);
+
     }
 
     private static class ISEForMessageIdCreationException extends RestCallException {

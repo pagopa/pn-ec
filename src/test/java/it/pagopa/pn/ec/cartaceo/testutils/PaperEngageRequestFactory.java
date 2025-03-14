@@ -25,7 +25,7 @@ public class PaperEngageRequestFactory {
 
 	/**
 	 *
-	 * @param attachNum
+	 * @param requestPaId
 	 * @return
 	 */
 	public static it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest createDtoPaperRequestPdfRaster(String requestPaId) {

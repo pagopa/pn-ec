@@ -223,7 +223,12 @@ components:
           additionalProperties:
             type: string
           description: >-
-            Servizi a valore aggiunto      
+            Servizi a valore aggiunto
+        applyRasterization:
+          type: boolean
+          example: true
+          description: >-
+            Flag che indica se bisogna attivare la rasterizzazione per i documenti oppure no.
 
     ##########################################################################
     ###      NOTIFICHE DI AVANZAMENTO DEL PROCESSO DI POSTALIZZAZIONE      ###
