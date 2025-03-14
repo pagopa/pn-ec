@@ -4,5 +4,5 @@ import it.pagopa.pn.library.pec.model.IPostacert;
 
 public interface DaticertService {
 
-    IPostacert getPostacertFromByteArray(byte[] bytes);
+    IPostacert getPostacertFromByteArray(byte[] bytes, String providerName);
 }

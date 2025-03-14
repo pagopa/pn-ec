@@ -148,7 +148,7 @@ class ScaricamentoEsitiPecSchedulerTest {
                 .verify();
 
         verify(pnPecService, never()).markMessageAsRead(any(),any());
-        verify(daticertService, never()).getPostacertFromByteArray(any());
+        verify(daticertService, never()).getPostacertFromByteArray(any(), anyString());
     }
 
     private ByteArrayOutputStream buildRicezioneEsitiPecDto(String tipoPostacert, String tipoDestinatario, boolean hasDatiCert) throws MessagingException, IOException {
