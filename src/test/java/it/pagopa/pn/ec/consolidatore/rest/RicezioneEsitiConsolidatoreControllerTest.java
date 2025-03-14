@@ -146,6 +146,18 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		return progressStatusEvent;
 	}
 
+	private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithoutAttachmentsNullIUN() {
+		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = new ConsolidatoreIngressPaperProgressStatusEvent();
+		progressStatusEvent.setRequestId(requestId);
+		progressStatusEvent.setStatusCode(CON010);
+		progressStatusEvent.setStatusDescription(statusCodeDescriptionMap().get(CON010));
+		progressStatusEvent.setStatusDateTime(now);
+		progressStatusEvent.setProductType(PRODUCT_TYPE_AR);
+		progressStatusEvent.setIun(null);
+		progressStatusEvent.setClientRequestTimeStamp(now);
+		return progressStatusEvent;
+	}
+
 	@BeforeAll
 	public static void buildClientConfigurationInternalDto() {
 		clientConfigurationInternalDto.setApiKey(xApiKeyHeaderValue);
@@ -210,7 +222,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	}
 
 	private Stream<Arguments> provideArguments() {
-		return Stream.of(Arguments.of(getProgressStatusEventWithAttachments()), Arguments.of(getProgressStatusEventWithoutAttachments()));
+		return Stream.of(Arguments.of(getProgressStatusEventWithAttachments()), Arguments.of(getProgressStatusEventWithoutAttachments()),
+				Arguments.of(getProgressStatusEventWithoutAttachmentsNullIUN()));
 	}
 
 	@ParameterizedTest
