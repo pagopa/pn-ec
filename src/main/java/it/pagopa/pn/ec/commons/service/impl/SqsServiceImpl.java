@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
+import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.OptionalUtils.getFirstListElement;
@@ -47,9 +48,10 @@ public class SqsServiceImpl implements SqsService {
     private final S3Service s3Service;
     private final RetryBackoffSpec sqsRetryStrategy;
     private static final int MESSAGE_GROUP_ID_LENGTH = 64;
+    private static final int MESSAGE_DEDUPLICATION_ID_LENGTH = 64;
     @Value("${sqs.queue.max-message-size}")
     private Integer sqsQueueMaxMessageSize;
-    @Value("${SqsQueueMaxMessages:#{1000}}")
+    @Value("${sqs.queue.max-batch-subscribed-msgs}")
     private Integer maxMessages;
 
     public SqsServiceImpl(SqsAsyncClient sqsAsyncClient, ObjectMapper objectMapper, JsonUtils jsonUtils, S3Service s3Service, SqsRetryStrategyProperties sqsRetryStrategyProperties) {
@@ -68,17 +70,22 @@ public class SqsServiceImpl implements SqsService {
     }
 
     @Override
+    public <T> Mono<SendMessageResponse> sendWithDeduplicationId(String queueName, T queuePayload) throws SqsClientException {
+        return send(queueName, RandomStringUtils.randomAlphanumeric(MESSAGE_GROUP_ID_LENGTH), RandomStringUtils.randomAlphanumeric(MESSAGE_DEDUPLICATION_ID_LENGTH), null, queuePayload);
+    }
+
+    @Override
     public <T> Mono<SendMessageResponse> send(String queueName, Integer delaySeconds, T queuePayload) throws SqsClientException {
-        return send(queueName, RandomStringUtils.randomAlphanumeric(MESSAGE_GROUP_ID_LENGTH), delaySeconds, queuePayload);
+        return send(queueName, RandomStringUtils.randomAlphanumeric(MESSAGE_GROUP_ID_LENGTH), null, delaySeconds, queuePayload);
     }
 
     @Override
     public <T> Mono<SendMessageResponse> send(String queueName, String messageGroupId, T queuePayload) throws SqsClientException {
-        return send(queueName, messageGroupId, null, queuePayload);
+        return send(queueName, messageGroupId, null, null, queuePayload);
     }
 
     @Override
-    public <T> Mono<SendMessageResponse> send(String queueName, String messageGroupId, Integer delaySeconds, T queuePayload) throws SqsClientException {
+    public <T> Mono<SendMessageResponse> send(String queueName, String messageGroupId, String messageDeduplicationId, Integer delaySeconds, T queuePayload) throws SqsClientException {
         log.debug(INSERTING_DATA_IN_SQS, queuePayload, queueName);
         return Mono.fromCallable(() -> objectMapper.writeValueAsString(queuePayload))
                 .doOnSuccess(sendMessageResponse -> log.info("Try to publish on {} with payload {}", queueName, queuePayload))
@@ -86,6 +93,7 @@ public class SqsServiceImpl implements SqsService {
                 .flatMap(objects -> Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> builder.queueUrl(objects.getT2())
                         .messageBody(objects.getT1())
                         .messageGroupId(messageGroupId)
+                        .messageDeduplicationId(messageDeduplicationId)
                         .delaySeconds(delaySeconds))))
                 .retryWhen(getSqsRetryStrategy())
                 .onErrorResume(throwable -> {
@@ -135,7 +143,23 @@ public class SqsServiceImpl implements SqsService {
     }
 
     @Override
+    public Mono<ChangeMessageVisibilityResponse> changeMessageVisibility(String queueName, Integer visibilityTimeout, String receiptHandle) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CHANGE_MESSAGE_VISIBILITY, Stream.of(queueName, visibilityTimeout, receiptHandle).toList());
+        return getQueueUrlFromName(queueName).flatMap(queueUrl -> Mono.fromCompletionStage(sqsAsyncClient.changeMessageVisibility(builder -> builder.queueUrl(
+                        queueUrl).visibilityTimeout(visibilityTimeout).receiptHandle(receiptHandle))))
+                .onErrorResume(throwable -> {
+                    log.error(throwable.getMessage(), throwable);
+                    return Mono.error(new SqsClientException(queueName));
+                });
+    }
+
+    @Override
     public <T> Flux<SqsMessageWrapper<T>> getMessages(String queueName, Class<T> messageContentClass) {
+        return getMessages(queueName, messageContentClass, maxMessages);
+    }
+
+    @Override
+    public <T> Flux<SqsMessageWrapper<T>> getMessages(String queueName, Class<T> messageContentClass, Integer maxMessages) {
 
         AtomicInteger actualMessages = new AtomicInteger();
         AtomicBoolean listIsEmpty = new AtomicBoolean();

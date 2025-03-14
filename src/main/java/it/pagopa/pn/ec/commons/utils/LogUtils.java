@@ -9,11 +9,15 @@ public class LogUtils {
     public static String concatIds(String id1, String id2) {
         return String.format("%s%s%s", id1, "~", id2);
     }
+
     public static final String MDC_CORR_ID_KEY = "cx_id";
     public static final String MDC_GUM_UUID_KEY = "get_unread_messages_uuid";
     public static final String INVALID_API_KEY = "Invalid API key";
 
     public static final String INVOKING_OPERATION_LABEL_WITH_ARGS = "Invoking operation '{}' with args: {}";
+
+    public static final String LOGGING_OPERATION_WITH_ARGS = "Invoking operation '{}' with args: {} and {}";
+
     public static final String INVOKING_OPERATION_LABEL = "Invoking operation '{}'";
     public static final String SUCCESSFUL_OPERATION_LABEL = "Successful operation: '{}' = {}";
 
@@ -22,6 +26,7 @@ public class LogUtils {
     public static final String SUCCESSFUL_OPERATION_NO_RESULT_LABEL = "Successful operation: '{}'";
     public static final String INSERTING_DATA_IN_SQS = "Inserting data {} in SQS '{}'";
     public static final String INSERTED_DATA_IN_SQS = "Inserted data in SQS '{}'";
+    public static final String CHANGE_MESSAGE_VISIBILITY = "SqsService.changeMessageVisibility()";
     public static final String PRESA_IN_CARICO = "PresaInCaricoService.presaInCarico()";
     public static final String MESSAGE_REMOVED_FROM_ERROR_QUEUE = "The message has been successfully handled and removed from the error queue '{}'";
     public static final String EXCEPTION_IN_PROCESS_FOR = "Exception in '{}' for request '{}' - {}, {}";
@@ -30,6 +35,7 @@ public class LogUtils {
     public static final String RETRY_ATTEMPT = "{} - retry attempt number '{}'";
     public static final String ARUBA_SEND_EXCEPTION = "ArubaSendException occurred during lavorazione PEC for request '{}' - Errcode: {}, Errstr: {}, Errblock: {}";
     public static final String ARUBA_MESSAGE_MISSING = "The message '{}' is missing from folder";
+    public static final String GENERIC_ERROR = "Errore generico";
 
     //VALIDATION
     public static final String CLIENT_AUTHENTICATION = "Client authentication";
@@ -88,6 +94,10 @@ public class LogUtils {
 
     public static final String NT_RECEIVE_CARTACEO_ERROR = "receiveCartaceoObjectFromErrorQueue()";
 
+    public static final String NT_RECEIVE_SERCQ = "receiveSercqObjectMessage()";
+
+    public static final String NT_RECEIVE_SERCQ_ERROR = "receiveSercqObjectFromErrorQueue()";
+
 
     //PEC
     public static final String GET_DIGITAL_LEGAL_MESSAGE_STATUS = "getDigitalLegalMessageStatus";
@@ -96,8 +106,11 @@ public class LogUtils {
     public static final String FILTER_REQUEST_PEC = "PecService.filterRequestPec()";
     public static final String LAVORAZIONE_RICHIESTA_PEC = "lavorazioneRichiestaPec()";
     public static final String PRESA_IN_CARICO_PEC = "PecService.presaInCarico()";
+    public static final String PRESA_IN_CARICO_SERCQ = "SercqService.presaInCarico()";
     public static final String GESTIONE_RETRY_PEC = "gestioneRetryPec()";
     public static final String INSERT_REQUEST_FROM_PEC = "PecService.insertRequestFromPec()";
+    public static final String INSERT_REQUEST_FROM_SERCQ = "PecService.insertRequestFromSercq()";
+
     public static final String PEC_GET_ATTACHMENTS = "PecService.getAttachments()";
     public static final String PEC_DOWNLOAD_ATTACHMENT = "PecService.downloadAttachment()";
     public static final String PEC_SEND_MAIL = "PecService.sendMail()";
@@ -110,12 +123,16 @@ public class LogUtils {
     public static final String PAPER_PULL_SERVICE = "StatusPullService.paperPullService()";
     public static final String INSERT_REQUEST_FROM_CARTACEO = "CartaceoService.insertRequestFromCartaceo()";
     public static final String LAVORAZIONE_RICHIESTA_CARTACEO = "lavorazioneRichiestaCartaceo()";
+    public static final String LAVORAZIONE_RICHIESTA_CARTACEO_BATCH = "lavorazioneRichiestaCartaceoBatch()";
     public static final String FILTER_REQUEST_CARTACEO = "CartaceoService.filterRequestCartaceo()";
     public static final String GESTIONE_RETRY_CARTACEO = "gestioneRetryCartaceo()";
     public static final String PRESA_IN_CARICO_CARTACEO = "CartaceoService.presaInCarico()";
     public static final String PROCESS_WITH_ATTACH_RETRY = "CartaceoService.processWithAttachRetry()";
     public static final String PROCESS_ONLY_BODY_RETRY = "CartaceoService.processOnlyBodyRetry()";
-
+    public static final String UPLOAD_ATTACHMENT_TO_CONVERT = "CartaceoService.uploadAttachmentToConvert()";
+    public static final String NOTIFICATION_TRACKER_STEP_CARTACEO = "CartaceoService.notificationTrackerStep()";
+    public static final String CARTACEO_PUT_REQUEST_STEP = "CartaceoService.putRequestStep()";
+    public static final String CARTACEO_PDF_RASTER_STEP = "CartaceoService.pdfRasterStep()";
     //EMAIL
     public static final String SEND_DIGITAL_COURTESY_MESSAGE = "sendDigitalCourtesyMessage";
     public static final String GET_DIGITAL_COURTESY_MESSAGE_STATUS = "getDigitalCourtesyMessageStatus";
@@ -142,11 +159,13 @@ public class LogUtils {
     public static final String SEND_PAPER_REPLICAS_ENGAGEMENT_REQUEST = "sendPaperReplicasEngagementRequest";
     public static final String GET_PAPER_REPLICAS_PROGRESSES_REQUEST = "getPaperReplicasProgressesRequest";
     public static final String VERIFICA_ESITO_DA_CONSOLIDATORE = "RicezioneEsitiCartaceoService.verificaEsitoDaConsolidatore()";
-    public static final String VERIFICA_ATTACHMENTS = "RicezioneEsitiCartaceoService.verificaEsitoDaConsolidatore()";
+    public static final String VERIFICA_ATTACHMENTS = "RicezioneEsitiCartaceoService.verificaAttachments()";
     public static final String VERIFICA_ERRORI_SEMANTICI = "RicezioneEsitiCartaceoService.verificaErroriSemantici()";
     public static final String PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER = "RicezioneEsitiCartaceoService.pubblicaEsitoCodaNotificationTracker()";
     public static final String PUBLISH_ON_QUEUE = "RicezioneEsitiCartaceoService.publishOnQueue()";
 
+    //PDF RASTER
+    public static final String CONVERT_PDF = "convertPdf";
 
     //STATEMACHINE
     public static final String STATE_MACHINE_SERVICE = "pn-statemachinemanager";
@@ -168,6 +187,7 @@ public class LogUtils {
 
     //MICROSERVIZI ESTERNI
     public static final String CONSOLIDATORE_SERVICE = "Consolidatore";
+    public static final String PDF_RASTER_SERVICE = "Pdf Raster";
 
     //SERVIZI ESTERNI
     public static final String CLIENT_METHOD_INVOCATION_WITH_ARGS = "Client method {} - args: {}";
@@ -196,6 +216,7 @@ public class LogUtils {
 
     //DOWNLOAD CALL
     public static final String DOWNLOAD_FILE = "DownloadCall.downloadFile()";
+    public static final String UPLOAD_FILE = "UploadCall.uploadFile()";
 
     //SCARICAMENTO/LAVORAZIONE ESITI PEC
     public static final String STARTING_SCHEDULED = "Starting scheduled process '{}'";
@@ -215,8 +236,9 @@ public class LogUtils {
 
     //CLOUD WATCH
     public static final String PUBLISH_CUSTOM_PEC_METRICS = "CloudWatchPecMetrics.publishCustomPecMetrics()";
-    public static final String PUBLISH_PEC_MESSAGE_COUNT=  "CloudWatchPecMetrics.publishMessageCount()";
+    public static final String PUBLISH_PEC_MESSAGE_COUNT = "CloudWatchPecMetrics.publishMessageCount()";
     public static final String PUBLISH_RESPONSE_TIME = "CloudWatchPecMetrics.publishResponseTime()";
+    public static final String GET_DIMENSION = "MetricsDimensionConfiguration.getDimension()";
 
     //EVENT BRIDGE
     public static final String EVENT_BRIDGE_PUT_EVENT_EXTERNAL = "EventBridge - PutEvents.putEventExternal()";
@@ -233,6 +255,27 @@ public class LogUtils {
     //CloudWatch
 
     public static final String CLOUD_WATCH_METRICS_PUBLISHER_WRAPPER = "CloudWatchMetricsPublisherWrapper";
-    public static final String CLOUD_WATCH_METRICS_PUBLISH= CLOUD_WATCH_METRICS_PUBLISHER_WRAPPER +".publish()";
+    public static final String CLOUD_WATCH_METRICS_PUBLISH = CLOUD_WATCH_METRICS_PUBLISHER_WRAPPER + ".publish()";
+
+    //PDFRASTER
+
+    public static final String PDF_RASTER_INSERT_REQUEST_CONVERSION = "DynamoPdfRasterServiceImpl.insertRequestConversion()";
+    public static final String PDF_RASTER_UPDATE_REQUEST_CONVERSION = "DynamoPdfRasterServiceImpl.updateRequestConversion()";
+    public static final String PDF_RASTER_CONVERT_TO_ENTITY = "DynamoPdfRasterServiceImpl.convertToEntity()";
+    public static final String PDF_RASTER_SAVE_REQUEST_CONVERSION_ENTITY = "DynamoPdfRasterServiceImpl.saveRequestConversionEntity()";
+    public static final String PDF_RASTER_SAVE_PDF_CONVERSIONS = "DynamoPdfRasterServiceImpl.savePdfConversion()";
+    public static final String PDF_RASTER_SAVE_PDF_CONVERSION = "DynamoPdfRasterServiceImpl.savePdfConversion()";
+    public static final String PDF_RASTER_CONVERT_TO_DTO = "DynamoPdfRasterServiceImpl.convertToDto()";
+    public static final String PDF_RASTER_UPDATE_ATTACHMENT_CONVERSION = "DynamoPdfRasterServiceImpl.updateAttachmentConversion()";
+    public static final String PDF_RASTER_GET_REQUEST_CONVERSION_FROM_DYNAMO_DB = "DynamoPdfRasterServiceImpl.getRequestConversionFromDynamoDb()";
+    public static final String PDF_RASTER_GET_PDF_CONVERSION_FROM_DYNAMO_DB = "DynamoPdfRasterServiceImpl.getPdfConversionFromDynamoDb()";
+    public static final String HANDLE_AVAILABILITY_MANAGER = "AvailabilityManagerService.handleAvailabilityManager()";
+
+
+
+
+
+    //SERCQ
+    public static final String SEND_TO_SERCQ_SEND_SUCCESS = "OK, consegna da SeND a SERCQ-SeND conclusa con successo";
 
 }

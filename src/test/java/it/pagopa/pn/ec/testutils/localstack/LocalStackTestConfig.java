@@ -2,12 +2,14 @@ package it.pagopa.pn.ec.testutils.localstack;
 
 
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
-import it.pagopa.pn.ec.commons.configurationproperties.AwsConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
+import it.pagopa.pn.ec.pdfraster.model.entity.PdfConversionEntity;
+import it.pagopa.pn.ec.pdfraster.model.entity.RequestConversionEntity;
 import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
+import it.pagopa.pn.ec.repositorymanager.model.entity.DiscardedEvent;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
@@ -101,35 +103,63 @@ public class LocalStackTestConfig {
                     "--type",
                     "String",
                     "--value",
-                    "{\n" +
-                            "    \"cartaceo\": {\n" +
-                            "        \"RECRN004A\": {\n" +
-                            "            \"deliveryFailureCause\": [\n" +
-                            "                \"M05\",\n" +
-                            "                \"M06\",\n" +
-                            "                \"M07\"\n" +
-                            "            ]\n" +
-                            "        },\n" +
-                            "        \"RECRN004B\": {\n" +
-                            "            \"deliveryFailureCause\": [\n" +
-                            "                \"M08\",\n" +
-                            "                \"M09\",\n" +
-                            "                \"F01\",\n" +
-                            "                \"F02\",\n" +
-                            "                \"TEST\"\n" +
-                            "            ]\n" +
-                            "        },\n" +
-                            "        \"RECRN006\": {\n" +
-                            "            \"deliveryFailureCause\": [\n" +
-                            "                \"M03\",\n" +
-                            "                \"M04\"\n" +
-                            "            ]\n" +
-                            "        }\n" +
-                            "    }\n" +
-                            "}");
+                    """
+                            {
+                                "cartaceo": {
+                                    "RECRN004A": {
+                                        "deliveryFailureCause": [
+                                            "M05",
+                                            "M06",
+                                            "M07"
+                                        ]
+                                    },
+                                    "RECRN004B": {
+                                        "deliveryFailureCause": [
+                                            "M08",
+                                            "M09",
+                                            "F01",
+                                            "F02",
+                                            "TEST"
+                                        ]
+                                    },
+                                    "RECRN006": {
+                                        "deliveryFailureCause": [
+                                            "M03",
+                                            "M04"
+                                        ]
+                                    }
+                                }
+                            }""");
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
+
+        try {
+            localStackContainer.execInContainer("awslocal",
+                    "ssm",
+                    "put-parameter",
+                    "--name",
+                    "Pn-EC-Pec-MetricsSchema",
+                    "--type",
+                    "String",
+                    "--value",
+                    """
+                            {
+                                "PayloadSizeRange": {
+                                    "0k-10k": [ 0, 10 ],
+                                    "10k-100k": [ 10, 100 ],
+                                    "100k+": [ 100 ]
+                                },
+                                "MessageCountRange": {
+                                    "0-10": [ 0, 10 ],
+                                    "10-100": [ 10, 100 ],
+                                    "100+": [ 100 ]
+                                }
+                            }""");
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     private void createTable(final String tableName, final Class<?> entityClass) {
@@ -151,9 +181,6 @@ public class LocalStackTestConfig {
 
     @Autowired
     private SqsClient sqsClient;
-
-    @Autowired
-    private AwsConfigurationProperties awsConfigurationProperties;
 
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
@@ -183,16 +210,17 @@ public class LocalStackTestConfig {
                 notificationTrackerSqsName.statoPecName(),
                 notificationTrackerSqsName.statoPecErratoName(),
                 notificationTrackerSqsName.statoCartaceoName(),
-                notificationTrackerSqsName.statoCartaceoErratoName());
+                notificationTrackerSqsName.statoCartaceoErratoName(),
+                notificationTrackerSqsName.statoSercqName(),
+                notificationTrackerSqsName.statoSercqErratoName());
 
         List<String> smsQueueNames = List.of(smsSqsQueueName.interactiveName(), smsSqsQueueName.batchName(), smsSqsQueueName.errorName());
 
         List<String> emailQueueNames =
                 List.of(emailSqsQueueName.interactiveName(), emailSqsQueueName.batchName(), emailSqsQueueName.errorName());
-        List<String> cartceoQueueNames = List.of(cartaceoSqsQueueName.batchName(), cartaceoSqsQueueName.errorName());
+        List<String> cartceoQueueNames = List.of(cartaceoSqsQueueName.batchName(), cartaceoSqsQueueName.errorName(), cartaceoSqsQueueName.dlqErrorName());
 //        cartaceoSqsQueueName.interactiveName(),
         List<String> pecQueueNames = List.of(pecSqsQueueName.interactiveName(), pecSqsQueueName.batchName(), pecSqsQueueName.errorName(), scaricamentoEsitiPecProperties.sqsQueueName());
-
 
         List<String> allQueueName = new ArrayList<>();
         allQueueName.addAll(notificationTrackerQueueNames);
@@ -235,7 +263,11 @@ public class LocalStackTestConfig {
         Map<String, Class<?>> tableNameWithEntityClass =
                 Map.ofEntries(entry(repositoryManagerDynamoTableName.anagraficaClientName(), ClientConfiguration.class),
                         entry(repositoryManagerDynamoTableName.richiestePersonalName(), RequestPersonal.class),
-                        entry(repositoryManagerDynamoTableName.richiesteMetadataName(), RequestMetadata.class));
+                        entry(repositoryManagerDynamoTableName.richiesteMetadataName(), RequestMetadata.class),
+                        entry(repositoryManagerDynamoTableName.richiesteConversioneRequestName(), RequestConversionEntity.class),
+                        entry(repositoryManagerDynamoTableName.richiesteConversionePdfName(), PdfConversionEntity.class),
+                        entry(repositoryManagerDynamoTableName.scartiConsolidatoreName(), DiscardedEvent.class)
+                );
 
         tableNameWithEntityClass.forEach((tableName, entityClass) -> {
             try {

@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.notificationtracker.service;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
@@ -88,6 +89,7 @@ public class NotificationTrackerMessageReceiverTest {
     private static final String EMAIL_REQUEST_IDX = "EMAIL_REQUEST_IDX";
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
     private static final String PAPER_REQUEST_IDX = "PAPER_REQUEST_IDX";
+    private static final String SERCQ_REQUEST_IDX = "SERCQ_REQUEST_IDX";
     private static final String CLIENT_ID = "CLIENT_ID";
 
     private static final List<JSONObject> stateMachine = new ArrayList<>();
@@ -109,6 +111,7 @@ public class NotificationTrackerMessageReceiverTest {
         insertEmailRequest();
         insertPecRequest();
         insertPaperRequest();
+        insertSercqRequest();
     }
 
     @BeforeEach
@@ -174,7 +177,9 @@ public class NotificationTrackerMessageReceiverTest {
     private Stream<Arguments> provideArguments() {
         return Stream.of(Arguments.of(SMS_REQUEST_IDX, transactionProcessConfigurationProperties.sms(), notificationTrackerSqsName.statoSmsName(), notificationTrackerSqsName.statoSmsErratoName()),
                 Arguments.of(EMAIL_REQUEST_IDX, transactionProcessConfigurationProperties.email(), notificationTrackerSqsName.statoEmailName(), notificationTrackerSqsName.statoEmailErratoName()),
-                Arguments.of(PEC_REQUEST_IDX, transactionProcessConfigurationProperties.pec(), notificationTrackerSqsName.statoPecName(), notificationTrackerSqsName.statoPecErratoName()));
+                Arguments.of(PEC_REQUEST_IDX, transactionProcessConfigurationProperties.pec(), notificationTrackerSqsName.statoPecName(), notificationTrackerSqsName.statoPecErratoName()),
+                Arguments.of(SERCQ_REQUEST_IDX, transactionProcessConfigurationProperties.sercq(), notificationTrackerSqsName.statoSercqName(), notificationTrackerSqsName.statoSercqErratoName())
+        );
     }
 
     @ParameterizedTest
@@ -186,11 +191,28 @@ public class NotificationTrackerMessageReceiverTest {
         mockStatusDecode();
 
         //THEN
-        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId);
+        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId, SENT, new GeneratedMessageDto().id("id").system("system").location("location"));
 
         verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
         verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
         verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(processId));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideArguments")
+    void digitalNtGeneratedMessageNullOk(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+
+        //WHEN
+        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
+        mockStatusDecode();
+
+        //THEN
+        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId, SENT, null);
+
+        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
+        verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
+        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(processId));
+
     }
 
     @ParameterizedTest
@@ -203,7 +225,7 @@ public class NotificationTrackerMessageReceiverTest {
         mockStatusDecode();
 
         //THEN
-        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId);
+        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(requestId, processId, SENT,null);
 
         verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
     }
@@ -324,6 +346,21 @@ public class NotificationTrackerMessageReceiverTest {
     }
 
     @Test
+    void pecNtAddressError() {
+
+        //WHEN
+        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
+        mockStatusDecode();
+
+        //THEN
+        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(PEC_REQUEST_IDX, transactionProcessConfigurationProperties.pec(), ADDRESS_ERROR, new GeneratedMessageDto().id("id").system("system").location("location"));
+
+        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, transactionProcessConfigurationProperties.pec(), notificationTrackerSqsName.statoPecName(), notificationTrackerSqsName.statoPecErratoName(), acknowledgment);
+        verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
+        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(transactionProcessConfigurationProperties.pec()));
+    }
+
+    @Test
     void ntNullLogicStatusOk() {
 
         //GIVEN
@@ -344,11 +381,11 @@ public class NotificationTrackerMessageReceiverTest {
 
     }
 
-    private NotificationTrackerQueueDto receiveDigitalObjectMessage(String requestId, String processId) {
+    private NotificationTrackerQueueDto receiveDigitalObjectMessage(String requestId, String processId, Status nextStatus, GeneratedMessageDto generatedMessageDto) {
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(requestId).xPagopaExtchCxId(CLIENT_ID).build();
-        DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).generatedMessage(new GeneratedMessageDto().id("id").system("system").location("location"));
-        NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), digitalProgressStatusDto);
+        DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).generatedMessage(generatedMessageDto);
+        NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, nextStatus.getStatusTransactionTableCompliant(), digitalProgressStatusDto);
 
         //THEN
         switch (processId) {
@@ -358,6 +395,8 @@ public class NotificationTrackerMessageReceiverTest {
                     notificationTrackerMessageReceiver.receiveEmailObjectMessage(notificationTrackerQueueDto, acknowledgment);
             case "PEC" ->
                     notificationTrackerMessageReceiver.receivePecObjectMessage(notificationTrackerQueueDto, acknowledgment);
+            case "SERCQ" ->
+                    notificationTrackerMessageReceiver.receiveSercqObjectMessage(notificationTrackerQueueDto,acknowledgment);
         }
 
         return notificationTrackerQueueDto;
@@ -373,6 +412,8 @@ public class NotificationTrackerMessageReceiverTest {
                     notificationTrackerMessageReceiver.receiveEmailObjectFromErrorQueue(notificationTrackerQueueDto, acknowledgment);
             case "PEC" ->
                     notificationTrackerMessageReceiver.receivePecObjectFromErrorQueue(notificationTrackerQueueDto, acknowledgment);
+            case "SERCQ" ->
+                    notificationTrackerMessageReceiver.receiveSercqObjectFromErrorQueue(notificationTrackerQueueDto,acknowledgment);
         }
 
     }
@@ -396,6 +437,13 @@ public class NotificationTrackerMessageReceiverTest {
         requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestPersonal(DigitalRequestPersonal.builder().build()).build()));
         Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(OffsetDateTime.now()).build()).build();
         requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("PEC").build()).build()));
+    }
+
+    private static void insertSercqRequest() {
+        var concatRequestId = CLIENT_ID + "~" + SERCQ_REQUEST_IDX;
+        requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestPersonal(DigitalRequestPersonal.builder().build()).build()));
+        Events event = Events.builder().digProgrStatus(DigitalProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).eventTimestamp(OffsetDateTime.now()).build()).build();
+        requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).digitalRequestMetadata(DigitalRequestMetadata.builder().channel("SERCQ").build()).build()));
     }
 
     private static void insertPaperRequest() {

@@ -103,10 +103,14 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         var digitalProgressStatusDto = notificationTrackerQueueDto.getDigitalProgressStatusDto();
 
                                         if (digitalProgressStatusDto != null) {
+                                            OffsetDateTime eventTimestamp = digitalProgressStatusDto.getEventTimestamp();
+                                            // Se lo stato è relativo a SERCQ, non bisogna troncare il timestamp.
+                                            if (logicStatus != null && !logicStatus.startsWith("Q")) {
+                                                eventTimestamp = eventTimestamp.truncatedTo(SECONDS);
+                                            }
                                             digitalProgressStatusDto.status(nextStatus)
                                                                     .statusCode(logicStatus)
-                                                                    .eventTimestamp(digitalProgressStatusDto.getEventTimestamp()
-                                                                                                            .truncatedTo(SECONDS));
+                                                                    .eventTimestamp(eventTimestamp);
                                         } else if (paperProgressStatusDto != null) {
                                             paperProgressStatusDto.status(nextStatus)
                                                                   .statusDescription(paperProgressStatusDto.getStatusDescription())
@@ -114,6 +118,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                                   .statusDateTime(paperProgressStatusDto.getStatusDateTime()
                                                                                                         .truncatedTo(SECONDS));
                                         }
+
                                         return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getXPagopaExtchCxId(),
                                                                                          notificationTrackerQueueDto.getRequestIdx(),
                                                                                          new EventsDto().digProgrStatus(digitalProgressStatusDto)
@@ -132,13 +137,17 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                             var lastEventUpdatedDigital = requestDto.getRequestMetadata().getEventsList().get(lastEventIndex).getDigProgrStatus();
 
-                                            var digitalMessageReference = new DigitalMessageReference();
+                                            DigitalMessageReference digitalMessageReference = null;
                                             var generatedMessage = lastEventUpdatedDigital.getGeneratedMessage();
-                                            digitalMessageReference.setId(generatedMessage.getId());
-                                            digitalMessageReference.setSystem(generatedMessage.getSystem());
-                                            digitalMessageReference.setLocation(generatedMessage.getLocation());
 
-                                            if (transactionProcessConfigurationProperties.pec().equals(processId)) {
+                                            if (generatedMessage != null) {
+                                                digitalMessageReference = new DigitalMessageReference();
+                                                digitalMessageReference.setId(generatedMessage.getId());
+                                                digitalMessageReference.setSystem(generatedMessage.getSystem());
+                                                digitalMessageReference.setLocation(generatedMessage.getLocation());
+                                            }
+
+                                            if (transactionProcessConfigurationProperties.pec().equals(processId) || transactionProcessConfigurationProperties.sercq().equals(processId)) {
 
                                                 LegalMessageSentDetails legalMessageSentDetails = new LegalMessageSentDetails();
 

@@ -13,8 +13,29 @@ tags:
     description: Operazioni per la configurazione dei client
   - name: GestoreRequest
     description: Operazione per la gestione delle richieste
+  - name: DiscardedEvents
+    description: Operazioni per la gestione delle richieste scartate
 
 paths:
+  /external-channel/gestoreRepository/discarded-events:
+    post:
+      tags:
+        - DiscardedEvents
+      operationId: insertDiscardedEvents
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              items:
+                $ref : '#/components/schemas/DiscardedEventDto'
+        required: true
+      responses:
+        200:
+          $ref: '#/components/responses/discardedEventResponseOk'
+
+
   /external-channel/gestoreRepository/clients/{xPagopaExtchCxId}:
     parameters:
       - name: xPagopaExtchCxId
@@ -208,6 +229,15 @@ components:
 
   responses:
 
+    discardedEventResponseOk:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/DiscardedEventDto'
+
     clientResponseOk:
       description: OK
       content:
@@ -364,3 +394,34 @@ components:
             description: >-
               come da specifiche di configurazione delle retry policy per la sola parte di interesse del canale
             example: '"SMS":[5,10,20,40],"EMAIL":[5,10,20,40],"PEC":[5,10,20,40],"PAPER":[5,10,20,40]'
+
+    #Non usati internamente ma ref necessaria per la loro generazione.
+    RequestConversionDto:
+      $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/RequestConversionDto'
+    PdfConversionDto:
+      $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/PdfConversionDto'
+
+    DiscardedEventDto:
+      type: object
+      required:
+        - requestId
+        - timestampRicezione
+        - dataRicezione
+        - codiceScarto
+        - jsonRicevuto
+        - payloadHash
+      properties:
+        requestId:
+          type: string
+        timestampRicezione:
+          type: string
+        dataRicezione:
+          type: string
+        codiceScarto:
+          type: string
+        jsonRicevuto:
+          type: string
+        payloadHash:
+          type: string
+        details:
+          type: string

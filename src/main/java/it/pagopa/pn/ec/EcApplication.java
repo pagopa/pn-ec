@@ -67,11 +67,23 @@ import org.springframework.context.annotation.PropertySource;
 //SQS
 @PropertySource("classpath:sqs/sqs.properties")
 
+//STATE MACHINE
+@PropertySource("classpath:statemachine/statemachine.properties")
+
 //NAMIRIAL
 @PropertySource("classpath:namirial/namirial.properties")
 
 //CLOUDWATCH
 @PropertySource("classpath:cloudwatch/cloudwatch.properties")
+
+//AVAILABILIYMANAGER
+@PropertySource("classpath:availabilitymanager/availability-manager.properties")
+
+//SERCQ
+@PropertySource("classpath:sercq/sercq.properties")
+
+//PDFRASTER
+@PropertySource("classpath:pdfraster/pdf-raster.properties")
 
 public class EcApplication {
 
