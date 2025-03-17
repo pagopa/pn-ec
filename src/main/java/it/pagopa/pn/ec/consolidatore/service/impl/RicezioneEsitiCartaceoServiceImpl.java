@@ -163,10 +163,10 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 					}
 
 					//Iun
-					if (!StringUtils.isBlank(iun) && !progressStatusEvent.getIun().equals(iun)) {
-						String errMsg = String.format(MISMATCH_ERROR, IUN_LABEL, REQUEST_ID_LABEL, iun);
-						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_IUN.getValue()).description(errMsg));
-						errorList.add(errMsg);
+					if (progressStatusEvent.getIun() != null && !StringUtils.isBlank(iun) && !progressStatusEvent.getIun().equals(iun)) {
+						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_IUN.getValue()).description("Iun is not valid."));
+						errorList.add(String.format(UNRECOGNIZED_ERROR, IUN_LABEL, iun));
+
 					}
 					// StatusCode
 					if (!statusCodeDescriptionMap().containsKey(progressStatusEvent.getStatusCode())) {
