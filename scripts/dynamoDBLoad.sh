@@ -3,7 +3,7 @@
 aws_profile=""
 aws_region="eu-south-1"
 
-while getopts 't:i:p:r:' opt ; do
+while getopts 't:i:p:r:e:' opt ; do
   case "$opt" in 
     p)
       aws_profile=${OPTARG}
@@ -14,6 +14,9 @@ while getopts 't:i:p:r:' opt ; do
     t)
       tableName=${OPTARG}
     ;;
+    e)
+      endpoint_url=${OPTARG}
+    ;;
     i)
       inputFileName=${OPTARG}
     ;;
@@ -22,7 +25,7 @@ while getopts 't:i:p:r:' opt ; do
       exit 1
     ;;
     ?|h)
-      echo "Usage: $(basename $0) -t <table_name> -i <input_file_name> [-p <aws_profile>] [-r <aws_region>]"
+      echo "Usage: $(basename $0) -t <table_name> -i <input_file_name> [-p <aws_profile>] [-r <aws_region>] [-e <endpoint_url>]"
       exit 1
     ;;
   esac
@@ -45,15 +48,38 @@ fi
 if ( [ ! -z "${aws_region}" ] ) then
   aws_command_base_args="${aws_command_base_args} --region  $aws_region"
 fi
+if ( [ ! -z "${endpoint_url}" ] ) then
+  aws_command_base_args="${aws_command_base_args} --endpoint-url  $endpoint_url"
+fi
 echo ${aws_command_base_args}
 
-numOfLines=$(($(cat ${inputFileName} | wc -l)))
+numOfLines=$(grep -c '^' ${inputFileName})
 lineNum=0
-while read line ;
-do
-  lineNum=$((++lineNum))
-  echo -ne "$((lineNum*100/numOfLines))%\r"
-  aws ${aws_command_base_args} dynamodb put-item --table-name ${tableName} --item "${line}" > /dev/null
-  rc=$?
-  [[ $rc -ne 0 ]] && exit $rc
+pids=()
+errorCount=0
+
+while IFS= read -r line || [[ -n "$line" ]]; do
+  aws ${aws_command_base_args} dynamodb put-item --table-name ${tableName} --item "${line}" > /dev/null & \
+  pids+=($!)
 done < ${inputFileName}
+
+for pid in "${pids[@]}"; do
+  lineNum=$((lineNum + 1))
+  wait $pid
+  rc=$?
+  if [[ $rc -ne 0 ]]; then
+    errorCount=$((errorCount + 1))
+    echo "Error on line $lineNum: AWS CLI command failed with exit code $rc. Line content: $line" >> $logFile
+  else
+    echo -ne "$((lineNum * 100 / numOfLines))%\r"
+  fi
+
+done
+
+# Final summary
+echo -e "\nProcessing complete."
+echo "Total lines processed: $lineNum"
+echo "Total errors: $errorCount"
+if [[ $errorCount -gt 0 ]]; then
+  echo "See $logFile for details on errors."
+fi
