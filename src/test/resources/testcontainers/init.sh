@@ -67,6 +67,7 @@ DYNAMODB_TABLES=(
   "pn-EcRichiesteMetadati:requestId"
   "pn-EcRichiesteConversione:requestId"
   "pn-EcConversionePDF:fileKey"
+  "pn-EcScartiConsolidatore:requestId"
 )
 
 PN_EC_ESITI_CARTACEO=$(cat ${CONFIG_FILES_DIR}/pn-ec-esiti-cartaceo.json)
