@@ -259,6 +259,7 @@ class CartaceoRetryTest {
         String clientId = requestDto.getxPagopaExtchCxId();
 
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfoPdfRaster();
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
 
         if (retryStep != null) {
             requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(timeElapsed));
@@ -291,6 +292,7 @@ class CartaceoRetryTest {
         RequestDto requestDto= buildRequestDto();
 
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfoPdfRaster();
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
 
         String requestId=requestDto.getRequestIdx();
         String clientId = requestDto.getxPagopaExtchCxId();
@@ -321,6 +323,7 @@ class CartaceoRetryTest {
         RequestDto requestDto= buildRequestDto();
 
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfoPdfRaster();
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
 
         String requestId=requestDto.getRequestIdx();
         String clientId = requestDto.getxPagopaExtchCxId();
@@ -352,6 +355,7 @@ class CartaceoRetryTest {
         RequestDto requestDto= buildRequestDto();
 
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfoPdfRaster();
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
 
         String requestId=requestDto.getRequestIdx();
         String clientId = requestDto.getxPagopaExtchCxId();
@@ -383,6 +387,7 @@ class CartaceoRetryTest {
         RequestDto requestDto= buildRequestDto();
 
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfoPdfRaster();
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
 
         String requestId=requestDto.getRequestIdx();
         String clientId = requestDto.getxPagopaExtchCxId();
@@ -414,6 +419,7 @@ class CartaceoRetryTest {
         RequestDto requestDto= buildRequestDto();
 
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfoPdfRaster();
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
 
         String requestId=requestDto.getRequestIdx();
         String clientId = requestDto.getxPagopaExtchCxId();
