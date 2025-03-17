@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository;
 
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @SuppressWarnings("unused")
@@ -22,4 +23,9 @@ public interface GestoreRepositoryCall {
     Mono<Void> deleteRichiesta(String clientId, String requestIdx);
     Mono<RequestDto> getRequestByMessageId(String messageId);
     Mono<RequestDto> setMessageIdInRequestMetadata(String clientId, String requestIdx);
+
+//  <-- DISCARDED EVENTS -->
+    Flux<DiscardedEventDto> insertDiscardedEvents(Flux<DiscardedEventDto> discardedEventsDto);
+
+
 }
