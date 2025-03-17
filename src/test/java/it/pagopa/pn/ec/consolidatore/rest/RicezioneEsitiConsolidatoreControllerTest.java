@@ -10,7 +10,6 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -25,7 +24,6 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -45,6 +43,7 @@ import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import org.hamcrest.Matchers;
 
@@ -90,8 +89,6 @@ class RicezioneEsitiConsolidatoreControllerTest {
     // minLength: 2 maxLength: 10
     private static final String documentType = ATTACHMENT_DOCUMENT_TYPE_ARCAD;
     private static final String documentKey = "docKeyX";
-	private static final String CLIENT_ID = "CLIENT_ID";
-	private static final String X_API_KEY = "X_API_KEY";
     private static final String uri = SS_IN_URI + documentKey;
     // minLength: 40 maxLength: 50
     private static final String sha256Id = "abcdefghilabcdefghilabcdefghilabcdefghil123";
@@ -102,6 +99,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	private static final String STATUS_CODE_INESISTENTE = "test";
 
 	private static final String DELIVERY_FAILURE_CAUSE_OK = "M03";
+	private static final String DELIVERY_FAILURE_CAUSE_INVALID = "M05";
 	private static final String DELIVERY_FAILURE_CAUSE_KO = "KO";
 	private static final EventsDto SENT_EVENT = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(SENT.getStatusTransactionTableCompliant()).statusDateTime(now));
 	private static final EventsDto BOOKED_EVENT = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(BOOKED.getStatusTransactionTableCompliant()).statusDateTime(now));
@@ -120,7 +118,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	return progressStatusEvent;
     }
 
-	private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithCorrectDeliveryFailureCause() {
+	private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEvent(String deliveryFailureCause) {
 		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = new ConsolidatoreIngressPaperProgressStatusEvent();
 		progressStatusEvent.setRequestId(requestId);
 		progressStatusEvent.setStatusCode(RECRN006);
@@ -129,20 +127,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		progressStatusEvent.setProductType(PRODUCT_TYPE_AR);
 		progressStatusEvent.setIun(IUN);
 		progressStatusEvent.setClientRequestTimeStamp(now);
-		progressStatusEvent.setDeliveryFailureCause(DELIVERY_FAILURE_CAUSE_OK);
-		return progressStatusEvent;
-	}
-
-	private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithIncorrectDeliveryFailureCause() {
-		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = new ConsolidatoreIngressPaperProgressStatusEvent();
-		progressStatusEvent.setRequestId(requestId);
-		progressStatusEvent.setStatusCode(RECRN006);
-		progressStatusEvent.setStatusDescription(statusCodeDescriptionMap().get(RECRN006));
-		progressStatusEvent.setStatusDateTime(now);
-		progressStatusEvent.setProductType(PRODUCT_TYPE_AR);
-		progressStatusEvent.setIun(IUN);
-		progressStatusEvent.setClientRequestTimeStamp(now);
-		progressStatusEvent.setDeliveryFailureCause(DELIVERY_FAILURE_CAUSE_KO);
+		progressStatusEvent.setDeliveryFailureCause(deliveryFailureCause);
 		return progressStatusEvent;
 	}
 
@@ -218,7 +203,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	private RequestDto getRequestDto(EventsDto... eventsDtos) {
 		return new RequestDto().requestIdx(requestId)
 				.xPagopaExtchCxId(xPagopaExtchServiceIdHeaderValue)
-				.requestMetadata(new RequestMetadataDto().eventsList(List.of(eventsDtos)));
+				.requestMetadata(new RequestMetadataDto().eventsList(List.of(eventsDtos))
+														.paperRequestMetadata(new PaperRequestMetadataDto()));
 	}
 
 	private Stream<Arguments> provideArguments() {
@@ -260,6 +246,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
 		FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
 		fileDownloadResponse.setKey(documentKey);
@@ -287,6 +274,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
 		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true)).thenReturn(Mono.error(new AttachmentNotAvailableException(documentKey)));
 
@@ -311,6 +299,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
 		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true))
 		 .thenReturn(Mono.error(new Generic400ErrorException("Chiamata a safestorage non valida", "Resource is no longer available. It may have been removed or deleted.")));
@@ -359,6 +348,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.error(new StatusNotFoundException("status")));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
 		FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
 		fileDownloadResponse.setKey(documentKey);
@@ -387,6 +377,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun("DIFFERENT_IUN")));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
 		FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
 		fileDownloadResponse.setKey(documentKey);
@@ -416,6 +407,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		EventsDto badSentEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(SENT.getStatusTransactionTableCompliant()).statusDateTime(now.plusDays(1)));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(badSentEvent)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
 		FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
 		fileDownloadResponse.setKey(documentKey);
@@ -470,8 +462,9 @@ class RicezioneEsitiConsolidatoreControllerTest {
     void ricezioneEsitiErroreValidazioneIdRichiesta() {
     	log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneIdRichiesta() : START");
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
-    	
-    	when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
+
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
     	
     	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
     	events.add(getProgressStatusEventWithoutAttachments());
@@ -494,8 +487,9 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneStatusCode() : START");
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
     	when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
-    	
-    	ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
+
+		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();
     	progressStatusEvent.setStatusCode(STATUS_CODE_INESISTENTE);
     	
     	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
@@ -518,8 +512,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
     void ricezioneEsitiErroreValidazioneAttachments() {
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
     	log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneAttachments() : START");
-    	
-    	when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
     	
     	when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true))
     		.thenReturn(Mono.error(new AttachmentNotAvailableException(documentKey)));
@@ -580,6 +574,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
 		when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class)))
 				.thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName.statoCartaceoName())));
@@ -638,6 +633,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
 		FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
 		fileDownloadResponse.setKey(documentKey);
@@ -645,7 +641,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true)).thenReturn(Mono.just(fileDownloadResponse));
 
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
-		events.add(getProgressStatusEventWithIncorrectDeliveryFailureCause());
+		events.add(getProgressStatusEvent(DELIVERY_FAILURE_CAUSE_INVALID));
 
 		webClient.put()
 				.uri(RICEZIONE_ESITI_ENDPOINT)
@@ -658,7 +654,38 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.expectStatus()
 				.isBadRequest()
 				.expectBody(OperationResultCodeResponse.class)
-				.value(OperationResultCodeResponse::getErrorList, Matchers.hasItem(Matchers.containsString("KO")));
+				.value(OperationResultCodeResponse::getErrorList, Matchers.hasItem(Matchers.containsString(DELIVERY_FAILURE_CAUSE_INVALID)));
+	}
+
+
+	@Test
+	void ricezioneEsitiErroreValidazioneDeliveryFailureCauseNotInMapdBeAddedToErrorList() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneStatusCode() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
+
+		FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
+		fileDownloadResponse.setKey(documentKey);
+
+		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true)).thenReturn(Mono.just(fileDownloadResponse));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEvent(DELIVERY_FAILURE_CAUSE_KO));
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isBadRequest()
+				.expectBody(OperationResultCodeResponse.class)
+				.value(OperationResultCodeResponse::getErrorList, Matchers.hasItem(Matchers.containsString(DELIVERY_FAILURE_CAUSE_KO)));
 	}
 
 	@Test
@@ -669,7 +696,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
 
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
-		events.add(getProgressStatusEventWithCorrectDeliveryFailureCause());
+		events.add(getProgressStatusEvent(DELIVERY_FAILURE_CAUSE_OK));
 
 		webClient.put()
 				.uri(RICEZIONE_ESITI_ENDPOINT)
@@ -689,7 +716,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
-
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();
 		progressStatusEvent.setStatusCode(STATUS_CODE_INESISTENTE);
 
@@ -716,6 +743,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(RETRY_EVENT,RETRY_EVENT)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
 		events.add(getProgressStatusEventWithoutAttachments());
@@ -789,6 +817,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.statusDateTime(OffsetDateTime.of(2024, 2, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(bookedEvent,sentEvent)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
 		events.add(getProgressStatusEventWithoutAttachments().statusDateTime(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
@@ -817,6 +846,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.statusDateTime(OffsetDateTime.of(2024, 2, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(bookedEvent,retryEvent)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
 		events.add(getProgressStatusEventWithoutAttachments().statusDateTime(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC)));
@@ -906,6 +936,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 
 		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(bookedEvent,retryEvent,clientRequestTimeStamp)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
 		events.add(getProgressStatusEventWithoutAttachments().statusDateTime(now.plusDays(1)));
 		events.add(getProgressStatusEventWithoutAttachments().clientRequestTimeStamp(now.plusDays(1)));
@@ -955,7 +986,31 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.expectStatus()
 				.isOk();
 	}
+	@Test
+	void ricezioneEsitiDiscardedEventShouldBeAddedOnGeneric400Error() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiOk() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
+		when(fileCall.getFile(documentKey, xPagopaExtchServiceIdHeaderValue, true))
+				.thenReturn(Mono.error(new Generic400ErrorException("Chiamata a safestorage non valida", "Resource is no longer available. It may have been removed or deleted.")));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(getProgressStatusEventWithAttachments());
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
+				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isBadRequest();
+	}
 
 
 

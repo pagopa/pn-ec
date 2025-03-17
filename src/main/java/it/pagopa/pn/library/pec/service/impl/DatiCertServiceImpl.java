@@ -18,27 +18,33 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.ARUBA_PROVIDER;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.NAMIRIAL_PROVIDER;
+
 @Service
 @CustomLog
 public class DatiCertServiceImpl implements DaticertService {
 
     private final JAXBContext jaxbContext;
 
-    @Value("${library.pec.postacert.path}")
-    String postacertClassType;
+    @Value("${library.pec.aruba.postacert.path}")
+    String arubaPostacertClassType;
+    @Value("${library.pec.pn.postacert.path}")
+    String pnPostacertClassType;
+
     public DatiCertServiceImpl(JAXBContext jaxbContext) {
         this.jaxbContext = jaxbContext;
     }
 
     @Override
-    public IPostacert getPostacertFromByteArray(byte[] bytes) {
+    public IPostacert getPostacertFromByteArray(byte[] bytes, String providerName) {
         try {
 //          This method could be called in a non-thread safe context; is good to create for each unmarshall operation a jakarta.xml.bind
 //          .JAXBContext.Unmarshaller object instead of a Spring Bean ?
 //          Yes the jakarta.xml.bind.JAXBContext is thread safe but jakarta.xml.bind.JAXBContext.Unmarshaller no
 //          https://javaee.github.io/jaxb-v2/doc/user-guide/ch06.html#d0e6879
 //          https://stackoverflow.com/questions/7400422/jaxb-creating-context-and-marshallers-cost
-            Class<?> dynamicClass = Class.forName(postacertClassType).asSubclass(Postacert.class);
+            Class<?> dynamicClass = Class.forName(getPostacertClassType(providerName)).asSubclass(Postacert.class);
             return (IPostacert) dynamicClass.getDeclaredConstructor(Postacert.class).newInstance((Postacert) jaxbContext.createUnmarshaller().unmarshal(new ByteArrayInputStream(bytes)));
         } catch (JAXBException e) {
 
@@ -59,5 +65,15 @@ public class DatiCertServiceImpl implements DaticertService {
         var localTime = LocalTime.of(hhMmSs.get(0), hhMmSs.get(1), hhMmSs.get(2));
         var localDateTime = LocalDateTime.of(localDate, localTime);
         return OffsetDateTime.of(localDateTime, offset);
+    }
+
+    private String getPostacertClassType(String providerName) {
+        String postacertClassType = switch (providerName) {
+            case ARUBA_PROVIDER -> arubaPostacertClassType;
+            case NAMIRIAL_PROVIDER -> pnPostacertClassType;
+            default -> throw new IllegalArgumentException(String.format("There is no postacert type for '%s' provider", providerName));
+        };
+        log.debug("PostacertClassType : {}", postacertClassType);
+        return postacertClassType;
     }
 }

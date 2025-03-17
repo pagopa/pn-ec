@@ -208,6 +208,14 @@ Parameters:
     Type: String
     Description: 'ARN della Tabella DynamoDB di upporto per la tabella RichiesteConversione'
 
+  PnEcTableNameScartiConsolidatore:
+    Type: String
+    Description: 'Nome della Tabella DynamoDB relativa agli scarti consolidatore'
+
+  PnEcTableArnScartiConsolidatore:
+    Type: String
+    Description: 'ARN della Tabella DynamoDB relativa agli scarti consolidatore'
+
   ### QUEUES  ###
   ### TRACKER : SMS  ###
 
@@ -950,6 +958,31 @@ Parameters:
     Type: String
     Description: 'Valore del requestPaID da sovrascrivere nella richiesta cartacea. Se non valorizzato, la funzionalità è disattivata'
 
+  # EFS parameters
+  FargateEFSFileSystemID:
+    Type: String
+    Description: "EFS Filesystem"
+
+  MountEfs:
+    Type: String
+    Default: false
+    AllowedValues:
+      - "true"
+      - "false"
+
+  # Logging parameters
+  WireTapLogActivation:
+    Type: String
+    Default: false
+    Description: Activation of wire logs
+    AllowedValues:
+      - true
+      - false
+
+  PnCronAnalyzer:
+    Type: String
+    Default: '-'
+    Description: Cron for which you send the metric to CloudWatch
 
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
@@ -1052,6 +1085,9 @@ Resources:
         ContainerEnvEntry81: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
         ContainerEnvEntry82: !Sub 'PnEcPecMetricsSchema=${PnEcPecMetricsSchema}'
         ContainerEnvEntry83: !Sub 'SQSCartaceoMaxBatchSubscribedMsgs=${SQSCartaceoMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry84: !Sub 'PnEcTableNameScartiConsolidatore=${PnEcTableNameScartiConsolidatore}'
+        ContainerEnvEntry85: !Sub 'PN_CRON_ANALYZER=${PnCronAnalyzer}'
+        ContainerEnvEntry86: !Sub 'WIRE_TAP_LOG=${WireTapLogActivation}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -1069,6 +1105,8 @@ Resources:
         MinTasksNumber: !Ref MinTasksNumber
         MaxTasksNumber: !Ref MaxTasksNumber
         JavaToolOptions: !Ref JavaToolOptions
+        EfsFilesystem: !Ref FargateEFSFileSystemID
+        MountEfs: !Ref MountEfs
 
   PnEcManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -1096,6 +1134,7 @@ Resources:
               - !Ref PnEcTableArnRichiesteMetadati
               - !Ref PnEcTableArnRichiesteConversione
               - !Ref PnEcTableArnConversionePdf
+              - !Ref PnEcTableArnScartiConsolidatore
           - Effect: Allow
             Action:
               - kms:Encrypt
@@ -1351,6 +1390,72 @@ Resources:
       Threshold: 1
       TreatMissingData: notBreaching
       Metrics:
+        - Id: m2
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: LoadBalancer
+                  Value: !Ref ApplicationLoadBalancerMetricsDimensionName
+                - Name: TargetGroup
+                  Value: !GetAtt ExternalChannelMicroservice.Outputs.TargetGroupName
+              MetricName: HTTPCode_Target_5XX_Count
+              Namespace: AWS/ApplicationELB
+            Period: 300
+            Stat: Sum
+          ReturnData: False
+        - Id: m3
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: TargetGroup
+                  Value: !GetAtt ExternalChannelMicroservice.Outputs.TargetGroupName
+              MetricName: RequestCountPerTarget
+              Namespace: AWS/ApplicationELB
+            Period: 300
+            Stat: Sum
+          ReturnData: False
+        - Id: m4
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: LoadBalancer
+                  Value: !Ref ApplicationLoadBalancerMetricsDimensionName
+              MetricName: HTTPCode_ELB_5XX_Count
+              Namespace: AWS/ApplicationELB
+            Period: 300
+            Stat: Sum
+          ReturnData: False
+        - Id: m5
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: LoadBalancer
+                  Value: !Ref ApplicationLoadBalancerMetricsDimensionName
+              MetricName: RequestCount
+              Namespace: AWS/ApplicationELB
+            Period: 300
+            Stat: Sum
+          ReturnData: False
+        - Id: e1
+          Expression: IF((m5>=30 AND m4/m5>=0.4) OR (m3>=30 AND m2/m3>=0.4), 1, 0)
+          Label: !Sub "${ProjectName}-external-channel-ALBAlarm-oncall-metric"
+
+  ApplicationLoadBalancerWorkdayAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasAlbDimensionName
+    Properties:
+      AlarmName: !Sub "workday-${ProjectName}-external-channel-alb-alarm"
+      AlarmDescription: "CloudWatch alarm when an application load balancer respond with a HTTP status 500."
+      AlarmActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      OKActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      DatapointsToAlarm: 2
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 6
+      Threshold: 1
+      TreatMissingData: notBreaching
+      Metrics:
         - Id: m1
           MetricStat:
             Metric:
@@ -1412,7 +1517,7 @@ Resources:
           ReturnData: False                       
         - Id: e1
           Expression: IF((m5>=30 AND m4/m5>=0.1) OR (m3>=30 AND (m1/m3>=0.9 OR m2/m3>=0.1)), 1, 0)
-          Label: !Sub "${ProjectName}-external-channel-ALBAlarm-oncall-metric"
+          Label: !Sub "${ProjectName}-external-channel-ALBAlarm-workday-metric"
 
   ExternalChannelMicroserviceAlarm:
     Type: AWS::CloudFormation::Stack
@@ -1460,12 +1565,14 @@ Resources:
             - !Ref PnEcAlarmArnQueueErroriCARTACEO
             - !Ref PnEcAlarmArnDLQueueErroriCARTACEO
             - !If [ HasAlbDimensionName, !GetAtt ApplicationLoadBalancerOnCallAlarm.Arn, '' ]
+            - !If [ HasAlbDimensionName, !GetAtt ApplicationLoadBalancerWorkdayAlarm.Arn, '' ]
         DynamoDBTableNames:
           !Join
           - ','
           - - !Ref PnEcTableNameAnagrafica
             - !Ref PnEcTableNameRichieste
             - !Ref PnEcTableNameRichiesteMetadati
+            - !Ref PnEcTableNameScartiConsolidatore
         QueueArns:
           !Join
           - ','
@@ -1519,6 +1626,7 @@ Resources:
           - - !Ref PnEcTableNameAnagrafica
             - !Ref PnEcTableNameRichieste
             - !Ref PnEcTableNameRichiesteMetadati
+            - !Ref PnEcTableNameScartiConsolidatore
         QueueArns:
           !Join
           - ','
