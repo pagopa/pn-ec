@@ -18,6 +18,7 @@ import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import it.pagopa.pn.library.pec.service.PnPecService;
+import it.pagopa.pn.template.service.DummyPecService;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -47,6 +48,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     private final PnPecConfigurationProperties props;
     private final PnPecRetryStrategyProperties retryStrategyProperties;
     private final CloudWatchPecMetrics cloudWatchPecMetrics;
+    private final DummyPecService dummyPecService;
     private final PnPecMetricNames pnPecMetricNames;
     private final MetricsDimensionConfiguration metricsDimensionConfiguration;
     @Value("${library.pec.cloudwatch.namespace.aruba}")
@@ -56,12 +58,14 @@ public class PnEcPecServiceImpl implements PnEcPecService {
 
     @Autowired
     public PnEcPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService, PnPecServiceImpl namirialService, PnPecConfigurationProperties props,
-                              PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics, PnPecMetricNames pnPecMetricNames, MetricsDimensionConfiguration metricsDimensionConfiguration) {
+                              PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics, PnPecMetricNames pnPecMetricNames,
+                              MetricsDimensionConfiguration metricsDimensionConfiguration, DummyPecService dummyPecService) {
         this.arubaService = arubaService;
         this.namirialService = namirialService;
         this.retryStrategyProperties = retryStrategyProperties;
         this.props = props;
         this.cloudWatchPecMetrics = cloudWatchPecMetrics;
+        this.dummyPecService = dummyPecService;
         this.pnPecMetricNames = pnPecMetricNames;
         this.metricsDimensionConfiguration = metricsDimensionConfiguration;
     }
@@ -193,6 +197,10 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 log.debug(NAMIRIAL_PROVIDER_SELECTED);
                 yield namirialService;
             }
+            case DUMMY_PROVIDER -> {
+                log.debug(DUMMY_PROVIDER_SELECTED);
+                yield dummyPecService;
+            }
             default -> {
                 log.debug(ERROR_PARSING_PROPERTY_VALUES);
                 throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
@@ -203,6 +211,9 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     private List<PnPecService> getProvidersRead() {
         List<String> providers = props.getPnPecProviderSwitchRead();
         List<PnPecService> services = new ArrayList<>();
+        if (providers.contains(DUMMY_PROVIDER)) {
+            return new ArrayList<>(List.of(dummyPecService));
+        }
         for (String provider : providers) {
             if (provider.equals(ARUBA_PROVIDER)) {
                 log.debug(ARUBA_PROVIDER_SELECTED);
@@ -222,9 +233,15 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         if (isAruba(messageID)) {
             log.debug(ARUBA_PROVIDER_SELECTED);
             return arubaService;
-        } else {
+        } else if (isNamirial(messageID)) {
             log.debug(NAMIRIAL_PROVIDER_SELECTED);
             return namirialService;
+        } else if (isDummy(messageID)) {
+            log.debug(DUMMY_PROVIDER_SELECTED);
+            return dummyPecService;
+        } else {
+            log.debug(ERROR_PARSING_PROPERTY_VALUES);
+            throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
         }
     }
 
@@ -235,6 +252,9 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         } else if (providerName.equals(NAMIRIAL_PROVIDER)) {
             log.debug(NAMIRIAL_PROVIDER_SELECTED);
             return namirialService;
+        } else if (providerName.equals(DUMMY_PROVIDER)) {
+            log.debug(DUMMY_PROVIDER_SELECTED);
+            return dummyPecService;
         } else {
             log.debug(ERROR_PARSING_PROPERTY_VALUES);
             throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
@@ -246,6 +266,8 @@ public class PnEcPecServiceImpl implements PnEcPecService {
             return ARUBA_PROVIDER;
         } else if (service instanceof com.namirial.pec.library.service.PnPecServiceImpl) {
             return NAMIRIAL_PROVIDER;
+        } else if (service instanceof DummyPecService) {
+            return DUMMY_PROVIDER;
         } else {
             log.debug(ERROR_PARSING_PROPERTY_VALUES);
             throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
@@ -257,6 +279,8 @@ public class PnEcPecServiceImpl implements PnEcPecService {
             return arubaProviderNamespace;
         } else if (service instanceof com.namirial.pec.library.service.PnPecServiceImpl) {
             return namirialProviderNamespace;
+        } else if (service instanceof DummyPecService) {
+            return DUMMY_PROVIDER_NAMESPACE;
         } else {
             log.debug(ERROR_RETRIEVING_METRIC_NAMESPACE);
             throw new IllegalArgumentException(ERROR_RETRIEVING_METRIC_NAMESPACE);
@@ -265,6 +289,14 @@ public class PnEcPecServiceImpl implements PnEcPecService {
 
         public static boolean isAruba(String messageID) {
             return messageID.trim().toLowerCase().endsWith(ARUBA_PATTERN_STRING);
+        }
+
+        public static boolean isDummy(String messageID) {
+            return messageID.trim().toLowerCase().endsWith(DUMMY_PATTERN_STRING);
+        }
+
+        public static boolean isNamirial(String messageID) {
+            return messageID.trim().toLowerCase().endsWith(NAMIRIAL_PATTERN_STRING);
         }
 
 

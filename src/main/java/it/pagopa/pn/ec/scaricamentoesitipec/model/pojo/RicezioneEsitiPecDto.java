@@ -20,5 +20,6 @@ public class RicezioneEsitiPecDto extends S3Pointer {
     @ToString.Exclude
     String receiversDomain;
     int retry;
+    String providerName;
 
 }
