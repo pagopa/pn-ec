@@ -45,6 +45,7 @@ import java.util.List;
 @Slf4j
 public class AwsConfiguration {
 
+    public static final String STREAMS_WORKER = "streams-worker";
     private final AwsConfigurationProperties awsConfigurationProperties;
     private final WebClient genericWebClient = WebClient.builder().build();
 
@@ -232,7 +233,7 @@ public class AwsConfiguration {
 
         if (ecsMetadataUri == null) {
             log.error("ECS_CONTAINER_METADATA_URI_V4 environment variable not found.");
-            return "streams-worker";
+            return STREAMS_WORKER;
         }
 
 
@@ -249,16 +250,16 @@ public class AwsConfiguration {
                             return Mono.just(parts[parts.length - 1]);
                         } else {
                             log.error("Invalid TaskARN format");
-                            return Mono.just("streams-worker");
+                            return Mono.just(STREAMS_WORKER);
                         }
                     } catch (JsonProcessingException e) {
                         log.error("Error while parsing JSON response", e);
-                        return Mono.just("streams-worker");
+                        return Mono.just(STREAMS_WORKER);
                     }
                 })
                 .onErrorResume(throwable -> {
                     log.error("Error while fetching container metadata", throwable);
-                    return Mono.just("streams-worker");
+                    return Mono.just(STREAMS_WORKER);
                 }).block();
     }
 
