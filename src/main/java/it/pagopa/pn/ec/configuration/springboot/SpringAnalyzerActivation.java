@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.configuration.springboot;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import it.pagopa.pn.commons.conf.SharedAutoConfiguration;
 import it.pagopa.pn.commons.utils.metrics.SpringAnalyzer;
 import it.pagopa.pn.commons.utils.metrics.cloudwatch.CloudWatchMetricHandler;
 import lombok.CustomLog;
@@ -10,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @CustomLog
-@Import(CloudWatchMetricHandler.class)
+@Import({CloudWatchMetricHandler.class, SharedAutoConfiguration.class})
 public class SpringAnalyzerActivation extends SpringAnalyzer {
 
 
