@@ -192,17 +192,9 @@ Parameters:
     Type: String
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
 
-  PnEcTableNameRichiesteConversione:
-    Type: String
-    Description: 'Nome della Tabella DynamoDB relativa alle richieste di conversione dei PDF'
-
   PnEcTableArnRichiesteConversione:
     Type: String
     Description: 'ARN della Tabella DynamoDB relativa alle richieste di conversione dei PDF'
-
-  PnEcTableNameConversionePdf:
-    Type: String
-    Description: 'Nome della Tabella DynamoDB di supporto per la tabella RichiesteConversione'
 
   PnEcTableArnConversionePdf:
     Type: String
