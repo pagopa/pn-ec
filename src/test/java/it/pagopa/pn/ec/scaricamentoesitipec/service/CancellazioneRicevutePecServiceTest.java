@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.service;
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
-import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -25,7 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTestWebEnv
-public class CancellazioneRicevutePecServiceTest {
+class CancellazioneRicevutePecServiceTest {
 
     @Autowired
     private CancellazioneRicevutePecService cancellazioneRicevutePecService;
@@ -39,7 +38,7 @@ public class CancellazioneRicevutePecServiceTest {
     private final String CLIENT_ID = "CLIENT_ID";
     private final String REQUEST_ID = "REQUEST_ID";
     private final String MESSAGE_ID = "MESSAGE_ID";
-    private final String SENDER_MESSAGE_ID = "SENDER_MESSAGE_ID";
+    private static final String SENDER_MESSAGE_ID = "SENDER_MESSAGE_ID";
 
     private static Stream<Arguments> statusesSource() {
         return Stream.of(Arguments.of(NOT_ACCEPTED.getStatusTransactionTableCompliant(), LegalMessageSentDetails.EventCodeEnum.C002),
