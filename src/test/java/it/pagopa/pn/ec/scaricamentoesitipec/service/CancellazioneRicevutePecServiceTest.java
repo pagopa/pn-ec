@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.service;
 
 import io.awspring.cloud.messaging.listener.Acknowledgment;
-import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -25,7 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTestWebEnv
-public class CancellazioneRicevutePecServiceTest {
+class CancellazioneRicevutePecServiceTest {
 
     @Autowired
     private CancellazioneRicevutePecService cancellazioneRicevutePecService;

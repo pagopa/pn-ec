@@ -26,7 +26,6 @@ import lombok.CustomLog;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.jupiter.api.*;
-import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -79,11 +78,11 @@ class PnPecServiceTest {
     @Autowired
     private PnPecMetricNames pnPecMetricNames;
 
-    private String PROVIDER_SWITCH_READ_DEFAULT = "1970-01-01T00:00:00Z;aruba";
-    private String PROVIDER_SWITCH_WRITE_DEFAULT = "1970-01-01T00:00:00Z;aruba";
-    private String PROVIDER_SWITCH_READ_DUMMY= "1970-01-01T00:00:00Z;dummy";
-    private String PROVIDER_SWITCH_WRITE_READ_MULTIPLE_PROVIDERS= "1970-01-01T00:00:00Z;aruba|namirial|dummy";
-    private String PROVIDER_SWITCH_WRITE_DUMMY = "1970-01-01T00:00:00Z;dummy";
+    private String providerSwitchReadDefault = "1970-01-01T00:00:00Z;aruba";
+    private String providerSwitchWriteDefault = "1970-01-01T00:00:00Z;aruba";
+    private final String PROVIDER_SWITCH_READ_DUMMY= "1970-01-01T00:00:00Z;dummy";
+    private final String PROVIDER_SWITCH_WRITE_READ_MULTIPLE_PROVIDERS= "1970-01-01T00:00:00Z;aruba|namirial|dummy";
+    private final String PROVIDER_SWITCH_WRITE_DUMMY = "1970-01-01T00:00:00Z;dummy";
     private final String TEMPORARY_EXCEPTION = "test temporary exception";
     private final String PERMANENT_EXCEPTION = "test permanent exception";
     private final String MESSAGE = "test message";
@@ -104,14 +103,14 @@ class PnPecServiceTest {
     @BeforeEach
     void setUp() {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_DEFAULT).getMillis());
-        PROVIDER_SWITCH_READ_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchRead");
-        PROVIDER_SWITCH_WRITE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite");
+        providerSwitchReadDefault = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchRead");
+        providerSwitchWriteDefault = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite");
     }
 
     @AfterEach
     void afterEach() {
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchRead", PROVIDER_SWITCH_READ_DEFAULT);
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite", PROVIDER_SWITCH_WRITE_DEFAULT);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchRead", providerSwitchReadDefault);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite", providerSwitchWriteDefault);
     }
 
     @AfterAll
