@@ -27,7 +27,9 @@ public class PnPecProvidersConf {
             "namirial.pool.smtp.maxidle",
             "namirial.pool.smtp.minidle",
             "namirial.server.cache",
-            "namirial.server.cache.endpoint");
+            "namirial.server.cache.endpoint",
+            "namirial.metric.duplicate.receipt.namespace",
+            "namirial.metric.duplicate.receipt.name");
 
     @Bean
     public PnPecServiceImpl namirialService(@Autowired Environment env) {
