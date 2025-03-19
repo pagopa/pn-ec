@@ -56,7 +56,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private boolean considerEventsWithoutSentStatusAsBooked;
 	private final Duration offsetDuration;
 
-
 	public RicezioneEsitiCartaceoServiceImpl(GestoreRepositoryCall gestoreRepositoryCall,
 											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
 											 SqsService sqsService, StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses, StatusPullService statusPullService,
@@ -134,8 +133,9 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 								}
 							});
 					if (statusDateTime.isBefore(sentEvent.getPaperProgrStatus().getStatusDateTime())) {
-						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_STATUS_DATE_TIME.getValue()).description("Status date time is not valid."));
-						errorList.add(String.format(NOT_VALID, STATUS_DATE_TIME_LABEL, statusDateTime));
+						String errMsg = String.format(NOT_VALID_PAST_DATE, STATUS_DATE_TIME_LABEL, statusDateTime);
+						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_STATUS_DATE_TIME.getValue()).description(errMsg));
+						errorList.add(errMsg);
 					}
 
 					if(!offsetDuration.isNegative()) {
@@ -163,9 +163,10 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 					}
 
 					//Iun
-					if (!StringUtils.isBlank(iun) && !progressStatusEvent.getIun().equals(iun)) {
+					if (progressStatusEvent.getIun() != null && !StringUtils.isBlank(iun) && !progressStatusEvent.getIun().equals(iun)) {
 						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_IUN.getValue()).description("Iun is not valid."));
 						errorList.add(String.format(UNRECOGNIZED_ERROR, IUN_LABEL, iun));
+
 					}
 					// StatusCode
 					if (!statusCodeDescriptionMap().containsKey(progressStatusEvent.getStatusCode())) {
@@ -173,17 +174,18 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 						errorList.add(String.format(UNRECOGNIZED_ERROR, STATUS_CODE_LABEL, progressStatusEvent.getStatusCode()));
 					}
 					// DeliveryFailureCause non è un campo obbligatorio
-                    boolean isOk = false;
                     if (progressStatusEvent.getDeliveryFailureCause() != null
                             && !progressStatusEvent.getDeliveryFailureCause().isBlank()) {
-                        isOk = deliveryFailureCausemap().containsKey(progressStatusEvent.getDeliveryFailureCause());
-                        if (isOk) {
-                            isOk = statusCodesToDeliveryFailureCauses.isDeliveryFailureCauseInStatusCode(progressStatusEvent.getStatusCode(), progressStatusEvent.getDeliveryFailureCause());
-                        }
-                        if (!isOk) {
-                            auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_DEL_FAILURE_CAUSE.getValue()).description("DeliveryFailureCause is not valid."));
-                            errorList.add(String.format(UNRECOGNIZED_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause()));
-                        }
+                        boolean isDeliveryFailureCauseInMap = deliveryFailureCausemap().containsKey(progressStatusEvent.getDeliveryFailureCause());
+						boolean isDeliveryFailureCauseInStatusCode = statusCodesToDeliveryFailureCauses.isDeliveryFailureCauseInStatusCode(progressStatusEvent.getStatusCode(), progressStatusEvent.getDeliveryFailureCause());
+						if (!isDeliveryFailureCauseInMap || !isDeliveryFailureCauseInStatusCode) {
+							String errMsg= !isDeliveryFailureCauseInMap
+									? String.format(NOT_VALID, DELIVERY_FAILURE_CAUSE_LABEL, progressStatusEvent.getDeliveryFailureCause())
+									: String.format(MISMATCH_ERROR, DELIVERY_FAILURE_CAUSE_LABEL, STATUS_CODE_LABEL, progressStatusEvent.getDeliveryFailureCause());
+
+							auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_DEL_FAILURE_CAUSE.getValue()).description(errMsg));
+							errorList.add(errMsg);
+						}
                     }
 
                     //TODO COMMENTATO PER UN CASO PARTICOLARE CHE ANDRA' GESTITO IN FUTURO.
@@ -196,9 +198,10 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 						if (progressStatusEvent.getAttachments() != null && !progressStatusEvent.getAttachments().isEmpty()) {
 							for (ConsolidatoreIngressPaperProgressStatusEventAttachments attachment : progressStatusEvent.getAttachments()) {
 								if (!attachmentDocumentTypeMap().contains(attachment.getDocumentType())) {
-									auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_DOC_TYPE.getValue()).description("Document type is not valid."));
+									String errMsg = String.format(NOT_VALID_FOR, ATTACHMENT_DOCUMENT_TYPE_LABEL, progressStatusEvent.getStatusCode(), attachment.getDocumentType());
+									auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_DOC_TYPE.getValue()).description(errMsg));
 									log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, ATTACHMENT_DOCUMENT_TYPE_LABEL, attachment.getDocumentType()));
-									errorList.add(String.format(UNRECOGNIZED_ERROR, ATTACHMENT_DOCUMENT_TYPE_LABEL, attachment.getDocumentType()));
+									errorList.add(errMsg);
 								}
 							}
 						}
@@ -270,11 +273,12 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			})
 			.onErrorResume(AttachmentNotAvailableException.class,
 					throwable -> {
-						var consAuditLogError = new ConsAuditLogError().error(ERR_CONS_ATTACH_NOT_FOUND.getValue()).requestId(requestId).description("The attachment has not been found.");
+						String errMsg = "The attachment has not been found.";
+						var consAuditLogError = new ConsAuditLogError().error(ERR_CONS_ATTACH_NOT_FOUND.getValue()).requestId(requestId).description(errMsg);
 						return Mono.error(new RicezioneEsitiCartaceoException(
 								SEMANTIC_ERROR_CODE,
 								errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE),
-								List.of(String.format(UNRECOGNIZED_ERROR_NO_VALUE, ATTACHMENT_URI_LABEL)), List.of(consAuditLogError)));
+								List.of(errMsg), List.of(consAuditLogError)));
 			})
 			.doOnError(throwable -> log.warn(EXCEPTION_IN_PROCESS_FOR, VERIFICA_ATTACHMENTS, requestId, throwable, throwable.getMessage()))
 			.doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, requestId, VERIFICA_ATTACHMENTS, result));
@@ -432,6 +436,10 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			}
 		});
 		return errors;
+	}
+
+	public Flux<DiscardedEventDto> insertDiscardedEvents(List<DiscardedEventDto> discardedEvents) {
+		return gestoreRepositoryCall.insertDiscardedEvents(Flux.fromIterable(discardedEvents));
 	}
 
 }

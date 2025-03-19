@@ -76,7 +76,7 @@ public class JettyHttpClientConf {
                 })
                 .onRequestFailure((theRequest, throwable) -> {
                     MDCUtils.enrichWithMDC(theRequest, mdcContextMap);
-                    log.error("Request failure : {} , {}", throwable, throwable.getMessage());
+                    log.debug("Request failure : {} , {}", throwable, throwable.getMessage());
                 });
 
 

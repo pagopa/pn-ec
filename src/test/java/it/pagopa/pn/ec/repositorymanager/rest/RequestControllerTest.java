@@ -7,6 +7,7 @@ import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,6 +24,7 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
+import javax.validation.constraints.AssertTrue;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -433,4 +435,39 @@ class RequestControllerTest {
                  .expectStatus()
                  .isNotFound();
     }
+
+    private static Stream<Arguments> provideNewDigitalAndPaperRequestToInsert() {
+        return Stream.of(Arguments.of(digitalRequest, "newIdDigitalToInsert"), Arguments.of(paperRequest, "newIdPaperToInsert"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideNewDigitalAndPaperRequestToInsert")
+    void digitalAndPaperEntityAndDtoComparisonTest(RequestDto requestDto, String newId) {
+
+            requestDto.setRequestIdx(newId);
+
+            RequestDto toCompare = webClient.post().uri(gestoreRepositoryEndpointProperties.postRequest()).bodyValue(requestDto).exchange()
+                    .expectBody(RequestDto.class).returnResult().getResponseBody();
+        // Paper comparison
+        if (requestDto.getRequestMetadata().getPaperRequestMetadata() != null) {
+            Assertions.assertEquals(toCompare.getRequestMetadata().getPaperRequestMetadata().getRequestPaId(), requestDto.getRequestMetadata().getPaperRequestMetadata().getRequestPaId());
+            Assertions.assertEquals(toCompare.getRequestMetadata().getPaperRequestMetadata().getIun(), requestDto.getRequestMetadata().getPaperRequestMetadata().getIun());
+            Assertions.assertEquals(toCompare.getRequestMetadata().getPaperRequestMetadata().getProductType(), requestDto.getRequestMetadata().getPaperRequestMetadata().getProductType());
+            Assertions.assertEquals(toCompare.getRequestMetadata().getPaperRequestMetadata().getVas(), requestDto.getRequestMetadata().getPaperRequestMetadata().getVas());
+            Assertions.assertEquals(toCompare.getRequestMetadata().getPaperRequestMetadata().getPrintType(), requestDto.getRequestMetadata().getPaperRequestMetadata().getPrintType());
+        }
+        // Digital comparison
+        else if (requestDto.getRequestMetadata().getDigitalRequestMetadata() != null) {
+            Assertions.assertEquals(toCompare.getRequestMetadata().getDigitalRequestMetadata().getEventType(), requestDto.getRequestMetadata().getDigitalRequestMetadata().getEventType());
+            Assertions.assertEquals(toCompare.getRequestMetadata().getDigitalRequestMetadata().getCorrelationId(), requestDto.getRequestMetadata().getDigitalRequestMetadata().getCorrelationId());
+            Assertions.assertEquals(toCompare.getRequestMetadata().getDigitalRequestMetadata().getMessageContentType(), requestDto.getRequestMetadata().getDigitalRequestMetadata().getMessageContentType());
+            Assertions.assertEquals(toCompare.getRequestMetadata().getDigitalRequestMetadata().getTags(), requestDto.getRequestMetadata().getDigitalRequestMetadata().getTags());
+        }
+
+        Assertions.assertEquals(toCompare.getxPagopaExtchCxId(), requestDto.getxPagopaExtchCxId());
+        Assertions.assertEquals(toCompare.getMessageId(), requestDto.getMessageId());
+        Assertions.assertEquals(toCompare.getRequestIdx(), requestDto.getRequestIdx());
+        Assertions.assertEquals(toCompare.getStatusRequest(), requestDto.getStatusRequest());
+    }
+
 }

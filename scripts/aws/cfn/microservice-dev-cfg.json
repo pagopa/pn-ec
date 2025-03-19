@@ -50,6 +50,10 @@
     "PnECPaperPAIdToRaster": "15376371009",
     "PnECPaperPAIdOverride": "15376371009",
     "SQSMaxBatchSubscribedMsgs": "20",
-    "SQSCartaceoMaxBatchSubscribedMsgs": "10"
+    "PnEcPecMetricsSchema": "Pn-EC-Pec-MetricsSchema",
+    "SQSCartaceoMaxBatchSubscribedMsgs": "10",
+    "MountEfs": "false",
+    "PnCronAnalyzer": "* */1 * * * *",
+    "WireTapLogActivation": "false"
   }
 }
