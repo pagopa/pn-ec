@@ -257,6 +257,7 @@ components:
                 - C008
                 - C009
                 - C010
+                - C011
                 - Q003
                 - Q010
                 - Q011
@@ -272,4 +273,5 @@ components:
                 * ERROR      C008 = PEC - ERRORE_COMUNICAZIONE_SERVER_PEC
                 * ERROR      C009 = PEC - ERRORE_DOMINIO_PEC_NON_VALIDO
                 * ERROR      C010 = PEC - ERROR_INVIO_PEC
+                * ERROR      C011 = PEC - ADDRESS_ERROR
                 * OK         C003 = PEC - StatusPec.AVVENUTA_CONSEGNA

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.messaging.config.QueueMessageHandlerFactory;
 import io.awspring.cloud.messaging.listener.support.AcknowledgmentHandlerMethodArgumentResolver;
 import it.pagopa.pn.ec.commons.configurationproperties.AwsConfigurationProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,6 +38,7 @@ import java.net.URI;
 import java.util.List;
 
 @Configuration
+@Slf4j
 public class AwsConfiguration {
 
     private final AwsConfigurationProperties awsConfigurationProperties;
@@ -60,6 +62,7 @@ public class AwsConfiguration {
     String ssmLocalStackEndpoint;
     @Value("${test.aws.s3.endpoint:#{null}}")
     String s3LocalStackEndpoint;
+
 
 
 
@@ -136,12 +139,12 @@ public class AwsConfiguration {
     }
 
     @Bean
-    public SnsAsyncClient snsClient() {
+    public SnsAsyncClient snsClient(CloudWatchAsyncClient cloudWatchAsyncClient) {
         SnsAsyncClientBuilder snsAsyncClientBuilder = SnsAsyncClient.builder()
                                                                     .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER_V2)
                                                                     .region(Region.of(awsConfigurationProperties.regionCode()))
-                                                                    .overrideConfiguration(c -> c.addMetricPublisher(
-                                                                            CloudWatchMetricPublisher.create()));
+                                                                    .overrideConfiguration(c -> c.addMetricPublisher(CloudWatchMetricPublisher.builder()
+                                                                            .cloudWatchClient(cloudWatchAsyncClient).build()));
 
         if (snsLocalStackEndpoint != null) {
             snsAsyncClientBuilder.endpointOverride(URI.create(snsLocalStackEndpoint));
@@ -151,12 +154,12 @@ public class AwsConfiguration {
     }
 
     @Bean
-    public SesAsyncClient sesClient() {
+    public SesAsyncClient sesClient(CloudWatchAsyncClient cloudWatchAsyncClient) {
         SesAsyncClientBuilder sesAsyncClientBuilder = SesAsyncClient.builder()
                                                                     .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER_V2)
                                                                     .region(Region.of(awsConfigurationProperties.regionCode()))
-                                                                    .overrideConfiguration(c -> c.addMetricPublisher(
-                                                                            CloudWatchMetricPublisher.create()));
+                                                                    .overrideConfiguration(c -> c.addMetricPublisher(CloudWatchMetricPublisher.builder()
+                                                                            .cloudWatchClient(cloudWatchAsyncClient).build()));
 
         if (sesLocalStackEndpoint != null) {
             sesAsyncClientBuilder.endpointOverride(URI.create(sesLocalStackEndpoint));
@@ -217,4 +220,5 @@ public class AwsConfiguration {
 
         return s3Client.build();
     }
+
 }

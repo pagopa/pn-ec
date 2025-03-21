@@ -2,19 +2,18 @@ package it.pagopa.pn.ec.commons.configuration.aws.cloudwatch;
 
 import it.pagopa.pn.ec.commons.exception.cloudwatch.CloudWatchResourceNotFoundException;
 import it.pagopa.pn.ec.commons.model.pojo.cloudwatch.CloudWatchMetricsPublisherWrapper;
+import it.pagopa.pn.library.pec.configurationproperties.PnPecMetricNames;
 import lombok.CustomLog;
-import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.metrics.*;
-import software.amazon.awssdk.metrics.publishers.cloudwatch.CloudWatchMetricPublisher;
-import software.amazon.awssdk.metrics.publishers.cloudwatch.internal.CloudWatchMetricLogger;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 
 import javax.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,22 +31,21 @@ public class CloudWatchMetricPublisherConfiguration {
     private int maximumCallsPerUpload;
     @Value("${cloudwatch.upload-frequency-millis:#{null}}")
     private int uploadFrequencyMillis;
-    @Value("${library.pec.cloudwatch.metric.response-time.mark-message-as-read}")
-    private String markMessageAsReadResponseTimeMetric;
-    @Value("${library.pec.cloudwatch.metric.response-time.delete-message}")
-    private String deleteMessageResponseTimeMetric;
     private final CloudWatchAsyncClient cloudWatchAsyncClient;
     private final Map<String, CloudWatchMetricsPublisherWrapper> cloudWatchMetricPublishers = new HashMap<>();
     private final Map<String, SdkMetric<?>> cloudWatchSdkMetrics = new HashMap<>();
+    private final PnPecMetricNames pnPecMetricNames;
 
     /**
      * Instantiates a new CloudWatchMetricPublisherConfiguration.
      *
      * @param cloudWatchAsyncClient the cloud watch async client
+     * @param pnPecMetricNames the names of the CloudWatch metrics
      */
     @Autowired
-    public CloudWatchMetricPublisherConfiguration(CloudWatchAsyncClient cloudWatchAsyncClient) {
+    public CloudWatchMetricPublisherConfiguration(CloudWatchAsyncClient cloudWatchAsyncClient, PnPecMetricNames pnPecMetricNames) {
         this.cloudWatchAsyncClient = cloudWatchAsyncClient;
+        this.pnPecMetricNames = pnPecMetricNames;
     }
 
     /**
@@ -56,8 +54,8 @@ public class CloudWatchMetricPublisherConfiguration {
     @PostConstruct
     private void init() {
         log.debug("Initializing CloudWatchMetricPublisher configurations.");
-        initCloudWatchMetricPublishers();
         initCloudWatchSdkMetrics();
+        initCloudWatchMetricPublishers();
    }
 
     /**
@@ -98,16 +96,18 @@ public class CloudWatchMetricPublisherConfiguration {
      * If maximumCallsPerUpload and uploadFrequencyMillis fields are null, CloudWatchMetricPublisher class will use its default values.
      */
     private void initCloudWatchMetricPublishers() {
-        cloudWatchMetricPublishers.put(arubaPecNamespace, new CloudWatchMetricsPublisherWrapper(arubaPecNamespace, maximumCallsPerUpload, Duration.ofMillis(uploadFrequencyMillis), cloudWatchAsyncClient));
-        cloudWatchMetricPublishers.put(namirialPecNamespace, new CloudWatchMetricsPublisherWrapper(namirialPecNamespace, maximumCallsPerUpload, Duration.ofMillis(uploadFrequencyMillis), cloudWatchAsyncClient));
+        SdkMetric<String> payloadSizeRangeDimension = (SdkMetric<String>) cloudWatchSdkMetrics.get(pnPecMetricNames.getPayloadSizeRange());
+        SdkMetric<String> messageCountRangeDimension = (SdkMetric<String>) cloudWatchSdkMetrics.get(pnPecMetricNames.getMessageCountRange());
+        List<SdkMetric<String>> dimensions = List.of(payloadSizeRangeDimension, messageCountRangeDimension);
+        cloudWatchMetricPublishers.put(arubaPecNamespace, new CloudWatchMetricsPublisherWrapper(arubaPecNamespace, maximumCallsPerUpload, Duration.ofMillis(uploadFrequencyMillis), cloudWatchAsyncClient, dimensions));
+        cloudWatchMetricPublishers.put(namirialPecNamespace, new CloudWatchMetricsPublisherWrapper(namirialPecNamespace, maximumCallsPerUpload, Duration.ofMillis(uploadFrequencyMillis), cloudWatchAsyncClient, dimensions));
     }
 
     /**
      * Init method to initialize SdkMetrics
      */
     private void initCloudWatchSdkMetrics() {
-        cloudWatchSdkMetrics.put(markMessageAsReadResponseTimeMetric, SdkMetric.create(markMessageAsReadResponseTimeMetric, Long.class, MetricLevel.INFO, MetricCategory.HTTP_CLIENT));
-        cloudWatchSdkMetrics.put(deleteMessageResponseTimeMetric, SdkMetric.create(deleteMessageResponseTimeMetric, Long.class, MetricLevel.INFO, MetricCategory.HTTP_CLIENT));
+        pnPecMetricNames.getAllMetrics().forEach(metricName -> cloudWatchSdkMetrics.put(metricName, SdkMetric.create(metricName, Long.class, MetricLevel.INFO, MetricCategory.HTTP_CLIENT)));
     }
 
 }

@@ -15,8 +15,9 @@ import java.util.Map;
 public class PaperRequestMetadata {
 
     String iun;
-    String requestPaid;
+    String requestPaId;
     String productType;
     String printType;
     Map<String, String> vas;
+    Boolean duplicateCheckPassthrough;
 }
