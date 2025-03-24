@@ -39,6 +39,8 @@
     "PnEcNamirialPoolSmtpMinidle": "1",
     "PnEcNamirialServerCache": "false",
     "PnEcNamirialServerCacheEndpoint": "",
+    "PnEcNamirialMetricDuplicateReceiptNamespace": "PEC/Namirial",
+    "PnEcNamirialMetricDuplicateReceiptName": "multipleReceipt",
     "SpringCodecMaxInMemorySize": "256KB",
     "PnEcConsAllowedFutureOffsetDuration": "1m",
     "CpuValue": "1024",
@@ -49,6 +51,9 @@
     "PnECPaperPAIdOverride": "15376371009",
     "SQSMaxBatchSubscribedMsgs": "20",
     "PnEcPecMetricsSchema": "Pn-EC-Pec-MetricsSchema",
-    "SQSCartaceoMaxBatchSubscribedMsgs": "10"
+    "SQSCartaceoMaxBatchSubscribedMsgs": "10",
+    "MountEfs": "false",
+    "PnCronAnalyzer": "* */1 * * * *",
+    "WireTapLogActivation": "false"
   }
 }

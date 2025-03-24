@@ -9,19 +9,22 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.library.pec.exception.pecservice.DeleteMessageException;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.List;
+import java.util.stream.Stream;
 
-import static it.pagopa.pn.ec.commons.constant.Status.ACCEPTED;
-import static it.pagopa.pn.ec.commons.constant.Status.DELIVERED;
+import static it.pagopa.pn.ec.commons.constant.Status.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTestWebEnv
-public class CancellazioneRicevutePecServiceTest {
+class CancellazioneRicevutePecServiceTest {
 
     @Autowired
     private CancellazioneRicevutePecService cancellazioneRicevutePecService;
@@ -35,18 +38,24 @@ public class CancellazioneRicevutePecServiceTest {
     private final String CLIENT_ID = "CLIENT_ID";
     private final String REQUEST_ID = "REQUEST_ID";
     private final String MESSAGE_ID = "MESSAGE_ID";
+    private static final String SENDER_MESSAGE_ID = "SENDER_MESSAGE_ID";
+
+    private static Stream<Arguments> statusesSource() {
+        return Stream.of(Arguments.of(NOT_ACCEPTED.getStatusTransactionTableCompliant(), LegalMessageSentDetails.EventCodeEnum.C002),
+                Arguments.of(NOT_PEC.getStatusTransactionTableCompliant(), LegalMessageSentDetails.EventCodeEnum.C009));
+    }
 
     @Test
     void cancellazioneRicevuteOk() {
-        CancellazioneRicevutePecDto cancellazioneRicevutePecDto = buildCancellazioneRicevutePecDto();
+        CancellazioneRicevutePecDto cancellazioneRicevutePecDto = buildCancellazioneRicevutePecDto(LegalMessageSentDetails.EventCodeEnum.C003);
 
         DigitalProgressStatusDto digitalProgressStatusDto1 = new DigitalProgressStatusDto();
         digitalProgressStatusDto1.setStatusCode(LegalMessageSentDetails.EventCodeEnum.C001.getValue());
         digitalProgressStatusDto1.setStatus(ACCEPTED.getStatusTransactionTableCompliant());
-        digitalProgressStatusDto1.setGeneratedMessage(new GeneratedMessageDto().id(MESSAGE_ID));
+        digitalProgressStatusDto1.setGeneratedMessage(new GeneratedMessageDto().id(SENDER_MESSAGE_ID));
 
         DigitalProgressStatusDto digitalProgressStatusDto2 = new DigitalProgressStatusDto();
-        digitalProgressStatusDto2.setStatusCode(LegalMessageSentDetails.EventCodeEnum.C000.getValue());
+        digitalProgressStatusDto2.setStatusCode(LegalMessageSentDetails.EventCodeEnum.C003.getValue());
         digitalProgressStatusDto2.setStatus(DELIVERED.getStatusTransactionTableCompliant());
         digitalProgressStatusDto2.setGeneratedMessage(new GeneratedMessageDto().id(MESSAGE_ID));
 
@@ -59,15 +68,40 @@ public class CancellazioneRicevutePecServiceTest {
         RequestDto requestDto = buildRequestDto(eventsDto1, eventsDto2);
 
         when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, REQUEST_ID)).thenReturn(Mono.just(requestDto));
+        when(pnPecService.deleteMessage(MESSAGE_ID, SENDER_MESSAGE_ID)).thenReturn(Mono.just("").then());
+
+        var testMono = cancellazioneRicevutePecService.cancellazioneRicevutePec(cancellazioneRicevutePecDto, REQUEST_ID, acknowledgment);
+        StepVerifier.create(testMono).verifyComplete();
+        verify(pnPecService).deleteMessage(MESSAGE_ID, SENDER_MESSAGE_ID);
+    }
+
+    @ParameterizedTest
+    @MethodSource("statusesSource")
+    void cancellazioneRicevuteNotAcceptedAndNotPecOk(String status, LegalMessageSentDetails.EventCodeEnum eventCode)
+    {
+        CancellazioneRicevutePecDto cancellazioneRicevutePecDto = buildCancellazioneRicevutePecDto(eventCode);
+
+        DigitalProgressStatusDto digitalProgressStatusDto2 = new DigitalProgressStatusDto();
+        digitalProgressStatusDto2.setStatusCode(eventCode.getValue());
+        digitalProgressStatusDto2.setStatus(status);
+        digitalProgressStatusDto2.setGeneratedMessage(new GeneratedMessageDto().id(MESSAGE_ID));
+
+        EventsDto eventsDto = new EventsDto();
+        eventsDto.setDigProgrStatus(digitalProgressStatusDto2);
+
+        RequestDto requestDto = buildRequestDto(eventsDto);
+
+        when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, REQUEST_ID)).thenReturn(Mono.just(requestDto));
         when(pnPecService.deleteMessage(MESSAGE_ID, MESSAGE_ID)).thenReturn(Mono.just("").then());
 
         var testMono = cancellazioneRicevutePecService.cancellazioneRicevutePec(cancellazioneRicevutePecDto, REQUEST_ID, acknowledgment);
         StepVerifier.create(testMono).verifyComplete();
+        verify(pnPecService).deleteMessage(MESSAGE_ID, MESSAGE_ID);
     }
 
     @Test
     void cancellazioneRicevuteGestoreRepositoryKo() {
-        CancellazioneRicevutePecDto cancellazioneRicevutePecDto = buildCancellazioneRicevutePecDto();
+        CancellazioneRicevutePecDto cancellazioneRicevutePecDto = buildCancellazioneRicevutePecDto(LegalMessageSentDetails.EventCodeEnum.C001);
 
         when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, REQUEST_ID)).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
 
@@ -77,7 +111,7 @@ public class CancellazioneRicevutePecServiceTest {
 
     @Test
     void cancellazioneRicevuteDeleteMessageKo() {
-        CancellazioneRicevutePecDto cancellazioneRicevutePecDto = buildCancellazioneRicevutePecDto();
+        CancellazioneRicevutePecDto cancellazioneRicevutePecDto = buildCancellazioneRicevutePecDto(LegalMessageSentDetails.EventCodeEnum.C003);
 
         DigitalProgressStatusDto digitalProgressStatusDto1 = new DigitalProgressStatusDto();
         digitalProgressStatusDto1.setStatusCode(LegalMessageSentDetails.EventCodeEnum.C001.getValue());
@@ -85,7 +119,7 @@ public class CancellazioneRicevutePecServiceTest {
         digitalProgressStatusDto1.setGeneratedMessage(new GeneratedMessageDto().id(MESSAGE_ID));
 
         DigitalProgressStatusDto digitalProgressStatusDto2 = new DigitalProgressStatusDto();
-        digitalProgressStatusDto2.setStatusCode(LegalMessageSentDetails.EventCodeEnum.C000.getValue());
+        digitalProgressStatusDto2.setStatusCode(LegalMessageSentDetails.EventCodeEnum.C003.getValue());
         digitalProgressStatusDto2.setStatus(DELIVERED.getStatusTransactionTableCompliant());
         digitalProgressStatusDto2.setGeneratedMessage(new GeneratedMessageDto().id(MESSAGE_ID));
 
@@ -106,10 +140,10 @@ public class CancellazioneRicevutePecServiceTest {
 
     @Test
     void cancellazioneRicevuteNotValidForDelete() {
-        CancellazioneRicevutePecDto cancellazioneRicevutePecDto = buildCancellazioneRicevutePecDto();
+        CancellazioneRicevutePecDto cancellazioneRicevutePecDto = buildCancellazioneRicevutePecDto(LegalMessageSentDetails.EventCodeEnum.C003);
 
         DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();
-        digitalProgressStatusDto.setStatusCode(LegalMessageSentDetails.EventCodeEnum.C001.getValue());
+        digitalProgressStatusDto.setStatusCode(LegalMessageSentDetails.EventCodeEnum.C003.getValue());
         digitalProgressStatusDto.setStatus(DELIVERED.getStatusTransactionTableCompliant());
         digitalProgressStatusDto.setGeneratedMessage(new GeneratedMessageDto().id(MESSAGE_ID));
         EventsDto eventsDto = new EventsDto();
@@ -124,9 +158,9 @@ public class CancellazioneRicevutePecServiceTest {
         StepVerifier.create(testMono).verifyComplete();
     }
 
-    private CancellazioneRicevutePecDto buildCancellazioneRicevutePecDto() {
+    private CancellazioneRicevutePecDto buildCancellazioneRicevutePecDto(LegalMessageSentDetails.EventCodeEnum eventCode) {
         LegalMessageSentDetails legalMessageSentDetails = new LegalMessageSentDetails();
-        legalMessageSentDetails.setEventCode(LegalMessageSentDetails.EventCodeEnum.C000);
+        legalMessageSentDetails.setEventCode(eventCode);
         legalMessageSentDetails.setGeneratedMessage(new DigitalMessageReference().id("messageID"));
         legalMessageSentDetails.setRequestId(REQUEST_ID);
 
