@@ -164,7 +164,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         lavorazioneRichiesta(pecPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
     }
 
-    @Scheduled(cron = "${PnEcCronLavorazioneBatchPec ?:0 */5 * * * *}")
+    @Scheduled(cron = "0 */5 * * * *")
     public void lavorazioneRichiestaBatch() {
         MDC.clear();
         sqsService.getMessages(pecSqsQueueName.batchName(), PecPresaInCaricoInfo.class)
@@ -314,7 +314,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         return new GeneratedMessageDto().id(messageID).system(getDomainFromAddress(sender));
     }
 
-    @Scheduled(cron = "${PnEcCronGestioneRetryPec ?:0 */5 * * * *}")
+    @Scheduled(cron = "0 */5 * * * *")
     void gestioneRetryPecScheduler() {
         MDC.clear();
         idSaved = null;
@@ -401,7 +401,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
             idSaved = requestIdx;
         }
         var retry = requestDto.getRequestMetadata().getRetry();
-        if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size() - 1)) >= 0) {
+        if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size() - 1L)) >= 0) {
             // operazioni per la rimozione del messaggio
             return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                     ERROR.getStatusTransactionTableCompliant(),
