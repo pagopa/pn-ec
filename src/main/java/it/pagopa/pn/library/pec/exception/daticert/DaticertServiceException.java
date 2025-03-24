@@ -6,10 +6,11 @@ import lombok.Setter;
 @Getter
 @Setter
 public class DaticertServiceException extends RuntimeException {
-    private String message;
+    private final String message;
 
     public DaticertServiceException(String message) {
         super(message);
+        this.message = message;
     }
 
 }

@@ -103,7 +103,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         this.pnPecProps = pnPecProps;
     }
 
-    private final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
+    private static final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
             .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
 
 
@@ -291,14 +291,6 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .flatMap(pnPecService::sendMail)
                 .map(messageID -> createGeneratedMessageDto(messageID, sender))
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_SEND_MAIL, result));
-    }
-
-    private Mono<GeneratedMessageDto> setMessageIdInRequestMetadata(String xPagopaExtchCxId, String requestIdx, GeneratedMessageDto generatedMessageDto) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS + " - {}", PEC_SET_MESSAGE_ID_IN_REQUEST_METADATA, requestIdx, generatedMessageDto);
-        return gestoreRepositoryCall.setMessageIdInRequestMetadata(xPagopaExtchCxId, requestIdx)
-                .map(requestDto -> generatedMessageDto)
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
-                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PEC_SET_MESSAGE_ID_IN_REQUEST_METADATA, result));
     }
 
     private Mono<SendMessageResponse> sendMessage(GeneratedMessageDto generatedMessageDto, PecPresaInCaricoInfo pecPresaInCaricoInfo) {

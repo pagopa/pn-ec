@@ -12,7 +12,6 @@ import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.commons.utils.CompareUtils;
 import it.pagopa.pn.ec.commons.utils.RestUtils;
 import it.pagopa.pn.ec.notificationtracker.service.impl.NotificationTrackerMessageReceiver;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
@@ -23,8 +22,6 @@ import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.service.RequestService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import lombok.CustomLog;
-import lombok.CustomLog;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
@@ -60,7 +57,7 @@ import static org.mockito.Mockito.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTestWebEnv
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class NotificationTrackerMessageReceiverTest {
+class NotificationTrackerMessageReceiverTest {
     @Autowired
     private NotificationTrackerMessageReceiver notificationTrackerMessageReceiver;
     @Autowired
@@ -98,7 +95,7 @@ public class NotificationTrackerMessageReceiverTest {
     private static DynamoDbTable<RequestMetadata> requestMetadataDynamoDbTable;
 
     @BeforeAll
-    public static void initialize(@Autowired DynamoDbEnhancedClient dynamoDbTestEnhancedClient,
+    static void initialize(@Autowired DynamoDbEnhancedClient dynamoDbTestEnhancedClient,
                                   @Autowired RepositoryManagerDynamoTableName gestoreRepositoryDynamoDbTableName) throws IOException, JSONException {
         buildStateMachine();
 
@@ -115,9 +112,7 @@ public class NotificationTrackerMessageReceiverTest {
     }
 
     @BeforeEach
-    public void mockBeans() {
-        //when(acknowledgment.acknowledge()).thenReturn(new FutureImpl<>());
-
+    void mockBeans() {
         when(gestoreRepositoryCall.getRichiesta(anyString(), anyString())).thenAnswer(invocation -> {
             String clientId = invocation.getArgument(0);
             String requestId = invocation.getArgument(1);
@@ -461,7 +456,6 @@ public class NotificationTrackerMessageReceiverTest {
     private static void buildStateMachine() throws IOException, JSONException {
         BufferedReader br = null;
         br = new BufferedReader(new FileReader("src/test/resources/statemachine/StateMachines.json"));
-        Object obj;
         String line;
         while ((line = br.readLine()) != null) {
             JSONObject object = new JSONObject(line);

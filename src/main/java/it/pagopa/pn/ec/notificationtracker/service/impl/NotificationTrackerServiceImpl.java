@@ -74,10 +74,6 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                             if (digitalProgressStatusDto != null) {
                                                 isSameEvent = isSameEvent(eventsList, digitalProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
                                             }
-//                                            else {
-//                                                log.debug("handleRequestStatusChange - LastEvent paperProgressStatus : {}", lastEvent.getPaperProgrStatus());
-//                                                isSameEvent = isSameEvent(lastEvent.getPaperProgrStatus(), paperProgressStatusDto, notificationTrackerQueueDto.getNextStatus());
-//                                            }
                                         }
 
                                         log.debug(NT_HANDLE_REQUEST_STATUS_CHANGE + "'{}' - isSameEvent : {}", concatRequestId, isSameEvent);

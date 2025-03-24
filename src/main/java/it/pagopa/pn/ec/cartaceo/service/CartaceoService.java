@@ -79,7 +79,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private String idSaved;
     private final Semaphore semaphore;
     private final Integer cartaceoMaxBatchSubscribedMsgs;
-    private final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY;
+    private final Retry lavorazioneRichiestaRetryStrategy;
 
     protected CartaceoService(AuthService authService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall,
                               AttachmentServiceImpl attachmentService, NotificationTrackerSqsName notificationTrackerSqsName,
@@ -105,7 +105,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         this.cartaceoMapper = cartaceoMapper;
         this.semaphore = new Semaphore(maxThreadPoolSize);
         this.cartaceoMaxBatchSubscribedMsgs = cartaceoMaxBatchSubscribedMsgs;
-        this.LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(maxRetryAttempts, Duration.ofSeconds(minRetryBackoff))
+        this.lavorazioneRichiestaRetryStrategy = Retry.backoff(maxRetryAttempts, Duration.ofSeconds(minRetryBackoff))
                 .doBeforeRetry(retrySignal -> log.debug(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure(), retrySignal.failure().getMessage()))
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
                     throw new MaxRetriesExceededException();
@@ -113,7 +113,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     }
 
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
-    private final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
+    private static final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
             .doBeforeRetry(retrySignal -> log.debug(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure(), retrySignal.failure().getMessage()));
 
     @Override
@@ -477,7 +477,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private Mono<OperationResultCodeResponse> putRequestStep(CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest paperEngageRequestDst) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CARTACEO_PUT_REQUEST_STEP, cartaceoPresaInCaricoInfo);
         return Mono.just(overridePaIdIfRequired(paperEngageRequestDst))
-                .flatMap(requestDto -> paperMessageCall.putRequest(paperEngageRequestDst).retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY))
+                .flatMap(requestDto -> paperMessageCall.putRequest(paperEngageRequestDst).retryWhen(lavorazioneRichiestaRetryStrategy))
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, cartaceoPresaInCaricoInfo.getRequestIdx(), CARTACEO_PUT_REQUEST_STEP, result))
                 .doOnError(MaxRetriesExceededException.class, throwable -> {
                     log.debug(EXCEPTION_IN_PROCESS, CARTACEO_PUT_REQUEST_STEP, throwable, throwable.getMessage());
@@ -516,7 +516,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private Mono<SendMessageResponse> notificationTrackerStep(CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, OperationResultCodeResponse operationResultCodeResponse) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, NOTIFICATION_TRACKER_STEP_CARTACEO, cartaceoPresaInCaricoInfo);
         return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo, CODE_TO_STATUS_MAP.get(operationResultCodeResponse.getResultCode()), new PaperProgressStatusDto())
-                .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                .retryWhen(lavorazioneRichiestaRetryStrategy)
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, cartaceoPresaInCaricoInfo.getRequestIdx(), NOTIFICATION_TRACKER_STEP_CARTACEO, result))
                 .doOnError(MaxRetriesExceededException.class, throwable -> {
                     log.debug(EXCEPTION_IN_PROCESS, NOTIFICATION_TRACKER_STEP_CARTACEO, throwable, throwable.getMessage());
@@ -557,7 +557,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                         requestConversionDto.setRequestTimestamp(OffsetDateTime.now());
                         return dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
                     })
-                    .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
+                    .retryWhen(lavorazioneRichiestaRetryStrategy)
                     .doOnError(MaxRetriesExceededException.class, throwable -> {
                         log.debug(EXCEPTION_IN_PROCESS, CARTACEO_PDF_RASTER_STEP, throwable, throwable.getMessage());
                         StepError stepError = new StepError();

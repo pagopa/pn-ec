@@ -40,7 +40,7 @@ class StatusPullServiceTest {
     private static final String CLIENT_ID = "CLIENT_ID";
 
     @BeforeEach
-    public void initialize() {
+    void initialize() {
         when(authService.clientAuth(anyString())).thenReturn(Mono.just(new ClientConfigurationInternalDto()));
     }
 

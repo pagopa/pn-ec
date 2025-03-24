@@ -24,7 +24,6 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
-import javax.validation.constraints.AssertTrue;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -159,7 +158,7 @@ class RequestControllerTest {
     }
 
     @BeforeAll
-    public static void insertDefaultRequest(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient,
+    static void insertDefaultRequest(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient,
                                             @Autowired ObjectMapper objectMapper,
                                             @Autowired RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
         dynamoDbTablePersonal = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiestePersonalName(),

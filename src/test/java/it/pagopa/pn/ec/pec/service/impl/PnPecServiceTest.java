@@ -827,27 +827,6 @@ class PnPecServiceTest {
 
     }
 
-    private static RequestDto buildRequestDto() {
-        RetryDto retryDto = new RetryDto();
-        List<BigDecimal> retries = new ArrayList<>();
-        retries.add(0, BigDecimal.valueOf(5));
-        retries.add(1, BigDecimal.valueOf(10));
-        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
-        retryDto.setRetryStep(BigDecimal.valueOf(0));
-        retryDto.setRetryPolicy(retries);
-
-        RequestMetadataDto requestMetadata = new RequestMetadataDto();
-        requestMetadata.setRetry(retryDto);
-
-        RequestDto requestDto = new RequestDto();
-        requestDto.setStatusRequest("statusTest");
-        requestDto.setRequestIdx(PEC_PRESA_IN_CARICO_INFO.getRequestIdx());
-        requestDto.setxPagopaExtchCxId(PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId());
-        requestDto.setRequestMetadata(requestMetadata);
-
-        return requestDto;
-    }
-
     private PnGetMessagesResponse getArubaMessage() {
         List<byte[]> arubaMessages = new ArrayList<>();
         arubaMessages.add("message5".getBytes());

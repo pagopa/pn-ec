@@ -92,7 +92,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         this.logSanitizer = logSanitizer;
     }
 
-    private final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
+    private static final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
             .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
 
     @Override
@@ -198,7 +198,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .subscribe();
     }
 
-    private final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
+    private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
 
     Mono<SendMessageResponse> lavorazioneRichiesta(final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
 
@@ -403,7 +403,6 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     private Mono<DeleteMessageResponse> processWithAttachRetry(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message) {
 
         var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
-        var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var requestId = emailPresaInCaricoInfo.getRequestIdx();
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PROCESS_WITH_ATTACH_RETRY, emailPresaInCaricoInfo);
 

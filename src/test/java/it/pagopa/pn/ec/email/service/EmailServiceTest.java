@@ -37,7 +37,6 @@ import static it.pagopa.pn.ec.commons.constant.Status.SENT;
 import static it.pagopa.pn.ec.email.testutils.DigitalCourtesyMailRequestFactory.createMailRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -116,12 +115,7 @@ class EmailServiceTest {
      */
     @Test
     void lavorazioneRichiestaOk() {
-
-        var attachments = EMAIL_PRESA_IN_CARICO_INFO.getDigitalCourtesyMailRequest().getAttachmentUrls();
-        var clientId = EMAIL_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
-
         when(downloadCall.downloadFile(FILE_DOWNLOAD_RESPONSE.getDownload().getUrl())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-
         when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().build()));
 
         Mono<SendMessageResponse> lavorazioneRichiesta=emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO);

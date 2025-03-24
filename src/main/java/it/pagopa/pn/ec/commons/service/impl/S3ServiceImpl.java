@@ -30,13 +30,11 @@ import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 public class S3ServiceImpl implements S3Service {
 
     private final S3AsyncClient s3AsyncClient;
-    private final S3Properties s3Properties;
     private final RetryBackoffSpec s3RetryStrategy;
     private final ObjectMapper objectMapper;
 
     public S3ServiceImpl(S3AsyncClient s3AsyncClient, S3Properties s3Properties, ObjectMapper objectMapper) {
         this.s3AsyncClient = s3AsyncClient;
-        this.s3Properties = s3Properties;
         this.objectMapper = objectMapper;
         this.s3RetryStrategy = Retry.backoff(s3Properties.maxAttempts(), Duration.ofSeconds(s3Properties.minBackoff()))
                 .filter(S3Exception.class::isInstance)

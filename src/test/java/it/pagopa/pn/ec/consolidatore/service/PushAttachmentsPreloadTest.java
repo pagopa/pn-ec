@@ -1,19 +1,15 @@
 package it.pagopa.pn.ec.consolidatore.service;
 
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.ConsolidatoreEndpointProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
-import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import org.apache.commons.compress.archivers.sevenz.CLI;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -33,7 +29,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTestWebEnv
 @AutoConfigureWebTestClient
-public class PushAttachmentsPreloadTest {
+class PushAttachmentsPreloadTest {
 
     @Autowired
     private WebTestClient webTestClient;
@@ -45,9 +41,6 @@ public class PushAttachmentsPreloadTest {
     private ConsolidatoreEndpointProperties consolidatoreEndpointProperties;
     @MockBean
     private AuthService authService;
-
-    private static final String BAD_CONTENT_TYPE = "BAD_CONTENT_TYPE";
-    private static final String DOC_TYPE = "PN_EXTERNAL_LEGAL_FACTS";
 
     private static final String CLIENT_ID = "CLIENT_ID";
     private static final String FILE_KEY = "PN_NOTIFICATION_ATTACHMENTS-1a1f2a2430a4494e96d39081c132d21c";
@@ -64,20 +57,20 @@ public class PushAttachmentsPreloadTest {
 
 
     @BeforeAll
-    public static void buildPreLoadRequest() {
+    static void buildPreLoadRequest() {
         preLoadRequest.setPreloadIdx(CLIENT_ID);
         preLoadRequest.setContentType("application/pdf");
         preLoadRequest.setSha256(X_CHECKSUM_VALUE);
     }
 
     @BeforeAll
-    public static void buildClientConfigurationInternalDto() {
+    static void buildClientConfigurationInternalDto() {
         clientConfigurationInternalDto.setApiKey(X_API_KEY);
         clientConfigurationInternalDto.setxPagopaExtchCxId(CLIENT_ID);
     }
 
     @BeforeAll
-    public static void buildClientConfigurationInternalDtoWithWrongApiKey() {
+    static void buildClientConfigurationInternalDtoWithWrongApiKey() {
         clientConfigurationInternalDtoWithWrongApiKey.setApiKey("TEST");
         clientConfigurationInternalDtoWithWrongApiKey.setxPagopaExtchCxId(CLIENT_ID);
     }

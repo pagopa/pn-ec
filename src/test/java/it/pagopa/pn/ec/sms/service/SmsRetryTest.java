@@ -1,7 +1,5 @@
 package it.pagopa.pn.ec.sms.service;
 
-import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
-import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SnsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
@@ -56,11 +54,6 @@ class SmsRetryTest {
             .xPagopaExtchCxId(
                     DEFAULT_ID_CLIENT_HEADER_VALUE)
             .digitalCourtesySmsRequest(createSmsRequest())
-            .build();
-
-    private static final StepError STEP_ERROR = StepError.builder()
-            .generatedMessageDto(new GeneratedMessageDto().id("1221313223"))
-            .step(NOTIFICATION_TRACKER_STEP)
             .build();
 
     private static RequestDto buildRequestDto()

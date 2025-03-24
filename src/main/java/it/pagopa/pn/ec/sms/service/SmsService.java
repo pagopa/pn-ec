@@ -74,7 +74,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         this.logSanitizer = logSanitizer;
     }
 
-    private final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
+    private static final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
             .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
 
     @Override
@@ -83,7 +83,6 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         var smsPresaInCaricoInfo = (SmsPresaInCaricoInfo) presaInCaricoInfo;
         var requestIdx = smsPresaInCaricoInfo.getRequestIdx();
         var xPagopaExtchCxId = smsPresaInCaricoInfo.getXPagopaExtchCxId();
-        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_SMS, presaInCaricoInfo);
 
         var digitalCourtesySmsRequest = smsPresaInCaricoInfo.getDigitalCourtesySmsRequest();
@@ -120,7 +119,6 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromSms(final DigitalCourtesySmsRequest digitalCourtesySmsRequest, String xPagopaExtchCxId) {
-        String concatRequestId = concatRequestId(xPagopaExtchCxId, digitalCourtesySmsRequest.getRequestId());
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_SMS, digitalCourtesySmsRequest);
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
@@ -175,7 +173,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                   .subscribe();
     }
 
-    Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))
+    private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))
             .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
                 throw new SnsSendException.SnsMaxRetriesExceededException();
             })

@@ -4,13 +4,11 @@ import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
-import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.S3Service;
 import it.pagopa.pn.library.pec.service.DaticertService;
@@ -35,8 +33,6 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
 import java.net.URI;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -68,14 +64,12 @@ public class LavorazioneEsitiPecService {
     private final WebClient uploadWebClient;
     private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
     private final GestoreRepositoryCall gestoreRepositoryCall;
-    private final CallMacchinaStati callMacchinaStati;
-    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
     private final S3Service s3Service;
     private final String storageSqsMessagesStagingBucket;
     private final Semaphore semaphore;
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
 
-    public LavorazioneEsitiPecService(SqsService sqsService, DaticertService daticertService, StatusPullService statusPullService, CloudWatchPecMetrics cloudWatchPecMetrics, NotificationTrackerSqsName notificationTrackerSqsName, FileCall fileCall, WebClient uploadWebClient, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, GestoreRepositoryCall gestoreRepositoryCall, CallMacchinaStati callMacchinaStati, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, S3Service s3Service, @Value("${lavorazione-esiti-pec.max-thread-pool-size}") Integer maxThreadPoolSize, @Value("${pn.ec.storage.sqs.messages.staging.bucket}") String storageSqsMessagesStagingBucket) {
+    public LavorazioneEsitiPecService(SqsService sqsService, DaticertService daticertService, StatusPullService statusPullService, CloudWatchPecMetrics cloudWatchPecMetrics, NotificationTrackerSqsName notificationTrackerSqsName, FileCall fileCall, WebClient uploadWebClient, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, GestoreRepositoryCall gestoreRepositoryCall, S3Service s3Service, @Value("${lavorazione-esiti-pec.max-thread-pool-size}") Integer maxThreadPoolSize, @Value("${pn.ec.storage.sqs.messages.staging.bucket}") String storageSqsMessagesStagingBucket) {
         this.sqsService = sqsService;
         this.daticertService = daticertService;
         this.statusPullService = statusPullService;
@@ -85,8 +79,6 @@ public class LavorazioneEsitiPecService {
         this.uploadWebClient = uploadWebClient;
         this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
-        this.callMacchinaStati = callMacchinaStati;
-        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
         this.s3Service = s3Service;
         this.storageSqsMessagesStagingBucket = storageSqsMessagesStagingBucket;
         this.semaphore = new Semaphore(maxThreadPoolSize);
