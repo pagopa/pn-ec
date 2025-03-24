@@ -183,7 +183,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         lavorazioneRichiesta(emailPresaInCaricoInfo).doOnSuccess(result -> acknowledgment.acknowledge()).subscribe();
     }
 
-    @Scheduled(cron = "0 */5 * * * *")
+    @Scheduled(cron = "${pn.ec.cron.lavorazione-batch-email}")
     public void lavorazioneRichiestaBatch() {
         MDC.clear();
         sqsService.getMessages(emailSqsQueueName.batchName(), EmailPresaInCaricoInfo.class)
@@ -287,7 +287,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         return ret;
     }
 
-    @Scheduled(cron = "0 */5 * * * *")
+    @Scheduled(cron = "${pn.ec.cron.gestione-retry-email}")
     void gestioneRetryEmailScheduler() {
         MDC.clear();
         idSaved = null;

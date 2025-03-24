@@ -164,7 +164,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         lavorazioneRichiesta(pecPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
     }
 
-    @Scheduled(cron = "0 */5 * * * *")
+    @Scheduled(cron = "${pn.ec.cron.lavorazione-batch-pec}")
     public void lavorazioneRichiestaBatch() {
         MDC.clear();
         sqsService.getMessages(pecSqsQueueName.batchName(), PecPresaInCaricoInfo.class)
@@ -314,7 +314,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         return new GeneratedMessageDto().id(messageID).system(getDomainFromAddress(sender));
     }
 
-    @Scheduled(cron = "0 */5 * * * *")
+    @Scheduled(cron = "${pn.ec.cron.gestione-retry-pec}")
     void gestioneRetryPecScheduler() {
         MDC.clear();
         idSaved = null;
