@@ -54,7 +54,7 @@ public class ScaricamentoEsitiPecScheduler {
     private final Predicate<IPostacert> endsWithDomainPredicate = postacert -> postacert.getDati().getMsgid().endsWith(DOMAIN);
     private final Predicate<PnEcPecListOfMessages> hasNoMessages = pnEcPecListOfMessages -> Objects.isNull(pnEcPecListOfMessages) || Objects.isNull(pnEcPecListOfMessages.getMessages()) || pnEcPecListOfMessages.getMessages().isEmpty();
 
-    @Scheduled(cron = "${PnEcCronScaricamentoEsitiPec ?:0 */5 * * * *}")
+    @Scheduled(cron = "${pn.ec.cron.scaricamento-esiti-pec}")
     public void scaricamentoEsitiPecScheduler() {
         MDC.clear();
         log.logStartingProcess(SCARICAMENTO_ESITI_PEC);

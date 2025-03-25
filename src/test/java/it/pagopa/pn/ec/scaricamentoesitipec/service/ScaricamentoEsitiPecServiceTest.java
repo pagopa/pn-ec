@@ -51,7 +51,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
-public class ScaricamentoEsitiPecServiceTest {
+class ScaricamentoEsitiPecServiceTest {
     @SpyBean
     private LavorazioneEsitiPecService lavorazioneEsitiPecService;
     @Autowired
@@ -72,13 +72,11 @@ public class ScaricamentoEsitiPecServiceTest {
     String storageSqsMessagesStagingBucket;
     @Value("${aruba.pec.username}")
     private String pecUsername;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private static final String CLIENT_ID = "CLIENT_ID";
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
 
     @BeforeEach
-    public void initialize() {
+    void initialize() {
         when(authService.clientAuth(anyString())).thenReturn(Mono.just(new ClientConfigurationInternalDto()));
     }
 

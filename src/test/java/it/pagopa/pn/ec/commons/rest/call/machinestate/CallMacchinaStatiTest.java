@@ -50,7 +50,7 @@ class CallMacchinaStatiTest {
     }
 
     @AfterEach
-    public void afterEach() {
+    void afterEach() {
         // Setting default dispatcher after every test
         mockBackEnd.setDispatcher(new QueueDispatcher());
     }

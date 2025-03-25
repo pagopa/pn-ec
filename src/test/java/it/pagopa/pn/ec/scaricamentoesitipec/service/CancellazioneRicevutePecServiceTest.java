@@ -35,9 +35,9 @@ class CancellazioneRicevutePecServiceTest {
     @MockBean
     PnEcPecService pnPecService;
 
-    private final String CLIENT_ID = "CLIENT_ID";
-    private final String REQUEST_ID = "REQUEST_ID";
-    private final String MESSAGE_ID = "MESSAGE_ID";
+    private static final String CLIENT_ID = "CLIENT_ID";
+    private static final String REQUEST_ID = "REQUEST_ID";
+    private static final String MESSAGE_ID = "MESSAGE_ID";
     private static final String SENDER_MESSAGE_ID = "SENDER_MESSAGE_ID";
 
     private static Stream<Arguments> statusesSource() {

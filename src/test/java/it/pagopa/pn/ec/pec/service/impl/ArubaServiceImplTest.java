@@ -35,7 +35,7 @@ class ArubaServiceImplTest {
 
 
     @BeforeEach
-    public void setup() {
+    void setup() {
         MockitoAnnotations.openMocks(this);
     }
 

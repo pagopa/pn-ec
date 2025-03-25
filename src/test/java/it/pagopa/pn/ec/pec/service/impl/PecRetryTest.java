@@ -78,15 +78,13 @@ class PecRetryTest {
     private GestoreRepositoryCall gestoreRepositoryCall;
     Message message = Message.builder().build();
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
-    private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
-    private static final String ATTACHMENT_PREFIX = "safestorage://";
-    private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
-    private String TIPO_RICEVUTA_BREVE_DEFAULT;
-    private static Integer MAX_MESSAGE_SIZE_KB;
+    private static final String DEFAULT_ATTACHMENT_URL = "safestorage://prova.pdf";
+    private String tipoRicevutaBreveDefault;
+    private static Integer maxMessageSizeKb;
     public static DigitalNotificationRequest createDigitalNotificationRequest() {
 
         List<String> defaultListAttachmentUrls = new ArrayList<>();
-        defaultListAttachmentUrls.add(defaultAttachmentUrl);
+        defaultListAttachmentUrls.add(DEFAULT_ATTACHMENT_URL);
 
         digitalNotificationRequest.setRequestId("requestIdx");
         digitalNotificationRequest.eventType("string");
@@ -160,16 +158,16 @@ class PecRetryTest {
 
     @BeforeAll
     static void beforeAll(@Autowired PnPecConfigurationProperties pnPecConfigurationProperties) {
-        MAX_MESSAGE_SIZE_KB = pnPecConfigurationProperties.getMaxMessageSizeMb() * MB_TO_BYTES;
+        maxMessageSizeKb = pnPecConfigurationProperties.getMaxMessageSizeMb() * MB_TO_BYTES;
     }
 
     @BeforeEach
     void setUp() {
-        TIPO_RICEVUTA_BREVE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "tipoRicevutaBreve");
+        tipoRicevutaBreveDefault = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "tipoRicevutaBreve");
     }
     @AfterEach
     void afterEach() {
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", TIPO_RICEVUTA_BREVE_DEFAULT);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", tipoRicevutaBreveDefault);
     }
 
     @Test
@@ -233,11 +231,9 @@ class PecRetryTest {
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message);
-//        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-//        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
 
     @Test
@@ -298,7 +294,7 @@ class PecRetryTest {
         var mimeMessage = getMimeMessage(mimeMessageBytes);
         var multipart=getMultipartFromMimeMessage(mimeMessage);
 
-        assertTrue(mimeMessageBytes.length < MAX_MESSAGE_SIZE_KB);
+        assertTrue(mimeMessageBytes.length < maxMessageSizeKb);
         //Body del messaggio + allegati
         assertEquals(3, getMultipartCount(multipart));
     }
@@ -334,7 +330,7 @@ class PecRetryTest {
         var mimeMessage = getMimeMessage(mimeMessageBytes);
         var multipart=getMultipartFromMimeMessage(mimeMessage);
 
-        assertTrue(mimeMessageBytes.length < MAX_MESSAGE_SIZE_KB);
+        assertTrue(mimeMessageBytes.length < maxMessageSizeKb);
         //Body del messaggio + 1 allegato
         assertEquals(2, getMultipartCount(multipart));
     }
@@ -470,7 +466,7 @@ class PecRetryTest {
 
     private void mockAttachmentsWithLastInOffset(int numOfAttachments) {
         List<FileDownloadResponse> fileDownloadResponseList = new ArrayList<>();
-        int sizeForAttachment = MAX_MESSAGE_SIZE_KB / numOfAttachments;
+        int sizeForAttachment = maxMessageSizeKb / numOfAttachments;
         for (int i = 0; i < numOfAttachments; i++) {
             var file = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url" + i)).key("key" + i);
             fileDownloadResponseList.add(file);

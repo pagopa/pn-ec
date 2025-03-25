@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec.commons.service;
 
-import it.pagopa.pn.ec.commons.model.pojo.s3.S3Pointer;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
 
