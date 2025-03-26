@@ -39,8 +39,6 @@
     "PnEcNamirialPoolSmtpMinidle": "1",
     "PnEcNamirialServerCache": "false",
     "PnEcNamirialServerCacheEndpoint": "",
-    "PnEcNamirialMetricDuplicateReceiptNamespace": "PEC/Namirial",
-    "PnEcNamirialMetricDuplicateReceiptName": "multipleReceipt",
     "SpringCodecMaxInMemorySize": "256KB",
     "PnEcConsAllowedFutureOffsetDuration": "1m",
     "CpuValue": "1024",
