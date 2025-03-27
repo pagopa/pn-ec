@@ -18,8 +18,7 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 
-import static it.pagopa.pn.library.pec.utils.PnPecUtils.ARUBA_PROVIDER;
-import static it.pagopa.pn.library.pec.utils.PnPecUtils.NAMIRIAL_PROVIDER;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.*;
 
 @Service
 @CustomLog
@@ -70,7 +69,7 @@ public class DatiCertServiceImpl implements DaticertService {
     private String getPostacertClassType(String providerName) {
         String postacertClassType = switch (providerName) {
             case ARUBA_PROVIDER -> arubaPostacertClassType;
-            case NAMIRIAL_PROVIDER -> pnPostacertClassType;
+            case NAMIRIAL_PROVIDER, DUMMY_PROVIDER -> pnPostacertClassType;
             default -> throw new IllegalArgumentException(String.format("There is no postacert type for '%s' provider", providerName));
         };
         log.debug("PostacertClassType : {}", postacertClassType);

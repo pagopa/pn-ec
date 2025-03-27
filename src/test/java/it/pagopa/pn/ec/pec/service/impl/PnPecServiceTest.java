@@ -26,7 +26,6 @@ import lombok.CustomLog;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.jupiter.api.*;
-import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -79,22 +78,22 @@ class PnPecServiceTest {
     @Autowired
     private PnPecMetricNames pnPecMetricNames;
 
-    private String PROVIDER_SWITCH_READ_DEFAULT = "1970-01-01T00:00:00Z;aruba";
-    private String PROVIDER_SWITCH_WRITE_DEFAULT = "1970-01-01T00:00:00Z;aruba";
-    private String PROVIDER_SWITCH_READ_DUMMY= "1970-01-01T00:00:00Z;dummy";
-    private String PROVIDER_SWITCH_WRITE_READ_MULTIPLE_PROVIDERS= "1970-01-01T00:00:00Z;aruba|namirial|dummy";
-    private String PROVIDER_SWITCH_WRITE_DUMMY = "1970-01-01T00:00:00Z;dummy";
-    private final String TEMPORARY_EXCEPTION = "test temporary exception";
-    private final String PERMANENT_EXCEPTION = "test permanent exception";
-    private final String MESSAGE = "test message";
-    private final String ARUBA_MESSAGE_ID = "opec21010.20231006185001.00057.206.1.59@pec.aruba.it";
-    private final String NAMIRIAL_MESSAGE_ID = "opec21010.20231006185001.00057.206.1.59@sicurezzapostale.it";
-    private final String DUMMY_MESSAGE_ID = "opec21010.20231006185001.00057.206.1.59@pec.dummy.it";
+    private String providerSwitchReadDefault = "1970-01-01T00:00:00Z;aruba";
+    private String providerSwitchWriteDefault = "1970-01-01T00:00:00Z;aruba";
+    private static final String PROVIDER_SWITCH_READ_DUMMY= "1970-01-01T00:00:00Z;dummy";
+    private static final String PROVIDER_SWITCH_WRITE_READ_MULTIPLE_PROVIDERS= "1970-01-01T00:00:00Z;aruba|namirial|dummy";
+    private static final String PROVIDER_SWITCH_WRITE_DUMMY = "1970-01-01T00:00:00Z;dummy";
+    private static final String TEMPORARY_EXCEPTION = "test temporary exception";
+    private static final String PERMANENT_EXCEPTION = "test permanent exception";
+    private static final String MESSAGE = "test message";
+    private static final String ARUBA_MESSAGE_ID = "opec21010.20231006185001.00057.206.1.59@pec.aruba.it";
+    private static final String NAMIRIAL_MESSAGE_ID = "opec21010.20231006185001.00057.206.1.59@sicurezzapostale.it";
+    private static final String DUMMY_MESSAGE_ID = "opec21010.20231006185001.00057.206.1.59@pec.dummy.it";
 
-    private final String DATE_R_ARUBA_W_ARUBA = "2022-12-02T00:00:00Z";
-    private final String DATE_R_ARUBA_NAM_W_NAM = "2023-01-02T23:59:58Z";
-    private final String DATE_R_NAM_W_ARUBA = "2023-02-02T00:00:00Z";
-    private final String DATE_DEFAULT = "1970-01-01T00:00:00Z";
+    private static final String DATE_R_ARUBA_W_ARUBA = "2022-12-02T00:00:00Z";
+    private static final String DATE_R_ARUBA_NAM_W_NAM = "2023-01-02T23:59:58Z";
+    private static final String DATE_R_NAM_W_ARUBA = "2023-02-02T00:00:00Z";
+    private static final String DATE_DEFAULT = "1970-01-01T00:00:00Z";
 
 
     private final PnSpapiPermanentErrorException permanentException = new PnSpapiPermanentErrorException(PERMANENT_EXCEPTION);
@@ -104,14 +103,14 @@ class PnPecServiceTest {
     @BeforeEach
     void setUp() {
         DateTimeUtils.setCurrentMillisFixed(DateTime.parse(DATE_DEFAULT).getMillis());
-        PROVIDER_SWITCH_READ_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchRead");
-        PROVIDER_SWITCH_WRITE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite");
+        providerSwitchReadDefault = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchRead");
+        providerSwitchWriteDefault = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite");
     }
 
     @AfterEach
     void afterEach() {
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchRead", PROVIDER_SWITCH_READ_DEFAULT);
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite", PROVIDER_SWITCH_WRITE_DEFAULT);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchRead", providerSwitchReadDefault);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite", providerSwitchWriteDefault);
     }
 
     @AfterAll
@@ -826,27 +825,6 @@ class PnPecServiceTest {
         Assertions.assertFalse(PnEcPecServiceImpl.isAruba(messageIDs.get(3)));
         Assertions.assertFalse(PnEcPecServiceImpl.isAruba(messageIDs.get(4)));
 
-    }
-
-    private static RequestDto buildRequestDto() {
-        RetryDto retryDto = new RetryDto();
-        List<BigDecimal> retries = new ArrayList<>();
-        retries.add(0, BigDecimal.valueOf(5));
-        retries.add(1, BigDecimal.valueOf(10));
-        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
-        retryDto.setRetryStep(BigDecimal.valueOf(0));
-        retryDto.setRetryPolicy(retries);
-
-        RequestMetadataDto requestMetadata = new RequestMetadataDto();
-        requestMetadata.setRetry(retryDto);
-
-        RequestDto requestDto = new RequestDto();
-        requestDto.setStatusRequest("statusTest");
-        requestDto.setRequestIdx(PEC_PRESA_IN_CARICO_INFO.getRequestIdx());
-        requestDto.setxPagopaExtchCxId(PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId());
-        requestDto.setRequestMetadata(requestMetadata);
-
-        return requestDto;
     }
 
     private PnGetMessagesResponse getArubaMessage() {

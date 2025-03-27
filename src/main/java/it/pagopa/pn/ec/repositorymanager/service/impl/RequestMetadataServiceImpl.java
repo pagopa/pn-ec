@@ -155,13 +155,6 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
             var status = getStatusFromEvent(event);
             if (status instanceof DigitalProgressStatus digitalProgressStatus) {
                 throw new RepositoryManagerException.EventAlreadyExistsException(requestId, digitalProgressStatus);
-            /**
-             * FIXME: pn-7745 rimossa verifica di uguaglianza troppo lasca. 
-             *  } else {
-             * log.debug("eventsCheck() - PAPER STATUS {} ALREADY EXISTS", status);
-             * throw new RepositoryManagerException.EventAlreadyExistsException(requestId, (PaperProgressStatus) status);
-             */
-               
             }
         }
     }

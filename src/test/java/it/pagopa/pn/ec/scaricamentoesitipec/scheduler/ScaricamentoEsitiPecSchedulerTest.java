@@ -12,6 +12,7 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
+import it.pagopa.pn.template.service.DummyPecService;
 import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +43,9 @@ class ScaricamentoEsitiPecSchedulerTest {
     @MockBean
     private com.namirial.pec.library.service.PnPecServiceImpl namirialService;
 
+    @MockBean
+    private DummyPecService dummyPecService;
+
     @SpyBean
     private PnEcPecService pnPecService;
 
@@ -69,11 +73,6 @@ class ScaricamentoEsitiPecSchedulerTest {
     private static final String CLIENT_ID = "CLIENT_ID";
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
     private static final String UUID = "UUID";
-    @Test
-    void scaricamentoEsitiPecOk() {
-
-    }
-
 
     @Test
     void lavorazioneArubaEsitoOk() throws MessagingException, IOException {
@@ -97,6 +96,21 @@ class ScaricamentoEsitiPecSchedulerTest {
                 .providerName("namirial");
 
         when(namirialService.markMessageAsRead(any())).thenReturn(Mono.empty());
+
+        StepVerifier.create(scaricamentoEsitiPecScheduler.lavorazioneEsito(message,UUID))
+                .expectComplete()
+                .verify();
+
+        verify(pnPecService, times(1)).markMessageAsRead(any(),any());
+    }
+
+    @Test
+    void lavorazioneEsitiDummyEsitoOk() throws MessagingException, IOException {
+        PnEcPecMessage message = new PnEcPecMessage()
+                .message(buildRicezioneEsitiPecDto("tipoPostacert", "tipoDestinatario", true).toByteArray())
+                .providerName("dummy");
+
+        when(dummyPecService.markMessageAsRead(any())).thenReturn(Mono.empty());
 
         StepVerifier.create(scaricamentoEsitiPecScheduler.lavorazioneEsito(message,UUID))
                 .expectComplete()
@@ -134,7 +148,21 @@ class ScaricamentoEsitiPecSchedulerTest {
     }
 
     @Test
-    void lavorazioneEsitoNamirialEmptyMessage() throws MessagingException, IOException {
+    void lavorazioneEsitoDummyNoDatiCert() throws MessagingException, IOException {
+        PnEcPecMessage message = new PnEcPecMessage()
+                .message(buildRicezioneEsitiPecDto("tipoPostacert", "tipoDestinatario", false).toByteArray())
+                .providerName("dummy");
+
+        when(dummyPecService.markMessageAsRead(any())).thenReturn(Mono.empty());
+        StepVerifier.create(scaricamentoEsitiPecScheduler.lavorazioneEsito(message,UUID))
+                .expectComplete()
+                .verify();
+
+        verify(pnPecService, times(1)).markMessageAsRead(any(),any());
+    }
+
+    @Test
+    void lavorazioneEsitoNamirialEmptyMessage() {
         byte[] messageContent = new byte[0];
 
         PnEcPecMessage message = new PnEcPecMessage()

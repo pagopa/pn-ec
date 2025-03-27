@@ -83,7 +83,7 @@ public class DigitalNotificationRequestApiControllerTest {
 
 
     @BeforeEach
-    public void createDigitalNotificationRequest() {
+    void createDigitalNotificationRequest() {
 
         List<String> defaultListAttachmentUrls = new ArrayList<>();
         defaultListAttachmentUrls.add(DEFAULT_ATTACHMENT_URL);

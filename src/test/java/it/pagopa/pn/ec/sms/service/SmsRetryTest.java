@@ -1,7 +1,5 @@
 package it.pagopa.pn.ec.sms.service;
 
-import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
-import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SnsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
@@ -57,20 +55,6 @@ class SmsRetryTest {
                     DEFAULT_ID_CLIENT_HEADER_VALUE)
             .digitalCourtesySmsRequest(createSmsRequest())
             .build();
-
-    private static final StepError STEP_ERROR = StepError.builder()
-            .generatedMessageDto(new GeneratedMessageDto().id("1221313223"))
-            .step(NOTIFICATION_TRACKER_STEP)
-            .build();
-    private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO1 = SmsPresaInCaricoInfo.builder()
-            .requestIdx("idTest")
-            .xPagopaExtchCxId(
-                    DEFAULT_ID_CLIENT_HEADER_VALUE)
-            .stepError(STEP_ERROR)
-            .digitalCourtesySmsRequest(createSmsRequest())
-            .build();
-
-    private final SqsMessageWrapper<SmsPresaInCaricoInfo> sqsPresaInCaricoInfo = new SqsMessageWrapper<>(message, SMS_PRESA_IN_CARICO_INFO);
 
     private static RequestDto buildRequestDto()
     {
@@ -129,12 +113,11 @@ class SmsRetryTest {
 
 
         Mono<DeleteMessageResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
-//        Mono<DeleteMessageResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO1, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-//        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO1), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
+
     @Test
     void gestioneRetrySms_GenericError() {
 

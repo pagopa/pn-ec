@@ -19,7 +19,6 @@ import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManag
 import it.pagopa.pn.ec.rest.v1.dto.*;
 
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import lombok.CustomLog;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
