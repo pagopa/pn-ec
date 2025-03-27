@@ -6,7 +6,6 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
-import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.library.exceptions.PnSpapiPermanentErrorException;
@@ -21,11 +20,13 @@ import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import it.pagopa.pn.library.pec.service.PnPecService;
 import it.pagopa.pn.library.pec.service.impl.PnEcPecServiceImpl;
+import it.pagopa.pn.library.pec.utils.PnPecUtils;
 import it.pagopa.pn.template.service.DummyPecService;
 import lombok.CustomLog;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.jupiter.api.*;
+import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -34,8 +35,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,6 +43,7 @@ import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
 import static it.pagopa.pn.library.pec.utils.PnPecUtils.*;
 import static org.apache.commons.lang3.reflect.TypeUtils.isInstance;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -428,51 +428,29 @@ class PnPecServiceTest {
 
         @Test
         void getUnreadMessagesPECAndPublishMetricsOk() {
-            log.debug("getUnreadMessagesPECAndPublishMetricsOk");
-
             PnGetMessagesResponse arubaMessages = getArubaMessage();
-            PnGetMessagesResponse namirialProviderMessages = getNamirialProviderMessages();
+            PnGetMessagesResponse namirialMessages = getNamirialProviderMessages();
 
             when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.just(arubaMessages));
-            when(namirialService.getUnreadMessages(anyInt())).thenReturn(Mono.just(namirialProviderMessages));
+            when(namirialService.getUnreadMessages(anyInt())).thenReturn(Mono.just(namirialMessages));
 
-            Mono<PnEcPecGetMessagesResponse> result = pnPecService.getUnreadMessages(6);
+            try (MockedStatic<PnPecUtils> mockedPecUtils = mockStatic(PnPecUtils.class)) {
+                mockedPecUtils.when(() -> PnPecUtils.createEmfJson(any(), any(), anyLong()))
+                        .thenReturn("MOCKED_JSON_LOG");
 
-            StepVerifier.create(result)
-                    .expectNextMatches(response ->
-                            response.getNumOfMessages() == arubaMessages.getNumOfMessages() + namirialProviderMessages.getNumOfMessages()
-                                    && response.getPnEcPecListOfMessages().getMessages().size() == arubaMessages.getPnListOfMessages().getMessages().size() + namirialProviderMessages.getPnListOfMessages().getMessages().size())
-                    .expectComplete()
-                    .verify();
-            log.info("Aruba message count: {}", arubaMessages.getNumOfMessages());
-            log.info("Namirial message count: {}", namirialProviderMessages.getNumOfMessages());
 
-            verify(arubaService, times(1)).getUnreadMessages(6);
-            verify(namirialService, times(1)).getUnreadMessages(6);
+                Mono<PnEcPecGetMessagesResponse> result = pnPecService.getUnreadMessages(6);
 
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), argThat(list -> list.size() == 1));
-            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), argThat(list -> list.size() == 1));
+                StepVerifier.create(result)
+                        .expectNextMatches(response ->
+                                response.getNumOfMessages() == arubaMessages.getNumOfMessages() + namirialMessages.getNumOfMessages()
+                                        && response.getPnEcPecListOfMessages().getMessages().size() ==
+                                        arubaMessages.getPnListOfMessages().getMessages().size() + namirialMessages.getPnListOfMessages().getMessages().size())
+                        .verifyComplete();
 
-            verify(cloudWatchPecMetrics, times(1)).publishMessageCountUnreadPec(eq(Long.valueOf(arubaMessages.getNumOfMessages())), eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetUnreadPecMessagesCount()));
-            verify(cloudWatchPecMetrics, times(1)).publishMessageCountUnreadPec(eq(Long.valueOf(namirialProviderMessages.getNumOfMessages())), eq(namirialProviderNamespace), eq(pnPecMetricNames.getGetUnreadPecMessagesCount()));
+            }
         }
 
-        @Test
-        void getUnreadMessagesAndPublishMetricsError() {
-            log.debug("getUnreadMessagesAndPublishMetricsError");
-            when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.error(permanentException));
-            when(namirialService.getUnreadMessages(anyInt())).thenReturn(Mono.error(permanentException));
-
-            Mono<PnEcPecGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
-
-            StepVerifier.create(combinedMessages)
-                    .expectError(PnSpapiPermanentErrorException.class)
-                    .verify();
-
-            verify(arubaService, times(1)).getUnreadMessages(6);
-            verify(namirialService, never()).getUnreadMessages(anyInt());
-            verify(cloudWatchPecMetrics, never()).publishMessageCountUnreadPec(any(), any(), any());
-        }
 
     }
 

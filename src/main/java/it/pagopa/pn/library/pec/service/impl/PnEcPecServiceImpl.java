@@ -18,6 +18,7 @@ import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import it.pagopa.pn.library.pec.service.PnPecService;
+import it.pagopa.pn.library.pec.utils.PnPecUtils;
 import it.pagopa.pn.template.service.DummyPecService;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -120,16 +121,6 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 .transform(handleGetUnreadMessagesResponses());
     }
 
-    private Mono<Void> getCountUnreadPecMessagesMetrics(PnPecService provider, Long count) {
-        log.info("Invoking publishMessageCountUnreadPec with count={}", count);
-        return cloudWatchPecMetrics.publishMessageCountUnreadPec(
-                                count, getMetricNamespace(provider), pnPecMetricNames.getGetUnreadPecMessagesCount())
-                        .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_GET_UNREAD_PEC_MESSAGES_COUNT, provider));
-    }
-
-
-
-
     /**
      * A function to handle the responses from the getUnreadMessages operations
      */
@@ -152,12 +143,13 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         return Flux.fromIterable(getProvidersRead())
                 .transform(getUnreadMessagesAndHandleMetrics(limit))
                 .collectList()
-                .flatMap(this::processUnreadPecMessages)
+                .flatMap(this::processAndLogUnreadPecMessages)
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES))
                 .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES, false, throwable.getMessage()));
     }
 
-    private Mono<PnEcPecGetMessagesResponse> processUnreadPecMessages(List<PnEcPecMessage> messages) {
+    private Mono<PnEcPecGetMessagesResponse> processAndLogUnreadPecMessages(List<PnEcPecMessage> messages) {
+        log.debug(INVOKING_OPERATION_LABEL, UNREAD_PEC_MESSAGE);
         if (messages.isEmpty()) {
             log.info("No unread PEC messages found");
             return Mono.just(new PnEcPecGetMessagesResponse(null, 0));
@@ -166,17 +158,16 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         Map<String, List<PnEcPecMessage>> messagesByProvider = messages.stream()
                 .collect(Collectors.groupingBy(PnEcPecMessage::getProviderName));
 
-        List<Mono<Void>> metricTasks = messagesByProvider.entrySet().stream()
-                .map(entry -> {
-                    PnPecService provider = getProviderByName(entry.getKey());
-                    long messageCount = entry.getValue().size();
-                    return getCountUnreadPecMessagesMetrics(provider, messageCount);
-                })
-                .toList();
+        messagesByProvider.forEach((providerName, providerMessages) -> {
+            PnPecService provider = getProviderByName(providerName);
+            long messageCount = providerMessages.size();
+            String jsonLog = PnPecUtils.createEmfJson(getMetricNamespace(provider), pnPecMetricNames.getGetUnreadPecMessagesCount(), messageCount);
+            log.info(jsonLog);
+        });
 
-        return Mono.when(metricTasks)
-                .thenReturn(new PnEcPecGetMessagesResponse(new PnEcPecListOfMessages(messages), messages.size()));
+        return Mono.just(new PnEcPecGetMessagesResponse(new PnEcPecListOfMessages(messages), messages.size()));
     }
+
 
     /**
      * A function to execute the getMessageCount operation and handle related metrics.

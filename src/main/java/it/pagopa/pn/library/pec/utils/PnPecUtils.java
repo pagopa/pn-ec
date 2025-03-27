@@ -50,7 +50,7 @@ public class PnPecUtils {
 
             ObjectNode metricDetails = objectMapper.createObjectNode();
             metricDetails.put("Name", metricName);
-            metricDetails.put("Unit", count);
+            metricDetails.put("Unit", "COUNT");
 
             metricsNode.set("Metrics", objectMapper.createArrayNode().add(metricDetails));
 
