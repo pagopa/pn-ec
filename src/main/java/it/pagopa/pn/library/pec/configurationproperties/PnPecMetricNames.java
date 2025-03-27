@@ -19,6 +19,7 @@ public class PnPecMetricNames {
     String sendMailResponseTime;
     String payloadSizeRange;
     String messageCountRange;
+    String getUnreadPecMessagesCount;
 
     // Metodo per ottenere tutti i valori come lista
     public List<String> getAllMetrics() {
@@ -29,7 +30,8 @@ public class PnPecMetricNames {
                 getMessageCountResponseTime,
                 sendMailResponseTime,
                 payloadSizeRange,
-                messageCountRange
+                messageCountRange,
+                getUnreadPecMessagesCount
         );
     }
 

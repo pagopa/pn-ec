@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.library.pec.utils.PnPecUtils.DUMMY_PROVIDER_NAMESPACE;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.*;
 
 /**
  * A service class to publish CloudWatch metrics. It can directly publish metrics to CloudWatch or make use of the CloudWatchMetricPublisherConfiguration class.
@@ -46,6 +47,7 @@ public class CloudWatchPecMetrics {
     private static final String TRANSACTION_SENT_AND_ACCEPTED = "TimeElapsedBetweenSentAndAccepted";
     private static final String TRANSACTION_ACCEPTED_AND_DELIVERED = "TimeElapsedBetweenAcceptedAndDelivered";
     private static final String TRANSACTION_ACCEPTED_AND_NOT_DELIVERED = "TimeElapsedBetweenAcceptedAndNotDelivered";
+    private static final String UNREAD_PEC_ALARM = "UnreadPecAlarm";
 
     /**
      * Instantiates a new Cloud watch pec metrics.
@@ -195,4 +197,38 @@ public class CloudWatchPecMetrics {
                     return Mono.empty();
                 }).then();
     }
+
+    /**
+     * Method to publish the count of unread PEC messages to AWS CloudWatch.
+     *
+     * <p>This method logs the invocation, creates a JSON representation of the metric using the EMF (Embedded Metric Format),
+     * and sends the data asynchronously to CloudWatch. If an error occurs, it is logged, and the method completes without failure.</p>
+     *
+     * @param count     the number of unread PEC messages to publish.
+     * @param namespace the metric namespace
+     * @return a void Mono
+     */
+    public Mono<Void> publishMessageCountUnreadPec(Long count, String namespace, String metricName) {
+        log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_UNREAD_PEC_MESSAGE_COUNT, count);
+
+        String emfJson = createEmfJson(namespace, pnPecMetricNames.getGetUnreadPecMessagesCount(), count);
+        log.info(emfJson);
+
+        return Mono.fromCompletionStage(() -> cloudWatchAsyncClient.putMetricData(
+                        PutMetricDataRequest.builder()
+                                .namespace(namespace)
+                                .metricData(MetricDatum.builder()
+                                        .unit(StandardUnit.COUNT)
+                                        .metricName(metricName)
+                                        .value(Double.valueOf(count))
+                                        .timestamp(Instant.now())
+                                        .build())
+                                .build()))
+                .doOnTerminate(() -> log.info("Successfully published PEC message count for namespace: {}", namespace))
+                .onErrorResume(throwable -> {
+                    log.error(EXCEPTION_IN_PROCESS, PUBLISH_PEC_MESSAGE_COUNT, throwable, throwable.getMessage());
+                    return Mono.empty();
+                }).then();
+    }
+
 }

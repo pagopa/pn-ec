@@ -425,6 +425,55 @@ class PnPecServiceTest {
             verify(namirialService, never()).getUnreadMessages(anyInt());
             verify(cloudWatchPecMetrics, never()).publishResponseTime(any(), any(), anyLong(), any());
         }
+
+        @Test
+        void getUnreadMessagesPECAndPublishMetricsOk() {
+            log.debug("getUnreadMessagesPECAndPublishMetricsOk");
+
+            PnGetMessagesResponse arubaMessages = getArubaMessage();
+            PnGetMessagesResponse namirialProviderMessages = getNamirialProviderMessages();
+
+            when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.just(arubaMessages));
+            when(namirialService.getUnreadMessages(anyInt())).thenReturn(Mono.just(namirialProviderMessages));
+
+            Mono<PnEcPecGetMessagesResponse> result = pnPecService.getUnreadMessages(6);
+
+            StepVerifier.create(result)
+                    .expectNextMatches(response ->
+                            response.getNumOfMessages() == arubaMessages.getNumOfMessages() + namirialProviderMessages.getNumOfMessages()
+                                    && response.getPnEcPecListOfMessages().getMessages().size() == arubaMessages.getPnListOfMessages().getMessages().size() + namirialProviderMessages.getPnListOfMessages().getMessages().size())
+                    .expectComplete()
+                    .verify();
+            log.info("Aruba message count: {}", arubaMessages.getNumOfMessages());
+            log.info("Namirial message count: {}", namirialProviderMessages.getNumOfMessages());
+
+            verify(arubaService, times(1)).getUnreadMessages(6);
+            verify(namirialService, times(1)).getUnreadMessages(6);
+
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), argThat(list -> list.size() == 1));
+            verify(cloudWatchPecMetrics, times(1)).publishResponseTime(eq(namirialProviderNamespace), eq(pnPecMetricNames.getGetUnreadMessagesResponseTime()), anyLong(), argThat(list -> list.size() == 1));
+
+            verify(cloudWatchPecMetrics, times(1)).publishMessageCountUnreadPec(eq(Long.valueOf(arubaMessages.getNumOfMessages())), eq(arubaProviderNamespace), eq(pnPecMetricNames.getGetUnreadPecMessagesCount()));
+            verify(cloudWatchPecMetrics, times(1)).publishMessageCountUnreadPec(eq(Long.valueOf(namirialProviderMessages.getNumOfMessages())), eq(namirialProviderNamespace), eq(pnPecMetricNames.getGetUnreadPecMessagesCount()));
+        }
+
+        @Test
+        void getUnreadMessagesAndPublishMetricsError() {
+            log.debug("getUnreadMessagesAndPublishMetricsError");
+            when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.error(permanentException));
+            when(namirialService.getUnreadMessages(anyInt())).thenReturn(Mono.error(permanentException));
+
+            Mono<PnEcPecGetMessagesResponse> combinedMessages = pnPecService.getUnreadMessages(6);
+
+            StepVerifier.create(combinedMessages)
+                    .expectError(PnSpapiPermanentErrorException.class)
+                    .verify();
+
+            verify(arubaService, times(1)).getUnreadMessages(6);
+            verify(namirialService, never()).getUnreadMessages(anyInt());
+            verify(cloudWatchPecMetrics, never()).publishMessageCountUnreadPec(any(), any(), any());
+        }
+
     }
 
     @Nested

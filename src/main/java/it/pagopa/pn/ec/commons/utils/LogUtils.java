@@ -237,6 +237,7 @@ public class LogUtils {
     //CLOUD WATCH
     public static final String PUBLISH_CUSTOM_PEC_METRICS = "CloudWatchPecMetrics.publishCustomPecMetrics()";
     public static final String PUBLISH_PEC_MESSAGE_COUNT = "CloudWatchPecMetrics.publishMessageCount()";
+    public static final String PUBLISH_UNREAD_PEC_MESSAGE_COUNT = "CloudWatchPecMetrics.publishMessageCountUnreadPec()";
     public static final String PUBLISH_RESPONSE_TIME = "CloudWatchPecMetrics.publishResponseTime()";
     public static final String GET_DIMENSION = "MetricsDimensionConfiguration.getDimension()";
 
@@ -247,6 +248,7 @@ public class LogUtils {
     public static final String PN_PEC = "pn-pec";
     public static final String PN_EC_PEC_SEND_MAIL = "PnEcPecService.sendMail()";
     public static final String PN_EC_PEC_GET_UNREAD_MESSAGES = "PnEcPecService.getUnreadMessages()";
+    public static final String PN_EC_PEC_GET_UNREAD_PEC_MESSAGES_COUNT = "PnEcPecService.getUnreadPECMessagesCount()";
     public static final String PN_EC_PEC_GET_MESSAGE_COUNT = "PnEcPecService.getMessagesCount()";
     public static final String PN_EC_PEC_MARK_MESSAGE_AS_READ = "PnEcPecService.markMessageAsRead()";
     public static final String PN_EC_PEC_DELETE_MESSAGE = "PnEcPecService.deleteMessage()";
