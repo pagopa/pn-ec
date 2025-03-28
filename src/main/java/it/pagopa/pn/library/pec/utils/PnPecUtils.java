@@ -51,7 +51,6 @@ public class PnPecUtils {
             ObjectNode metricDetails = objectMapper.createObjectNode();
             metricDetails.put("Name", metricName);
             metricDetails.put("Unit", "Count");
-            metricDetails.put("Value", count);
 
             metricsNode.set("Metrics", objectMapper.createArrayNode().add(metricDetails));
 
