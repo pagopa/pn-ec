@@ -5,6 +5,7 @@ import it.pagopa.pn.ec.cartaceo.configurationproperties.RasterProperties;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.constant.Status;
+import it.pagopa.pn.ec.commons.exception.cartaceo.ConsolidatoreException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
@@ -34,8 +35,7 @@ import java.util.List;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.consolidatore.utils.ContentTypes.APPLICATION_PDF;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.CODE_TO_STATUS_MAP;
-import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.OK_CODE;
+import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.*;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
@@ -112,6 +112,76 @@ class CartaceoServiceTest {
         //WHEN
         mockGestoreRepository();
         when(paperMessageCall.putRequest(any())).thenReturn(Mono.error(new RestCallException.ResourceAlreadyInProgressException()));
+
+        //THEN
+        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
+    }
+
+    /**
+     * Test per la gestione di un errore permanente da parte del consolidatore.
+     * Il messaggio associato alla richiesta viene cancellato dalla coda di lavorazione.
+     */
+    @Test
+    void lavorazioneRichiesta_PutRequest_BadRequest_Acknowledge() {
+
+        //WHEN
+        mockGestoreRepository();
+        when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(SYNTAX_ERROR_CODE)));
+
+        //THEN
+        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO), eq(SYNTAX_ERROR), any(PaperProgressStatusDto.class));
+    }
+
+    /**
+     * Test per la gestione di un errore permanente da parte del consolidatore.
+     * L'errore potrebbe essere risolvibile e quindi il messaggio associato alla richiesta viene mandato in DLQ.
+     */
+    @Test
+    void lavorazioneRichiesta_PutRequest_BadRequest_ToDlq() {
+
+        //WHEN
+        mockGestoreRepository();
+        when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(AUTHENTICATION_ERROR_CODE)));
+
+        //THEN
+        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
+        verify(cartaceoService, times(1)).sendNotificationOnDlqErrorQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO));
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO), eq(AUTHENTICATION_ERROR), any(PaperProgressStatusDto.class));
+    }
+
+    /**
+     * Test per la gestione di un errore permanente da parte del consolidatore.
+     * L'errore potrebbe essere risolvibile e quindi il messaggio associato alla richiesta viene mandato in DLQ.
+     */
+    @Test
+    void lavorazioneRichiesta_PutRequest_PermanentError() {
+
+        //WHEN
+        mockGestoreRepository();
+        when(paperMessageCall.putRequest(any())).thenReturn(Mono.error(new ConsolidatoreException.PermanentException("permanent error")));
+
+        //THEN
+        Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
+        verify(cartaceoService, times(1)).sendNotificationOnDlqErrorQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO));
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(CARTACEO_PRESA_IN_CARICO_INFO), eq(ERROR.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
+    }
+
+    /**
+     * Test per la gestione di un errore temporaneo da parte del consolidatore.
+     * Il messaggio viene mandato nella coda di retry.
+     */
+    @Test
+    void lavorazioneRichiesta_PutRequest_TemporaryError() {
+
+        //WHEN
+        mockGestoreRepository();
+        when(paperMessageCall.putRequest(any())).thenReturn(Mono.error(new ConsolidatoreException.TemporaryException("temporary error")));
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);

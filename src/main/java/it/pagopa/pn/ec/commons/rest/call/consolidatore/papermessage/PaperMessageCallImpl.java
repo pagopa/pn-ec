@@ -1,7 +1,10 @@
 package it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.PaperMessagesEndpointProperties;
+import it.pagopa.pn.ec.commons.exception.cartaceo.ConsolidatoreException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
+import it.pagopa.pn.ec.commons.utils.JsonUtils;
 import it.pagopa.pn.ec.consolidatore.utils.PaperResult;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperDeliveryProgressesResponse;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest;
@@ -9,6 +12,7 @@ import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicaRequest;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicasProgressesResponse;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import lombok.CustomLog;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -27,15 +31,17 @@ public class PaperMessageCallImpl implements PaperMessageCall {
 
     private final WebClient consolidatoreWebClient;
     private final PaperMessagesEndpointProperties paperMessagesEndpointProperties;
+    private final JsonUtils jsonUtils;
     private static final List<String> NON_RETRYABLE_ERRORS = Arrays.asList(
             PaperResult.SYNTAX_ERROR_CODE,
             PaperResult.SEMANTIC_ERROR_CODE,
             PaperResult.AUTHENTICATION_ERROR_CODE,
             PaperResult.DUPLICATED_REQUEST_CODE);
 
-    public PaperMessageCallImpl(WebClient consolidatoreWebClient, PaperMessagesEndpointProperties paperMessagesEndpointProperties) {
+    public PaperMessageCallImpl(WebClient consolidatoreWebClient, PaperMessagesEndpointProperties paperMessagesEndpointProperties, JsonUtils jsonUtils) {
         this.consolidatoreWebClient = consolidatoreWebClient;
         this.paperMessagesEndpointProperties = paperMessagesEndpointProperties;
+        this.jsonUtils = jsonUtils;
     }
 
     @Override
@@ -50,27 +56,29 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                     } else if (clientResponse.statusCode().is4xxClientError()) {
                         return handleClientError(clientResponse);
                     } else {
-                        return Mono.error(new RestCallException("HTTP generic error: " + clientResponse.statusCode().value()));
-                    }
-                }).onErrorResume(e -> {
-                    if (e instanceof RestCallException) {
-                        log.error(e.getMessage());
-                        return Mono.error(e);
-                    } else {
-                        log.error("Error in parsing response: {}", e.getMessage());
-                        return Mono.error(new RestCallException("Error in parsing response"));
+                        return handleServerError(clientResponse);
                     }
                 });
     }
 
     private Mono<OperationResultCodeResponse> handleClientError(ClientResponse clientResponse) {
-        return clientResponse.bodyToMono(OperationResultCodeResponse.class).flatMap(operationResultCodeResponse -> {
-            if (isNonRetryableError(operationResultCodeResponse.getResultCode())) {
-                return Mono.just(operationResultCodeResponse);
+        return clientResponse.bodyToMono(String.class).flatMap(response -> {
+            OperationResultCodeResponse operationResultCodeResponse = jsonUtils.convertJsonStringToObject(response, OperationResultCodeResponse.class);
+            String resultCode = operationResultCodeResponse.getResultCode();
+            // La response non è conforme al formato che ci aspettiamo.
+            if (StringUtils.isBlank(resultCode)) {
+                String errStr = String.format("Missing result code or non conforming response: %s", response);
+                log.warn(errStr);
+                return clientResponse.createException().flatMap(e -> Mono.error(new ConsolidatoreException.PermanentException(errStr)));
             }
-
-            return Mono.error(new RestCallException("Errore HTTP: " + clientResponse.statusCode().value()));
+            return Mono.just(operationResultCodeResponse);
         });
+    }
+
+    private Mono<OperationResultCodeResponse> handleServerError(ClientResponse clientResponse) {
+        return clientResponse
+                .createException()
+                .flatMap(e -> Mono.error(new ConsolidatoreException.TemporaryException(e.getMessage())));
     }
 
     private boolean isNonRetryableError(String resultCode) {
