@@ -8,12 +8,6 @@ AWS_REGION="eu-south-1"
 LOCALSTACK_ENDPOINT="http://localhost:4566"
 NOTIFICATIONS_BUS_NAME="notifications-bus-name-test"
 
-if [ "$RUNNING_IN_DOCKER" = "true" ]; then
-    CONFIG_FILES_DIR="/config"
-else
-    CONFIG_FILES_DIR="../src/test/resources/testcontainers/config"
-fi
-
 ## DEFINITIONS ##
 SQS_QUEUES=(
   "pn-ec-tracker-sms-stato-queue.fifo"
@@ -70,9 +64,72 @@ DYNAMODB_TABLES=(
   "pn-EcScartiConsolidatore:requestId"
 )
 
-PN_EC_ESITI_CARTACEO=$(cat ${CONFIG_FILES_DIR}/pn-ec-esiti-cartaceo.json)
-PN_EC_PEC_METRICS_SCHEMA=$(cat ${CONFIG_FILES_DIR}/pn-ec-pec-metrics-schema.json)
-PN_EC_PEC_SECRET=$(cat ${CONFIG_FILES_DIR}/pn-ec-pec-secret.json)
+PN_EC_ESITI_CARTACEO='''
+{
+  "cartaceo": {
+    "RECRN004A": {
+      "deliveryFailureCause": [
+        "M05",
+        "M06",
+        "M07"
+      ]
+    },
+    "RECRN004B": {
+      "deliveryFailureCause": [
+        "M08",
+        "M09",
+        "F01",
+        "F02",
+        "TEST"
+      ]
+    },
+    "RECRN006": {
+      "deliveryFailureCause": [
+        "M03",
+        "M04"
+      ]
+    }
+  }
+}
+'''
+PN_EC_PEC_METRICS_SCHEMA='''
+{
+  "PayloadSizeRange": {
+    "0k-10k": [
+      0,
+      10
+    ],
+    "10k-100k": [
+      10,
+      100
+    ],
+    "100k+": [
+      100
+    ]
+  },
+  "MessageCountRange": {
+    "0-10": [
+      0,
+      10
+    ],
+    "10-100": [
+      10,
+      100
+    ],
+    "100+": [
+      100
+    ]
+  }
+}
+'''
+PN_EC_PEC_SECRET='''
+{
+  "aruba.pec.username": "aruba_username@dgsspa.com",
+  "aruba.pec.password": "aruba_password",
+  "aruba.pec.sender": "aruba_sender@dgsspa.com",
+  "namirial.pec.sender": "namirial_sender@dgsspa.com"
+}
+'''
 
 ## LOGGING FUNCTIONS ##
 log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"; }

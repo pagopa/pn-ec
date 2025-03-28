@@ -3,11 +3,6 @@
 curr_dir=$(pwd)
 echo "Starting pn-ec..."
 
-if ! ../src/test/resources/testcontainers/init.sh; then
-  echo "### Failed to run init.sh ###"
-  exit 1
-fi
-
 if ! ./dynamoDBLoad.sh -t pn-EcAnagrafica -i AnagraficaClient.json -e http://localhost:4566; then
   echo "### Failed to populate pn-EcAnagrafica table ###"
   exit 1
