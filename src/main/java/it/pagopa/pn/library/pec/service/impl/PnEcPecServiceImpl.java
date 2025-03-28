@@ -35,7 +35,6 @@ import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -151,22 +150,24 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     private Mono<PnEcPecGetMessagesResponse> processAndLogUnreadPecMessages(List<PnEcPecMessage> messages) {
         log.debug(INVOKING_OPERATION_LABEL, UNREAD_PEC_MESSAGE);
         if (messages.isEmpty()) {
+            getProvidersRead().stream().findFirst()
+                    .ifPresentOrElse(
+                            provider -> log.info(PnPecUtils.createEmfJson(getMetricNamespace(provider),
+                                    pnPecMetricNames.getGetUnreadPecMessagesCount(), 0L)),
+                            () -> log.warn("No providers available to log metrics.")
+                    );
             log.info("No unread PEC messages found");
             return Mono.just(new PnEcPecGetMessagesResponse(null, 0));
         }
-
-        Map<String, List<PnEcPecMessage>> messagesByProvider = messages.stream()
-                .collect(Collectors.groupingBy(PnEcPecMessage::getProviderName));
-
-        messagesByProvider.forEach((providerName, providerMessages) -> {
-            PnPecService provider = getProviderByName(providerName);
-            long messageCount = providerMessages.size();
-            String jsonLog = PnPecUtils.createEmfJson(getMetricNamespace(provider), pnPecMetricNames.getGetUnreadPecMessagesCount(), messageCount);
-            log.info(jsonLog);
-        });
+        messages.stream()
+                .collect(Collectors.groupingBy(PnEcPecMessage::getProviderName, Collectors.counting()))
+                .forEach((providerName, count) -> log.info(PnPecUtils.createEmfJson(
+                        getMetricNamespace(getProviderByName(providerName)),
+                        pnPecMetricNames.getGetUnreadPecMessagesCount(), count)));
 
         return Mono.just(new PnEcPecGetMessagesResponse(new PnEcPecListOfMessages(messages), messages.size()));
     }
+
 
 
     /**

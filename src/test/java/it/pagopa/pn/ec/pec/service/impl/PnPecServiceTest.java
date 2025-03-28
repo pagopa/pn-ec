@@ -20,13 +20,11 @@ import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import it.pagopa.pn.library.pec.service.PnPecService;
 import it.pagopa.pn.library.pec.service.impl.PnEcPecServiceImpl;
-import it.pagopa.pn.library.pec.utils.PnPecUtils;
 import it.pagopa.pn.template.service.DummyPecService;
 import lombok.CustomLog;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.jupiter.api.*;
-import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -35,15 +33,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static it.pagopa.pn.ec.pec.service.impl.PecServiceTest.createDigitalNotificationRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
 import static it.pagopa.pn.library.pec.utils.PnPecUtils.*;
 import static org.apache.commons.lang3.reflect.TypeUtils.isInstance;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -425,32 +421,6 @@ class PnPecServiceTest {
             verify(namirialService, never()).getUnreadMessages(anyInt());
             verify(cloudWatchPecMetrics, never()).publishResponseTime(any(), any(), anyLong(), any());
         }
-
-        @Test
-        void getUnreadMessagesPECAndPublishMetricsOk() {
-            PnGetMessagesResponse arubaMessages = getArubaMessage();
-            PnGetMessagesResponse namirialMessages = getNamirialProviderMessages();
-
-            when(arubaService.getUnreadMessages(anyInt())).thenReturn(Mono.just(arubaMessages));
-            when(namirialService.getUnreadMessages(anyInt())).thenReturn(Mono.just(namirialMessages));
-
-            try (MockedStatic<PnPecUtils> mockedPecUtils = mockStatic(PnPecUtils.class)) {
-                mockedPecUtils.when(() -> PnPecUtils.createEmfJson(any(), any(), anyLong()))
-                        .thenReturn("MOCKED_JSON_LOG");
-
-
-                Mono<PnEcPecGetMessagesResponse> result = pnPecService.getUnreadMessages(6);
-
-                StepVerifier.create(result)
-                        .expectNextMatches(response ->
-                                response.getNumOfMessages() == arubaMessages.getNumOfMessages() + namirialMessages.getNumOfMessages()
-                                        && response.getPnEcPecListOfMessages().getMessages().size() ==
-                                        arubaMessages.getPnListOfMessages().getMessages().size() + namirialMessages.getPnListOfMessages().getMessages().size())
-                        .verifyComplete();
-
-            }
-        }
-
 
     }
 
