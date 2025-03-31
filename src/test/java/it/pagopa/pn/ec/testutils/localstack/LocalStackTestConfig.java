@@ -10,7 +10,6 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
-import org.testcontainers.utility.MountableFile;
 
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.*;
 
@@ -22,7 +21,6 @@ public class LocalStackTestConfig {
     static DockerImageName dockerImageName = DockerImageName.parse("localstack/localstack:1.0.4");
     static LocalStackContainer localStackContainer =
             new LocalStackContainer(dockerImageName).withServices(SQS, DYNAMODB, SNS, SES, SECRETSMANAGER, CLOUDWATCH, SSM, S3)
-                    .withCopyFileToContainer(MountableFile.forClasspathResource("testcontainers/config"), "/config")
                     .withClasspathResourceMapping("testcontainers/init.sh", "/docker-entrypoint-initaws.d/make-storages.sh", BindMode.READ_ONLY)
                     .withClasspathResourceMapping("testcontainers/credentials", "/root/.aws/credentials", BindMode.READ_ONLY)
                     .withEnv("RUNNING_IN_DOCKER", "true")
