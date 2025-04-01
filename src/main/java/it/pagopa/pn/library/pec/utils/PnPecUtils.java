@@ -1,6 +1,7 @@
 package it.pagopa.pn.library.pec.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.time.Instant;
@@ -52,11 +53,18 @@ public class PnPecUtils {
             metricDetails.put("Name", metricName);
             metricDetails.put("Unit", "Count");
 
+            ArrayNode dimensionsArray = objectMapper.createArrayNode();
+            dimensionsArray.add("Service");
+            dimensionsArray.add("MetricType");
+
             metricsNode.set("Metrics", objectMapper.createArrayNode().add(metricDetails));
+            metricsNode.set("Dimensions", objectMapper.createArrayNode().add(dimensionsArray));
 
             awsNode.set("CloudWatchMetrics", objectMapper.createArrayNode().add(metricsNode));
             emfLog.set("_aws", awsNode);
 
+            emfLog.put("Service", "PEC");
+            emfLog.put("MetricType", "MessageCount");
             emfLog.put(metricName, count);
 
             return objectMapper.writeValueAsString(emfLog);

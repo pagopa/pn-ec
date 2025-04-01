@@ -156,7 +156,6 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                                     pnPecMetricNames.getGetUnreadPecMessagesCount(), 0L)),
                             () -> log.warn("No providers available to log metrics.")
                     );
-            log.info("No unread PEC messages found");
             return Mono.just(new PnEcPecGetMessagesResponse(null, 0));
         }
         messages.stream()
