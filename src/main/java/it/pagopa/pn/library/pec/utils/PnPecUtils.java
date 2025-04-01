@@ -57,8 +57,6 @@ public class PnPecUtils {
             awsNode.set("CloudWatchMetrics", objectMapper.createArrayNode().add(metricsNode));
             emfLog.set("_aws", awsNode);
 
-            emfLog.put("Service", "PEC");
-            emfLog.put("MetricType", "MessageCount");
             emfLog.put(metricName, count);
 
             return objectMapper.writeValueAsString(emfLog);
