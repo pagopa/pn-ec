@@ -1,5 +1,6 @@
 package it.pagopa.pn.library.pec.service.impl;
 
+import com.dummy.pec.library.service.DummyPecService;
 import com.namirial.pec.library.service.PnPecServiceImpl;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
@@ -18,7 +19,6 @@ import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import it.pagopa.pn.library.pec.service.PnPecService;
-import it.pagopa.pn.template.service.DummyPecService;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

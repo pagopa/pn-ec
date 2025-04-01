@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
+import com.dummy.pec.library.service.DummyPecService;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
@@ -12,7 +13,6 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
-import it.pagopa.pn.template.service.DummyPecService;
 import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

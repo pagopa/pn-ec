@@ -1,12 +1,12 @@
 package it.pagopa.pn.ec.pec.service.impl;
 
 
+import com.dummy.pec.library.service.DummyPecService;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
-import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.library.exceptions.PnSpapiPermanentErrorException;
@@ -21,7 +21,6 @@ import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import it.pagopa.pn.library.pec.service.PnPecService;
 import it.pagopa.pn.library.pec.service.impl.PnEcPecServiceImpl;
-import it.pagopa.pn.template.service.DummyPecService;
 import lombok.CustomLog;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
