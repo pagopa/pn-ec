@@ -1427,7 +1427,7 @@ Resources:
   MultipleReceiptAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: !Sub "${ProjectName}-namirial-multipleReceipt-alarm"
+      AlarmName: !Sub "${ProjectName}-external-channel-PecNamirial-multipleReceipt-alarm"
       AlarmDescription: "CloudWatch alarm when there are duplicates messages in PEC mail box."
       AlarmActions:
         - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
@@ -1445,7 +1445,7 @@ Resources:
   MultipleReceiptOnCallAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: !Sub "oncall-${ProjectName}-namirial-multipleReceipt-alarm"
+      AlarmName: !Sub "oncall-${ProjectName}-external-channel-PecNamirial-multipleReceipt-alarm"
       AlarmDescription: "Oncall CloudWatch alarm when there are duplicates messages in PEC mail box."
       AlarmActions:
         - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
