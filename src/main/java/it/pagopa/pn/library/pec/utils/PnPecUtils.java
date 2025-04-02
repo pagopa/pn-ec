@@ -1,5 +1,12 @@
 package it.pagopa.pn.library.pec.utils;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import java.time.Instant;
+
+
 public class PnPecUtils {
 
     private PnPecUtils() {
@@ -20,5 +27,50 @@ public class PnPecUtils {
     public static final String NAMIRIAL_PATTERN_STRING = "@sicurezzapostale.it";
     public static final String DUMMY_PATTERN_STRING = "@pec.dummy.it";
     public static final String DUMMY_PROVIDER_NAMESPACE = "dummy";
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    /**
+     * Crea una stringa JSON con il formato Embedded Metric Format (EMF) di AWS CloudWatch per i log.
+     * Utilizzato per i messaggi non letti della PEC.
+     *
+     * @param namespace  il namespace della metrica
+     * @param metricName il nome della metrica
+     * @param count      il valore della metrica (numero di messaggi non letti)
+     * @return           una stringa JSON formattata per EMF
+     *
+     */
+    public static String createEmfJson(String namespace, String metricName, Long count) {
+        try {
+            ObjectNode emfLog = objectMapper.createObjectNode();
+
+            ObjectNode awsNode = objectMapper.createObjectNode();
+            awsNode.put("Timestamp", Instant.now().toEpochMilli());
+
+            ObjectNode metricsNode = objectMapper.createObjectNode();
+            metricsNode.put("Namespace", namespace);
+
+            ObjectNode metricDetails = objectMapper.createObjectNode();
+            metricDetails.put("Name", metricName);
+            metricDetails.put("Unit", "Count");
+
+            ArrayNode dimensionsArray = objectMapper.createArrayNode();
+            dimensionsArray.add("Service");
+            dimensionsArray.add("MetricType");
+
+            metricsNode.set("Metrics", objectMapper.createArrayNode().add(metricDetails));
+            metricsNode.set("Dimensions", objectMapper.createArrayNode().add(dimensionsArray));
+
+            awsNode.set("CloudWatchMetrics", objectMapper.createArrayNode().add(metricsNode));
+            emfLog.set("_aws", awsNode);
+
+            emfLog.put("Service", "PEC");
+            emfLog.put("MetricType", "MessageCount");
+            emfLog.put(metricName, count);
+
+            return objectMapper.writeValueAsString(emfLog);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Errore nella creazione del JSON EMF", e);
+        }
+    }
 
 }
