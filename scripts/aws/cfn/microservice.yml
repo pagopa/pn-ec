@@ -1440,10 +1440,6 @@ Resources:
       EvaluationPeriods: 1
       Threshold: 1
       ComparisonOperator: "GreaterThanOrEqualToThreshold"
-      AlarmActions:
-        - !Ref SimpleSNSTopic
-      OKActions:
-        - !Ref SimpleSNSTopic
       TreatMissingData: notBreaching
 
   MultipleReceiptOnCallAlarm:
@@ -1462,10 +1458,6 @@ Resources:
       EvaluationPeriods: 3
       Threshold: 1
       ComparisonOperator: "GreaterThanOrEqualToThreshold"
-      AlarmActions:
-        - !Ref SimpleSNSTopic
-      OKActions:
-        - !Ref SimpleSNSTopic
       TreatMissingData: notBreaching
 
   ExternalChannelMicroserviceAlarm:
