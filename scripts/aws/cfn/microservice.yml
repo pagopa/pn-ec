@@ -1423,6 +1423,50 @@ Resources:
         - Id: e1
           Expression: IF((m5>=30 AND m4/m5>=0.1) OR (m3>=30 AND (m1/m3>=0.9 OR m2/m3>=0.1)), 1, 0)
           Label: !Sub "${ProjectName}-external-channel-ALBAlarm-oncall-metric"
+        
+  MultipleReceiptAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: !Sub "${ProjectName}-namirial-multipleReceipt-alarm"
+      AlarmDescription: "CloudWatch alarm when there are duplicates messages in PEC mail box."
+      AlarmActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      OKActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      Namespace: "PEC/Namirial"
+      MetricName: "multipleReceipt"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      AlarmActions:
+        - !Ref SimpleSNSTopic
+      OKActions:
+        - !Ref SimpleSNSTopic
+      TreatMissingData: notBreaching
+
+  MultipleReceiptOnCallAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: !Sub "oncall-${ProjectName}-namirial-multipleReceipt-alarm"
+      AlarmDescription: "Oncall CloudWatch alarm when there are duplicates messages in PEC mail box."
+      AlarmActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      OKActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      Namespace: "PEC/Namirial"
+      MetricName: "multipleReceipt"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      AlarmActions:
+        - !Ref SimpleSNSTopic
+      OKActions:
+        - !Ref SimpleSNSTopic
+      TreatMissingData: notBreaching
 
   ExternalChannelMicroserviceAlarm:
     Type: AWS::CloudFormation::Stack
