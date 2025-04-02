@@ -1,15 +1,20 @@
 package it.pagopa.pn.library.pec.configuration;
 
 import com.namirial.pec.library.service.PnPecServiceImpl;
+import it.pagopa.pn.ec.dummy.pec.conf.DummyPecSharedAutoConfiguration;
+import it.pagopa.pn.ec.dummy.pec.service.DummyPecService;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
+
 import java.util.*;
 
 @Configuration
 @CustomLog
+@Import(DummyPecSharedAutoConfiguration.class)
 public class PnPecProvidersConf {
 
     private final Set<String> namirialPropertiesKeySet = Set.of("namirial.server.imap.address",
@@ -34,6 +39,11 @@ public class PnPecProvidersConf {
             System.setProperty(key, property);
         });
         return new PnPecServiceImpl();
+    }
+
+    @Bean
+    public DummyPecService dummyPecService() {
+        return new DummyPecService();
     }
 
 }
