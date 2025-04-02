@@ -1,8 +1,8 @@
 package it.pagopa.pn.library.pec.service.impl;
 
-import com.dummy.pec.library.service.DummyPecService;
 import com.namirial.pec.library.service.PnPecServiceImpl;
 import it.pagopa.pn.commons.utils.MDCUtils;
+import it.pagopa.pn.ec.dummy.pec.service.DummyPecService;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.library.exceptions.PnSpapiTemporaryErrorException;

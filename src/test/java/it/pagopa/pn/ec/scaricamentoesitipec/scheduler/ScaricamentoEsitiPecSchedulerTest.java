@@ -1,12 +1,12 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
-import com.dummy.pec.library.service.DummyPecService;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
+import it.pagopa.pn.ec.dummy.pec.service.DummyPecService;
 import it.pagopa.pn.library.pec.model.pojo.PnEcPecMessage;
 import it.pagopa.pn.library.pec.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;

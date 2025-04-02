@@ -1,8 +1,8 @@
 package it.pagopa.pn.library.pec.configuration;
 
-import com.dummy.pec.library.conf.DummyPecSharedAutoConfiguration;
-import com.dummy.pec.library.service.DummyPecService;
 import com.namirial.pec.library.service.PnPecServiceImpl;
+import it.pagopa.pn.ec.dummy.pec.conf.DummyPecSharedAutoConfiguration;
+import it.pagopa.pn.ec.dummy.pec.service.DummyPecService;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
