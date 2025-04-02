@@ -21,6 +21,8 @@ import it.pagopa.pn.library.pec.service.PnEcPecService;
 import it.pagopa.pn.library.pec.service.PnPecService;
 import it.pagopa.pn.library.pec.utils.PnPecUtils;
 import lombok.CustomLog;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +55,8 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     private final DummyPecService dummyPecService;
     private final PnPecMetricNames pnPecMetricNames;
     private final MetricsDimensionConfiguration metricsDimensionConfiguration;
+    private static final Logger jsonLogger = LoggerFactory.getLogger("it.pagopa.pn.JsonLogger");
+
     @Value("${library.pec.cloudwatch.namespace.aruba}")
     private String arubaProviderNamespace;
     @Value("${library.pec.cloudwatch.namespace.namirial}")
@@ -152,7 +156,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         if (messages.isEmpty()) {
             getProvidersRead().stream().findFirst()
                     .ifPresentOrElse(
-                            provider -> log.info(PnPecUtils.createEmfJson(getMetricNamespace(provider),
+                            provider -> jsonLogger.info(PnPecUtils.createEmfJson(getMetricNamespace(provider),
                                     pnPecMetricNames.getGetUnreadPecMessagesCount(), 0L)),
                             () -> log.warn("No providers available to log metrics.")
                     );
@@ -160,7 +164,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         }
         messages.stream()
                 .collect(Collectors.groupingBy(PnEcPecMessage::getProviderName, Collectors.counting()))
-                .forEach((providerName, count) -> log.info(PnPecUtils.createEmfJson(
+                .forEach((providerName, count) -> jsonLogger.info(PnPecUtils.createEmfJson(
                         getMetricNamespace(getProviderByName(providerName)),
                         pnPecMetricNames.getGetUnreadPecMessagesCount(), count)));
 
