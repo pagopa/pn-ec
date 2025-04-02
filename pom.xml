@@ -81,7 +81,7 @@
         <dependency>
             <groupId>com.namirial.pec.library</groupId>
             <artifactId>pn-ec-namirial-pec</artifactId>
-            <version>1.3.0-RC.1</version>
+            <version>1.3.0</version>
         </dependency>
 
         <dependency>
