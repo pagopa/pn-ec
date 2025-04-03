@@ -1455,7 +1455,7 @@ Resources:
       MetricName: "multipleReceipt"
       Statistic: "Sum"
       Period: 300
-      EvaluationPeriods: 3
+      EvaluationPeriods: 12
       Threshold: 1
       ComparisonOperator: "GreaterThanOrEqualToThreshold"
       TreatMissingData: notBreaching
