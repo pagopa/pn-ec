@@ -51,7 +51,7 @@
     "PnEcPecMetricsSchema": "Pn-EC-Pec-MetricsSchema",
     "SQSCartaceoMaxBatchSubscribedMsgs": "10",
     "MountEfs": "false",
-    "PnCronAnalyzer": "* */1 * * * *",
+    "PnCronAnalyzer": "-",
     "WireTapLogActivation": "false"
   }
 }
