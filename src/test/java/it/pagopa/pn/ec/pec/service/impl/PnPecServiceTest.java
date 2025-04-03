@@ -33,10 +33,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static it.pagopa.pn.ec.pec.service.impl.PecServiceTest.createDigitalNotificationRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
@@ -424,6 +421,7 @@ class PnPecServiceTest {
             verify(namirialService, never()).getUnreadMessages(anyInt());
             verify(cloudWatchPecMetrics, never()).publishResponseTime(any(), any(), anyLong(), any());
         }
+
     }
 
     @Nested

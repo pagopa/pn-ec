@@ -19,7 +19,10 @@ import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import it.pagopa.pn.library.pec.service.PnPecService;
+import it.pagopa.pn.library.pec.utils.PnPecUtils;
 import lombok.CustomLog;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,6 +38,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.library.pec.utils.PnPecUtils.*;
@@ -51,6 +55,8 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     private final DummyPecService dummyPecService;
     private final PnPecMetricNames pnPecMetricNames;
     private final MetricsDimensionConfiguration metricsDimensionConfiguration;
+    private static final Logger jsonLogger = LoggerFactory.getLogger("it.pagopa.pn.JsonLogger");
+
     @Value("${library.pec.cloudwatch.namespace.aruba}")
     private String arubaProviderNamespace;
     @Value("${library.pec.cloudwatch.namespace.namirial}")
@@ -140,10 +146,32 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         return Flux.fromIterable(getProvidersRead())
                 .transform(getUnreadMessagesAndHandleMetrics(limit))
                 .collectList()
-                .flatMap(messages -> Mono.just(new PnEcPecGetMessagesResponse(messages.isEmpty() ? null : new PnEcPecListOfMessages(messages), messages.size())))
+                .flatMap(this::processAndLogUnreadPecMessages)
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES))
                 .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES, false, throwable.getMessage()));
     }
+
+    private Mono<PnEcPecGetMessagesResponse> processAndLogUnreadPecMessages(List<PnEcPecMessage> messages) {
+        log.debug(INVOKING_OPERATION_LABEL, UNREAD_PEC_MESSAGE);
+        if (messages.isEmpty()) {
+            getProvidersRead().stream().findFirst()
+                    .ifPresentOrElse(
+                            provider -> jsonLogger.info(PnPecUtils.createEmfJson(getMetricNamespace(provider),
+                                    pnPecMetricNames.getGetUnreadPecMessagesCount(), 0L)),
+                            () -> log.warn("No providers available to log metrics.")
+                    );
+            return Mono.just(new PnEcPecGetMessagesResponse(null, 0));
+        }
+        messages.stream()
+                .collect(Collectors.groupingBy(PnEcPecMessage::getProviderName, Collectors.counting()))
+                .forEach((providerName, count) -> jsonLogger.info(PnPecUtils.createEmfJson(
+                        getMetricNamespace(getProviderByName(providerName)),
+                        pnPecMetricNames.getGetUnreadPecMessagesCount(), count)));
+
+        return Mono.just(new PnEcPecGetMessagesResponse(new PnEcPecListOfMessages(messages), messages.size()));
+    }
+
+
 
     /**
      * A function to execute the getMessageCount operation and handle related metrics.
