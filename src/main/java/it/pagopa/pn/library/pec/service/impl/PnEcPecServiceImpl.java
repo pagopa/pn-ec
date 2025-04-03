@@ -2,6 +2,7 @@ package it.pagopa.pn.library.pec.service.impl;
 
 import com.namirial.pec.library.service.PnPecServiceImpl;
 import it.pagopa.pn.commons.utils.MDCUtils;
+import it.pagopa.pn.ec.dummy.pec.service.DummyPecService;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.library.exceptions.PnSpapiTemporaryErrorException;
@@ -18,7 +19,10 @@ import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import it.pagopa.pn.library.pec.service.PnPecService;
+import it.pagopa.pn.library.pec.utils.PnPecUtils;
 import lombok.CustomLog;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,6 +38,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.library.pec.utils.PnPecUtils.*;
@@ -47,8 +52,11 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     private final PnPecConfigurationProperties props;
     private final PnPecRetryStrategyProperties retryStrategyProperties;
     private final CloudWatchPecMetrics cloudWatchPecMetrics;
+    private final DummyPecService dummyPecService;
     private final PnPecMetricNames pnPecMetricNames;
     private final MetricsDimensionConfiguration metricsDimensionConfiguration;
+    private static final Logger jsonLogger = LoggerFactory.getLogger("it.pagopa.pn.JsonLogger");
+
     @Value("${library.pec.cloudwatch.namespace.aruba}")
     private String arubaProviderNamespace;
     @Value("${library.pec.cloudwatch.namespace.namirial}")
@@ -56,12 +64,14 @@ public class PnEcPecServiceImpl implements PnEcPecService {
 
     @Autowired
     public PnEcPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService, PnPecServiceImpl namirialService, PnPecConfigurationProperties props,
-                              PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics, PnPecMetricNames pnPecMetricNames, MetricsDimensionConfiguration metricsDimensionConfiguration) {
+                              PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics, PnPecMetricNames pnPecMetricNames,
+                              MetricsDimensionConfiguration metricsDimensionConfiguration, DummyPecService dummyPecService) {
         this.arubaService = arubaService;
         this.namirialService = namirialService;
         this.retryStrategyProperties = retryStrategyProperties;
         this.props = props;
         this.cloudWatchPecMetrics = cloudWatchPecMetrics;
+        this.dummyPecService = dummyPecService;
         this.pnPecMetricNames = pnPecMetricNames;
         this.metricsDimensionConfiguration = metricsDimensionConfiguration;
     }
@@ -136,10 +146,32 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         return Flux.fromIterable(getProvidersRead())
                 .transform(getUnreadMessagesAndHandleMetrics(limit))
                 .collectList()
-                .flatMap(messages -> Mono.just(new PnEcPecGetMessagesResponse(messages.isEmpty() ? null : new PnEcPecListOfMessages(messages), messages.size())))
+                .flatMap(this::processAndLogUnreadPecMessages)
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES))
                 .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES, false, throwable.getMessage()));
     }
+
+    private Mono<PnEcPecGetMessagesResponse> processAndLogUnreadPecMessages(List<PnEcPecMessage> messages) {
+        log.debug(INVOKING_OPERATION_LABEL, UNREAD_PEC_MESSAGE);
+        if (messages.isEmpty()) {
+            getProvidersRead().stream().findFirst()
+                    .ifPresentOrElse(
+                            provider -> jsonLogger.info(PnPecUtils.createEmfJson(getMetricNamespace(provider),
+                                    pnPecMetricNames.getGetUnreadPecMessagesCount(), 0L)),
+                            () -> log.warn("No providers available to log metrics.")
+                    );
+            return Mono.just(new PnEcPecGetMessagesResponse(null, 0));
+        }
+        messages.stream()
+                .collect(Collectors.groupingBy(PnEcPecMessage::getProviderName, Collectors.counting()))
+                .forEach((providerName, count) -> jsonLogger.info(PnPecUtils.createEmfJson(
+                        getMetricNamespace(getProviderByName(providerName)),
+                        pnPecMetricNames.getGetUnreadPecMessagesCount(), count)));
+
+        return Mono.just(new PnEcPecGetMessagesResponse(new PnEcPecListOfMessages(messages), messages.size()));
+    }
+
+
 
     /**
      * A function to execute the getMessageCount operation and handle related metrics.
@@ -193,6 +225,10 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 log.debug(NAMIRIAL_PROVIDER_SELECTED);
                 yield namirialService;
             }
+            case DUMMY_PROVIDER -> {
+                log.debug(DUMMY_PROVIDER_SELECTED);
+                yield dummyPecService;
+            }
             default -> {
                 log.debug(ERROR_PARSING_PROPERTY_VALUES);
                 throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
@@ -203,6 +239,9 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     private List<PnPecService> getProvidersRead() {
         List<String> providers = props.getPnPecProviderSwitchRead();
         List<PnPecService> services = new ArrayList<>();
+        if (providers.contains(DUMMY_PROVIDER)) {
+            return new ArrayList<>(List.of(dummyPecService));
+        }
         for (String provider : providers) {
             if (provider.equals(ARUBA_PROVIDER)) {
                 log.debug(ARUBA_PROVIDER_SELECTED);
@@ -222,9 +261,15 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         if (isAruba(messageID)) {
             log.debug(ARUBA_PROVIDER_SELECTED);
             return arubaService;
-        } else {
+        } else if (isNamirial(messageID)) {
             log.debug(NAMIRIAL_PROVIDER_SELECTED);
             return namirialService;
+        } else if (isDummy(messageID)) {
+            log.debug(DUMMY_PROVIDER_SELECTED);
+            return dummyPecService;
+        } else {
+            log.debug(ERROR_PARSING_PROPERTY_VALUES);
+            throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
         }
     }
 
@@ -235,6 +280,9 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         } else if (providerName.equals(NAMIRIAL_PROVIDER)) {
             log.debug(NAMIRIAL_PROVIDER_SELECTED);
             return namirialService;
+        } else if (providerName.equals(DUMMY_PROVIDER)) {
+            log.debug(DUMMY_PROVIDER_SELECTED);
+            return dummyPecService;
         } else {
             log.debug(ERROR_PARSING_PROPERTY_VALUES);
             throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
@@ -246,6 +294,8 @@ public class PnEcPecServiceImpl implements PnEcPecService {
             return ARUBA_PROVIDER;
         } else if (service instanceof com.namirial.pec.library.service.PnPecServiceImpl) {
             return NAMIRIAL_PROVIDER;
+        } else if (service instanceof DummyPecService) {
+            return DUMMY_PROVIDER;
         } else {
             log.debug(ERROR_PARSING_PROPERTY_VALUES);
             throw new IllegalArgumentException(ERROR_PARSING_PROPERTY_VALUES);
@@ -257,6 +307,8 @@ public class PnEcPecServiceImpl implements PnEcPecService {
             return arubaProviderNamespace;
         } else if (service instanceof com.namirial.pec.library.service.PnPecServiceImpl) {
             return namirialProviderNamespace;
+        } else if (service instanceof DummyPecService) {
+            return DUMMY_PROVIDER_NAMESPACE;
         } else {
             log.debug(ERROR_RETRIEVING_METRIC_NAMESPACE);
             throw new IllegalArgumentException(ERROR_RETRIEVING_METRIC_NAMESPACE);
@@ -265,6 +317,14 @@ public class PnEcPecServiceImpl implements PnEcPecService {
 
         public static boolean isAruba(String messageID) {
             return messageID.trim().toLowerCase().endsWith(ARUBA_PATTERN_STRING);
+        }
+
+        public static boolean isDummy(String messageID) {
+            return messageID.trim().toLowerCase().endsWith(DUMMY_PATTERN_STRING);
+        }
+
+        public static boolean isNamirial(String messageID) {
+            return messageID.trim().toLowerCase().endsWith(NAMIRIAL_PATTERN_STRING);
         }
 
 

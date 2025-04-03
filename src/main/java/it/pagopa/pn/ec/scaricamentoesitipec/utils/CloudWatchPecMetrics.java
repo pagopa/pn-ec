@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.utils;
 
+import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 import it.pagopa.pn.ec.commons.configuration.aws.cloudwatch.CloudWatchMetricPublisherConfiguration;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchTransitionElapsedTimeMetricsInfo;
 import it.pagopa.pn.library.pec.configuration.MetricsDimensionConfiguration;
@@ -9,7 +10,6 @@ import lombok.CustomLog;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.metrics.*;
-import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 import software.amazon.awssdk.services.cloudwatch.model.*;
 
 import java.time.Duration;
@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
+import static it.pagopa.pn.library.pec.utils.PnPecUtils.DUMMY_PROVIDER_NAMESPACE;
 
 /**
  * A service class to publish CloudWatch metrics. It can directly publish metrics to CloudWatch or make use of the CloudWatchMetricPublisherConfiguration class.
@@ -45,6 +46,14 @@ public class CloudWatchPecMetrics {
     private static final String TRANSACTION_SENT_AND_ACCEPTED = "TimeElapsedBetweenSentAndAccepted";
     private static final String TRANSACTION_ACCEPTED_AND_DELIVERED = "TimeElapsedBetweenAcceptedAndDelivered";
     private static final String TRANSACTION_ACCEPTED_AND_NOT_DELIVERED = "TimeElapsedBetweenAcceptedAndNotDelivered";
+
+
+
+
+
+
+
+
 
     /**
      * Instantiates a new Cloud watch pec metrics.
@@ -170,9 +179,12 @@ public class CloudWatchPecMetrics {
      */
     public Mono<Void> publishResponseTime(String namespace, String metricName, long elapsedTime, List<Dimension> dimensions) {
         return Mono.fromRunnable(() -> {
+                    // La libreria dummy non deve pubblicare metriche.
+                    if (namespace.equals(DUMMY_PROVIDER_NAMESPACE)) {
+                        return;
+                    }
                     log.debug(CLIENT_METHOD_INVOCATION_WITH_ARGS, PUBLISH_RESPONSE_TIME, Stream.of(namespace, metricName, elapsedTime).toList());
                     MetricCollector metricCollector = MetricCollector.create(metricName);
-
                     //Report metric.
                     SdkMetric<Long> responseTimeMetric = (SdkMetric<Long>) cloudWatchMetricPublisherConfiguration.getSdkMetricByMetricName(metricName);
                     metricCollector.reportMetric(responseTimeMetric, elapsedTime);
@@ -191,4 +203,6 @@ public class CloudWatchPecMetrics {
                     return Mono.empty();
                 }).then();
     }
+
+
 }

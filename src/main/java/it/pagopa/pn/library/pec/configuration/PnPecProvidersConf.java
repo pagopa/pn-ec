@@ -1,19 +1,20 @@
 package it.pagopa.pn.library.pec.configuration;
 
 import com.namirial.pec.library.service.PnPecServiceImpl;
+import it.pagopa.pn.ec.dummy.pec.conf.DummyPecSharedAutoConfiguration;
+import it.pagopa.pn.ec.dummy.pec.service.DummyPecService;
 import lombok.CustomLog;
-import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.*;
 
 @Configuration
 @CustomLog
+@Import(DummyPecSharedAutoConfiguration.class)
 public class PnPecProvidersConf {
 
     private final Set<String> namirialPropertiesKeySet = Set.of("namirial.server.imap.address",
@@ -27,7 +28,9 @@ public class PnPecProvidersConf {
             "namirial.pool.smtp.maxidle",
             "namirial.pool.smtp.minidle",
             "namirial.server.cache",
-            "namirial.server.cache.endpoint");
+            "namirial.server.cache.endpoint",
+            "namirial.metric.duplicate.receipt.namespace",
+            "namirial.metric.duplicate.receipt.name");
 
     @Bean
     public PnPecServiceImpl namirialService(@Autowired Environment env) {
@@ -36,6 +39,11 @@ public class PnPecProvidersConf {
             System.setProperty(key, property);
         });
         return new PnPecServiceImpl();
+    }
+
+    @Bean
+    public DummyPecService dummyPecService() {
+        return new DummyPecService();
     }
 
 }

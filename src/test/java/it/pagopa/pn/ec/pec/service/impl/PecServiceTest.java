@@ -95,21 +95,19 @@ class PecServiceTest {
     @Value("${namirial.pec.sender}")
     private String namirialPecSender;
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
-    private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
-    private static final RequestDto requestDto = new RequestDto();
-    private static final String ATTACHMENT_PREFIX = "safestorage://";
-    private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
-    private static Integer MAX_MESSAGE_SIZE_KB;
-    private String TIPO_RICEVUTA_BREVE_DEFAULT;
-    private String PROVIDER_SWITCH_WRITE_DEFAULT;
-    private final static String PROVIDER_SWITCH_WRITE_ARUBA = "1970-01-01T00:00:00Z;aruba";
-    private final static String PROVIDER_SWITCH_WRITE_NAMIRIAL = "1970-01-01T00:00:00Z;namirial";
+    private static final RequestDto REQUEST_DTO = new RequestDto();
+    private static final String DEFAULT_ATTACHMENT_URL = "safestorage://prova.pdf";
+    private static Integer maxMessageSizeKb;
+    private String tipoRicevutaBreveDefault;
+    private String providerSwitchWriteDefault;
+    private static final String PROVIDER_SWITCH_WRITE_ARUBA = "1970-01-01T00:00:00Z;aruba";
+    private static final String PROVIDER_SWITCH_WRITE_NAMIRIAL = "1970-01-01T00:00:00Z;namirial";
     public static DigitalNotificationRequest createDigitalNotificationRequest() {
 //        Mock an existing request. Set the requestIdx
-        requestDto.setRequestIdx("requestIdx");
+        REQUEST_DTO.setRequestIdx("requestIdx");
 
         List<String> defaultListAttachmentUrls = new ArrayList<>();
-        defaultListAttachmentUrls.add(defaultAttachmentUrl);
+        defaultListAttachmentUrls.add(DEFAULT_ATTACHMENT_URL);
 
         digitalNotificationRequest.setRequestId("requestIdx");
         digitalNotificationRequest.eventType("string");
@@ -128,13 +126,6 @@ class PecServiceTest {
             .xPagopaExtchCxId(
                     DEFAULT_ID_CLIENT_HEADER_VALUE)
             .digitalNotificationRequest(createDigitalNotificationRequest())
-            .build();
-
-    private static final PecPresaInCaricoInfo PEC_PRESA_IN_CARICO_INFO_TEST = PecPresaInCaricoInfo.builder()
-            .requestIdx("idTest")
-            .xPagopaExtchCxId(
-                    DEFAULT_ID_CLIENT_HEADER_VALUE)
-            .digitalNotificationRequest(new DigitalNotificationRequest())
             .build();
 
     private static RequestDto buildRequestDto()
@@ -164,17 +155,17 @@ class PecServiceTest {
 
     @BeforeAll
     static void beforeAll(@Autowired PnPecConfigurationProperties pnPecConfigurationProperties) {
-        MAX_MESSAGE_SIZE_KB = pnPecConfigurationProperties.getMaxMessageSizeMb() * MB_TO_BYTES;
+        maxMessageSizeKb = pnPecConfigurationProperties.getMaxMessageSizeMb() * MB_TO_BYTES;
     }
     @BeforeEach
     void setUp() {
-        TIPO_RICEVUTA_BREVE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "tipoRicevutaBreve");
-        PROVIDER_SWITCH_WRITE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite");
+        tipoRicevutaBreveDefault = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "tipoRicevutaBreve");
+        providerSwitchWriteDefault = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite");
     }
     @AfterEach
     void afterEach() {
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", TIPO_RICEVUTA_BREVE_DEFAULT);
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite", PROVIDER_SWITCH_WRITE_DEFAULT);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", tipoRicevutaBreveDefault);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "pnPecProviderSwitchWrite", providerSwitchWriteDefault);
     }
 
     @Test
@@ -253,7 +244,7 @@ class PecServiceTest {
         var mimeMessage = getMimeMessage(mimeMessageBytes);
         var multipart=getMultipartFromMimeMessage(mimeMessage);
 
-        assertTrue(mimeMessageBytes.length < MAX_MESSAGE_SIZE_KB);
+        assertTrue(mimeMessageBytes.length < maxMessageSizeKb);
         //Body del messaggio + allegati
         assertEquals(3, getMultipartCount(multipart));
     }
@@ -278,7 +269,7 @@ class PecServiceTest {
         var mimeMessage = getMimeMessage(mimeMessageBytes);
         var multipart=getMultipartFromMimeMessage(mimeMessage);
 
-        assertTrue(mimeMessageBytes.length < MAX_MESSAGE_SIZE_KB);
+        assertTrue(mimeMessageBytes.length < maxMessageSizeKb);
         //Body del messaggio + 1 allegato
         assertEquals(2, getMultipartCount(multipart));
     }
@@ -384,7 +375,7 @@ class PecServiceTest {
 
     private void mockAttachmentsWithLastInOffset(int numOfAttachments) {
         List<FileDownloadResponse> fileDownloadResponseList = new ArrayList<>();
-        int sizeForAttachment = MAX_MESSAGE_SIZE_KB / numOfAttachments;
+        int sizeForAttachment = maxMessageSizeKb / numOfAttachments;
         for (int i = 0; i < numOfAttachments; i++) {
             var file = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url" + i)).key("key" + i);
             fileDownloadResponseList.add(file);

@@ -41,7 +41,7 @@ class ClientConfigurationControllerTest {
     }
 
     @BeforeAll
-    public static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbTestEnhancedClient,
+    static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbTestEnhancedClient,
                                                         @Autowired RepositoryManagerDynamoTableName gestoreRepositoryDynamoDbTableName) {
         dynamoDbTable = dynamoDbTestEnhancedClient.table(gestoreRepositoryDynamoDbTableName.anagraficaClientName(),
                                                          TableSchema.fromBean(ClientConfiguration.class));
@@ -49,7 +49,7 @@ class ClientConfigurationControllerTest {
     }
 
     @BeforeEach
-    public void createClientConfigurationDto() {
+    void createClientConfigurationDto() {
         clientConfigurationDto = new ClientConfigurationDto();
         clientConfigurationDto.setxPagopaExtchCxId(DEFAULT_ID);
         clientConfigurationDto.setSqsArn("");

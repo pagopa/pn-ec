@@ -61,7 +61,6 @@ class DigitalCourtesyMessagesApiControllerTest {
             "/external-channels/v1/digital-deliveries/courtesy-simple-message-requests" + "/{requestIdx}";
 
     private static final DigitalCourtesySmsRequest digitalCourtesySmsRequest = createSmsRequest();
-    private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
 
     private WebTestClient.ResponseSpec sendSmsTestCall(BodyInserter<DigitalCourtesySmsRequest, ReactiveHttpOutputMessage> bodyInserter,

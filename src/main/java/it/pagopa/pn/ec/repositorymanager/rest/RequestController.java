@@ -23,7 +23,6 @@ public class RequestController implements GestoreRequestApi {
 
     private final RequestService requestService;
     private final RestUtils restUtils;
-    private static final String SEPARATORE = "~";
 
     public RequestController(RequestService requestService, RestUtils restUtils) {
         this.requestService = requestService;
@@ -32,7 +31,6 @@ public class RequestController implements GestoreRequestApi {
 
     @Override
     public Mono<ResponseEntity<RequestDto>> getRequest(String clientId, String requestIdx, ServerWebExchange exchange) {
-        String id = concatRequestId(clientId, requestIdx);
         log.logStartingProcess(GET_REQUEST);
         return requestService.getRequest(clientId, requestIdx).map(retrievedClient -> restUtils.endReadRequest(retrievedClient, RequestDto.class))
                 .doOnSuccess(result -> log.logEndingProcess(GET_REQUEST))
@@ -51,7 +49,6 @@ public class RequestController implements GestoreRequestApi {
 
     @Override
     public Mono<ResponseEntity<RequestDto>> patchRequest(String clientId, String requestIdx, Mono<PatchDto> patchDto, ServerWebExchange exchange) {
-        String id = concatRequestId(clientId, requestIdx);
         log.logStartingProcess(PATCH_REQUEST);
         return patchDto.map(patchToUpdate -> restUtils.startUpdateRequest(patchToUpdate, Patch.class))
                 .flatMap(requestToUpdate -> requestService.patchRequest(clientId, requestIdx, requestToUpdate))
@@ -62,7 +59,6 @@ public class RequestController implements GestoreRequestApi {
 
     @Override
     public Mono<ResponseEntity<Void>> deleteRequest(String clientId, String requestIdx, ServerWebExchange exchange) {
-        String id = concatRequestId(clientId, requestIdx);
         log.logStartingProcess(DELETE_REQUEST);
         return requestService.deleteRequest(clientId, requestIdx)
                 .map(retrievedRequest -> restUtils.endDeleteRequest(retrievedRequest, RequestDto.class))
@@ -82,7 +78,6 @@ public class RequestController implements GestoreRequestApi {
 
     @Override
     public Mono<ResponseEntity<RequestDto>> setMessageIdInRequestMetadata(String clientId, String requestIdx, ServerWebExchange exchange) {
-        String id = concatRequestId(clientId, requestIdx);
         log.logStartingProcess(SET_MESSAGE_ID_IN_REQUEST_METADATA);
         return requestService.setMessageIdInRequestMetadata(clientId, requestIdx)
                 .map(retrievedClient -> restUtils.endReadRequest(retrievedClient, RequestDto.class))

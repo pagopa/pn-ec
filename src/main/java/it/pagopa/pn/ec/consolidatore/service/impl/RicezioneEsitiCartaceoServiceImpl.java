@@ -108,7 +108,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				{
 
 					var iun = progressStatusEventToCheck.getIun();
-					var productType = progressStatusEventToCheck.getProductType();
 
 					List<String> errorList = new ArrayList<>();
 					List<ConsAuditLogError> auditLogErrorList = new ArrayList<>();
@@ -163,10 +162,10 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 					}
 
 					//Iun
-					if (!StringUtils.isBlank(iun) && !progressStatusEvent.getIun().equals(iun)) {
-						String errMsg = String.format(MISMATCH_ERROR, IUN_LABEL, REQUEST_ID_LABEL, iun);
-						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_IUN.getValue()).description(errMsg));
-						errorList.add(errMsg);
+					if (progressStatusEvent.getIun() != null && !StringUtils.isBlank(iun) && !progressStatusEvent.getIun().equals(iun)) {
+						auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_IUN.getValue()).description("Iun is not valid."));
+						errorList.add(String.format(UNRECOGNIZED_ERROR, IUN_LABEL, iun));
+
 					}
 					// StatusCode
 					if (!statusCodeDescriptionMap().containsKey(progressStatusEvent.getStatusCode())) {
@@ -188,12 +187,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 						}
                     }
 
-                    //TODO COMMENTATO PER UN CASO PARTICOLARE CHE ANDRA' GESTITO IN FUTURO.
-//					if (!progressStatusEvent.getProductType().equals(productType)) {
-//						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getStatusCode()));
-//						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, productType));
-//					}
-					// PN-7989
 					if(progressStatusEvent.getStatusCode().startsWith("REC")) {
 						if (progressStatusEvent.getAttachments() != null && !progressStatusEvent.getAttachments().isEmpty()) {
 							for (ConsolidatoreIngressPaperProgressStatusEventAttachments attachment : progressStatusEvent.getAttachments()) {
@@ -206,12 +199,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 							}
 						}
 					}
-					// ProductTypeMap
-//					if (!productTypeMap().containsKey(progressStatusEvent.getProductType())) {
-//						log.debug(LOG_LABEL + ERROR_LABEL, String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
-//						errorList.add(String.format(UNRECOGNIZED_ERROR, PRODUCT_TYPE_LABEL, progressStatusEvent.getProductType()));
-//					}
-						return Tuples.of(errorList, auditLogErrorList);
+					return Tuples.of(errorList, auditLogErrorList);
 					})
 				.handle((tuple, syncrhonousSink) ->
 				{

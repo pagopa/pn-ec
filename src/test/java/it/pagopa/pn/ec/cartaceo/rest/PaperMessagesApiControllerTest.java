@@ -69,16 +69,15 @@ class PaperMessagesApiControllerTest {
     private FileCall uriBuilderCall;
 
     private static final String SEND_CARTACEO_ENDPOINT = "/external-channels/v1/paper-deliveries-engagements" + "/{requestIdx}";
-    private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
     private static final PaperEngageRequest paperEngageRequest = new PaperEngageRequest();
     private static final PaperEngageRequestAttachments PAPER_ENGAGE_REQUEST_ATTACHMENTS = new PaperEngageRequestAttachments();
-    private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
+    private static final String DEFAULT_ATTACHMENT_URL = "safestorage://prova.pdf";
 
     @BeforeAll
-    public static void createDigitalCourtesyCartaceoRequest() {
+    static void createDigitalCourtesyCartaceoRequest() {
 
-        PAPER_ENGAGE_REQUEST_ATTACHMENTS.setUri(defaultAttachmentUrl);
+        PAPER_ENGAGE_REQUEST_ATTACHMENTS.setUri(DEFAULT_ATTACHMENT_URL);
         PAPER_ENGAGE_REQUEST_ATTACHMENTS.setOrder(BigDecimal.valueOf(1));
         PAPER_ENGAGE_REQUEST_ATTACHMENTS.setDocumentType("TEST");
         PAPER_ENGAGE_REQUEST_ATTACHMENTS.setSha256("stringstringstringstringstringstringstri");
@@ -241,7 +240,7 @@ class PaperMessagesApiControllerTest {
         when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(
-                defaultAttachmentUrl)));
+                DEFAULT_ATTACHMENT_URL)));
 
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 

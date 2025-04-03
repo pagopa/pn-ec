@@ -37,7 +37,7 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
     private String receiverDigitalAddress;
 
 
-    private final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
+    private static final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
             .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()))
             .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure());
 

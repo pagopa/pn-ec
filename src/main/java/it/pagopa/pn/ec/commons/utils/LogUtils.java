@@ -251,6 +251,7 @@ public class LogUtils {
     public static final String PN_EC_PEC_MARK_MESSAGE_AS_READ = "PnEcPecService.markMessageAsRead()";
     public static final String PN_EC_PEC_DELETE_MESSAGE = "PnEcPecService.deleteMessage()";
     public static final String NOT_VALID_FOR_DELETE = "Event with requestId '{}' is not valid for delete.";
+    public static final String UNREAD_PEC_MESSAGE = "PnEcPecService.processAndLogUnreadPecMessages()";
 
     //CloudWatch
 

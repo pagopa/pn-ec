@@ -35,7 +35,6 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
     }
 
     @Bean
-    @Qualifier("clientConfigurationDynamoDbTable")
     public DynamoDbAsyncTableDecorator<ClientConfiguration> getClientConfigurationDynamoDbTable() {
         return this.clientConfigurationDynamoDbTable;
     }

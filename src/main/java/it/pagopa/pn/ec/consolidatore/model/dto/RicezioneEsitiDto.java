@@ -1,12 +1,10 @@
 package it.pagopa.pn.ec.consolidatore.model.dto;
 
 import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogError;
-import it.pagopa.pn.ec.consolidatore.model.pojo.ConsAuditLogEvent;
 import it.pagopa.pn.ec.rest.v1.dto.ConsolidatoreIngressPaperProgressStatusEvent;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import reactor.core.publisher.Flux;
 
 import java.util.List;
 
