@@ -824,10 +824,6 @@ Parameters:
     Description: 'Default sender email address'
     Type: String
 
-  LogAlarmStrategy:
-    Type: String
-    Default: 'FATAL'
-
   PCKmsEncDecDynamoDataKeyARN:
     Type: String
     Description: 'Name of KMS Key for Dynamo encode/decode data'
@@ -1090,7 +1086,7 @@ Resources:
         LoadBalancerListenerArn: !Ref ApplicationLoadBalancerListenerArn
         LoadbalancerRulePriority: !Ref MicroserviceNumber
         TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
-        LogAlarmStrategyV1: !Ref LogAlarmStrategy
+        LogAlarmStrategyV1: FATAL
         EcsLogGroup: !Ref EcsLogGroup
         AutoscalingThreshold: !Ref AutoscalingThreshold
         AutoscalingStrategy: REST-API
