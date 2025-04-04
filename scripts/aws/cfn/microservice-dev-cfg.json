@@ -54,7 +54,7 @@
     "PnCronAnalyzer": "-",
     "GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods": "18",
     "GetUnreadPecMessagesCountAlarmEvaluationPeriods": "3",
-    "HasOncallAlarm": "true",
+    "EnableOnCallAlarm": "true",
     "WireTapLogActivation": "false"
   }
 }
