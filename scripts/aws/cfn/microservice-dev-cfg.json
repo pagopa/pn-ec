@@ -52,6 +52,7 @@
     "SQSCartaceoMaxBatchSubscribedMsgs": "10",
     "MountEfs": "false",
     "PnCronAnalyzer": "-",
+    "GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods": "18",
     "WireTapLogActivation": "false"
   }
 }
