@@ -61,11 +61,6 @@ Parameters:
 #    Description: 'network load balancer link for API-GW'
 #    Default: ''
 
-  PnCoreTargetEventBus:
-    Type: String
-    Description: 'ARN of Pn Core Event Bus where to forward external notifications'
-    Default: ''
-
   PnEcIdentityPec:
     Type: String
     Description: 'Secret ID for Identity Pec'
@@ -976,29 +971,16 @@ Parameters:
     Default: '-'
     Description: Cron for which you send the metric to CloudWatch
 
-  GetUnreadPecMessagesCountAlarmEvaluationPeriods:
-    Type: Number
-    Description: 'EvaluationPeriods for GetUnreadPecMessagesCount Alarm'
-    Default: 3
-
   GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods:
     Type: Number
     Description: 'EvaluationPeriods for GetUnreadPecMessagesCount Alarm'
     Default: 18
-  
-  EnableOnCallAlarm:
-    Type: String
-    Default: false
-    AllowedValues:
-      - "true"
-      - "false"
 
 Conditions:
-  PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
   SMSStressTestModeON: !Equals [ !Ref SMSStressTestMode, 'true']
-  HasOncallAlarm: !Equals [ !Ref EnableOnCallAlarm, 'true']
-
+  HasOncallAlarm: !Not [!Equals [!Ref GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods, 0]]
+  
 Resources:
 
   # PN-TemplateBeMs microservice
@@ -1572,7 +1554,7 @@ Resources:
       MetricName: "GetUnreadPecMessagesCount"
       Statistic: "Sum"
       Period: 3600
-      EvaluationPeriods: !Ref GetUnreadPecMessagesCountAlarmEvaluationPeriods
+      EvaluationPeriods: 3
       Threshold: 1
       ComparisonOperator: "GreaterThanOrEqualToThreshold"
       TreatMissingData: notBreaching

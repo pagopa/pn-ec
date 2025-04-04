@@ -53,8 +53,6 @@
     "MountEfs": "false",
     "PnCronAnalyzer": "-",
     "GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods": "18",
-    "GetUnreadPecMessagesCountAlarmEvaluationPeriods": "3",
-    "EnableOnCallAlarm": "true",
     "WireTapLogActivation": "false"
   }
 }
