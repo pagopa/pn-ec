@@ -61,6 +61,11 @@ Parameters:
 #    Description: 'network load balancer link for API-GW'
 #    Default: ''
 
+  PnCoreTargetEventBus:
+    Type: String
+    Description: 'ARN of Pn Core Event Bus where to forward external notifications'
+    Default: ''
+
   PnEcIdentityPec:
     Type: String
     Description: 'Secret ID for Identity Pec'
@@ -977,10 +982,11 @@ Parameters:
     Default: 18
 
 Conditions:
+  PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
   SMSStressTestModeON: !Equals [ !Ref SMSStressTestMode, 'true']
   HasOncallAlarm: !Not [!Equals [!Ref GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods, 0]]
-  
+
 Resources:
 
   # PN-TemplateBeMs microservice
