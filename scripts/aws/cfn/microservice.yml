@@ -976,10 +976,21 @@ Parameters:
     Default: '-'
     Description: Cron for which you send the metric to CloudWatch
 
+  GetUnreadPecMessagesCountAlarmEvaluationPeriods:
+    Type: Number
+    Description: 'EvaluationPeriods for GetUnreadPecMessagesCount Alarm'
+    Default: 3
+
+  GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods:
+    Type: Number
+    Description: 'EvaluationPeriods for GetUnreadPecMessagesCount Alarm'
+    Default: 18
+
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
   SMSStressTestModeON: !Equals [ !Ref SMSStressTestMode, 'true']
+  HasOncallAlarm: !Not [!Equals [!Ref GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods, 0]]
 
 Resources:
 
@@ -1537,6 +1548,43 @@ Resources:
       Statistic: "Sum"
       Period: 300
       EvaluationPeriods: 12
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      TreatMissingData: notBreaching
+
+  GetUnreadPecMessagesCountAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: !Sub "${ProjectName}-external-channel-PecNamirial-GetUnreadPecMessagesCount-alarm"
+      AlarmDescription: "CloudWatch alarm when pn-ec does not receive the results from the pec provider."
+      AlarmActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      OKActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      Namespace: "PEC/Namirial"
+      MetricName: "GetUnreadPecMessagesCount"
+      Statistic: "Sum"
+      Period: 3600
+      EvaluationPeriods: !Ref GetUnreadPecMessagesCountAlarmEvaluationPeriods
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      TreatMissingData: notBreaching
+
+  GetUnreadPecMessagesCountOnCallAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Condition: HasOncallAlarm
+    Properties:
+      AlarmName: !Sub "oncall-${ProjectName}-external-channel-PecNamirial-GetUnreadPecMessagesCount-alarm"
+      AlarmDescription: "Oncall CloudWatch alarm when pn-ec does not receive the results from the pec provider."
+      AlarmActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      OKActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      Namespace: "PEC/Namirial"
+      MetricName: "GetUnreadPecMessagesCount"
+      Statistic: "Sum"
+      Period: 3600
+      EvaluationPeriods: !Ref GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods
       Threshold: 1
       ComparisonOperator: "GreaterThanOrEqualToThreshold"
       TreatMissingData: notBreaching
