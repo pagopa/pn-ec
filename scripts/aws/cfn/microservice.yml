@@ -878,42 +878,6 @@ Parameters:
     Default: 7200
     Description: Value in seconds
 
-  PnEcNamirialServerImapAddress:
-    Type: String
-
-  PnEcNamirialServerSmtpAddress:
-    Type: String
-
-  PnEcNamirialServerImapPort:
-    Type: String
-
-  PnEcNamirialServerSmtpPort:
-    Type: String
-
-  PnEcNamirialPoolImapMaxtotal:
-    Type: String
-
-  PnEcNamirialPoolImapMaxidle:
-    Type: String
-
-  PnEcNamirialPoolImapMinidle:
-    Type: String
-
-  PnEcNamirialPoolSmtpMaxtotal:
-    Type: String
-
-  PnEcNamirialPoolSmtpMaxidle:
-    Type: String
-
-  PnEcNamirialPoolSmtpMinidle:
-    Type: String
-
-  PnEcNamirialServerCache:
-    Type: String
-
-  PnEcNamirialServerCacheEndpoint:
-    Type: String
-
   CpuValue:
     Type: Number
     Default: 1024
@@ -1049,33 +1013,21 @@ Resources:
         ContainerEnvEntry51: !Sub 'PnEcProviderSwitchRead=${PnEcProviderSwitchRead}'
         ContainerEnvEntry52: !Sub 'PnEcProviderSwitchWrite=${PnEcProviderSwitchWrite}'
         ContainerEnvEntry53: !Sub 'PnEcIdentityPec=${PnEcIdentityPec}'
-        ContainerEnvEntry54: !Sub 'PnEcNamirialServerImapAddress=${PnEcNamirialServerImapAddress}'
-        ContainerEnvEntry55: !Sub 'PnEcNamirialServerSmtpAddress=${PnEcNamirialServerSmtpAddress}'
-        ContainerEnvEntry56: !Sub 'PnEcNamirialServerImapPort=${PnEcNamirialServerImapPort}'
-        ContainerEnvEntry57: !Sub 'PnEcNamirialServerSmtpPort=${PnEcNamirialServerSmtpPort}'
-        ContainerEnvEntry58: !Sub 'PnEcNamirialPoolImapMaxtotal=${PnEcNamirialPoolImapMaxtotal}'
-        ContainerEnvEntry59: !Sub 'PnEcNamirialPoolImapMaxidle=${PnEcNamirialPoolImapMaxidle}'
-        ContainerEnvEntry60: !Sub 'PnEcNamirialPoolImapMinidle=${PnEcNamirialPoolImapMinidle}'
-        ContainerEnvEntry61: !Sub 'PnEcNamirialPoolSmtpMaxtotal=${PnEcNamirialPoolSmtpMaxtotal}'
-        ContainerEnvEntry62: !Sub 'PnEcNamirialPoolSmtpMaxidle=${PnEcNamirialPoolSmtpMaxidle}'
-        ContainerEnvEntry63: !Sub 'PnEcNamirialPoolSmtpMinidle=${PnEcNamirialPoolSmtpMinidle}'
-        ContainerEnvEntry64: !Sub 'PnEcNamirialServerCache=${PnEcNamirialServerCache}'
-        ContainerEnvEntry65: !Sub 'PnEcNamirialServerCacheEndpoint=${PnEcNamirialServerCacheEndpoint}'
-        ContainerEnvEntry66: !Sub 'SpringCodecMaxInMemorySize=${SpringCodecMaxInMemorySize}'
-        ContainerEnvEntry67: !Sub 'PnEcConsAllowedFutureOffsetDuration=${PnEcConsAllowedFutureOffsetDuration}'
-        ContainerEnvEntry68: !Sub 'PnECPaperPAIdToRaster=${PnECPaperPAIdToRaster}'
-        ContainerEnvEntry69: !Sub 'PnECPaperDocumentTypeToRaster=${PnECPaperDocumentTypeToRaster}'
-        ContainerEnvEntry70: !Sub 'PnECPaperDocumentTypeForRasterized=${PnECPaperDocumentTypeForRasterized}'
-        ContainerEnvEntry71: !Sub 'PnECPaperPAIdOverride=${PnECPaperPAIdOverride}'
-        ContainerEnvEntry72: !Sub 'PnEcQueueNameAvailabilityManager=${PnEcQueueNameAvailabilityManager}'
-        ContainerEnvEntry73: !Sub 'PnEcDLQueueNameErroriCARTACEO=${PnEcDLQueueNameErroriCARTACEO}'
-        ContainerEnvEntry74: !Sub 'PnEcQueueNameTrackerStatoSERCQ=${PnEcQueueNameTrackerStatoSERCQ}'
-        ContainerEnvEntry75: !Sub 'PnEcQueueNameTrackerErroriSERCQ=${PnEcQueueNameTrackerErroriSERCQ}'
-        ContainerEnvEntry76: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
-        ContainerEnvEntry77: !Sub 'PnEcPecMetricsSchema=${PnEcPecMetricsSchema}'
-        ContainerEnvEntry78: !Sub 'SQSCartaceoMaxBatchSubscribedMsgs=${SQSCartaceoMaxBatchSubscribedMsgs}'
-        ContainerEnvEntry79: !Sub 'PN_CRON_ANALYZER=${PnCronAnalyzer}'
-        ContainerEnvEntry80: !Sub 'WIRE_TAP_LOG=${WireTapLogActivation}'
+        ContainerEnvEntry54: !Sub 'SpringCodecMaxInMemorySize=${SpringCodecMaxInMemorySize}'
+        ContainerEnvEntry55: !Sub 'PnEcConsAllowedFutureOffsetDuration=${PnEcConsAllowedFutureOffsetDuration}'
+        ContainerEnvEntry56: !Sub 'PnECPaperPAIdToRaster=${PnECPaperPAIdToRaster}'
+        ContainerEnvEntry57: !Sub 'PnECPaperDocumentTypeToRaster=${PnECPaperDocumentTypeToRaster}'
+        ContainerEnvEntry58: !Sub 'PnECPaperDocumentTypeForRasterized=${PnECPaperDocumentTypeForRasterized}'
+        ContainerEnvEntry59: !Sub 'PnECPaperPAIdOverride=${PnECPaperPAIdOverride}'
+        ContainerEnvEntry60: !Sub 'PnEcQueueNameAvailabilityManager=${PnEcQueueNameAvailabilityManager}'
+        ContainerEnvEntry61: !Sub 'PnEcDLQueueNameErroriCARTACEO=${PnEcDLQueueNameErroriCARTACEO}'
+        ContainerEnvEntry62: !Sub 'PnEcQueueNameTrackerStatoSERCQ=${PnEcQueueNameTrackerStatoSERCQ}'
+        ContainerEnvEntry63: !Sub 'PnEcQueueNameTrackerErroriSERCQ=${PnEcQueueNameTrackerErroriSERCQ}'
+        ContainerEnvEntry64: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry65: !Sub 'PnEcPecMetricsSchema=${PnEcPecMetricsSchema}'
+        ContainerEnvEntry66: !Sub 'SQSCartaceoMaxBatchSubscribedMsgs=${SQSCartaceoMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry67: !Sub 'PN_CRON_ANALYZER=${PnCronAnalyzer}'
+        ContainerEnvEntry68: !Sub 'WIRE_TAP_LOG=${WireTapLogActivation}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
