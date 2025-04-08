@@ -87,7 +87,7 @@
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-ec-dummy-pec</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0</version>
 
         </dependency>
 
