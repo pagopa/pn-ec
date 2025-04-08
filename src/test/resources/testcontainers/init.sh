@@ -292,13 +292,21 @@ create_event_bus()
 create_eventbridge_rule() {
    local event_name=$1
    local event_pattern=$2
-   aws events put-rule \
-    --endpoint-url="$LOCALSTACK_ENDPOINT" \
-    --region "$AWS_REGION" \
-    --name $event_name \
-    --event-bus-name "$NOTIFICATIONS_BUS_NAME" \
-    --event-pattern "$event_pattern" \
-    --state "ENABLED"
+   local event_bus_name=$3
+   cmd=(
+     aws events put-rule
+     --endpoint-url="$LOCALSTACK_ENDPOINT"
+     --region "$AWS_REGION"
+     --name "$event_name"
+     --event-pattern "$event_pattern"
+     --state "ENABLED"
+   )
+
+   if [[ -n "$event_bus_name" ]]; then
+     cmd+=(--event-bus-name "$event_bus_name")
+   fi
+
+   "${cmd[@]}" && \
     log "Event rule created: $event_name" || \
   { log "Failed to create event rule: $event_name"; return 1; }
 }
@@ -406,14 +414,15 @@ initialize_event_bridge() {
             "eventCode": ["C001", "C002", "C003", "C004", "C006", "C007", "C009"]
           }
         }
-    }' &
-
-    create_eventbridge_rule "PnEcEventRuleAvailabilityManager" '{
-        "source": ["GESTORE DISPONIBILITA"]
-    }' &
+    }' $NOTIFICATIONS_BUS_NAME &
 
     create_eventbridge_rule "PnEcEventRuleExternalNotifications" '{
         "source": ["NOTIFICATION TRACKER"]
+    }' $NOTIFICATIONS_BUS_NAME &
+
+    # Questa regola viene creata sull'event bus di default, in quanto SafeStorage non invia gli eventi su un bus dedicato.
+    create_eventbridge_rule "PnEcEventRuleAvailabilityManager" '{
+        "source": ["GESTORE DISPONIBILITA"]
     }' &
 
     wait
