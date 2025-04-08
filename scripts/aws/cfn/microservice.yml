@@ -101,6 +101,10 @@ Parameters:
     Description: 'Maximum number of running instances for the microservice'
     Default: 12
 
+  LogAlarmStrategy:
+    Type: String
+    Default: 'FATAL'
+
   AutoscalingThreshold:
     Type: Number
     Description: 'Alarm threshold to trigger autoscaling of the microservice'
@@ -1038,7 +1042,7 @@ Resources:
         LoadBalancerListenerArn: !Ref ApplicationLoadBalancerListenerArn
         LoadbalancerRulePriority: !Ref MicroserviceNumber
         TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
-        LogAlarmStrategyV1: FATAL
+        LogAlarmStrategyV1: !Ref LogAlarmStrategy
         EcsLogGroup: !Ref EcsLogGroup
         AutoscalingThreshold: !Ref AutoscalingThreshold
         AutoscalingStrategy: REST-API
