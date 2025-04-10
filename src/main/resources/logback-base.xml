@@ -6,6 +6,19 @@
             <pattern>%d [%X{trace_id}] %highlight(%-5level) - %-4relative - [%thread] - %cyan(%logger{20}) - %red([%X{cx_id}]) - %msg %n</pattern>
         </encoder>
     </appender>
+
+    <!-- Appender per i log in JSON -->
+    <appender name="JSON_STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%msg%n</pattern>  <!-- Stampa solo il messaggio senza pattern aggiuntivi -->
+        </encoder>
+    </appender>
+
+    <!-- Logger per stampare solo stringhe JSON -->
+    <logger name="it.pagopa.pn.JsonLogger" level="info">
+        <appender-ref ref="JSON_STDOUT" />
+    </logger>
+
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>

@@ -27,18 +27,6 @@
     "PnEcPECTipoRicevutaBreve": "false;2024-03-14T23:00:00Z;true",
     "PnEcProviderSwitchRead": "1970-01-01T00:00:00Z;namirial",
     "PnEcProviderSwitchWrite": "1970-01-01T00:00:00Z;namirial",
-    "PnEcNamirialServerImapAddress": "send.sicurezzapostale.it",
-    "PnEcNamirialServerSmtpAddress": "send.sicurezzapostale.it",
-    "PnEcNamirialServerImapPort": "993",
-    "PnEcNamirialServerSmtpPort": "465",
-    "PnEcNamirialPoolImapMaxtotal": "10",
-    "PnEcNamirialPoolImapMaxidle": "10",
-    "PnEcNamirialPoolImapMinidle": "1",
-    "PnEcNamirialPoolSmtpMaxtotal": "40",
-    "PnEcNamirialPoolSmtpMaxidle": "40",
-    "PnEcNamirialPoolSmtpMinidle": "1",
-    "PnEcNamirialServerCache": "false",
-    "PnEcNamirialServerCacheEndpoint": "",
     "SpringCodecMaxInMemorySize": "256KB",
     "PnEcConsAllowedFutureOffsetDuration": "1m",
     "CpuValue": "1024",
@@ -51,7 +39,8 @@
     "PnEcPecMetricsSchema": "Pn-EC-Pec-MetricsSchema",
     "SQSCartaceoMaxBatchSubscribedMsgs": "10",
     "MountEfs": "false",
-    "PnCronAnalyzer": "* */1 * * * *",
+    "PnCronAnalyzer": "-",
+    "GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods": "18",
     "WireTapLogActivation": "false"
   }
 }

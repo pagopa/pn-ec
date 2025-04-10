@@ -4,9 +4,9 @@ package it.pagopa.pn.ec.pec.service.impl;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
+import it.pagopa.pn.ec.dummy.pec.service.DummyPecService;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
-import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.library.exceptions.PnSpapiPermanentErrorException;
@@ -21,7 +21,6 @@ import it.pagopa.pn.library.pec.service.ArubaService;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import it.pagopa.pn.library.pec.service.PnPecService;
 import it.pagopa.pn.library.pec.service.impl.PnEcPecServiceImpl;
-import it.pagopa.pn.template.service.DummyPecService;
 import lombok.CustomLog;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
@@ -34,10 +33,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static it.pagopa.pn.ec.pec.service.impl.PecServiceTest.createDigitalNotificationRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
@@ -425,6 +421,7 @@ class PnPecServiceTest {
             verify(namirialService, never()).getUnreadMessages(anyInt());
             verify(cloudWatchPecMetrics, never()).publishResponseTime(any(), any(), anyLong(), any());
         }
+
     }
 
     @Nested

@@ -622,12 +622,12 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .flatMap(tuple -> {
                     ByteArrayOutputStream downloadedFileStream = tuple.getT1();
                     FileCreationResponse fileCreationResponse = tuple.getT2();
-                    log.debug("Uploading file to new URL for originalFileKey: {}", originalFileKey);
+                    log.debug("Uploading file '{}' to new URL for originalFileKey: {}", fileCreationResponse.getKey(), originalFileKey);
                     return uploadCall.uploadFile(fileCreationResponse.getKey(), fileCreationResponse.getUploadUrl(), fileCreationResponse.getSecret(),tuple.getT3(), DocumentTypeConfiguration.ChecksumEnum.SHA256, attachment.getSha256(), downloadedFileStream.toByteArray())
                             .thenReturn(fileCreationResponse.getKey());
                 })
                 .flatMap(newFileKey -> {
-                    log.debug("File uploaded successfully, creating AttachmentToConvertDto for originalFileKey: {}", originalFileKey);
+                    log.debug("File '{}' uploaded successfully, creating AttachmentToConvertDto for originalFileKey: {}", newFileKey, originalFileKey);
                     AttachmentToConvertDto attachmentToConvertDto = new AttachmentToConvertDto()
                             .originalFileKey(originalFileKey)
                             .newFileKey(newFileKey);

@@ -46,6 +46,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
     private final DynamoDbAsyncClient dynamoDbAsyncClient;
     private final Retry pdfRasterRetryStrategy;
     private static final String VERSION_CONDITIONAL_CHECK = "attribute_exists(version) AND version = :version";
+    private final Integer offsetDays;
 
 
     public DynamoPdfRasterServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
@@ -59,6 +60,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
         this.pdfRasterRetryStrategy = Retry.backoff(pdfRasterProperties.maxRetryAttempts(), Duration.ofSeconds(pdfRasterProperties.minRetryBackoff()))
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure())
                 .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
+        this.offsetDays = pdfRasterProperties.pdfConversionExpirationOffsetInDays();
     }
 
     @Override
@@ -221,7 +223,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                 .flatMap(tuples -> {
                     PdfConversionEntity pdfConversionEntity = tuples.getT1();
                     RequestConversionEntity requestConversionEntity = tuples.getT2().getKey();
-                    pdfConversionEntity.setExpiration(BigDecimal.valueOf(OffsetDateTime.now().plusDays(1).toInstant().getEpochSecond()));
+                    pdfConversionEntity.setExpiration(BigDecimal.valueOf(OffsetDateTime.now().plusDays(offsetDays).toInstant().getEpochSecond()));
 
                     return updateRequestConversionWithTransaction(requestConversionEntity, pdfConversionEntity)
                             .thenReturn(Map.entry(convertToDto(requestConversionEntity), true));
