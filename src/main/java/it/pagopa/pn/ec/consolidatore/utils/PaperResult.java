@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.consolidatore.utils;
 
+import java.util.List;
 import java.util.Map;
 
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
@@ -49,6 +50,8 @@ public class PaperResult {
 					Map.entry(OK_CODE, SENT.getStatusTransactionTableCompliant())
 			);
 
+	public static final List<String> TO_ACK_STATUS_CODES = List.of(SYNTAX_ERROR_CODE, SEMANTIC_ERROR_CODE, DUPLICATED_REQUEST_CODE);
+	public static final List<String> TO_DLQ_STATUS_CODES = List.of(AUTHENTICATION_ERROR_CODE, REQUEST_ID_ERROR_CODE);
 
 	public static Map<String, String> errorCodeDescriptionMap() {
 		return errorCodeDescriptionMap;

@@ -707,7 +707,7 @@ Parameters:
   PnEcAlarmArnDLQueueTrackerErroriSERCQ:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriSERCQ"
-        
+
   ###### pn-core Event Bus #######
 
 #  PnEcQueueNameEventsDLQueuePnCoreTargetEventBus:
@@ -1255,7 +1255,7 @@ Resources:
             Resource: !Ref PnEcQueueArnTrackerStatoCARTACEO
             Principal:
               AWS: !Ref AWS::AccountId
-              
+
   PnEcQueuePolicyTrackerStatoSERCQ:
     Type: AWS::SQS::QueuePolicy
     Properties:
@@ -1462,7 +1462,7 @@ Resources:
         - Id: e1
           Expression: IF((m5>=30 AND m4/m5>=0.1) OR (m3>=30 AND (m1/m3>=0.9 OR m2/m3>=0.1)), 1, 0)
           Label: !Sub "${ProjectName}-external-channel-ALBAlarm-oncall-metric"
-        
+
   MultipleReceiptAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
