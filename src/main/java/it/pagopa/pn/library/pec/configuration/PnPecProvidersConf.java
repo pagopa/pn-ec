@@ -30,7 +30,8 @@ public class PnPecProvidersConf {
             "namirial.server.cache",
             "namirial.server.cache.endpoint",
             "namirial.metric.duplicate.receipt.namespace",
-            "namirial.metric.duplicate.receipt.name");
+            "namirial.metric.duplicate.receipt.name",
+            "namirial.warning-to-notdelivered.logic");
 
     @Bean
     public PnPecServiceImpl namirialService(@Autowired Environment env) {

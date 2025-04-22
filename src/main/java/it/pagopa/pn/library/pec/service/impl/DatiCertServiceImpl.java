@@ -30,6 +30,10 @@ public class DatiCertServiceImpl implements DaticertService {
     String arubaPostacertClassType;
     @Value("${library.pec.pn.postacert.path}")
     String pnPostacertClassType;
+    @Value("${library.pec.namirial.postacert.path}")
+    String namirialPostacertClassType;
+
+
 
     public DatiCertServiceImpl(JAXBContext jaxbContext) {
         this.jaxbContext = jaxbContext;
@@ -69,7 +73,8 @@ public class DatiCertServiceImpl implements DaticertService {
     private String getPostacertClassType(String providerName) {
         String postacertClassType = switch (providerName) {
             case ARUBA_PROVIDER -> arubaPostacertClassType;
-            case NAMIRIAL_PROVIDER, DUMMY_PROVIDER -> pnPostacertClassType;
+            case NAMIRIAL_PROVIDER -> namirialPostacertClassType;
+            case DUMMY_PROVIDER -> pnPostacertClassType;
             default -> throw new IllegalArgumentException(String.format("There is no postacert type for '%s' provider", providerName));
         };
         log.debug("PostacertClassType : {}", postacertClassType);
