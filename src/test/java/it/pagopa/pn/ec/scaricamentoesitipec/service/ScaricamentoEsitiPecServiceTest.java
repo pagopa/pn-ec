@@ -60,6 +60,8 @@ class ScaricamentoEsitiPecServiceTest {
     @MockBean
     private Acknowledgment acknowledgment;
     @MockBean
+    private NamirialPostacert namirialPostacert;
+    @MockBean
     private GestoreRepositoryCall gestoreRepositoryCall;
     @MockBean
     private AuthService authService;
@@ -156,7 +158,7 @@ class ScaricamentoEsitiPecServiceTest {
     void correzioneTipoNamirialPecTest() throws MessagingException, IOException {
         RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato", NAMIRIAL_PROVIDER);
         NamirialPostacert postacert = (NamirialPostacert) daticertService.getPostacertFromByteArray(getAttachmentFromMimeMessage(EmailUtils.getMimeMessage(ricezioneEsitiPecDto.getMessage()), "daticert.xml"), NAMIRIAL_PROVIDER);
-        Assertions.assertEquals(PREAVVISO_ERRORE_CONSEGNA, postacert.getTipo());
+        Assertions.assertEquals(ERRORE_CONSEGNA, postacert.getTipo());
     }
 
     @Test
