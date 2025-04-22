@@ -11,9 +11,6 @@ import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.PREAV
 public class NamirialPostacert extends PnPostacert {
 
 
-    //@Value("${namirial.warning-to-notdelivered.logic}")
-    //String namirialActivateLogic;
-
 
     @Override
     public String getTipo() {
