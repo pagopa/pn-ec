@@ -15,6 +15,7 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import it.pagopa.pn.library.pec.model.pojo.ArubaPostacert;
+import it.pagopa.pn.library.pec.model.pojo.NamirialPostacert;
 import it.pagopa.pn.library.pec.model.pojo.PnPostacert;
 import it.pagopa.pn.library.pec.service.DaticertService;
 import org.junit.jupiter.api.Assertions;
@@ -154,7 +155,7 @@ class ScaricamentoEsitiPecServiceTest {
     @Test
     void correzioneTipoNamirialPecTest() throws MessagingException, IOException {
         RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato", NAMIRIAL_PROVIDER);
-        PnPostacert postacert = (PnPostacert) daticertService.getPostacertFromByteArray(getAttachmentFromMimeMessage(EmailUtils.getMimeMessage(ricezioneEsitiPecDto.getMessage()), "daticert.xml"), NAMIRIAL_PROVIDER);
+        NamirialPostacert postacert = (NamirialPostacert) daticertService.getPostacertFromByteArray(getAttachmentFromMimeMessage(EmailUtils.getMimeMessage(ricezioneEsitiPecDto.getMessage()), "daticert.xml"), NAMIRIAL_PROVIDER);
         Assertions.assertEquals(PREAVVISO_ERRORE_CONSEGNA, postacert.getTipo());
     }
 
