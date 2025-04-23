@@ -49,11 +49,11 @@ public class DatiCertServiceImpl implements DaticertService {
             Postacert unmarshalled = (Postacert) jaxbContext.createUnmarshaller().unmarshal(new ByteArrayInputStream(bytes));
 
             return switch (providerName) {
-                case ARUBA_PROVIDER, DUMMY_PROVIDER -> {
+                case ARUBA_PROVIDER -> {
                     Class<?> dynamicClass = Class.forName(getPostacertClassType(providerName)).asSubclass(Postacert.class);
                     yield (IPostacert) dynamicClass.getDeclaredConstructor(Postacert.class).newInstance(unmarshalled);
                 }
-                case NAMIRIAL_PROVIDER -> new NamirialPostacert(unmarshalled, namirialActivateLogic);
+                case NAMIRIAL_PROVIDER, DUMMY_PROVIDER -> new NamirialPostacert(unmarshalled, namirialActivateLogic);
                 default -> throw new IllegalArgumentException("Unsupported provider: " + providerName);
             };
         } catch (JAXBException e) {
