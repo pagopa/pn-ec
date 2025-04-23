@@ -10,26 +10,23 @@ import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.PREAV
 @CustomLog
 public class NamirialPostacert extends PnPostacert {
 
+    private final String namirialActivateLogic;
 
 
     @Override
     public String getTipo() {
-    if (tipo.equals(PREAVVISO_ERRORE_CONSEGNA)) {
-        if (this.getDati().getErroreEsteso().trim().startsWith("5.4.1")) {
-            log.debug("NamirialPostacert.getTipo():Errore esteso matches 5.4.1, changing tipo to ERRORE_CONSEGNA, errore esteso:{}", this.getDati().getErroreEsteso());
-            return ERRORE_CONSEGNA;
-        } else {
-            return this.tipo;
+        log.info("Invoking NamirialPostacert.getTipo() with flag namirialActivateLogic: {}", namirialActivateLogic);
+        if ("true".equalsIgnoreCase(namirialActivateLogic) && tipo.equals(PREAVVISO_ERRORE_CONSEGNA)) {
+            if (this.getDati().getErroreEsteso().trim().startsWith("5.4.1")) {
+                log.debug("NamirialPostacert.getTipo():Errore esteso matches 5.4.1, changing tipo to ERRORE_CONSEGNA, errore esteso:{}", this.getDati().getErroreEsteso());
+                return ERRORE_CONSEGNA;
+            }
         }
-    } else {
         return this.tipo;
     }
 
-    }
-
-
-    public NamirialPostacert(Postacert postacert) {
-
+    public NamirialPostacert(Postacert postacert, String namirialActivateLogic) {
         super(postacert);
+        this.namirialActivateLogic = namirialActivateLogic;
     }
 }
