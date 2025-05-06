@@ -222,7 +222,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, INSERT_REQUEST_FROM_CARTACEO, result));
     }
 
-    @Scheduled(cron = "${pn.ec.cron.lavorazione-batch-cartaceo}")
+    @Scheduled(fixedDelayString = "${pn.ec.delay.lavorazione-batch-cartaceo}")
     public void lavorazioneRichiestaBatch() {
         MDC.clear();
         log.logStartingProcess(LAVORAZIONE_RICHIESTA_CARTACEO_BATCH);
@@ -275,7 +275,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .then(sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo));
     }
 
-    @Scheduled(cron = "${pn.ec.cron.gestione-retry-cartaceo}")
+    @Scheduled(fixedDelayString = "${pn.ec.delay.gestione-retry-cartaceo}")
     void gestioneRetryCartaceoScheduler() {
         MDC.clear();
         idSaved = null;
