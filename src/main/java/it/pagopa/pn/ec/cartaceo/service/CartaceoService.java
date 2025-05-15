@@ -344,51 +344,29 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
 //              se il primo step, inizializza l'attributo retry
                 .map(requestDto -> {
-                    RetryDto retryDto = requestDto.getRequestMetadata().getRetry();
-
-                    if (retryDto == null || retryDto.getRetryStep() == null) {
-                        // Primo tentativo: inizializza il retry
+                    if (requestDto.getRequestMetadata().getRetry() == null) {
                         log.debug(RETRY_ATTEMPT, FILTER_REQUEST_CARTACEO, 0);
-                        retryDto = new RetryDto();
+                        RetryDto retryDto = new RetryDto();
                         retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PAPER"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
                         var eventsList = requestDto.getRequestMetadata().getEventsList();
                         var lastRetryTimestamp = eventsList.stream()
                                 .max(Comparator.comparing(eventsDto -> eventsDto.getPaperProgrStatus().getStatusDateTime()))
-                                .map(eventsDto -> eventsDto.getPaperProgrStatus().getStatusDateTime())
-                                .orElse(OffsetDateTime.now());
+                                .map(eventsDto -> eventsDto.getPaperProgrStatus().getStatusDateTime()).get();
                         retryDto.setLastRetryTimestamp(lastRetryTimestamp);
+                        requestDto.getRequestMetadata().setRetry(retryDto);
 
                     } else {
-                        BigDecimal currentStep = retryDto.getRetryStep();
-                        int policySize = retryDto.getRetryPolicy().size();
-
-                        // Se il retryStep corrente è oltre il limite previsto dalla policy
-                        if (currentStep.compareTo(BigDecimal.valueOf(policySize - 1)) >= 0) {
-                            if (idSaved == null || !idSaved.equals(requestDto.getRequestIdx())) {
-                                // Prima volta che vediamo questo messaggio: resettiamo retryStep
-                                log.warn("Retry step {} exceeded policy size {}. Assuming redrive and resetting counter for requestId {}", currentStep, policySize, requestDto.getRequestIdx());
-                                retryDto.setRetryStep(BigDecimal.ZERO);
-                                retryDto.setLastRetryTimestamp(OffsetDateTime.now());
-                                idSaved = requestDto.getRequestIdx(); // Salviamo che abbiamo già effettuato il reset per questo messaggio
-                            } else {
-                                // Il messaggio era già stato resettato: non lo resettiamo di nuovo
-                                // Fallisci il processo, così finirà nella DLQ definitiva
-                                throw new MaxRetriesExceededException();
-                            }
-                        } else {
-                            // Se siamo ancora nei limiti normali: incremento il retryStep
-                            retryDto.setRetryStep(currentStep.add(BigDecimal.ONE));
-                        }
-
-                        log.debug(RETRY_ATTEMPT, FILTER_REQUEST_CARTACEO, retryDto.getRetryStep());
+                        requestDto.getRequestMetadata().getRetry()
+                                .setRetryStep(requestDto.getRequestMetadata()
+                                        .getRetry()
+                                        .getRetryStep()
+                                        .add(BigDecimal.ONE));
+                        var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
+                        log.debug(RETRY_ATTEMPT, FILTER_REQUEST_CARTACEO, retryNumber);
                     }
-
-                    requestDto.getRequestMetadata().setRetry(retryDto);
-                    cartaceoPresaInCaricoInfo.getStepError().setRetryStep(retryDto.getRetryStep());
                     return requestDto;
                 })
-
 //              check retry policies
                 .filter(requestDto -> {
                     var dateTime1 = requestDto.getRequestMetadata().getRetry().getLastRetryTimestamp();

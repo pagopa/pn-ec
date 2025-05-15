@@ -17,6 +17,7 @@ import it.pagopa.pn.ec.pdfraster.model.entity.RequestConversionEntity;
 import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,17 +31,17 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
-import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.*;
 import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
-import software.amazon.awssdk.services.sqs.model.*;
+import software.amazon.awssdk.services.sqs.model.ChangeMessageVisibilityResponse;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.SqsResponse;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
@@ -529,63 +530,5 @@ class CartaceoRetryTest {
         when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
     }
 
-    @Test
-    void gestioneRetryCartaceo_FirstOverflow_ResetAccepted() {
-        RequestDto requestDto = buildRequestDto();
-        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfo();
-
-        int policySize = requestDto.getRequestMetadata().getRetry().getRetryPolicy().size();
-        requestDto.getRequestMetadata().getRetry().setRetryStep(BigDecimal.valueOf(policySize - 1));
-        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(60));
-
-        String requestId = requestDto.getRequestIdx();
-        String clientId = requestDto.getxPagopaExtchCxId();
-
-        mockGestoreRepository(clientId, requestId, requestDto);
-        mockSqsService();
-        when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class)))
-                .thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
-
-        Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
-
-        StepVerifier.create(response)
-                    .expectNextCount(1)
-                    .verifyComplete();
-    }
-
-    @Test
-    void gestioneRetryCartaceo_SecondOverflow_MaxRetriesExceeded() {
-        RequestDto requestDto = buildRequestDto();
-        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfo();
-
-        requestDto.setStatusRequest("IN_PROGRESS");
-        requestDto.getRequestMetadata().getRetry().setRetryPolicy(List.of(
-                BigDecimal.ONE,
-                BigDecimal.valueOf(5)
-                                                                         ));
-        int policySize = requestDto.getRequestMetadata().getRetry().getRetryPolicy().size();
-        requestDto.getRequestMetadata().getRetry().setRetryStep(BigDecimal.valueOf(policySize));
-        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(60));
-
-        String requestId = requestDto.getRequestIdx();
-        String clientId = requestDto.getxPagopaExtchCxId();
-
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any())).thenReturn(Mono.just(requestDto));
-
-        when(sqsService.sendWithDeduplicationId(anyString(), any())).thenReturn(Mono.just(SendMessageResponse.builder().build()));
-        when(sqsService.deleteMessageFromQueue(any(), anyString())).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
-
-        ReflectionTestUtils.setField(cartaceoService, "idSaved", "idTest");
-
-        Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
-
-        StepVerifier.create(response)
-                    .expectNextCount(1)
-                    .verifyComplete();
-
-        verify(sqsService, times(2)).sendWithDeduplicationId(anyString(), any());
-        verify(sqsService, times(2)).deleteMessageFromQueue(any(), anyString());
-    }
 
 }
