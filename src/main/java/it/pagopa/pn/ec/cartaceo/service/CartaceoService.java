@@ -344,7 +344,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
 //              se il primo step, inizializza l'attributo retry
                 .map(requestDto -> {
-                    if (requestDto.getRequestMetadata().getRetry() == null) {
+                    RetryDto retry = requestDto.getRequestMetadata().getRetry();
+                    if (retry == null || retry.getRetryStep() == null) {
                         log.debug(RETRY_ATTEMPT, FILTER_REQUEST_CARTACEO, 0);
                         RetryDto retryDto = new RetryDto();
                         retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PAPER"));
@@ -649,7 +650,10 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnDlqErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.sendWithDeduplicationId(cartaceoSqsQueueName.dlqErrorName(), presaInCaricoInfo);
+        PatchDto patchDto = new PatchDto();
+        patchDto.setRetry(new RetryDto());
+        return gestoreRepositoryCall.patchRichiesta(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx(), patchDto)
+                .then(sqsService.sendWithDeduplicationId(cartaceoSqsQueueName.dlqErrorName(), presaInCaricoInfo));
     }
 
     @Override
