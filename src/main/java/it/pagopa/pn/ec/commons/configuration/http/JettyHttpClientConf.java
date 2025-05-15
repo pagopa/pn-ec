@@ -61,11 +61,11 @@ public class JettyHttpClientConf {
                     if (mdcContextMap != null && mdcContextMap.containsKey(MDC_CORR_ID_KEY)) {
                         request.header(corrIdHeaderName, MDC.get(MDC_CORR_ID_KEY));
                     }
-                    log.debug("Start {} request to {}", theRequest.getMethod(), theRequest.getURI());
+                    log.info("Start {} request to {}", theRequest.getMethod(), theRequest.getURI());
                 })
                 .onRequestFailure((theRequest, throwable) -> {
                     MDCUtils.enrichWithMDC(theRequest, mdcContextMap);
-                    log.debug("Request failure : {} , {}", throwable, throwable.getMessage());
+                    log.info("Request failure : {} , {}", throwable, throwable.getMessage());
                 });
 
 

@@ -101,7 +101,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
         var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
 
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_SMS, presaInCaricoInfo);
+        log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_SMS, presaInCaricoInfo);
 
         var xPagopaExtchCxId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
@@ -144,7 +144,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromEmail(final DigitalCourtesyMailRequest digitalCourtesyMailRequest, String xPagopaExtchCxId) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_EMAIL, digitalCourtesyMailRequest);
+        log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_EMAIL, digitalCourtesyMailRequest);
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
             requestDto.setRequestIdx(digitalCourtesyMailRequest.getRequestId());
@@ -329,7 +329,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     private Mono<RequestDto> filterRequestEmail(final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
         var requestId = emailPresaInCaricoInfo.getRequestIdx();
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, FILTER_REQUEST_EMAIL, requestId);
+        log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, FILTER_REQUEST_EMAIL, requestId);
         var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         Policy retryPolicies = new Policy();
         String toDelete = "toDelete";
@@ -344,13 +344,13 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 //              se il primo step, inizializza l'attributo retry
                 .flatMap(requestDto -> {
                     if (requestDto.getRequestMetadata().getRetry() == null) {
-                        log.debug(RETRY_ATTEMPT, FILTER_REQUEST_EMAIL, 0);
+                        log.info(RETRY_ATTEMPT, FILTER_REQUEST_EMAIL, 0);
                         RetryDto retryDto = new RetryDto();
                         return getMono(requestId, retryPolicies, requestDto, retryDto);
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
-                        log.debug(RETRY_ATTEMPT, FILTER_REQUEST_EMAIL, retryNumber);
+                        log.info(RETRY_ATTEMPT, FILTER_REQUEST_EMAIL, retryNumber);
                         return Mono.just(requestDto);
                     }
                 })
@@ -390,7 +390,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var retry = requestDto.getRequestMetadata().getRetry();
         if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size())) > 0) {
             // operazioni per la rimozione del messaggio
-            log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.errorName());
+            log.info(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.errorName());
             return sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                     ERROR.getStatusTransactionTableCompliant(),
                     new DigitalProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(

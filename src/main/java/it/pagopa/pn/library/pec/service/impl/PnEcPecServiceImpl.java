@@ -152,7 +152,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     }
 
     private Mono<PnEcPecGetMessagesResponse> processAndLogUnreadPecMessages(List<PnEcPecMessage> messages) {
-        log.debug(INVOKING_OPERATION_LABEL, UNREAD_PEC_MESSAGE);
+        log.info(INVOKING_OPERATION_LABEL, UNREAD_PEC_MESSAGE);
         if (messages.isEmpty()) {
             getProvidersRead().stream().findFirst()
                     .ifPresentOrElse(

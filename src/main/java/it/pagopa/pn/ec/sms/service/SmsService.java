@@ -75,7 +75,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private static final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
-            .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
+            .doBeforeRetry(retrySignal -> log.info("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
 
     @Override
     protected Mono<Void> specificPresaInCarico(final PresaInCaricoInfo presaInCaricoInfo) {
@@ -271,7 +271,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 //              se il primo step, inizializza l'attributo retry
                                     .flatMap(requestDto -> {
                                         if (requestDto.getRequestMetadata().getRetry() == null) {
-                                            log.debug(RETRY_ATTEMPT, FILTER_REQUEST_SMS, 0);
+                                            log.info(RETRY_ATTEMPT, FILTER_REQUEST_SMS, 0);
                                             RetryDto retryDto = new RetryDto();
                                             retryDto.setRetryPolicy(retryPolicies.getPolicy().get("SMS"));
                                             retryDto.setRetryStep(BigDecimal.ZERO);
@@ -284,7 +284,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                         }
 
                                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
-                                        log.debug(RETRY_ATTEMPT, FILTER_REQUEST_SMS, retryNumber);
+                                        log.info(RETRY_ATTEMPT, FILTER_REQUEST_SMS, retryNumber);
                                         return Mono.just(requestDto);
 
                                     })
