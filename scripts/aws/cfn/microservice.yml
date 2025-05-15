@@ -945,6 +945,11 @@ Parameters:
     Description: 'EvaluationPeriods for GetUnreadPecMessagesCount Alarm'
     Default: 18
 
+  ApplicativeEnvFileChecksum:
+    Type: String
+    Default: ''
+    Description: 'Applicative environment variable file checksum'
+
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
@@ -1051,6 +1056,7 @@ Resources:
         JavaToolOptions: !Ref JavaToolOptions
         EfsFilesystem: !Ref FargateEFSFileSystemID
         MountEfs: !Ref MountEfs
+        ApplicativeEnvFileChecksum: !Ref ApplicativeEnvFileChecksum
 
   PnEcManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
