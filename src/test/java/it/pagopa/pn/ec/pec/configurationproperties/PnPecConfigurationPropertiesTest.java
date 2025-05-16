@@ -7,12 +7,15 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeUtils;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
 @SpringBootTestWebEnv
 @CustomLog
+@TestPropertySource("classpath:application-test.properties")
 class PnPecConfigurationPropertiesTest {
 
     @Autowired
@@ -27,6 +30,7 @@ class PnPecConfigurationPropertiesTest {
     private static final String DATE_R_NAM_W_ARUBA = "2023-02-02T00:00:00Z";
     private static final String PN_PEC_PROVIDER_SWITCH_WRITE = "pnPecProviderSwitchWrite";
     private static final String PN_PEC_PROVIDER_SWITCH_READ = "pnPecProviderSwitchRead";
+
 
     @BeforeEach
     void setUp() {

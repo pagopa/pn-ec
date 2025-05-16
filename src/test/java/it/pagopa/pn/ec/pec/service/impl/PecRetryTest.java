@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -54,6 +55,7 @@ import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@TestPropertySource(locations = {"classpath:application-test.properties","classpath:pec/lavorazione-pec.properties"})
 class PecRetryTest {
 
     @Autowired

@@ -6,6 +6,7 @@ import it.pagopa.pn.ec.testutils.localstack.LocalStackTestConfig;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -17,4 +18,5 @@ import java.lang.annotation.Target;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import({LocalStackTestConfig.class, MockMessageListenerConfiguration.class})
 @ExtendWith(PnEcTestWatcher.class)
+@ActiveProfiles("test")
 public @interface SpringBootTestWebEnv {}
