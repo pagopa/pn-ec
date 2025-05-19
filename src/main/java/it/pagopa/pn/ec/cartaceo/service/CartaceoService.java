@@ -345,7 +345,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 //              se il primo step, inizializza l'attributo retry
                 .map(requestDto -> {
                     RetryDto retry = requestDto.getRequestMetadata().getRetry();
-                    if (retry == null || retry.getRetryStep() == null) {
+                    if (retry == null) {
                         log.debug(RETRY_ATTEMPT, FILTER_REQUEST_CARTACEO, 0);
                         RetryDto retryDto = new RetryDto();
                         retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PAPER"));
@@ -384,7 +384,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     PatchDto patchDto = new PatchDto();
                     RetryDto retryDto = requestDto.getRequestMetadata().getRetry();
                     patchDto.setRetry(retryDto);
-                    cartaceoPresaInCaricoInfo.getStepError().setRetryStep(retryDto.getRetryStep());
+                    cartaceoPresaInCaricoInfo.getStepError().setRetryDto(retryDto);
                     return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
                 })
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, FILTER_REQUEST_CARTACEO, result));
@@ -650,9 +650,11 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnDlqErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        PatchDto patchDto = new PatchDto();
-        patchDto.setRetry(new RetryDto());
-        return gestoreRepositoryCall.patchRichiesta(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx(), patchDto)
+        return Mono.justOrEmpty(presaInCaricoInfo.getStepError().getRetryDto())
+                .flatMap(retryDto -> {
+                    PatchDto patchDto = new PatchDto().retry(retryDto.retryStep(BigDecimal.ZERO));
+                    return gestoreRepositoryCall.patchRichiesta(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx(), patchDto);
+                })
                 .then(sqsService.sendWithDeduplicationId(cartaceoSqsQueueName.dlqErrorName(), presaInCaricoInfo));
     }
 

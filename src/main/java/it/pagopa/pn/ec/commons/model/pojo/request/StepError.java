@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.commons.model.pojo.request;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import it.pagopa.pn.ec.rest.v1.dto.GeneratedMessageDto;
+import it.pagopa.pn.ec.rest.v1.dto.RetryDto;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -59,7 +60,7 @@ public class StepError {
     }
 
     StepErrorEnum step;
-    BigDecimal retryStep;
+    RetryDto retryDto;
     GeneratedMessageDto generatedMessageDto;
     OperationResultCodeResponse operationResultCodeResponse;
 }
