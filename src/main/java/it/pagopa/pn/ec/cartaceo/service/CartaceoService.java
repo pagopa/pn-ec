@@ -344,7 +344,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
 //              se il primo step, inizializza l'attributo retry
                 .map(requestDto -> {
-                    if (requestDto.getRequestMetadata().getRetry() == null) {
+                    RetryDto retry = requestDto.getRequestMetadata().getRetry();
+                    if (retry == null) {
                         log.debug(RETRY_ATTEMPT, FILTER_REQUEST_CARTACEO, 0);
                         RetryDto retryDto = new RetryDto();
                         retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PAPER"));
@@ -383,7 +384,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     PatchDto patchDto = new PatchDto();
                     RetryDto retryDto = requestDto.getRequestMetadata().getRetry();
                     patchDto.setRetry(retryDto);
-                    cartaceoPresaInCaricoInfo.getStepError().setRetryStep(retryDto.getRetryStep());
+                    cartaceoPresaInCaricoInfo.getStepError().setRetryDto(retryDto);
                     return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
                 })
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, FILTER_REQUEST_CARTACEO, result));
@@ -493,9 +494,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, cartaceoPresaInCaricoInfo.getRequestIdx(), CARTACEO_PUT_REQUEST_STEP, result))
                 .doOnError(MaxRetriesExceededException.class, throwable -> {
                     log.debug(EXCEPTION_IN_PROCESS, CARTACEO_PUT_REQUEST_STEP, throwable, throwable.getMessage());
-                    StepError stepError = new StepError();
-                    stepError.setStep(PUT_REQUEST_STEP);
-                    cartaceoPresaInCaricoInfo.setStepError(stepError);
+                    cartaceoPresaInCaricoInfo.getStepError().setStep(PUT_REQUEST_STEP);
                 });
     }
 
@@ -504,9 +503,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .filter(dto -> dto.getRequestMetadata().getEventsList().stream().noneMatch(eventsDto -> eventsDto.getPaperProgrStatus().getStatus().equals(SENT.getStatusTransactionTableCompliant())))
                 .switchIfEmpty(Mono.fromRunnable(() -> {
                     log.warn("Request already sent to the Consolidatore service. Skipping the operation.");
-                    StepError stepError = new StepError();
-                    stepError.setStep(END);
-                    cartaceoPresaInCaricoInfo.setStepError(stepError);
+                    cartaceoPresaInCaricoInfo.getStepError().setStep(END);
                 }));
     }
 
@@ -537,10 +534,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, cartaceoPresaInCaricoInfo.getRequestIdx(), NOTIFICATION_TRACKER_STEP_CARTACEO, result))
                 .doOnError(MaxRetriesExceededException.class, throwable -> {
                     log.debug(EXCEPTION_IN_PROCESS, NOTIFICATION_TRACKER_STEP_CARTACEO, throwable, throwable.getMessage());
-                    StepError stepError = new StepError();
-                    stepError.setStep(NOTIFICATION_TRACKER_STEP);
-                    stepError.setOperationResultCodeResponse(operationResultCodeResponse);
-                    cartaceoPresaInCaricoInfo.setStepError(stepError);
+                    cartaceoPresaInCaricoInfo.getStepError().setStep(NOTIFICATION_TRACKER_STEP);
+                    cartaceoPresaInCaricoInfo.getStepError().setOperationResultCodeResponse(operationResultCodeResponse);
                 });
     }
 
@@ -577,9 +572,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     .retryWhen(lavorazioneRichiestaRetryStrategy)
                     .doOnError(MaxRetriesExceededException.class, throwable -> {
                         log.debug(EXCEPTION_IN_PROCESS, CARTACEO_PDF_RASTER_STEP, throwable, throwable.getMessage());
-                        StepError stepError = new StepError();
-                        stepError.setStep(PDF_RASTER_STEP);
-                        cartaceoPresaInCaricoInfo.setStepError(stepError);
+                        cartaceoPresaInCaricoInfo.getStepError().setStep(PDF_RASTER_STEP);
                     });
         }
         return Mono.empty();
@@ -649,7 +642,12 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnDlqErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.sendWithDeduplicationId(cartaceoSqsQueueName.dlqErrorName(), presaInCaricoInfo);
+        return Mono.justOrEmpty(presaInCaricoInfo.getStepError().getRetryDto())
+                .flatMap(retryDto -> {
+                    PatchDto patchDto = new PatchDto().retry(retryDto.retryStep(BigDecimal.ZERO));
+                    return gestoreRepositoryCall.patchRichiesta(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx(), patchDto);
+                })
+                .then(sqsService.sendWithDeduplicationId(cartaceoSqsQueueName.dlqErrorName(), presaInCaricoInfo));
     }
 
     @Override
