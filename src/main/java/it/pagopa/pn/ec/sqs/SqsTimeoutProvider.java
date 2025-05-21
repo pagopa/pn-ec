@@ -57,14 +57,14 @@ public class SqsTimeoutProvider {
             String timeoutStr = attributes.attributes().get(QueueAttributeName.VISIBILITY_TIMEOUT);
             int visibilityTimeout = Integer.parseInt(timeoutStr);
 
-            int delta=visibilityTimeout * percent /100;
+            long timeout = (long) visibilityTimeout * percent / 100L;
 
-            if (delta < 1 || visibilityTimeout < 1) {
+            if (timeout < 1 || visibilityTimeout < 1) {
                 log.warn("Effective timeout for {} would be >= visibilityTimeout or too short — skipping",queueName);
                 return;
             }
 
-            Duration processingTimeout = Duration.ofSeconds((long) visibilityTimeout - delta);
+            Duration processingTimeout = Duration.ofSeconds(timeout);
             queueTimeouts.put(queueName, processingTimeout);
 
             log.info("Timeout configured for queue {}: {}s", queueName, processingTimeout.getSeconds());

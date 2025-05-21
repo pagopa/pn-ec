@@ -4,7 +4,6 @@ package it.pagopa.pn.ec.sqs;
 import it.pagopa.pn.ec.commons.configuration.sqs.SqsTimeoutConfigurationProperties;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,7 +58,7 @@ class SqsTimeoutProviderTest {
 
         timeoutProvider.initQueueTimeouts().block();
 
-        Assertions.assertEquals(Duration.ofSeconds(27),timeoutProvider.getTimeoutForQueue("test-queue"));
+        Assertions.assertEquals(Duration.ofSeconds(3),timeoutProvider.getTimeoutForQueue("test-queue"));
     }
 
     @Test
