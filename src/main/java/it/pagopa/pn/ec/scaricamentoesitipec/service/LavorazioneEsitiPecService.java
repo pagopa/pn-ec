@@ -11,6 +11,7 @@ import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.S3Service;
+import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import it.pagopa.pn.library.pec.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
@@ -67,9 +68,22 @@ public class LavorazioneEsitiPecService {
     private final S3Service s3Service;
     private final String storageSqsMessagesStagingBucket;
     private final Semaphore semaphore;
+    private final SqsTimeoutProvider sqsTimeoutProvider;
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
 
-    public LavorazioneEsitiPecService(SqsService sqsService, DaticertService daticertService, StatusPullService statusPullService, CloudWatchPecMetrics cloudWatchPecMetrics, NotificationTrackerSqsName notificationTrackerSqsName, FileCall fileCall, WebClient uploadWebClient, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, GestoreRepositoryCall gestoreRepositoryCall, S3Service s3Service, @Value("${lavorazione-esiti-pec.max-thread-pool-size}") Integer maxThreadPoolSize, @Value("${pn.ec.storage.sqs.messages.staging.bucket}") String storageSqsMessagesStagingBucket) {
+    public LavorazioneEsitiPecService(SqsService sqsService,
+                                      DaticertService daticertService,
+                                      StatusPullService statusPullService,
+                                      CloudWatchPecMetrics cloudWatchPecMetrics,
+                                      NotificationTrackerSqsName notificationTrackerSqsName,
+                                      FileCall fileCall,
+                                      WebClient uploadWebClient,
+                                      ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties,
+                                      GestoreRepositoryCall gestoreRepositoryCall,
+                                      S3Service s3Service,
+                                      SqsTimeoutProvider sqsTimeoutProvider,
+                                      @Value("${lavorazione-esiti-pec.max-thread-pool-size}") Integer maxThreadPoolSize,
+                                      @Value("${pn.ec.storage.sqs.messages.staging.bucket}") String storageSqsMessagesStagingBucket) {
         this.sqsService = sqsService;
         this.daticertService = daticertService;
         this.statusPullService = statusPullService;
@@ -82,6 +96,7 @@ public class LavorazioneEsitiPecService {
         this.s3Service = s3Service;
         this.storageSqsMessagesStagingBucket = storageSqsMessagesStagingBucket;
         this.semaphore = new Semaphore(maxThreadPoolSize);
+        this.sqsTimeoutProvider=sqsTimeoutProvider;
     }
 
     @SqsListener(value = "${scaricamento-esiti-pec.sqs-queue-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
@@ -93,6 +108,7 @@ public class LavorazioneEsitiPecService {
     Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto payload, Acknowledgment acknowledgment) {
         MDC.clear();
         String payloadPointerFileKey = payload.getPointerFileKey();
+        String queueName = scaricamentoEsitiPecProperties.sqsQueueName();
         return MDCUtils.addMDCToContextAndExecute(Mono.justOrEmpty(payloadPointerFileKey)
                 .doOnNext(fileKey -> log.debug("Getting SQS payload with key '{}' from S3 bucket.", fileKey))
                 .flatMap(fileKey -> s3Service.getObjectAndConvert(fileKey, storageSqsMessagesStagingBucket, RicezioneEsitiPecDto.class))
@@ -211,6 +227,7 @@ public class LavorazioneEsitiPecService {
                         return s3Service.deleteObject(payloadPointerFileKey, storageSqsMessagesStagingBucket).thenReturn(sendMessageResponse);
                     else return Mono.just(sendMessageResponse);
                 })
+                .timeout(sqsTimeoutProvider.getTimeoutForQueue(queueName))
                 .doOnSuccess(result -> {
                     log.logEndingProcess(LAVORAZIONE_ESITI_PEC);
                     acknowledgment.acknowledge();
