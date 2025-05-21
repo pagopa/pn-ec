@@ -15,7 +15,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 @SpringBootTestWebEnv
 @CustomLog
-@TestPropertySource("classpath:application-test.properties")
 class PnPecConfigurationPropertiesTest {
 
     @Autowired

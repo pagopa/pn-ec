@@ -1,7 +1,7 @@
 #!/bin/bash
 
 aws_profile=""
-aws_region="eu-south-1"
+aws_region="us-east-1"
 
 while getopts 't:i:p:r:e:' opt ; do
   case "$opt" in 

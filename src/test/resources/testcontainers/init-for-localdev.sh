@@ -1,8 +1,9 @@
 #!/bin/bash
 
 LOCALSTACK_ENDPOINT=http://localhost:4566
-REGION=eu-south-1
+REGION=us-east-1
 PROFILE=local
+AWS_PROFILE="default"
 ACCESS_KEY=TEST
 SECRET_KEY=TEST
 curr_dir=$(pwd)
@@ -48,7 +49,7 @@ verify_localstack() {
 build_run() {
   local curr_dir=$(pwd)
   cd ..
-  if ! ( ./mvnw -Dspring-boot.run.jvmArguments="-Dspring.profiles.active=local -Daws.accessKeyId=TEST -Daws.secretAccessKey=TEST -Daws.region=eu-south-1" spring-boot:run ); then
+  if ! ( ./mvnw -Dspring-boot.run.jvmArguments="-Dspring.profiles.active=local -Daws.accessKeyId=TEST -Daws.secretAccessKey=TEST -Daws.region=us-east-1 -Daws.profile=default" spring-boot:run ); then
   echo "### Initialization failed ###"
   exit 1
   fi
