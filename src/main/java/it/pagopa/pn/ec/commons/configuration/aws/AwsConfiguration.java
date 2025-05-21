@@ -114,6 +114,11 @@ public class AwsConfiguration {
             sqsAsyncClientBuilder.endpointOverride(URI.create(sqsLocalStackEndpoint));
         }
 
+        if (regionCode != null) {
+            sqsAsyncClientBuilder.region(Region.of(regionCode));
+
+        }
+
         return sqsAsyncClientBuilder.build();
     }
 
