@@ -66,8 +66,8 @@ main() {
   verify_localstack && \
   execute_init && \
   dynamo_db_load  && \
-  build_run ||
-  { log "### Failed to start pn-ec ###"; exit 1 }
+  build_run || \
+  { log "### Failed to start pn-ec ###"; exit 1; }
   local end_time=$(date +%s)
   log "### pn-ec started ###"
   log "### Time taken: $((end_time - start_time)) seconds ###"
