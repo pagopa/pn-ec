@@ -16,8 +16,8 @@ dynamo_db_load() {
 
   local BASE_REPO="https://raw.githubusercontent.com/pagopa/pn-ec/develop"
   local DYNAMO_SCRIPT_URL="$BASE_REPO/scripts/dynamoDBLoad.sh"
-  local ANAGRAFICA_URL="$BASE_REPO/scripts/localdev/AnagraficaClient.json"
-  local STATE_MACHINE_URL="$BASE_REPO/scripts/StateMachine.json"
+  local ANAGRAFICA_URL="$BASE_REPO/scripts/AnagraficaClient.json"
+  local STATE_MACHINE_URL="$BASE_REPO/scripts/StateMachines.json"
 
   log "### Populating pn-EcAnagrafica ###" && \
   curl -sL "$DYNAMO_SCRIPT_URL" | bash -s -- \
