@@ -212,7 +212,6 @@ create_s3_bucket() {
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
     --bucket "$bucket_name" \
-    --create-bucket-configuration LocationConstraint="$AWS_REGION" \
     --object-lock-enabled-for-bucket && \
   aws s3api put-object-lock-configuration \
     --profile "$AWS_PROFILE" \
