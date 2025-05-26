@@ -4,6 +4,7 @@ set -euo pipefail
 
 # Configurazione
 VERBOSE=false
+LOCALSTACK_ENDPOINT=http://localhost:4566
 REGION=us-east-1
 AWS_PROFILE="default"
 ACCESS_KEY=TEST
@@ -12,6 +13,13 @@ SECRET_KEY=TEST
 # Logging
 log() { echo "[pn-ec-init][$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
 
+# Verifica LocalStack
+verify_localstack() {
+  curl -fs "$LOCALSTACK_ENDPOINT" > /dev/null || {
+    log "LocalStack non è attivo"; exit 1;
+  }
+}
+
 # Popolamento DynamoDB
 populate_table() {
   local table=$1 url=$2
@@ -19,7 +27,7 @@ populate_table() {
   tmpfile=$(mktemp)
   curl -sL "$url" > "$tmpfile"
   curl -sL "https://raw.githubusercontent.com/pagopa/pn-ec/$COMMIT_ID/scripts/dynamoDBLoad.sh" | \
-    bash -s -- -t "$table" -i "$tmpfile" -r "$REGION" -e "$LOCALSTACK_ENDPOINT" || \
+    bash -s -- -t "$table" -i "$tmpfile" -r "$REGION" -e "$LOCALSTACK_ENDPOINT" -j 20 || \
     log "Failed to populate $table"
 }
 
@@ -41,6 +49,7 @@ main() {
   log "Starting pn-ec localdev configuration."
   local start=$(date +%s)
 
+  verify_localstack
   execute_init
   load_dynamodb
 
