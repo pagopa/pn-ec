@@ -4,7 +4,6 @@ set -euo pipefail
 
 # Configurazione
 VERBOSE=false
-LOCALSTACK_ENDPOINT=http://localstack:4566
 REGION=us-east-1
 AWS_PROFILE="default"
 ACCESS_KEY=TEST
@@ -13,14 +12,6 @@ CLI_PAGER=$(aws configure get cli_pager)
 
 # Logging
 log() { echo "[pn-ec-init][$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
-silent() { "$@" > /dev/null 2>&1 || true; }
-
-# Verifica LocalStack
-verify_localstack() {
-  curl -fs "$LOCALSTACK_ENDPOINT" > /dev/null || {
-    log "LocalStack non è attivo"; exit 1;
-  }
-}
 
 # Popolamento DynamoDB
 populate_table() {
@@ -52,7 +43,6 @@ main() {
   aws configure set cli_pager ""
   local start=$(date +%s)
 
-  verify_localstack
   execute_init
   load_dynamodb
 
