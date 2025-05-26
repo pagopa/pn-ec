@@ -1,77 +1,64 @@
 #!/bin/bash
+COMMIT_ID=${1:-develop}
+set -euo pipefail
 
+# Configurazione
+VERBOSE=false
 LOCALSTACK_ENDPOINT=http://localhost:4566
 REGION=us-east-1
-PROFILE=local
 AWS_PROFILE="default"
 ACCESS_KEY=TEST
 SECRET_KEY=TEST
-curr_dir=$(pwd)
+CLI_PAGER=$(aws configure get cli_pager)
 
-log() { echo "[pn-ec-init-for-localdev][$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
+# Logging
+log() { echo "[pn-ec-init][$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
+silent() { "$@" > /dev/null 2>&1 || true; }
 
-
-dynamo_db_load() {
-  log "### Populating DynamoDB ###"
-
-  local BASE_REPO="https://raw.githubusercontent.com/pagopa/pn-ec/develop"
-  local DYNAMO_SCRIPT_URL="$BASE_REPO/scripts/dynamoDBLoad.sh"
-  local ANAGRAFICA_URL="$BASE_REPO/scripts/AnagraficaClient.json"
-  local STATE_MACHINE_URL="$BASE_REPO/scripts/StateMachines.json"
-
-  log "### Populating pn-EcAnagrafica ###" && \
-  curl -sL "$DYNAMO_SCRIPT_URL" | bash -s -- \
-    -t "pn-EcAnagrafica" \
-    -i <(curl -sL "$ANAGRAFICA_URL") \
-    -r "$REGION" -e "$LOCALSTACK_ENDPOINT" || \
-  { log "### Failed to populate pn-EcAnagrafica ###"; return 1; }
-
-  log "### Populating pn-SmStates ###" && \
-  curl -sL "$DYNAMO_SCRIPT_URL" | bash -s -- \
-    -t "pn-SmStates" \
-    -i <(curl -sL "$STATE_MACHINE_URL") \
-    -r "$REGION" -e "$LOCALSTACK_ENDPOINT" || \
-  { log "### Failed to populate pn-SmStates ###"; return 1; }
-}
-
-execute_init() {
-  log "### Try to execute pn-ec init.sh ###"
-  bash <(curl -s https://raw.githubusercontent.com/pagopa/pn-ec/develop/src/test/resources/testcontainers/init.sh)
-}
-
+# Verifica LocalStack
 verify_localstack() {
-  if ! curl -s $LOCALSTACK_ENDPOINT > /dev/null; then
-    log "### Localstack is not running ###"
-    exit 1
-  fi
+  curl -fs "$LOCALSTACK_ENDPOINT" > /dev/null || {
+    log "LocalStack non è attivo"; exit 1;
+  }
 }
 
-build_run() {
-  local curr_dir=$(pwd)
-  cd ..
-  if ! ( ./mvnw -Dspring-boot.run.jvmArguments="-Dspring.profiles.active=local -Daws.accessKeyId=TEST -Daws.secretAccessKey=TEST -Daws.region=us-east-1 -Daws.profile=default" spring-boot:run ); then
-  echo "### Initialization failed ###"
-  exit 1
-  fi
-  # Return to the original directory
-  cd "$curr_dir" || return 1
+# Popolamento DynamoDB
+populate_table() {
+  local table=$1 url=$2
+  log "Populating $table"
+  tmpfile=$(mktemp)
+  curl -sL "$url" > "$tmpfile"
+  curl -sL "https://raw.githubusercontent.com/pagopa/pn-ec/$COMMIT_ID/scripts/dynamoDBLoad.sh" | \
+    bash -s -- -t "$table" -i "$tmpfile" -r "$REGION" -e "$LOCALSTACK_ENDPOINT" || \
+    log "Failed to populate $table"
 }
 
+load_dynamodb() {
+  log "Populating DynamoDB"
+  local base="https://raw.githubusercontent.com/pagopa/pn-ec/$COMMIT_ID/scripts"
+  populate_table "pn-EcAnagrafica" "$base/AnagraficaClient.json"
+  populate_table "pn-SmStates" "$base/StateMachines.json"
+}
+
+# Inizializzazione
+execute_init() {
+  log "Executing init script"
+  bash <(curl -s "https://raw.githubusercontent.com/pagopa/pn-ec/$COMMIT_ID/src/test/resources/testcontainers/init.sh")
+}
+
+# Main
 main() {
-  log "### Starting pn-ec ###"
+  log "Starting pn-ec localdev configuration."
   aws configure set cli_pager ""
+  local start=$(date +%s)
 
-  local start_time=$(date +%s)
+  verify_localstack
+  execute_init
+  load_dynamodb
 
-  verify_localstack && \
-  execute_init && \
-  dynamo_db_load  && \
-  build_run || \
-  { log "### Failed to start pn-ec ###"; exit 1; }
-  local end_time=$(date +%s)
-  log "### pn-ec started ###"
-  log "### Time taken: $((end_time - start_time)) seconds ###"
-  cd "$curr_dir"
+  local duration=$(( $(date +%s) - start ))
+  log "init-for-localdev.sh executed in ${duration}s"
+  aws configure set cli_pager "$CLI_PAGER"
 }
 
 main
