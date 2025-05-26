@@ -4,7 +4,7 @@ set -euo pipefail
 
 # Configurazione
 VERBOSE=false
-LOCALSTACK_ENDPOINT=http://localhost:4566
+LOCALSTACK_ENDPOINT=http://localstack:4566
 REGION=us-east-1
 AWS_PROFILE="default"
 ACCESS_KEY=TEST
