@@ -8,7 +8,6 @@ REGION=us-east-1
 AWS_PROFILE="default"
 ACCESS_KEY=TEST
 SECRET_KEY=TEST
-CLI_PAGER=$(aws configure get cli_pager)
 
 # Logging
 log() { echo "[pn-ec-init][$(date +'%Y-%m-%d %H:%M:%S')] $*"; }
@@ -40,7 +39,6 @@ execute_init() {
 # Main
 main() {
   log "Starting pn-ec localdev configuration."
-  aws configure set cli_pager ""
   local start=$(date +%s)
 
   execute_init
@@ -48,7 +46,6 @@ main() {
 
   local duration=$(( $(date +%s) - start ))
   log "init-for-localdev.sh executed in ${duration}s"
-  aws configure set cli_pager "$CLI_PAGER"
 }
 
 main
