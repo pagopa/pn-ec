@@ -5,11 +5,14 @@ import it.pagopa.pn.ec.testutils.configuration.SqsTestConfiguration;
 import lombok.CustomLog;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ClassPathResource;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
+
+import java.io.IOException;
 
 import static org.testcontainers.containers.localstack.LocalStackContainer.Service.*;
 
@@ -31,9 +34,8 @@ public class LocalStackTestConfig {
 
     static {
         localStackContainer.start();
-        //<-- Override spring-cloud-starter-aws-messaging endpoints for testing -->
-        System.setProperty("cloud.aws.sqs.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
-        //<-- Override AWS services endpoint variables for testing -->
+        System.setProperty("aws.endpoint-url", localStackContainer.getEndpointOverride(SQS).toString());
+
         System.setProperty("test.aws.sqs.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
 
         System.setProperty("test.aws.event", String.valueOf(localStackContainer.getEndpointOverride(SQS)));
@@ -51,6 +53,11 @@ public class LocalStackTestConfig {
         System.setProperty("test.aws.ssm.endpoint", String.valueOf(localStackContainer.getEndpointOverride(SSM)));
 
         System.setProperty("test.aws.s3.endpoint", String.valueOf(localStackContainer.getEndpointOverride(S3)));
-    }
+        try {
+            System.setProperty("aws.sharedCredentialsFile", new ClassPathResource("testcontainers/credentials").getFile().getAbsolutePath());
 
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+}
 }

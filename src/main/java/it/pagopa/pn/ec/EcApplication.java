@@ -10,8 +10,6 @@ import org.springframework.context.annotation.PropertySource;
 @ConfigurationPropertiesScan(basePackages = {"it.pagopa.pn.ec", "it.pagopa.pn.library.pec","it.pagopa.pn.template"})
 
 // <-- COMMONS -->
-// AWS CONFIGURATION
-@PropertySource("classpath:commons/aws-configuration.properties")
 // INTERNAL ENDPOINTS
 @PropertySource("classpath:commons/internal-endpoint.properties")
 // NOTIFICATION TRACKER QUEUE
