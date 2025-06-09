@@ -4,7 +4,8 @@ set -e
 
 ## CONFIGURATION ##
 VERBOSE=true
-AWS_REGION="eu-south-1"
+AWS_PROFILE="default"
+AWS_REGION="us-east-1"
 LOCALSTACK_ENDPOINT="http://localhost:4566"
 NOTIFICATIONS_BUS_NAME="notifications-bus-name-test"
 
@@ -161,8 +162,9 @@ create_dynamodb_table() {
   local pk=$2
 
   log "Creating DynamoDB table: $table_name"
-  if ! silent aws dynamodb describe-table --table-name "$table_name" --region "$AWS_REGION" --endpoint-url "$LOCALSTACK_ENDPOINT" ; then
+  if ! silent aws dynamodb describe-table --table-name "$table_name" --profile "$AWS_PROFILE" --region "$AWS_REGION" --endpoint-url "$LOCALSTACK_ENDPOINT" ; then
     if ! aws dynamodb create-table \
+      --profile "$AWS_PROFILE" \
       --region "$AWS_REGION" \
       --endpoint-url "$LOCALSTACK_ENDPOINT" \
       --table-name "$table_name" \
@@ -182,7 +184,7 @@ create_dynamodb_table() {
 create_sqs_queue() {
   local queue_name=$1
   log "Creating SQS queue: $queue_name"
-  base_cmd_args="--region ${AWS_REGION} --endpoint-url ${LOCALSTACK_ENDPOINT} --queue-name ${queue_name}"
+  base_cmd_args="--profile "$AWS_PROFILE" --region ${AWS_REGION} --endpoint-url ${LOCALSTACK_ENDPOINT} --queue-name ${queue_name}"
    if [[ $queue_name == *.fifo ]]; then
     base_cmd_args="${base_cmd_args} --attributes FifoQueue=true,ContentBasedDeduplication=true"
   fi
@@ -199,18 +201,20 @@ create_s3_bucket() {
   echo "Crating S3 bucket: $bucket_name"
 
   silent aws s3api head-bucket \
+    --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
     --bucket "$bucket_name" && \
   log "Bucket already exists: $bucket_name" && return 0
 
   aws s3api create-bucket \
+    --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
     --bucket "$bucket_name" \
-    --create-bucket-configuration LocationConstraint="$AWS_REGION" \
     --object-lock-enabled-for-bucket && \
   aws s3api put-object-lock-configuration \
+    --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
     --bucket "$bucket_name" \
@@ -226,6 +230,7 @@ create_ssm_parameter() {
   echo "Parameter value: $parameter_value"
 
   silent aws ssm get-parameter \
+    --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
     --name "$parameter_name" && \
@@ -233,6 +238,7 @@ create_ssm_parameter() {
     return 0
 
   aws ssm put-parameter \
+    --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
     --name "$parameter_name" \
@@ -249,6 +255,7 @@ create_secret() {
   echo "Secret value: $secret_value"
 
   silent aws secretsmanager get-secret-value \
+    --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
     --secret-id "$secret_name" && \
@@ -256,12 +263,14 @@ create_secret() {
     return 0
 
   aws secretsmanager create-secret \
+    --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
     --name "$secret_name" \
     --secret-string "$secret_value" && \
 
   aws secretsmanager put-secret-value \
+    --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
     --secret-id "$secret_name" \
@@ -275,6 +284,7 @@ create_event_bus()
   local event_bus_name=$1
 
   silent aws events describe-event-bus \
+    --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
     --name $event_bus_name && \
@@ -282,6 +292,7 @@ create_event_bus()
     return 0
 
   aws events create-event-bus \
+    --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
     --name $event_bus_name
@@ -296,6 +307,7 @@ create_eventbridge_rule() {
    cmd=(
      aws events put-rule
      --endpoint-url="$LOCALSTACK_ENDPOINT"
+     --profile "$AWS_PROFILE" \
      --region "$AWS_REGION"
      --name "$event_name"
      --event-pattern "$event_pattern"
@@ -316,11 +328,11 @@ put_sqs_as_rule_target() {
   local rule_name=$2
   echo "Putting queue $queue_name as target for rule $rule_name"
 
-  queue_url=$(aws sqs get-queue-url --region $AWS_REGION --endpoint-url $LOCALSTACK_ENDPOINT --queue-name $queue_name --query "QueueUrl" --output text | tr -d '\r')
+  queue_url=$(aws sqs get-queue-url --profile "$AWS_PROFILE" --region $AWS_REGION --endpoint-url $LOCALSTACK_ENDPOINT --queue-name $queue_name --query "QueueUrl" --output text | tr -d '\r')
 
   if [[ $? -eq 0 ]]; then
     echo "Queue URL: $queue_url"
-    queue_arn=$(aws sqs get-queue-attributes --region "$AWS_REGION" --endpoint-url "$LOCALSTACK_ENDPOINT" --queue-url "$queue_url" --attribute-names "QueueArn" --query "Attributes.QueueArn" --output text | tr -d '\r')
+    queue_arn=$(aws sqs get-queue-attributes --profile "$AWS_PROFILE" --region "$AWS_REGION" --endpoint-url "$LOCALSTACK_ENDPOINT" --queue-url "$queue_url" --attribute-names "QueueArn" --query "Attributes.QueueArn" --output text | tr -d '\r')
     if [[ $? -eq 0 ]]; then
       echo "Queue ARN: $queue_arn"
     else
@@ -331,6 +343,7 @@ put_sqs_as_rule_target() {
   fi
 
   aws events put-targets \
+    --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
     --event-bus-name "$NOTIFICATIONS_BUS_NAME" \
@@ -342,6 +355,7 @@ put_sqs_as_rule_target() {
 authorize_ses_email() {
   local email_address=$1
   aws ses verify-email-identity \
+    --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
     --endpoint-url "$LOCALSTACK_ENDPOINT" \
     --email-address "$email_address" && \

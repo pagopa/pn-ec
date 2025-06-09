@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec.testutils.configuration;
 
-import it.pagopa.pn.ec.commons.configurationproperties.AwsConfigurationProperties;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -14,7 +13,6 @@ import java.net.URI;
 public class SqsTestConfiguration {
 
 
-    private final AwsConfigurationProperties awsConfigurationProperties;
 
     /**
      * Set in LocalStackTestConfig
@@ -22,9 +20,9 @@ public class SqsTestConfiguration {
     @Value("${test.aws.sqs.endpoint}")
     String sqsLocalStackEndpoint;
 
-    public SqsTestConfiguration(AwsConfigurationProperties awsConfigurationProperties) {
-        this.awsConfigurationProperties = awsConfigurationProperties;
-    }
+    @Value("${test.aws.region-code:#{null}}")
+    String regionCode;
+
 
 //  <-- AWS SDK for Java v2 -->
 
@@ -32,7 +30,7 @@ public class SqsTestConfiguration {
     public SqsClient sqsTestClient() {
         return SqsClient.builder()
                         .credentialsProvider(DefaultCredentialsProvider.create())
-                        .region(Region.of(awsConfigurationProperties.regionCode()))
+                        .region(Region.of(regionCode))
                         .endpointOverride(URI.create(sqsLocalStackEndpoint))
                         .build();
     }
