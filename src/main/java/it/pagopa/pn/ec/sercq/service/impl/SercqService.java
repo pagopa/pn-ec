@@ -66,10 +66,20 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
                         .getAttachmentUrls(), xPagopaExtchCxId, true)
                 .then(insertRequestFromSercq(digitalNotificationRequest, xPagopaExtchCxId))
                 .flatMap(requestDto -> {
-                    if (isReceiverDigitalAddressValid(pecPresaInCaricoInfo.getDigitalNotificationRequest().getReceiverDigitalAddress())) {
-                        return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, BOOKED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
-                                .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY);
-                    } else return Mono.error(new InvalidReceiverDigitalAddressException());
+                    // Inoltro sempre evento BOOKED, a prescindere dalla validità dell'indirizzo
+                    return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
+                                                         BOOKED.getStatusTransactionTableCompliant(),
+                                                         new DigitalProgressStatusDto())
+                            .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
+                            .then(Mono.defer(() -> {
+                                if (isReceiverDigitalAddressValid(pecPresaInCaricoInfo.getDigitalNotificationRequest().getReceiverDigitalAddress())) {
+                                    // Indirizzo valido, procedo normalmente
+                                    return Mono.empty();
+                                } else {
+                                    // Indirizzo invalido, genero eccezione per gestire passaggio ADDRESS_ERROR
+                                    return Mono.error(new InvalidReceiverDigitalAddressException());
+                                }
+                            }));
                 })
                 .then(Mono.defer(() -> {
                          DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();
