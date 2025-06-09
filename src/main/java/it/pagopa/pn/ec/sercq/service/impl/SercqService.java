@@ -38,7 +38,7 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
 
 
     private static final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
-            .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()))
+            .doBeforeRetry(retrySignal -> log.info("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()))
             .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure());
 
     public SercqService(AuthService authService, AttachmentService attachmentService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService, NotificationTrackerSqsName notificationTrackerSqsName) {

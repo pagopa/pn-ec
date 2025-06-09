@@ -38,7 +38,7 @@ public class S3ServiceImpl implements S3Service {
         this.objectMapper = objectMapper;
         this.s3RetryStrategy = Retry.backoff(s3Properties.maxAttempts(), Duration.ofSeconds(s3Properties.minBackoff()))
                 .filter(S3Exception.class::isInstance)
-                .doBeforeRetry(retrySignal -> log.debug(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure(), retrySignal.failure().getMessage()))
+                .doBeforeRetry(retrySignal -> log.info(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure(), retrySignal.failure().getMessage()))
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure());
     }
 
