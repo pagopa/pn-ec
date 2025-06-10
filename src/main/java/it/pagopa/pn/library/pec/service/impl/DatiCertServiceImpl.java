@@ -3,6 +3,7 @@ package it.pagopa.pn.library.pec.service.impl;
 import it.pagopa.pn.ec.commons.exception.XmlParserException;
 import it.pagopa.pn.library.pec.exception.daticert.DaticertServiceException;
 import it.pagopa.pn.library.pec.model.IPostacert;
+import it.pagopa.pn.library.pec.model.pojo.NamirialPostacert;
 import it.pagopa.pn.library.pec.service.DaticertService;
 import it.pagopa.pn.library.pec.model.pojo.Data;
 import it.pagopa.pn.library.pec.model.pojo.Postacert;
@@ -30,6 +31,13 @@ public class DatiCertServiceImpl implements DaticertService {
     String arubaPostacertClassType;
     @Value("${library.pec.pn.postacert.path}")
     String pnPostacertClassType;
+    @Value("${library.pec.namirial.postacert.path}")
+    String namirialPostacertClassType;
+    @Value("${namirial.warning-to-notdelivered.logic}")
+    private String namirialActivateLogic;
+
+
+
 
     public DatiCertServiceImpl(JAXBContext jaxbContext) {
         this.jaxbContext = jaxbContext;
@@ -38,15 +46,17 @@ public class DatiCertServiceImpl implements DaticertService {
     @Override
     public IPostacert getPostacertFromByteArray(byte[] bytes, String providerName) {
         try {
-//          This method could be called in a non-thread safe context; is good to create for each unmarshall operation a jakarta.xml.bind
-//          .JAXBContext.Unmarshaller object instead of a Spring Bean ?
-//          Yes the jakarta.xml.bind.JAXBContext is thread safe but jakarta.xml.bind.JAXBContext.Unmarshaller no
-//          https://javaee.github.io/jaxb-v2/doc/user-guide/ch06.html#d0e6879
-//          https://stackoverflow.com/questions/7400422/jaxb-creating-context-and-marshallers-cost
-            Class<?> dynamicClass = Class.forName(getPostacertClassType(providerName)).asSubclass(Postacert.class);
-            return (IPostacert) dynamicClass.getDeclaredConstructor(Postacert.class).newInstance((Postacert) jaxbContext.createUnmarshaller().unmarshal(new ByteArrayInputStream(bytes)));
-        } catch (JAXBException e) {
+            Postacert unmarshalled = (Postacert) jaxbContext.createUnmarshaller().unmarshal(new ByteArrayInputStream(bytes));
 
+            return switch (providerName) {
+                case ARUBA_PROVIDER -> {
+                    Class<?> dynamicClass = Class.forName(getPostacertClassType(providerName)).asSubclass(Postacert.class);
+                    yield (IPostacert) dynamicClass.getDeclaredConstructor(Postacert.class).newInstance(unmarshalled);
+                }
+                case NAMIRIAL_PROVIDER, DUMMY_PROVIDER -> new NamirialPostacert(unmarshalled, namirialActivateLogic);
+                default -> throw new IllegalArgumentException("Unsupported provider: " + providerName);
+            };
+        } catch (JAXBException e) {
             throw new XmlParserException("JAXBException during input stream unmarshalling");
         } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
             throw new DaticertServiceException("Exception during custom Postacert object instantiation : " + e);
@@ -69,7 +79,8 @@ public class DatiCertServiceImpl implements DaticertService {
     private String getPostacertClassType(String providerName) {
         String postacertClassType = switch (providerName) {
             case ARUBA_PROVIDER -> arubaPostacertClassType;
-            case NAMIRIAL_PROVIDER, DUMMY_PROVIDER -> pnPostacertClassType;
+            case NAMIRIAL_PROVIDER -> namirialPostacertClassType;
+            case DUMMY_PROVIDER -> pnPostacertClassType;
             default -> throw new IllegalArgumentException(String.format("There is no postacert type for '%s' provider", providerName));
         };
         log.debug("PostacertClassType : {}", postacertClassType);
