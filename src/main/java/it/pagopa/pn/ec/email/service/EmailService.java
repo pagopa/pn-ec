@@ -22,6 +22,7 @@ import it.pagopa.pn.ec.email.configurationproperties.EmailDefault;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import it.pagopa.pn.ec.util.LogSanitizer;
 import lombok.CustomLog;
 import org.slf4j.MDC;
@@ -73,12 +74,18 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     private final Semaphore semaphore;
     private String idSaved;
     private LogSanitizer logSanitizer;
+    private SqsTimeoutProvider sqsTimeoutProvider;
 
 
     protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
                            SesService sesService, AttachmentServiceImpl attachmentService,
-                           NotificationTrackerSqsName notificationTrackerSqsName, EmailSqsQueueName emailSqsQueueName,
-                           DownloadCall downloadCall, EmailDefault emailDefault, @Value("${lavorazione-email.max-thread-pool-size}") Integer maxThreadPoolSize, LogSanitizer logSanitizer) {
+                           NotificationTrackerSqsName notificationTrackerSqsName,
+                           EmailSqsQueueName emailSqsQueueName,
+                           DownloadCall downloadCall,
+                           EmailDefault emailDefault,
+                           @Value("${lavorazione-email.max-thread-pool-size}") Integer maxThreadPoolSize,
+                           LogSanitizer logSanitizer,
+                           SqsTimeoutProvider sqsTimeoutProvider) {
         super(authService);
         this.sqsService = sqsService;
         this.sesService = sesService;
@@ -90,6 +97,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         this.downloadCall = downloadCall;
         this.semaphore=new Semaphore(maxThreadPoolSize);
         this.logSanitizer = logSanitizer;
+        this.sqsTimeoutProvider = sqsTimeoutProvider;
     }
 
     private static final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
@@ -179,18 +187,22 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     @SqsListener(value = "${sqs.queue.email.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void lavorazioneRichiestaInteractive(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+        String queueName=emailSqsQueueName.interactiveName();
         logIncomingMessage(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
-        lavorazioneRichiesta(emailPresaInCaricoInfo).doOnSuccess(result -> acknowledgment.acknowledge()).subscribe();
+        lavorazioneRichiesta(emailPresaInCaricoInfo,queueName)
+                .doOnSuccess(result -> acknowledgment.acknowledge())
+                .subscribe();
     }
 
     @Scheduled(cron = "${pn.ec.cron.lavorazione-batch-email}")
     public void lavorazioneRichiestaBatch() {
         MDC.clear();
+        String queueName = emailSqsQueueName.batchName();
         sqsService.getMessages(emailSqsQueueName.batchName(), EmailPresaInCaricoInfo.class)
                 .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(emailSqsQueueName.batchName(),
                         emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                 .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(emailPresaInCaricoInfoSqsMessageWrapper.getMessage()),
-                        lavorazioneRichiesta(emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
+                        lavorazioneRichiesta(emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent(),queueName)))
                 .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(
                         emailPresaInCaricoInfoSqsMessageWrapper.getT1(),
                         emailSqsQueueName.batchName()))
@@ -200,7 +212,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
 
-    Mono<SendMessageResponse> lavorazioneRichiesta(final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
+    Mono<SendMessageResponse> lavorazioneRichiesta(final EmailPresaInCaricoInfo emailPresaInCaricoInfo,String queueName) {
 
         var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
@@ -264,11 +276,12 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                         RETRY.getStatusTransactionTableCompliant(),
                         new DigitalProgressStatusDto())
 
-                                                               // Publish to ERRORI EMAIL queue
-                                                               .then(sendNotificationOnErrorQueue(emailPresaInCaricoInfo)))
-                                .doOnError(exception -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_EMAIL, false, logSanitizer.sanitize(exception.getMessage())))
-                                .doOnSuccess(result -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_EMAIL))
-                                .doFinally(signalType -> semaphore.release());
+                        // Publish to ERRORI EMAIL queue
+                        .then(sendNotificationOnErrorQueue(emailPresaInCaricoInfo)))
+                .doOnError(exception -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_EMAIL, false, logSanitizer.sanitize(exception.getMessage())))
+                .doOnSuccess(result -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_EMAIL))
+                .doFinally(signalType -> semaphore.release())
+                .timeout(sqsTimeoutProvider.getTimeoutForQueue(queueName));
     }
 
     private EmailField compilaMail(DigitalCourtesyMailRequest req) {
@@ -290,13 +303,14 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     @Scheduled(cron = "${pn.ec.cron.gestione-retry-email}")
     void gestioneRetryEmailScheduler() {
         MDC.clear();
+        String queueName = emailSqsQueueName.errorName();
         idSaved = null;
-        sqsService.getOneMessage(emailSqsQueueName.errorName(), EmailPresaInCaricoInfo.class)
-                .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(emailSqsQueueName.errorName(),
+        sqsService.getOneMessage(queueName, EmailPresaInCaricoInfo.class)
+                .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(queueName,
                         emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                 .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(emailPresaInCaricoInfoSqsMessageWrapper.getMessage()),
                         gestioneRetryEmail(emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent(),
-                                emailPresaInCaricoInfoSqsMessageWrapper.getMessage())))
+                                emailPresaInCaricoInfoSqsMessageWrapper.getMessage(),queueName)))
                 .map(MonoResultWrapper::new)
                 .doOnError(throwable -> log.error(GENERIC_ERROR, logSanitizer.sanitize(String.valueOf(throwable))))
                 // Restituiamo Message e DeleteMessageResponse fittizzi per non bloccare lo scaricamento dalla coda
@@ -308,7 +322,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     }
 
 
-    public Mono<DeleteMessageResponse> gestioneRetryEmail(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message) {
+    public Mono<DeleteMessageResponse> gestioneRetryEmail(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message,String queueName) {
         var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId(clientId, requestIdx));
@@ -317,6 +331,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             var digitalCourtesyMailRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
             if (digitalCourtesyMailRequest.getAttachmentUrls() != null && !digitalCourtesyMailRequest.getAttachmentUrls().isEmpty() ) {
                 return MDCUtils.addMDCToContextAndExecute(processWithAttachRetry(emailPresaInCaricoInfo, message)
+                        .timeout(sqsTimeoutProvider.getTimeoutForQueue(queueName))
                         .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_EMAIL, false, logSanitizer.sanitize(throwable.getMessage())))
                         .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_EMAIL)));
             } else {

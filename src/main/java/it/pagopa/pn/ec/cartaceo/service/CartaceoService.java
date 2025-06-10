@@ -27,6 +27,7 @@ import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.cartaceo.configuration.RasterConfiguration;
 import it.pagopa.pn.ec.pdfraster.service.impl.DynamoPdfRasterServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.MDC;
@@ -81,12 +82,14 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final Semaphore semaphore;
     private final Integer cartaceoMaxBatchSubscribedMsgs;
     private final Retry lavorazioneRichiestaRetryStrategy;
+    private final SqsTimeoutProvider sqsTimeoutProvider;
 
     protected CartaceoService(AuthService authService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall,
                               AttachmentServiceImpl attachmentService, NotificationTrackerSqsName notificationTrackerSqsName,
                               CartaceoSqsQueueName cartaceoSqsQueueName, PaperMessageCall paperMessageCall, FileCall fileCall,
                               DownloadCall downloadCall, UploadCall uplpadCall, DynamoPdfRasterServiceImpl dynamoPdfRasterService,
                               RasterConfiguration rasterConfiguration, CartaceoMapper cartaceoMapper,
+                              SqsTimeoutProvider sqsTimeoutProvider,
                               @Value("${lavorazione-cartaceo.max-thread-pool-size}") Integer maxThreadPoolSize,
                               @Value("${lavorazione-cartaceo.max-retry-attempts}") Long maxRetryAttempts,
                               @Value("${lavorazione-cartaceo.min-retry-backoff}") Long minRetryBackoff,
@@ -104,6 +107,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         this.dynamoPdfRasterService = dynamoPdfRasterService;
         this.rasterConfiguration = rasterConfiguration;
         this.cartaceoMapper = cartaceoMapper;
+        this.sqsTimeoutProvider = sqsTimeoutProvider;
         this.semaphore = new Semaphore(maxThreadPoolSize);
         this.cartaceoMaxBatchSubscribedMsgs = cartaceoMaxBatchSubscribedMsgs;
         this.lavorazioneRichiestaRetryStrategy = Retry.backoff(maxRetryAttempts, Duration.ofSeconds(minRetryBackoff))
@@ -228,14 +232,15 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         log.logStartingProcess(LAVORAZIONE_RICHIESTA_CARTACEO_BATCH);
         AtomicBoolean hasMessages = new AtomicBoolean();
         hasMessages.set(true);
-        Mono.defer(() -> sqsService.getMessages(cartaceoSqsQueueName.batchName(), CartaceoPresaInCaricoInfo.class, cartaceoMaxBatchSubscribedMsgs)
-                .doOnNext(cartaceoPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(cartaceoSqsQueueName.batchName()
+        String queueName= cartaceoSqsQueueName.batchName();
+        Mono.defer(() -> sqsService.getMessages(queueName, CartaceoPresaInCaricoInfo.class, cartaceoMaxBatchSubscribedMsgs)
+                .doOnNext(cartaceoPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(queueName
                         , cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                 .flatMap(cartaceoPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessage())
                         , lavorazioneRichiesta(cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
                 .flatMap(cartaceoPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(
                         cartaceoPresaInCaricoInfoSqsMessageWrapper.getT1(),
-                        cartaceoSqsQueueName.batchName()))
+                       queueName))
                 .collectList())
                 .doOnNext(list -> hasMessages.set(!list.isEmpty()))
                 .repeat(hasMessages::get)
@@ -262,8 +267,11 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         stepError.setStep(PDF_RASTER_STEP);
         cartaceoPresaInCaricoInfo.setStepError(stepError);
 
+        String queueName= cartaceoSqsQueueName.batchName();
+
         return MDCUtils.addMDCToContextAndExecute(gestoreRepositoryCall.getRichiesta(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(), cartaceoPresaInCaricoInfo.getRequestIdx())
-                .flatMap(requestDto -> chooseStep(cartaceoPresaInCaricoInfo, paperEngageRequestDst, paperEngageRequestSrc,requestDto))
+                .flatMap(requestDto -> chooseStep(cartaceoPresaInCaricoInfo, paperEngageRequestDst, paperEngageRequestSrc, requestDto))
+                .timeout(sqsTimeoutProvider.getTimeoutForQueue(queueName))
                 .onErrorResume(MaxRetriesExceededException.class, cartaceoMaxRetriesExceeded -> sendMessageInRetry(cartaceoPresaInCaricoInfo))
                 .doOnError(exception -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_CARTACEO, false, exception.getMessage()))
                 .doOnSuccess(result -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_CARTACEO))
@@ -279,8 +287,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     void gestioneRetryCartaceoScheduler() {
         MDC.clear();
         idSaved = null;
-        sqsService.getOneMessage(cartaceoSqsQueueName.errorName(), CartaceoPresaInCaricoInfo.class)
-                .doOnNext(cartaceoPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(cartaceoSqsQueueName.errorName(),
+        String queueName=cartaceoSqsQueueName.errorName();
+        sqsService.getOneMessage(queueName, CartaceoPresaInCaricoInfo.class)
+                .doOnNext(cartaceoPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(queueName,
                         cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                 .flatMap(cartaceoPresaInCaricoInfoSqsMessageWrapper -> gestioneRetryCartaceo(cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent(),
                         cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessage()))
@@ -315,14 +324,17 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
             cartaceoPresaInCaricoInfo.setStepError(stepError);
         }
 
+        String queueName=cartaceoSqsQueueName.errorName();
+
         return MDCUtils.addMDCToContextAndExecute(filterRequestCartaceo(cartaceoPresaInCaricoInfo)
                 .flatMap(requestDto -> executeRetry(cartaceoPresaInCaricoInfo, requestDto, paperEngageRequestDst, paperEngageRequestSrc, message))
-                .switchIfEmpty(sqsService.changeMessageVisibility(cartaceoSqsQueueName.errorName(), retryPolicies.getPolicy().get("PAPER").get(0).intValueExact() * 54, message.receiptHandle()))
+                .switchIfEmpty(sqsService.changeMessageVisibility(queueName, retryPolicies.getPolicy().get("PAPER").get(0).intValueExact() * 54, message.receiptHandle()))
                 .onErrorResume(StatusToDeleteException.class, exception -> sendMessageInError(cartaceoPresaInCaricoInfo, message))
                 .onErrorResume(throwable -> {
                     log.info(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_CARTACEO, throwable, throwable.getMessage());
                     return sendMessageInInternalError(cartaceoPresaInCaricoInfo, message);
                 })
+                .timeout(sqsTimeoutProvider.getTimeoutForQueue(queueName))
                 .doOnError(exception -> log.logEndingProcess(GESTIONE_RETRY_CARTACEO, false, exception.getMessage()))
                 .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_CARTACEO)));
     }
@@ -436,7 +448,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
      * @param paperEngageRequestSrc     original PaperEngageRequest
      * @return Mono<SendMessageResponse> a mono containing a SendMessageResponse
      */
-    private Mono<SendMessageResponse> chooseStep(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest paperEngageRequestDst, PaperEngageRequest paperEngageRequestSrc, RequestDto requestDto) {
+    public Mono<SendMessageResponse> chooseStep(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest paperEngageRequestDst, PaperEngageRequest paperEngageRequestSrc, RequestDto requestDto) {
         return  filterIfSent(cartaceoPresaInCaricoInfo, requestDto)
                 .flatMap(ignored -> {
                     switch (cartaceoPresaInCaricoInfo.getStepError().getStep()) {
