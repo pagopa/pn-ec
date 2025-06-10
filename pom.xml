@@ -12,7 +12,7 @@
 
     <groupId>it.pagopa.pn.ec</groupId>
     <artifactId>pn-ec</artifactId>
-    <version>2.15.0-SNAPSHOT</version>
+    <version>2.16.0-SNAPSHOT</version>
     <name>pn-ec</name>
     <description>External communication µService</description>
 
@@ -44,7 +44,7 @@
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-commons</artifactId>
-            <version>2.8.0</version>
+            <version>2.10.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>it.pagopa.tech.lollipop-consumer-java-sdk</groupId>
@@ -119,7 +119,7 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-webflux-ui</artifactId>
-            <version>1.6.14</version>
+            <version>1.8.0</version>
         </dependency>
 
         <dependency>
@@ -160,18 +160,6 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-reactive-httpclient</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback.contrib</groupId>
-            <artifactId>logback-json-classic</artifactId>
-            <version>${logbackjackson.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback.contrib</groupId>
-            <artifactId>logback-jackson</artifactId>
-            <version>${logbackjackson.version}</version>
         </dependency>
         <!-- Finish EC WebClient dependencies -->
 
@@ -284,13 +272,13 @@
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-frontend-jaxws</artifactId>
-            <version>3.6.2</version>
+            <version>3.6.6</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.cxf.systests</groupId>
             <artifactId>cxf-systests-transport-hc5</artifactId>
-            <version>4.0.0</version>
+            <version>4.1.1</version>
         </dependency>
         <!-- End SOAP dependencies -->
 
@@ -349,19 +337,6 @@
             <artifactId>jakarta.mail-api</artifactId>
             <version>2.1.3</version>
         </dependency>
-
-        <!-- Start SS WebClient dependencies -->
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-reactive-httpclient</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback.contrib</groupId>
-            <artifactId>logback-json-classic</artifactId>
-            <version>${logbackjackson.version}</version>
-        </dependency>
-
         <dependency>
             <groupId>ch.qos.logback.contrib</groupId>
             <artifactId>logback-jackson</artifactId>
@@ -370,22 +345,10 @@
 
         <!-- Start SS WebClient dependencies -->
         <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-reactive-httpclient</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>ch.qos.logback.contrib</groupId>
             <artifactId>logback-json-classic</artifactId>
             <version>${logbackjackson.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback.contrib</groupId>
-            <artifactId>logback-jackson</artifactId>
-            <version>${logbackjackson.version}</version>
-        </dependency>
-
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
