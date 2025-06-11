@@ -120,7 +120,7 @@
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"error"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P008"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"inprogress"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"P001"},"targetStatus":{"L":[{"S":"inprogress"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"internalError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P010"},"targetStatus":{"L":[{"S":"_end_"}]}}
-{"processClientId":{"S":"PAPER"},"currStatus":{"S":"retry"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"error"}]}}
+{"processClientId":{"S":"PAPER"},"currStatus":{"S":"retry"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"syntaxError"},{"S":"semanticError"},{"S":"authenticationError"},{"S":"duplicatedRequest"},{"S":"internalError"},{"S":"error"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"semanticError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P012"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"sent"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"P000"},"targetStatus":{"L":[{"S":"_any_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"syntaxError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P011"},"targetStatus":{"L":[{"S":"_end_"}]}}
