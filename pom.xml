@@ -366,19 +366,6 @@
     </dependencies>
 
     <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-            </resource>
-
-            <resource>
-                <directory>config</directory>
-                <targetPath>config</targetPath>
-                <includes>
-                    <include>**/*</include>
-                </includes>
-            </resource>
-        </resources>
         <plugins>
 
             <plugin>
