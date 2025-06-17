@@ -25,7 +25,7 @@ public class StatusCodesToDeliveryFailureCausesConf {
 
     private final SsmClient ssmClient;
     @Value("${pn.ec.esiti-cartaceo.parameter.name}")
-    private String DELIVERY_FAILURE_CODES_PARAMETER_NAME;
+    private String deliveryFailureCodesParameterName;
     ObjectMapper objectMapper = new ObjectMapper();
     JsonUtils jsonUtils = new JsonUtils(objectMapper);
 
@@ -34,7 +34,7 @@ public class StatusCodesToDeliveryFailureCausesConf {
     }
 
     public Map<String, Map<String,List<String>>> retrieveDeliveryFailureCausesFromParameterStore() throws SsmException, JsonProcessingException {
-        String parameterName = DELIVERY_FAILURE_CODES_PARAMETER_NAME;
+        String parameterName = deliveryFailureCodesParameterName;
         GetParameterRequest parameterRequest = GetParameterRequest.builder().name(parameterName).build();
         log.info(CLIENT_METHOD_INVOCATION_WITH_ARGS,"ssmClient.getParameter", parameterName);
         String  value = ssmClient.getParameter(parameterRequest).parameter().value();

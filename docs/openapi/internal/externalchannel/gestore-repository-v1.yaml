@@ -425,3 +425,28 @@ components:
       $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/RequestConversionDto'
     PdfConversionDto:
       $ref: './schemas/internal-schemas-paper-v1.yaml#/components/schemas/PdfConversionDto'
+
+    DiscardedEventDto:
+      type: object
+      required:
+        - requestId
+        - timestampRicezione
+        - dataRicezione
+        - codiceScarto
+        - jsonRicevuto
+        - payloadHash
+      properties:
+        requestId:
+          type: string
+        timestampRicezione:
+          type: string
+        dataRicezione:
+          type: string
+        codiceScarto:
+          type: string
+        jsonRicevuto:
+          type: string
+        payloadHash:
+          type: string
+        details:
+          type: string

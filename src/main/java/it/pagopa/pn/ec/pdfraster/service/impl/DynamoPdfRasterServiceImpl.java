@@ -40,23 +40,27 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
 
     private final DynamoDbAsyncTableDecorator<RequestConversionEntity> requestTable;
     private final DynamoDbAsyncTableDecorator<PdfConversionEntity> conversionTable;
+    private final TableSchema<PdfConversionEntity> pdfConversionTableSchema;
+    private final TableSchema<RequestConversionEntity> requestConversionTableSchema;
     private final ObjectMapper objectMapper;
     private final DynamoDbAsyncClient dynamoDbAsyncClient;
     private final Retry pdfRasterRetryStrategy;
     private static final String VERSION_CONDITIONAL_CHECK = "attribute_exists(version) AND version = :version";
+    private final Integer offsetDays;
 
 
     public DynamoPdfRasterServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
                                       RepositoryManagerDynamoTableName repositoryManagerDynamoTableName, ObjectMapper objectMapper, DynamoDbAsyncClient dynamoDbAsyncClient, PdfRasterProperties pdfRasterProperties) {
         this.objectMapper = objectMapper;
         this.dynamoDbAsyncClient = dynamoDbAsyncClient;
-        this.requestTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversioneRequestName(),
-                TableSchema.fromBean(RequestConversionEntity.class)));
-        this.conversionTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversionePdfName(),
-                TableSchema.fromBean(PdfConversionEntity.class)));
+        this.requestConversionTableSchema = TableSchema.fromBean(RequestConversionEntity.class);
+        this.pdfConversionTableSchema = TableSchema.fromBean(PdfConversionEntity.class);
+        this.requestTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversioneRequestName(), this.requestConversionTableSchema));
+        this.conversionTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversionePdfName(), this.pdfConversionTableSchema));
         this.pdfRasterRetryStrategy = Retry.backoff(pdfRasterProperties.maxRetryAttempts(), Duration.ofSeconds(pdfRasterProperties.minRetryBackoff()))
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure())
                 .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
+        this.offsetDays = pdfRasterProperties.pdfConversionExpirationOffsetInDays();
     }
 
     @Override
@@ -149,7 +153,6 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                 .map(attachment -> createPdfConversion(attachment, entity.getRequestId()))
                 .map(pdfConversionEntity -> {
                     pdfConversionEntity.setVersion(1L);
-                    TableSchema<PdfConversionEntity> pdfConversionTableSchema = TableSchema.fromBean(PdfConversionEntity.class);
                     Map<String, AttributeValue> pdfAttributes = pdfConversionTableSchema.itemToMap(pdfConversionEntity, true);
                     return TransactWriteItem.builder()
                             .put(put -> put
@@ -160,7 +163,6 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                 .collectList()
                 .map(transactWriteItems -> {
                     entity.setVersion(1L);
-                    TableSchema<RequestConversionEntity> requestConversionTableSchema = TableSchema.fromBean(RequestConversionEntity.class);
                     Map<String, AttributeValue> itemAttributes = requestConversionTableSchema.itemToMap(entity, true);
                     TransactWriteItem transactWriteItemRequestConversion = TransactWriteItem.builder()
                             .put(put -> put
@@ -180,7 +182,6 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                 .map(entity -> {
                     Long currVersion = pdfConversionEntity.getVersion();
                     entity.setVersion(currVersion + 1L);
-                    TableSchema<PdfConversionEntity> pdfConversionTableSchema = TableSchema.fromBean(PdfConversionEntity.class);
                     Map<String, AttributeValue> pdfItemAttributes = pdfConversionTableSchema.itemToMap(entity, true);
                     return TransactWriteItem.builder()
                             .put(put -> put
@@ -194,7 +195,6 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                     Long currVersion = requestConversionEntity.getVersion();
                     requestConversionEntity.setVersion(currVersion + 1L);
                     List<TransactWriteItem> transactWriteItemsList = new ArrayList<>();
-                    TableSchema<RequestConversionEntity> requestConversionTableSchema = TableSchema.fromBean(RequestConversionEntity.class);
                     Map<String, AttributeValue> requestItemAttributes = requestConversionTableSchema.itemToMap(requestConversionEntity, true);
                     TransactWriteItem transactWriteItemRequestConversion = TransactWriteItem.builder()
                             .put(put -> put
@@ -223,7 +223,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                 .flatMap(tuples -> {
                     PdfConversionEntity pdfConversionEntity = tuples.getT1();
                     RequestConversionEntity requestConversionEntity = tuples.getT2().getKey();
-                    pdfConversionEntity.setExpiration(BigDecimal.valueOf(OffsetDateTime.now().plusDays(1).toInstant().getEpochSecond()));
+                    pdfConversionEntity.setExpiration(BigDecimal.valueOf(OffsetDateTime.now().plusDays(offsetDays).toInstant().getEpochSecond()));
 
                     return updateRequestConversionWithTransaction(requestConversionEntity, pdfConversionEntity)
                             .thenReturn(Map.entry(convertToDto(requestConversionEntity), true));

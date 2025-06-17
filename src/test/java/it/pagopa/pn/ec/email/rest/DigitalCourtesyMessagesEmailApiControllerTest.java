@@ -77,15 +77,14 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     public static final String SEND_EMAIL_ENDPOINT =
             "/external-channels/v1/digital-deliveries/courtesy-full-message-requests" + "/{requestIdx}";
     private static final DigitalCourtesyMailRequest digitalCourtesyMailRequest = new DigitalCourtesyMailRequest();
-    private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
     private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
-    private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
+    private static final String DEFAULT_ATTACHMENT_URL = "safestorage://prova.pdf";
 
     @BeforeAll
-    public static void createDigitalCourtesyMailRequest() {
+    static void createDigitalCourtesyMailRequest() {
 
         List<String> defaultListAttachmentUrls = new ArrayList<>();
-        defaultListAttachmentUrls.add(defaultAttachmentUrl);
+        defaultListAttachmentUrls.add(DEFAULT_ATTACHMENT_URL);
 
         digitalCourtesyMailRequest.setRequestId("requestIdx");
         digitalCourtesyMailRequest.eventType("string");
@@ -232,7 +231,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.getRichiesta(anyString(),
                                                 anyString())).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException(
-                defaultAttachmentUrl)));
+                DEFAULT_ATTACHMENT_URL)));
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()

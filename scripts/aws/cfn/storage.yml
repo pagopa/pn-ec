@@ -59,6 +59,7 @@ Resources:
       Description: A symmetric encryption KMS key AES-256-GCM
       KeySpec: SYMMETRIC_DEFAULT
       KeyUsage: ENCRYPT_DECRYPT
+      EnableKeyRotation: true
       KeyPolicy:
         Version: 2012-10-17
         Statement:
@@ -133,7 +134,7 @@ Resources:
         PointInTimeRecoveryEnabled: true
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
-
+    
   PnEcTableRichiesteConversione:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -146,6 +147,30 @@ Resources:
           AttributeType: 'S'
       KeySchema:
         - AttributeName: 'requestId'
+          KeyType: 'HASH'
+      BillingMode: 'PAY_PER_REQUEST'
+      TableClass: 'STANDARD'
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: 'KMS'
+        KMSMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+  PnEcTableConversionePdf:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'pn-EcConversionePDF'
+      TimeToLiveSpecification:
+          AttributeName: 'expiration'
+          Enabled: true
+      AttributeDefinitions:
+        - AttributeName: 'fileKey'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'fileKey'
           KeyType: 'HASH'
       BillingMode: 'PAY_PER_REQUEST'
       TableClass: 'STANDARD'
@@ -173,26 +198,6 @@ Resources:
         SSEEnabled: true
         SSEType: 'KMS'
         KMSMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
-      TableClass: 'STANDARD'
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-
-  PnEcTableConversionePdf:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: 'pn-EcConversionePDF'
-      TimeToLiveSpecification:
-          AttributeName: 'expiration'
-          Enabled: true
-      AttributeDefinitions:
-        - AttributeName: 'fileKey'
-          AttributeType: 'S'
-      KeySchema:
-        - AttributeName: 'fileKey'
-          KeyType: 'HASH'
-      BillingMode: 'PAY_PER_REQUEST'
       TableClass: 'STANDARD'
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
@@ -1088,14 +1093,6 @@ Outputs:
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
     Value: !GetAtt PnEcTableRichiesteMetadati.Arn
 
-  PnEcTableNameScartiConsolidatore:
-    Description: 'Nome della Tabella DynamoDB relativa agli scarti consolidatore'
-    Value: !Ref PnEcTableScartiConsolidatore
-
-  PnEcTableArnScartiConsolidatore:
-    Description: 'ARN della Tabella DynamoDB relativa agli scarti consolidatore'
-    Value: !GetAtt PnEcTableScartiConsolidatore.Arn
-
   PnEcTableNameRichiesteConversione:
     Description: 'Nome della Tabella DynamoDB relativa alle richieste di conversione dei PDF'
     Value: !Ref PnEcTableRichiesteConversione
@@ -1111,6 +1108,14 @@ Outputs:
   PnEcTableArnConversionePdf:
     Description: 'ARN della Tabella DynamoDB di upporto per la tabella RichiesteConversione'
     Value: !GetAtt PnEcTableConversionePdf.Arn
+
+  PnEcTableNameScartiConsolidatore:
+    Description: 'Nome della Tabella DynamoDB relativa agli scarti consolidatore'
+    Value: !Ref PnEcTableScartiConsolidatore
+
+  PnEcTableArnScartiConsolidatore:
+    Description: 'ARN della Tabella DynamoDB relativa agli scarti consolidatore'
+    Value: !GetAtt PnEcTableScartiConsolidatore.Arn
 
   ######### QUEUES  ############
   ######### TRACKER : SMS  ##########
@@ -1332,7 +1337,7 @@ Outputs:
   PnEcAlarmArnDLQueueTrackerErroriSERCQ:
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriSERCQ"
     Value: !GetAtt PnEcQueueTrackerErroriSERCQStack.Outputs.SqsDLQAlarmArn
-
+  
   ###### BATCH : SMS #######
 
   PnEcQueueNameBatchSMS:

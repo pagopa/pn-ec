@@ -7,4 +7,5 @@ public record RepositoryManagerDynamoTableName(String anagraficaClientName,
                                                String richiesteMetadataName, String scartiConsolidatoreName,
                                                String richiestePersonalName,
                                                String richiesteConversioneRequestName,
-                                               String richiesteConversionePdfName) {}
+                                               String richiesteConversionePdfName,
+                                               String scartiConsolidatoreName) {}

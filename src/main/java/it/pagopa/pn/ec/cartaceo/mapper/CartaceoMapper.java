@@ -14,8 +14,8 @@ public class CartaceoMapper {
 
     private final ObjectMapper objectMapper;
 
-    private final static String PATTERN_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
-    private final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(PATTERN_FORMAT).withZone(ZoneId.from(ZoneOffset.UTC));
+    private static final String PATTERN_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(PATTERN_FORMAT).withZone(ZoneId.from(ZoneOffset.UTC));
 
 
     public it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest convert(final it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest srcPaperEngageRequest) {

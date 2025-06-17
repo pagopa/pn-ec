@@ -6,6 +6,7 @@ import it.pagopa.pn.ec.availabilitymanager.model.dto.AvailabilityManagerDto;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.pdfraster.configuration.PdfRasterProperties;
 import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
 import it.pagopa.pn.ec.rest.v1.dto.AttachmentToConvertDto;
 import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest;
@@ -14,6 +15,7 @@ import it.pagopa.pn.ec.rest.v1.dto.RequestConversionDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -42,6 +44,9 @@ class AvailabilityManagerServiceTest {
     DynamoPdfRasterService dynamoPdfRasterService;
     @MockBean
     private Acknowledgment acknowledgment;
+
+    @MockBean
+    private PdfRasterProperties pdfRasterProperties;
 
     private AvailabilityManagerDto createAvailabilityManagerDto(String newFileKey, String checksum) {
         AvailabilityManagerDto availabilityManagerDto = new AvailabilityManagerDto();
@@ -73,6 +78,7 @@ class AvailabilityManagerServiceTest {
 
     @Test
     void convertPDFNotAllConvertedOk() {
+        Mockito.when(pdfRasterProperties.pdfConversionExpirationOffsetInDays()).thenReturn(1);
 
         // GIVEN: oggetti necessari al test (Dto)
         String originalFileKey1 = "originalFileKey1";
@@ -92,6 +98,7 @@ class AvailabilityManagerServiceTest {
 
     @Test
     void convertPDFAllConvertedOk() {
+        Mockito.when(pdfRasterProperties.pdfConversionExpirationOffsetInDays()).thenReturn(1);
 
         // GIVEN: oggetti necessari al test (Dto)
         String originalFileKey2 = "originalFileKey2";

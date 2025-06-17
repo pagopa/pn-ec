@@ -116,6 +116,25 @@ public class PaperElem {
     public static final String RECAG013 = "RECAG013";
     public static final String RECAG015 = "RECAG015";
 
+	public static final String MANCATA_CONSEGNA_PRESSO_PUNTI_DI_GIACENZA_FASCICOLO_CHIUSO = "Mancata consegna presso Punti di Giacenza - Fascicolo Chiuso";
+	public static final String IRREPERIBILITA_ASSOLUTA_FASCICOLO_CHIUSO = "Irreperibilità Assoluta - Fascicolo Chiuso";
+	public static final String CONSEGNATO_IN_DEMATERIALIZZAZIONE = "Consegnato - In Dematerializzazione";
+	public static final String CONSEGNATO_FASCICOLO_CHIUSO = "Consegnato - Fascicolo Chiuso";
+	public static final String COMPIUTA_GIACENZA_FASCICOLO_CHIUSO = "Compiuta giacenza - Fascicolo Chiuso";
+	public static final String CONSEGNATO_PRE_ESITO = "Consegnato - pre-esito";
+	public static final String FURTO_SMARRIMANTO_DETERIORAMENTO = "Furto/Smarrimanto/deterioramento";
+	public static final String IRREPERIBILITA_ASSOLUTA_PRE_ESITO = "Irreperibilità Assoluta - pre-esito";
+	public static final String CONSEGNATO_PRESSO_PUNTI_DI_GIACENZA_FASCICOLO_CHIUSO = "Consegnato presso Punti di Giacenza - Fascicolo Chiuso";
+	public static final String INESITO = "Inesito";
+	public static final String MANCATA_CONSEGNA_IN_DEMATERIALIZZAZIONE = "Mancata consegna - In Dematerializzazione";
+	public static final String MANCATA_CONSEGNA_PRESSO_PUNTI_DI_GIACENZA_PRE_ESITO = "Mancata consegna presso Punti di Giacenza - pre-esito";
+	public static final String MANCATA_CONSEGNA_PRE_ESITO = "Mancata consegna - pre-esito";
+	public static final String IRREPERIBILITA_ASSOLUTA_IN_DEMATERIALIZZAZIONE = "Irreperibilità Assoluta - In Dematerializzazione";
+	public static final String MANCATA_CONSEGNA_PRESSO_PUNTI_DI_GIACENZA_IN_DEMATERIALIZZAZIONE = "Mancata consegna presso Punti di Giacenza - In Dematerializzazione";
+	public static final String IN_GIACENZA = "In giacenza";
+	public static final String MANCATA_CONSEGNA_FASCICOLO_CHIUSO = "Mancata consegna - Fascicolo Chiuso";
+	public static final String COMPIUTA_GIACENZA_IN_DEMATERIALIZZAZIONE = "Compiuta giacenza - In Dematerializzazione";
+	public static final String COMPIUTA_GIACENZA_PRE_ESITO = "Compiuta giacenza pre-esito";
 	private static final Map<String, String> statusCodeDescriptionMap = Map.ofEntries(
 							// Eventi relativi alla fase di "Stampa/Postalizzazione"
 							Map.entry(CON998,"Scartato NODOC"),
@@ -134,89 +153,89 @@ public class PaperElem {
 							Map.entry(CON018,"Accettazione Recapitista"),
 							Map.entry(CON991,"Mancata Accetazione Recapitsita"),
 							// Eventi relativi alla fase di "Recapito"
-							Map.entry(RECRS010,"Inesito"),
-							Map.entry(RECRS011,"In giacenza"),
-							Map.entry(RECRS001C,"Consegnato - Fascicolo Chiuso"), 
-				            Map.entry(RECRS002A,"Mancata consegna - pre-esito"),
-				            Map.entry(RECRS002B,"Mancata consegna - In Dematerializzazione"),
-				            Map.entry(RECRS002C,"Mancata consegna - Fascicolo Chiuso"),
-				            Map.entry(RECRS002D,"Irreperibilità Assoluta - pre-esito"),
-				            Map.entry(RECRS002E,"Irreperibilità Assoluta - In Dematerializzazione"),
-				            Map.entry(RECRS002F,"Irreperibilità Assoluta - Fascicolo Chiuso"),
-				            Map.entry(RECRS003C,"Consegnato presso Punti di Giacenza - Fascicolo Chiuso"),
-				            Map.entry(RECRS004A,"Mancata consegna presso Punti di Giacenza - pre-esito"),
-				            Map.entry(RECRS004B,"Mancata consegna presso Punti di Giacenza - In Dematerializzazione"),
-				            Map.entry(RECRS004C,"Mancata consegna presso Punti di Giacenza - Fascicolo Chiuso"),
-				            Map.entry(RECRS005A,"Compiuta giacenza pre-esito"),
-				            Map.entry(RECRS005B,"Compiuta giacenza - In Dematerializzazione"),
-				            Map.entry(RECRS005C,"Compiuta giacenza - Fascicolo Chiuso"),
-				            Map.entry(RECRS006,"Furto/Smarrimanto/deterioramento"),
-				            Map.entry(RECRN010,"Inesito"),
-				            Map.entry(RECRN011,"In giacenza"),
-				            Map.entry(RECRN001A,"Consegnato - pre-esito"),
-				            Map.entry(RECRN001B,"Consegnato - In Dematerializzazione"),
-				            Map.entry(RECRN001C,"Consegnato - Fascicolo Chiuso"),
-				            Map.entry(RECRN002A,"Mancata consegna - pre-esito"),
-				            Map.entry(RECRN002B,"Mancata consegna - In Dematerializzazione"),
-				            Map.entry(RECRN002C,"Mancata consegna - Fascicolo Chiuso"),
-				            Map.entry(RECRN002D,"Irreperibilità Assoluta - pre-esito"),
-				            Map.entry(RECRN002E,"Irreperibilità Assoluta - In Dematerializzazione"),
-				            Map.entry(RECRN002F,"Irreperibilità Assoluta - Fascicolo Chiuso"),
+							Map.entry(RECRS010, INESITO),
+							Map.entry(RECRS011, IN_GIACENZA),
+							Map.entry(RECRS001C, CONSEGNATO_FASCICOLO_CHIUSO),
+				            Map.entry(RECRS002A, MANCATA_CONSEGNA_PRE_ESITO),
+				            Map.entry(RECRS002B, MANCATA_CONSEGNA_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECRS002C, MANCATA_CONSEGNA_FASCICOLO_CHIUSO),
+				            Map.entry(RECRS002D, IRREPERIBILITA_ASSOLUTA_PRE_ESITO),
+				            Map.entry(RECRS002E, IRREPERIBILITA_ASSOLUTA_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECRS002F, IRREPERIBILITA_ASSOLUTA_FASCICOLO_CHIUSO),
+				            Map.entry(RECRS003C, CONSEGNATO_PRESSO_PUNTI_DI_GIACENZA_FASCICOLO_CHIUSO),
+				            Map.entry(RECRS004A, MANCATA_CONSEGNA_PRESSO_PUNTI_DI_GIACENZA_PRE_ESITO),
+				            Map.entry(RECRS004B, MANCATA_CONSEGNA_PRESSO_PUNTI_DI_GIACENZA_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECRS004C, MANCATA_CONSEGNA_PRESSO_PUNTI_DI_GIACENZA_FASCICOLO_CHIUSO),
+				            Map.entry(RECRS005A, COMPIUTA_GIACENZA_PRE_ESITO),
+				            Map.entry(RECRS005B, COMPIUTA_GIACENZA_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECRS005C, COMPIUTA_GIACENZA_FASCICOLO_CHIUSO),
+				            Map.entry(RECRS006, FURTO_SMARRIMANTO_DETERIORAMENTO),
+				            Map.entry(RECRN010, INESITO),
+				            Map.entry(RECRN011, IN_GIACENZA),
+				            Map.entry(RECRN001A, CONSEGNATO_PRE_ESITO),
+				            Map.entry(RECRN001B, CONSEGNATO_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECRN001C, CONSEGNATO_FASCICOLO_CHIUSO),
+				            Map.entry(RECRN002A, MANCATA_CONSEGNA_PRE_ESITO),
+				            Map.entry(RECRN002B, MANCATA_CONSEGNA_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECRN002C, MANCATA_CONSEGNA_FASCICOLO_CHIUSO),
+				            Map.entry(RECRN002D, IRREPERIBILITA_ASSOLUTA_PRE_ESITO),
+				            Map.entry(RECRN002E, IRREPERIBILITA_ASSOLUTA_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECRN002F, IRREPERIBILITA_ASSOLUTA_FASCICOLO_CHIUSO),
 				            Map.entry(RECRN003A,"Consegnato presso Punti di Giacenza - pre-esito"),
 				            Map.entry(RECRN003B,"Consegnato presso Punti di Giacenza - In Dematerializzazione"),
-				            Map.entry(RECRN003C,"Consegnato presso Punti di Giacenza - Fascicolo Chiuso"),
-				            Map.entry(RECRN004A,"Mancata consegna presso Punti di Giacenza - pre-esito"),
-				            Map.entry(RECRN004B,"Mancata consegna presso Punti di Giacenza - In Dematerializzazione"),
-				            Map.entry(RECRN004C,"Mancata consegna presso Punti di Giacenza - Fascicolo Chiuso"),
-				            Map.entry(RECRN005A,"Compiuta giacenza pre-esito"),
-				            Map.entry(RECRN005B,"Compiuta giacenza - In Dematerializzazione"),
-				            Map.entry(RECRN005C,"Compiuta giacenza - Fascicolo Chiuso"),
-				            Map.entry(RECRN006,"Furto/Smarrimanto/deterioramento"),
-				            Map.entry(RECAG010,"Inesito"),
-				            Map.entry(RECAG011A,"In giacenza"),
+				            Map.entry(RECRN003C, CONSEGNATO_PRESSO_PUNTI_DI_GIACENZA_FASCICOLO_CHIUSO),
+				            Map.entry(RECRN004A, MANCATA_CONSEGNA_PRESSO_PUNTI_DI_GIACENZA_PRE_ESITO),
+				            Map.entry(RECRN004B, MANCATA_CONSEGNA_PRESSO_PUNTI_DI_GIACENZA_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECRN004C, MANCATA_CONSEGNA_PRESSO_PUNTI_DI_GIACENZA_FASCICOLO_CHIUSO),
+				            Map.entry(RECRN005A, COMPIUTA_GIACENZA_PRE_ESITO),
+				            Map.entry(RECRN005B, COMPIUTA_GIACENZA_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECRN005C, COMPIUTA_GIACENZA_FASCICOLO_CHIUSO),
+				            Map.entry(RECRN006, FURTO_SMARRIMANTO_DETERIORAMENTO),
+				            Map.entry(RECAG010, INESITO),
+				            Map.entry(RECAG011A, IN_GIACENZA),
 				            Map.entry(RECAG011B,"In giacenza - In Dematerializzazione"),
 				            Map.entry(RECAG012,"Accettazione 23L"),
-				            Map.entry(RECAG001A,"Consegnato - pre-esito"),
-				            Map.entry(RECAG001B,"Consegnato - In Dematerializzazione"),
-				            Map.entry(RECAG001C,"Consegnato - Fascicolo Chiuso"),
+				            Map.entry(RECAG001A, CONSEGNATO_PRE_ESITO),
+				            Map.entry(RECAG001B, CONSEGNATO_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECAG001C, CONSEGNATO_FASCICOLO_CHIUSO),
 				            Map.entry(RECAG002A,"Consegnato a persona abilitata - pre-esito"),
 				            Map.entry(RECAG002B,"Consegnato a persona abilitata - In Dematerializzazione"),
 				            Map.entry(RECAG002C,"Consegnato a persona abilitata - Fascicolo Chiuso"),
-				            Map.entry(RECAG003A,"Mancata consegna - pre-esito"),
-				            Map.entry(RECAG003B,"Mancata consegna - In Dematerializzazione"),
-				            Map.entry(RECAG003C,"Mancata consegna - Fascicolo Chiuso"),
-				            Map.entry(RECAG003D,"Irreperibilità Assoluta - pre-esito"),
-				            Map.entry(RECAG003E,"Irreperibilità Assoluta - In Dematerializzazione"),
-				            Map.entry(RECAG003F,"Irreperibilità Assoluta - Fascicolo Chiuso"),
-				            Map.entry(RECAG004,"Furto/Smarrimanto/deterioramento"),
+				            Map.entry(RECAG003A, MANCATA_CONSEGNA_PRE_ESITO),
+				            Map.entry(RECAG003B, MANCATA_CONSEGNA_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECAG003C, MANCATA_CONSEGNA_FASCICOLO_CHIUSO),
+				            Map.entry(RECAG003D, IRREPERIBILITA_ASSOLUTA_PRE_ESITO),
+				            Map.entry(RECAG003E, IRREPERIBILITA_ASSOLUTA_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECAG003F, IRREPERIBILITA_ASSOLUTA_FASCICOLO_CHIUSO),
+				            Map.entry(RECAG004, FURTO_SMARRIMANTO_DETERIORAMENTO),
 				            Map.entry(RECAG005A,"Consegnato presso Punti di Giacenza - pre-esito"),
 				            Map.entry(RECAG005B,"Consegnato presso Punti di Giacenza - In Dematerializzazione"),
-				            Map.entry(RECAG005C,"Consegnato presso Punti di Giacenza - Fascicolo Chiuso"),
+				            Map.entry(RECAG005C, CONSEGNATO_PRESSO_PUNTI_DI_GIACENZA_FASCICOLO_CHIUSO),
 				            Map.entry(RECAG006A,"Consegna a persona abilitata presso Punti di Giacenza - pre-esito"),
 				            Map.entry(RECAG006B,"Consegna a persona abilitata presso Punti di Giacenza - In Dematerializzazione"),
 				            Map.entry(RECAG006C,"Consegna a persona abilitata presso Punti di Giacenza - Fascicolo Chiuso"),
-				            Map.entry(RECAG007A,"Mancata consegna presso Punti di Giacenza - pre-esito"),
-				            Map.entry(RECAG007B,"Mancata consegna presso Punti di Giacenza - In Dematerializzazione"),
-				            Map.entry(RECAG007C,"Mancata consegna presso Punti di Giacenza - Fascicolo Chiuso"),
+				            Map.entry(RECAG007A, MANCATA_CONSEGNA_PRESSO_PUNTI_DI_GIACENZA_PRE_ESITO),
+				            Map.entry(RECAG007B, MANCATA_CONSEGNA_PRESSO_PUNTI_DI_GIACENZA_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECAG007C, MANCATA_CONSEGNA_PRESSO_PUNTI_DI_GIACENZA_FASCICOLO_CHIUSO),
 				            Map.entry(RECAG008A,"Compiuta giacenza - pre-esito"),
-				            Map.entry(RECAG008B,"Compiuta giacenza - In Dematerializzazione"),
-				            Map.entry(RECAG008C,"Compiuta giacenza - Fascicolo Chiuso"),
+				            Map.entry(RECAG008B, COMPIUTA_GIACENZA_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECAG008C, COMPIUTA_GIACENZA_FASCICOLO_CHIUSO),
 				            Map.entry(RECRI001,"Avviato all'estero"),
 				            Map.entry(RECRI002,"Ingresso nel paese estero"),
-				            Map.entry(RECRI003A,"Consegnato - pre-esito"),
-				            Map.entry(RECRI003B,"Consegnato - In Dematerializzazione"),
-				            Map.entry(RECRI003C,"Consegnato - Fascicolo Chiuso"),
+				            Map.entry(RECRI003A, CONSEGNATO_PRE_ESITO),
+				            Map.entry(RECRI003B, CONSEGNATO_IN_DEMATERIALIZZAZIONE),
+				            Map.entry(RECRI003C, CONSEGNATO_FASCICOLO_CHIUSO),
 				            Map.entry(RECRI004A,"Non Consegnato - pre-esito"),
 				            Map.entry(RECRI004B,"Non Consegnato - In Dematerializzazione"),
 				            Map.entry(RECRI004C,"Non Consegnato - fascicolo Chiuso"),
-				            Map.entry(RECRI005,"Furto/Smarrimanto/deterioramento"),
+				            Map.entry(RECRI005, FURTO_SMARRIMANTO_DETERIORAMENTO),
 				            Map.entry(RECRSI001,"Avviato all'estero"),
 				            Map.entry(RECRSI002,"Ingresso nel paese estero"),
-				            Map.entry(RECRSI003C,"Consegnato - Fascicolo Chiuso"),
+				            Map.entry(RECRSI003C, CONSEGNATO_FASCICOLO_CHIUSO),
 				            Map.entry(RECRSI004A,"Non Consegnato - pre-esito"),
 				            Map.entry(RECRSI004B,"Non Consegnato - In Dematerializzazione"),
 				            Map.entry(RECRSI004C,"Non Consegnato - fascicolo Chiuso"),
-				            Map.entry(RECRSI005,"Furto/Smarrimanto/deterioramento"),
+				            Map.entry(RECRSI005, FURTO_SMARRIMANTO_DETERIORAMENTO),
 				            Map.entry(REC090,"Archiviazione fisica materialità di ritorno"),
 				            Map.entry(RECRS013,"Non rendicontabile"),
 				            Map.entry(RECRS015,"Causa di forza maggiore"),
@@ -276,8 +295,8 @@ public class PaperElem {
 	public static final String ATTACHMENT_DOCUMENT_TYPE_ARCAD = "ARCAD";
 	public static final String ATTACHMENT_DOCUMENT_TYPE_CAD = "CAD";
 	public static final String ATTACHMENT_DOCUMENT_TYPE_CAN = "CAN";
-	public static final String ATTACHMENT_DOCUMENT_TYPE_Plico = "Plico";
-	public static final String ATTACHMENT_DOCUMENT_TYPE_Indagine = "Indagine";
+	public static final String ATTACHMENT_DOCUMENT_TYPE_PLICO = "Plico";
+	public static final String ATTACHMENT_DOCUMENT_TYPE_INDAGINE = "Indagine";
 	public static final String ATTACHMENT_DOCUMENT_TYPE_AR = "AR";
 	
 	private static final List<String> attachmentDocumentTypeMap = List.of(
@@ -285,8 +304,8 @@ public class PaperElem {
 			ATTACHMENT_DOCUMENT_TYPE_ARCAD,
 			ATTACHMENT_DOCUMENT_TYPE_CAD,
 			ATTACHMENT_DOCUMENT_TYPE_CAN,
-			ATTACHMENT_DOCUMENT_TYPE_Plico,
-			ATTACHMENT_DOCUMENT_TYPE_Indagine,
+			ATTACHMENT_DOCUMENT_TYPE_PLICO,
+			ATTACHMENT_DOCUMENT_TYPE_INDAGINE,
 			ATTACHMENT_DOCUMENT_TYPE_AR);
 
 	public static List<String> attachmentDocumentTypeMap() {

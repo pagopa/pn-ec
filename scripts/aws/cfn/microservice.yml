@@ -70,6 +70,10 @@ Parameters:
     Type: String
     Description: 'Secret ID for Identity Pec'
 
+  PnEcPecMetricsSchema:
+    Type: String
+    Description: 'Name of the AWS parameter that contains the schema for the metric dimensions of pec services'
+
 #  Version:
 #    Type: String
 #    Description: 'keep track of used projects commitIds'
@@ -96,6 +100,10 @@ Parameters:
     Type: Number
     Description: 'Maximum number of running instances for the microservice'
     Default: 12
+
+  LogAlarmStrategy:
+    Type: String
+    Default: 'FATAL'
 
   AutoscalingThreshold:
     Type: Number
@@ -157,6 +165,11 @@ Parameters:
     Description: 'Max batch massages number'
     Default: '20'
 
+  SQSCartaceoMaxBatchSubscribedMsgs:
+    Type: String
+    Description: 'Max cartaceo batch massages number'
+    Default: '10'
+
   ### TABLES  ###
 
   PnEcTableNameAnagrafica:
@@ -183,17 +196,9 @@ Parameters:
     Type: String
     Description: 'ARN della Tabella DynamoDB relativa alle richieste'
 
-  PnEcTableNameRichiesteConversione:
-    Type: String
-    Description: 'Nome della Tabella DynamoDB relativa alle richieste di conversione dei PDF'
-
   PnEcTableArnRichiesteConversione:
     Type: String
     Description: 'ARN della Tabella DynamoDB relativa alle richieste di conversione dei PDF'
-
-  PnEcTableNameConversionePdf:
-    Type: String
-    Description: 'Nome della Tabella DynamoDB di supporto per la tabella RichiesteConversione'
 
   PnEcTableArnConversionePdf:
     Type: String
@@ -702,7 +707,7 @@ Parameters:
   PnEcAlarmArnDLQueueTrackerErroriSERCQ:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriSERCQ"
-
+        
   ###### pn-core Event Bus #######
 
 #  PnEcQueueNameEventsDLQueuePnCoreTargetEventBus:
@@ -823,10 +828,6 @@ Parameters:
     Description: 'Default sender email address'
     Type: String
 
-  LogAlarmStrategy:
-    Type: String
-    Default: 'FATAL'
-
   PCKmsEncDecDynamoDataKeyARN:
     Type: String
     Description: 'Name of KMS Key for Dynamo encode/decode data'
@@ -881,42 +882,6 @@ Parameters:
     Default: 7200
     Description: Value in seconds
 
-  PnEcNamirialServerImapAddress:
-    Type: String
-
-  PnEcNamirialServerSmtpAddress:
-    Type: String
-
-  PnEcNamirialServerImapPort:
-    Type: String
-
-  PnEcNamirialServerSmtpPort:
-    Type: String
-
-  PnEcNamirialPoolImapMaxtotal:
-    Type: String
-
-  PnEcNamirialPoolImapMaxidle:
-    Type: String
-
-  PnEcNamirialPoolImapMinidle:
-    Type: String
-
-  PnEcNamirialPoolSmtpMaxtotal:
-    Type: String
-
-  PnEcNamirialPoolSmtpMaxidle:
-    Type: String
-
-  PnEcNamirialPoolSmtpMinidle:
-    Type: String
-
-  PnEcNamirialServerCache:
-    Type: String
-
-  PnEcNamirialServerCacheEndpoint:
-    Type: String
-
   PnEcDuplicatesCheck:
     Type: String
 
@@ -952,11 +917,42 @@ Parameters:
     Type: String
     Description: 'Valore del requestPaID da sovrascrivere nella richiesta cartacea. Se non valorizzato, la funzionalità è disattivata'
 
+  # EFS parameters
+  FargateEFSFileSystemID:
+    Type: String
+    Description: "EFS Filesystem"
+
+  MountEfs:
+    Type: String
+    Default: false
+    AllowedValues:
+      - "true"
+      - "false"
+
+  # Logging parameters
+  WireTapLogActivation:
+    Type: String
+    Default: false
+    Description: Activation of wire logs
+    AllowedValues:
+      - true
+      - false
+
+  PnCronAnalyzer:
+    Type: String
+    Default: '-'
+    Description: Cron for which you send the metric to CloudWatch
+
+  GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods:
+    Type: Number
+    Description: 'EvaluationPeriods for GetUnreadPecMessagesCount Alarm'
+    Default: 18
 
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
   SMSStressTestModeON: !Equals [ !Ref SMSStressTestMode, 'true']
+  HasOncallAlarm: !Not [!Equals [!Ref GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods, 0]]
 
 Resources:
 
@@ -972,89 +968,73 @@ Resources:
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Sub '${ContainerImageUri}'
         ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
-        ContainerEnvEntry2: !Sub 'PnEcTableNameAnagrafica=${PnEcTableNameAnagrafica}'
-        ContainerEnvEntry3: !Sub 'PnEcTableNameRichieste=${PnEcTableNameRichieste}'
-        ContainerEnvEntry4: !Sub 'PnEcTableNameRichiesteMetadati=${PnEcTableNameRichiesteMetadati}'
-        ContainerEnvEntry5: !Sub 'PnEcEventBusNameTrackerExternalNotification=${PnEcEventBusNameTrackerExternalNotification}'
-        ContainerEnvEntry6: !Sub 'PnEcQueueNameTrackerStatoSMS=${PnEcQueueNameTrackerStatoSMS}'
-        ContainerEnvEntry7: !Sub 'PnEcQueueNameTrackerErroriSMS=${PnEcQueueNameTrackerErroriSMS}'
-        ContainerEnvEntry8: !Sub 'PnEcQueueNameTrackerStatoPEC=${PnEcQueueNameTrackerStatoPEC}'
-        ContainerEnvEntry9: !Sub 'PnEcQueueNameTrackerErroriPEC=${PnEcQueueNameTrackerErroriPEC}'
-        ContainerEnvEntry10: !Sub 'PnEcQueueNameTrackerStatoEMAIL=${PnEcQueueNameTrackerStatoEMAIL}'
-        ContainerEnvEntry11: !Sub 'PnEcQueueNameTrackerErroriEMAIL=${PnEcQueueNameTrackerErroriEMAIL}'
-        ContainerEnvEntry12: !Sub 'PnEcQueueNameTrackerStatoCARTACEO=${PnEcQueueNameTrackerStatoCARTACEO}'
-        ContainerEnvEntry13: !Sub 'PnEcQueueNameTrackerErroriCARTACEO=${PnEcQueueNameTrackerErroriCARTACEO}'
-        ContainerEnvEntry14: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
-        ContainerEnvEntry15: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
-        ContainerEnvEntry16: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
-        ContainerEnvEntry17: !Sub 'PnEcQueueNameBatchPEC=${PnEcQueueNameBatchPEC}'
-        ContainerEnvEntry18: !Sub 'PnEcQueueNameInteractivePEC=${PnEcQueueNameInteractivePEC}'
-        ContainerEnvEntry19: !Sub 'PnEcQueueNameErroriPEC=${PnEcQueueNameErroriPEC}'
-        ContainerEnvEntry20: !Sub 'PnEcQueueNameBatchEMAIL=${PnEcQueueNameBatchEMAIL}'
-        ContainerEnvEntry21: !Sub 'PnEcQueueNameInteractiveEMAIL=${PnEcQueueNameInteractiveEMAIL}'
-        ContainerEnvEntry22: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
-        ContainerEnvEntry23: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
-        ContainerEnvEntry24: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
-        ContainerEnvEntry25: !Sub 'PnEcQueueNameScaricamentoEsitiPEC=${PnEcQueueNameScaricamentoEsitiPEC}'
-        ContainerEnvEntry26: 'SafeStorageClientId=pn-external-channels'
-        ContainerEnvEntry27: 'SafeStorageClientApiKey=pn-external-channels_api_key'
-        ContainerEnvEntry28: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
-        ContainerEnvEntry29: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry30: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry31: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry32: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
-        ContainerEnvEntry33: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
-        ContainerEnvEntry34: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
-        ContainerEnvEntry35: !Sub 'PnPecRetryStrategyMaxAttempts=${PnPecRetryStrategyMaxAttempts}'
-        ContainerEnvEntry36: !Sub 'PnPecRetryStrategyMinBackoff=${PnPecRetryStrategyMinBackoff}'
-        ContainerEnvEntry37: !Sub 'LavorazionePecMaxThreadPoolSize=${LavorazionePecMaxThreadPoolSize}'
-        ContainerEnvEntry38: !Sub 'LavorazioneEsitiPecMaxThreadPoolSize=${LavorazioneEsitiPecMaxThreadPoolSize}'
-        ContainerEnvEntry39: !Sub 'ScaricamentoEsitiPecLimitRate=${ScaricamentoEsitiPecLimitRate}'
-        ContainerEnvEntry40: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
-        ContainerEnvEntry41: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
-        ContainerEnvEntry42: !Sub 'PnEcQueueElapsedTimeSeconds=${PnEcQueueElapsedTimeSeconds}'
-        ContainerEnvEntry43: !Sub 'LavorazioneSMSMaxThreadPoolSize=${LavorazioneSMSMaxThreadPoolSize}'
-        ContainerEnvEntry44: !Sub 'LavorazioneEmailMaxThreadPoolSize=${LavorazioneEmailMaxThreadPoolSize}'
-        ContainerEnvEntry45: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
-        ContainerEnvEntry46: !Sub 'PnEcTaskExecutionPoolMaxSize=${PnEcTaskExecutionPoolMaxSize}'
-        ContainerEnvEntry47: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueNameCancellazioneRicevutePEC}'
-        ContainerEnvEntry48: !Sub 'CancellazioneRicevutePecMaxThreadPoolSize=${CancellazioneRicevutePecMaxThreadPoolSize}'
-        ContainerEnvEntry49: !Sub 'PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked=${PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked}'
-        ContainerEnvEntry50: !Sub 'PnEcPECMaxMessageSizeMB=${PnEcPECMaxMessageSizeMB}'
-        ContainerEnvEntry51: !Sub 'PnEcPECAttachmentRule=${PnEcPECAttachmentRule}'
-        ContainerEnvEntry52: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
-        ContainerEnvEntry53: !Sub 'PnEcSqsMessagesStagingBucketName=${PnEcSqsMessagesStagingBucketName}'
-        ContainerEnvEntry54: !Sub 'PnEcProviderSwitchRead=${PnEcProviderSwitchRead}'
-        ContainerEnvEntry55: !Sub 'PnEcProviderSwitchWrite=${PnEcProviderSwitchWrite}'
-        ContainerEnvEntry56: !Sub 'PnEcIdentityPec=${PnEcIdentityPec}'
-        ContainerEnvEntry57: !Sub 'PnEcNamirialServerImapAddress=${PnEcNamirialServerImapAddress}'
-        ContainerEnvEntry58: !Sub 'PnEcNamirialServerSmtpAddress=${PnEcNamirialServerSmtpAddress}'
-        ContainerEnvEntry59: !Sub 'PnEcNamirialServerImapPort=${PnEcNamirialServerImapPort}'
-        ContainerEnvEntry60: !Sub 'PnEcNamirialServerSmtpPort=${PnEcNamirialServerSmtpPort}'
-        ContainerEnvEntry61: !Sub 'PnEcNamirialPoolImapMaxtotal=${PnEcNamirialPoolImapMaxtotal}'
-        ContainerEnvEntry62: !Sub 'PnEcNamirialPoolImapMaxidle=${PnEcNamirialPoolImapMaxidle}'
-        ContainerEnvEntry63: !Sub 'PnEcNamirialPoolImapMinidle=${PnEcNamirialPoolImapMinidle}'
-        ContainerEnvEntry64: !Sub 'PnEcNamirialPoolSmtpMaxtotal=${PnEcNamirialPoolSmtpMaxtotal}'
-        ContainerEnvEntry65: !Sub 'PnEcNamirialPoolSmtpMaxidle=${PnEcNamirialPoolSmtpMaxidle}'
-        ContainerEnvEntry66: !Sub 'PnEcNamirialPoolSmtpMinidle=${PnEcNamirialPoolSmtpMinidle}'
-        ContainerEnvEntry67: !Sub 'PnEcNamirialServerCache=${PnEcNamirialServerCache}'
-        ContainerEnvEntry68: !Sub 'PnEcNamirialServerCacheEndpoint=${PnEcNamirialServerCacheEndpoint}'
-        ContainerEnvEntry69: !Sub 'SpringCodecMaxInMemorySize=${SpringCodecMaxInMemorySize}'
-        ContainerEnvEntry70: !Sub 'PnEcDuplicatesCheck=${PnEcDuplicatesCheck}'
-        ContainerEnvEntry71: !Sub 'PnEcTableNameScartiConsolidatore=${PnEcTableNameScartiConsolidatore}'
-        ContainerEnvEntry72: !Sub 'PnEcConsAllowedFutureOffsetDuration=${PnEcConsAllowedFutureOffsetDuration}'
-        ContainerEnvEntry73: !Sub 'PnEcConsAllowedFutureOffsetDuration=${PnEcConsAllowedFutureOffsetDuration}'
-        ContainerEnvEntry74: !Sub 'PnECPaperPAIdToRaster=${PnECPaperPAIdToRaster}'
-        ContainerEnvEntry75: !Sub 'PnECPaperDocumentTypeToRaster=${PnECPaperDocumentTypeToRaster}'
-        ContainerEnvEntry76: !Sub 'PnECPaperDocumentTypeForRasterized=${PnECPaperDocumentTypeForRasterized}'
-        ContainerEnvEntry77: !Sub 'PnECPaperPAIdOverride=${PnECPaperPAIdOverride}'
-        ContainerEnvEntry78: !Sub 'PnEcQueueNameAvailabilityManager=${PnEcQueueNameAvailabilityManager}'
-        ContainerEnvEntry79: !Sub 'PnEcDLQueueNameErroriCARTACEO=${PnEcDLQueueNameErroriCARTACEO}'
-        ContainerEnvEntry80: !Sub 'PnEcTableNameRichiesteConversione=${PnEcTableNameRichiesteConversione}'
-        ContainerEnvEntry81: !Sub 'PnEcTableNameConversionePdf=${PnEcTableNameConversionePdf}'
-        ContainerEnvEntry82: !Sub 'PnEcQueueNameTrackerStatoSERCQ=${PnEcQueueNameTrackerStatoSERCQ}'
-        ContainerEnvEntry83: !Sub 'PnEcQueueNameTrackerErroriSERCQ=${PnEcQueueNameTrackerErroriSERCQ}'
-        ContainerEnvEntry84: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry2: !Sub 'PnEcEventBusNameTrackerExternalNotification=${PnEcEventBusNameTrackerExternalNotification}'
+        ContainerEnvEntry3: !Sub 'PnEcQueueNameTrackerStatoSMS=${PnEcQueueNameTrackerStatoSMS}'
+        ContainerEnvEntry4: !Sub 'PnEcQueueNameTrackerErroriSMS=${PnEcQueueNameTrackerErroriSMS}'
+        ContainerEnvEntry5: !Sub 'PnEcQueueNameTrackerStatoPEC=${PnEcQueueNameTrackerStatoPEC}'
+        ContainerEnvEntry6: !Sub 'PnEcQueueNameTrackerErroriPEC=${PnEcQueueNameTrackerErroriPEC}'
+        ContainerEnvEntry7: !Sub 'PnEcQueueNameTrackerStatoEMAIL=${PnEcQueueNameTrackerStatoEMAIL}'
+        ContainerEnvEntry8: !Sub 'PnEcQueueNameTrackerErroriEMAIL=${PnEcQueueNameTrackerErroriEMAIL}'
+        ContainerEnvEntry9: !Sub 'PnEcQueueNameTrackerStatoCARTACEO=${PnEcQueueNameTrackerStatoCARTACEO}'
+        ContainerEnvEntry10: !Sub 'PnEcQueueNameTrackerErroriCARTACEO=${PnEcQueueNameTrackerErroriCARTACEO}'
+        ContainerEnvEntry11: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
+        ContainerEnvEntry12: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
+        ContainerEnvEntry13: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
+        ContainerEnvEntry14: !Sub 'PnEcQueueNameBatchPEC=${PnEcQueueNameBatchPEC}'
+        ContainerEnvEntry15: !Sub 'PnEcQueueNameInteractivePEC=${PnEcQueueNameInteractivePEC}'
+        ContainerEnvEntry16: !Sub 'PnEcQueueNameErroriPEC=${PnEcQueueNameErroriPEC}'
+        ContainerEnvEntry17: !Sub 'PnEcQueueNameBatchEMAIL=${PnEcQueueNameBatchEMAIL}'
+        ContainerEnvEntry18: !Sub 'PnEcQueueNameInteractiveEMAIL=${PnEcQueueNameInteractiveEMAIL}'
+        ContainerEnvEntry19: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
+        ContainerEnvEntry20: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
+        ContainerEnvEntry21: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
+        ContainerEnvEntry22: !Sub 'PnEcQueueNameScaricamentoEsitiPEC=${PnEcQueueNameScaricamentoEsitiPEC}'
+        ContainerEnvEntry23: 'SafeStorageClientId=pn-external-channels'
+        ContainerEnvEntry24: 'SafeStorageClientApiKey=pn-external-channels_api_key'
+        ContainerEnvEntry25: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
+        ContainerEnvEntry26: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry27: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry28: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry29: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
+        ContainerEnvEntry30: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
+        ContainerEnvEntry31: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
+        ContainerEnvEntry32: !Sub 'PnPecRetryStrategyMaxAttempts=${PnPecRetryStrategyMaxAttempts}'
+        ContainerEnvEntry33: !Sub 'PnPecRetryStrategyMinBackoff=${PnPecRetryStrategyMinBackoff}'
+        ContainerEnvEntry34: !Sub 'LavorazionePecMaxThreadPoolSize=${LavorazionePecMaxThreadPoolSize}'
+        ContainerEnvEntry35: !Sub 'LavorazioneEsitiPecMaxThreadPoolSize=${LavorazioneEsitiPecMaxThreadPoolSize}'
+        ContainerEnvEntry36: !Sub 'ScaricamentoEsitiPecLimitRate=${ScaricamentoEsitiPecLimitRate}'
+        ContainerEnvEntry37: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
+        ContainerEnvEntry38: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
+        ContainerEnvEntry39: !Sub 'PnEcQueueElapsedTimeSeconds=${PnEcQueueElapsedTimeSeconds}'
+        ContainerEnvEntry40: !Sub 'LavorazioneSMSMaxThreadPoolSize=${LavorazioneSMSMaxThreadPoolSize}'
+        ContainerEnvEntry41: !Sub 'LavorazioneEmailMaxThreadPoolSize=${LavorazioneEmailMaxThreadPoolSize}'
+        ContainerEnvEntry42: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
+        ContainerEnvEntry43: !Sub 'PnEcTaskExecutionPoolMaxSize=${PnEcTaskExecutionPoolMaxSize}'
+        ContainerEnvEntry44: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueNameCancellazioneRicevutePEC}'
+        ContainerEnvEntry45: !Sub 'CancellazioneRicevutePecMaxThreadPoolSize=${CancellazioneRicevutePecMaxThreadPoolSize}'
+        ContainerEnvEntry46: !Sub 'PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked=${PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked}'
+        ContainerEnvEntry47: !Sub 'PnEcPECMaxMessageSizeMB=${PnEcPECMaxMessageSizeMB}'
+        ContainerEnvEntry48: !Sub 'PnEcPECAttachmentRule=${PnEcPECAttachmentRule}'
+        ContainerEnvEntry49: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
+        ContainerEnvEntry50: !Sub 'PnEcSqsMessagesStagingBucketName=${PnEcSqsMessagesStagingBucketName}'
+        ContainerEnvEntry51: !Sub 'PnEcProviderSwitchRead=${PnEcProviderSwitchRead}'
+        ContainerEnvEntry52: !Sub 'PnEcProviderSwitchWrite=${PnEcProviderSwitchWrite}'
+        ContainerEnvEntry53: !Sub 'PnEcIdentityPec=${PnEcIdentityPec}'
+        ContainerEnvEntry54: !Sub 'SpringCodecMaxInMemorySize=${SpringCodecMaxInMemorySize}'
+        ContainerEnvEntry55: !Sub 'PnEcConsAllowedFutureOffsetDuration=${PnEcConsAllowedFutureOffsetDuration}'
+        ContainerEnvEntry56: !Sub 'PnECPaperPAIdToRaster=${PnECPaperPAIdToRaster}'
+        ContainerEnvEntry57: !Sub 'PnECPaperDocumentTypeToRaster=${PnECPaperDocumentTypeToRaster}'
+        ContainerEnvEntry58: !Sub 'PnECPaperDocumentTypeForRasterized=${PnECPaperDocumentTypeForRasterized}'
+        ContainerEnvEntry59: !Sub 'PnECPaperPAIdOverride=${PnECPaperPAIdOverride}'
+        ContainerEnvEntry60: !Sub 'PnEcQueueNameAvailabilityManager=${PnEcQueueNameAvailabilityManager}'
+        ContainerEnvEntry61: !Sub 'PnEcDLQueueNameErroriCARTACEO=${PnEcDLQueueNameErroriCARTACEO}'
+        ContainerEnvEntry62: !Sub 'PnEcQueueNameTrackerStatoSERCQ=${PnEcQueueNameTrackerStatoSERCQ}'
+        ContainerEnvEntry63: !Sub 'PnEcQueueNameTrackerErroriSERCQ=${PnEcQueueNameTrackerErroriSERCQ}'
+        ContainerEnvEntry64: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry65: !Sub 'PnEcPecMetricsSchema=${PnEcPecMetricsSchema}'
+        ContainerEnvEntry66: !Sub 'SQSCartaceoMaxBatchSubscribedMsgs=${SQSCartaceoMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry67: !Sub 'PN_CRON_ANALYZER=${PnCronAnalyzer}'
+        ContainerEnvEntry68: !Sub 'WIRE_TAP_LOG=${WireTapLogActivation}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -1067,12 +1047,13 @@ Resources:
         TaskRoleManagedPolicyArn: !Ref PnEcManagedPolicy
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
         EcsLogGroup: !Ref EcsLogGroup
-        LoadBalancingAlgorithm: round_robin
         AutoscalingThreshold: !Ref AutoscalingThreshold
         AutoscalingStrategy: REST-API
         MinTasksNumber: !Ref MinTasksNumber
         MaxTasksNumber: !Ref MaxTasksNumber
         JavaToolOptions: !Ref JavaToolOptions
+        EfsFilesystem: !Ref FargateEFSFileSystemID
+        MountEfs: !Ref MountEfs
 
   PnEcManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -1098,9 +1079,9 @@ Resources:
               - !Ref PnEcTableArnAnagrafica
               - !Ref PnEcTableArnRichieste
               - !Ref PnEcTableArnRichiesteMetadati
-              - !Ref PnEcTableArnScartiConsolidatore
               - !Ref PnEcTableArnRichiesteConversione
               - !Ref PnEcTableArnConversionePdf
+              - !Ref PnEcTableArnScartiConsolidatore
           - Effect: Allow
             Action:
               - kms:Encrypt
@@ -1277,7 +1258,7 @@ Resources:
             Resource: !Ref PnEcQueueArnTrackerStatoCARTACEO
             Principal:
               AWS: !Ref AWS::AccountId
-
+              
   PnEcQueuePolicyTrackerStatoSERCQ:
     Type: AWS::SQS::QueuePolicy
     Properties:
@@ -1356,6 +1337,72 @@ Resources:
       Threshold: 1
       TreatMissingData: notBreaching
       Metrics:
+        - Id: m2
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: LoadBalancer
+                  Value: !Ref ApplicationLoadBalancerMetricsDimensionName
+                - Name: TargetGroup
+                  Value: !GetAtt ExternalChannelMicroservice.Outputs.TargetGroupName
+              MetricName: HTTPCode_Target_5XX_Count
+              Namespace: AWS/ApplicationELB
+            Period: 300
+            Stat: Sum
+          ReturnData: False
+        - Id: m3
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: TargetGroup
+                  Value: !GetAtt ExternalChannelMicroservice.Outputs.TargetGroupName
+              MetricName: RequestCountPerTarget
+              Namespace: AWS/ApplicationELB
+            Period: 300
+            Stat: Sum
+          ReturnData: False
+        - Id: m4
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: LoadBalancer
+                  Value: !Ref ApplicationLoadBalancerMetricsDimensionName
+              MetricName: HTTPCode_ELB_5XX_Count
+              Namespace: AWS/ApplicationELB
+            Period: 300
+            Stat: Sum
+          ReturnData: False
+        - Id: m5
+          MetricStat:
+            Metric:
+              Dimensions:
+                - Name: LoadBalancer
+                  Value: !Ref ApplicationLoadBalancerMetricsDimensionName
+              MetricName: RequestCount
+              Namespace: AWS/ApplicationELB
+            Period: 300
+            Stat: Sum
+          ReturnData: False
+        - Id: e1
+          Expression: IF((m5>=30 AND m4/m5>=0.4) OR (m3>=30 AND m2/m3>=0.4), 1, 0)
+          Label: !Sub "${ProjectName}-external-channel-ALBAlarm-oncall-metric"
+
+  ApplicationLoadBalancerWorkdayAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasAlbDimensionName
+    Properties:
+      AlarmName: !Sub "workday-${ProjectName}-external-channel-alb-alarm"
+      AlarmDescription: "CloudWatch alarm when an application load balancer respond with a HTTP status 500."
+      AlarmActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      OKActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      DatapointsToAlarm: 2
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 6
+      Threshold: 1
+      TreatMissingData: notBreaching
+      Metrics:
         - Id: m1
           MetricStat:
             Metric:
@@ -1419,6 +1466,79 @@ Resources:
           Expression: IF((m5>=30 AND m4/m5>=0.1) OR (m3>=30 AND (m1/m3>=0.9 OR m2/m3>=0.1)), 1, 0)
           Label: !Sub "${ProjectName}-external-channel-ALBAlarm-oncall-metric"
 
+  MultipleReceiptAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: !Sub "${ProjectName}-external-channel-PecNamirial-multipleReceipt-alarm"
+      AlarmDescription: "CloudWatch alarm when there are duplicates messages in PEC mail box."
+      AlarmActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      OKActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      Namespace: "PEC/Namirial"
+      MetricName: "multipleReceipt"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      TreatMissingData: notBreaching
+
+  MultipleReceiptOnCallAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: !Sub "oncall-${ProjectName}-external-channel-PecNamirial-multipleReceipt-alarm"
+      AlarmDescription: "Oncall CloudWatch alarm when there are duplicates messages in PEC mail box."
+      AlarmActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      OKActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      Namespace: "PEC/Namirial"
+      MetricName: "multipleReceipt"
+      Statistic: "Sum"
+      Period: 300
+      EvaluationPeriods: 12
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      TreatMissingData: notBreaching
+
+  GetUnreadPecMessagesCountAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: !Sub "${ProjectName}-external-channel-PecNamirial-GetUnreadPecMessagesCount-alarm"
+      AlarmDescription: "CloudWatch alarm when pn-ec does not receive the results from the pec provider."
+      AlarmActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      OKActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      Namespace: "PEC/Namirial"
+      MetricName: "GetUnreadPecMessagesCount"
+      Statistic: "Sum"
+      Period: 3600
+      EvaluationPeriods: 3
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      TreatMissingData: notBreaching
+
+  GetUnreadPecMessagesCountOnCallAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Condition: HasOncallAlarm
+    Properties:
+      AlarmName: !Sub "oncall-${ProjectName}-external-channel-PecNamirial-GetUnreadPecMessagesCount-alarm"
+      AlarmDescription: "Oncall CloudWatch alarm when pn-ec does not receive the results from the pec provider."
+      AlarmActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      OKActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      Namespace: "PEC/Namirial"
+      MetricName: "GetUnreadPecMessagesCount"
+      Statistic: "Sum"
+      Period: 3600
+      EvaluationPeriods: !Ref GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods
+      Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      TreatMissingData: notBreaching
+
   ExternalChannelMicroserviceAlarm:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -1465,6 +1585,7 @@ Resources:
             - !Ref PnEcAlarmArnQueueErroriCARTACEO
             - !Ref PnEcAlarmArnDLQueueErroriCARTACEO
             - !If [ HasAlbDimensionName, !GetAtt ApplicationLoadBalancerOnCallAlarm.Arn, '' ]
+            - !If [ HasAlbDimensionName, !GetAtt ApplicationLoadBalancerWorkdayAlarm.Arn, '' ]
         DynamoDBTableNames:
           !Join
           - ','

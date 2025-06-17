@@ -13,9 +13,8 @@ import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import it.pagopa.pn.library.exceptions.PnSpapiPermanentErrorException;
 import it.pagopa.pn.library.pec.service.ArubaService;
-import it.pec.bridgews.SendMail;
-import it.pec.bridgews.SendMailResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -79,15 +78,13 @@ class PecRetryTest {
     private GestoreRepositoryCall gestoreRepositoryCall;
     Message message = Message.builder().build();
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
-    private static final ClientConfigurationDto clientConfigurationDto = new ClientConfigurationDto();
-    private static final String ATTACHMENT_PREFIX = "safestorage://";
-    private static final String defaultAttachmentUrl = "safestorage://prova.pdf";
-    private String TIPO_RICEVUTA_BREVE_DEFAULT;
-    private static Integer MAX_MESSAGE_SIZE_KB;
+    private static final String DEFAULT_ATTACHMENT_URL = "safestorage://prova.pdf";
+    private String tipoRicevutaBreveDefault;
+    private static Integer maxMessageSizeKb;
     public static DigitalNotificationRequest createDigitalNotificationRequest() {
 
         List<String> defaultListAttachmentUrls = new ArrayList<>();
-        defaultListAttachmentUrls.add(defaultAttachmentUrl);
+        defaultListAttachmentUrls.add(DEFAULT_ATTACHMENT_URL);
 
         digitalNotificationRequest.setRequestId("requestIdx");
         digitalNotificationRequest.eventType("string");
@@ -140,6 +137,7 @@ class PecRetryTest {
         List<BigDecimal> retries = new ArrayList<>();
         retries.add(0, BigDecimal.valueOf(5));
         retries.add(1, BigDecimal.valueOf(10));
+        retries.add(2, BigDecimal.valueOf(20));
         retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(7));
         retryDto.setRetryStep(BigDecimal.valueOf(0));
         retryDto.setRetryPolicy(retries);
@@ -160,16 +158,16 @@ class PecRetryTest {
 
     @BeforeAll
     static void beforeAll(@Autowired PnPecConfigurationProperties pnPecConfigurationProperties) {
-        MAX_MESSAGE_SIZE_KB = pnPecConfigurationProperties.getMaxMessageSizeMb() * MB_TO_BYTES;
+        maxMessageSizeKb = pnPecConfigurationProperties.getMaxMessageSizeMb() * MB_TO_BYTES;
     }
 
     @BeforeEach
     void setUp() {
-        TIPO_RICEVUTA_BREVE_DEFAULT = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "tipoRicevutaBreve");
+        tipoRicevutaBreveDefault = (String) ReflectionTestUtils.getField(pnPecConfigurationProperties, "tipoRicevutaBreve");
     }
     @AfterEach
     void afterEach() {
-        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", TIPO_RICEVUTA_BREVE_DEFAULT);
+        ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", tipoRicevutaBreveDefault);
     }
 
     @Test
@@ -233,13 +231,38 @@ class PecRetryTest {
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message);
-//        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-//        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
 
+    @Test
+    void gestioneRetryPec_Retry_BadAddressKo(){
+
+        String requestId = PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getRequestIdx();
+        String clientId = PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getXPagopaExtchCxId();
+        var requestDto=buildRequestDto();
+
+        PatchDto patchDto = new PatchDto();
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(arubaService.sendMail(any())).thenReturn(Mono.error(new PnSpapiPermanentErrorException("class jakarta.mail.internet.AddressException Local address starts with dot")));
+        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
+
+        //Gestore repository mocks.
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
+
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(ADDRESS_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+    }
     @Test
     void gestionreRetryPec_MaxAttachmentsSizeExceeded_MoreAttachments_Limit(){
 
@@ -271,7 +294,7 @@ class PecRetryTest {
         var mimeMessage = getMimeMessage(mimeMessageBytes);
         var multipart=getMultipartFromMimeMessage(mimeMessage);
 
-        assertTrue(mimeMessageBytes.length < MAX_MESSAGE_SIZE_KB);
+        assertTrue(mimeMessageBytes.length < maxMessageSizeKb);
         //Body del messaggio + allegati
         assertEquals(3, getMultipartCount(multipart));
     }
@@ -307,7 +330,7 @@ class PecRetryTest {
         var mimeMessage = getMimeMessage(mimeMessageBytes);
         var multipart=getMultipartFromMimeMessage(mimeMessage);
 
-        assertTrue(mimeMessageBytes.length < MAX_MESSAGE_SIZE_KB);
+        assertTrue(mimeMessageBytes.length < maxMessageSizeKb);
         //Body del messaggio + 1 allegato
         assertEquals(2, getMultipartCount(multipart));
     }
@@ -335,7 +358,7 @@ class PecRetryTest {
         when(sqsService.deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
-        StepVerifier.create(response).verifyComplete();
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
         verify(arubaService, never()).sendMail(any());
     }
 
@@ -443,7 +466,7 @@ class PecRetryTest {
 
     private void mockAttachmentsWithLastInOffset(int numOfAttachments) {
         List<FileDownloadResponse> fileDownloadResponseList = new ArrayList<>();
-        int sizeForAttachment = MAX_MESSAGE_SIZE_KB / numOfAttachments;
+        int sizeForAttachment = maxMessageSizeKb / numOfAttachments;
         for (int i = 0; i < numOfAttachments; i++) {
             var file = new FileDownloadResponse().download(new FileDownloadInfo().url("safestorage://url" + i)).key("key" + i);
             fileDownloadResponseList.add(file);

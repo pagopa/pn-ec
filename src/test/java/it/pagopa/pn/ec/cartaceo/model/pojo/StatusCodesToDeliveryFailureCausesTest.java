@@ -17,21 +17,21 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTestWebEnv
 @CustomLog
-public class StatusCodesToDeliveryFailureCausesTest {
+class StatusCodesToDeliveryFailureCausesTest {
 
     StatusCodesToDeliveryFailureCauses statusCodesToCustomDeliveryFailureCauses;
     private List<String> statusCodesListFromPaperElem = PaperElem.statusCodeDescriptionMap().keySet().stream().toList();
     private List<String> deliveryFailureCausesListFromPaperElem = PaperElem.deliveryFailureCausemap().keySet().stream().toList();
 
     @BeforeEach
-    public void setup() {
+    void setup() {
         MockitoAnnotations.openMocks(this);
         statusCodesToCustomDeliveryFailureCauses = new StatusCodesToDeliveryFailureCauses();
 
     }
 
     @Test
-    public void retrieveDeliveryFailureCauses_whenCalled_returnsDeliveryFailureCausesMapTest() throws JsonProcessingException {
+    void retrieveDeliveryFailureCauses_whenCalled_returnsDeliveryFailureCausesMapTest() throws JsonProcessingException {
 
         statusCodesToCustomDeliveryFailureCauses.setStatusCodeToDeliveryFailureCausesMap(getCustomDeliveryFailureCausesListFromPaperElem());
 
@@ -44,7 +44,7 @@ public class StatusCodesToDeliveryFailureCausesTest {
     }
 
     @Test
-    public void shouldReturnTrueWhenDeliveryFailureCauseExistsInStatusCodeTest() throws JsonProcessingException {
+    void shouldReturnTrueWhenDeliveryFailureCauseExistsInStatusCodeTest() throws JsonProcessingException {
 
         statusCodesToCustomDeliveryFailureCauses.setStatusCodeToDeliveryFailureCausesMap(getCustomDeliveryFailureCauses());
 

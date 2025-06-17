@@ -23,8 +23,6 @@ public class NettyWebFilter implements WebFilter {
 
     @Override
     public @NotNull Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        ServerHttpRequest httpRequest = exchange.getRequest();
-
         ServerHttpRequestDecorator loggingServerHttpRequestDecorator = new ServerHttpRequestDecorator(exchange.getRequest()) {
             String requestBody = "";
 
