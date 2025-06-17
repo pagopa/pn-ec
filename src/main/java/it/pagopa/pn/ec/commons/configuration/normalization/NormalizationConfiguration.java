@@ -10,12 +10,12 @@ import java.util.Arrays;
 @Getter
 public class NormalizationConfiguration {
 
-    /** PnECPaperPAIdToNormalize (NOTHING | ALL | lista ';') */
-    @Value("${PnECPaperPAIdToNormalize:NOTHING}")
+    /** (NOTHING | ALL | lista ';') */
+    @Value("${PN_EC_PAPER_PAIDTONORMALIZE:NOTHING}")
     private String paIdToNormalize;
 
-    /** TransformationPriority (NORMALIZATION | RASTERIZATION | lista ',') */
-    @Value("${TransformationPriority:NORMALIZATION}")
+    /** (NORMALIZATION | RASTERIZATION | lista ',') */
+    @Value("${TRANSFORMATION_PRIORITY:NORMALIZATION}")
     private String transformationPriority;
 
     /** true se la normalizzazione è abilitata per la PA indicata */

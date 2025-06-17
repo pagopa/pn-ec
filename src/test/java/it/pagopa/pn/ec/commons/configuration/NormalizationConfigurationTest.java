@@ -10,8 +10,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(classes = NormalizationConfiguration.class)
 @TestPropertySource(properties = {
-        "PnECPaperPAIdToNormalize=PA1;PA2",
-        "TransformationPriority=RASTERIZATION"
+        "PN_EC_PAPER_PAIDTONORMALIZE=PA1;PA2",
+        "TRANSFORMATION_PRIORITY=RASTERIZATION"
 })
 class NormalizationConfigurationTest {
 
