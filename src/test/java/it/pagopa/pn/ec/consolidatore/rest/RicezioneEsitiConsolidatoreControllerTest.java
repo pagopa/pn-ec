@@ -881,8 +881,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.uri(RICEZIONE_ESITI_ENDPOINT)
 				.accept(APPLICATION_JSON)
 				.contentType(APPLICATION_JSON)
-				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
-				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.header(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_NAME, X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE)
+				.header(X_API_KEY_HEADER_NAME, X_API_KEY_HEADER_VALUE)
 				.body(BodyInserters.fromValue(events))
 				.exchange()
 				.expectStatus()
@@ -908,7 +908,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		);
 		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", PRODUCT_TYPE_AR);
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
-		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(BOOKED_EVENT,SENT_EVENT, con010)));
+		when(gestoreRepositoryCall.getRichiesta(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, REQUEST_ID)).thenReturn(Mono.just(getRequestDto(BOOKED_EVENT,SENT_EVENT, con010)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
 
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
@@ -918,8 +918,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.uri(RICEZIONE_ESITI_ENDPOINT)
 				.accept(APPLICATION_JSON)
 				.contentType(APPLICATION_JSON)
-				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
-				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.header(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_NAME, X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE)
+				.header(X_API_KEY_HEADER_NAME, X_API_KEY_HEADER_VALUE)
 				.body(BodyInserters.fromValue(events))
 				.exchange()
 				.expectStatus()
@@ -941,7 +941,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		requestDto.getRequestMetadata().getPaperRequestMetadata().setDuplicateCheckPassthrough(true);
 		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", PRODUCT_TYPE_AR);
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
-		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(requestDto));
+		when(gestoreRepositoryCall.getRichiesta(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, REQUEST_ID)).thenReturn(Mono.just(requestDto));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
 
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
@@ -973,7 +973,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		);
 		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", "ProductType|"+PRODUCT_TYPE_AR+"|OtherProductType");
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
-		when(gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceIdHeaderValue, requestId)).thenReturn(Mono.just(getRequestDto(BOOKED_EVENT, SENT_EVENT, con010)));
+		when(gestoreRepositoryCall.getRichiesta(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, REQUEST_ID)).thenReturn(Mono.just(getRequestDto(BOOKED_EVENT, SENT_EVENT, con010)));
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
 		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
@@ -984,8 +984,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.uri(RICEZIONE_ESITI_ENDPOINT)
 				.accept(APPLICATION_JSON)
 				.contentType(APPLICATION_JSON)
-				.header(xPagopaExtchServiceIdHeaderName, xPagopaExtchServiceIdHeaderValue)
-				.header(xApiKeyHeaderaName, xApiKeyHeaderValue)
+				.header(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_NAME, X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE)
+				.header(X_API_KEY_HEADER_NAME, X_API_KEY_HEADER_VALUE)
 				.body(BodyInserters.fromValue(events))
 				.exchange()
 				.expectStatus()

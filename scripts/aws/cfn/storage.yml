@@ -134,7 +134,7 @@ Resources:
         PointInTimeRecoveryEnabled: true
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
-    
+
   PnEcTableRichiesteConversione:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -1337,7 +1337,7 @@ Outputs:
   PnEcAlarmArnDLQueueTrackerErroriSERCQ:
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriSERCQ"
     Value: !GetAtt PnEcQueueTrackerErroriSERCQStack.Outputs.SqsDLQAlarmArn
-  
+
   ###### BATCH : SMS #######
 
   PnEcQueueNameBatchSMS:
