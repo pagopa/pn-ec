@@ -32,6 +32,7 @@ import reactor.util.function.Tuples;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
@@ -278,9 +279,13 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 	public Mono<RequestDto> verificaDuplicati(RequestDto requestDto, ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent) {
 		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, VERIFICA_DUPLICATI, progressStatusEvent);
+
+		String[] duplicatesCodes = duplicatesCheck.split(";");
+		boolean shouldCheck= Arrays.stream(duplicatesCodes).anyMatch(code -> code.equals(progressStatusEvent.getProductType()));
+
 		return Mono.defer(() -> {
 			Boolean passthrough = requestDto.getRequestMetadata().getPaperRequestMetadata().getDuplicateCheckPassthrough();
-			if ((passthrough == null || !passthrough) && duplicatesCheck.contains(progressStatusEvent.getProductType())) {
+			if ((passthrough == null || !passthrough) && shouldCheck) {
 				log.debug(VERIFICA_DUPLICATI + ": checking {} for duplicates against events {}", progressStatusEvent,requestDto.getRequestMetadata().getEventsList());
 				return Flux.fromIterable(requestDto.getRequestMetadata().getEventsList()).any(event -> isSameEvent(event.getPaperProgrStatus(), progressStatusEvent));
 			}
