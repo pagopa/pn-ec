@@ -5,6 +5,7 @@ import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.configuration.normalization.NormalizationConfiguration;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.StatusToDeleteException;
@@ -24,7 +25,7 @@ import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.QueueOperationsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
-import it.pagopa.pn.ec.cartaceo.configuration.RasterConfiguration;
+import it.pagopa.pn.ec.cartaceo.configuration.PdfTransformationConfiguration;
 import it.pagopa.pn.ec.pdfraster.service.impl.DynamoPdfRasterServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.CustomLog;
@@ -75,22 +76,23 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final DownloadCall downloadCall;
     private final UploadCall uploadCall;
     private final DynamoPdfRasterServiceImpl dynamoPdfRasterService;
-    private final RasterConfiguration rasterConfiguration;
+    private final PdfTransformationConfiguration pdfTransformationConfiguration;
     private final CartaceoMapper cartaceoMapper;
     private String idSaved;
     private final Semaphore semaphore;
     private final Integer cartaceoMaxBatchSubscribedMsgs;
     private final Retry lavorazioneRichiestaRetryStrategy;
+    private final NormalizationConfiguration normalizationConfiguration;
 
     protected CartaceoService(AuthService authService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall,
                               AttachmentServiceImpl attachmentService, NotificationTrackerSqsName notificationTrackerSqsName,
                               CartaceoSqsQueueName cartaceoSqsQueueName, PaperMessageCall paperMessageCall, FileCall fileCall,
                               DownloadCall downloadCall, UploadCall uplpadCall, DynamoPdfRasterServiceImpl dynamoPdfRasterService,
-                              RasterConfiguration rasterConfiguration, CartaceoMapper cartaceoMapper,
+                              PdfTransformationConfiguration pdfTransformationConfiguration, CartaceoMapper cartaceoMapper,
                               @Value("${lavorazione-cartaceo.max-thread-pool-size}") Integer maxThreadPoolSize,
                               @Value("${lavorazione-cartaceo.max-retry-attempts}") Long maxRetryAttempts,
                               @Value("${lavorazione-cartaceo.min-retry-backoff}") Long minRetryBackoff,
-                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs) {
+                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs, NormalizationConfiguration normalizationConfiguration) {
         super(authService);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
@@ -102,10 +104,11 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         this.downloadCall = downloadCall;
         this.uploadCall = uplpadCall;
         this.dynamoPdfRasterService = dynamoPdfRasterService;
-        this.rasterConfiguration = rasterConfiguration;
+        this.pdfTransformationConfiguration = pdfTransformationConfiguration;
         this.cartaceoMapper = cartaceoMapper;
         this.semaphore = new Semaphore(maxThreadPoolSize);
         this.cartaceoMaxBatchSubscribedMsgs = cartaceoMaxBatchSubscribedMsgs;
+        this.normalizationConfiguration = normalizationConfiguration;
         this.lavorazioneRichiestaRetryStrategy = Retry.backoff(maxRetryAttempts, Duration.ofSeconds(minRetryBackoff))
                 .filter(throwable -> !(throwable instanceof ConsolidatoreException.PermanentException))
                 .doBeforeRetry(retrySignal -> log.debug(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure(), retrySignal.failure().getMessage()))
@@ -259,7 +262,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
         // Set the first step to be executed
         var stepError = new StepError();
-        stepError.setStep(PDF_RASTER_STEP);
+        stepError.setStep(PDF_TRANSFORMATION_STEP);
         cartaceoPresaInCaricoInfo.setStepError(stepError);
 
         return MDCUtils.addMDCToContextAndExecute(gestoreRepositoryCall.getRichiesta(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(), cartaceoPresaInCaricoInfo.getRequestIdx())
@@ -311,7 +314,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         // Set the first step if it's not already set
         if (cartaceoPresaInCaricoInfo.getStepError() == null) {
             var stepError = new StepError();
-            stepError.setStep(PDF_RASTER_STEP);
+            stepError.setStep(PDF_TRANSFORMATION_STEP);
             cartaceoPresaInCaricoInfo.setStepError(stepError);
         }
 
@@ -440,8 +443,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         return  filterIfSent(cartaceoPresaInCaricoInfo, requestDto)
                 .flatMap(ignored -> {
                     switch (cartaceoPresaInCaricoInfo.getStepError().getStep()) {
-                        case PDF_RASTER_STEP -> {
-                            return pdfRasterStep(cartaceoPresaInCaricoInfo, paperEngageRequestDst, paperEngageRequestSrc)
+                        case PDF_TRANSFORMATION_STEP -> {
+                            return transformationStep(cartaceoPresaInCaricoInfo, paperEngageRequestDst, paperEngageRequestSrc)
                                     .doOnSuccess(result -> {
                                         if (result != null) {
                                             cartaceoPresaInCaricoInfo.getStepError().setStep(END);
@@ -512,7 +515,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
 
     private  it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest overridePaIdIfRequired( it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest paperEngageRequest) {
-        String paIdOverride = rasterConfiguration.getPaIdOverride();
+        String paIdOverride = pdfTransformationConfiguration.getPaIdOverride();
         if (!StringUtils.isBlank(paIdOverride))
             paperEngageRequest.setRequestPaId(paIdOverride);
         return paperEngageRequest;
@@ -549,48 +552,57 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
      * If there is no attachment to convert or the feature is disabled, this method returns an empty Mono.
      *
      * @param cartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo
-     * @param paperEngageRequestDst converted PaperEngageRequest
-     * @param paperEngageRequestSrc original PaperEngageRequest
+     * @param reqDst converted PaperEngageRequest
+     * @param reqSrc original PaperEngageRequest
      * @return Mono<RequestConversionDto> a Mono containing the conversion request just submitted
      */
-    private Mono<RequestConversionDto> pdfRasterStep(CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest paperEngageRequestDst, PaperEngageRequest paperEngageRequestSrc) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CARTACEO_PDF_RASTER_STEP, Stream.of(cartaceoPresaInCaricoInfo, paperEngageRequestDst, paperEngageRequestSrc).toList());
+    private Mono<RequestConversionDto> transformationStep(
+            CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo,
+            it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest reqDst,
+            PaperEngageRequest reqSrc) {
 
-        if (isRasterFeatureEnabled(paperEngageRequestDst.getRequestPaId()) || Boolean.TRUE.equals(paperEngageRequestSrc.getApplyRasterization())) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CARTACEO_PDF_RASTER_STEP, Stream.of(cartaceoPresaInCaricoInfo, reqDst, reqSrc).toList());
 
-            return Mono.justOrEmpty(paperEngageRequestDst.getAttachments())
-                    .flatMapMany(Flux::fromIterable)
-                    .filter(this::isAttachmentToConvert)
-                    .flatMap(attachment -> uploadAttachmentToConvert(cartaceoPresaInCaricoInfo, attachment))
-                    .collectList()
-                    .filter(attachmentsToConvert -> !attachmentsToConvert.isEmpty())
-                    .doOnDiscard(List.class, list -> log.debug("No attachments to convert were processed."))
-                    .flatMap(attachmentsToConvert -> {
-                        RequestConversionDto requestConversionDto = new RequestConversionDto();
-                        requestConversionDto.setxPagopaExtchCxId(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId());
-                        requestConversionDto.setRequestId(cartaceoPresaInCaricoInfo.getRequestIdx());
-                        requestConversionDto.setOriginalRequest(paperEngageRequestSrc);
-                        requestConversionDto.setAttachments(attachmentsToConvert);
-                        requestConversionDto.setRequestTimestamp(OffsetDateTime.now());
-                        return dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
-                    })
-                    .retryWhen(lavorazioneRichiestaRetryStrategy)
-                    .doOnError(MaxRetriesExceededException.class, throwable -> {
-                        log.debug(EXCEPTION_IN_PROCESS, CARTACEO_PDF_RASTER_STEP, throwable, throwable.getMessage());
-                        StepError stepError = new StepError();
-                        stepError.setStep(PDF_RASTER_STEP);
-                        cartaceoPresaInCaricoInfo.setStepError(stepError);
-                    });
+        boolean rasterEnabled = isRasterFeatureEnabled(reqDst.getRequestPaId());
+        boolean normalizationEnabled = normalizationConfiguration.isNormalizationEnabled(reqDst.getRequestPaId());
+        boolean explicitTransform = StringUtils.isNotBlank(reqSrc.getTransformationDocumentType());
+
+        if (!(rasterEnabled || normalizationEnabled || explicitTransform)) {
+            // Nessuna trasformazione da eseguire
+            return Mono.empty();
         }
-        return Mono.empty();
+
+        return Mono.justOrEmpty(reqDst.getAttachments())
+            .flatMapMany(Flux::fromIterable)
+            .filter(this::isAttachmentToConvert)
+            .flatMap(attachment -> uploadAttachmentToConvert(cartaceoPresaInCaricoInfo, attachment))
+            .collectList()
+            .filter(attachmentsToConvert -> !attachmentsToConvert.isEmpty())
+            .doOnDiscard(List.class, list -> log.debug("No attachments to convert were processed."))
+            .flatMap(attachmentsToConvert -> {
+                RequestConversionDto requestConversionDto = new RequestConversionDto();
+                requestConversionDto.setxPagopaExtchCxId(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId());
+                requestConversionDto.setRequestId(cartaceoPresaInCaricoInfo.getRequestIdx());
+                requestConversionDto.setOriginalRequest(reqSrc);
+                requestConversionDto.setAttachments(attachmentsToConvert);
+                requestConversionDto.setRequestTimestamp(OffsetDateTime.now());
+                return dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
+            })
+            .retryWhen(lavorazioneRichiestaRetryStrategy)
+            .doOnError(MaxRetriesExceededException.class, throwable -> {
+                log.debug(EXCEPTION_IN_PROCESS, CARTACEO_PDF_RASTER_STEP, throwable, throwable.getMessage());
+                StepError stepError = new StepError();
+                stepError.setStep(PDF_TRANSFORMATION_STEP);
+                cartaceoPresaInCaricoInfo.setStepError(stepError);
+            });
     }
 
     private boolean isAttachmentToConvert(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequestAttachments attachment) {
-        return rasterConfiguration.getDocumentTypesToRaster().stream().anyMatch(type -> attachment.getUri().replace(SAFESTORAGE_PREFIX, "").startsWith(type));
+        return pdfTransformationConfiguration.getDocumentTypesToRaster().stream().anyMatch(type -> attachment.getUri().replace(SAFESTORAGE_PREFIX, "").startsWith(type));
     }
 
     private boolean isRasterFeatureEnabled(String requestPaId) {
-        String flag = rasterConfiguration.getPaIdToRaster();
+        String flag = pdfTransformationConfiguration.getPaIdToRaster();
         return switch (flag) {
             case "NOTHING" -> false;
             case "ALL" -> true;
@@ -614,7 +626,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     ByteArrayOutputStream downloadedFileStream = (ByteArrayOutputStream) tuple.getT2();
                     FileCreationRequest fileCreationRequest = new FileCreationRequest();
                     fileCreationRequest.setStatus(fileDownloadResponse.getDocumentStatus());
-                    fileCreationRequest.setDocumentType(rasterConfiguration.getDocumentTypeForRasterized());
+                    fileCreationRequest.setDocumentType(pdfTransformationConfiguration.getDocumentTypeForRasterized());
                     fileCreationRequest.setContentType(fileDownloadResponse.getContentType());
                     log.debug("Posting file for originalFileKey: {}", originalFileKey);
                     return Mono.zip(Mono.just(downloadedFileStream), fileCall.postFile(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(), fileDownloadResponse.getChecksum(), fileCreationRequest), Mono.just(fileDownloadResponse.getContentType()));

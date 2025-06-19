@@ -4,6 +4,7 @@ import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.RasterProperties;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
+import it.pagopa.pn.ec.commons.configuration.normalization.NormalizationConfiguration;
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.cartaceo.ConsolidatoreException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -15,7 +16,7 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.rest.call.upload.UploadCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.cartaceo.configuration.RasterConfiguration;
+import it.pagopa.pn.ec.cartaceo.configuration.PdfTransformationConfiguration;
 import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
@@ -67,8 +68,11 @@ class CartaceoServiceTest {
     private DynamoPdfRasterService dynamoPdfRasterService;
     @SpyBean
     private RasterProperties rasterProperties;
+    @SpyBean
+    private NormalizationConfiguration normalizationConfiguration;
+
     @Autowired
-    private RasterConfiguration rasterConfiguration;
+    private PdfTransformationConfiguration pdfTransformationConfiguration;
 
     private static final String DOWNLOAD_URL = "http://downloadUrl";
 
@@ -379,6 +383,102 @@ class CartaceoServiceTest {
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
         verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
     }
+
+    /**
+     * Verifica che lo step di trasformazione venga eseguito quando
+     * il campo transformationDocumentType è valorizzato, anche se
+     * la PA NON è abilitata né a raster né a normalizzazione.
+     */
+    @Test
+    void lavorazioneRichiestaTransformation_ExplicitFlag_Ok() {
+
+        // GIVEN
+        CartaceoPresaInCaricoInfo cartaceoInfo = getCartaceoPresaInCaricoInfo();
+        cartaceoInfo.getPaperEngageRequest()
+                .setTransformationDocumentType("PN_CLEAN_PAPER_ATTACHMENT");     // flag esplicito per la normalizzazione
+        cartaceoInfo.getPaperEngageRequest().setApplyRasterization(null);        // disabilito raster
+
+        // Raster disabilitato per tutte le PA
+        when(rasterProperties.paIdToRaster()).thenReturn("NOTHING");
+
+        // Normalizzazione disabilitata (default paIdToNormalize = NOTHING)
+        ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "NOTHING");
+
+        // WHEN
+        mockGestoreRepository();
+        mockPutRequest();
+        mockPdfRasterAttachmentSteps();
+
+        Mono<SendMessageResponse> lavorazione = cartaceoService.lavorazioneRichiesta(cartaceoInfo);
+
+        // THEN
+        StepVerifier.create(lavorazione).expectNextCount(1).verifyComplete();
+
+        // Deve aver creato la richiesta di conversione
+        verify(dynamoPdfRasterService, times(1))
+                .insertRequestConversion(any(RequestConversionDto.class));
+    }
+
+    /**
+     * La PA è abilitata alla NORMALIZZAZIONE tramite configurazione.
+     * Nessun applyRasterization e nessun transformationDocumentType esplicito.
+     */
+    @Test
+    void lavorazioneRichiestaTransformation_NormalizationEnabled_Ok() {
+        /* GIVEN */
+        CartaceoPresaInCaricoInfo info = getCartaceoPresaInCaricoInfo();
+        info.getPaperEngageRequest().setApplyRasterization(null);                 // disabilito raster flag
+        info.getPaperEngageRequest().setTransformationDocumentType(null);        // nessun override
+
+        // Raster disabilitato
+        when(rasterProperties.paIdToRaster()).thenReturn("NOTHING");
+
+        // Normalizzazione ABILITATA per la PA (ALL o lista)
+        ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "ALL");
+
+        /* WHEN */
+        mockGestoreRepository();
+        mockPutRequest();
+        mockPdfRasterAttachmentSteps();
+
+        Mono<SendMessageResponse> lavorazione = cartaceoService.lavorazioneRichiesta(info);
+
+        /* THEN */
+        StepVerifier.create(lavorazione).expectNextCount(1).verifyComplete();
+        verify(dynamoPdfRasterService, times(1))
+                .insertRequestConversion(any(RequestConversionDto.class));
+    }
+
+    /**
+     * La PA è abilitata alla RASTERIZZAZIONE tramite configurazione.
+     * Nessun applyRasterization e nessun transformationDocumentType esplicito.
+     */
+    @Test
+    void lavorazioneRichiestaTransformation_RasterEnabled_Ok() {
+        //GIVEN
+        CartaceoPresaInCaricoInfo info = getCartaceoPresaInCaricoInfo();
+
+        // Imposto la PA coerente con il mock
+        info.getPaperEngageRequest().setRequestPaId("PA_TEST");
+        info.getPaperEngageRequest().setApplyRasterization(null);
+        info.getPaperEngageRequest().setTransformationDocumentType(null);
+
+        when(rasterProperties.paIdToRaster()).thenReturn("PA_TEST");   // lista che contiene la stessa PA
+        ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "NOTHING");
+
+        // WHEN
+        mockGestoreRepository();
+        mockPutRequest();
+        mockPdfRasterAttachmentSteps();
+
+        Mono<SendMessageResponse> lavorazione = cartaceoService.lavorazioneRichiesta(info);
+
+        // THEN
+        StepVerifier.create(lavorazione).expectNextCount(1).verifyComplete();
+        verify(dynamoPdfRasterService, times(1))
+                .insertRequestConversion(any(RequestConversionDto.class));
+    }
+
 
     @Test
     void lavorazioneRichiestaAlreadyInSent() {
