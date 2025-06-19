@@ -65,7 +65,6 @@ public class CompareUtils {
 
                 if(! (Objects.equals(paperProgress.getDate(), consolidatoreAttachment.getDate()) &&
                         Objects.equals(paperProgress.getId(), consolidatoreAttachment.getId()) &&
-                        Objects.equals(paperProgress.getUri(), consolidatoreAttachment.getUri()) &&
                         Objects.equals(paperProgress.getDocumentType(), consolidatoreAttachment.getDocumentType()) &&
                         Objects.equals(paperProgress.getSha256(), consolidatoreAttachment.getSha256()))) {
                     return false;

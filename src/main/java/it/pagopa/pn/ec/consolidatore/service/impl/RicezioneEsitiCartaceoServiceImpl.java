@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.consolidatore.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.StatusCodesToDeliveryFailureCauses;
+import it.pagopa.pn.ec.commons.configuration.RicezioneEsitiCartaceoConfiguration;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
@@ -32,10 +33,12 @@ import reactor.util.function.Tuples;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
+import static it.pagopa.pn.ec.commons.utils.CompareUtils.isSameEvent;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperConstant.*;
@@ -53,14 +56,14 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private final SqsService sqsService;
 	private final StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses;
 	private final StatusPullService statusPullService;
-	private boolean considerEventsWithoutSentStatusAsBooked;
+	private final boolean considerEventsWithoutSentStatusAsBooked;
+	private final String[] duplicatesCheck;
 	private final Duration offsetDuration;
 
 	public RicezioneEsitiCartaceoServiceImpl(GestoreRepositoryCall gestoreRepositoryCall,
 											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
 											 SqsService sqsService, StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses, StatusPullService statusPullService,
-											 @Value("${ricezione-esiti-cartaceo.consider-event-without-sent-status-as-booked}") boolean considerEventsWithoutStatusAsBooked,
-											 @Value("${ricezione-esiti-cartaceo.allowed-future-offset-duration}") Duration offsetDuration) {
+											 RicezioneEsitiCartaceoConfiguration ricezioneEsitiCartaceoConfiguration) {
 		super();
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.fileCall = fileCall;
@@ -69,12 +72,9 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		this.sqsService = sqsService;
 		this.statusCodesToDeliveryFailureCauses = statusCodesToDeliveryFailureCauses;
 		this.statusPullService = statusPullService;
-		this.considerEventsWithoutSentStatusAsBooked = considerEventsWithoutStatusAsBooked;
-		if (offsetDuration== null){
-			this.offsetDuration = Duration.ofSeconds(-1);
-		} else {
-			this.offsetDuration = offsetDuration;
-		}
+		this.considerEventsWithoutSentStatusAsBooked = ricezioneEsitiCartaceoConfiguration.isConsiderEventsWithoutStatusAsBooked();
+		this.duplicatesCheck = ricezioneEsitiCartaceoConfiguration.getProductTypesToCheck();
+		this.offsetDuration = ricezioneEsitiCartaceoConfiguration.getOffsetDuration();
 	}
 
 	private OperationResultCodeResponse getOperationResultCodeResponse(
@@ -272,6 +272,28 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			.doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, requestId, VERIFICA_ATTACHMENTS, result));
 	}
 
+	public Mono<RequestDto> verificaDuplicati(RequestDto requestDto, ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent) {
+		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, VERIFICA_DUPLICATI, progressStatusEvent);
+
+		boolean shouldCheck= Arrays.stream(duplicatesCheck).anyMatch(code -> code.equals(progressStatusEvent.getProductType()));
+
+		return Mono.defer(() -> {
+			Boolean passthrough = requestDto.getRequestMetadata().getPaperRequestMetadata().getDuplicateCheckPassthrough();
+			if ((passthrough == null || !passthrough) && shouldCheck) {
+				log.debug(VERIFICA_DUPLICATI + ": checking {} for duplicates against events {}", progressStatusEvent,requestDto.getRequestMetadata().getEventsList());
+				return Flux.fromIterable(requestDto.getRequestMetadata().getEventsList()).any(event -> isSameEvent(event.getPaperProgrStatus(), progressStatusEvent));
+			}
+			return Mono.just(false);
+		}).handle((isDuplicated, sink)-> {
+			if (Boolean.FALSE.equals(isDuplicated)) {
+				sink.next(requestDto);
+			} else {
+				sink.error(new RicezioneEsitiCartaceoException("400.02", errorCodeDescriptionMap().get(SEMANTIC_ERROR_CODE), List.of(DUPLICATED_EVENT),
+						List.of(new ConsAuditLogError(ERR_CONS_DUPLICATED_EVENT.getValue(), "The request has duplicated events", requestDto.getRequestIdx()))));
+			}
+		});
+	}
+
 	@Override
 	public Mono<RicezioneEsitiDto> verificaEsitoDaConsolidatore(
 			String xPagopaExtchServiceId, ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent)
@@ -280,6 +302,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		  var requestId = progressStatusEvent.getRequestId();
 		  return Mono.just(progressStatusEvent)
 				 .flatMap(unused -> gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceId, progressStatusEvent.getRequestId()))
+				 .flatMap(requestDto -> verificaDuplicati(requestDto, progressStatusEvent))
 			     .flatMap(requestDto -> verificaErroriSemantici(progressStatusEvent, requestDto, xPagopaExtchServiceId))
 			     .flatMap(unused -> verificaAttachments(xPagopaExtchServiceId, requestId, progressStatusEvent.getAttachments()))
 				 .flatMap(unused -> Mono.just(new RicezioneEsitiDto(progressStatusEvent,
