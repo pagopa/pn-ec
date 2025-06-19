@@ -15,7 +15,7 @@ public class RicezioneEsitiCartaceoConfiguration {
     @Getter
     @Value("${ricezione-esiti-cartaceo.consider-event-without-sent-status-as-booked}")
     private boolean considerEventsWithoutStatusAsBooked;
-    @Value("${ricezione-esiti-cartaceo.duplicates-check}")
+    @Value("${ricezione-esiti-cartaceo.duplicates-check:}")
     private String duplicatesCheck;
     @Getter
     @Value("${ricezione-esiti-cartaceo.allowed-future-offset-duration}")
