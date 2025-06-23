@@ -9,6 +9,7 @@ import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSq
 import it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.StatusToDeleteException;
 import it.pagopa.pn.ec.commons.exception.cartaceo.ConsolidatoreException;
+import it.pagopa.pn.ec.commons.exception.cartaceo.InvalidTransformationTypeException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
@@ -81,6 +82,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final Semaphore semaphore;
     private final Integer cartaceoMaxBatchSubscribedMsgs;
     private final Retry lavorazioneRichiestaRetryStrategy;
+    private final String documentTypeForRasterized;
+    private final String documentTypeForNormalized;
 
     protected CartaceoService(AuthService authService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall,
                               AttachmentServiceImpl attachmentService, NotificationTrackerSqsName notificationTrackerSqsName,
@@ -90,7 +93,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                               @Value("${lavorazione-cartaceo.max-thread-pool-size}") Integer maxThreadPoolSize,
                               @Value("${lavorazione-cartaceo.max-retry-attempts}") Long maxRetryAttempts,
                               @Value("${lavorazione-cartaceo.min-retry-backoff}") Long minRetryBackoff,
-                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs) {
+                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs,
+                              @Value("${lavorazione-cartaceo.raster.document-type-for-rasterized}") String documentTypeForRasterized,
+                              @Value("${lavorazione-cartaceo.raster.document-type-for-normalized}") String documentTypeForNormalized){
         super(authService);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
@@ -106,6 +111,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         this.cartaceoMapper = cartaceoMapper;
         this.semaphore = new Semaphore(maxThreadPoolSize);
         this.cartaceoMaxBatchSubscribedMsgs = cartaceoMaxBatchSubscribedMsgs;
+        this.documentTypeForRasterized = documentTypeForRasterized;
+        this.documentTypeForNormalized = documentTypeForNormalized;
         this.lavorazioneRichiestaRetryStrategy = Retry.backoff(maxRetryAttempts, Duration.ofSeconds(minRetryBackoff))
                 .filter(throwable -> !(throwable instanceof ConsolidatoreException.PermanentException))
                 .doBeforeRetry(retrySignal -> log.debug(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure(), retrySignal.failure().getMessage()))
@@ -119,7 +126,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
             .doBeforeRetry(retrySignal -> log.debug(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure(), retrySignal.failure().getMessage()));
 
     @Override
-    protected Mono<Void> specificPresaInCarico(PresaInCaricoInfo presaInCaricoInfo) {
+    public Mono<Void> specificPresaInCarico(PresaInCaricoInfo presaInCaricoInfo) {
 
         var cartaceoPresaInCaricoInfo = (CartaceoPresaInCaricoInfo) presaInCaricoInfo;
         var requestIdx = cartaceoPresaInCaricoInfo.getRequestIdx();
@@ -134,6 +141,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
         return attachmentService.getAllegatiPresignedUrlOrMetadata(attachmentsUri, presaInCaricoInfo.getXPagopaExtchCxId(), true)
                 .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
+                .then(ensureValidTransformationDocType(paperNotificationRequest))
                 .then(insertRequestFromCartaceo(paperNotificationRequest, xPagopaExtchCxId))
                 .flatMap(requestDto -> sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo,
                         BOOKED.getStatusTransactionTableCompliant(),
@@ -147,6 +155,18 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                                 sqsClientException)))
                 .then()
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, PRESA_IN_CARICO_CARTACEO, result));
+    }
+
+    private Mono<Void> ensureValidTransformationDocType(PaperEngageRequest paperNotificationRequest) {
+        String transformationDocumentType = paperNotificationRequest.getTransformationDocumentType();
+
+        boolean invalidTransformationType = transformationDocumentType != null && !(transformationDocumentType.equals(documentTypeForRasterized) || transformationDocumentType.equals(documentTypeForNormalized));
+        if (invalidTransformationType) return Mono.error(new InvalidTransformationTypeException(String.format("Transformation document type '%s' is not allowed", paperNotificationRequest.getTransformationDocumentType())));
+
+        boolean applyRasterized = paperNotificationRequest.getApplyRasterization() != null && paperNotificationRequest.getApplyRasterization();
+        if (applyRasterized) paperNotificationRequest.setTransformationDocumentType(documentTypeForRasterized);
+
+        return Mono.empty();
     }
 
     private ArrayList<String> getPaperUri(List<PaperEngageRequestAttachments> paperEngageRequestAttachments) {

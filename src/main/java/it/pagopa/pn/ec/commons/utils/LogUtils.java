@@ -36,6 +36,7 @@ public class LogUtils {
     public static final String ARUBA_SEND_EXCEPTION = "ArubaSendException occurred during lavorazione PEC for request '{}' - Errcode: {}, Errstr: {}, Errblock: {}";
     public static final String ARUBA_MESSAGE_MISSING = "The message '{}' is missing from folder";
     public static final String GENERIC_ERROR = "Errore generico";
+    public static final String INVALID_TRANSFORMATION = "Invalid transformation type";
 
     //VALIDATION
     public static final String CLIENT_AUTHENTICATION = "Client authentication";

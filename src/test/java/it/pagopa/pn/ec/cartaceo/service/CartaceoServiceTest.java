@@ -14,12 +14,14 @@ import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.rest.call.upload.UploadCall;
+import it.pagopa.pn.ec.commons.service.AttachmentService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.cartaceo.configuration.RasterConfiguration;
 import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -31,6 +33,10 @@ import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
@@ -69,12 +75,16 @@ class CartaceoServiceTest {
     private RasterProperties rasterProperties;
     @Autowired
     private RasterConfiguration rasterConfiguration;
+    @SpyBean
+    private AttachmentService attachmentService;
 
     private static final String DOWNLOAD_URL = "http://downloadUrl";
 
     private static final String UPLOAD_URL = "http://uploadUrl";
 
     private static final String SECRET = "secret";
+
+    private static final String DOCUMENT_TYPE_FOR_RASTERIZED = "PN_PAPER_ATTACHMENT";
 
     private static final CartaceoPresaInCaricoInfo CARTACEO_PRESA_IN_CARICO_INFO = CartaceoPresaInCaricoInfo.builder().requestIdx(DEFAULT_REQUEST_IDX)
             .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
@@ -447,6 +457,21 @@ class CartaceoServiceTest {
         verify(paperMessageCall, never()).putRequest(any());
     }
 
+    @Test
+    void specificPresaInCaricoInfoTest(){
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfo();
+        mockPdfRasterAttachmentSteps();
+        mockGestoreRepository();
+        mockPutRequest();
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse().key("key").download(new FileDownloadInfo().url(DOWNLOAD_URL)).checksum("checksum").contentType("application/pdf")));
+        when(gestoreRepositoryCall.insertRichiesta(any())).thenReturn(Mono.just(new RequestDto()));
+
+        StepVerifier.create(cartaceoService.specificPresaInCarico(cartaceoPresaInCaricoInfo))
+                .verifyComplete();
+
+        Assertions.assertEquals(DOCUMENT_TYPE_FOR_RASTERIZED,cartaceoPresaInCaricoInfo.getPaperEngageRequest().getTransformationDocumentType());
+    }
+
     private void mockPdfRasterAttachmentSteps() {
         String originalFileKey = randomAlphanumeric(10);
         FileDownloadInfo fileDownloadInfo = new FileDownloadInfo().url(DOWNLOAD_URL);
@@ -478,6 +503,51 @@ class CartaceoServiceTest {
         return requestDto;
     }
 
+    private CartaceoPresaInCaricoInfo createCartaceoPresaInCaricoInfo() {
+        PaperEngageRequestAttachments paperEngageRequestAttachments = new PaperEngageRequestAttachments();
+        PaperEngageRequest paperEngageRequest = new PaperEngageRequest();
+        paperEngageRequestAttachments.setUri("safestorage://prova.pdf");
+        paperEngageRequestAttachments.setOrder(BigDecimal.valueOf(1));
+        paperEngageRequestAttachments.setDocumentType("TEST");
+        paperEngageRequestAttachments.setSha256("stringstringstringstringstringstringstri");
+        List<PaperEngageRequestAttachments> paperEngageRequestAttachmentsList = new ArrayList<>();
+        paperEngageRequestAttachmentsList.add(paperEngageRequestAttachments);
+        paperEngageRequest.setAttachments(paperEngageRequestAttachmentsList);
+        paperEngageRequest.setReceiverName("");
+        paperEngageRequest.setReceiverNameRow2("");
+        paperEngageRequest.setReceiverAddress("");
+        paperEngageRequest.setReceiverAddressRow2("");
+        paperEngageRequest.setReceiverCap("");
+        paperEngageRequest.setReceiverCity("");
+        paperEngageRequest.setReceiverCity2("");
+        paperEngageRequest.setReceiverPr("");
+        paperEngageRequest.setReceiverCountry("");
+        paperEngageRequest.setReceiverFiscalCode("");
+        paperEngageRequest.setSenderName("");
+        paperEngageRequest.setSenderAddress("");
+        paperEngageRequest.setSenderCity("");
+        paperEngageRequest.setSenderPr("");
+        paperEngageRequest.setSenderDigitalAddress("");
+        paperEngageRequest.setArName("");
+        paperEngageRequest.setArAddress("");
+        paperEngageRequest.setArCap("");
+        paperEngageRequest.setArCity("");
+        var vas = new HashMap<String, String>();
+        paperEngageRequest.setVas(vas);
+        paperEngageRequest.setIun("iun123456789");
+        paperEngageRequest.setRequestPaId("PagoPa");
+        paperEngageRequest.setProductType("AR");
+        paperEngageRequest.setPrintType("B/N12345");
+        paperEngageRequest.setRequestId("requestIdx_1234567891234567891010");
+        paperEngageRequest.setClientRequestTimeStamp(OffsetDateTime.now());
+        paperEngageRequest.setApplyRasterization(true);
+
+        return CartaceoPresaInCaricoInfo.builder()
+                .requestIdx("requestIdx")
+                .xPagopaExtchCxId("xPagopaExtchCxId")
+                .paperEngageRequest(paperEngageRequest)
+                .build();
+    }
 
     private void mockPutRequest() {
         when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
