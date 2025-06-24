@@ -784,6 +784,9 @@ Parameters:
     Default: 7200
     Description: Value in seconds
 
+  PnEcDuplicatesCheck:
+    Type: String
+
   CpuValue:
     Type: Number
     Default: 1024
@@ -914,6 +917,7 @@ Resources:
         ContainerEnvEntry41: !Sub 'SQSCartaceoMaxBatchSubscribedMsgs=${SQSCartaceoMaxBatchSubscribedMsgs}'
         ContainerEnvEntry42: !Sub 'PN_CRON_ANALYZER=${PnCronAnalyzer}'
         ContainerEnvEntry43: !Sub 'WIRE_TAP_LOG=${WireTapLogActivation}'
+        ContainerEnvEntry69: !Sub 'PnEcDuplicatesCheck=${PnEcDuplicatesCheck}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
