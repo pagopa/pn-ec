@@ -24,7 +24,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 import java.util.Map;
 
-import static it.pagopa.pn.ec.commons.utils.LogUtils.HANDLE_AVAILABILITY_MANAGER;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 
 @Service
@@ -151,42 +151,29 @@ public class AvailabilityManagerService {
     public Mono<Void> handleTransformationError(RequestConversionDto requestConversionDto,
                                                 AvailabilityManagerDetailDto detailDto,
                                                 Acknowledgment acknowledgment) {
+        log.info(LOGGING_OPERATION_WITH_ARGS, HANDLE_AVAILABILITY_MANAGER_TRANSFORM_ERROR, requestConversionDto, detailDto);
 
-        String processId = transactionProcessConfigurationProperties.paper();
-        return callMachinaStati.statusValidation(
-                        requestConversionDto.getxPagopaExtchCxId(),
-                        processId,
-                        detailDto.getDocumentStatus(),          // stato attuale = "ERROR"
-                        NEXT_STATUS_TRANSFORMATION_ERROR)       // nuovo stato   = "P013"
-                .flatMap(validation -> {
-                    if (!validation.isAllowed()) {
-                        return Mono.error(new InvalidNextStatusException(
-                                detailDto.getDocumentStatus(),
-                                NEXT_STATUS_TRANSFORMATION_ERROR,
-                                processId,
-                                requestConversionDto.getxPagopaExtchCxId()));
-                    }
+        CartaceoPresaInCaricoInfo info = buildCartaceoPresaInCaricoInfo(requestConversionDto);
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto();
+        paperProgressStatusDto.setStatus(NEXT_STATUS_TRANSFORMATION_ERROR);
 
-                    CartaceoPresaInCaricoInfo info = buildCartaceoPresaInCaricoInfo(requestConversionDto);
-                    PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto();
-                    paperProgressStatusDto.setStatus(NEXT_STATUS_TRANSFORMATION_ERROR);
+        // Invio sulla coda del NotificationTracker
+        log.info("Try to send message ERROR to NotificationTracker...");
 
-                    // invio sulla coda del notificationTracker
-                    return cartaceoService
-                            .sendNotificationOnStatusQueue(
-                                    info,
-                                    NEXT_STATUS_TRANSFORMATION_ERROR,
-                                    paperProgressStatusDto)
-                            .doOnSuccess(r -> acknowledgment.acknowledge())
-                            .then();
+        return cartaceoService
+                .sendNotificationOnStatusQueue(info, NEXT_STATUS_TRANSFORMATION_ERROR, paperProgressStatusDto)
+                .doOnSuccess(r -> {
+                    log.info(SUCCESSFUL_OPERATION_LABEL, HANDLE_AVAILABILITY_MANAGER_TRANSFORM_ERROR,
+                            requestConversionDto.getxPagopaExtchCxId());
+                    acknowledgment.acknowledge();
                 })
+                .then()
                 .onErrorResume(e -> {
-                    log.error("Error in handleTransformationError – requestId {} – {}",
+                    log.error("Error in handleTransformationError for requestId: {}, -> {}",
                             requestConversionDto.getxPagopaExtchCxId(), e.getMessage(), e);
                     return Mono.error(e);
                 });
     }
-
 
 
 
