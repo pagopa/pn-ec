@@ -5,6 +5,7 @@ import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.configurationproperties.LavorazioneCartaceoConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.StatusToDeleteException;
@@ -83,19 +84,16 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final Integer cartaceoMaxBatchSubscribedMsgs;
     private final Retry lavorazioneRichiestaRetryStrategy;
     private final String documentTypeForRasterized;
-    private final String documentTypeForNormalized;
+    private final List<String> validTransformationDocumentTypes;
+    private final LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties;
 
     protected CartaceoService(AuthService authService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall,
                               AttachmentServiceImpl attachmentService, NotificationTrackerSqsName notificationTrackerSqsName,
                               CartaceoSqsQueueName cartaceoSqsQueueName, PaperMessageCall paperMessageCall, FileCall fileCall,
                               DownloadCall downloadCall, UploadCall uplpadCall, DynamoPdfRasterServiceImpl dynamoPdfRasterService,
                               RasterConfiguration rasterConfiguration, CartaceoMapper cartaceoMapper,
-                              @Value("${lavorazione-cartaceo.max-thread-pool-size}") Integer maxThreadPoolSize,
-                              @Value("${lavorazione-cartaceo.max-retry-attempts}") Long maxRetryAttempts,
-                              @Value("${lavorazione-cartaceo.min-retry-backoff}") Long minRetryBackoff,
-                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs,
-                              @Value("${lavorazione-cartaceo.raster.document-type-for-rasterized}") String documentTypeForRasterized,
-                              @Value("${lavorazione-cartaceo.raster.document-type-for-normalized}") String documentTypeForNormalized){
+                              LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties,
+                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs){
         super(authService);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
@@ -109,11 +107,12 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         this.dynamoPdfRasterService = dynamoPdfRasterService;
         this.rasterConfiguration = rasterConfiguration;
         this.cartaceoMapper = cartaceoMapper;
-        this.semaphore = new Semaphore(maxThreadPoolSize);
+        this.lavorazioneCartaceoConfigurationProperties = lavorazioneCartaceoConfigurationProperties;
+        this.semaphore = new Semaphore(lavorazioneCartaceoConfigurationProperties.maxThreadPoolSize());
         this.cartaceoMaxBatchSubscribedMsgs = cartaceoMaxBatchSubscribedMsgs;
-        this.documentTypeForRasterized = documentTypeForRasterized;
-        this.documentTypeForNormalized = documentTypeForNormalized;
-        this.lavorazioneRichiestaRetryStrategy = Retry.backoff(maxRetryAttempts, Duration.ofSeconds(minRetryBackoff))
+        this.documentTypeForRasterized = rasterConfiguration.getDocumentTypeForRasterized();
+        this.validTransformationDocumentTypes = rasterConfiguration.getValidTransformationDocumentTypes();
+        this.lavorazioneRichiestaRetryStrategy = Retry.backoff(lavorazioneCartaceoConfigurationProperties.maxRetryAttempts(), Duration.ofSeconds(lavorazioneCartaceoConfigurationProperties.minRetryBackoff()))
                 .filter(throwable -> !(throwable instanceof ConsolidatoreException.PermanentException))
                 .doBeforeRetry(retrySignal -> log.debug(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure(), retrySignal.failure().getMessage()))
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
@@ -160,7 +159,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private Mono<Void> ensureValidTransformationDocType(PaperEngageRequest paperNotificationRequest) {
         String transformationDocumentType = paperNotificationRequest.getTransformationDocumentType();
 
-        boolean invalidTransformationType = transformationDocumentType != null && !(transformationDocumentType.equals(documentTypeForRasterized) || transformationDocumentType.equals(documentTypeForNormalized));
+        boolean invalidTransformationType = transformationDocumentType != null && !validTransformationDocumentTypes.contains(transformationDocumentType);
         if (invalidTransformationType) return Mono.error(new InvalidTransformationTypeException(String.format("Transformation document type '%s' is not allowed", paperNotificationRequest.getTransformationDocumentType())));
 
         boolean applyRasterized = paperNotificationRequest.getApplyRasterization() != null && paperNotificationRequest.getApplyRasterization();
