@@ -28,11 +28,11 @@ import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.QueueOperationsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
-import it.pagopa.pn.ec.cartaceo.configuration.PdfTransformationConfiguration;
 import it.pagopa.pn.ec.pdfraster.service.impl.DynamoPdfRasterServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -96,6 +96,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                               DownloadCall downloadCall, UploadCall uplpadCall, DynamoPdfRasterServiceImpl dynamoPdfRasterService,
                               PdfTransformationConfiguration pdfTransformationConfiguration, CartaceoMapper cartaceoMapper,
                               LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties,
+                              NormalizationConfiguration normalizationConfiguration,
                               @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs){
         super(authService);
         this.sqsService = sqsService;
@@ -113,8 +114,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         this.lavorazioneCartaceoConfigurationProperties = lavorazioneCartaceoConfigurationProperties;
         this.semaphore = new Semaphore(lavorazioneCartaceoConfigurationProperties.maxThreadPoolSize());
         this.cartaceoMaxBatchSubscribedMsgs = cartaceoMaxBatchSubscribedMsgs;
-        this.documentTypeForRasterized = normalizationConfiguration.getDocumentTypeForRasterized();
-        this.validTransformationDocumentTypes = normalizationConfiguration.getValidTransformationDocumentTypes();
+        this.documentTypeForRasterized = pdfTransformationConfiguration.getDocumentTypeForRasterized();
+        this.validTransformationDocumentTypes = pdfTransformationConfiguration.getValidTransformationDocumentTypes();
+        this.normalizationConfiguration = normalizationConfiguration;
         this.lavorazioneRichiestaRetryStrategy = Retry.backoff(lavorazioneCartaceoConfigurationProperties.maxRetryAttempts(), Duration.ofSeconds(lavorazioneCartaceoConfigurationProperties.minRetryBackoff()))
                 .filter(throwable -> !(throwable instanceof ConsolidatoreException.PermanentException))
                 .doBeforeRetry(retrySignal -> log.debug(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure(), retrySignal.failure().getMessage()))
@@ -229,12 +231,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     requestPersonalDto.setPaperRequestPersonal(paperRequestPersonalDto);
 
                     var requestMetadataDto = new RequestMetadataDto();
-                    var paperRequestMetadataDto = new PaperRequestMetadataDto();
-                    paperRequestMetadataDto.setRequestPaId(paperNotificationRequest.getRequestPaId());
-                    paperRequestMetadataDto.setIun(paperNotificationRequest.getIun());
-                    paperRequestMetadataDto.setVas(paperNotificationRequest.getVas());
-                    paperRequestMetadataDto.setPrintType(paperNotificationRequest.getPrintType());
-                    paperRequestMetadataDto.setProductType(paperNotificationRequest.getProductType());
+                    var paperRequestMetadataDto = getPaperRequestMetadataDto(paperNotificationRequest);
                     requestMetadataDto.setPaperRequestMetadata(paperRequestMetadataDto);
 
                     requestDto.setRequestPersonal(requestPersonalDto);
@@ -242,6 +239,16 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     return requestDto;
                 }).flatMap(gestoreRepositoryCall::insertRichiesta).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, INSERT_REQUEST_FROM_CARTACEO, result));
+    }
+
+    private static @NotNull PaperRequestMetadataDto getPaperRequestMetadataDto(PaperEngageRequest paperNotificationRequest) {
+        var paperRequestMetadataDto = new PaperRequestMetadataDto();
+        paperRequestMetadataDto.setRequestPaId(paperNotificationRequest.getRequestPaId());
+        paperRequestMetadataDto.setIun(paperNotificationRequest.getIun());
+        paperRequestMetadataDto.setVas(paperNotificationRequest.getVas());
+        paperRequestMetadataDto.setPrintType(paperNotificationRequest.getPrintType());
+        paperRequestMetadataDto.setProductType(paperNotificationRequest.getProductType());
+        return paperRequestMetadataDto;
     }
 
     @Scheduled(cron = "${pn.ec.cron.lavorazione-batch-cartaceo}")
