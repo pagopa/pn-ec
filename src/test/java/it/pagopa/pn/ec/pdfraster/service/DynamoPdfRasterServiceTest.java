@@ -130,7 +130,7 @@ class DynamoPdfRasterServiceTest {
 
         markAttachmentsAsConverted(requestConversionDto);
 
-        Mono<Map.Entry<RequestConversionDto, Boolean>> updateResponse = dynamoPdfRasterService.updateRequestConversion("3", true, RandomStringUtils.randomAlphanumeric(10));
+        Mono<Map.Entry<RequestConversionDto, Boolean>> updateResponse = dynamoPdfRasterService.updateRequestConversion("3", true, RandomStringUtils.randomAlphanumeric(10),false);
 
 
         StepVerifier.create(updateResponse)
@@ -203,14 +203,14 @@ class DynamoPdfRasterServiceTest {
         simulateInvalidConvertedValueError(fileKey, convertedValue);
 
 
-        StepVerifier.create(dynamoPdfRasterService.updateRequestConversion(fileKey, convertedValue, RandomStringUtils.randomAlphanumeric(10)))
+        StepVerifier.create(dynamoPdfRasterService.updateRequestConversion(fileKey, convertedValue, RandomStringUtils.randomAlphanumeric(10), false))
                 .expectErrorMatches(throwable -> throwable instanceof IllegalArgumentException
                         && throwable.getMessage().equals("Invalid value for 'converted': must be true."))
                 .verify();
     }
 
     private void simulateInvalidConvertedValueError(String fileKey, boolean converted) {
-        when(dynamoPdfRasterService.updateRequestConversion(fileKey, converted, RandomStringUtils.randomAlphanumeric(10)))
+        when(dynamoPdfRasterService.updateRequestConversion(fileKey, converted, RandomStringUtils.randomAlphanumeric(10), false))
                 .thenReturn(Mono.error(new IllegalArgumentException("Invalid value for 'converted': must be true.")));
     }
 

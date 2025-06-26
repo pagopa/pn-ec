@@ -129,7 +129,7 @@ class AvailabilityManagerServiceTest {
         // THEN: test del metodo, assertions e verify
         StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment)).verifyComplete();
         verify(sqsService, never()).send(eq(cartaceoSqsQueueName.batchName()), any());
-        verify(dynamoPdfRasterService , times(1)).updateRequestConversion(newFileKey1, true, sha256);
+        verify(dynamoPdfRasterService , times(1)).updateRequestConversion(newFileKey1, true, sha256,false);
     }
 
     @Test
@@ -148,7 +148,7 @@ class AvailabilityManagerServiceTest {
         // THEN: test del metodo, assertions e verify
         StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment)).verifyComplete();
         verify(sqsService, times(1)).send(eq(cartaceoSqsQueueName.batchName()), any());
-        verify(dynamoPdfRasterService , times(1)).updateRequestConversion(newFileKey2, true, sha256);
+        verify(dynamoPdfRasterService , times(1)).updateRequestConversion(newFileKey2, true, sha256,false);
     }
 
     @Test
@@ -162,7 +162,7 @@ class AvailabilityManagerServiceTest {
         // THEN: test del metodo, assertions e verify
         StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment)).verifyError(RepositoryManagerException.PdfConversionNotFoundException.class);
         verify(sqsService, never()).send(eq(cartaceoSqsQueueName.batchName()), any());
-        verify(dynamoPdfRasterService , times(1)).updateRequestConversion(newFileKey3, true, sha256);
+        verify(dynamoPdfRasterService , times(1)).updateRequestConversion(newFileKey3, true, sha256,false);
     }
 
     @Test
@@ -177,7 +177,7 @@ class AvailabilityManagerServiceTest {
 
         RequestConversionDto reqConvDto = new RequestConversionDto();
         Map.Entry<RequestConversionDto, Boolean> entry = new AbstractMap.SimpleEntry<>(reqConvDto, true);
-        when(dynamoPdfRasterService.updateRequestConversion(dto.getDetail().getKey(), true, dto.getDetail().getChecksum()))
+        when(dynamoPdfRasterService.updateRequestConversion(dto.getDetail().getKey(), true, dto.getDetail().getChecksum(),true))
                 .thenReturn(Mono.just(entry));
 
         doReturn(Mono.empty()).when(availabilityManagerService)
@@ -186,7 +186,7 @@ class AvailabilityManagerServiceTest {
         StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment))
                 .verifyComplete();
 
-        verify(dynamoPdfRasterService).updateRequestConversion(dto.getDetail().getKey(), true, dto.getDetail().getChecksum());
+        verify(dynamoPdfRasterService).updateRequestConversion(dto.getDetail().getKey(), true, dto.getDetail().getChecksum(),true);
         verify(availabilityManagerService).handleTransformationError(eq(reqConvDto), eq(dto.getDetail()), eq(acknowledgment));
         verifyNoInteractions(sqsService); // nessun invio SQS in questo ramo, si invia al NT
     }

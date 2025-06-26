@@ -78,13 +78,14 @@ public class AvailabilityManagerService {
 
                     if (isSafeStorageError(dto)) {
                         log.info("Indisponibilità event found, with fileKey \"{}\" and status \"{}\": proceeding to update status and send to NotificationTracker ",dto.getDetail().getKey(), dto.getDetail().getDocumentStatus());
-                        return dynamoPdfRasterService.updateRequestConversion(newFilekey, true, sha256)
+                        boolean isTransformationError = true;
+                        return dynamoPdfRasterService.updateRequestConversion(newFilekey, true, sha256, isTransformationError)
                                 .map(Map.Entry::getKey).flatMap(reqConvDto -> handleTransformationError(reqConvDto, detailDto, acknowledgment))
                                 .doOnSuccess(v -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER))
                                 .doOnError(e -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER, false, e.getMessage()));
                     } else {
                         return dynamoPdfRasterService
-                                .updateRequestConversion(detailDto.getKey(), true, detailDto.getChecksum())
+                                .updateRequestConversion(detailDto.getKey(), true, detailDto.getChecksum(),false)
                                 .filter(Map.Entry::getValue)
                                 .map(Map.Entry::getKey)
                                 .filter(this::allAttachmentsConverted)
