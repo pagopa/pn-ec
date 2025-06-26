@@ -205,8 +205,9 @@ public class SercqServiceTest {
                 .thenReturn(Mono.just(SendMessageResponse.builder().build()));
 
         FileDownloadResponse mockedResponse = new FileDownloadResponse();
-        when(attachmentService.getAllegatiPresignedUrlOrMetadata(SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getDigitalNotificationRequest()
-                .getAttachmentUrls(), SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getXPagopaExtchCxId(), true))
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(
+                SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getDigitalNotificationRequest().getAttachmentUrls(),
+                SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getXPagopaExtchCxId(), true))
                 .thenReturn(Flux.just(mockedResponse));
 
         when(gestoreRepositoryCall.insertRichiesta(any()))
@@ -215,21 +216,61 @@ public class SercqServiceTest {
         Mono<Void> result = sercqService.specificPresaInCarico(SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS);
 
         StepVerifier.create(result)
-                .expectError(InvalidReceiverDigitalAddressException.class)
-                .verify();
+                    .expectError(InvalidReceiverDigitalAddressException.class)
+                    .verify();
 
         verify(attachmentService, times(1))
-                .getAllegatiPresignedUrlOrMetadata(SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getDigitalNotificationRequest()
-                        .getAttachmentUrls(), SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getXPagopaExtchCxId(), true);
+                .getAllegatiPresignedUrlOrMetadata(
+                        SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getDigitalNotificationRequest().getAttachmentUrls(),
+                        SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getXPagopaExtchCxId(), true);
 
         verify(sercqService, times(1))
                 .insertRequestFromSercq(any(), eq(SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getXPagopaExtchCxId()));
 
-        verify(sercqService).sendNotificationOnStatusQueue(any(), eq(ADDRESS_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-
-        verify(sercqService, never())
+        verify(sercqService, times(1))
                 .sendNotificationOnStatusQueue(any(), eq(BOOKED.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+
+        verify(sercqService, times(1))
+                .sendNotificationOnStatusQueue(any(), eq(ADDRESS_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
     }
+
+    @Test
+    void testSequenceBookedThenAddressErrorOnInvalidAddress(){
+
+        when(sqsService.send(any(), any()))
+                .thenReturn(Mono.just(SendMessageResponse.builder().build()));
+
+        FileDownloadResponse mockedResponse = new FileDownloadResponse();
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(
+                SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getDigitalNotificationRequest().getAttachmentUrls(),
+                SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS.getXPagopaExtchCxId(), true))
+                .thenReturn(Flux.just(mockedResponse));
+
+        when(gestoreRepositoryCall.insertRichiesta(any()))
+                .thenReturn(Mono.just(new RequestDto()));
+
+        ArgumentCaptor<String> statusCaptor = ArgumentCaptor.forClass(String.class);
+
+        Mono<Void> result = sercqService.specificPresaInCarico(SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS);
+
+        StepVerifier.create(result)
+                    .expectError(InvalidReceiverDigitalAddressException.class)
+                    .verify();
+
+        verify(sercqService, times(2))
+                .sendNotificationOnStatusQueue(any(), statusCaptor.capture(), any(DigitalProgressStatusDto.class));
+
+        List<String> capturedStatuses = statusCaptor.getAllValues();
+
+        // Verifica la sequenza degli stati inviati
+        Assertions.assertEquals(BOOKED.getStatusTransactionTableCompliant(), capturedStatuses.get(0),
+                                "Il primo stato inviato deve essere BOOKED");
+
+        Assertions.assertEquals(ADDRESS_ERROR.getStatusTransactionTableCompliant(), capturedStatuses.get(1),
+                                "Il secondo stato inviato deve essere ADDRESS_ERROR");
+    }
+
+
 
     @Test
     void testGeneratedMessageDto() {

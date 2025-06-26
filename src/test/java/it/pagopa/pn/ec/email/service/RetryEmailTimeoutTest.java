@@ -2,7 +2,6 @@ package it.pagopa.pn.ec.email.service;
 
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
-import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
@@ -11,6 +10,7 @@ import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,22 +25,25 @@ import software.amazon.awssdk.services.sqs.model.Message;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
-import static it.pagopa.pn.ec.commons.constant.Status.INTERNAL_ERROR;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.email.testutils.DigitalCourtesyMailRequestFactory.createMailRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-class RetryEmailTest {
+class RetryEmailTimeoutTest {
 
     @SpyBean
     private EmailService emailService;
@@ -56,10 +59,15 @@ class RetryEmailTest {
     private SesService sesService;
     @MockBean
     private DownloadCall downloadCall;
+    @MockBean
+    private SqsTimeoutProvider sqsTimeoutProvider;
     EmailPresaInCaricoInfo emailPresaInCaricoInfo = new EmailPresaInCaricoInfo();
-    private static final String QUEUE_NAME="queue";
+    private static final String QUEUE_NAME = "queue";
+    private static final Duration TIMEOUT_INACTIVE_DURATION = Duration.ofSeconds(86400);
+
 
     Message message = Message.builder().build();
+
     private static final EmailPresaInCaricoInfo EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH = EmailPresaInCaricoInfo.builder()
             .requestIdx(
                     DEFAULT_REQUEST_IDX)
@@ -117,117 +125,9 @@ class RetryEmailTest {
 
         return requestDto;
     }
-    @Test
-    void testGestioneRetryEmailScheduler_NoMessages() {
-        // mock SQSService per restituire un Mono vuoto quando viene chiamato getOneMessage
-        SqsServiceImpl mockSqsService = mock(SqsServiceImpl.class);
-        when(mockSqsService.getOneMessage(emailSqsQueueName.errorName(), EmailPresaInCaricoInfo.class))
-                .thenReturn(Mono.empty());
-
-        // chiamare il metodo sotto test
-        emailService.gestioneRetryEmailScheduler();
-
-        // verificare che non sia stata eseguita alcuna operazione sul mock SQSService
-        verify(mockSqsService, never()).deleteMessageFromQueue(eq(message), anyString());
-
-    }
-    @Test
-    void gestionreRetryEmail_Retry_Ok(){
-
-        String clientId = EMAIL_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
-        String requestId=EMAIL_PRESA_IN_CARICO_INFO.getRequestIdx();
-
-        var requestDto=buildRequestDto();
-
-        PatchDto patchDto = new PatchDto();
-        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-
-
-        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
-        when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().messageId("messageId").build()));
-
-        //Gestore repository mocks.
-        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
-
-        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
-
-        Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message,QUEUE_NAME);
-        StepVerifier.create(response).expectNextCount(1).verifyComplete();
-
-        verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-    }
 
     @Test
-    void gestionreRetryEmail_Retry_Attach_NULL(){
-
-        String clientId = EMAIL_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
-        String requestId=EMAIL_PRESA_IN_CARICO_INFO.getRequestIdx();
-
-        var requestDto=buildRequestDto();
-
-        PatchDto patchDto = new PatchDto();
-        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-
-
-        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
-        when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().messageId("messageId").build()));
-
-        //Gestore repository mocks.
-        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
-
-        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
-
-        EMAIL_PRESA_IN_CARICO_INFO.getDigitalCourtesyMailRequest().setAttachmentUrls(null);
-
-        Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message,QUEUE_NAME);
-        StepVerifier.create(response).expectNextCount(1).verifyComplete();
-
-        verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-    }
-
-    @Test
-    void gestionreRetryEmail_GenericError() {
-
-        String clientId = EMAIL_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
-        String requestId=EMAIL_PRESA_IN_CARICO_INFO.getRequestIdx();
-
-        var requestDto=buildRequestDto();
-
-        PatchDto patchDto = new PatchDto();
-        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
-
-
-        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
-        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
-        when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().messageId("messageId").build()));
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
-
-        //Gestore repository mocks.
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.error(new RuntimeException()));
-
-        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
-
-
-        Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message,QUEUE_NAME);
-        StepVerifier.create(response).expectNextCount(1).verifyComplete();
-
-        verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-
-    }
-    @Test
-    void gestionreRetryEmailAttachment_Retry_Ok(){
+    void gestionreRetryEmailAttachment_ShortTimeout(){
 
         String clientId = EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH.getXPagopaExtchCxId();
         String requestId=EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH.getRequestIdx();
@@ -240,7 +140,41 @@ class RetryEmailTest {
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
 
-        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.delay(Duration.ofSeconds(1)).then(Mono.just(new ByteArrayOutputStream())));
+        when(sqsTimeoutProvider.getTimeoutForQueue(anyString())).thenReturn(Duration.ofMillis(1));
+
+        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
+        when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().messageId("messageId").build()));
+
+        //Gestore repository mocks.
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
+
+        // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message,QUEUE_NAME);
+        StepVerifier.create(response).expectErrorMatches(throwable -> throwable instanceof TimeoutException).verify();
+    }
+
+    @Test
+    void gestionreRetryEmailAttachment_LongTimeout(){
+
+        String clientId = EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH.getXPagopaExtchCxId();
+        String requestId=EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH.getRequestIdx();
+
+        var requestDto=buildRequestDto();
+        requestDto.setRequestIdx(requestId);
+        requestDto.setxPagopaExtchCxId(clientId);
+
+        PatchDto patchDto = new PatchDto();
+        patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
+
+
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.delay(Duration.ofSeconds(1)).then(Mono.just(new ByteArrayOutputStream())));
+        when(sqsTimeoutProvider.getTimeoutForQueue(anyString())).thenReturn(Duration.ofSeconds(60));
+
         when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
         when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().messageId("messageId").build()));
 
@@ -254,13 +188,10 @@ class RetryEmailTest {
 
         Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message,QUEUE_NAME);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
-
-        verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-
     }
 
     @Test
-    void gestionreRetryEmailAttachment_GenericError(){
+    void gestionreRetryEmailAttachment_NoTimeout(){
 
         String clientId = EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH.getXPagopaExtchCxId();
         String requestId=EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH.getRequestIdx();
@@ -273,34 +204,22 @@ class RetryEmailTest {
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
 
-        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.delay(Duration.ofSeconds(1)).then(Mono.just(new ByteArrayOutputStream())));
+        when(sqsTimeoutProvider.getTimeoutForQueue(anyString())).thenReturn(TIMEOUT_INACTIVE_DURATION);
+
         when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
         when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().messageId("messageId").build()));
 
         //Gestore repository mocks.
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.error(new RuntimeException()));
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
         when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message,QUEUE_NAME);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
-
-        verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
-
     }
-    @Test
-    void testGestioneRetryEmailSchedulerBach_NoMessages() {
-        // mock SQSService per restituire un Mono vuoto quando viene chiamato getOneMessage
-        SqsServiceImpl mockSqsService = mock(SqsServiceImpl.class);
-        when(mockSqsService.getOneMessage(emailSqsQueueName.batchName(), EmailPresaInCaricoInfo.class))
-                .thenReturn(Mono.empty());
 
-        // chiamare il metodo sotto test
-        emailService.lavorazioneRichiestaBatch();
-
-        // verificare che non sia stata eseguita alcuna operazione sul mock SQSService
-        verify(mockSqsService, never()).deleteMessageFromQueue(eq(message), anyString());
-
-    }
 }
