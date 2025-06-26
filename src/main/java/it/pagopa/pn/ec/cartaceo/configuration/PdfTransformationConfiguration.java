@@ -32,4 +32,14 @@ public class PdfTransformationConfiguration {
         return rasterProperties.documentTypeForRasterized();
     }
 
+    public String getDocumentTypeForNormalized() {
+        return rasterProperties.documentTypeForNormalized();
+    }
+
+    public List<String> getValidTransformationDocumentTypes() {
+        return List.of(
+                getDocumentTypeForNormalized(),
+                getDocumentTypeForNormalized()
+        );
+    }
 }
