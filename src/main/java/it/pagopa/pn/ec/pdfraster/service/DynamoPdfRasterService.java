@@ -9,6 +9,6 @@ public interface DynamoPdfRasterService {
 
     Mono<RequestConversionDto> insertRequestConversion(RequestConversionDto request);
 
-    Mono<Map.Entry<RequestConversionDto, Boolean>> updateRequestConversion(String fileKey, Boolean converted, String fileHash);
+    Mono<Map.Entry<RequestConversionDto, Boolean>> updateRequestConversion(String fileKey, Boolean converted, String fileHash, boolean isTransformationError);
 
 }
