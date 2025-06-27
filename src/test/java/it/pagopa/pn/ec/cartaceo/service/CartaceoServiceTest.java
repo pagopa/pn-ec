@@ -161,6 +161,7 @@ class CartaceoServiceTest {
         //WHEN
         mockGestoreRepository();
         when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(AUTHENTICATION_ERROR_CODE)));
+        when(gestoreRepositoryCall.patchRichiesta(eq(DEFAULT_ID_CLIENT_HEADER_VALUE), eq(DEFAULT_REQUEST_IDX), any(PatchDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
@@ -179,6 +180,7 @@ class CartaceoServiceTest {
         //WHEN
         mockGestoreRepository();
         when(paperMessageCall.putRequest(any())).thenReturn(Mono.error(new ConsolidatoreException.PermanentException("permanent error")));
+        when(gestoreRepositoryCall.patchRichiesta(eq(DEFAULT_ID_CLIENT_HEADER_VALUE), eq(DEFAULT_REQUEST_IDX), any(PatchDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);

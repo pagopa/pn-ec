@@ -36,7 +36,7 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
         this.stateMachineEndpointProperties = stateMachineEndpointProperties;
         this.smRetryStrategy = Retry.backoff(smRetryStrategyProperties.maxAttempts(), Duration.ofSeconds(smRetryStrategyProperties.minBackoff()))
                 .filter(StateMachineServiceException.class::isInstance)
-                .doBeforeRetry(retrySignal -> log.debug(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure().getMessage()))
+                .doBeforeRetry(retrySignal -> log.info(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure().getMessage()))
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure());
     }
 

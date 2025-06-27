@@ -31,6 +31,7 @@
     "PnEcConsAllowedFutureOffsetDuration": "1m",
     "CpuValue": "1024",
     "MemoryAmount": "4GB",
+    "PnEcDuplicatesCheck": "890;AR;RS;RIR;RIS",
     "PnECPaperDocumentTypeToRaster": "PN_NOTIFICATION_ATTACHMENTS",
     "PnECPaperDocumentTypeForRasterized": "PN_PAPER_ATTACHMENT",
     "PnECPaperDocumentTypeForNormalized": "PN_CLEAN_PAPER_ATTACHMENT",
