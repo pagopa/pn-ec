@@ -270,6 +270,7 @@ class CartaceoRetryTest {
         mockGestoreRepository(clientId, requestId, requestDto);
         mockPdfRasterAttachmentSteps();
         mockSqsService();
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //THEN
         Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
@@ -301,6 +302,7 @@ class CartaceoRetryTest {
         mockGestoreRepository(clientId, requestId, requestDto);
         when(fileCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException("fileKey")));
         mockSqsService();
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //THEN
         Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
@@ -333,6 +335,7 @@ class CartaceoRetryTest {
         mockPdfRasterAttachmentSteps();
         when(fileCall.postFile(anyString(), anyString(), any(FileCreationRequest.class))).thenReturn(Mono.error(new RuntimeException()));
         mockSqsService();
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //THEN
         Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
@@ -365,6 +368,8 @@ class CartaceoRetryTest {
         mockPdfRasterAttachmentSteps();
         when(uploadCall.uploadFile(anyString(), anyString(), anyString(), anyString(), any(), anyString(), any(byte[].class))).thenReturn(Mono.error(new RuntimeException()));
         mockSqsService();
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
+
 
         //THEN
         Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
@@ -397,6 +402,7 @@ class CartaceoRetryTest {
         mockPdfRasterAttachmentSteps();
         when(downloadCall.downloadFile(DOWNLOAD_URL)).thenReturn(Mono.error(new RuntimeException()));
         mockSqsService();
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //THEN
         Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
@@ -429,6 +435,8 @@ class CartaceoRetryTest {
         mockPdfRasterAttachmentSteps();
         when(dynamoPdfRasterService.insertRequestConversion(any())).thenReturn(Mono.error(DynamoDbException.builder().build()));
         mockSqsService();
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
+
 
         //THEN
         Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);

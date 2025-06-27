@@ -161,7 +161,6 @@ class CartaceoServiceTest {
         //WHEN
         mockGestoreRepository();
         when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(AUTHENTICATION_ERROR_CODE)));
-        when(gestoreRepositoryCall.patchRichiesta(eq(DEFAULT_ID_CLIENT_HEADER_VALUE), eq(DEFAULT_REQUEST_IDX), any(PatchDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
@@ -180,7 +179,6 @@ class CartaceoServiceTest {
         //WHEN
         mockGestoreRepository();
         when(paperMessageCall.putRequest(any())).thenReturn(Mono.error(new ConsolidatoreException.PermanentException("permanent error")));
-        when(gestoreRepositoryCall.patchRichiesta(eq(DEFAULT_ID_CLIENT_HEADER_VALUE), eq(DEFAULT_REQUEST_IDX), any(PatchDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO);
@@ -314,6 +312,7 @@ class CartaceoServiceTest {
         mockPutRequest();
         mockPdfRasterAttachmentSteps();
         when(fileCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException("fileKey")));
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
@@ -333,6 +332,7 @@ class CartaceoServiceTest {
         mockPutRequest();
         mockPdfRasterAttachmentSteps();
         when(downloadCall.downloadFile(DOWNLOAD_URL)).thenReturn(Mono.error(new RuntimeException()));
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
@@ -347,6 +347,9 @@ class CartaceoServiceTest {
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
         cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
 
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
+
+
         //WHEN
         mockGestoreRepository();
         mockPutRequest();
@@ -355,9 +358,12 @@ class CartaceoServiceTest {
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
+
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
         verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(RETRY.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
     }
+
+
 
     @Test
     void lavorazioneRichiestaPdfRaster_KoUploadCall() {
@@ -365,12 +371,14 @@ class CartaceoServiceTest {
         //GIVEN
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
         cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //WHEN
         mockGestoreRepository();
         mockPutRequest();
         mockPdfRasterAttachmentSteps();
         when(uploadCall.uploadFile(anyString(), anyString(), anyString(), anyString(), any(), anyString(), any(byte[].class))).thenReturn(Mono.error(new RuntimeException()));
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
@@ -384,12 +392,14 @@ class CartaceoServiceTest {
         //GIVEN
         CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = getCartaceoPresaInCaricoInfo();
         cartaceoPresaInCaricoInfo.getPaperEngageRequest().setApplyRasterization(true);
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //WHEN
         mockGestoreRepository();
         mockPutRequest();
         mockPdfRasterAttachmentSteps();
         when(dynamoPdfRasterService.insertRequestConversion(any())).thenReturn(Mono.error(DynamoDbException.builder().build()));
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);

@@ -640,7 +640,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         return pdfTransformationConfiguration.getDocumentTypesToRaster().stream().anyMatch(type -> attachment.getUri().replace(SAFESTORAGE_PREFIX, "").startsWith(type));
     }
 
-    private boolean isRasterFeatureEnabled(String requestPaId) {
+    public boolean isRasterFeatureEnabled(String requestPaId) {
         String flag = pdfTransformationConfiguration.getPaIdToRaster();
         return switch (flag) {
             case "NOTHING" -> false;
