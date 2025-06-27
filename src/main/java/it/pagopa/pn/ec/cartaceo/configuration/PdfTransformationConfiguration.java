@@ -7,11 +7,11 @@ import java.util.Arrays;
 import java.util.List;
 
 @Configuration
-public class RasterConfiguration {
+public class PdfTransformationConfiguration {
 
     private final RasterProperties rasterProperties;
 
-    public RasterConfiguration(RasterProperties rasterProperties) {
+    public PdfTransformationConfiguration(RasterProperties rasterProperties) {
 
         this.rasterProperties = rasterProperties;
     }
