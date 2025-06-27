@@ -104,7 +104,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private static final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
-            .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
+            .doBeforeRetry(retrySignal -> log.info("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
 
 
     @Override
@@ -343,7 +343,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 //              se il primo step, inizializza l'attributo retry
                 .flatMap(requestDto -> {
                     if (requestDto.getRequestMetadata().getRetry() == null) {
-                        log.debug(RETRY_ATTEMPT, FILTER_REQUEST_PEC, 0);
+                        log.info(RETRY_ATTEMPT, FILTER_REQUEST_PEC, 0);
                         RetryDto retryDto = new RetryDto();
                         retryDto.setRetryPolicy(retryPolicies.getPolicy().get("PEC"));
                         retryDto.setRetryStep(BigDecimal.ZERO);
@@ -355,7 +355,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
                     } else {
                         var retryNumber = requestDto.getRequestMetadata().getRetry().getRetryStep();
-                        log.debug(RETRY_ATTEMPT, FILTER_REQUEST_PEC, retryNumber);
+                        log.info(RETRY_ATTEMPT, FILTER_REQUEST_PEC, retryNumber);
                         return Mono.just(requestDto);
                     }
                 })
