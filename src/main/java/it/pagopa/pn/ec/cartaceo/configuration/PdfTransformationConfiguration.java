@@ -38,7 +38,7 @@ public class PdfTransformationConfiguration {
 
     public List<String> getValidTransformationDocumentTypes() {
         return List.of(
-                getDocumentTypeForNormalized(),
+                getDocumentTypeForRasterized(),
                 getDocumentTypeForNormalized()
         );
     }
