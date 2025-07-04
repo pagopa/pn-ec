@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.availabilitymanager.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 public class AvailabilityManagerDto {
     private String version;
     private String id;
+    @JsonProperty("detail-type")
     private String detailType;
     private String source;
     private String account;
