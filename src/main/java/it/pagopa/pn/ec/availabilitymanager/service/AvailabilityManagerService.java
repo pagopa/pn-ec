@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec.availabilitymanager.service;
 
-import com.amazonaws.transform.MapEntry;
 import io.awspring.cloud.messaging.listener.Acknowledgment;
 import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
 import io.awspring.cloud.messaging.listener.annotation.SqsListener;
@@ -10,10 +9,8 @@ import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.service.CartaceoService;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
-import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.pdfraster.model.entity.PdfConversionEntity;
 import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.CustomLog;
@@ -47,7 +44,7 @@ public class AvailabilityManagerService {
     private static final String GESTORE_DISPONIBILITA_EVENT_NAME = "GESTORE DISPONIBILITA";
     private static final String EVENT_BUS_SOURCE_TRANSFORMATION_DOCUMENT = "SafeStorageTransformEvent";
     private static final String INDISPONIBILITA_EVENT_ERROR = "ERROR";
-    private static final String NEXT_STATUS_TRANSFORMATION_ERROR = "P013";
+    private static final String NEXT_STATUS_TRANSFORMATION_ERROR = "transformationError";
 
 
 
