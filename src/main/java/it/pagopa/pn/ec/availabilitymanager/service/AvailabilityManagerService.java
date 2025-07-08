@@ -11,7 +11,7 @@ import it.pagopa.pn.ec.cartaceo.service.CartaceoService;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
+import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,7 +28,7 @@ import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 @CustomLog
 public class AvailabilityManagerService {
 
-    private final DynamoPdfRasterService dynamoPdfRasterService;
+    private final RequestConversionService requestConversionService;
 
     private final CartaceoSqsQueueName cartaceoSqsQueueName;
 
@@ -48,8 +48,8 @@ public class AvailabilityManagerService {
 
 
 
-    public AvailabilityManagerService (DynamoPdfRasterService dynamoPdfRasterService, CartaceoSqsQueueName cartaceoSqsQueueName, SqsService sqsService, CallMacchinaStati callMachinaStati, CartaceoService cartaceoService, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
-        this.dynamoPdfRasterService = dynamoPdfRasterService;
+    public AvailabilityManagerService (RequestConversionService requestConversionService, CartaceoSqsQueueName cartaceoSqsQueueName, SqsService sqsService, CallMacchinaStati callMachinaStati, CartaceoService cartaceoService, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+        this.requestConversionService = requestConversionService;
         this.cartaceoSqsQueueName = cartaceoSqsQueueName;
         this.sqsService = sqsService;
         this.callMachinaStati = callMachinaStati;
@@ -75,12 +75,12 @@ public class AvailabilityManagerService {
 
                     if (isSafeStorageError(dto)) {
                         log.info("Indisponibilità event found, with fileKey \"{}\" and status \"{}\": proceeding to update status and send to NotificationTracker ",dto.getDetail().getKey(), dto.getDetail().getDocumentStatus());
-                        return dynamoPdfRasterService.updateRequestConversion(newFilekey, true, sha256, true)
+                        return requestConversionService.updateRequestConversion(newFilekey, true, sha256, true)
                                 .map(Map.Entry::getKey).flatMap(reqConvDto -> handleTransformationError(reqConvDto, detailDto, acknowledgment))
                                 .doOnSuccess(v -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER))
                                 .doOnError(e -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER, false, e.getMessage()));
                     } else {
-                        return dynamoPdfRasterService
+                        return requestConversionService
                                 .updateRequestConversion(detailDto.getKey(), true, detailDto.getChecksum(),false)
                                 .filter(Map.Entry::getValue)
                                 .map(Map.Entry::getKey)

@@ -10,7 +10,7 @@ import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.pdfraster.configuration.PdfRasterProperties;
-import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
+import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
 import it.pagopa.pn.ec.rest.v1.dto.AttachmentToConvertDto;
 import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest;
 import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequestAttachments;
@@ -48,7 +48,7 @@ class AvailabilityManagerServiceTest {
     @Autowired
     CartaceoSqsQueueName cartaceoSqsQueueName;
     @SpyBean
-    DynamoPdfRasterService dynamoPdfRasterService;
+    RequestConversionService requestConversionService;
     @MockBean
     private Acknowledgment acknowledgment;
     @SpyBean
@@ -108,7 +108,7 @@ class AvailabilityManagerServiceTest {
     @BeforeEach
     void setUp() {
         availabilityManagerService =
-                Mockito.spy(new AvailabilityManagerService(dynamoPdfRasterService,cartaceoSqsQueueName, sqsService,callMachinaStati, cartaceoService, transactionProcessConfigurationProperties /*, ... */));
+                Mockito.spy(new AvailabilityManagerService(requestConversionService,cartaceoSqsQueueName, sqsService,callMachinaStati, cartaceoService, transactionProcessConfigurationProperties /*, ... */));
     }
 
 
@@ -124,12 +124,12 @@ class AvailabilityManagerServiceTest {
         AttachmentToConvertDto attachmentToConvertDto1 = new AttachmentToConvertDto().originalFileKey(originalFileKey1).newFileKey(newFileKey1).sha256(sha256);
         AttachmentToConvertDto attachmentToConvertDto2 = new AttachmentToConvertDto().originalFileKey("originale").newFileKey("nuova").sha256(sha256);
         RequestConversionDto requestConversionDto= createRequestConversionDto(List.of(attachmentToConvertDto1, attachmentToConvertDto2), "requestId1");
-        dynamoPdfRasterService.insertRequestConversion(requestConversionDto).block();
+        requestConversionService.insertRequestConversion(requestConversionDto).block();
 
         // THEN: test del metodo, assertions e verify
         StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment)).verifyComplete();
         verify(sqsService, never()).send(eq(cartaceoSqsQueueName.batchName()), any());
-        verify(dynamoPdfRasterService , times(1)).updateRequestConversion(newFileKey1, true, sha256,false);
+        verify(requestConversionService, times(1)).updateRequestConversion(newFileKey1, true, sha256,false);
     }
 
     @Test
@@ -143,12 +143,12 @@ class AvailabilityManagerServiceTest {
         AvailabilityManagerDto dto = createAvailabilityManagerDto(newFileKey2, sha256);
         AttachmentToConvertDto attachmentToConvertDto1 = new AttachmentToConvertDto().originalFileKey(originalFileKey2).newFileKey(newFileKey2).sha256(sha256);
         RequestConversionDto requestConversionDto= createRequestConversionDto(List.of(attachmentToConvertDto1), "requestId2");
-        dynamoPdfRasterService.insertRequestConversion(requestConversionDto).block();
+        requestConversionService.insertRequestConversion(requestConversionDto).block();
 
         // THEN: test del metodo, assertions e verify
         StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment)).verifyComplete();
         verify(sqsService, times(1)).send(eq(cartaceoSqsQueueName.batchName()), any());
-        verify(dynamoPdfRasterService , times(1)).updateRequestConversion(newFileKey2, true, sha256,false);
+        verify(requestConversionService, times(1)).updateRequestConversion(newFileKey2, true, sha256,false);
     }
 
     @Test
@@ -162,7 +162,7 @@ class AvailabilityManagerServiceTest {
         // THEN: test del metodo, assertions e verify
         StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment)).verifyError(RepositoryManagerException.PdfConversionNotFoundException.class);
         verify(sqsService, never()).send(eq(cartaceoSqsQueueName.batchName()), any());
-        verify(dynamoPdfRasterService , times(1)).updateRequestConversion(newFileKey3, true, sha256,false);
+        verify(requestConversionService, times(1)).updateRequestConversion(newFileKey3, true, sha256,false);
     }
 
     @Test
@@ -177,7 +177,7 @@ class AvailabilityManagerServiceTest {
 
         RequestConversionDto reqConvDto = new RequestConversionDto();
         Map.Entry<RequestConversionDto, Boolean> entry = new AbstractMap.SimpleEntry<>(reqConvDto, true);
-        when(dynamoPdfRasterService.updateRequestConversion(dto.getDetail().getKey(), true, dto.getDetail().getChecksum(),true))
+        when(requestConversionService.updateRequestConversion(dto.getDetail().getKey(), true, dto.getDetail().getChecksum(),true))
                 .thenReturn(Mono.just(entry));
 
         doReturn(Mono.empty()).when(availabilityManagerService)
@@ -186,7 +186,7 @@ class AvailabilityManagerServiceTest {
         StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment))
                 .verifyComplete();
 
-        verify(dynamoPdfRasterService).updateRequestConversion(dto.getDetail().getKey(), true, dto.getDetail().getChecksum(),true);
+        verify(requestConversionService).updateRequestConversion(dto.getDetail().getKey(), true, dto.getDetail().getChecksum(),true);
         verify(availabilityManagerService).handleTransformationError(eq(reqConvDto), eq(dto.getDetail()), eq(acknowledgment));
         verifyNoInteractions(sqsService); // nessun invio SQS in questo ramo, si invia al NT
     }

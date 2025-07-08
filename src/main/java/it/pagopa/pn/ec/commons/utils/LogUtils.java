@@ -262,16 +262,16 @@ public class LogUtils {
 
     //PDFRASTER
 
-    public static final String PDF_RASTER_INSERT_REQUEST_CONVERSION = "DynamoPdfRasterServiceImpl.insertRequestConversion()";
-    public static final String PDF_RASTER_UPDATE_REQUEST_CONVERSION = "DynamoPdfRasterServiceImpl.updateRequestConversion()";
-    public static final String PDF_RASTER_CONVERT_TO_ENTITY = "DynamoPdfRasterServiceImpl.convertToEntity()";
-    public static final String PDF_RASTER_SAVE_REQUEST_CONVERSION_ENTITY = "DynamoPdfRasterServiceImpl.saveRequestConversionEntity()";
-    public static final String PDF_RASTER_SAVE_PDF_CONVERSIONS = "DynamoPdfRasterServiceImpl.savePdfConversion()";
-    public static final String PDF_RASTER_SAVE_PDF_CONVERSION = "DynamoPdfRasterServiceImpl.savePdfConversion()";
-    public static final String PDF_RASTER_CONVERT_TO_DTO = "DynamoPdfRasterServiceImpl.convertToDto()";
-    public static final String PDF_RASTER_UPDATE_ATTACHMENT_CONVERSION = "DynamoPdfRasterServiceImpl.updateAttachmentConversion()";
-    public static final String PDF_RASTER_GET_REQUEST_CONVERSION_FROM_DYNAMO_DB = "DynamoPdfRasterServiceImpl.getRequestConversionFromDynamoDb()";
-    public static final String PDF_RASTER_GET_PDF_CONVERSION_FROM_DYNAMO_DB = "DynamoPdfRasterServiceImpl.getPdfConversionFromDynamoDb()";
+    public static final String PDF_RASTER_INSERT_REQUEST_CONVERSION = "RequestConversionServiceImpl.insertRequestConversion()";
+    public static final String PDF_RASTER_UPDATE_REQUEST_CONVERSION = "RequestConversionServiceImpl.updateRequestConversion()";
+    public static final String PDF_RASTER_CONVERT_TO_ENTITY = "RequestConversionServiceImpl.convertToEntity()";
+    public static final String PDF_RASTER_SAVE_REQUEST_CONVERSION_ENTITY = "RequestConversionServiceImpl.saveRequestConversionEntity()";
+    public static final String PDF_RASTER_SAVE_PDF_CONVERSIONS = "RequestConversionServiceImpl.savePdfConversion()";
+    public static final String PDF_RASTER_SAVE_PDF_CONVERSION = "RequestConversionServiceImpl.savePdfConversion()";
+    public static final String PDF_RASTER_CONVERT_TO_DTO = "RequestConversionServiceImpl.convertToDto()";
+    public static final String PDF_RASTER_UPDATE_ATTACHMENT_CONVERSION = "RequestConversionServiceImpl.updateAttachmentConversion()";
+    public static final String PDF_RASTER_GET_REQUEST_CONVERSION_FROM_DYNAMO_DB = "RequestConversionServiceImpl.getRequestConversionFromDynamoDb()";
+    public static final String PDF_RASTER_GET_PDF_CONVERSION_FROM_DYNAMO_DB = "RequestConversionServiceImpl.getPdfConversionFromDynamoDb()";
     public static final String HANDLE_AVAILABILITY_MANAGER = "AvailabilityManagerService.handleAvailabilityManager()";
     public static final String HANDLE_AVAILABILITY_MANAGER_TRANSFORM_ERROR = "AvailabilityManagerService.handleTransformationError()";
 

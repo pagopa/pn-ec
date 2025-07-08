@@ -18,7 +18,7 @@ import it.pagopa.pn.ec.commons.rest.call.upload.UploadCall;
 import it.pagopa.pn.ec.commons.service.AttachmentService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.cartaceo.configuration.PdfTransformationConfiguration;
-import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
+import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
@@ -71,7 +71,7 @@ class CartaceoServiceTest {
     @Autowired
     private CartaceoSqsQueueName cartaceoSqsQueueName;
     @SpyBean
-    private DynamoPdfRasterService dynamoPdfRasterService;
+    private RequestConversionService requestConversionService;
     @SpyBean
     private TransformationProperties transformationProperties;
     @SpyBean
@@ -223,7 +223,7 @@ class CartaceoServiceTest {
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
-        verify(dynamoPdfRasterService, times(1)).insertRequestConversion(any(RequestConversionDto.class));
+        verify(requestConversionService, times(1)).insertRequestConversion(any(RequestConversionDto.class));
         verify(cartaceoService, never()).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
     }
 
@@ -246,7 +246,7 @@ class CartaceoServiceTest {
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
-        verify(dynamoPdfRasterService, never()).insertRequestConversion(any(RequestConversionDto.class));
+        verify(requestConversionService, never()).insertRequestConversion(any(RequestConversionDto.class));
         verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
     }
 
@@ -272,7 +272,7 @@ class CartaceoServiceTest {
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
-        verify(dynamoPdfRasterService, times(1)).insertRequestConversion(any(RequestConversionDto.class));
+        verify(requestConversionService, times(1)).insertRequestConversion(any(RequestConversionDto.class));
         verify(cartaceoService, never()).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
     }
 
@@ -296,7 +296,7 @@ class CartaceoServiceTest {
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
-        verify(dynamoPdfRasterService, never()).insertRequestConversion(any(RequestConversionDto.class));
+        verify(requestConversionService, never()).insertRequestConversion(any(RequestConversionDto.class));
         verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(cartaceoPresaInCaricoInfo), eq(CODE_TO_STATUS_MAP.get(OK_CODE)), any(PaperProgressStatusDto.class));
     }
 
@@ -398,7 +398,7 @@ class CartaceoServiceTest {
         mockGestoreRepository();
         mockPutRequest();
         mockPdfRasterAttachmentSteps();
-        when(dynamoPdfRasterService.insertRequestConversion(any())).thenReturn(Mono.error(DynamoDbException.builder().build()));
+        when(requestConversionService.insertRequestConversion(any())).thenReturn(Mono.error(DynamoDbException.builder().build()));
         doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //THEN
@@ -438,7 +438,7 @@ class CartaceoServiceTest {
         StepVerifier.create(lavorazione).expectNextCount(1).verifyComplete();
 
         // Deve aver creato la richiesta di conversione
-        verify(dynamoPdfRasterService, times(1))
+        verify(requestConversionService, times(1))
                 .insertRequestConversion(any(RequestConversionDto.class));
     }
 
@@ -468,7 +468,7 @@ class CartaceoServiceTest {
 
         /* THEN */
         StepVerifier.create(lavorazione).expectNextCount(1).verifyComplete();
-        verify(dynamoPdfRasterService, times(1))
+        verify(requestConversionService, times(1))
                 .insertRequestConversion(any(RequestConversionDto.class));
     }
 
@@ -498,7 +498,7 @@ class CartaceoServiceTest {
 
         // THEN
         StepVerifier.create(lavorazione).expectNextCount(1).verifyComplete();
-        verify(dynamoPdfRasterService, times(1))
+        verify(requestConversionService, times(1))
                 .insertRequestConversion(any(RequestConversionDto.class));
     }
 

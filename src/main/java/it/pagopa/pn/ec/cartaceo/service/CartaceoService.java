@@ -28,7 +28,7 @@ import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.QueueOperationsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
-import it.pagopa.pn.ec.pdfraster.service.impl.DynamoPdfRasterServiceImpl;
+import it.pagopa.pn.ec.pdfraster.service.impl.RequestConversionServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import lombok.CustomLog;
@@ -79,7 +79,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final FileCall fileCall;
     private final DownloadCall downloadCall;
     private final UploadCall uploadCall;
-    private final DynamoPdfRasterServiceImpl dynamoPdfRasterService;
+    private final RequestConversionServiceImpl requestConversionService;
     private final PdfTransformationConfiguration pdfTransformationConfiguration;
     private final CartaceoMapper cartaceoMapper;
     private String idSaved;
@@ -95,7 +95,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     protected CartaceoService(AuthService authService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall,
                               AttachmentServiceImpl attachmentService, NotificationTrackerSqsName notificationTrackerSqsName,
                               CartaceoSqsQueueName cartaceoSqsQueueName, PaperMessageCall paperMessageCall, FileCall fileCall,
-                              DownloadCall downloadCall, UploadCall uplpadCall, DynamoPdfRasterServiceImpl dynamoPdfRasterService,
+                              DownloadCall downloadCall, UploadCall uplpadCall, RequestConversionServiceImpl requestConversionService,
                               PdfTransformationConfiguration pdfTransformationConfiguration, CartaceoMapper cartaceoMapper,
                               SqsTimeoutProvider sqsTimeoutProvider,
                               LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties,
@@ -111,7 +111,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         this.fileCall = fileCall;
         this.downloadCall = downloadCall;
         this.uploadCall = uplpadCall;
-        this.dynamoPdfRasterService = dynamoPdfRasterService;
+        this.requestConversionService = requestConversionService;
         this.pdfTransformationConfiguration = pdfTransformationConfiguration;
         this.cartaceoMapper = cartaceoMapper;
         this.sqsTimeoutProvider = sqsTimeoutProvider;
@@ -625,7 +625,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 requestConversionDto.setOriginalRequest(reqSrc);
                 requestConversionDto.setAttachments(attachmentsToConvert);
                 requestConversionDto.setRequestTimestamp(OffsetDateTime.now());
-                return dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
+                return requestConversionService.insertRequestConversion(requestConversionDto);
             })
             .retryWhen(lavorazioneRichiestaRetryStrategy)
             .doOnError(MaxRetriesExceededException.class, throwable -> {

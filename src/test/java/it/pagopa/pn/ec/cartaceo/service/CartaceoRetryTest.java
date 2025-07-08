@@ -14,7 +14,7 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.pdfraster.model.entity.PdfConversionEntity;
 import it.pagopa.pn.ec.pdfraster.model.entity.RequestConversionEntity;
-import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
+import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 
@@ -78,7 +78,7 @@ class CartaceoRetryTest {
     PaperMessageCall paperMessageCall;
 
     @SpyBean
-    private DynamoPdfRasterService dynamoPdfRasterService;
+    private RequestConversionService requestConversionService;
 
     @MockBean
     private FileCall fileCall;
@@ -275,7 +275,7 @@ class CartaceoRetryTest {
         //THEN
         Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
-        verify(dynamoPdfRasterService, times(1)).insertRequestConversion(any(RequestConversionDto.class));
+        verify(requestConversionService, times(1)).insertRequestConversion(any(RequestConversionDto.class));
         verify(cartaceoService, times(1)).deleteMessageFromErrorQueue(message);
     }
 
@@ -433,7 +433,7 @@ class CartaceoRetryTest {
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
         mockPdfRasterAttachmentSteps();
-        when(dynamoPdfRasterService.insertRequestConversion(any())).thenReturn(Mono.error(DynamoDbException.builder().build()));
+        when(requestConversionService.insertRequestConversion(any())).thenReturn(Mono.error(DynamoDbException.builder().build()));
         mockSqsService();
         doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 

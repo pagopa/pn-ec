@@ -5,7 +5,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
-public interface DynamoPdfRasterService {
+public interface RequestConversionService {
 
     Mono<RequestConversionDto> insertRequestConversion(RequestConversionDto request);
 

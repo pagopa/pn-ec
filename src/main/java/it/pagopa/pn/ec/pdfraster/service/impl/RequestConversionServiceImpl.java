@@ -7,7 +7,7 @@ import it.pagopa.pn.ec.pdfraster.configuration.PdfRasterProperties;
 import it.pagopa.pn.ec.pdfraster.model.entity.AttachmentToConvert;
 import it.pagopa.pn.ec.pdfraster.model.entity.PdfConversionEntity;
 import it.pagopa.pn.ec.pdfraster.model.entity.RequestConversionEntity;
-import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
+import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.rest.v1.dto.RequestConversionDto;
 import lombok.CustomLog;
@@ -35,7 +35,7 @@ import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Service
 @CustomLog
-public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
+public class RequestConversionServiceImpl implements RequestConversionService {
 
 
     private final DynamoDbAsyncTableDecorator<RequestConversionEntity> requestTable;
@@ -50,8 +50,8 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
     private final Integer offsetDays;
 
 
-    public DynamoPdfRasterServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
-                                      RepositoryManagerDynamoTableName repositoryManagerDynamoTableName, ObjectMapper objectMapper, DynamoDbAsyncClient dynamoDbAsyncClient, PdfRasterProperties pdfRasterProperties) {
+    public RequestConversionServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
+                                        RepositoryManagerDynamoTableName repositoryManagerDynamoTableName, ObjectMapper objectMapper, DynamoDbAsyncClient dynamoDbAsyncClient, PdfRasterProperties pdfRasterProperties) {
         this.objectMapper = objectMapper;
         this.dynamoDbAsyncClient = dynamoDbAsyncClient;
         this.requestConversionTableSchema = TableSchema.fromBean(RequestConversionEntity.class);
