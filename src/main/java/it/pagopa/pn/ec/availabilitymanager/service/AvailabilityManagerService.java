@@ -75,8 +75,7 @@ public class AvailabilityManagerService {
 
                     if (isSafeStorageError(dto)) {
                         log.info("Indisponibilità event found, with fileKey \"{}\" and status \"{}\": proceeding to update status and send to NotificationTracker ",dto.getDetail().getKey(), dto.getDetail().getDocumentStatus());
-                        boolean isTransformationError = true;
-                        return dynamoPdfRasterService.updateRequestConversion(newFilekey, true, sha256, isTransformationError)
+                        return dynamoPdfRasterService.updateRequestConversion(newFilekey, true, sha256, true)
                                 .map(Map.Entry::getKey).flatMap(reqConvDto -> handleTransformationError(reqConvDto, detailDto, acknowledgment))
                                 .doOnSuccess(v -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER))
                                 .doOnError(e -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER, false, e.getMessage()));
@@ -139,8 +138,8 @@ public class AvailabilityManagerService {
     }
 
     /**
-     * Verifica che il passaggio di stato da ERROR a P013 sia valido.
-     * In questo caso, aggiorna il messaggio e lo invia al NT
+     * Invia al NT l'evento di trasformazione fallito con il nuovo stato P013
+     *
      * @param requestConversionDto
      * @param detailDto
      * @param acknowledgment
