@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.cartaceo.configuration;
 
-import it.pagopa.pn.ec.cartaceo.configurationproperties.RasterProperties;
+import it.pagopa.pn.ec.cartaceo.configurationproperties.TransformationProperties;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Arrays;
@@ -9,31 +9,31 @@ import java.util.List;
 @Configuration
 public class PdfTransformationConfiguration {
 
-    private final RasterProperties rasterProperties;
+    private final TransformationProperties transformationProperties;
 
-    public PdfTransformationConfiguration(RasterProperties rasterProperties) {
+    public PdfTransformationConfiguration(TransformationProperties transformationProperties) {
 
-        this.rasterProperties = rasterProperties;
+        this.transformationProperties = transformationProperties;
     }
 
     public List<String> getDocumentTypesToRaster() {
-        return Arrays.stream(rasterProperties.documentTypeToRaster().split(";")).toList();
+        return Arrays.stream(transformationProperties.documentTypeToRaster().split(";")).toList();
     }
 
     public String getPaIdToRaster() {
-        return rasterProperties.paIdToRaster();
+        return transformationProperties.paIdToRaster();
     }
 
     public String getPaIdOverride() {
-        return rasterProperties.paIdOverride();
+        return transformationProperties.paIdOverride();
     }
 
     public String getDocumentTypeForRasterized() {
-        return rasterProperties.documentTypeForRasterized();
+        return transformationProperties.documentTypeForRasterized();
     }
 
     public String getDocumentTypeForNormalized() {
-        return rasterProperties.documentTypeForNormalized();
+        return transformationProperties.documentTypeForNormalized();
     }
 
     public List<String> getValidTransformationDocumentTypes() {

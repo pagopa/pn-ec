@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.cartaceo.service;
 
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
-import it.pagopa.pn.ec.cartaceo.configurationproperties.RasterProperties;
+import it.pagopa.pn.ec.cartaceo.configurationproperties.TransformationProperties;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.configuration.normalization.NormalizationConfiguration;
@@ -73,7 +73,7 @@ class CartaceoServiceTest {
     @SpyBean
     private DynamoPdfRasterService dynamoPdfRasterService;
     @SpyBean
-    private RasterProperties rasterProperties;
+    private TransformationProperties transformationProperties;
     @SpyBean
     private NormalizationConfiguration normalizationConfiguration;
 
@@ -218,7 +218,7 @@ class CartaceoServiceTest {
         mockGestoreRepository();
         mockPutRequest();
         mockPdfRasterAttachmentSteps();
-        when(rasterProperties.paIdToRaster()).thenReturn("ALL");
+        when(transformationProperties.paIdToRaster()).thenReturn("ALL");
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
@@ -241,7 +241,7 @@ class CartaceoServiceTest {
         mockGestoreRepository();
         mockPutRequest();
         mockPdfRasterAttachmentSteps();
-        when(rasterProperties.paIdToRaster()).thenReturn("NOTHING");
+        when(transformationProperties.paIdToRaster()).thenReturn("NOTHING");
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
@@ -267,7 +267,7 @@ class CartaceoServiceTest {
         mockGestoreRepository();
         mockPutRequest();
         mockPdfRasterAttachmentSteps();
-        when(rasterProperties.paIdToRaster()).thenReturn("requestPaId1;requestPaId2;" + requestPaIdToCheck);
+        when(transformationProperties.paIdToRaster()).thenReturn("requestPaId1;requestPaId2;" + requestPaIdToCheck);
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
@@ -291,7 +291,7 @@ class CartaceoServiceTest {
         mockGestoreRepository();
         mockPutRequest();
         mockPdfRasterAttachmentSteps();
-        when(rasterProperties.paIdToRaster()).thenReturn("requestPaId1;requestPaId2");
+        when(transformationProperties.paIdToRaster()).thenReturn("requestPaId1;requestPaId2");
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
@@ -422,7 +422,7 @@ class CartaceoServiceTest {
         cartaceoInfo.getPaperEngageRequest().setApplyRasterization(null);        // disabilito raster
 
         // Raster disabilitato per tutte le PA
-        when(rasterProperties.paIdToRaster()).thenReturn("NOTHING");
+        when(transformationProperties.paIdToRaster()).thenReturn("NOTHING");
 
         // Normalizzazione disabilitata (default paIdToNormalize = NOTHING)
         ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "NOTHING");
@@ -454,7 +454,7 @@ class CartaceoServiceTest {
         info.getPaperEngageRequest().setTransformationDocumentType(null);        // nessun override
 
         // Raster disabilitato
-        when(rasterProperties.paIdToRaster()).thenReturn("NOTHING");
+        when(transformationProperties.paIdToRaster()).thenReturn("NOTHING");
 
         // Normalizzazione ABILITATA per la PA (ALL o lista)
         ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "ALL");
@@ -486,7 +486,7 @@ class CartaceoServiceTest {
         info.getPaperEngageRequest().setApplyRasterization(null);
         info.getPaperEngageRequest().setTransformationDocumentType(null);
 
-        when(rasterProperties.paIdToRaster()).thenReturn("PA_TEST");   // lista che contiene la stessa PA
+        when(transformationProperties.paIdToRaster()).thenReturn("PA_TEST");   // lista che contiene la stessa PA
         ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "NOTHING");
 
         // WHEN
