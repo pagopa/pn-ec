@@ -7,6 +7,7 @@ import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.configuration.normalization.NormalizationConfiguration;
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.cartaceo.ConsolidatoreException;
+import it.pagopa.pn.ec.commons.exception.cartaceo.InvalidTransformationTypeException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
@@ -23,10 +24,13 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -52,6 +56,11 @@ import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
 @CustomLog
+@TestPropertySource(properties = {
+        "PN_EC_PAPER_PAIDTONORMALIZE=PA1;PA2",
+        "TRANSFORMATION_PRIORITY=RASTERIZATION |   NORMALIZATION  "
+})
+@DirtiesContext
 class CartaceoServiceTest {
 
     @SpyBean
@@ -90,6 +99,8 @@ class CartaceoServiceTest {
     private static final String SECRET = "secret";
 
     private static final String DOCUMENT_TYPE_FOR_RASTERIZED = "PN_PAPER_ATTACHMENT";
+    private static final String DOCUMENT_TYPE_FOR_NORMALIZED = "PN_CLEAN_PAPER_ATTACHMENT";
+
 
     private static final CartaceoPresaInCaricoInfo CARTACEO_PRESA_IN_CARICO_INFO = CartaceoPresaInCaricoInfo.builder().requestIdx(DEFAULT_REQUEST_IDX)
             .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
@@ -103,6 +114,10 @@ class CartaceoServiceTest {
         return CartaceoPresaInCaricoInfo.builder().requestIdx(DEFAULT_REQUEST_IDX)
                 .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
                 .paperEngageRequest(PaperEngageRequestFactory.createDtoPaperRequestPdfRaster(requestPaId)).build();
+    }
+    @BeforeEach
+    void restoreNormalize(){
+        ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "NOTHING");
     }
 
     @Test
@@ -442,6 +457,87 @@ class CartaceoServiceTest {
                 .insertRequestConversion(any(RequestConversionDto.class));
     }
 
+    @Test
+    void lavorazioneRichiestaTransformation_PrioritySelection_Ok() {
+
+        // GIVEN
+        CartaceoPresaInCaricoInfo cartaceoInfo = getCartaceoPresaInCaricoInfo();
+        cartaceoInfo.getPaperEngageRequest()
+                .setTransformationDocumentType(null);
+
+        when(transformationProperties.paIdToRaster()).thenReturn("ALL");
+        ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "ALL");
+
+        // WHEN
+        mockGestoreRepository();
+        mockPutRequest();
+        mockPdfRasterAttachmentSteps();
+
+        Mono<SendMessageResponse> lavorazione = cartaceoService.lavorazioneRichiesta(cartaceoInfo);
+
+        // THEN
+        StepVerifier.create(lavorazione).expectNextCount(1).verifyComplete();
+
+        // Deve aver creato la richiesta di conversione
+        verify(requestConversionService, times(1))
+                .insertRequestConversion(any(RequestConversionDto.class));
+        // Verifica del cambio di transformationDocumentType da null a priority (RASTER)
+        Assertions.assertEquals(DOCUMENT_TYPE_FOR_RASTERIZED,cartaceoInfo.getPaperEngageRequest().getTransformationDocumentType());
+    }
+
+    @Test
+    void lavorazioneRichiestaTransformation_RasterRequestedButNotEnabled() {
+
+        // GIVEN
+        CartaceoPresaInCaricoInfo cartaceoInfo = getCartaceoPresaInCaricoInfo();
+        cartaceoInfo.getPaperEngageRequest()
+                .setTransformationDocumentType(DOCUMENT_TYPE_FOR_RASTERIZED);
+
+        when(transformationProperties.paIdToRaster()).thenReturn("NOTHING");
+        ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "ALL");
+
+        // WHEN
+        mockGestoreRepository();
+        mockPutRequest();
+        mockPdfRasterAttachmentSteps();
+
+        Mono<SendMessageResponse> lavorazione = cartaceoService.lavorazioneRichiesta(cartaceoInfo);
+
+        // THEN
+        StepVerifier.create(lavorazione).expectNextCount(1).verifyComplete();
+
+        // Deve aver creato la richiesta di conversione
+        verify(requestConversionService, times(1))
+                .insertRequestConversion(any(RequestConversionDto.class));
+    }
+
+
+    @Test
+    void lavorazioneRichiestaTransformation_NormalizationRequestedButNotEnabled() {
+
+        // GIVEN
+        CartaceoPresaInCaricoInfo cartaceoInfo = getCartaceoPresaInCaricoInfo();
+        cartaceoInfo.getPaperEngageRequest()
+                .setTransformationDocumentType(DOCUMENT_TYPE_FOR_NORMALIZED);
+
+        when(transformationProperties.paIdToRaster()).thenReturn("ALL");
+        ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "NOTHING");
+
+        // WHEN
+        mockGestoreRepository();
+        mockPutRequest();
+        mockPdfRasterAttachmentSteps();
+
+        Mono<SendMessageResponse> lavorazione = cartaceoService.lavorazioneRichiesta(cartaceoInfo);
+
+        // THEN
+        StepVerifier.create(lavorazione).expectNextCount(1).verifyComplete();
+
+        // Deve aver creato la richiesta di conversione
+        verify(requestConversionService, times(1))
+                .insertRequestConversion(any(RequestConversionDto.class));
+    }
+
     /**
      * La PA è abilitata alla NORMALIZZAZIONE tramite configurazione.
      * Nessun applyRasterization e nessun transformationDocumentType esplicito.
@@ -585,6 +681,38 @@ class CartaceoServiceTest {
         Assertions.assertEquals(DOCUMENT_TYPE_FOR_RASTERIZED,cartaceoPresaInCaricoInfo.getPaperEngageRequest().getTransformationDocumentType());
     }
 
+    @Test
+    void specificPresaInCaricoInfoApplyRasterizedTest(){
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfo();
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setTransformationDocumentType(null);
+        mockPdfRasterAttachmentSteps();
+        mockGestoreRepository();
+        mockPutRequest();
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse().key("key").download(new FileDownloadInfo().url(DOWNLOAD_URL)).checksum("checksum").contentType("application/pdf")));
+        when(gestoreRepositoryCall.insertRichiesta(any())).thenReturn(Mono.just(new RequestDto()));
+
+        StepVerifier.create(cartaceoService.specificPresaInCarico(cartaceoPresaInCaricoInfo))
+                .verifyComplete();
+
+        Assertions.assertEquals(DOCUMENT_TYPE_FOR_RASTERIZED,cartaceoPresaInCaricoInfo.getPaperEngageRequest().getTransformationDocumentType());
+    }
+
+    @Test
+    void specificPresaInCaricoInfoTransformationNotAllowedTest(){
+        CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo = createCartaceoPresaInCaricoInfo();
+        cartaceoPresaInCaricoInfo.getPaperEngageRequest().setTransformationDocumentType("TEST");
+
+        mockPdfRasterAttachmentSteps();
+        mockGestoreRepository();
+        mockPutRequest();
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse().key("key").download(new FileDownloadInfo().url(DOWNLOAD_URL)).checksum("checksum").contentType("application/pdf")));
+        when(gestoreRepositoryCall.insertRichiesta(any())).thenReturn(Mono.just(new RequestDto()));
+
+        StepVerifier.create(cartaceoService.specificPresaInCarico(cartaceoPresaInCaricoInfo))
+                .expectError(InvalidTransformationTypeException.class).verify();
+
+    }
+
     private void mockPdfRasterAttachmentSteps() {
         String originalFileKey = randomAlphanumeric(10);
         FileDownloadInfo fileDownloadInfo = new FileDownloadInfo().url(DOWNLOAD_URL);
@@ -653,6 +781,7 @@ class CartaceoServiceTest {
         paperEngageRequest.setPrintType("B/N12345");
         paperEngageRequest.setRequestId("requestIdx_1234567891234567891010");
         paperEngageRequest.setClientRequestTimeStamp(OffsetDateTime.now());
+        paperEngageRequest.setTransformationDocumentType(DOCUMENT_TYPE_FOR_RASTERIZED);
         paperEngageRequest.setApplyRasterization(true);
 
         return CartaceoPresaInCaricoInfo.builder()

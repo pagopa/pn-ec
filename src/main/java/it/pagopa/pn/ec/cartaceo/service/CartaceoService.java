@@ -4,6 +4,7 @@ package it.pagopa.pn.ec.cartaceo.service;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.cartaceo.configuration.PdfTransformationConfiguration;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
+import it.pagopa.pn.ec.cartaceo.configurationproperties.TransformationProperties;
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.configuration.normalization.NormalizationConfiguration;
@@ -34,6 +35,7 @@ import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -82,6 +84,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final RequestConversionServiceImpl requestConversionService;
     private final PdfTransformationConfiguration pdfTransformationConfiguration;
     private final CartaceoMapper cartaceoMapper;
+    private final TransformationProperties transformationProperties;
     private String idSaved;
     private final Semaphore semaphore;
     private final Integer cartaceoMaxBatchSubscribedMsgs;
@@ -100,7 +103,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                               SqsTimeoutProvider sqsTimeoutProvider,
                               LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties,
                               NormalizationConfiguration normalizationConfiguration,
-                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs){
+                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs, TransformationProperties transformationProperties){
         super(authService);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
@@ -127,6 +130,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
                     throw new MaxRetriesExceededException();
                 });
+        this.transformationProperties = transformationProperties;
     }
 
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
@@ -602,16 +606,11 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CARTACEO_PDF_RASTER_STEP, Stream.of(cartaceoPresaInCaricoInfo, reqDst, reqSrc).toList());
 
-        boolean rasterEnabled = isRasterFeatureEnabled(reqDst.getRequestPaId());
-        boolean normalizationEnabled = normalizationConfiguration.isNormalizationEnabled(reqDst.getRequestPaId());
-        boolean explicitTransform = StringUtils.isNotBlank(reqSrc.getTransformationDocumentType());
-
-        if (!(rasterEnabled || normalizationEnabled || explicitTransform)) {
-            // Nessuna trasformazione da eseguire
-            return Mono.empty();
-        }
-
-        return Mono.justOrEmpty(reqDst.getAttachments())
+        return verifyTransformationType(reqDst,reqSrc)
+                .filter(Boolean::booleanValue)
+                .flatMap(bool -> {
+                    return Mono.justOrEmpty(reqDst.getAttachments());
+                })
             .flatMapMany(Flux::fromIterable)
             .filter(this::isAttachmentToConvert)
             .flatMap(attachment -> uploadAttachmentToConvert(cartaceoPresaInCaricoInfo, attachment))
@@ -635,6 +634,21 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 cartaceoPresaInCaricoInfo.setStepError(stepError);
             });
     }
+
+    private @Nullable Mono<Boolean> verifyTransformationType(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest reqDst, PaperEngageRequest reqSrc) {
+        boolean explicitTransform = StringUtils.isNotBlank(reqSrc.getTransformationDocumentType());
+        boolean normalizationEnabled = normalizationConfiguration.isNormalizationEnabled(reqDst.getRequestPaId());
+        boolean rasterEnabled = isRasterFeatureEnabled(reqDst.getRequestPaId());
+        boolean isAnyFeatureEnabled= (explicitTransform || normalizationEnabled || rasterEnabled);
+
+        if (rasterEnabled && normalizationEnabled && !explicitTransform){
+            reqSrc.setTransformationDocumentType(pdfTransformationConfiguration.getTransformationDocumentTypeByPriority());
+        }
+
+        return Mono.just(isAnyFeatureEnabled);
+    }
+
+
 
     private boolean isAttachmentToConvert(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequestAttachments attachment) {
         return pdfTransformationConfiguration.getDocumentTypesToRaster().stream().anyMatch(type -> attachment.getUri().replace(SAFESTORAGE_PREFIX, "").startsWith(type));
