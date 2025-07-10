@@ -798,15 +798,6 @@ Parameters:
     Description: Memory amount reserved to the task pod.
     AllowedValues: [ 2GB, 4GB, 6GB, 8GB ]
 
-  PnECPaperPAIdToRaster:
-    Type: String
-    Description: 'Feature flag per la funzionalità di conversione degli allegati cartacei.
-    Può assumere tre valori:
-    - la sola stringa “NOTHING”: significa che la nuova funzionalità è completamente disabilitata
-    - la sola stringa “ALL”: tutti gli allegati del tipo specificato verranno convertiti
-    - <elenco di ID delle PA>: se il campo requestPaId della richiesta è contenuto in questo elenco, allora verrà applicata la conversione dei PDF del tipo specificato, altrimenti si procederà come di consueto
-    '
-
   PnECPaperPAIdOverride:
     Type: String
     Description: 'Valore del requestPaID da sovrascrivere nella richiesta cartacea. Se non valorizzato, la funzionalità è disattivata'
@@ -900,14 +891,13 @@ Resources:
         ContainerEnvEntry32: !Sub 'PnEcIdentityPec=${PnEcIdentityPec}'
         ContainerEnvEntry33: !Sub 'SpringCodecMaxInMemorySize=${SpringCodecMaxInMemorySize}'
         ContainerEnvEntry34: !Sub 'PnEcConsAllowedFutureOffsetDuration=${PnEcConsAllowedFutureOffsetDuration}'
-        ContainerEnvEntry35: !Sub 'PnECPaperPAIdToRaster=${PnECPaperPAIdToRaster}'
-        ContainerEnvEntry36: !Sub 'PnECPaperPAIdOverride=${PnECPaperPAIdOverride}'
-        ContainerEnvEntry37: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
-        ContainerEnvEntry38: !Sub 'PnEcPecMetricsSchema=${PnEcPecMetricsSchema}'
-        ContainerEnvEntry39: !Sub 'SQSCartaceoMaxBatchSubscribedMsgs=${SQSCartaceoMaxBatchSubscribedMsgs}'
-        ContainerEnvEntry40: !Sub 'PN_CRON_ANALYZER=${PnCronAnalyzer}'
-        ContainerEnvEntry41: !Sub 'WIRE_TAP_LOG=${WireTapLogActivation}'
-        ContainerEnvEntry42: !Sub 'PnEcDuplicatesCheck=${PnEcDuplicatesCheck}'
+        ContainerEnvEntry35: !Sub 'PnECPaperPAIdOverride=${PnECPaperPAIdOverride}'
+        ContainerEnvEntry36: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry37: !Sub 'PnEcPecMetricsSchema=${PnEcPecMetricsSchema}'
+        ContainerEnvEntry38: !Sub 'SQSCartaceoMaxBatchSubscribedMsgs=${SQSCartaceoMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry39: !Sub 'PN_CRON_ANALYZER=${PnCronAnalyzer}'
+        ContainerEnvEntry40: !Sub 'WIRE_TAP_LOG=${WireTapLogActivation}'
+        ContainerEnvEntry41: !Sub 'PnEcDuplicatesCheck=${PnEcDuplicatesCheck}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'

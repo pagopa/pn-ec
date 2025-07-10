@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.cartaceo.configuration;
 
 import it.pagopa.pn.ec.cartaceo.configurationproperties.TransformationProperties;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Arrays;
@@ -9,11 +8,6 @@ import java.util.List;
 
 @Configuration
 public class PdfTransformationConfiguration {
-
-
-    /** (NORMALIZATION | RASTERIZATION | lista ',') */
-    @Value("${TRANSFORMATION_PRIORITY:NORMALIZATION}")
-    private String transformationPriority;
 
 
     private final TransformationProperties transformationProperties;
@@ -24,7 +18,7 @@ public class PdfTransformationConfiguration {
     }
 
     public List<String> getDocumentTypesToRaster() {
-        return Arrays.stream(transformationProperties.documentTypeToRaster().split(";")).toList();
+        return Arrays.stream(transformationProperties.documentTypeToTransform().split(";")).toList();
     }
 
     public String getPaIdToRaster() {
@@ -51,7 +45,7 @@ public class PdfTransformationConfiguration {
     }
 
     public List<String> getTransformationPriorityList() {
-        return Arrays.asList(Arrays.stream(transformationPriority.split("\\|"))
+        return Arrays.asList(Arrays.stream(transformationProperties.transformationPriority().split("\\|"))
                 .map(String::strip)
                 .toArray(String[]::new)
         );

@@ -32,7 +32,6 @@
     "CpuValue": "1024",
     "MemoryAmount": "4GB",
     "PnEcDuplicatesCheck": "890;AR;RS;RIR;RIS",
-    "PnECPaperPAIdToRaster": "15376371009",
     "PnECPaperPAIdOverride": "15376371009",
     "SQSMaxBatchSubscribedMsgs": "20",
     "PnEcPecMetricsSchema": "Pn-EC-Pec-MetricsSchema",

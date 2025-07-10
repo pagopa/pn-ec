@@ -58,7 +58,6 @@ import static org.mockito.Mockito.*;
 @CustomLog
 @TestPropertySource(properties = {
         "PN_EC_PAPER_PAIDTONORMALIZE=PA1;PA2",
-        "TRANSFORMATION_PRIORITY=RASTERIZATION |   NORMALIZATION  "
 })
 @DirtiesContext
 class CartaceoServiceTest {
