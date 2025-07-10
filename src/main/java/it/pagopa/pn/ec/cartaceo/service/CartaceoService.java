@@ -604,7 +604,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
             it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest reqDst,
             PaperEngageRequest reqSrc) {
 
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CARTACEO_PDF_RASTER_STEP, Stream.of(cartaceoPresaInCaricoInfo, reqDst, reqSrc).toList());
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CARTACEO_TRANSFORMATION_STEP, Stream.of(cartaceoPresaInCaricoInfo, reqDst, reqSrc).toList());
 
         return verifyTransformationType(reqDst,reqSrc)
                 .filter(Boolean::booleanValue)
@@ -628,7 +628,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
             })
             .retryWhen(lavorazioneRichiestaRetryStrategy)
             .doOnError(MaxRetriesExceededException.class, throwable -> {
-                log.debug(EXCEPTION_IN_PROCESS, CARTACEO_PDF_RASTER_STEP, throwable, throwable.getMessage());
+                log.debug(EXCEPTION_IN_PROCESS, CARTACEO_TRANSFORMATION_STEP, throwable, throwable.getMessage());
                 StepError stepError = new StepError();
                 stepError.setStep(PDF_TRANSFORMATION_STEP);
                 cartaceoPresaInCaricoInfo.setStepError(stepError);
@@ -679,7 +679,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     ByteArrayOutputStream downloadedFileStream = (ByteArrayOutputStream) tuple.getT2();
                     FileCreationRequest fileCreationRequest = new FileCreationRequest();
                     fileCreationRequest.setStatus(fileDownloadResponse.getDocumentStatus());
-                    fileCreationRequest.setDocumentType(pdfTransformationConfiguration.getDocumentTypeForRasterized());
+                    fileCreationRequest.setDocumentType(cartaceoPresaInCaricoInfo.getPaperEngageRequest().getTransformationDocumentType());
                     fileCreationRequest.setContentType(fileDownloadResponse.getContentType());
                     log.info("Posting file for originalFileKey: {}", originalFileKey);
                     return Mono.zip(Mono.just(downloadedFileStream), fileCall.postFile(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(), fileDownloadResponse.getChecksum(), fileCreationRequest), Mono.just(fileDownloadResponse.getContentType()));
