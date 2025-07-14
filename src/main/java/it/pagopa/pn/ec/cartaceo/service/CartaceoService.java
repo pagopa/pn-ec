@@ -636,16 +636,27 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     }
 
     private @Nullable Mono<Boolean> verifyTransformationType(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest reqDst, PaperEngageRequest reqSrc) {
-        boolean explicitTransform = StringUtils.isNotBlank(reqSrc.getTransformationDocumentType());
-        boolean normalizationEnabled = normalizationConfiguration.isNormalizationEnabled(reqDst.getRequestPaId());
-        boolean rasterEnabled = isRasterFeatureEnabled(reqDst.getRequestPaId());
-        boolean isAnyFeatureEnabled= (explicitTransform || normalizationEnabled || rasterEnabled);
 
-        if (rasterEnabled && normalizationEnabled && !explicitTransform){
-            reqSrc.setTransformationDocumentType(pdfTransformationConfiguration.getTransformationDocumentTypeByPriority());
+        if (StringUtils.isBlank(reqSrc.getTransformationDocumentType())) {
+            boolean normalizationEnabled = normalizationConfiguration.isNormalizationEnabled(reqDst.getRequestPaId());
+            boolean rasterEnabled = isRasterFeatureEnabled(reqDst.getRequestPaId());
+            String transformationType = "";
+
+            if (!rasterEnabled && !normalizationEnabled) {
+                return Mono.just(false);
+            }
+
+            if (rasterEnabled && normalizationEnabled) {
+                transformationType = pdfTransformationConfiguration.getTransformationDocumentTypeByPriority();
+            } else {
+                transformationType = rasterEnabled ?
+                        pdfTransformationConfiguration.getDocumentTypeForRasterized() :
+                        pdfTransformationConfiguration.getDocumentTypeForNormalized();
+            }
+            reqSrc.setTransformationDocumentType(transformationType);
         }
 
-        return Mono.just(isAnyFeatureEnabled);
+        return Mono.just(true);
     }
 
 
