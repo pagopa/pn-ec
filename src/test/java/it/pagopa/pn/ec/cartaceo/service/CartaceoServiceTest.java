@@ -24,7 +24,6 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -114,10 +113,7 @@ class CartaceoServiceTest {
                 .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
                 .paperEngageRequest(PaperEngageRequestFactory.createDtoPaperRequestPdfRaster(requestPaId)).build();
     }
-    @BeforeEach
-    void restoreNormalize(){
-        ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "NOTHING");
-    }
+
 
     @Test
     void lavorazioneRichiestaOk() {
@@ -439,8 +435,7 @@ class CartaceoServiceTest {
         when(transformationProperties.paIdToRaster()).thenReturn("NOTHING");
 
         // Normalizzazione disabilitata (default paIdToNormalize = NOTHING)
-        ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "NOTHING");
-
+        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
         // WHEN
         mockGestoreRepository();
         mockPutRequest();
@@ -465,7 +460,7 @@ class CartaceoServiceTest {
                 .setTransformationDocumentType(null);
 
         when(transformationProperties.paIdToRaster()).thenReturn("ALL");
-        ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "ALL");
+        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
 
         // WHEN
         mockGestoreRepository();
@@ -493,7 +488,7 @@ class CartaceoServiceTest {
                 .setTransformationDocumentType(DOCUMENT_TYPE_FOR_RASTERIZED);
 
         when(transformationProperties.paIdToRaster()).thenReturn("NOTHING");
-        ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "ALL");
+        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
 
         // WHEN
         mockGestoreRepository();
@@ -520,7 +515,7 @@ class CartaceoServiceTest {
                 .setTransformationDocumentType(DOCUMENT_TYPE_FOR_NORMALIZED);
 
         when(transformationProperties.paIdToRaster()).thenReturn("ALL");
-        ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "NOTHING");
+        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
 
         // WHEN
         mockGestoreRepository();
@@ -552,7 +547,7 @@ class CartaceoServiceTest {
         when(transformationProperties.paIdToRaster()).thenReturn("NOTHING");
 
         // Normalizzazione ABILITATA per la PA (ALL o lista)
-        ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "ALL");
+        when(transformationProperties.paIdToNormalize()).thenReturn("ALL");
 
         /* WHEN */
         mockGestoreRepository();
@@ -582,7 +577,7 @@ class CartaceoServiceTest {
         info.getPaperEngageRequest().setTransformationDocumentType(null);
 
         when(transformationProperties.paIdToRaster()).thenReturn("PA_TEST");   // lista che contiene la stessa PA
-        ReflectionTestUtils.setField(normalizationConfiguration, "paIdToNormalize", "NOTHING");
+        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
 
         // WHEN
         mockGestoreRepository();

@@ -8,6 +8,7 @@ public record TransformationProperties(
         String documentTypeForRasterized,
         String documentTypeForNormalized,
         String paIdToRaster,
+        String paIdToNormalize,
         String paIdOverride,
         String transformationPriority
 ){}

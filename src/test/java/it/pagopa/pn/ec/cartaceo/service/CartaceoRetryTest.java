@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.cartaceo.service;
 
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
+import it.pagopa.pn.ec.cartaceo.configurationproperties.TransformationProperties;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -88,6 +89,9 @@ class CartaceoRetryTest {
 
     @MockBean
     private UploadCall uploadCall;
+
+    @SpyBean
+    private TransformationProperties transformationProperties;
 
     Message message = Message.builder().build();
 
@@ -177,6 +181,7 @@ class CartaceoRetryTest {
         mockGestoreRepository(clientId, requestId, requestDto);
         // Mock di una generica putRequest.
         when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
+        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
         mockSqsService();
 
         //THEN
@@ -205,6 +210,8 @@ class CartaceoRetryTest {
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
         when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.error(new RuntimeException("KO")));
+        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
+
         mockSqsService();
 
         //THEN
@@ -233,6 +240,7 @@ class CartaceoRetryTest {
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
         when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.error(new RuntimeException("KO")));
+        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
         mockSqsService();
 
         //THEN
