@@ -12,7 +12,7 @@
 
     <groupId>it.pagopa.pn.ec</groupId>
     <artifactId>pn-ec</artifactId>
-    <version>2.16.0-RC.1</version>
+    <version>2.16.0</version>
     <name>pn-ec</name>
     <description>External communication µService</description>
 
