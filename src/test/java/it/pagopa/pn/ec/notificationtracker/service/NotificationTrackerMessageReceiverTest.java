@@ -268,7 +268,7 @@ class NotificationTrackerMessageReceiverTest {
 
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
-        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).discoveredAddress(new DiscoveredAddressDto()).attachments(List.of(new AttachmentsProgressEventDto().id("id")));
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).discoveredAddress(new DiscoveredAddressDto()).attachments(List.of(new AttachmentsProgressEventDto().id("id"))).courier("recapitista");
         NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), paperProgressStatusDto);
 
         //WHEN
