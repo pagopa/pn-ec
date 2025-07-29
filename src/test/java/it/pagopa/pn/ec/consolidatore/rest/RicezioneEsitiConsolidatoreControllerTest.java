@@ -128,6 +128,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		progressStatusEvent.setIun(IUN);
 		progressStatusEvent.setClientRequestTimeStamp(NOW);
 		progressStatusEvent.setDeliveryFailureCause(deliveryFailureCause);
+		progressStatusEvent.setCourier("recapitista");
 		return progressStatusEvent;
 	}
 

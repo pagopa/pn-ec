@@ -282,6 +282,10 @@ components:
             $ref: '#/components/schemas/AttachmentsProgressEventDto'
         discoveredAddress:
           $ref: '#/components/schemas/DiscoveredAddressDto'
+        courier:
+          type: string
+          description: >-
+            Identificativo del recapitista in eventi recapito cartacei
 
     AttachmentsProgressEventDto:
       description: >-
