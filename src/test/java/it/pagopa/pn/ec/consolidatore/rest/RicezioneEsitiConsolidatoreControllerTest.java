@@ -115,6 +115,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	progressStatusEvent.setProductType(PRODUCT_TYPE_AR);
 		progressStatusEvent.setIun(IUN);
     	progressStatusEvent.setClientRequestTimeStamp(NOW);
+		progressStatusEvent.setCourier("recapitista1");
     	return progressStatusEvent;
     }
 
@@ -128,7 +129,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		progressStatusEvent.setIun(IUN);
 		progressStatusEvent.setClientRequestTimeStamp(NOW);
 		progressStatusEvent.setDeliveryFailureCause(deliveryFailureCause);
-		progressStatusEvent.setCourier("recapitista");
+		progressStatusEvent.setCourier("recapitista2");
 		return progressStatusEvent;
 	}
 
@@ -141,6 +142,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		progressStatusEvent.setProductType(PRODUCT_TYPE_AR);
 		progressStatusEvent.setIun(null);
 		progressStatusEvent.setClientRequestTimeStamp(NOW);
+		progressStatusEvent.setCourier("recapitista3");
 		return progressStatusEvent;
 	}
 
@@ -690,6 +692,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();
 		progressStatusEvent.setStatusCode(STATUS_CODE_INESISTENTE);
+		progressStatusEvent.setCourier("recapitista4");
 
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
 		events.add(progressStatusEvent);
@@ -971,6 +974,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 																						.iun(event.getIun())
 																						.productType(event.getProductType())
 																						.clientRequestTimeStamp(event.getClientRequestTimeStamp())
+																						.courier("recapitista1")
 		);
 		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", new String[]{"ProductType",PRODUCT_TYPE_AR,"OtherProductType"});
 		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));

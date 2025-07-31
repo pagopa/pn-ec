@@ -268,7 +268,7 @@ class NotificationTrackerMessageReceiverTest {
 
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
-        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).discoveredAddress(new DiscoveredAddressDto()).attachments(List.of(new AttachmentsProgressEventDto().id("id"))).courier("recapitista");
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).discoveredAddress(new DiscoveredAddressDto()).attachments(List.of(new AttachmentsProgressEventDto().id("id"))).courier("recapitista1");
         NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), paperProgressStatusDto);
 
         //WHEN
@@ -288,7 +288,7 @@ class NotificationTrackerMessageReceiverTest {
 
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
-        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant());
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).courier("recapitista2");
         NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), paperProgressStatusDto);
 
         //WHEN
@@ -307,7 +307,7 @@ class NotificationTrackerMessageReceiverTest {
 
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
-        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant());
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).courier("recapitista3");
         NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), paperProgressStatusDto);
         notificationTrackerQueueDto.setRetry(retry);
 
@@ -326,7 +326,7 @@ class NotificationTrackerMessageReceiverTest {
 
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
-        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant());
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).courier("recapitista4");
         NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), paperProgressStatusDto);
         notificationTrackerQueueDto.getPaperProgressStatusDto().setStatusDateTime(OffsetDateTime.now().minusDays(1));
 
