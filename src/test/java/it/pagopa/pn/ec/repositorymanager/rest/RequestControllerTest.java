@@ -290,6 +290,7 @@ class RequestControllerTest {
         paperProgressStatusDto.setAttachments(paperProgressStatusDtoAttachmentsList);
         paperProgressStatusDto.setDiscoveredAddress(discoveredAddressDto);
         paperEventDto.setPaperProgrStatus(paperProgressStatusDto);
+        paperProgressStatusDto.setCourier("");
 
         patchDto2.setEvent(paperEventDto);
 

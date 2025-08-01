@@ -229,7 +229,13 @@ components:
           example: true
           description: >-
             Flag che indica se bisogna attivare la rasterizzazione per i documenti oppure no.
-
+        transformationDocumentType:
+          type: string
+          description: >
+            Tipo di trasformazione richiesto.
+              • **PN_CLEAN_PAPER_ATTACHMENT** ⇒ normalizzazione
+              • **PN_PAPER_ATTACHMENT**       ⇒ rasterizzazione
+          example: "PN_CLEAN_PAPER_ATTACHMENT"
     ##########################################################################
     ###      NOTIFICHE DI AVANZAMENTO DEL PROCESSO DI POSTALIZZAZIONE      ###
     ##########################################################################
@@ -426,7 +432,10 @@ components:
           format: date-time
           description: >-
             Timestamp della richiesta in UTC
-
+        courier:
+          type: string
+          description: >-
+            Identificativo del recapitista in eventi recapito cartacei
 
     AttachmentDetails:
       title: dettagli allegato a un evento del processo postale

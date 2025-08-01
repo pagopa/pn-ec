@@ -117,7 +117,7 @@
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"PN999"},"externalStatus":{"S":"PN999"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"_start_"},"targetStatus":{"L":[{"S":"booked"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"authenticationError"},"externalStatus":{"S":"ERROR"},"targetStatus":{"L":[{"S":"_any_"}]}}
-{"processClientId":{"S":"PAPER"},"currStatus":{"S":"booked"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"retry"},{"S":"syntaxError"},{"S":"semanticError"},{"S":"authenticationError"},{"S":"duplicatedRequest"}]}}
+{"processClientId":{"S":"PAPER"},"currStatus":{"S":"booked"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S": "_any_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"duplicatedRequest"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"_any_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"error"},"externalStatus":{"S":"ERROR"},"targetStatus":{"L":[{"S":"_any_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"inprogress"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"P001"},"targetStatus":{"L":[{"S":"inprogress"}]}}
@@ -126,6 +126,7 @@
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"semanticError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P012"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"sent"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"P000"},"targetStatus":{"L":[{"S":"_any_"}]}}
 {"processClientId":{"S":"PAPER"},"currStatus":{"S":"syntaxError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"P011"},"targetStatus":{"L":[{"S":"_end_"}]}}
+{"processClientId":{"S": "PAPER"},"currStatus": {"S": "transformationError"},"externalStatus": {"S": "ERROR"},"logicStatus": {"S": "P013"},"targetStatus": {"L": [{"S": "_end_"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"_any_"},"targetStatus":{"L":[{"S":"internalError"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"_start_"},"targetStatus":{"L":[{"S":"booked"}]}}
 {"processClientId":{"S":"PEC"},"currStatus":{"S":"accepted"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"C001"},"targetStatus":{"L":[{"S":"notDelivered"},{"S":"deliveryWarn"},{"S":"delivered"}]}}

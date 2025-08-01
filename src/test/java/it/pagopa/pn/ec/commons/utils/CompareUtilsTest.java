@@ -99,6 +99,7 @@ class CompareUtilsTest {
         String productType = "type";
         String iun = "iun";
         String deliveryFailureCause = "cause";
+        String courier = "recapitista";
 
         PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto()
                 .status(SENT.getStatusTransactionTableCompliant())
@@ -110,7 +111,8 @@ class CompareUtilsTest {
                 .statusCode(statusCode)
                 .statusDescription(statusDescription)
                 .attachments(List.of(attachments))
-                .discoveredAddress(discoveredAddress);
+                .discoveredAddress(discoveredAddress)
+                .courier(courier);
 
         ConsolidatoreIngressPaperProgressStatusEvent consEvent = new ConsolidatoreIngressPaperProgressStatusEvent()
                 .statusDateTime(now)
@@ -121,7 +123,8 @@ class CompareUtilsTest {
                 .statusCode(statusCode)
                 .statusDescription(statusDescription)
                 .attachments(List.of(consAttachments))
-                .discoveredAddress(consDiscoveredAddress);
+                .discoveredAddress(consDiscoveredAddress)
+                .courier(courier);
 
         boolean isSameEvent = CompareUtils.isSameEvent(paperProgressStatusDto, consEvent);
         Assertions.assertTrue(isSameEvent);
