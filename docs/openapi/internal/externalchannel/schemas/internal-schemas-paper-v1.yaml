@@ -450,6 +450,9 @@ components:
         version:
           type: number
           description: versione del record
+        transformationError:
+          type: string
+          description: indica che c'è stato un errore in fase di trasformazione del file
       required:
         - fileKey
         - requestId

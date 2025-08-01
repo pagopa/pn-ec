@@ -229,7 +229,13 @@ components:
           example: true
           description: >-
             Flag che indica se bisogna attivare la rasterizzazione per i documenti oppure no.
-
+        transformationDocumentType:
+          type: string
+          description: >
+            Tipo di trasformazione richiesto.
+              • **PN_CLEAN_PAPER_ATTACHMENT** ⇒ normalizzazione
+              • **PN_PAPER_ATTACHMENT**       ⇒ rasterizzazione
+          example: "PN_CLEAN_PAPER_ATTACHMENT"
     ##########################################################################
     ###      NOTIFICHE DI AVANZAMENTO DEL PROCESSO DI POSTALIZZAZIONE      ###
     ##########################################################################
