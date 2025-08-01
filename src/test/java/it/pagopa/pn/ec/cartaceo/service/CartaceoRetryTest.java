@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.cartaceo.service;
 
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
+import it.pagopa.pn.ec.cartaceo.configurationproperties.TransformationProperties;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -14,7 +15,7 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.pdfraster.model.entity.PdfConversionEntity;
 import it.pagopa.pn.ec.pdfraster.model.entity.RequestConversionEntity;
-import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
+import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 
@@ -78,7 +79,7 @@ class CartaceoRetryTest {
     PaperMessageCall paperMessageCall;
 
     @SpyBean
-    private DynamoPdfRasterService dynamoPdfRasterService;
+    private RequestConversionService requestConversionService;
 
     @MockBean
     private FileCall fileCall;
@@ -88,6 +89,9 @@ class CartaceoRetryTest {
 
     @MockBean
     private UploadCall uploadCall;
+
+    @SpyBean
+    private TransformationProperties transformationProperties;
 
     Message message = Message.builder().build();
 
@@ -177,6 +181,7 @@ class CartaceoRetryTest {
         mockGestoreRepository(clientId, requestId, requestDto);
         // Mock di una generica putRequest.
         when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
+        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
         mockSqsService();
 
         //THEN
@@ -205,6 +210,8 @@ class CartaceoRetryTest {
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
         when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.error(new RuntimeException("KO")));
+        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
+
         mockSqsService();
 
         //THEN
@@ -233,6 +240,7 @@ class CartaceoRetryTest {
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
         when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.error(new RuntimeException("KO")));
+        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
         mockSqsService();
 
         //THEN
@@ -270,11 +278,12 @@ class CartaceoRetryTest {
         mockGestoreRepository(clientId, requestId, requestDto);
         mockPdfRasterAttachmentSteps();
         mockSqsService();
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //THEN
         Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
-        verify(dynamoPdfRasterService, times(1)).insertRequestConversion(any(RequestConversionDto.class));
+        verify(requestConversionService, times(1)).insertRequestConversion(any(RequestConversionDto.class));
         verify(cartaceoService, times(1)).deleteMessageFromErrorQueue(message);
     }
 
@@ -301,6 +310,7 @@ class CartaceoRetryTest {
         mockGestoreRepository(clientId, requestId, requestDto);
         when(fileCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException("fileKey")));
         mockSqsService();
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //THEN
         Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
@@ -333,6 +343,7 @@ class CartaceoRetryTest {
         mockPdfRasterAttachmentSteps();
         when(fileCall.postFile(anyString(), anyString(), any(FileCreationRequest.class))).thenReturn(Mono.error(new RuntimeException()));
         mockSqsService();
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //THEN
         Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
@@ -365,6 +376,8 @@ class CartaceoRetryTest {
         mockPdfRasterAttachmentSteps();
         when(uploadCall.uploadFile(anyString(), anyString(), anyString(), anyString(), any(), anyString(), any(byte[].class))).thenReturn(Mono.error(new RuntimeException()));
         mockSqsService();
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
+
 
         //THEN
         Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
@@ -397,6 +410,7 @@ class CartaceoRetryTest {
         mockPdfRasterAttachmentSteps();
         when(downloadCall.downloadFile(DOWNLOAD_URL)).thenReturn(Mono.error(new RuntimeException()));
         mockSqsService();
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
         //THEN
         Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
@@ -427,8 +441,10 @@ class CartaceoRetryTest {
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
         mockPdfRasterAttachmentSteps();
-        when(dynamoPdfRasterService.insertRequestConversion(any())).thenReturn(Mono.error(DynamoDbException.builder().build()));
+        when(requestConversionService.insertRequestConversion(any())).thenReturn(Mono.error(DynamoDbException.builder().build()));
         mockSqsService();
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
+
 
         //THEN
         Mono<SqsResponse> response = cartaceoService.gestioneRetryCartaceo(cartaceoPresaInCaricoInfo, message);
