@@ -1,7 +1,10 @@
 package it.pagopa.pn.ec.availabilitymanager.model.dto;
 
+import lombok.ToString;
+
 import java.time.LocalDateTime;
 
+@ToString
 public class AvailabilityManagerDetailDto {
 
     private String key;

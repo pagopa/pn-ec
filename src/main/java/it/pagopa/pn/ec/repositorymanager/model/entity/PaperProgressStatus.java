@@ -26,5 +26,5 @@ public class PaperProgressStatus {
     String iun;
     List<PaperProgressStatusEventAttachments> attachments;
     DiscoveredAddress discoveredAddress;
-
+    String courier;
 }

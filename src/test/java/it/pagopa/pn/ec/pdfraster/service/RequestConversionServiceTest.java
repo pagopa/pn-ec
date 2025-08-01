@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTestWebEnv
 @CustomLog
-class DynamoPdfRasterServiceTest {
+class RequestConversionServiceTest {
     @Autowired
     private DynamoDbEnhancedClient dynamoDbEnhancedClient;
 
@@ -52,7 +52,7 @@ class DynamoPdfRasterServiceTest {
     private static DynamoDbTable<RequestConversionEntity> requestConversionEntityDynamoDbTable;
 
     @SpyBean
-    DynamoPdfRasterService dynamoPdfRasterService;
+    RequestConversionService requestConversionService;
 
     @BeforeEach
     void initializeTables() {
@@ -76,7 +76,7 @@ class DynamoPdfRasterServiceTest {
     void insertRequestConversionOk() {
         RequestConversionDto requestConversionDto = createMockRequestConversionDto("123456", "1");
 
-        Mono<RequestConversionDto> response = dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
+        Mono<RequestConversionDto> response = requestConversionService.insertRequestConversion(requestConversionDto);
 
         StepVerifier.create(response)
                 .expectNextMatches(this::validateNonNullResponse)
@@ -123,14 +123,14 @@ class DynamoPdfRasterServiceTest {
 
         RequestConversionDto requestConversionDto = createMockRequestConversionDto("12345678", "3");
 
-        Mono<RequestConversionDto> insertResponse = dynamoPdfRasterService.insertRequestConversion(requestConversionDto);
+        Mono<RequestConversionDto> insertResponse = requestConversionService.insertRequestConversion(requestConversionDto);
         StepVerifier.create(insertResponse)
                 .expectNextCount(1)
                 .verifyComplete();
 
         markAttachmentsAsConverted(requestConversionDto);
 
-        Mono<Map.Entry<RequestConversionDto, Boolean>> updateResponse = dynamoPdfRasterService.updateRequestConversion("3", true, RandomStringUtils.randomAlphanumeric(10));
+        Mono<Map.Entry<RequestConversionDto, Boolean>> updateResponse = requestConversionService.updateRequestConversion("3", true, RandomStringUtils.randomAlphanumeric(10),false);
 
 
         StepVerifier.create(updateResponse)
@@ -163,14 +163,14 @@ class DynamoPdfRasterServiceTest {
 
         simulateInternalServerError();
 
-        StepVerifier.create(dynamoPdfRasterService.insertRequestConversion(requestConversionDto))
+        StepVerifier.create(requestConversionService.insertRequestConversion(requestConversionDto))
                 .expectErrorMatches(error ->
                         error instanceof Generic500ErrorException && error.getMessage().startsWith("Internal Server Error"))
                 .verify();
     }
 
     private void simulateInternalServerError() {
-        when(dynamoPdfRasterService.insertRequestConversion(any(RequestConversionDto.class)))
+        when(requestConversionService.insertRequestConversion(any(RequestConversionDto.class)))
                 .thenReturn(Mono.error(new Generic500ErrorException("Internal Server Error", "")));
     }
 
@@ -183,13 +183,13 @@ class DynamoPdfRasterServiceTest {
 
         simulateConflictError();
 
-        StepVerifier.create(dynamoPdfRasterService.insertRequestConversion(requestConversionDto))
+        StepVerifier.create(requestConversionService.insertRequestConversion(requestConversionDto))
                 .expectError(ConflictException.class)
                 .verify();
     }
 
     private void simulateConflictError() {
-        when(dynamoPdfRasterService.insertRequestConversion(any(RequestConversionDto.class)))
+        when(requestConversionService.insertRequestConversion(any(RequestConversionDto.class)))
                 .thenReturn(Mono.error(new ConflictException("Element already exists")));
     }
 
@@ -203,14 +203,14 @@ class DynamoPdfRasterServiceTest {
         simulateInvalidConvertedValueError(fileKey, convertedValue);
 
 
-        StepVerifier.create(dynamoPdfRasterService.updateRequestConversion(fileKey, convertedValue, RandomStringUtils.randomAlphanumeric(10)))
+        StepVerifier.create(requestConversionService.updateRequestConversion(fileKey, convertedValue, RandomStringUtils.randomAlphanumeric(10), false))
                 .expectErrorMatches(throwable -> throwable instanceof IllegalArgumentException
                         && throwable.getMessage().equals("Invalid value for 'converted': must be true."))
                 .verify();
     }
 
     private void simulateInvalidConvertedValueError(String fileKey, boolean converted) {
-        when(dynamoPdfRasterService.updateRequestConversion(fileKey, converted, RandomStringUtils.randomAlphanumeric(10)))
+        when(requestConversionService.updateRequestConversion(fileKey, converted, RandomStringUtils.randomAlphanumeric(10), false))
                 .thenReturn(Mono.error(new IllegalArgumentException("Invalid value for 'converted': must be true.")));
     }
 

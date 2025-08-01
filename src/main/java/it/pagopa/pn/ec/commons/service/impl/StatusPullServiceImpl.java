@@ -176,6 +176,7 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                event.setClientRequestTimeStamp(requestDto.getClientRequestTimeStamp());
                                                                event.setIun(requestDto.getRequestMetadata().getPaperRequestMetadata().getIun());
                                                                event.setProductType(requestDto.getRequestMetadata().getPaperRequestMetadata().getProductType());
+                                                               event.setCourier(paperProgrStatus.getCourier());
 
                                                                status = lastEventUpdated.getPaperProgrStatus().getStatus();
                                                            }
@@ -209,7 +210,8 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                                                               .productType("")
                                                                                                               .statusCode("")
                                                                                                               .iun("")
-                                                                                                              .registeredLetterCode("")))
+                                                                                                              .registeredLetterCode("")
+                                                                                                              .courier("")))
                                                       .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, PAPER_PULL_SERVICE, result));
 
     }

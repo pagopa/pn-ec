@@ -5,10 +5,10 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
-public interface DynamoPdfRasterService {
+public interface RequestConversionService {
 
     Mono<RequestConversionDto> insertRequestConversion(RequestConversionDto request);
 
-    Mono<Map.Entry<RequestConversionDto, Boolean>> updateRequestConversion(String fileKey, Boolean converted, String fileHash);
+    Mono<Map.Entry<RequestConversionDto, Boolean>> updateRequestConversion(String fileKey, Boolean converted, String fileHash, boolean isTransformationError);
 
 }

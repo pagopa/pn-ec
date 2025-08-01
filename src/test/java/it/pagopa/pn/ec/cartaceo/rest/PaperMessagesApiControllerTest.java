@@ -14,7 +14,7 @@ import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -73,9 +73,10 @@ class PaperMessagesApiControllerTest {
     private static final PaperEngageRequest paperEngageRequest = new PaperEngageRequest();
     private static final PaperEngageRequestAttachments PAPER_ENGAGE_REQUEST_ATTACHMENTS = new PaperEngageRequestAttachments();
     private static final String DEFAULT_ATTACHMENT_URL = "safestorage://prova.pdf";
+    private static final String DOCUMENT_TYPE_INVALID = "TEST";
 
-    @BeforeAll
-    static void createDigitalCourtesyCartaceoRequest() {
+    @BeforeEach
+    void createDigitalCourtesyCartaceoRequest() {
 
         PAPER_ENGAGE_REQUEST_ATTACHMENTS.setUri(DEFAULT_ATTACHMENT_URL);
         PAPER_ENGAGE_REQUEST_ATTACHMENTS.setOrder(BigDecimal.valueOf(1));
@@ -111,6 +112,8 @@ class PaperMessagesApiControllerTest {
         paperEngageRequest.setPrintType("B/N12345");
         paperEngageRequest.setRequestId("requestIdx_1234567891234567891010");
         paperEngageRequest.setClientRequestTimeStamp(OffsetDateTime.now());
+        paperEngageRequest.setApplyRasterization(null);
+        paperEngageRequest.setTransformationDocumentType(null);
     }
 
     private WebTestClient.ResponseSpec sendCartaceoTestCall(BodyInserter<PaperEngageRequest, ReactiveHttpOutputMessage> bodyInserter,
@@ -135,6 +138,18 @@ class PaperMessagesApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus().isOk();
+    }
+
+    @Test
+    void sendCartaceoInvalidTransformationType() {
+
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+        when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
+
+        paperEngageRequest.setTransformationDocumentType(DOCUMENT_TYPE_INVALID);
+
+        sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus().isBadRequest().expectBody(Problem.class);
     }
 
     @Test

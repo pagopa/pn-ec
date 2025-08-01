@@ -33,7 +33,9 @@ public class CompareUtils {
                 && paperProgressStatusEvent.getStatusDateTime().truncatedTo(SECONDS).isEqual(consolidatoreIngressPaperProgressStatusEvent.getStatusDateTime().truncatedTo(SECONDS))
                 && Objects.equals(paperProgressStatusEvent.getDeliveryFailureCause(), consolidatoreIngressPaperProgressStatusEvent.getDeliveryFailureCause())
                 && isSameAttachments(paperProgressStatusEvent.getAttachments(), consolidatoreIngressPaperProgressStatusEvent.getAttachments())
-                && isSameAddress(paperProgressStatusEvent.getDiscoveredAddress(), consolidatoreIngressPaperProgressStatusEvent.getDiscoveredAddress());
+                && isSameAddress(paperProgressStatusEvent.getDiscoveredAddress(), consolidatoreIngressPaperProgressStatusEvent.getDiscoveredAddress())
+                && Objects.equals(paperProgressStatusEvent.getCourier(), consolidatoreIngressPaperProgressStatusEvent.getCourier())
+                ;
 
     }
 

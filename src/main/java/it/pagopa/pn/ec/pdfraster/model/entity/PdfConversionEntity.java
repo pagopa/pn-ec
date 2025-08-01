@@ -22,4 +22,5 @@ public class PdfConversionEntity {
     String requestId;
     BigDecimal expiration;
     Long version;
+    String transformationError;
 }

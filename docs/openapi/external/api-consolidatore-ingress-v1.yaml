@@ -517,3 +517,7 @@ components:
           format: date-time
           description: >-
             Timestamp della richiesta in UTC
+        courier:
+          type: string
+          description: >-
+            Identificativo del recapitista in eventi recapito cartacei
