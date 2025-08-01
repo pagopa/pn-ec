@@ -18,6 +18,7 @@ components:
             Interactive/Batch (quality of service, "entro quanto tempo" devo rispondere, con che livello di servizio)
         receiverDigitalAddress:
           x-field-extra-annotation: "@lombok.ToString.Exclude"
+          format: password # NO EXTERNAL
           type: string
           description: |
             Indirizzo PEC del destinatario (o in genere recapito digitale certificato a valore legale). 
@@ -26,12 +27,14 @@ components:
             In caso di comunicazioni a più destinatari saranno richieste più comunicazioni (in questo modo avremo un requestId univoco per ogni comunicazione/evento/pec).
         messageText:
           x-field-extra-annotation: "@lombok.ToString.Exclude"
+          format: password # NO EXTERNAL
           type: string
           description: |
             Testo del corpo della comunicazione digitale.  
             Può essere a discrezione del chiamante in plain text od html (un campo ad hoc che discrimini il formato è opportuno?).
         senderDigitalAddress:
           x-field-extra-annotation: "@lombok.ToString.Exclude"
+          format: password # NO EXTERNAL
           type: string
           description: |
             Indirizzo PEC (o analoga comunicazione digitale a valore legale) del mittente della comunicazione.
@@ -39,11 +42,13 @@ components:
             va censito in configurazione (obbligatorio).
         subjectText:
           x-field-extra-annotation: "@lombok.ToString.Exclude"
+          format: password # NO EXTERNAL
           type: string
           description: |
             Oggetto del corpo della comunicazione digitale.
         attachmentsUrls:
           x-field-extra-annotation: "@lombok.ToString.Exclude"
+          format: password # NO EXTERNAL
           type: array
           items:
             type: string
