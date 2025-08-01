@@ -112,7 +112,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                                   .statusDescription(paperProgressStatusDto.getStatusDescription())
                                                                   .statusCode(macchinaStatiDecodeResponseDto.getLogicStatus())
                                                                   .statusDateTime(paperProgressStatusDto.getStatusDateTime()
-                                                                                                        .truncatedTo(SECONDS));
+                                                                                                        .truncatedTo(SECONDS))
+                                                                  .courier(paperProgressStatusDto.getCourier());
                                         }
 
                                         return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getXPagopaExtchCxId(),
@@ -267,6 +268,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
         paperProgressStatusEvent.setStatusDescription(lastEventUpdatedPaper.getStatusDescription());
         paperProgressStatusEvent.setStatusDateTime(lastEventUpdatedPaper.getStatusDateTime());
         paperProgressStatusEvent.setDeliveryFailureCause(lastEventUpdatedPaper.getDeliveryFailureCause());
+        paperProgressStatusEvent.setCourier(lastEventUpdatedPaper.getCourier());
         return paperProgressStatusEvent;
     }
 
