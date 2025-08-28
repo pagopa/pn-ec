@@ -12,6 +12,7 @@ import lombok.CustomLog;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -28,6 +29,7 @@ public class FileCallImpl implements FileCall {
     private final FilesEndpointProperties filesEndpointProperties;
 
     private static final String GET_FILE_ERROR_TITLE = "Chiamata a SafeStorage non valida";
+    private static final String EMPTY_FILE_NOT_ALLOWED = "Empty or invalid file";
 
     public FileCallImpl(WebClient ssWebClient, SafeStorageEndpointProperties safeStorageEndpointProperties, FilesEndpointProperties filesEndpointProperties) {
         this.ssWebClient = ssWebClient;
@@ -85,6 +87,7 @@ public class FileCallImpl implements FileCall {
                 .header(safeStorageEndpointProperties.traceIdHeaderName(), xTraceId)
                 .body(BodyInserters.fromValue(fileCreationRequest))
                 .retrieve()
+                .onStatus(HttpStatus.UNPROCESSABLE_ENTITY::equals, this::map422EmptyFileNotAllowedTo400)
                 .bodyToMono(FileCreationResponse.class);
     }
 
@@ -98,7 +101,16 @@ public class FileCallImpl implements FileCall {
                 .header(safeStorageEndpointProperties.checksumValueHeaderName(), checksumValue)
                 .body(BodyInserters.fromValue(fileCreationRequest))
                 .retrieve()
+                .onStatus(HttpStatus.UNPROCESSABLE_ENTITY::equals, this::map422EmptyFileNotAllowedTo400)
                 .bodyToMono(FileCreationResponse.class);
     }
 
+    private Mono<? extends Throwable> map422EmptyFileNotAllowedTo400(ClientResponse resp){
+        return resp.bodyToMono(String.class).flatMap(body -> {
+            if (body != null && body.contains(EMPTY_FILE_NOT_ALLOWED)) {
+                return Mono.error(new Generic400ErrorException(EMPTY_FILE_NOT_ALLOWED,"File empty or invalid"));
+            }
+            return resp.createException().flatMap(Mono::error);
+        });
+    }
 }
