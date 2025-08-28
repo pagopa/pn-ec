@@ -30,6 +30,7 @@ public class FileCallImpl implements FileCall {
 
     private static final String GET_FILE_ERROR_TITLE = "Chiamata a SafeStorage non valida";
     private static final String EMPTY_FILE_NOT_ALLOWED = "Empty or invalid file";
+    private static final String FILE_IS_EMPTY_OR_INVALID = "File is empty or invalid.";
 
     public FileCallImpl(WebClient ssWebClient, SafeStorageEndpointProperties safeStorageEndpointProperties, FilesEndpointProperties filesEndpointProperties) {
         this.ssWebClient = ssWebClient;
@@ -108,7 +109,7 @@ public class FileCallImpl implements FileCall {
     private Mono<? extends Throwable> map422EmptyFileNotAllowedTo400(ClientResponse resp){
         return resp.bodyToMono(String.class).flatMap(body -> {
             if (body != null && body.contains(EMPTY_FILE_NOT_ALLOWED)) {
-                return Mono.error(new Generic400ErrorException(EMPTY_FILE_NOT_ALLOWED,"File empty or invalid"));
+                return Mono.error(new Generic400ErrorException(EMPTY_FILE_NOT_ALLOWED, FILE_IS_EMPTY_OR_INVALID));
             }
             return resp.createException().flatMap(Mono::error);
         });
