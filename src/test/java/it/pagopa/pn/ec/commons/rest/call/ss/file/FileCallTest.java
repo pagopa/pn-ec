@@ -16,7 +16,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -31,7 +30,6 @@ class FileCallTest {
     public static final String CHECKSUM_VALUE = "checksumValue";
     public static final String X_TRACE_ID = "xTraceId";
     private static MockWebServer mockBackEnd;
-    private static final String EMPTY_FILE_NOT_ALLOWED = "Empty or invalid file";
 
     @Autowired
     private FileCall fileCall;
@@ -163,45 +161,6 @@ class FileCallTest {
         StepVerifier.create(fileCreationResponseMono)
                 .expectNextMatches(fileCreationResponse -> fileCreationResponse.equals(response))
                 .verifyComplete();
-    }
-
-    @Test
-    void postFile_422EmptyFile_shouldMapTo400() {
-        FileCreationRequest request = new FileCreationRequest();
-
-        mockBackEnd.enqueue(new MockResponse()
-                .setResponseCode(422)
-                .setHeader("Content-Type", "application/json")
-                .setBody("{\"errorCode\":\"" + EMPTY_FILE_NOT_ALLOWED + "\",\"message\":\"Empty file not allowed\"}"));
-
-        Mono<FileCreationResponse> mono = fileCall.postFile(CLIENT_ID, CHECKSUM_VALUE, request);
-
-        StepVerifier.create(mono)
-                .expectErrorSatisfies(ex -> {
-                    Assertions.assertInstanceOf(Generic400ErrorException.class, ex);
-                    Assertions.assertTrue(
-                            ex.getMessage() != null && ex.getMessage().contains(EMPTY_FILE_NOT_ALLOWED)
-                    );
-                })
-                .verify();
-    }
-
-    @ParameterizedTest
-    @ValueSource(ints = {400, 403, 410, 422})
-    void postFile_4xx_shouldNotBeRemapped(int code) {
-        FileCreationRequest request = new FileCreationRequest();
-
-        mockBackEnd.enqueue(new MockResponse().setResponseCode(code));
-
-        Mono<FileCreationResponse> mono = fileCall.postFile(CLIENT_ID, CHECKSUM_VALUE, request);
-
-        StepVerifier.create(mono)
-                .expectErrorSatisfies(ex -> {
-                    Assertions.assertInstanceOf(WebClientResponseException.class, ex);
-                    WebClientResponseException webClientException = (WebClientResponseException) ex;
-                    Assertions.assertEquals(code, webClientException.getStatusCode().value());
-                })
-                .verify();
     }
 
 }

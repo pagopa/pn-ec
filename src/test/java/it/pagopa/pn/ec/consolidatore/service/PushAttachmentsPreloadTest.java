@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -18,6 +19,7 @@ import org.springframework.http.ReactiveHttpOutputMessage;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
 import java.util.stream.Stream;
@@ -198,6 +200,52 @@ class PushAttachmentsPreloadTest {
         when(fileCall.getFile(eq(FILE_KEY), eq(CLIENT_ID), eq(X_API_KEY), anyString())).thenReturn(Mono.just(new FileDownloadResponse()));
         when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDtoWithWrongApiKey));
         getFileTestCall().expectStatus().is4xxClientError();
+    }
+
+    @Test
+    void attachmentPreload422isMappedTo400() {
+        when(authService.clientAuth(anyString()))
+                .thenReturn(Mono.just(clientConfigurationInternalDto));
+
+        var ex422 = WebClientResponseException
+                .create(422, "Unprocessable", org.springframework.http.HttpHeaders.EMPTY,
+                        new byte[0], java.nio.charset.StandardCharsets.UTF_8);
+
+        when(fileCall.postFile(anyString(), anyString(), anyString(), anyString(), any(FileCreationRequest.class)))
+                .thenReturn(Mono.error(ex422));
+
+        PreLoadRequestData body = new PreLoadRequestData();
+        PreLoadRequest pre = new PreLoadRequest();
+        pre.setPreloadIdx(CLIENT_ID);
+        pre.setContentType("application/pdf");
+        pre.setSha256(X_CHECKSUM_VALUE);
+        body.getPreloads().add(pre);
+
+        pushAttachmentsPreloadTestCall(org.springframework.web.reactive.function.BodyInserters.fromValue(body))
+                .expectStatus().isBadRequest();
+    }
+    @ParameterizedTest
+    @ValueSource(ints = {400, 403, 410, 500})
+    void attachmentPreloadOtherStatusesAreNotRemapped(int code) {
+        when(authService.clientAuth(anyString()))
+                .thenReturn(Mono.just(clientConfigurationInternalDto));
+
+        var ex422 = WebClientResponseException
+                .create(code, "TestError", org.springframework.http.HttpHeaders.EMPTY,
+                        new byte[0], java.nio.charset.StandardCharsets.UTF_8);
+
+        when(fileCall.postFile(anyString(), anyString(), anyString(), anyString(), any(FileCreationRequest.class)))
+                .thenReturn(Mono.error(ex422));
+
+        PreLoadRequestData body = new PreLoadRequestData();
+        PreLoadRequest pre = new PreLoadRequest();
+        pre.setPreloadIdx(CLIENT_ID);
+        pre.setContentType("application/pdf");
+        pre.setSha256(X_CHECKSUM_VALUE);
+        body.getPreloads().add(pre);
+
+        pushAttachmentsPreloadTestCall(org.springframework.web.reactive.function.BodyInserters.fromValue(body))
+                .expectStatus().isEqualTo(code);
     }
 
     private static Stream<Arguments> providePreLoadRequest() {
