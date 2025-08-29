@@ -7,7 +7,7 @@ import it.pagopa.pn.ec.pdfraster.configuration.PdfRasterProperties;
 import it.pagopa.pn.ec.pdfraster.model.entity.AttachmentToConvert;
 import it.pagopa.pn.ec.pdfraster.model.entity.PdfConversionEntity;
 import it.pagopa.pn.ec.pdfraster.model.entity.RequestConversionEntity;
-import it.pagopa.pn.ec.pdfraster.service.DynamoPdfRasterService;
+import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.rest.v1.dto.RequestConversionDto;
 import lombok.CustomLog;
@@ -35,7 +35,7 @@ import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 
 @Service
 @CustomLog
-public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
+public class RequestConversionServiceImpl implements RequestConversionService {
 
 
     private final DynamoDbAsyncTableDecorator<RequestConversionEntity> requestTable;
@@ -46,11 +46,12 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
     private final DynamoDbAsyncClient dynamoDbAsyncClient;
     private final Retry pdfRasterRetryStrategy;
     private static final String VERSION_CONDITIONAL_CHECK = "attribute_exists(version) AND version = :version";
+    private static final String TRANSFORMATION_ERROR = "Transformation error: An error occurred during file transformation";
     private final Integer offsetDays;
 
 
-    public DynamoPdfRasterServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
-                                      RepositoryManagerDynamoTableName repositoryManagerDynamoTableName, ObjectMapper objectMapper, DynamoDbAsyncClient dynamoDbAsyncClient, PdfRasterProperties pdfRasterProperties) {
+    public RequestConversionServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
+                                        RepositoryManagerDynamoTableName repositoryManagerDynamoTableName, ObjectMapper objectMapper, DynamoDbAsyncClient dynamoDbAsyncClient, PdfRasterProperties pdfRasterProperties) {
         this.objectMapper = objectMapper;
         this.dynamoDbAsyncClient = dynamoDbAsyncClient;
         this.requestConversionTableSchema = TableSchema.fromBean(RequestConversionEntity.class);
@@ -98,18 +99,19 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
 
 
     @Override
-    public Mono<Map.Entry<RequestConversionDto, Boolean>> updateRequestConversion(String fileKey, Boolean converted, String fileHash) {
+    public Mono<Map.Entry<RequestConversionDto, Boolean>> updateRequestConversion(String fileKey, Boolean converted, String fileHash, boolean isTransformationError) {
         log.logStartingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION);
 
         if (converted == null || !converted) {
             return Mono.error(new IllegalArgumentException("Invalid value for 'converted': must be true."));
         }
 
-        return processUpdateRequestConversion(fileKey, converted, fileHash)
+        return processUpdateRequestConversion(fileKey, converted, fileHash,isTransformationError)
                 .doOnSuccess(result -> log.info(PDF_RASTER_UPDATE_REQUEST_CONVERSION))
                 .doOnError(exception -> log.logEndingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION, false, exception.getMessage()))
                 .retryWhen(pdfRasterRetryStrategy);
     }
+
 
 
     private Mono<Map.Entry<RequestConversionEntity, Boolean>> updateAttachmentInRequestConversion(RequestConversionEntity requestConversionEntity, String fileKey, Boolean converted, String fileHash) {
@@ -211,7 +213,7 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
     }
 
 
-    private Mono<Map.Entry<RequestConversionDto, Boolean>> processUpdateRequestConversion(String fileKey, Boolean converted, String fileHash) {
+    private Mono<Map.Entry<RequestConversionDto, Boolean>> processUpdateRequestConversion(String fileKey, Boolean converted, String fileHash, Boolean isTransformationError) {
         return getPdfConversionFromDynamoDb(fileKey)
                 .zipWhen(pdfConversionEntity ->
                         getRequestConversionFromDynamoDb(pdfConversionEntity.getRequestId())
@@ -223,8 +225,11 @@ public class DynamoPdfRasterServiceImpl implements DynamoPdfRasterService {
                 .flatMap(tuples -> {
                     PdfConversionEntity pdfConversionEntity = tuples.getT1();
                     RequestConversionEntity requestConversionEntity = tuples.getT2().getKey();
-                    pdfConversionEntity.setExpiration(BigDecimal.valueOf(OffsetDateTime.now().plusDays(offsetDays).toInstant().getEpochSecond()));
 
+                    pdfConversionEntity.setExpiration(BigDecimal.valueOf(OffsetDateTime.now().plusDays(offsetDays).toInstant().getEpochSecond()));
+                    if(isTransformationError){
+                        pdfConversionEntity.setTransformationError(TRANSFORMATION_ERROR);
+                    }
                     return updateRequestConversionWithTransaction(requestConversionEntity, pdfConversionEntity)
                             .thenReturn(Map.entry(convertToDto(requestConversionEntity), true));
                 });

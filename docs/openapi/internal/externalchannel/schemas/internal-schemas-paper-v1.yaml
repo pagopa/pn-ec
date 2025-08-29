@@ -282,6 +282,10 @@ components:
             $ref: '#/components/schemas/AttachmentsProgressEventDto'
         discoveredAddress:
           $ref: '#/components/schemas/DiscoveredAddressDto'
+        courier:
+          type: string
+          description: >-
+            Identificativo del recapitista in eventi recapito cartacei
 
     AttachmentsProgressEventDto:
       description: >-
@@ -446,6 +450,9 @@ components:
         version:
           type: number
           description: versione del record
+        transformationError:
+          type: string
+          description: indica che c'è stato un errore in fase di trasformazione del file
       required:
         - fileKey
         - requestId
