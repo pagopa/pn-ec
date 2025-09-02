@@ -102,11 +102,11 @@ public class RequestConversionServiceImpl implements RequestConversionService {
     public Mono<Map.Entry<RequestConversionDto, Boolean>> updateRequestConversion(String fileKey, Boolean converted, String fileHash, boolean isTransformationError) {
         log.logStartingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION);
 
-        if (converted == null || !converted) {
-            return Mono.error(new IllegalArgumentException("Invalid value for 'converted': must be true."));
+        if (converted == null) {
+            return Mono.error(new IllegalArgumentException("Invalid value for 'converted': cannot be null."));
         }
 
-        return processUpdateRequestConversion(fileKey, converted, fileHash,isTransformationError)
+        return processUpdateRequestConversion(fileKey, converted, fileHash, isTransformationError)
                 .doOnSuccess(result -> log.info(PDF_RASTER_UPDATE_REQUEST_CONVERSION))
                 .doOnError(exception -> log.logEndingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION, false, exception.getMessage()))
                 .retryWhen(pdfRasterRetryStrategy);
