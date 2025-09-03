@@ -198,14 +198,13 @@ class RequestConversionServiceTest {
     @Test
     void updateRequestConversionInvalidConvertedValue() {
         String fileKey = "FileKey";
-        boolean convertedValue = false;
 
-        simulateInvalidConvertedValueError(fileKey, convertedValue);
+        simulateInvalidConvertedValueError(fileKey, Boolean.valueOf(null));
 
 
-        StepVerifier.create(requestConversionService.updateRequestConversion(fileKey, convertedValue, RandomStringUtils.randomAlphanumeric(10), false))
+        StepVerifier.create(requestConversionService.updateRequestConversion(fileKey, null, RandomStringUtils.randomAlphanumeric(10), false))
                 .expectErrorMatches(throwable -> throwable instanceof IllegalArgumentException
-                        && throwable.getMessage().equals("Invalid value for 'converted': must be true."))
+                        && throwable.getMessage().equals("Invalid value for 'converted': cannot be null."))
                 .verify();
     }
 
