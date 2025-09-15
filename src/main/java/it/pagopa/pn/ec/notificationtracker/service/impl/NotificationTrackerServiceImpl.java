@@ -262,7 +262,11 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
         PaperProgressStatusEvent paperProgressStatusEvent = new PaperProgressStatusEvent();
         paperProgressStatusEvent.setRequestId(requestDto.getRequestIdx());
         paperProgressStatusEvent.setRegisteredLetterCode(lastEventUpdatedPaper.getRegisteredLetterCode());
-        paperProgressStatusEvent.setProductType(lastEventUpdatedPaper.getProductType());
+        paperProgressStatusEvent.setProductType(
+                (lastEventUpdatedPaper.getProductType() == null || lastEventUpdatedPaper.getProductType().isEmpty())
+                        ? requestDto.getRequestMetadata().getPaperRequestMetadata().getProductType()
+                        : lastEventUpdatedPaper.getProductType()
+        );
         paperProgressStatusEvent.setIun(lastEventUpdatedPaper.getIun());
         paperProgressStatusEvent.setStatusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
         paperProgressStatusEvent.setStatusDescription(lastEventUpdatedPaper.getStatusDescription());
