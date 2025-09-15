@@ -153,7 +153,6 @@ public class AvailabilityManagerService {
         CartaceoPresaInCaricoInfo info = buildCartaceoPresaInCaricoInfo(requestConversionDto);
         PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto();
         paperProgressStatusDto.setStatus(NEXT_STATUS_TRANSFORMATION_ERROR);
-        paperProgressStatusDto.setProductType(info.getPaperEngageRequest().getProductType());
 
         // Invio sulla coda del NotificationTracker
         log.info("Try to send message ERROR to NotificationTracker for request: {}", info);
