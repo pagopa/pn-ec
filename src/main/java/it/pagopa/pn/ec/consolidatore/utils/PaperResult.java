@@ -28,7 +28,7 @@ public class PaperResult {
 	// STATUS CODES
     public static final String OK_CODE= "200.00";
 	public static final String SYNTAX_ERROR_CODE = "400.01";
-	public static final String SEMANTIC_ERROR_CODE = "400.02";
+	public static final String SEMANTIC_ERROR_CODE = "400.09";
 	public static final String REQUEST_ID_ERROR_CODE = "404.00";
 	public static final String AUTHENTICATION_ERROR_CODE = "401.00";
 	public static final String DUPLICATED_REQUEST_CODE = "409.00";

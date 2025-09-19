@@ -31,7 +31,7 @@ public class ConsolidatoreErrorHandler {
     public ResponseEntity<OperationResultCodeResponse> handleSemanticError(SemanticException ex) {
         var response = new OperationResultCodeResponse();
         response.setResultDescription("Semantic Error");
-        response.setResultCode("400.02");
+        response.setResultCode("400.09");
         response.setErrorList(ex.getErrorList());
         response.setClientResponseTimeStamp(OffsetDateTime.now());
         return new ResponseEntity<>(response, BAD_REQUEST);

@@ -817,7 +817,7 @@ components:
             Per convenzione, la sequenza 2000 indicherà OK. <br />
             - '200.00' OK <br />
             - '400.01' Errore di validazione sintattica del messaggio <br />
-            - '400.02' Errore di validazione regole semantiche <br />
+            - '400.09' Errore di validazione regole semantiche <br />
             - '404.00' requestId mai ricevuto <br />
             - '409.00' requestId già utilizzato <br />
             - '500.xy' Errori interni al server <br />

@@ -56,7 +56,7 @@ paths:
                   value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
                 semanticError: 
                   summary: 'Errore semantico'
-                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+                  value: { resultCode: '400.09', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
               schema:
                 $ref: '#/components/schemas/OperationResultCodeResponse'
         '401':
@@ -157,9 +157,9 @@ paths:
                 syntaxError: 
                   summary: 'Errore sintattico'
                   value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
-                semanticError: 
+                semanticError:
                   summary: 'Errore semantico'
-                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+                  value: { resultCode: '400.09', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
               schema:
                 $ref: '#/components/schemas/OperationResultCodeResponse'
         '401':
@@ -266,7 +266,7 @@ webhooks:
                   value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
                 semanticError: 
                   summary: 'Errore semantico'
-                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}  
+                  value: { resultCode: '400.09', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
         '401':
           description: >- 
             Il sistema chiamante non è stato identificato, verificare le configurazioni
@@ -316,7 +316,7 @@ webhooks:
                   value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
                 semanticError: 
                   summary: 'Errore semantico'
-                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}  
+                  value: { resultCode: '400.09', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
         '401':
           description: >- 
             Il sistema chiamante non è stato identificato, verificare le configurazioni
@@ -378,7 +378,7 @@ webhooks:
                   value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
                 semanticError: 
                   summary: 'Errore semantico'
-                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}  
+                  value: { resultCode: '400.09', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type'], clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
 
   # Path /consolidatore-ingress/v1/get-attachment/{fileKey}    
   get-attachment:
@@ -714,7 +714,7 @@ components:
             Per convenzione, la sequenza 2000 indicherà OK. <br />
             - '200.00' OK <br />
             - '400.01' Errore di validazione sintattica del messaggio <br />
-            - '400.02' Errore di validazione regole semantiche <br />
+            - '400.09' Errore di validazione regole semantiche <br />
             - '404.00' requestId mai ricevuto <br />
             - '409.00' requestId già utilizzato <br />
             - '500.xy' Errori interni al server <br />

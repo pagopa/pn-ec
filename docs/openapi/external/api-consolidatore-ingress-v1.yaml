@@ -68,7 +68,7 @@ paths:
                   value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required' ], clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
                 semanticError:
                   summary: 'Errore semantico'
-                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type' ], clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
+                  value: { resultCode: '400.09', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type' ], clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
 
   /consolidatore-ingress/v1/push-progress-events:
     put:
@@ -113,7 +113,7 @@ paths:
                   value: { resultCode: '400.01', resultDescription: 'Syntax Error', errorList: [ 'field requestId is required' ], clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
                 semanticError:
                   summary: 'Errore semantico'
-                  value: { resultCode: '400.02', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type' ], clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
+                  value: { resultCode: '400.09', resultDescription: 'Semantic Error', errorList: [ 'unrecognized product Type' ], clientResponseTimeStamp: '2019-08-24T14:15:22Z' }
         '401':
           description: >-
             Il sistema chiamante non è stato identificato, verificare le configurazioni
