@@ -31,7 +31,7 @@
     "PnEcConsAllowedFutureOffsetDuration": "1m",
     "CpuValue": "1024",
     "MemoryAmount": "4GB",
-    "PnEcDuplicatesCheck": "890;RS;RIS",
+    "PnEcDuplicatesCheck": "AR;890;RS;RIR;RIS",
     "PnECPaperPAIdOverride": "15376371009",
     "SQSMaxBatchSubscribedMsgs": "20",
     "PnEcPecMetricsSchema": "Pn-EC-Pec-MetricsSchema",
