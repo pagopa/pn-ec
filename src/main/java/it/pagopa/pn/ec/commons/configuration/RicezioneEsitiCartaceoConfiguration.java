@@ -21,6 +21,9 @@ public class RicezioneEsitiCartaceoConfiguration {
     @Value("${ricezione-esiti-cartaceo.allowed-future-offset-duration}")
     private Duration offsetDuration;
 
+    @Value("${ricezione-esiti-cartaceo.duplicated-event-error-code}")
+    private String duplicatedEventErrorCode;
+
     @Getter
     private String[] productTypesToCheck;
 

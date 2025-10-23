@@ -59,6 +59,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private final boolean considerEventsWithoutSentStatusAsBooked;
 	private final String[] duplicatesCheck;
 	private final Duration offsetDuration;
+	private final String duplicatedEventErrorCode;
 
 	public RicezioneEsitiCartaceoServiceImpl(GestoreRepositoryCall gestoreRepositoryCall,
 											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
@@ -75,6 +76,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		this.considerEventsWithoutSentStatusAsBooked = ricezioneEsitiCartaceoConfiguration.isConsiderEventsWithoutStatusAsBooked();
 		this.duplicatesCheck = ricezioneEsitiCartaceoConfiguration.getProductTypesToCheck();
 		this.offsetDuration = ricezioneEsitiCartaceoConfiguration.getOffsetDuration();
+		this.duplicatedEventErrorCode = ricezioneEsitiCartaceoConfiguration.getDuplicatedEventErrorCode();
 	}
 
 	private OperationResultCodeResponse getOperationResultCodeResponse(
@@ -288,7 +290,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			if (Boolean.FALSE.equals(isDuplicated)) {
 				sink.next(requestDto);
 			} else {
-				sink.error(new RicezioneEsitiCartaceoException(DUPLICATED_REQUEST_CODE, errorCodeDescriptionMap().get(DUPLICATED_REQUEST_ERROR_CODE), List.of(DUPLICATED_EVENT),
+				sink.error(new RicezioneEsitiCartaceoException(DUPLICATED_REQUEST_CODE, errorCodeDescriptionMap().get(this.duplicatedEventErrorCode), List.of(DUPLICATED_EVENT),
 						List.of(new ConsAuditLogError(ERR_CONS_DUPLICATED_EVENT.getValue(), "The request has duplicated events", requestDto.getRequestIdx()))));
 			}
 		});
