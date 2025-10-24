@@ -290,7 +290,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			if (Boolean.FALSE.equals(isDuplicated)) {
 				sink.next(requestDto);
 			} else {
-				sink.error(new RicezioneEsitiCartaceoException(this.duplicatedEventErrorCode, errorCodeDescriptionMap().get(DUPLICATED_REQUEST_ERROR_CODE), List.of(DUPLICATED_EVENT),
+				sink.error(new RicezioneEsitiCartaceoException(this.duplicatedEventErrorCode, errorCodeDescriptionMap().get(this.duplicatedEventErrorCode), List.of(DUPLICATED_EVENT),
 						List.of(new ConsAuditLogError(ERR_CONS_DUPLICATED_EVENT.getValue(), "The request has duplicated events", requestDto.getRequestIdx()))));
 			}
 		});
