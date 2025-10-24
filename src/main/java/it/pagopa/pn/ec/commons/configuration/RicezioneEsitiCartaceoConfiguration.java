@@ -31,6 +31,7 @@ public class RicezioneEsitiCartaceoConfiguration {
     public void init() {
         this.productTypesToCheck = this.duplicatesCheck.split(";");
         this.offsetDuration = this.offsetDuration == null ? Duration.ofSeconds(-1) : this.offsetDuration;
+        log.info("PostConstruct - RicezioneEsitiCartaceoConfiguration duplicatedEventErrorCode: {}",this.duplicatedEventErrorCode);
     }
 
 }
