@@ -21,6 +21,9 @@ public class RicezioneEsitiCartaceoConfiguration {
     @Value("${ricezione-esiti-cartaceo.allowed-future-offset-duration}")
     private Duration offsetDuration;
 
+    @Value("${ricezione-esiti-cartaceo.duplicated-event-error-code}")
+    private String duplicatedEventErrorCode;
+
     @Getter
     private String[] productTypesToCheck;
 
@@ -28,6 +31,7 @@ public class RicezioneEsitiCartaceoConfiguration {
     public void init() {
         this.productTypesToCheck = this.duplicatesCheck.split(";");
         this.offsetDuration = this.offsetDuration == null ? Duration.ofSeconds(-1) : this.offsetDuration;
+        log.info("PostConstruct - RicezioneEsitiCartaceoConfiguration duplicatedEventErrorCode: {}",this.duplicatedEventErrorCode);
     }
 
 }
