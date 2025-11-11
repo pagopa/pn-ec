@@ -215,10 +215,6 @@ Parameters:
   ### QUEUES  ###
   ### TRACKER : SMS  ###
 
-  PnEcQueueNameTrackerStatoSMS:
-    Type: String
-    Description: '[Notification Tracker: canale SMS] Nome della Coda per aggiornamenti di stato afferenti al canale SMS'
-
   PnEcQueueArnTrackerStatoSMS:
     Type: String
     Description: '[Notification Tracker: canale SMS] ARN della Coda per aggiornamenti di stato afferenti al canale SMS'
@@ -236,10 +232,6 @@ Parameters:
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoSMS"
 
   ######### TRACKER : ERRORI SMS  ##########
-
-  PnEcQueueNameTrackerErroriSMS:
-    Type: String
-    Description: '[Notification Tracker: canale SMS] Nome della Coda Errori afferenti al canale SMS'
 
   PnEcQueueArnTrackerErroriSMS:
     Type: String
@@ -259,10 +251,6 @@ Parameters:
 
   ######### TRACKER : PEC  ##########
 
-  PnEcQueueNameTrackerStatoPEC:
-    Type: String
-    Description: '[Notification Tracker: canale PEC] Nome della Coda per aggiornamenti di stato afferenti al canale PEC'
-
   PnEcQueueArnTrackerStatoPEC:
     Type: String
     Description: '[Notification Tracker: canale PEC] ARN della Coda per aggiornamenti di stato afferenti al canale PEC'
@@ -280,10 +268,6 @@ Parameters:
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoPEC"
 
   ######### TRACKER : ERRORI PEC  ##########
-
-  PnEcQueueNameTrackerErroriPEC:
-    Type: String
-    Description: '[Notification Tracker: canale PEC] Nome della Coda Errori afferenti al canale PEC'
 
   PnEcQueueArnTrackerErroriPEC:
     Type: String
@@ -328,10 +312,6 @@ Parameters:
 
   ######### TRACKER : EMAIL  ##########
 
-  PnEcQueueNameTrackerStatoEMAIL:
-    Type: String
-    Description: '[Notification Tracker: canale EMAIL] Nome della Coda per aggiornamenti di stato afferenti al canale EMAIL'
-
   PnEcQueueArnTrackerStatoEMAIL:
     Type: String
     Description: '[Notification Tracker: canale EMAIL] ARN della Coda per aggiornamenti di stato afferenti al canale EMAIL'
@@ -349,10 +329,6 @@ Parameters:
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoEMAIL"
 
   ######### TRACKER : ERRORI EMAIL  ##########
-
-  PnEcQueueNameTrackerErroriEMAIL:
-    Type: String
-    Description: '[Notification Tracker: canale EMAIL] Nome della Coda Errori afferenti al canale EMAIL'
 
   PnEcQueueArnTrackerErroriEMAIL:
     Type: String
@@ -372,10 +348,6 @@ Parameters:
 
   ######### TRACKER : CARTACEO  ##########
 
-  PnEcQueueNameTrackerStatoCARTACEO:
-    Type: String
-    Description: '[Notification Tracker: canale CARTACEO] Nome della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
-
   PnEcQueueArnTrackerStatoCARTACEO:
     Type: String
     Description: '[Notification Tracker: canale CARTACEO] ARN della Coda per aggiornamenti di stato afferenti al canale CARTACEO'
@@ -393,10 +365,6 @@ Parameters:
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoCARTACEO"
 
   ######### TRACKER : ERRORI CARTACEO  ##########
-
-  PnEcQueueNameTrackerErroriCARTACEO:
-    Type: String
-    Description: '[Notification Tracker: canale CARTACEO] Nome della Coda Errori afferenti al canale CARTACEO'
 
   PnEcQueueArnTrackerErroriCARTACEO:
     Type: String
@@ -416,10 +384,6 @@ Parameters:
 
  ###### BATCH : SMS #######
 
-  PnEcQueueNameBatchSMS:
-    Type: String
-    Description: '[Canale SMS] Nome della Coda per la modalità SMS-Batch'
-
   PnEcQueueArnBatchSMS:
     Type: String
     Description: '[Canale SMS] ARN della Coda per la modalità SMS-Batch'
@@ -437,10 +401,6 @@ Parameters:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchSMS"
 
  ###### INTERACTIVE : SMS #######
-
-  PnEcQueueNameInteractiveSMS:
-    Type: String
-    Description: '[Canale SMS] Nome della Coda per la modalità SMS-Interactive'
 
   PnEcQueueArnInteractiveSMS:
     Type: String
@@ -460,10 +420,6 @@ Parameters:
 
   ###### ERRORI : SMS #######
 
-  PnEcQueueNameErroriSMS:
-    Type: String
-    Description: '[Canale SMS] Nome della Coda Errori SMS'
-
   PnEcQueueArnErroriSMS:
     Type: String
     Description: '[Canale SMS] ARN della Coda Errori SMS'
@@ -481,10 +437,6 @@ Parameters:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriSMS"
 
   ###### BATCH : PEC #######
-
-  PnEcQueueNameBatchPEC:
-    Type: String
-    Description: '[Canale PEC] Nome della Coda per la modalità PEC-Batch'
 
   PnEcQueueArnBatchPEC:
     Type: String
@@ -504,10 +456,6 @@ Parameters:
 
   ###### INTERACTIVE : PEC #######
 
-  PnEcQueueNameInteractivePEC:
-    Type: String
-    Description: '[Canale PEC] Nome della Coda per la modalità PEC-Interactive'
-
   PnEcQueueArnInteractivePEC:
     Type: String
     Description: '[Canale PEC] ARN della Coda per la modalità PEC-Interactive'
@@ -525,10 +473,6 @@ Parameters:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractivePEC"
 
   ###### ERRORI : PEC #######
-
-  PnEcQueueNameErroriPEC:
-    Type: String
-    Description: '[Canale PEC] Nome della Coda Errori PEC'
 
   PnEcQueueArnErroriPEC:
     Type: String
@@ -548,10 +492,6 @@ Parameters:
 
   ###### BATCH : EMAIL #######
 
-  PnEcQueueNameBatchEMAIL:
-    Type: String
-    Description: '[Canale EMAIL] Nome della Coda per la modalità EMAIL-Batch'
-
   PnEcQueueArnBatchEMAIL:
     Type: String
     Description: '[Canale EMAIL] ARN della Coda per la modalità EMAIL-Batch'
@@ -569,10 +509,6 @@ Parameters:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchEMAIL"
 
   ###### INTERACTIVE : EMAIL #######
-
-  PnEcQueueNameInteractiveEMAIL:
-    Type: String
-    Description: '[Canale EMAIL] Nome della Coda per la modalità EMAIL-Interactive'
 
   PnEcQueueArnInteractiveEMAIL:
     Type: String
@@ -592,10 +528,6 @@ Parameters:
 
   ###### ERRORI : EMAIL #######
 
-  PnEcQueueNameErroriEMAIL:
-    Type: String
-    Description: '[Canale EMAIL] Nome della Coda Errori EMAIL'
-
   PnEcQueueArnErroriEMAIL:
     Type: String
     Description: '[Canale EMAIL] ARN della Coda Errori EMAIL'
@@ -613,10 +545,6 @@ Parameters:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriEMAIL"
 
   ###### BATCH : CARTACEO #######
-
-  PnEcQueueNameBatchCARTACEO:
-    Type: String
-    Description: '[Canale CARTACEO] Nome della Coda per la modalità CARTACEO-Batch'
 
   PnEcQueueArnBatchCARTACEO:
     Type: String
@@ -636,10 +564,6 @@ Parameters:
 
   ###### ERRORI : CARTACEO #######
 
-  PnEcQueueNameErroriCARTACEO:
-    Type: String
-    Description: '[Canale CARTACEO] Nome della Coda Errori CARTACEO'
-
   PnEcQueueArnErroriCARTACEO:
     Type: String
     Description: '[Canale CARTACEO] ARN della Coda Errori CARTACEO'
@@ -647,10 +571,6 @@ Parameters:
 #  PnEcQueueUrlErroriCARTACEO:
 #    Type: String
 #    Description: '[Canale CARTACEO] URL della Coda Errori CARTACEO'
-
-  PnEcDLQueueNameErroriCARTACEO:
-    Type: String
-    Description: '[Canale CARTACEO] Nome della DLQ della Coda Errori afferenti al canale CARTACEO'
 
   PnEcDLQueueArnErroriCARTACEO:
     Type: String
@@ -665,10 +585,6 @@ Parameters:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriCARTACEO"
 
   ######### TRACKER : SERCQ  ##########
-
-  PnEcQueueNameTrackerStatoSERCQ:
-    Type: String
-    Description: '[Notification Tracker: canale SERCQ] Nome della Coda per aggiornamenti di stato afferenti al canale SERCQ'
 
   PnEcQueueArnTrackerStatoSERCQ:
     Type: String
@@ -687,10 +603,6 @@ Parameters:
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoSERCQ"
 
  ######### TRACKER : ERRORI SERCQ  ##########
-
-  PnEcQueueNameTrackerErroriSERCQ:
-    Type: String
-    Description: '[Notification Tracker: canale SERCQ] Nome della Coda Errori afferenti al canale SERCQ'
 
   PnEcQueueArnTrackerErroriSERCQ:
     Type: String
@@ -727,9 +639,6 @@ Parameters:
     Description: "ARN dell'allarme messaggi vecchi nella DLQ per forward degli eventi al bus PnCoreTargetEventBus"
 
   ###### PEC : RICEVUTE, ESITI #######
-  PnEcQueueNameScaricamentoEsitiPEC:
-    Type: String
-    Description: '[PEC- Scaricamento Esiti] Nome della Coda per lo scaricamento esiti PEC'
 
   PnEcQueueArnScaricamentoEsitiPEC:
     Type: String
@@ -746,10 +655,6 @@ Parameters:
   PnEcAlarmArnDLQueueScaricamentoEsitiPEC:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueScaricamentoEsitiPEC"
-
-  PnEcQueueNameCancellazioneRicevutePEC:
-    Type: String
-    Description: '[PEC- Cancellazione Ricevute] Nome della Coda per la cancellazione ricevute PEC'
 
   PnEcQueueArnCancellazioneRicevutePEC:
     Type: String
@@ -798,9 +703,6 @@ Parameters:
     Description: 'ARN Bucket Staging per messaggi SQS troppo grandi'
 
 ### PdfRaster - Availability queue  ###
-  PnEcQueueNameAvailabilityManager:
-    Description: 'Nome della coda Disponibilità per pdf-raster'
-    Type: String
 
   PnEcQueueArnAvailabilityManager:
     Description: 'ARN della coda Disponibilità per pdf-raster'
@@ -882,6 +784,9 @@ Parameters:
     Default: 7200
     Description: Value in seconds
 
+  PnEcDuplicatesCheck:
+    Type: String
+
   CpuValue:
     Type: Number
     Default: 1024
@@ -892,23 +797,6 @@ Parameters:
     Default: '2GB'
     Description: Memory amount reserved to the task pod.
     AllowedValues: [ 2GB, 4GB, 6GB, 8GB ]
-
-  PnECPaperPAIdToRaster:
-    Type: String
-    Description: 'Feature flag per la funzionalità di conversione degli allegati cartacei.
-    Può assumere tre valori:
-    - la sola stringa “NOTHING”: significa che la nuova funzionalità è completamente disabilitata
-    - la sola stringa “ALL”: tutti gli allegati del tipo specificato verranno convertiti
-    - <elenco di ID delle PA>: se il campo requestPaId della richiesta è contenuto in questo elenco, allora verrà applicata la conversione dei PDF del tipo specificato, altrimenti si procederà come di consueto
-    '
-
-  PnECPaperDocumentTypeToRaster:
-    Type: String
-    Description: 'Tipologia per la selezione del documento da convertire'
-
-  PnECPaperDocumentTypeForRasterized:
-    Type: String
-    Description: 'Tipologia da applicare agli allegati cartacei convertiti'
 
   PnECPaperPAIdOverride:
     Type: String
@@ -945,6 +833,11 @@ Parameters:
     Description: 'EvaluationPeriods for GetUnreadPecMessagesCount Alarm'
     Default: 18
 
+  ApplicativeEnvFileChecksum:
+    Type: String
+    Default: ''
+    Description: 'Applicative environment variable file checksum'
+
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
@@ -966,72 +859,45 @@ Resources:
         ContainerImageURI: !Sub '${ContainerImageUri}'
         ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
         ContainerEnvEntry2: !Sub 'PnEcEventBusNameTrackerExternalNotification=${PnEcEventBusNameTrackerExternalNotification}'
-        ContainerEnvEntry3: !Sub 'PnEcQueueNameTrackerStatoSMS=${PnEcQueueNameTrackerStatoSMS}'
-        ContainerEnvEntry4: !Sub 'PnEcQueueNameTrackerErroriSMS=${PnEcQueueNameTrackerErroriSMS}'
-        ContainerEnvEntry5: !Sub 'PnEcQueueNameTrackerStatoPEC=${PnEcQueueNameTrackerStatoPEC}'
-        ContainerEnvEntry6: !Sub 'PnEcQueueNameTrackerErroriPEC=${PnEcQueueNameTrackerErroriPEC}'
-        ContainerEnvEntry7: !Sub 'PnEcQueueNameTrackerStatoEMAIL=${PnEcQueueNameTrackerStatoEMAIL}'
-        ContainerEnvEntry8: !Sub 'PnEcQueueNameTrackerErroriEMAIL=${PnEcQueueNameTrackerErroriEMAIL}'
-        ContainerEnvEntry9: !Sub 'PnEcQueueNameTrackerStatoCARTACEO=${PnEcQueueNameTrackerStatoCARTACEO}'
-        ContainerEnvEntry10: !Sub 'PnEcQueueNameTrackerErroriCARTACEO=${PnEcQueueNameTrackerErroriCARTACEO}'
-        ContainerEnvEntry11: !Sub 'PnEcQueueNameBatchSMS=${PnEcQueueNameBatchSMS}'
-        ContainerEnvEntry12: !Sub 'PnEcQueueNameInteractiveSMS=${PnEcQueueNameInteractiveSMS}'
-        ContainerEnvEntry13: !Sub 'PnEcQueueNameErroriSMS=${PnEcQueueNameErroriSMS}'
-        ContainerEnvEntry14: !Sub 'PnEcQueueNameBatchPEC=${PnEcQueueNameBatchPEC}'
-        ContainerEnvEntry15: !Sub 'PnEcQueueNameInteractivePEC=${PnEcQueueNameInteractivePEC}'
-        ContainerEnvEntry16: !Sub 'PnEcQueueNameErroriPEC=${PnEcQueueNameErroriPEC}'
-        ContainerEnvEntry17: !Sub 'PnEcQueueNameBatchEMAIL=${PnEcQueueNameBatchEMAIL}'
-        ContainerEnvEntry18: !Sub 'PnEcQueueNameInteractiveEMAIL=${PnEcQueueNameInteractiveEMAIL}'
-        ContainerEnvEntry19: !Sub 'PnEcQueueNameErroriEMAIL=${PnEcQueueNameErroriEMAIL}'
-        ContainerEnvEntry20: !Sub 'PnEcQueueNameBatchCARTACEO=${PnEcQueueNameBatchCARTACEO}'
-        ContainerEnvEntry21: !Sub 'PnEcQueueNameErroriCARTACEO=${PnEcQueueNameErroriCARTACEO}'
-        ContainerEnvEntry22: !Sub 'PnEcQueueNameScaricamentoEsitiPEC=${PnEcQueueNameScaricamentoEsitiPEC}'
-        ContainerEnvEntry23: 'SafeStorageClientId=pn-external-channels'
-        ContainerEnvEntry24: 'SafeStorageClientApiKey=pn-external-channels_api_key'
-        ContainerEnvEntry25: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
-        ContainerEnvEntry26: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry27: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry28: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
-        ContainerEnvEntry29: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
-        ContainerEnvEntry30: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
-        ContainerEnvEntry31: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
-        ContainerEnvEntry32: !Sub 'PnPecRetryStrategyMaxAttempts=${PnPecRetryStrategyMaxAttempts}'
-        ContainerEnvEntry33: !Sub 'PnPecRetryStrategyMinBackoff=${PnPecRetryStrategyMinBackoff}'
-        ContainerEnvEntry34: !Sub 'LavorazionePecMaxThreadPoolSize=${LavorazionePecMaxThreadPoolSize}'
-        ContainerEnvEntry35: !Sub 'LavorazioneEsitiPecMaxThreadPoolSize=${LavorazioneEsitiPecMaxThreadPoolSize}'
-        ContainerEnvEntry36: !Sub 'ScaricamentoEsitiPecLimitRate=${ScaricamentoEsitiPecLimitRate}'
-        ContainerEnvEntry37: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
-        ContainerEnvEntry38: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
-        ContainerEnvEntry39: !Sub 'PnEcQueueElapsedTimeSeconds=${PnEcQueueElapsedTimeSeconds}'
-        ContainerEnvEntry40: !Sub 'LavorazioneSMSMaxThreadPoolSize=${LavorazioneSMSMaxThreadPoolSize}'
-        ContainerEnvEntry41: !Sub 'LavorazioneEmailMaxThreadPoolSize=${LavorazioneEmailMaxThreadPoolSize}'
-        ContainerEnvEntry42: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
-        ContainerEnvEntry43: !Sub 'PnEcTaskExecutionPoolMaxSize=${PnEcTaskExecutionPoolMaxSize}'
-        ContainerEnvEntry44: !Sub 'PnEcQueueNameCancellazioneRicevutePEC=${PnEcQueueNameCancellazioneRicevutePEC}'
-        ContainerEnvEntry45: !Sub 'CancellazioneRicevutePecMaxThreadPoolSize=${CancellazioneRicevutePecMaxThreadPoolSize}'
-        ContainerEnvEntry46: !Sub 'PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked=${PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked}'
-        ContainerEnvEntry47: !Sub 'PnEcPECMaxMessageSizeMB=${PnEcPECMaxMessageSizeMB}'
-        ContainerEnvEntry48: !Sub 'PnEcPECAttachmentRule=${PnEcPECAttachmentRule}'
-        ContainerEnvEntry49: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
-        ContainerEnvEntry50: !Sub 'PnEcSqsMessagesStagingBucketName=${PnEcSqsMessagesStagingBucketName}'
-        ContainerEnvEntry51: !Sub 'PnEcProviderSwitchRead=${PnEcProviderSwitchRead}'
-        ContainerEnvEntry52: !Sub 'PnEcProviderSwitchWrite=${PnEcProviderSwitchWrite}'
-        ContainerEnvEntry53: !Sub 'PnEcIdentityPec=${PnEcIdentityPec}'
-        ContainerEnvEntry54: !Sub 'SpringCodecMaxInMemorySize=${SpringCodecMaxInMemorySize}'
-        ContainerEnvEntry55: !Sub 'PnEcConsAllowedFutureOffsetDuration=${PnEcConsAllowedFutureOffsetDuration}'
-        ContainerEnvEntry56: !Sub 'PnECPaperPAIdToRaster=${PnECPaperPAIdToRaster}'
-        ContainerEnvEntry57: !Sub 'PnECPaperDocumentTypeToRaster=${PnECPaperDocumentTypeToRaster}'
-        ContainerEnvEntry58: !Sub 'PnECPaperDocumentTypeForRasterized=${PnECPaperDocumentTypeForRasterized}'
-        ContainerEnvEntry59: !Sub 'PnECPaperPAIdOverride=${PnECPaperPAIdOverride}'
-        ContainerEnvEntry60: !Sub 'PnEcQueueNameAvailabilityManager=${PnEcQueueNameAvailabilityManager}'
-        ContainerEnvEntry61: !Sub 'PnEcDLQueueNameErroriCARTACEO=${PnEcDLQueueNameErroriCARTACEO}'
-        ContainerEnvEntry62: !Sub 'PnEcQueueNameTrackerStatoSERCQ=${PnEcQueueNameTrackerStatoSERCQ}'
-        ContainerEnvEntry63: !Sub 'PnEcQueueNameTrackerErroriSERCQ=${PnEcQueueNameTrackerErroriSERCQ}'
-        ContainerEnvEntry64: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
-        ContainerEnvEntry65: !Sub 'PnEcPecMetricsSchema=${PnEcPecMetricsSchema}'
-        ContainerEnvEntry66: !Sub 'SQSCartaceoMaxBatchSubscribedMsgs=${SQSCartaceoMaxBatchSubscribedMsgs}'
-        ContainerEnvEntry67: !Sub 'PN_CRON_ANALYZER=${PnCronAnalyzer}'
-        ContainerEnvEntry68: !Sub 'WIRE_TAP_LOG=${WireTapLogActivation}'
+        ContainerEnvEntry3: 'SafeStorageClientId=pn-external-channels'
+        ContainerEnvEntry4: 'SafeStorageClientApiKey=pn-external-channels_api_key'
+        ContainerEnvEntry5: !Sub 'PnEcEmailDefaultSender=${PnEcEmailDefaultSender}'
+        ContainerEnvEntry6: !Sub 'InternalBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry7: !Sub 'StateMachineBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry8: !Sub 'SafeStorageBaseUrl=http://${ApplicationLoadBalancerDomain}:8080'
+        ContainerEnvEntry9: !Sub 'ConsolidatoreBaseUrl=${PnEcConsolidatoreBaseURL}'
+        ContainerEnvEntry10: !Sub 'ConsolidatoreClientId=${ConsolidatoreClientId}'
+        ContainerEnvEntry11: !Sub 'PnEcSmsDefaultSenderID=${PnEcSmsDefaultSenderID}'
+        ContainerEnvEntry12: !Sub 'PnPecRetryStrategyMaxAttempts=${PnPecRetryStrategyMaxAttempts}'
+        ContainerEnvEntry13: !Sub 'PnPecRetryStrategyMinBackoff=${PnPecRetryStrategyMinBackoff}'
+        ContainerEnvEntry14: !Sub 'LavorazionePecMaxThreadPoolSize=${LavorazionePecMaxThreadPoolSize}'
+        ContainerEnvEntry15: !Sub 'LavorazioneEsitiPecMaxThreadPoolSize=${LavorazioneEsitiPecMaxThreadPoolSize}'
+        ContainerEnvEntry16: !Sub 'ScaricamentoEsitiPecLimitRate=${ScaricamentoEsitiPecLimitRate}'
+        ContainerEnvEntry17: !Sub 'SMSStressTestMode=${SMSStressTestMode}'
+        ContainerEnvEntry18: !Sub 'SMSStressTestTopicArn=${PnEcSMSStressTestTopicArn}'
+        ContainerEnvEntry19: !Sub 'PnEcQueueElapsedTimeSeconds=${PnEcQueueElapsedTimeSeconds}'
+        ContainerEnvEntry20: !Sub 'LavorazioneSMSMaxThreadPoolSize=${LavorazioneSMSMaxThreadPoolSize}'
+        ContainerEnvEntry21: !Sub 'LavorazioneEmailMaxThreadPoolSize=${LavorazioneEmailMaxThreadPoolSize}'
+        ContainerEnvEntry22: !Sub 'LavorazioneCartaceoMaxThreadPoolSize=${LavorazioneCartaceoMaxThreadPoolSize}'
+        ContainerEnvEntry23: !Sub 'PnEcTaskExecutionPoolMaxSize=${PnEcTaskExecutionPoolMaxSize}'
+        ContainerEnvEntry24: !Sub 'CancellazioneRicevutePecMaxThreadPoolSize=${CancellazioneRicevutePecMaxThreadPoolSize}'
+        ContainerEnvEntry25: !Sub 'PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked=${PnEcRicezioneEsitiCartaceoConsiderEventWithoutSentStatusAsBooked}'
+        ContainerEnvEntry26: !Sub 'PnEcPECMaxMessageSizeMB=${PnEcPECMaxMessageSizeMB}'
+        ContainerEnvEntry27: !Sub 'PnEcPECAttachmentRule=${PnEcPECAttachmentRule}'
+        ContainerEnvEntry28: !Sub 'PnEcPECTipoRicevutaBreve=${PnEcPECTipoRicevutaBreve}'
+        ContainerEnvEntry29: !Sub 'PnEcSqsMessagesStagingBucketName=${PnEcSqsMessagesStagingBucketName}'
+        ContainerEnvEntry30: !Sub 'PnEcProviderSwitchRead=${PnEcProviderSwitchRead}'
+        ContainerEnvEntry31: !Sub 'PnEcProviderSwitchWrite=${PnEcProviderSwitchWrite}'
+        ContainerEnvEntry32: !Sub 'PnEcIdentityPec=${PnEcIdentityPec}'
+        ContainerEnvEntry33: !Sub 'SpringCodecMaxInMemorySize=${SpringCodecMaxInMemorySize}'
+        ContainerEnvEntry34: !Sub 'PnEcConsAllowedFutureOffsetDuration=${PnEcConsAllowedFutureOffsetDuration}'
+        ContainerEnvEntry35: !Sub 'PnECPaperPAIdOverride=${PnECPaperPAIdOverride}'
+        ContainerEnvEntry36: !Sub 'SQSMaxBatchSubscribedMsgs=${SQSMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry37: !Sub 'PnEcPecMetricsSchema=${PnEcPecMetricsSchema}'
+        ContainerEnvEntry38: !Sub 'SQSCartaceoMaxBatchSubscribedMsgs=${SQSCartaceoMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry39: !Sub 'PN_CRON_ANALYZER=${PnCronAnalyzer}'
+        ContainerEnvEntry40: !Sub 'WIRE_TAP_LOG=${WireTapLogActivation}'
+        ContainerEnvEntry41: !Sub 'PnEcDuplicatesCheck=${PnEcDuplicatesCheck}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -1051,6 +917,7 @@ Resources:
         JavaToolOptions: !Ref JavaToolOptions
         EfsFilesystem: !Ref FargateEFSFileSystemID
         MountEfs: !Ref MountEfs
+        ApplicativeEnvFileChecksum: !Ref ApplicativeEnvFileChecksum
 
   PnEcManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -1923,6 +1790,7 @@ Resources:
         detail:
           documentType:
           - PN_PAPER_ATTACHMENT
+          - PN_CLEAN_PAPER_ATTACHMENT
 
       State: 'ENABLED'
       Targets:

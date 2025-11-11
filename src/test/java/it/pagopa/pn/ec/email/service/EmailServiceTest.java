@@ -70,6 +70,8 @@ class EmailServiceTest {
     @Mock
     private Acknowledgment acknowledgment;
 
+    private static final String QUEUE_NAME="queue";
+
     private static final EmailPresaInCaricoInfo EMAIL_PRESA_IN_CARICO_INFO = EmailPresaInCaricoInfo.builder()
             .requestIdx(DEFAULT_REQUEST_IDX)
             .xPagopaExtchCxId(
@@ -118,7 +120,7 @@ class EmailServiceTest {
         when(downloadCall.downloadFile(FILE_DOWNLOAD_RESPONSE.getDownload().getUrl())).thenReturn(Mono.just(new ByteArrayOutputStream()));
         when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().build()));
 
-        Mono<SendMessageResponse> lavorazioneRichiesta=emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO);
+        Mono<SendMessageResponse> lavorazioneRichiesta=emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO,QUEUE_NAME);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
 
         verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
@@ -149,7 +151,7 @@ class EmailServiceTest {
 
         when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().build()));
 
-        Mono<SendMessageResponse> lavorazioneRichiesta=emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH);
+        Mono<SendMessageResponse> lavorazioneRichiesta=emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH,QUEUE_NAME);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
 
         verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
@@ -179,7 +181,7 @@ class EmailServiceTest {
 
         when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().build()));
 
-        Mono<SendMessageResponse> lavorazioneRichiesta=emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH);
+        Mono<SendMessageResponse> lavorazioneRichiesta=emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH,QUEUE_NAME);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
 
         verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH), eq(RETRY.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
@@ -214,7 +216,7 @@ class EmailServiceTest {
 
         when(sqsService.send(eq(notificationTrackerSqsName.statoEmailName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(new SqsClientException("")));
 
-        Mono<SendMessageResponse> lavorazioneRichiesta=emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO);
+        Mono<SendMessageResponse> lavorazioneRichiesta=emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO,QUEUE_NAME);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
 
         verify(emailService, times(1)).sendNotificationOnErrorQueue(eq(EMAIL_PRESA_IN_CARICO_INFO));
@@ -243,7 +245,7 @@ class EmailServiceTest {
 
         when(sesService.send(any(EmailField.class))).thenReturn(Mono.error(new SesSendException()));
 
-        Mono<SendMessageResponse> lavorazioneRichiesta=emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH);
+        Mono<SendMessageResponse> lavorazioneRichiesta=emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH,QUEUE_NAME);
         StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
 
         verify(emailService, times(1)).sendNotificationOnErrorQueue(eq(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH));

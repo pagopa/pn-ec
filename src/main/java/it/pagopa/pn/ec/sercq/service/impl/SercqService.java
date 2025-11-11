@@ -38,7 +38,7 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
 
 
     private static final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
-            .doBeforeRetry(retrySignal -> log.debug("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()))
+            .doBeforeRetry(retrySignal -> log.info("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()))
             .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure());
 
     public SercqService(AuthService authService, AttachmentService attachmentService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService, NotificationTrackerSqsName notificationTrackerSqsName) {
@@ -66,10 +66,20 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
                         .getAttachmentUrls(), xPagopaExtchCxId, true)
                 .then(insertRequestFromSercq(digitalNotificationRequest, xPagopaExtchCxId))
                 .flatMap(requestDto -> {
-                    if (isReceiverDigitalAddressValid(pecPresaInCaricoInfo.getDigitalNotificationRequest().getReceiverDigitalAddress())) {
-                        return sendNotificationOnStatusQueue(pecPresaInCaricoInfo, BOOKED.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
-                                .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY);
-                    } else return Mono.error(new InvalidReceiverDigitalAddressException());
+                    // Inoltro sempre evento BOOKED, a prescindere dalla validità dell'indirizzo
+                    return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
+                                                         BOOKED.getStatusTransactionTableCompliant(),
+                                                         new DigitalProgressStatusDto())
+                            .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
+                            .then(Mono.defer(() -> {
+                                if (isReceiverDigitalAddressValid(pecPresaInCaricoInfo.getDigitalNotificationRequest().getReceiverDigitalAddress())) {
+                                    // Indirizzo valido, procedo normalmente
+                                    return Mono.empty();
+                                } else {
+                                    // Indirizzo invalido, genero eccezione per gestire passaggio ADDRESS_ERROR
+                                    return Mono.error(new InvalidReceiverDigitalAddressException());
+                                }
+                            }));
                 })
                 .then(Mono.defer(() -> {
                          DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();

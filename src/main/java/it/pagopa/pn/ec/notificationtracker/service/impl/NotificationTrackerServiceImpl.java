@@ -112,7 +112,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                                   .statusDescription(paperProgressStatusDto.getStatusDescription())
                                                                   .statusCode(macchinaStatiDecodeResponseDto.getLogicStatus())
                                                                   .statusDateTime(paperProgressStatusDto.getStatusDateTime()
-                                                                                                        .truncatedTo(SECONDS));
+                                                                                                        .truncatedTo(SECONDS))
+                                                                  .courier(paperProgressStatusDto.getCourier());
                                         }
 
                                         return gestoreRepositoryCall.patchRichiestaEvent(notificationTrackerQueueDto.getXPagopaExtchCxId(),
@@ -261,12 +262,17 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
         PaperProgressStatusEvent paperProgressStatusEvent = new PaperProgressStatusEvent();
         paperProgressStatusEvent.setRequestId(requestDto.getRequestIdx());
         paperProgressStatusEvent.setRegisteredLetterCode(lastEventUpdatedPaper.getRegisteredLetterCode());
-        paperProgressStatusEvent.setProductType(lastEventUpdatedPaper.getProductType());
+        paperProgressStatusEvent.setProductType(
+                (lastEventUpdatedPaper.getProductType() == null || lastEventUpdatedPaper.getProductType().isEmpty())
+                        ? requestDto.getRequestMetadata().getPaperRequestMetadata().getProductType()
+                        : lastEventUpdatedPaper.getProductType()
+        );
         paperProgressStatusEvent.setIun(lastEventUpdatedPaper.getIun());
         paperProgressStatusEvent.setStatusCode(macchinaStatiDecodeResponseDto.getLogicStatus());
         paperProgressStatusEvent.setStatusDescription(lastEventUpdatedPaper.getStatusDescription());
         paperProgressStatusEvent.setStatusDateTime(lastEventUpdatedPaper.getStatusDateTime());
         paperProgressStatusEvent.setDeliveryFailureCause(lastEventUpdatedPaper.getDeliveryFailureCause());
+        paperProgressStatusEvent.setCourier(lastEventUpdatedPaper.getCourier());
         return paperProgressStatusEvent;
     }
 

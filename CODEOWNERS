@@ -1,0 +1,5 @@
+# Root folder ownership to administrators and developers team
+* @pagopa/pn-pagopa-admin @pagopa/pn-pagopa-dev
+
+# scripts/aws/cfn ownership on yml filesto administrators
+scripts/aws/cfn/*.yml @pagopa/pn-pagopa-admin

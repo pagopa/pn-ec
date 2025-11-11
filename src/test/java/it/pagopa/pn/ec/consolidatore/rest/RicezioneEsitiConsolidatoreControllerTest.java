@@ -115,6 +115,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	progressStatusEvent.setProductType(PRODUCT_TYPE_AR);
 		progressStatusEvent.setIun(IUN);
     	progressStatusEvent.setClientRequestTimeStamp(NOW);
+		progressStatusEvent.setCourier("recapitista1");
     	return progressStatusEvent;
     }
 
@@ -128,6 +129,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		progressStatusEvent.setIun(IUN);
 		progressStatusEvent.setClientRequestTimeStamp(NOW);
 		progressStatusEvent.setDeliveryFailureCause(deliveryFailureCause);
+		progressStatusEvent.setCourier("recapitista2");
 		return progressStatusEvent;
 	}
 
@@ -140,6 +142,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		progressStatusEvent.setProductType(PRODUCT_TYPE_AR);
 		progressStatusEvent.setIun(null);
 		progressStatusEvent.setClientRequestTimeStamp(NOW);
+		progressStatusEvent.setCourier("recapitista3");
 		return progressStatusEvent;
 	}
 
@@ -486,7 +489,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErroreValidazioneAttachments() : START");
 		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 		when(gestoreRepositoryCall.getRichiesta(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, REQUEST_ID)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
-    	
+
     	when(fileCall.getFile(DOCUMENT_KEY, X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, true))
     		.thenReturn(Mono.error(new AttachmentNotAvailableException(DOCUMENT_KEY)));
     	
@@ -689,6 +692,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();
 		progressStatusEvent.setStatusCode(STATUS_CODE_INESISTENTE);
+		progressStatusEvent.setCourier("recapitista4");
 
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
 		events.add(progressStatusEvent);
@@ -888,6 +892,111 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.expectStatus()
 				.isOk();
 	}
+
+	//con evento duplicato:
+	// configurazione globale non attiva -> verifichiamo che non ci sia chiamata al controllo di duplicazione
+	// configurazione globale attiva + passthrough a true -> verifichiamo che non ci sia chiamata al controllo di duplicazione
+	// configurazione globale attiva + passthrough a false -> verifichiamo che ci sia chiamata al controllo di duplicazione e che venga ritornata eccezione
+
+	//CG NA:
+	@Test
+	void ricezioneEsitiDuplicatesCheckNoActiveConfigOk()  {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiDuplicatesCheckNoActiveConfigOk() : START");
+		ConsolidatoreIngressPaperProgressStatusEvent event = getProgressStatusEventWithoutAttachments();
+		EventsDto con010 = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(event.getStatusCode())
+																						.statusDateTime(event.getStatusDateTime())
+																						.statusDescription(event.getStatusDescription())
+																						.iun(event.getIun())
+																						.productType(event.getProductType())
+																						.clientRequestTimeStamp(event.getClientRequestTimeStamp())
+		);
+		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", new String[]{PRODUCT_TYPE_AR});
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, REQUEST_ID)).thenReturn(Mono.just(getRequestDto(BOOKED_EVENT,SENT_EVENT, con010)));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(event);
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_NAME, X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE)
+				.header(X_API_KEY_HEADER_NAME, X_API_KEY_HEADER_VALUE)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isOk();
+	}
+
+	@Test
+	void ricezioneEsitiDuplicatesCheckActiveConfigActivePassthroughOk()  {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiDuplicatesCheckNoActiveConfigOk() : START");
+		ConsolidatoreIngressPaperProgressStatusEvent event = getProgressStatusEventWithoutAttachments();
+		EventsDto con010 = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(event.getStatusCode())
+																						.statusDateTime(event.getStatusDateTime())
+																						.statusDescription(event.getStatusDescription())
+																						.iun(event.getIun())
+																						.productType(event.getProductType())
+																						.clientRequestTimeStamp(event.getClientRequestTimeStamp())
+		);
+		RequestDto requestDto = getRequestDto(BOOKED_EVENT, SENT_EVENT, con010);
+		requestDto.getRequestMetadata().getPaperRequestMetadata().setDuplicateCheckPassthrough(true);
+		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", new String[]{PRODUCT_TYPE_AR});
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, REQUEST_ID)).thenReturn(Mono.just(requestDto));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(event);
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_NAME, X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE)
+				.header(X_API_KEY_HEADER_NAME, X_API_KEY_HEADER_VALUE)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isOk();
+	}
+
+	@Test
+	void ricezioneEsitiDuplicatesCheckActiveConfigNoActivePassthroughKo()  {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiDuplicatesCheckNoActiveConfigOk() : START");
+		ConsolidatoreIngressPaperProgressStatusEvent event = getProgressStatusEventWithoutAttachments();
+		EventsDto con010 = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(event.getStatusCode())
+																						.statusCode(event.getStatusCode())
+																						.statusDateTime(event.getStatusDateTime())
+																						.statusDescription(event.getStatusDescription())
+																						.iun(event.getIun())
+																						.productType(event.getProductType())
+																						.clientRequestTimeStamp(event.getClientRequestTimeStamp())
+																						.courier("recapitista1")
+		);
+		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", new String[]{"ProductType",PRODUCT_TYPE_AR,"OtherProductType"});
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, REQUEST_ID)).thenReturn(Mono.just(getRequestDto(BOOKED_EVENT, SENT_EVENT, con010)));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(event);
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_NAME, X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE)
+				.header(X_API_KEY_HEADER_NAME, X_API_KEY_HEADER_VALUE)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isBadRequest();
+	}
+
 
 	@Test
 	void ricezioneEsitiWithStatusDateTimeAndClientRequestTimeStampInFutureShouldThrowException(){

@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.consolidatore.controller;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
+import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.consolidatore.exception.SemanticException;
 import it.pagopa.pn.ec.consolidatore.exception.SyntaxException;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.support.WebExchangeBindException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
@@ -53,6 +55,8 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     private final AuthService authService;
     private static final String PATTERN_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
     private static final String PATTERN_DATE_FORMAT = "yyyy-MM-dd";
+    private static final String EMPTY_FILE_NOT_ALLOWED = "Empty or invalid file";
+    private static final String FILE_IS_EMPTY_OR_INVALID = "File is empty or invalid.";
     private static final DateTimeFormatter TIMESTAMP_RICEZIONE_FORMATTER = DateTimeFormatter.ofPattern(PATTERN_FORMAT).withZone(ZoneId.from(ZoneOffset.UTC));
     private static final DateTimeFormatter DATA_RICEZIONE_FORMATTER = DateTimeFormatter.ofPattern(PATTERN_DATE_FORMAT).withZone(ZoneId.from(ZoneOffset.UTC));
 
@@ -97,6 +101,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
         log.logStartingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS);
         return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
                 .doOnSuccess(result -> log.logEndingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS))
+                .onErrorMap(WebClientResponseException.UnprocessableEntity.class,e-> new Generic400ErrorException(EMPTY_FILE_NOT_ALLOWED, FILE_IS_EMPTY_OR_INVALID))
                 .doOnError(throwable -> log.logEndingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS, false, throwable.getMessage()))
                 .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute(REQUEST_BODY)))
                 .doOnError(SemanticException.class, e -> log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(e.getAuditLogErrorList())))

@@ -40,7 +40,7 @@ public class StatusPullServiceImpl implements StatusPullService {
     @Override
     public Mono<CourtesyMessageProgressEvent> digitalPullService(String requestIdx, String xPagopaExtchCxId, String processId) {
         String concatRequestId=concatRequestId(xPagopaExtchCxId, requestIdx);
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, DIGITAL_PULL_SERVICE, concatRequestId);
+        log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, DIGITAL_PULL_SERVICE, concatRequestId);
 
         return getRequest(xPagopaExtchCxId, requestIdx).flatMap(this::getLastEvent).flatMap(eventDTO -> {
             var event = new CourtesyMessageProgressEvent();
@@ -74,7 +74,7 @@ public class StatusPullServiceImpl implements StatusPullService {
     @Override
     public Mono<LegalMessageSentDetails> pecPullService(String requestIdx, String xPagopaExtchCxId) {
         String concatRequestId=concatRequestId(xPagopaExtchCxId, requestIdx);
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PEC_PULL_SERVICE, concatRequestId);
+        log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, PEC_PULL_SERVICE, concatRequestId);
 
         return getRequest(xPagopaExtchCxId, requestIdx).flatMap(this::getLastEvent).flatMap(eventDTO -> {
             var event = new LegalMessageSentDetails();
@@ -111,7 +111,7 @@ public class StatusPullServiceImpl implements StatusPullService {
     @Override
     public Mono<PaperProgressStatusEvent> paperPullService(String requestIdx, String xPagopaExtchCxId) {
         String concatRequestId=concatRequestId(xPagopaExtchCxId, requestIdx);
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PAPER_PULL_SERVICE, concatRequestId);
+        log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, PAPER_PULL_SERVICE, concatRequestId);
 
         return getRequest(xPagopaExtchCxId, requestIdx).map(requestDto -> {
 
@@ -176,6 +176,7 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                event.setClientRequestTimeStamp(requestDto.getClientRequestTimeStamp());
                                                                event.setIun(requestDto.getRequestMetadata().getPaperRequestMetadata().getIun());
                                                                event.setProductType(requestDto.getRequestMetadata().getPaperRequestMetadata().getProductType());
+                                                               event.setCourier(paperProgrStatus.getCourier());
 
                                                                status = lastEventUpdated.getPaperProgrStatus().getStatus();
                                                            }
@@ -209,7 +210,8 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                                                               .productType("")
                                                                                                               .statusCode("")
                                                                                                               .iun("")
-                                                                                                              .registeredLetterCode("")))
+                                                                                                              .registeredLetterCode("")
+                                                                                                              .courier("")))
                                                       .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, PAPER_PULL_SERVICE, result));
 
     }
