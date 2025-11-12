@@ -1,0 +1,93 @@
+openapi: 3.0.3
+info:
+  title: PaperRequestMetadata Patch api
+  x-summary: PaperRequestMetadata Patch api
+  x-api-id: api-richieste-metadati-patch
+  description: >-
+    Questo servizio permette di eseguire l' update di un record 
+    presente nella tabella dynamo pn-EcRichiesteMetadati impostando
+    i campi del payload al valore desiderato.
+  version: '0.0.1'
+  contact:
+    name: "PN PagoPA"
+    email: pn@pagopa.it
+  license:
+    name: PN software license
+    url: 'https://www.pn.pagopa.it/LICENSE'
+paths:
+  /external-channels/v1/paper-request-metadata/{requestIdx}:
+    parameters:
+      - $ref: '#/components/parameters/requestIdx'
+      - name: x-pagopa-extch-cx-id
+        in: header
+        required: true
+        schema:
+          type: string
+    patch:
+      tags:
+        - PaperRequestMetadataPatch
+      operationId: patchRequestMetadata
+      summary: Update campo isOpenReworkRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestMetadataPatchRequest'
+      responses:
+        '204':
+          description: OK (no content)
+        '400':
+          $ref: '#/components/responses/putIsOpenPatchRequestBad'
+        '404':
+          description: Richiesta non trovata
+        '409':
+          $ref: '#/components/responses/putIsOpenPatchRequestDuplicated'
+components:
+  parameters:
+    requestIdx:
+      name: requestIdx
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 5
+        maxLength: 100
+  responses:
+    putIsOpenPatchRequestOk:
+      description: OK
+    putIsOpenPatchRequestBad:
+      description: Errore di validazione sintattica della richiesta
+      content:
+        application/json:
+          schema:
+            $ref: '../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
+    putIsOpenPatchRequestDuplicated:
+      description: Richiesta già effettuata
+      content:
+        application/json:
+          schema:
+            $ref: '../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
+  schemas:
+    RequestMetadataPatchRequest:
+      type: object
+      required:
+        - isOpenReworkRequest
+      properties:
+        isOpenReworkRequest:
+          type: boolean
+          example: true
+          description: >
+            Valore che identifica la richiesta come in rilavorazione.
+    PaperRequestMetadataPatchResponse:
+      type: object
+      description: Informazioni relative all'operazione di update del RichiesteMetadati
+      properties:
+        updated:
+          type: boolean
+          description: Indica se l'update è stato applicato
+          example: true
+        message:
+          type: string
+          description: Messaggio descrittivo dell'operazione
+          example: "Update applicato con successo"

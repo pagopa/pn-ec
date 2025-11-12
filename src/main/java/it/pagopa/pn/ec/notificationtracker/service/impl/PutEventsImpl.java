@@ -33,12 +33,12 @@ public class PutEventsImpl implements PutEvents {
     }
 
     @Override
-    public <T>Mono<PutEventsResponse> putEventExternal(final T objectToNotify, String processId) {
+    public <T>Mono<PutEventsResponse> putEventExternal(final T objectToNotify, String processId, String detailType) {
         log.info(CLIENT_METHOD_INVOCATION_WITH_ARGS, EVENT_BRIDGE_PUT_EVENT_EXTERNAL, objectToNotify);
         return Mono.fromCallable(() -> PutEventsRequestEntry.builder()
                                                             .time(new Date().toInstant())
                                                             .source("NOTIFICATION TRACKER")
-                                                            .detailType("ExternalChannelOutcomeEvent")
+                                                            .detailType(detailType)
                                                             .detail(objectMapper.writeValueAsString(objectToNotify))
                                                             .eventBusName(notificationTrackerEventBridgeEventName.notificationsBusName())
                                                             .build()).flatMap(putEventsRequestEntry -> {

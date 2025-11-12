@@ -275,10 +275,11 @@ public class LogUtils {
     public static final String HANDLE_AVAILABILITY_MANAGER = "AvailabilityManagerService.handleAvailabilityManager()";
     public static final String HANDLE_AVAILABILITY_MANAGER_TRANSFORM_ERROR = "AvailabilityManagerService.handleTransformationError()";
 
-
-
-
-
+    //RICHIESTE METADATA REWORK
+    public static final String PAPER_REQUEST_METADATA_REWORK = "RichiesteMetadatiRework";
+    public static final String PAPER_REQUEST_METADATA_PATCH_SERVICE_PATCH_IS_OPEN_REWORK_REQUEST = "PaperRequestMetadataPatchServiceImpl.patchIsOpenReworkRequest()";
+    public static final String PAPER_REQUEST_METADATA_PATCH_SERVICE_GET_REQUEST_METADATA = "PaperRequestMetadataPatchServiceImpl.getRequestMetadata()";
+    public static final String PAPER_REQUEST_METADATA_PATCH_SERVICE_UPDATE_REQUEST_METADATA = "PaperRequestMetadataPatchServiceImpl.updateRequestMetadata()";
     //SERCQ
     public static final String SEND_TO_SERCQ_SEND_SUCCESS = "OK, consegna da SeND a SERCQ-SeND conclusa con successo";
 
