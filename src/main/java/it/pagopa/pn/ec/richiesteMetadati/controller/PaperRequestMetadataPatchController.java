@@ -22,16 +22,17 @@ public class PaperRequestMetadataPatchController implements PaperRequestMetadata
 
         this.richiesteMetadatireworkService = richiesteMetadatireworkService;
     }
-
     @Override
     public  Mono<ResponseEntity<Void>> patchRequestMetadata(String requestIdx, String xPagopaExtchCxId, Mono<RequestMetadataPatchRequest> requestMetadataPatchRequest,  final ServerWebExchange exchange) {
         log.logStartingProcess(PAPER_REQUEST_METADATA_REWORK);
-        RequestMetadataPatchRequest req = requestMetadataPatchRequest.block();
         return MDCUtils.addMDCToContextAndExecute(
+                requestMetadataPatchRequest.flatMap(req ->
                 richiesteMetadatireworkService.patchIsOpenReworkRequest(xPagopaExtchCxId,requestIdx,req)
                         .doOnSuccess(result -> log.logEndingProcess(PAPER_REQUEST_METADATA_REWORK))
                         .doOnError(throwable -> log.logEndingProcess(PAPER_REQUEST_METADATA_REWORK, false, throwable.getMessage()))
-                        .map(ResponseEntity::ok));
+                        .thenReturn(ResponseEntity.noContent().<Void>build())
+                )
+        );
 
     }
 }

@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTestWebEnv
 @CustomLog
 @DirtiesContext
-class PaperRequestMetadataPatchServiceImplTest {
+class PaperRequestMetadataPatchServiceTest {
 
     @Autowired
     PaperRequestMetadataPatchServiceImpl paperRequestMetadataPatchService;
@@ -446,7 +446,7 @@ class PaperRequestMetadataPatchServiceImplTest {
         Assertions.assertEquals(patchRequest.getIsOpenReworkRequest(), updatedRequestMetadata.getPaperRequestMetadata().getIsOpenReworkRequest());
     }
 
-    private RequestMetadata createTestRequestMetadata(String compositeKey, boolean openRework, OffsetDateTime timestamp) {
+    public static  RequestMetadata createTestRequestMetadata(String compositeKey, boolean openRework, OffsetDateTime timestamp) {
         PaperRequestMetadata paperRequestMetadata = PaperRequestMetadata.builder()
                 .requestPaId(compositeKey)
                 .isOpenReworkRequest(openRework)
