@@ -41,8 +41,6 @@ paths:
           $ref: '#/components/responses/putIsOpenPatchRequestBad'
         '404':
           description: Richiesta non trovata
-        '409':
-          $ref: '#/components/responses/putIsOpenPatchRequestDuplicated'
 components:
   parameters:
     requestIdx:
@@ -58,12 +56,6 @@ components:
       description: OK
     putIsOpenPatchRequestBad:
       description: Errore di validazione sintattica della richiesta
-      content:
-        application/json:
-          schema:
-            $ref: '../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
-    putIsOpenPatchRequestDuplicated:
-      description: Richiesta già effettuata
       content:
         application/json:
           schema:

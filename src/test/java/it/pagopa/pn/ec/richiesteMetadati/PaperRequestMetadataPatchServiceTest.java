@@ -136,7 +136,7 @@ class PaperRequestMetadataPatchServiceImplTest {
 
         // Then
         StepVerifier.create(result)
-                .expectError(RepositoryManagerException.RequestMetadataNotFoundException.class)
+                .expectError(RepositoryManagerException.RequestNotFoundException.class)
                 .verify();
     }
 

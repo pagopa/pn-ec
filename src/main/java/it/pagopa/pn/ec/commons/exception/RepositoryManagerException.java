@@ -13,11 +13,6 @@ public class RepositoryManagerException extends RuntimeException {
         super(message);
     }
 
-    public static class RequestMetadataNotFoundException extends RepositoryManagerException {
-        public RequestMetadataNotFoundException(String requestID) {
-            super(String.format("Request metadata not found for request ID: %s", requestID));
-        }
-    }
 
     public static class IdClientAlreadyPresent extends RepositoryManagerException {
 

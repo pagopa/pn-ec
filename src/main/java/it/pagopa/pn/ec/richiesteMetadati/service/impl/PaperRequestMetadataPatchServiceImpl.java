@@ -61,7 +61,7 @@ public class PaperRequestMetadataPatchServiceImpl implements PaperRequestMetadat
     private Mono<RequestMetadata> getRequestMetadata(String id) {
         log.debug("id:{}",id);
         return Mono.fromCompletionStage(() -> requestMetadataDynamoDbAsyncTableDecorator.getItem(Key.builder().partitionValue(id).build()))
-                .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestMetadataNotFoundException(id)))
+                .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestNotFoundException(id)))
                 .doOnSuccess(result -> log.info(PAPER_REQUEST_METADATA_PATCH_SERVICE_GET_REQUEST_METADATA));
     }
 
