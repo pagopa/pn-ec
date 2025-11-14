@@ -1,4 +1,4 @@
-package it.pagopa.pn.ec.richiesteMetadati.service.impl;
+package it.pagopa.pn.ec.richiestemetadati.service.impl;
 
 import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
@@ -6,7 +6,7 @@ import it.pagopa.pn.ec.commons.utils.RequestUtils;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.rest.v1.dto.RequestMetadataPatchRequest;
-import it.pagopa.pn.ec.richiesteMetadati.service.PaperRequestMetadataPatchService;
+import it.pagopa.pn.ec.richiestemetadati.service.PaperRequestMetadataPatchService;
 import lombok.CustomLog;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.stereotype.Service;
@@ -25,11 +25,10 @@ import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 public class PaperRequestMetadataPatchServiceImpl implements PaperRequestMetadataPatchService {
 
     private final DynamoDbAsyncTableDecorator<RequestMetadata> requestMetadataDynamoDbAsyncTableDecorator;
-    private final TableSchema<RequestMetadata> requestMetadataTableSchema;
 
     public PaperRequestMetadataPatchServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedAsyncClient,RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
-        this.requestMetadataTableSchema = TableSchema.fromBean(RequestMetadata.class);
-        this.requestMetadataDynamoDbAsyncTableDecorator = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedAsyncClient.table(repositoryManagerDynamoTableName.richiesteMetadataName(), this.requestMetadataTableSchema));
+        TableSchema<RequestMetadata> requestMetadataTableSchema = TableSchema.fromBean(RequestMetadata.class);
+        this.requestMetadataDynamoDbAsyncTableDecorator = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedAsyncClient.table(repositoryManagerDynamoTableName.richiesteMetadataName(), requestMetadataTableSchema));
     }
 
 
@@ -38,10 +37,10 @@ public class PaperRequestMetadataPatchServiceImpl implements PaperRequestMetadat
        String id = RequestUtils.concatRequestId(xPagopaExtchCxId,requestId);
         log.logStartingProcess(PAPER_REQUEST_METADATA_PATCH_SERVICE_PATCH_IS_OPEN_REWORK_REQUEST);
         if (req == null) {
-            return Mono.error(new IllegalArgumentException(PAPER_REQUEST_METADATA_PATCH_SERVICE_PATCH_IS_OPEN_REWORK_REQUEST));
+            return Mono.error(new RepositoryManagerException.RequestMalformedException(PAPER_REQUEST_METADATA_PATCH_SERVICE_PATCH_IS_OPEN_REWORK_REQUEST));
         }
         if (Strings.isBlank(requestId)) {
-            return Mono.error(new IllegalArgumentException(PAPER_REQUEST_METADATA_PATCH_SERVICE_PATCH_IS_OPEN_REWORK_REQUEST));
+            return Mono.error(new RepositoryManagerException.RequestMalformedException(PAPER_REQUEST_METADATA_PATCH_SERVICE_PATCH_IS_OPEN_REWORK_REQUEST));
         }
 
         return processUpdatePaperRequestMetadataIsOpenReworkRequest(id, req)
@@ -54,8 +53,17 @@ public class PaperRequestMetadataPatchServiceImpl implements PaperRequestMetadat
     private Mono<Object> processUpdatePaperRequestMetadataIsOpenReworkRequest(String id, RequestMetadataPatchRequest req) {
         log.debug("id:{},req:{}",id,req.toString());
         return getRequestMetadata(id)
-                .flatMap(paperRequestMetadata -> applyChange(paperRequestMetadata, req))
-                .flatMap(mofifiedPaperRequestMetadata -> updateRequestMetadata(mofifiedPaperRequestMetadata));
+                .flatMap(requestMetadata -> {
+                    if (requestMetadata.getPaperRequestMetadata() == null){
+                        return Mono.error(
+                                new RepositoryManagerException.RequestMalformedException(
+                                        "PaperRequestMetadata is missing for request: " + id
+                                ));
+
+                    }
+                    return applyChange(requestMetadata, req);
+                })
+                .flatMap(this::updateRequestMetadata);
     }
 
     private Mono<RequestMetadata> getRequestMetadata(String id) {

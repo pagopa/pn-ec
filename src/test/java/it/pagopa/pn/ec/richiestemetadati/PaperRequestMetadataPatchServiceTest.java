@@ -1,11 +1,11 @@
-package it.pagopa.pn.ec.richiesteMetadati;
+package it.pagopa.pn.ec.richiestemetadati;
 
 import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.model.entity.PaperRequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.rest.v1.dto.RequestMetadataPatchRequest;
-import it.pagopa.pn.ec.richiesteMetadati.service.impl.PaperRequestMetadataPatchServiceImpl;
+import it.pagopa.pn.ec.richiestemetadati.service.impl.PaperRequestMetadataPatchServiceImpl;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
 import org.junit.jupiter.api.Assertions;
@@ -39,13 +39,13 @@ class PaperRequestMetadataPatchServiceTest {
 
     private static final String X_PAGOPA_CX_ID = "CLIENT_001";
     private static final String REQUEST_ID = "REQ_12345";
+    private static final String INVALID_REQUEST_ID = "INVALID_REQUEST_ID";
     private static final String COMPOSITE_KEY = "CLIENT_001~REQ_12345";
     private static final OffsetDateTime timestamp = OffsetDateTime.now();
-    private static RequestMetadata testRequest;
 
     @BeforeEach
     void setUp() throws ExecutionException, InterruptedException {
-        testRequest = createTestRequestMetadata(COMPOSITE_KEY, false, timestamp);
+        RequestMetadata testRequest = createTestRequestMetadata(COMPOSITE_KEY, false, timestamp);
         requestMetadataTableSchema = TableSchema.fromBean(RequestMetadata.class);
         dynamoDbAsyncTableDecorator = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedAsyncClient.table("pn-EcRichiesteMetadati", requestMetadataTableSchema));
         try {
@@ -154,7 +154,7 @@ class PaperRequestMetadataPatchServiceTest {
 
         // Then
         StepVerifier.create(result)
-                .expectError(IllegalArgumentException.class)
+                .expectError(RepositoryManagerException.RequestMalformedException.class)
                 .verify();
     }
 
@@ -173,7 +173,7 @@ class PaperRequestMetadataPatchServiceTest {
 
         // Then
         StepVerifier.create(result)
-                .expectError(IllegalArgumentException.class)
+                .expectError(RepositoryManagerException.RequestMalformedException.class)
                 .verify();
     }
 
@@ -192,7 +192,7 @@ class PaperRequestMetadataPatchServiceTest {
 
         // Then
         StepVerifier.create(result)
-                .expectError(IllegalArgumentException.class)
+                .expectError(RepositoryManagerException.RequestMalformedException.class)
                 .verify();
     }
 
@@ -211,7 +211,7 @@ class PaperRequestMetadataPatchServiceTest {
 
         // Then
         StepVerifier.create(result)
-                .expectError(IllegalArgumentException.class)
+                .expectError(RepositoryManagerException.RequestMalformedException.class)
                 .verify();
     }
 
@@ -351,6 +351,37 @@ class PaperRequestMetadataPatchServiceTest {
         assertThat(updated2.getPaperRequestMetadata().getIsOpenReworkRequest()).isFalse();
     }
 
+    @Test
+    void testPatchIsOpenReworkRequest_paperEngageRequestNull_should_return_error() throws ExecutionException, InterruptedException {
+        RequestMetadata localTestRequest = createTestRequestMetadata(COMPOSITE_KEY, false, timestamp);
+        localTestRequest.setPaperRequestMetadata(null);
+        try {
+            dynamoDbAsyncTableDecorator.deleteItem(
+                    Key.builder().partitionValue(COMPOSITE_KEY).build()
+            ).get();
+        } catch (Exception e) {
+            log.info("item does not exist: {}", e.getMessage());
+        }
+        dynamoDbAsyncTableDecorator.putItem(localTestRequest).get();
+        RequestMetadataPatchRequest patchRequest = new RequestMetadataPatchRequest();
+        patchRequest.setIsOpenReworkRequest(true);
+
+        Mono<Void> result = paperRequestMetadataPatchService.patchIsOpenReworkRequest(X_PAGOPA_CX_ID, REQUEST_ID, patchRequest);
+        StepVerifier.create(result)
+                .expectError(RepositoryManagerException.RequestMalformedException.class).verify();
+
+    }
+
+    @Test
+    void testPatchIsOpenReworkRequest_GetRequestMetadata_isNotFound_should_return_error()  {
+        RequestMetadataPatchRequest patchRequest = new RequestMetadataPatchRequest();
+        patchRequest.setIsOpenReworkRequest(true);
+
+        Mono<Void> result = paperRequestMetadataPatchService.patchIsOpenReworkRequest(X_PAGOPA_CX_ID, INVALID_REQUEST_ID, patchRequest);
+        StepVerifier.create(result)
+                .expectError(RepositoryManagerException.RequestNotFoundException.class).verify();
+
+    }
 
     @Test
     void testPatchIsOpenReworkRequest_PreservesOtherFields() throws ExecutionException, InterruptedException {

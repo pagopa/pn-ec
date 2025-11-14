@@ -1,14 +1,13 @@
-package it.pagopa.pn.ec.richiesteMetadati;
+package it.pagopa.pn.ec.richiestemetadati;
 
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
+import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.rest.v1.dto.Problem;
 import it.pagopa.pn.ec.rest.v1.dto.RequestMetadataPatchRequest;
-import it.pagopa.pn.ec.richiesteMetadati.service.impl.PaperRequestMetadataPatchServiceImpl;
+import it.pagopa.pn.ec.richiestemetadati.service.impl.PaperRequestMetadataPatchServiceImpl;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -71,6 +70,36 @@ class PaperRequestMetadataPatchControllerTest {
     }
 
     @Test
+    void patchRequestMetadataRequestNotFound() {
+        when(paperRequestMetadataPatchService.patchIsOpenReworkRequest(
+                anyString(), anyString(), any(RequestMetadataPatchRequest.class)))
+                .thenReturn(Mono.error(new RepositoryManagerException.RequestNotFoundException("RequestMetadata not found")));
+
+        patchMetadataTestCall(
+                BodyInserters.fromValue(requestMetadataPatchRequest),
+                DEFAULT_REQUEST_IDX,
+                DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .expectStatus()
+                .isNotFound()
+                .expectBody(Problem.class);
+    }
+
+    @Test
+    void patchRequestMetadataPaperRequestNotPresent() {
+        when(paperRequestMetadataPatchService.patchIsOpenReworkRequest(
+                anyString(), anyString(), any(RequestMetadataPatchRequest.class)))
+                .thenReturn(Mono.error(new RepositoryManagerException.RequestMalformedException("PaperRequestMetadata is null")));
+
+        patchMetadataTestCall(
+                BodyInserters.fromValue(requestMetadataPatchRequest),
+                DEFAULT_REQUEST_IDX,
+                DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .expectStatus()
+                .isBadRequest()
+                .expectBody(Problem.class);
+    }
+
+    @Test
     void patchRequestMetadataBadBody() {
         patchMetadataTestCall(
                 BodyInserters.empty(),
@@ -80,12 +109,11 @@ class PaperRequestMetadataPatchControllerTest {
                 .expectBody(Problem.class);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = { BAD_REQUEST_IDX_SHORT })
-    void patchRequestMetadataMalformedRequestIdx(String badRequestIdx) {
+    @Test
+    void patchRequestMetadataMalformedRequestIdx() {
         patchMetadataTestCall(
                 BodyInserters.fromValue(requestMetadataPatchRequest),
-                badRequestIdx,
+                BAD_REQUEST_IDX_SHORT,
                 DEFAULT_ID_CLIENT_HEADER_VALUE)
                 .expectStatus().isBadRequest()
                 .expectBody(Problem.class);
