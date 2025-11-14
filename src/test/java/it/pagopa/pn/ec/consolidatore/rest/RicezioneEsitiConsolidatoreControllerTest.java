@@ -1002,7 +1002,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 
 	@ParameterizedTest(name = "duplicatesCheck active={0}, passthrough={1}, openRework={2}, expectedStatus={3}")
 	@MethodSource("duplicatesCheckTestCases")
-	void ricezioneEsitiDuplicatesCheckParametrized2(boolean configAttiva, boolean passthrough, boolean openRework, int expectedStatus) {
+	void ricezioneEsitiDuplicatesCheckParametrized2(Boolean configAttiva, Boolean passthrough, Boolean openRework, int expectedStatus) {
 		log.info("Param test -> configAttiva={}, passthrough={}, openRework={}", configAttiva, passthrough, openRework);
 
 		// event principale che inviamo
@@ -1153,15 +1153,37 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		return Stream.of(
 				// config attiva (shouldCheck = true)
 				Arguments.of(true, true, true, 200),
-				Arguments.of(true, false, true, 400),    // uno dei flag è false -> controllo duplicati -> error
-				Arguments.of(true, false, false, 400),   // passthrough=false e isOpenRework=false -> controllo duplicati -> error
-				Arguments.of(true, true, false, 400),     // passthrough=true ma isOpenRework=false -> controllo duplicati -> error
+				Arguments.of(true, false, true, 200),
+				Arguments.of(true, false, false, 400),
+				Arguments.of(true, true, false, 200),
 
 				// config non attiva (shouldCheck = false)
 				Arguments.of(false, false, false, 200),
 				Arguments.of(false, true, false, 200),
 				Arguments.of(false, false, true, 200),
-				Arguments.of(false, true, true, 200)
+				Arguments.of(false, true, true, 200),
+
+				// passthrough null - config active
+				Arguments.of(true, null, false, 400),
+				Arguments.of(true, null, true, 200),
+
+				// rework null - config active
+				Arguments.of(true, false, null, 400),
+				Arguments.of(true, true, null, 200),
+
+				// passthrough null - config active
+				Arguments.of(false, null, false, 200),
+				Arguments.of(false, null, true, 200),
+
+				// rework null - config active
+				Arguments.of(false, false, null, 200),
+				Arguments.of(false, true, null, 200),
+
+				// both null
+				Arguments.of(true, null, null, 400),
+				Arguments.of(true, null, null, 400),
+				Arguments.of(false, null, null, 200),
+				Arguments.of(false, null, null, 200)
 		);
 	}
 

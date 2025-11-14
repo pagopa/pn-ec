@@ -282,8 +282,8 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		return Mono.defer(() -> {
 			Boolean passthrough = requestDto.getRequestMetadata().getPaperRequestMetadata().getDuplicateCheckPassthrough();
 			Boolean isOpenReworker = requestDto.getRequestMetadata().getPaperRequestMetadata().getIsOpenReworkRequest();
-			if ((passthrough == null || !passthrough || isOpenReworker == null || !isOpenReworker)
-					&& shouldCheck) {
+
+			if(!((passthrough != null && passthrough) || (isOpenReworker != null && isOpenReworker)) && shouldCheck) {
 				log.debug(VERIFICA_DUPLICATI + ": checking {} for duplicates against events {}", progressStatusEvent,requestDto.getRequestMetadata().getEventsList());
 				return Flux.fromIterable(requestDto.getRequestMetadata().getEventsList()).any(event -> isSameEvent(event.getPaperProgrStatus(), progressStatusEvent));
 			}
