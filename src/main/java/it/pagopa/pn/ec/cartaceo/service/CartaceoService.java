@@ -259,7 +259,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         return paperRequestMetadataDto;
     }
 
-    @Scheduled(cron = "${pn.ec.cron.lavorazione-batch-cartaceo}")
+    @Scheduled(fixedDelayString = "${pn.ec.delay.lavorazione-batch-cartaceo}")
     public void lavorazioneRichiestaBatch() {
         MDC.clear();
         log.logStartingProcess(LAVORAZIONE_RICHIESTA_CARTACEO_BATCH);
@@ -316,7 +316,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .then(sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo));
     }
 
-    @Scheduled(cron = "${pn.ec.cron.gestione-retry-cartaceo}")
+    @Scheduled(fixedDelayString = "${pn.ec.delay.gestione-retry-cartaceo}")
     void gestioneRetryCartaceoScheduler() {
         MDC.clear();
         idSaved = null;

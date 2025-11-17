@@ -194,7 +194,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .subscribe();
     }
 
-    @Scheduled(cron = "${pn.ec.cron.lavorazione-batch-email}")
+    @Scheduled(fixedDelayString = "${pn.ec.delay.lavorazione-batch-email}")
     public void lavorazioneRichiestaBatch() {
         MDC.clear();
         String queueName = emailSqsQueueName.batchName();
@@ -300,7 +300,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         return ret;
     }
 
-    @Scheduled(cron = "${pn.ec.cron.gestione-retry-email}")
+    @Scheduled(fixedDelayString = "${pn.ec.delay.gestione-retry-email}")
     void gestioneRetryEmailScheduler() {
         MDC.clear();
         String queueName = emailSqsQueueName.errorName();
