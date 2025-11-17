@@ -88,6 +88,7 @@ class NotificationTrackerMessageReceiverTest {
     private static final String PAPER_REQUEST_IDX = "PAPER_REQUEST_IDX";
     private static final String SERCQ_REQUEST_IDX = "SERCQ_REQUEST_IDX";
     private static final String CLIENT_ID = "CLIENT_ID";
+    private static final String EXTERNAL_CHANNEL_REWORK_OUTCOME_EVENT = "ExternalChannelReworkOutcomeEvent";
 
     private static final List<JSONObject> stateMachine = new ArrayList<>();
 
@@ -109,6 +110,7 @@ class NotificationTrackerMessageReceiverTest {
         insertPecRequest();
         insertPaperRequest();
         insertSercqRequest();
+        insertPaperRequestRework();
     }
 
     @BeforeEach
@@ -190,7 +192,7 @@ class NotificationTrackerMessageReceiverTest {
 
         verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
         verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
-        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(processId));
+        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(processId), any(String.class));
     }
 
     @ParameterizedTest
@@ -206,7 +208,7 @@ class NotificationTrackerMessageReceiverTest {
 
         verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, processId, statoQueueName, statoDlqQueueName, acknowledgment);
         verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
-        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(processId));
+        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(processId), anyString());
 
     }
 
@@ -279,7 +281,7 @@ class NotificationTrackerMessageReceiverTest {
         notificationTrackerMessageReceiver.receiveCartaceoObjectMessage(notificationTrackerQueueDto, acknowledgment);
         verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, transactionProcessConfigurationProperties.paper(), notificationTrackerSqsName.statoCartaceoName(), notificationTrackerSqsName.statoCartaceoErratoName(), acknowledgment);
         verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
-        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(transactionProcessConfigurationProperties.paper()));
+        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(transactionProcessConfigurationProperties.paper()),any(String.class));
 
     }
 
@@ -352,7 +354,7 @@ class NotificationTrackerMessageReceiverTest {
 
         verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, transactionProcessConfigurationProperties.pec(), notificationTrackerSqsName.statoPecName(), notificationTrackerSqsName.statoPecErratoName(), acknowledgment);
         verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
-        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(transactionProcessConfigurationProperties.pec()));
+        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(transactionProcessConfigurationProperties.pec()),any(String.class));
     }
 
     @Test
@@ -372,9 +374,33 @@ class NotificationTrackerMessageReceiverTest {
         notificationTrackerMessageReceiver.receiveCartaceoObjectMessage(notificationTrackerQueueDto, acknowledgment);
         verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, transactionProcessConfigurationProperties.paper(), notificationTrackerSqsName.statoCartaceoName(), notificationTrackerSqsName.statoCartaceoErratoName(), acknowledgment);
         verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
-        verify(putEvents, times(0)).putEventExternal(any(SingleStatusUpdate.class), eq(transactionProcessConfigurationProperties.paper()));
+        verify(putEvents, times(0)).putEventExternal(any(SingleStatusUpdate.class), eq(transactionProcessConfigurationProperties.paper()),any(String.class));
 
     }
+
+    @Test
+    void paperNtOkRework() {
+        PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX+"rework").xPagopaExtchCxId(CLIENT_ID).build();
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant())
+                .discoveredAddress(new DiscoveredAddressDto())
+                .attachments(List.of(new AttachmentsProgressEventDto().id("id"))).courier("recapitista1").productType("AR");
+
+        NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), paperProgressStatusDto);
+
+        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
+        mockStatusDecode();
+
+        //THEN
+        notificationTrackerMessageReceiver.receiveCartaceoObjectMessage(notificationTrackerQueueDto, acknowledgment);
+        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, transactionProcessConfigurationProperties.paper(), notificationTrackerSqsName.statoCartaceoName(), notificationTrackerSqsName.statoCartaceoErratoName(), acknowledgment);
+        verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
+
+        verify(putEvents, times(1))
+                .putEventExternal(any(SingleStatusUpdate.class),
+                        eq(transactionProcessConfigurationProperties.paper()),
+                        eq(EXTERNAL_CHANNEL_REWORK_OUTCOME_EVENT));
+    }
+
 
     private NotificationTrackerQueueDto receiveDigitalObjectMessage(String requestId, String processId, Status nextStatus, GeneratedMessageDto generatedMessageDto) {
         //GIVEN
@@ -451,6 +477,24 @@ class NotificationTrackerMessageReceiverTest {
                 .discoveredAddress(new DiscoveredAddress())
                 .build()).build();
         requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).paperRequestMetadata(PaperRequestMetadata.builder().build()).build()));
+    }
+
+    private static void insertPaperRequestRework() {
+        var concatRequestId = CLIENT_ID + "~" + PAPER_REQUEST_IDX+"rework";
+        requestPersonalDynamoDbTable.putItem(RequestPersonal.builder()
+                .requestId(concatRequestId)
+                .xPagopaExtchCxId(CLIENT_ID)
+                .paperRequestPersonal(PaperRequestPersonal.builder().build())
+                .build());
+        PaperRequestMetadata paperMetadata = PaperRequestMetadata.builder().isOpenReworkRequest(true).build();
+        Events event = Events.builder().paperProgrStatus(PaperProgressStatus.builder().status(BOOKED.getStatusTransactionTableCompliant()).statusDateTime(OffsetDateTime.now()).build()).build();
+
+        requestMetadataDynamoDbTable.putItem(RequestMetadata.builder()
+                .requestId(concatRequestId)
+                .xPagopaExtchCxId(CLIENT_ID)
+                .eventsList(List.of(event))
+                .paperRequestMetadata(paperMetadata)
+                .build());
     }
 
     private static void buildStateMachine() throws IOException, JSONException {

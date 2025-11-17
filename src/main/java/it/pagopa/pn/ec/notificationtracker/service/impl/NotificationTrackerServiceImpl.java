@@ -15,12 +15,15 @@ import it.pagopa.pn.ec.notificationtracker.service.NotificationTrackerService;
 import it.pagopa.pn.ec.notificationtracker.service.PutEvents;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.CustomLog;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+
 import static it.pagopa.pn.ec.commons.utils.CompareUtils.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
@@ -37,6 +40,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
     private final SqsService sqsService;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
+    private static final String EXTERNAL_CHANNEL_REWORK_OUTCOME_EVENT = "ExternalChannelReworkOutcomeEvent";
+    private static final String EXTERNAL_CHANNEL_OUTCOME_EVENT = "ExternalChannelOutcomeEvent";
 
     public NotificationTrackerServiceImpl(PutEvents putEvents, GestoreRepositoryCall gestoreRepositoryCall,
                                           CallMacchinaStati callMachinaStati, SqsService sqsService,
@@ -188,7 +193,10 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         }
                                         singleStatusUpdate.setClientId(requestDto.getxPagopaExtchCxId());
                                         singleStatusUpdate.setEventTimestamp(OffsetDateTime.now());
-                                        return putEvents.putEventExternal(singleStatusUpdate, processId);
+
+                                        String detailType = getDetailType(requestDto);
+                                        return putEvents.putEventExternal(singleStatusUpdate, processId, detailType);
+
                                     })
                                     .then()
                                     .doOnError(InvalidNextStatusException.class, throwable -> log.debug(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId, throwable, throwable.getMessage()))
@@ -299,4 +307,16 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
         discoveredAddress.setCountry(lastDiscoveredAddress.getCountry());
         return  discoveredAddress;
     }
+
+    private static String getDetailType(RequestDto requestDto) {
+        return Optional.ofNullable(requestDto)
+                .map(RequestDto::getRequestMetadata)
+                .map(RequestMetadataDto::getPaperRequestMetadata)
+                .map(PaperRequestMetadataDto::getIsOpenReworkRequest)
+                .filter(Boolean.TRUE::equals)
+                .map(v -> EXTERNAL_CHANNEL_REWORK_OUTCOME_EVENT)
+                .orElse(EXTERNAL_CHANNEL_OUTCOME_EVENT);
+    }
+
+
 }

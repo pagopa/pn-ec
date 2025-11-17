@@ -20,4 +20,5 @@ public class PaperRequestMetadata {
     String printType;
     Map<String, String> vas;
     Boolean duplicateCheckPassthrough;
+    Boolean isOpenReworkRequest;
 }

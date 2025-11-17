@@ -9,8 +9,10 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
@@ -23,6 +25,7 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -52,7 +55,7 @@ import org.hamcrest.Matchers;
 @AutoConfigureWebTestClient
 @CustomLog
 class RicezioneEsitiConsolidatoreControllerTest {
-	
+
     @Autowired
     private WebTestClient webClient;
 	@MockBean
@@ -66,21 +69,21 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	private StatusPullService statusPullService;
 	@SpyBean
 	private SqsServiceImpl sqsService;
-    
+
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
 	@SpyBean
 	private RicezioneEsitiCartaceoServiceImpl ricezioneEsitiCartaceoServiceImpl;
 
     private static final String RICEZIONE_ESITI_ENDPOINT = "/consolidatore-ingress/v1/push-progress-events/";
-    
+
     private static final String X_PAGOPA_EXTCH_SERVICE_ID_HEADER_NAME =  "x-pagopa-extch-service-id";
     private static final String X_API_KEY_HEADER_NAME = "x-api-key";
     private static final String X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE = "IdClientX";
     private static final String X_API_KEY_HEADER_VALUE = "ApiKeyX";
-    
+
     private static final String SS_IN_URI = "safestorage://";
-    
+
     // minLength: 30 maxLength: 250
     private static final String REQUEST_ID = "123456789012345678901234567890";
     private static final OffsetDateTime NOW = OffsetDateTime.now();
@@ -178,10 +181,10 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	attachment.setUri(URI);
     	attachment.setSha256(SHA_256_ID);
     	attachment.setDate(NOW);
-    	
+
     	List<ConsolidatoreIngressPaperProgressStatusEventAttachments> attachments = new ArrayList<>();
     	attachments.add(attachment);
-    	
+
     	ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();
     	progressStatusEvent.setAttachments(attachments);
     	return progressStatusEvent;
@@ -440,10 +443,10 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
 		when(gestoreRepositoryCall.getRichiesta(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, REQUEST_ID)).thenReturn(Mono.error(new RestCallException.ResourceNotFoundException()));
-    	
+
     	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
     	events.add(getProgressStatusEventWithoutAttachments());
-    	
+
         webClient.put()
 	        .uri(RICEZIONE_ESITI_ENDPOINT)
 	        .accept(APPLICATION_JSON)
@@ -455,7 +458,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	        .expectStatus()
 	        .isBadRequest();
     }
-    
+
     @Test
     /** Test CRCRE.100.3 */
     void ricezioneEsitiErroreValidazioneStatusCode() {
@@ -466,10 +469,10 @@ class RicezioneEsitiConsolidatoreControllerTest {
 
 		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();
     	progressStatusEvent.setStatusCode(STATUS_CODE_INESISTENTE);
-    	
+
     	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
     	events.add(progressStatusEvent);
-    	
+
         webClient.put()
 	        .uri(RICEZIONE_ESITI_ENDPOINT)
 	        .accept(APPLICATION_JSON)
@@ -481,7 +484,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	        .expectStatus()
 	        .isBadRequest();
     }
-    
+
     @Test
     /** Test CRCRE.100.4 */
     void ricezioneEsitiErroreValidazioneAttachments() {
@@ -492,10 +495,10 @@ class RicezioneEsitiConsolidatoreControllerTest {
 
     	when(fileCall.getFile(DOCUMENT_KEY, X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, true))
     		.thenReturn(Mono.error(new AttachmentNotAvailableException(DOCUMENT_KEY)));
-    	
+
     	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
     	events.add(getProgressStatusEventWithAttachments());
-    	
+
         webClient.put()
 	        .uri(RICEZIONE_ESITI_ENDPOINT)
 	        .accept(APPLICATION_JSON)
@@ -513,22 +516,22 @@ class RicezioneEsitiConsolidatoreControllerTest {
     /** Test CRCRE.100.4 */
     void ricezioneEsitiErrorePubblicazioneCodaNotificationTracker() {
     	log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiErrorePubblicazioneCodaNotificationTracker() : START");
-    	
+
     	when(gestoreRepositoryCall.getRichiesta(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, REQUEST_ID)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
-    	
+
     	FileDownloadResponse fileDownloadResponse = new FileDownloadResponse();
     	fileDownloadResponse.setKey(DOCUMENT_KEY);
-    	
+
     	when(fileCall.getFile(DOCUMENT_KEY, X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, true)).thenReturn(Mono.just(fileDownloadResponse));
-    	
+
     	// errore pubblicazione su coda cartaceo
 		when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class)))
 			.thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName.statoCartaceoName())));
-    	
+
     	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
     	events.add(getProgressStatusEventWithoutAttachments());
     	events.add(getProgressStatusEventWithoutAttachments());
-    	
+
         webClient.put()
         .uri(RICEZIONE_ESITI_ENDPOINT)
         .accept(APPLICATION_JSON)
@@ -997,6 +1000,61 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.isBadRequest();
 	}
 
+	@ParameterizedTest(name = "duplicatesCheck active={0}, passthrough={1}, openRework={2}, expectedStatus={3}")
+	@MethodSource("duplicatesCheckTestCases")
+	void ricezioneEsitiDuplicatesCheckParametrized2(Boolean configAttiva, Boolean passthrough, Boolean openRework, int expectedStatus) {
+		log.info("Param test -> configAttiva={}, passthrough={}, openRework={}", configAttiva, passthrough, openRework);
+
+		// event principale che inviamo
+		ConsolidatoreIngressPaperProgressStatusEvent event = getProgressStatusEventWithoutAttachments();
+
+		// evento già presente nella lista
+		EventsDto con010 = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+				.status(event.getStatusCode())
+				.statusCode(event.getStatusCode())
+				.statusDescription(event.getStatusDescription())
+				.iun(event.getIun())
+				.productType(event.getProductType())
+				.statusDateTime(event.getStatusDateTime())
+				.clientRequestTimeStamp(event.getClientRequestTimeStamp())
+				.courier(event.getCourier())
+		);
+
+		RequestDto requestDto = getRequestDto(BOOKED_EVENT, SENT_EVENT, con010);
+		requestDto.getRequestMetadata().getPaperRequestMetadata().setDuplicateCheckPassthrough(passthrough);
+		requestDto.getRequestMetadata().getPaperRequestMetadata().setIsOpenReworkRequest(openRework);
+
+		// config duplicatesCheck
+		if (configAttiva) {
+			ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", new String[]{"ProductType",PRODUCT_TYPE_AR,"OtherProductType"});
+		} else {
+			ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", new String[]{});
+		}
+
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, REQUEST_ID))
+				.thenReturn(Mono.just(requestDto));
+		when(statusPullService.paperPullService(anyString(), anyString()))
+				.thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = List.of(event);
+		var response = webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_NAME, X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE)
+				.header(X_API_KEY_HEADER_NAME, X_API_KEY_HEADER_VALUE)
+				.bodyValue(events)
+				.exchange();
+
+		if (expectedStatus == 200) {
+			response.expectStatus().isOk();
+		} else {
+			response.expectStatus().isBadRequest();
+		}
+	}
+
 
 	@Test
 	void ricezioneEsitiWithStatusDateTimeAndClientRequestTimeStampInFutureShouldThrowException(){
@@ -1091,6 +1149,43 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.isBadRequest();
 	}
 
+	private static Stream<Arguments> duplicatesCheckTestCases() {
+		return Stream.of(
+				// config attiva (shouldCheck = true)
+				Arguments.of(true, true, true, 200),
+				Arguments.of(true, false, true, 200),
+				Arguments.of(true, false, false, 400),
+				Arguments.of(true, true, false, 200),
+
+				// config non attiva (shouldCheck = false)
+				Arguments.of(false, false, false, 200),
+				Arguments.of(false, true, false, 200),
+				Arguments.of(false, false, true, 200),
+				Arguments.of(false, true, true, 200),
+
+				// passthrough null - config active
+				Arguments.of(true, null, false, 400),
+				Arguments.of(true, null, true, 200),
+
+				// rework null - config active
+				Arguments.of(true, false, null, 400),
+				Arguments.of(true, true, null, 200),
+
+				// passthrough null - config active
+				Arguments.of(false, null, false, 200),
+				Arguments.of(false, null, true, 200),
+
+				// rework null - config active
+				Arguments.of(false, false, null, 200),
+				Arguments.of(false, true, null, 200),
+
+				// both null
+				Arguments.of(true, null, null, 400),
+				Arguments.of(true, null, null, 400),
+				Arguments.of(false, null, null, 200),
+				Arguments.of(false, null, null, 200)
+		);
+	}
 
 
 }

@@ -13,6 +13,7 @@ public class RepositoryManagerException extends RuntimeException {
         super(message);
     }
 
+
     public static class IdClientAlreadyPresent extends RepositoryManagerException {
 
         public IdClientAlreadyPresent(String idClient) {
