@@ -63,9 +63,8 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                     try {
                         jsonLogger.info(EmfLogUtils.createEmfLog(
                                 SERVICE_CONSOLIDATORE, CONSOLIDATORE_METRIC_NAME, UNIT_MILLISECONDS, //namespace, metricName, unit metric
-                                List.of(ELAPSED_TIME, CODE_HTTP, SERVICE, METRIC_TYPE), //dimensions
-                                Map.of(ELAPSED_TIME, elapsedTime, //valori dimensions, la mappa serve per la creazione della metrica (generica e dimanica)
-                                        CODE_HTTP, clientResponse.statusCode().value(),
+                                List.of(SERVICE, METRIC_TYPE, CODE_HTTP), //dimensions
+                                Map.of(CODE_HTTP, clientResponse.statusCode().value(),  //valori dimensions, la mappa serve per la creazione della metrica (generica e dimanica)
                                         SERVICE, SERVICE_CONSOLIDATORE,
                                         METRIC_TYPE, METRIC_TYPE_TIMING,
                                         CONSOLIDATORE_METRIC_NAME, elapsedTime)));
