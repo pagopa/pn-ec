@@ -166,6 +166,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
     @Scheduled(fixedDelayString = "${pn.ec.delay.lavorazione-batch-pec}")
     public void lavorazioneRichiestaBatch() {
+    	log.logStartingProcess(LAVORAZIONE_BATCH_PEC);
         MDC.clear();
         sqsService.getMessages(pecSqsQueueName.batchName(), PecPresaInCaricoInfo.class)
                 .doOnNext(pecPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(pecSqsQueueName.batchName(),
@@ -175,7 +176,9 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .flatMap(pecPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(pecPresaInCaricoInfoSqsMessageWrapper.getT1(),
                         pecSqsQueueName.batchName()))
                 .transform(pullFromFluxUntilIsEmpty())
-                .subscribe();
+                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_PEC, false, e.getMessage()))
+                .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_PEC))
+                .blockLast();
     }
 
     private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))
@@ -308,6 +311,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
     @Scheduled(fixedDelayString = "${pn.ec.delay.gestione-retry-pec}")
     void gestioneRetryPecScheduler() {
+    	log.logStartingProcess(LAVORAZIONE_ERRORI_PEC);
         MDC.clear();
         idSaved = null;
         sqsService.getOneMessage(pecSqsQueueName.errorName(), PecPresaInCaricoInfo.class)
@@ -322,7 +326,9 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)
-                .subscribe();
+                .doOnError( e -> log.logEndingProcess(LAVORAZIONE_ERRORI_PEC, false, e.getMessage()))
+                .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_ERRORI_PEC))
+                .blockLast();
     }
 
     private Mono<RequestDto> filterRequestPec(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
