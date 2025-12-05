@@ -64,9 +64,9 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                         jsonLogger.info(EmfLogUtils.createEmfLog(
                                 SERVICE_CONSOLIDATORE, CONSOLIDATORE_METRIC_NAME, UNIT_MILLISECONDS, //namespace, metricName, unit metric
                                 List.of(SERVICE, METRIC_TYPE, CODE_HTTP), //dimensions
-                                Map.of(CODE_HTTP, clientResponse.statusCode().value(),  //valori dimensions, la mappa serve per la creazione della metrica (generica e dimanica)
-                                        SERVICE, SERVICE_CONSOLIDATORE,
+                                Map.of(SERVICE, SERVICE_CONSOLIDATORE,
                                         METRIC_TYPE, METRIC_TYPE_TIMING,
+                                        CODE_HTTP, String.valueOf(clientResponse.statusCode().value()),  //valori dimensions, la mappa serve per la creazione della metrica (generica e dimanica)
                                         CONSOLIDATORE_METRIC_NAME, elapsedTime)));
                     } catch (Exception e) {
                         log.warn("Errore nella generazione log EMF timing consolidatore", e);
