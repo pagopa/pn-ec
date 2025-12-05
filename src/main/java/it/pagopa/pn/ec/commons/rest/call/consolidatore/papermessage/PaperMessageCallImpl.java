@@ -11,8 +11,11 @@ import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicaRequest;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicasProgressesResponse;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
+import it.pagopa.pn.ec.util.EmfLogUtils;
 import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -20,10 +23,13 @@ import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static it.pagopa.pn.ec.util.EmfLogUtils.*;
+
 
 @Component
 @CustomLog
@@ -32,6 +38,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
     private final WebClient consolidatoreWebClient;
     private final PaperMessagesEndpointProperties paperMessagesEndpointProperties;
     private final JsonUtils jsonUtils;
+    private static final Logger jsonLogger = LoggerFactory.getLogger("it.pagopa.pn.JsonLogger");
     private static final List<String> NON_RETRYABLE_ERRORS = Arrays.asList(
             PaperResult.SYNTAX_ERROR_CODE,
             PaperResult.SEMANTIC_ERROR_CODE,
@@ -46,11 +53,25 @@ public class PaperMessageCallImpl implements PaperMessageCall {
 
     @Override
     public Mono<OperationResultCodeResponse> putRequest(PaperEngageRequest paperEngageRequest) {
+        long startTimeCalling = System.currentTimeMillis();
         return consolidatoreWebClient
                 .post()
                 .uri(paperMessagesEndpointProperties.putRequest())
                 .bodyValue(paperEngageRequest)
                 .exchangeToMono(clientResponse -> {
+                    long elapsedTime = System.currentTimeMillis() - startTimeCalling;
+                    try {
+                        jsonLogger.info(EmfLogUtils.createEmfLog(
+                                SERVICE_CONSOLIDATORE, CONSOLIDATORE_METRIC_NAME, UNIT_MILLISECONDS, //namespace, metricName, unit metric
+                                List.of(ELAPSED_TIME, CODE_HTTP, SERVICE, METRIC_TYPE), //dimensions
+                                Map.of(ELAPSED_TIME, elapsedTime, //valori dimensions, la mappa serve per la creazione della metrica (generica e dimanica)
+                                        CODE_HTTP, clientResponse.statusCode().value(),
+                                        SERVICE, SERVICE_CONSOLIDATORE,
+                                        METRIC_TYPE, METRIC_TYPE_TIMING,
+                                        CONSOLIDATORE_METRIC_NAME, elapsedTime)));
+                    } catch (Exception e) {
+                        log.warn("Errore nella generazione log EMF timing consolidatore", e);
+                    }
                     if (clientResponse.statusCode().is2xxSuccessful()) {
                         return clientResponse.bodyToMono(OperationResultCodeResponse.class);
                     } else if (clientResponse.statusCode().is4xxClientError()) {
