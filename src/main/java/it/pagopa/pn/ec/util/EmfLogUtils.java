@@ -29,12 +29,12 @@ public class EmfLogUtils {
     public static final String SERVICE = "Service";
     public static final String METRIC_TYPE = "MetricType";
     public static final String ELAPSED_TIME = "ElapsedTime";
-    public static final String CODE_HTTP = "CodeHTTP";
+    public static final String CODE_HTTP = "StatusResponse";
 
     // Service
     public static final String SERVICE_PEC = "PEC";
     public static final String SERVICE_CONSOLIDATORE = "PNConsolidatore";
-    public static final String CONSOLIDATORE_METRIC_NAME = "ConsolidatorePutTiming";
+    public static final String CONSOLIDATORE_METRIC_NAME = "ExecutionTimeResponse";
 
     // MetricType
     public static final String METRIC_TYPE_MESSAGECOUNT = "MessageCount";
