@@ -196,6 +196,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     @Scheduled(fixedDelayString = "${pn.ec.delay.lavorazione-batch-email}")
     public void lavorazioneRichiestaBatch() {
+    	log.logStartingProcess(LAVORAZIONE_BATCH_EMAIL);
         MDC.clear();
         String queueName = emailSqsQueueName.batchName();
         sqsService.getMessages(emailSqsQueueName.batchName(), EmailPresaInCaricoInfo.class)
@@ -207,7 +208,9 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                         emailPresaInCaricoInfoSqsMessageWrapper.getT1(),
                         emailSqsQueueName.batchName()))
                 .transform(pullFromFluxUntilIsEmpty())
-                .subscribe();
+                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_EMAIL, false, e.getMessage()))
+                .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_EMAIL))
+                .blockLast();
     }
 
     private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2));
@@ -302,6 +305,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     @Scheduled(fixedDelayString = "${pn.ec.delay.gestione-retry-email}")
     void gestioneRetryEmailScheduler() {
+    	log.logStartingProcess(LAVORAZIONE_ERRORI_EMAIL);
         MDC.clear();
         String queueName = emailSqsQueueName.errorName();
         idSaved = null;
@@ -318,7 +322,9 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)
-                .subscribe();
+                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_ERRORI_EMAIL, false, e.getMessage()))
+                .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_ERRORI_EMAIL))
+                .blockLast();
     }
 
 

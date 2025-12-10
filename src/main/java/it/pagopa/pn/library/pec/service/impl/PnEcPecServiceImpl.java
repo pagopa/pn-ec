@@ -5,6 +5,7 @@ import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.dummy.pec.service.DummyPecService;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
+import it.pagopa.pn.ec.util.EmfLogUtils;
 import it.pagopa.pn.library.exceptions.PnSpapiTemporaryErrorException;
 import it.pagopa.pn.library.pec.configuration.MetricsDimensionConfiguration;
 import it.pagopa.pn.library.pec.configurationproperties.PnPecMetricNames;
@@ -37,11 +38,13 @@ import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.library.pec.utils.PnPecUtils.*;
+import static it.pagopa.pn.ec.util.EmfLogUtils.*;
 
 @CustomLog
 @Service
@@ -155,19 +158,27 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         log.info(INVOKING_OPERATION_LABEL, UNREAD_PEC_MESSAGE);
         if (messages.isEmpty()) {
             getProvidersRead().stream().findFirst()
-                    .ifPresentOrElse(
-                            provider -> jsonLogger.info(PnPecUtils.createEmfJson(getMetricNamespace(provider),
-                                    pnPecMetricNames.getGetUnreadPecMessagesCount(), 0L)),
+                    .ifPresentOrElse(provider -> jsonLogger.info(EmfLogUtils.createEmfLog(getMetricNamespace(provider),
+                                            pnPecMetricNames.getGetUnreadPecMessagesCount(),
+                                            UNIT_COUNT,
+                                            List.of(SERVICE, METRIC_TYPE),
+                                            Map.of(SERVICE, SERVICE_PEC,
+                                                    METRIC_TYPE, METRIC_TYPE_MESSAGECOUNT,
+                                                    pnPecMetricNames.getGetUnreadPecMessagesCount(), 0L))),
                             () -> log.warn("No providers available to log metrics.")
                     );
             return Mono.just(new PnEcPecGetMessagesResponse(null, 0));
         }
         messages.stream()
                 .collect(Collectors.groupingBy(PnEcPecMessage::getProviderName, Collectors.counting()))
-                .forEach((providerName, count) -> jsonLogger.info(PnPecUtils.createEmfJson(
+                .forEach((providerName, count) -> jsonLogger.info(EmfLogUtils.createEmfLog(
                         getMetricNamespace(getProviderByName(providerName)),
-                        pnPecMetricNames.getGetUnreadPecMessagesCount(), count)));
-
+                        pnPecMetricNames.getGetUnreadPecMessagesCount(),
+                        UNIT_COUNT,
+                        List.of(SERVICE, METRIC_TYPE),
+                        Map.of(SERVICE, SERVICE_PEC,
+                                METRIC_TYPE, METRIC_TYPE_MESSAGECOUNT,
+                                pnPecMetricNames.getGetUnreadPecMessagesCount(), count))));
         return Mono.just(new PnEcPecGetMessagesResponse(new PnEcPecListOfMessages(messages), messages.size()));
     }
 
