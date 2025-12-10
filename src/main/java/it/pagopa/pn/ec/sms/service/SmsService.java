@@ -161,6 +161,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
     @Scheduled(fixedDelayString = "${pn.ec.delay.lavorazione-batch-sms}")
     void lavorazioneRichiestaBatch() {
+    	log.logStartingProcess(LAVORAZIONE_BATCH_SMS);
         MDC.clear();
         sqsService.getMessages(smsSqsQueueName.batchName(), SmsPresaInCaricoInfo.class)
                   .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
@@ -170,7 +171,10 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                   .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
                                                                                                       smsSqsQueueName.batchName()))
                   .transform(pullFromFluxUntilIsEmpty())
-                  .subscribe();
+                  .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_SMS, false, e.getMessage()))
+                  .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_SMS))
+                  .blockLast();
+        
     }
 
     private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))
@@ -234,6 +238,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
     @Scheduled(fixedDelayString = "${pn.ec.delay.gestione-retry-sms}")
     public void gestioneRetrySmsScheduler() {
+    	log.logStartingProcess(LAVORAZIONE_ERRORI_SMS);
+
         MDC.clear();
         idSaved = null;
         sqsService.getOneMessage(smsSqsQueueName.errorName(), SmsPresaInCaricoInfo.class)
@@ -248,7 +254,9 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                   .defaultIfEmpty(new MonoResultWrapper<>(null))
                   .repeat()
                   .takeWhile(MonoResultWrapper::isNotEmpty)
-                  .subscribe();
+                  .doOnError(e -> log.logEndingProcess(LAVORAZIONE_ERRORI_SMS, false, e.getMessage()))
+                  .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_ERRORI_SMS))
+                  .blockLast();
     }
 
     private Mono<RequestDto> filterRequestSms(final SmsPresaInCaricoInfo smsPresaInCaricoInfo) {

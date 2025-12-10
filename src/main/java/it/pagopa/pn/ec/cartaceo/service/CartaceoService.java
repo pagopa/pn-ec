@@ -262,7 +262,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     @Scheduled(fixedDelayString = "${pn.ec.delay.lavorazione-batch-cartaceo}")
     public void lavorazioneRichiestaBatch() {
         MDC.clear();
-        log.logStartingProcess(LAVORAZIONE_RICHIESTA_CARTACEO_BATCH);
+        log.logStartingProcess(LAVORAZIONE_BATCH_CARTACEO);
         AtomicBoolean hasMessages = new AtomicBoolean();
         hasMessages.set(true);
         String queueName= cartaceoSqsQueueName.batchName();
@@ -277,8 +277,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .collectList())
                 .doOnNext(list -> hasMessages.set(!list.isEmpty()))
                 .repeat(hasMessages::get)
-                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_CARTACEO_BATCH, false, e.getMessage()))
-                .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_CARTACEO_BATCH))
+                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO, false, e.getMessage()))
+                .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO))
                 .blockLast();
     }
 
@@ -318,6 +318,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
     @Scheduled(fixedDelayString = "${pn.ec.delay.gestione-retry-cartaceo}")
     void gestioneRetryCartaceoScheduler() {
+    	log.logStartingProcess(LAVORAZIONE_ERRORI_CARTACEO);
         MDC.clear();
         idSaved = null;
         String queueName=cartaceoSqsQueueName.errorName();
@@ -333,7 +334,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)
-                .subscribe();
+                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_ERRORI_CARTACEO, false, e.getMessage()))
+                .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_ERRORI_CARTACEO))
+                .blockLast();
     }
 
     public Mono<SqsResponse> gestioneRetryCartaceo(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo//
