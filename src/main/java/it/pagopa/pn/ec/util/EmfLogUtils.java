@@ -86,47 +86,59 @@ public class EmfLogUtils {
 
     public static void trackMetricsConsolidatore(int statusCode, long elapsedTime) {
         try {
-            // valori comuni delle dimensioni
-            Map<String, Object> baseValues = Map.of(
-                    SERVICE, SERVICE_CONSOLIDATORE,
-                    METRIC_TYPE, METRIC_TYPE_CONSOLIDATORE,
-                    CODE_HTTP, statusCode
-            );
+            // Dimensione fissa per tutte le metriche
+            List<String> dimensions = List.of(SERVICE);
 
-            List<String> dimensions = List.of(SERVICE, METRIC_TYPE, CODE_HTTP);
+            // JSON EMF con metriche separate e dimensione unica
+            ObjectNode root = objectMapper.createObjectNode();
+            ObjectNode awsNode = objectMapper.createObjectNode();
+            awsNode.put(TIMESTAMP, Instant.now().toEpochMilli());
 
-            // 1. Count
-            jsonLogger.info(EmfLogUtils.createEmfLog(
-                    SERVICE_CONSOLIDATORE, // namespace
-                    "ApiCall",               // metricName
-                    "Count",               // unit
-                    dimensions,            // dimensioni
-                    baseValues             // valori
-            ));
+            ObjectNode metricsNode = objectMapper.createObjectNode();
+            metricsNode.put(NAMESPACE, SERVICE_CONSOLIDATORE);
 
-            // 2. StatusCode
-            jsonLogger.info(EmfLogUtils.createEmfLog(
-                    SERVICE_CONSOLIDATORE,
-                    "StatusCodeResponse",
-                    "Count",
-                    dimensions,
-                    baseValues
-            ));
+            ArrayNode metricsArray = objectMapper.createArrayNode();
 
-            // 3. Timing
-            Map<String, Object> timingValues = new HashMap<>(baseValues);
-            timingValues.put("Timing", elapsedTime);
-            jsonLogger.info(EmfLogUtils.createEmfLog(
-                    SERVICE_CONSOLIDATORE,
-                    "ApiCallTiming",
-                    "Milliseconds",
-                    dimensions,
-                    timingValues
-            ));
+            // 1. ApiCall
+            ObjectNode metric1 = objectMapper.createObjectNode();
+            metric1.put(NAME, "ApiCall");
+            metric1.put(UNIT, "Count");
+            metricsArray.add(metric1);
+
+            // 2. StatusCodeResponse
+            ObjectNode metric2 = objectMapper.createObjectNode();
+            metric2.put(NAME, "StatusCodeResponse");
+            metric2.put(UNIT, "Count");
+            metricsArray.add(metric2);
+
+            // 3. ApiCallTiming
+            ObjectNode metric3 = objectMapper.createObjectNode();
+            metric3.put(NAME, "ApiCallTiming");
+            metric3.put(UNIT, "Milliseconds");
+            metricsArray.add(metric3);
+
+            metricsNode.set(METRICS, metricsArray);
+
+            // dimensioni fisse
+            ArrayNode dimensionsArray = objectMapper.createArrayNode();
+            for (String dim : dimensions) {
+                dimensionsArray.add(dim);
+            }
+            metricsNode.set(DIMENSIONS, objectMapper.createArrayNode().add(dimensionsArray));
+
+            awsNode.set(CLOUDWATCH_METRICS, objectMapper.createArrayNode().add(metricsNode));
+            root.set(AWS, awsNode);
+
+            // valori metriche
+            root.put("ApiCall", 1);
+            root.put("StatusCodeResponse", statusCode);
+            root.put("ApiCallTiming", elapsedTime);
+            root.put(SERVICE, SERVICE_CONSOLIDATORE);
+
+            jsonLogger.info(objectMapper.writeValueAsString(root));
 
         } catch (Exception e) {
             log.warn("Errore nella generazione log EMF consolidatore", e);
         }
     }
-
 }
