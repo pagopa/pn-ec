@@ -84,7 +84,7 @@ public class EmfLogUtils {
 
     public static void trackMetricsConsolidatore(long elapsedTime) {
         try {
-            List<String> dimensions = List.of(SERVICE_CONSOLIDATORE);
+            List<String> dimensions = List.of(SERVICE);
 
             // JSON EMF con metriche separate e dimensione unica
             ObjectNode root = objectMapper.createObjectNode();
