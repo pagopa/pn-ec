@@ -90,7 +90,7 @@ public class EmfLogUtils {
             Map<String, Object> baseValues = Map.of(
                     SERVICE, SERVICE_CONSOLIDATORE,
                     METRIC_TYPE, METRIC_TYPE_CONSOLIDATORE,
-                    CODE_HTTP, String.valueOf(statusCode)
+                    CODE_HTTP, statusCode
             );
 
             List<String> dimensions = List.of(SERVICE, METRIC_TYPE, CODE_HTTP);
@@ -108,7 +108,7 @@ public class EmfLogUtils {
             jsonLogger.info(EmfLogUtils.createEmfLog(
                     SERVICE_CONSOLIDATORE,
                     "StatusCodeResponse",
-                    "None",
+                    "Count",
                     dimensions,
                     baseValues
             ));
