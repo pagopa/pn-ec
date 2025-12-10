@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,17 +34,16 @@ public class EmfLogUtils {
     // Dimension
     public static final String SERVICE = "Service";
     public static final String METRIC_TYPE = "MetricType";
-    public static final String ELAPSED_TIME = "ElapsedTime";
-    public static final String CODE_HTTP = "StatusResponse";
+    public static final String STATUS_CODE_RESPONSE = "StatusCodeResponse";
+    public static final String API_CALL = "ApiCall";
+    public static final String API_CALL_TIMING = "ApiCallTiming";
 
     // Service
     public static final String SERVICE_PEC = "PEC";
     public static final String SERVICE_CONSOLIDATORE = "Consolidatore";
-    public static final String CONSOLIDATORE_METRIC_NAME = "ExecutionTimeResponse";
 
     // MetricType
     public static final String METRIC_TYPE_MESSAGECOUNT = "MessageCount";
-    public static final String METRIC_TYPE_CONSOLIDATORE = "TrackingConsolidatore";
 
 
     public static String createEmfLog(String namespace, String metricName, String unit, List<String> dimensions, Map<String, Object> values) {
@@ -86,7 +84,6 @@ public class EmfLogUtils {
 
     public static void trackMetricsConsolidatore(int statusCode, long elapsedTime) {
         try {
-            // Dimensione fissa per tutte le metriche
             List<String> dimensions = List.of(SERVICE);
 
             // JSON EMF con metriche separate e dimensione unica
@@ -100,22 +97,22 @@ public class EmfLogUtils {
             ArrayNode metricsArray = objectMapper.createArrayNode();
 
             // 1. ApiCall
-            ObjectNode metric1 = objectMapper.createObjectNode();
-            metric1.put(NAME, "ApiCall");
-            metric1.put(UNIT, "Count");
-            metricsArray.add(metric1);
+            ObjectNode metricCountApi = objectMapper.createObjectNode();
+            metricCountApi.put(NAME, API_CALL);
+            metricCountApi.put(UNIT, UNIT_COUNT);
+            metricsArray.add(metricCountApi);
 
             // 2. StatusCodeResponse
-            ObjectNode metric2 = objectMapper.createObjectNode();
-            metric2.put(NAME, "StatusCodeResponse");
-            metric2.put(UNIT, "Count");
-            metricsArray.add(metric2);
+            ObjectNode metricCodeResponse = objectMapper.createObjectNode();
+            metricCodeResponse.put(NAME, STATUS_CODE_RESPONSE);
+            metricCodeResponse.put(UNIT, UNIT_COUNT);
+            metricsArray.add(metricCodeResponse);
 
             // 3. ApiCallTiming
-            ObjectNode metric3 = objectMapper.createObjectNode();
-            metric3.put(NAME, "ApiCallTiming");
-            metric3.put(UNIT, "Milliseconds");
-            metricsArray.add(metric3);
+            ObjectNode metricApiCallElapsed = objectMapper.createObjectNode();
+            metricApiCallElapsed.put(NAME, API_CALL_TIMING);
+            metricApiCallElapsed.put(UNIT, UNIT_MILLISECONDS);
+            metricsArray.add(metricApiCallElapsed);
 
             metricsNode.set(METRICS, metricsArray);
 
@@ -130,9 +127,9 @@ public class EmfLogUtils {
             root.set(AWS, awsNode);
 
             // valori metriche
-            root.put("ApiCall", 1);
-            root.put("StatusCodeResponse", statusCode);
-            root.put("ApiCallTiming", elapsedTime);
+            root.put(API_CALL, 1);
+            root.put(STATUS_CODE_RESPONSE, statusCode);
+            root.put(API_CALL_TIMING, elapsedTime);
             root.put(SERVICE, SERVICE_CONSOLIDATORE);
 
             jsonLogger.info(objectMapper.writeValueAsString(root));

@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.PaperMessagesEndpointProperties;
 import it.pagopa.pn.ec.commons.exception.cartaceo.ConsolidatoreException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
@@ -11,20 +10,15 @@ import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicaRequest;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicasProgressesResponse;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
-import it.pagopa.pn.ec.util.EmfLogUtils;
 import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
