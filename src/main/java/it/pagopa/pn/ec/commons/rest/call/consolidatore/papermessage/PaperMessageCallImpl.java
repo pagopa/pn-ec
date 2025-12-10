@@ -22,8 +22,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
@@ -38,7 +40,6 @@ public class PaperMessageCallImpl implements PaperMessageCall {
     private final WebClient consolidatoreWebClient;
     private final PaperMessagesEndpointProperties paperMessagesEndpointProperties;
     private final JsonUtils jsonUtils;
-    private static final Logger jsonLogger = LoggerFactory.getLogger("it.pagopa.pn.JsonLogger");
     private static final List<String> NON_RETRYABLE_ERRORS = Arrays.asList(
             PaperResult.SYNTAX_ERROR_CODE,
             PaperResult.SEMANTIC_ERROR_CODE,
@@ -60,17 +61,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                 .bodyValue(paperEngageRequest)
                 .exchangeToMono(clientResponse -> {
                     long elapsedTime = System.currentTimeMillis() - startTimeCalling;
-                    try {
-                        jsonLogger.info(EmfLogUtils.createEmfLog(
-                                SERVICE_CONSOLIDATORE, CONSOLIDATORE_METRIC_NAME, UNIT_MILLISECONDS, //namespace, metricName, unit metric
-                                List.of(SERVICE, METRIC_TYPE, CODE_HTTP), //dimensions
-                                Map.of(SERVICE, SERVICE_CONSOLIDATORE,
-                                        METRIC_TYPE, METRIC_TYPE_TIMING,
-                                        CODE_HTTP, String.valueOf(clientResponse.statusCode().value()),  //valori dimensions, la mappa serve per la creazione della metrica (generica e dimanica)
-                                        CONSOLIDATORE_METRIC_NAME, elapsedTime)));
-                    } catch (Exception e) {
-                        log.warn("Errore nella generazione log EMF timing consolidatore", e);
-                    }
+                    trackMetricsConsolidatore(clientResponse.statusCode().value(), elapsedTime);
                     if (clientResponse.statusCode().is2xxSuccessful()) {
                         return clientResponse.bodyToMono(OperationResultCodeResponse.class);
                     } else if (clientResponse.statusCode().is4xxClientError()) {
@@ -78,6 +69,13 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                     } else {
                         return handleServerError(clientResponse);
                     }
+                }).onErrorResume(TimeoutException.class, ex -> {
+                    long elapsedTime = System.currentTimeMillis() - startTimeCalling;
+
+                    // timeout -> statusCode = 999
+                    trackMetricsConsolidatore(999, elapsedTime);
+
+                    return Mono.error(new ConsolidatoreException.TemporaryException("Timeout calling consolidatore"));
                 });
     }
 
@@ -139,4 +137,6 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                                                clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
                                      .bodyToMono(PaperReplicasProgressesResponse.class);
     }
+
+
 }
