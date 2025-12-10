@@ -82,7 +82,7 @@ public class EmfLogUtils {
         }
     }
 
-    public static void trackMetricsConsolidatore(int statusCode, long elapsedTime) {
+    public static void trackMetricsConsolidatore(long elapsedTime) {
         try {
             List<String> dimensions = List.of(SERVICE_CONSOLIDATORE);
 

@@ -55,7 +55,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                 .bodyValue(paperEngageRequest)
                 .exchangeToMono(clientResponse -> {
                     long elapsedTime = System.currentTimeMillis() - startTimeCalling;
-                    trackMetricsConsolidatore(clientResponse.statusCode().value(), elapsedTime);
+                    trackMetricsConsolidatore(elapsedTime);
                     if (clientResponse.statusCode().is2xxSuccessful()) {
                         return clientResponse.bodyToMono(OperationResultCodeResponse.class);
                     } else if (clientResponse.statusCode().is4xxClientError()) {
@@ -63,13 +63,6 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                     } else {
                         return handleServerError(clientResponse);
                     }
-                }).onErrorResume(TimeoutException.class, ex -> {
-                    long elapsedTime = System.currentTimeMillis() - startTimeCalling;
-
-                    // timeout -> statusCode = 999
-                    trackMetricsConsolidatore(999, elapsedTime);
-
-                    return Mono.error(new ConsolidatoreException.TemporaryException("Timeout calling consolidatore"));
                 });
     }
 
