@@ -84,7 +84,7 @@ public class EmfLogUtils {
 
     public static void trackMetricsConsolidatore(int statusCode, long elapsedTime) {
         try {
-            List<String> dimensions = List.of(SERVICE);
+            List<String> dimensions = List.of(SERVICE_CONSOLIDATORE);
 
             // JSON EMF con metriche separate e dimensione unica
             ObjectNode root = objectMapper.createObjectNode();
@@ -92,7 +92,7 @@ public class EmfLogUtils {
             awsNode.put(TIMESTAMP, Instant.now().toEpochMilli());
 
             ObjectNode metricsNode = objectMapper.createObjectNode();
-            metricsNode.put(NAMESPACE, SERVICE_CONSOLIDATORE);
+            metricsNode.put(NAMESPACE, "DownstreamMetrics");
 
             ArrayNode metricsArray = objectMapper.createArrayNode();
 
@@ -102,13 +102,7 @@ public class EmfLogUtils {
             metricCountApi.put(UNIT, UNIT_COUNT);
             metricsArray.add(metricCountApi);
 
-            // 2. StatusCodeResponse
-            ObjectNode metricCodeResponse = objectMapper.createObjectNode();
-            metricCodeResponse.put(NAME, STATUS_CODE_RESPONSE);
-            metricCodeResponse.put(UNIT, UNIT_COUNT);
-            metricsArray.add(metricCodeResponse);
-
-            // 3. ApiCallTiming
+            // 2. ApiCallTiming
             ObjectNode metricApiCallElapsed = objectMapper.createObjectNode();
             metricApiCallElapsed.put(NAME, API_CALL_TIMING);
             metricApiCallElapsed.put(UNIT, UNIT_MILLISECONDS);
@@ -128,7 +122,6 @@ public class EmfLogUtils {
 
             // valori metriche
             root.put(API_CALL, 1);
-            root.put(STATUS_CODE_RESPONSE, statusCode);
             root.put(API_CALL_TIMING, elapsedTime);
             root.put(SERVICE, SERVICE_CONSOLIDATORE);
 
