@@ -243,30 +243,7 @@ components:
       content:
         application/json:
           schema:
-            title: ClientConfigurationInternalDto
-            type: object
-            properties:
-              xPagopaExtchCxId:
-                type: string
-                pattern: "^(?!\\s*$).+"
-                minLength: 10
-                maxLength: 50
-              sqsArn:
-                type: string
-              sqsName:
-                type: string
-              pecReplyTo:
-                type: string
-              mailReplyTo:
-                type: string
-              apiKey:
-                type: string
-              senderPhysicalAddress:
-                $ref: "#/components/schemas/SenderPhysicalAddressDto"
-            required:
-              - xPagopaExtchCxId
-              - sqsArn
-              - sqsName
+            $ref: '#/components/schemas/ClientConfigurationInternalDto'
 
     requestResponseOk:
       description: OK
@@ -291,6 +268,35 @@ components:
 
 
   schemas:
+
+    #############################################################################################
+    ###                     SCHEMI PER CONFIGURAZIONE CLIENT                                  ###
+    #############################################################################################
+
+    ClientConfigurationInternalDto:
+      type: object
+      properties:
+        xPagopaExtchCxId:
+          type: string
+          pattern: "^(?!\\s*$).+"
+          minLength: 10
+          maxLength: 50
+        sqsArn:
+          type: string
+        sqsName:
+          type: string
+        pecReplyTo:
+          type: string
+        mailReplyTo:
+          type: string
+        apiKey:
+          type: string
+        senderPhysicalAddress:
+          $ref: "../../external/api-internal-v1.yaml#/components/schemas/SenderPhysicalAddressDto"
+      required:
+        - xPagopaExtchCxId
+        - sqsArn
+        - sqsName
 
     #############################################################################################
     ###                     SCHEMI PER GESTIONI RICHIESTE                     ###

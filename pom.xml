@@ -31,6 +31,7 @@
         <sonar.coverage.exclusions>
             src/test/java/**
         </sonar.coverage.exclusions>
+        <lombok.version>1.18.30</lombok.version>
     </properties>
 
     <dependencyManagement>
@@ -432,6 +433,9 @@
                                 <reactive>true</reactive>
                                 <skipDefaultInterface>false</skipDefaultInterface>
                                 <useTags>true</useTags>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <useJakartaEe>true</useJakartaEe>
+                                <dateLibrary>java8</dateLibrary>
                                 <basePackage>${project.groupId}.rest.v1.consolidatore</basePackage>
                                 <modelPackage>${project.groupId}.rest.v1.consolidatore.dto</modelPackage>
                                 <apiPackage>${project.groupId}.rest.v1.consolidatore.api</apiPackage>
@@ -465,6 +469,9 @@
                                 <reactive>true</reactive>
                                 <skipDefaultInterface>false</skipDefaultInterface>
                                 <useTags>true</useTags>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <useJakartaEe>true</useJakartaEe>
+                                <dateLibrary>java8</dateLibrary>
                                 <basePackage>${project.groupId}.rest.v1</basePackage>
                                 <modelPackage>${project.groupId}.rest.v1.dto</modelPackage>
                                 <apiPackage>${project.groupId}.rest.v1.api</apiPackage>
@@ -497,6 +504,9 @@
                                 <reactive>true</reactive>
                                 <skipDefaultInterface>false</skipDefaultInterface>
                                 <useTags>true</useTags>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <useJakartaEe>true</useJakartaEe>
+                                <dateLibrary>java8</dateLibrary>
                                 <basePackage>${project.groupId}.rest.v1</basePackage>
                                 <modelPackage>${project.groupId}.rest.v1.dto</modelPackage>
                                 <apiPackage>${project.groupId}.rest.v1.api</apiPackage>
@@ -528,6 +538,9 @@
                                 <reactive>true</reactive>
                                 <skipDefaultInterface>false</skipDefaultInterface>
                                 <useTags>true</useTags>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <useJakartaEe>true</useJakartaEe>
+                                <dateLibrary>java8</dateLibrary>
                                 <basePackage>${project.groupId}.rest.v1</basePackage>
                                 <modelPackage>${project.groupId}.rest.v1.dto</modelPackage>
                                 <apiPackage>${project.groupId}.rest.v1.api</apiPackage>
@@ -559,6 +572,9 @@
                                 <reactive>true</reactive>
                                 <skipDefaultInterface>false</skipDefaultInterface>
                                 <useTags>true</useTags>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <useJakartaEe>true</useJakartaEe>
+                                <dateLibrary>java8</dateLibrary>
                                 <basePackage>${project.groupId}.rest.v1</basePackage>
                                 <modelPackage>${project.groupId}.rest.v1.dto</modelPackage>
                                 <apiPackage>${project.groupId}.rest.v1.api</apiPackage>
@@ -590,6 +606,12 @@
                                 <reactive>true</reactive>
                                 <skipDefaultInterface>false</skipDefaultInterface>
                                 <useTags>true</useTags>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <useJakartaEe>true</useJakartaEe>
+                                <dateLibrary>java8</dateLibrary>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <useJakartaEe>true</useJakartaEe>
+                                <dateLibrary>java8</dateLibrary>
                                 <basePackage>${project.groupId}.rest.v1</basePackage>
                                 <modelPackage>${project.groupId}.rest.v1.dto</modelPackage>
                                 <apiPackage>${project.groupId}.rest.v1.api</apiPackage>
@@ -610,6 +632,7 @@
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
