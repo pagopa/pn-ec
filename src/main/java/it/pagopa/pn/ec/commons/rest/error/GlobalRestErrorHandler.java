@@ -16,8 +16,8 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.support.WebExchangeBindException;
 
-import javax.validation.ConstraintViolationException;
-import javax.validation.Path;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Path;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.*;

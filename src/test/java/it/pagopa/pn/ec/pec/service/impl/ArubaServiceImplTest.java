@@ -15,8 +15,8 @@ import org.springframework.boot.test.mock.mockito.SpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import javax.xml.ws.AsyncHandler;
-import javax.xml.ws.Response;
+import jakarta.xml.ws.AsyncHandler;
+import jakarta.xml.ws.Response;
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.any;
