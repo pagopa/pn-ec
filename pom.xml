@@ -2,11 +2,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
- 
+
     <parent>
         <groupId>it.pagopa.pn</groupId>
         <artifactId>pn-parent</artifactId>
-        <version>2.1.1</version>
+        <version>2.1.2-SPRINGBOOT3</version>
         <relativePath/>
     </parent>
 
@@ -24,27 +24,39 @@
     </scm>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <awssdkv1.version>1.12.386</awssdkv1.version>
         <logbackjackson.version>0.1.5</logbackjackson.version>
-        <openapi-generator-version>5.4.0</openapi-generator-version>
+        <openapi-generator-version>7.12.0</openapi-generator-version>
         <sonar.coverage.exclusions>
-      		src/test/java/**
-    		</sonar.coverage.exclusions>
+            src/test/java/**
+        </sonar.coverage.exclusions>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.awspring.cloud</groupId>
+                <artifactId>spring-cloud-aws-dependencies</artifactId>
+                <version>3.1.1</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
-		
-		<dependency>
-		    <groupId>org.apache.commons</groupId>
-		    <artifactId>commons-pool2</artifactId>
-		    <version>2.12.0</version>
-		</dependency>
-		
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+            <version>2.12.0</version>
+        </dependency>
+
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-commons</artifactId>
-            <version>2.10.0</version>
+            <version>2.15.0-SPRINGBOOT3</version>
             <exclusions>
                 <exclusion>
                     <groupId>it.pagopa.tech.lollipop-consumer-java-sdk</groupId>
@@ -98,12 +110,12 @@
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.codehaus.janino/janino -->
-				<dependency>
-				    <groupId>org.codehaus.janino</groupId>
-				    <artifactId>janino</artifactId>
-				</dependency>
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>janino</artifactId>
+        </dependency>
 
-        <!-- Start OpenApi dependencies --> 
+        <!-- Start OpenApi dependencies -->
         <dependency>
             <groupId>org.openapitools</groupId>
             <artifactId>jackson-databind-nullable</artifactId>
@@ -118,14 +130,14 @@
 
         <dependency>
             <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-webflux-ui</artifactId>
-            <version>1.8.0</version>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <version>2.3.0</version>
         </dependency>
 
         <dependency>
             <groupId>io.gsonfire</groupId>
             <artifactId>gson-fire</artifactId>
-            <version>1.9.0-alpha2</version>
+            <version>1.9.0</version>
         </dependency>
 
         <dependency>
@@ -153,7 +165,7 @@
         <!-- Transitive dependencies with AWS SDK v1 for LocalStack-->
         <dependency>
             <groupId>io.awspring.cloud</groupId>
-            <artifactId>spring-cloud-starter-aws-messaging</artifactId>
+            <artifactId>spring-cloud-aws-starter-sqs</artifactId>
         </dependency>
 
         <!-- Start EC WebClient dependencies -->
@@ -163,10 +175,10 @@
         </dependency>
         <!-- Finish EC WebClient dependencies -->
 
-		<dependency>
-			<groupId>software.amazon.awssdk</groupId>
-			<artifactId>cloudwatch-metric-publisher</artifactId>
-		</dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>cloudwatch-metric-publisher</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
@@ -214,6 +226,12 @@
         </dependency>
 
         <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <version>3.0.2</version>
+        </dependency>
+
+        <dependency>
             <groupId>jakarta.jws</groupId>
             <artifactId>jakarta.jws-api</artifactId>
             <version>3.0.0</version>
@@ -257,22 +275,13 @@
 
         </dependency>
 
-        <dependency>
-            <groupId>javax.xml.bind</groupId>
-            <artifactId>jaxb-api</artifactId>
-            <version>2.3.1</version>
-        </dependency>
 
-        <dependency>
-            <groupId>com.sun.xml.ws</groupId>
-            <artifactId>rt</artifactId>
-            <version>2.3.1</version>
-        </dependency>
+
 
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-frontend-jaxws</artifactId>
-            <version>3.6.6</version>
+            <version>4.0.3</version>
         </dependency>
 
         <dependency>
@@ -282,12 +291,12 @@
         </dependency>
         <!-- End SOAP dependencies -->
 
-		<!-- https://mvnrepository.com/artifact/redis.clients/jedis -->
-		<dependency>
-		    <groupId>redis.clients</groupId>
-		    <artifactId>jedis</artifactId>
-		    <version>5.1.2</version>
-		</dependency>
+        <!-- https://mvnrepository.com/artifact/redis.clients/jedis -->
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>5.1.2</version>
+        </dependency>
 
         <!-- TEST DEPENDENCIES-->
         <dependency>
@@ -375,6 +384,7 @@
                     <image>
                         <env>
                             <BP_JVM_TYPE>JDK</BP_JVM_TYPE>
+                            <BP_JVM_VERSION>21</BP_JVM_VERSION>
                         </env>
                     </image>
                 </configuration>
@@ -383,6 +393,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.14</version>
                 <configuration>
                     <excludes>
                         <exclude>**/generated/**</exclude>
@@ -404,8 +415,9 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory>
-                            <inputSpec>${project.basedir}/docs/openapi/external/consolidatore-v1.yml</inputSpec>
+                            <inputSpec>
+                                ${project.basedir}/docs/openapi/external/consolidatore-v1.yml
+                            </inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
                             <generateApiDocumentation>false</generateApiDocumentation>
@@ -436,8 +448,9 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory>
-                            <inputSpec>${project.basedir}/docs/openapi/external/api-internal-v1.yaml</inputSpec>
+                            <inputSpec>
+                                ${project.basedir}/docs/openapi/external/api-internal-v1.yaml
+                            </inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
                             <generateApiDocumentation>false</generateApiDocumentation>
@@ -467,7 +480,7 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory><inputSpec>
+                            <inputSpec>
                                 ${project.basedir}/docs/openapi/internal/externalchannel/gestore-repository-v1.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
@@ -498,7 +511,8 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory><inputSpec>${project.basedir}/docs/openapi/internal/safestorage/pn-safestorage-v1.1-api.yaml
+                            <inputSpec>
+                                ${project.basedir}/docs/openapi/internal/safestorage/pn-safestorage-v1.1-api.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -528,7 +542,8 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory> <inputSpec>${project.basedir}/docs/openapi/external/api-consolidatore-ingress-v1.yaml
+                            <inputSpec>
+                                ${project.basedir}/docs/openapi/external/api-consolidatore-ingress-v1.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -558,7 +573,7 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory><inputSpec>
+                        <inputSpec>
                             ${project.basedir}/docs/openapi/external/api-richieste-metadati-rework.yaml
                         </inputSpec>
                             <generatorName>spring</generatorName>
@@ -584,12 +599,19 @@
                     </execution>
                 </executions>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
+                    <release>21</release>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
         </plugins>
