@@ -48,6 +48,10 @@ Parameters:
     Description: 'Default security group required by infrastructure'
     Default: ''
 
+  AlbSecurityGroup:
+    Type: String
+    Description: "Application load balancer security group"
+
   ApplicationLoadBalancerListenerArn:
     Type: String
     Description: 'Load balancer listener where HTTP endpoints is going to be registered'
@@ -904,6 +908,7 @@ Resources:
         ECSClusterName: !Ref ECSClusterName
         Subnets: !Ref VpcEgressSubnetsIds
         VpcId: !Ref VpcId
+        AlbSecurityGroup: !Ref AlbSecurityGroup
         EcsDefaultSecurityGroup: !Ref EcsDefaultSecurityGroup
         LoadBalancerListenerArn: !Ref ApplicationLoadBalancerListenerArn
         LoadbalancerRulePriority: !Ref MicroserviceNumber
