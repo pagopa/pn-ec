@@ -21,8 +21,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.http.ReactiveHttpOutputMessage;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
@@ -59,16 +59,16 @@ public class DigitalNotificationRequestApiControllerTest {
     @Autowired
     private PecSqsQueueName pecSqsQueueName;
 
-    @MockBean
+    @MockitoBean
     private FileCall uriBuilderCall;
 
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
 
-    @MockBean
+    @MockitoBean
     private AuthService authService;
 
-    @SpyBean
+    @MockitoSpyBean
     private SqsServiceImpl sqsService;
 
     public static final String SEND_PEC_ENDPOINT = "/external-channels/v1/digital-deliveries/legal-full-message-requests" + "/{requestIdx}";

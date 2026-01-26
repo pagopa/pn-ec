@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.ReactiveHttpOutputMessage;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
@@ -35,13 +35,13 @@ class PushAttachmentsPreloadTest {
 
     @Autowired
     private WebTestClient webTestClient;
-    @MockBean
+    @MockitoBean
     private FileCall fileCall;
     @Autowired
     private GestoreRepositoryCall gestoreRepositoryCall;
     @Autowired
     private ConsolidatoreEndpointProperties consolidatoreEndpointProperties;
-    @MockBean
+    @MockitoBean
     private AuthService authService;
 
     private static final String CLIENT_ID = "CLIENT_ID";

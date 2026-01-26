@@ -10,8 +10,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -27,10 +27,10 @@ import static org.mockito.Mockito.*;
 @CustomLog
 class ArubaServiceImplTest {
 
-    @MockBean
+    @MockitoBean
     @Qualifier("pecImapBridgeClient")
     private PecImapBridge pecImapBridge;
-    @SpyBean
+    @MockitoSpyBean
     private ArubaServiceImpl arubaServiceImpl;
 
 

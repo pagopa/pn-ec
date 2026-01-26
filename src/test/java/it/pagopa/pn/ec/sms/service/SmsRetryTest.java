@@ -10,7 +10,7 @@ import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
@@ -35,16 +35,16 @@ class SmsRetryTest {
     @Autowired
     private SmsSqsQueueName smsSqsQueueName;
 
-    @SpyBean
+    @MockitoSpyBean
     SmsService smsService;
 
-    @SpyBean
+    @MockitoSpyBean
     GestoreRepositoryCall gestoreRepositoryCall;
 
-    @SpyBean
+    @MockitoSpyBean
     SnsService snsService;
 
-    @SpyBean
+    @MockitoSpyBean
     SqsService sqsService;
 
     Message message = Message.builder().build();

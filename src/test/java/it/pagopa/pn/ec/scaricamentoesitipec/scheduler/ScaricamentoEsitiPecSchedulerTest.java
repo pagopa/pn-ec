@@ -17,8 +17,8 @@ import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -37,23 +37,23 @@ import static org.mockito.Mockito.*;
 @SpringBootTestWebEnv
 class ScaricamentoEsitiPecSchedulerTest {
 
-    @MockBean
+    @MockitoBean
     private ArubaService arubaService;
 
-    @MockBean
+    @MockitoBean
     private com.namirial.pec.library.service.PnPecServiceImpl namirialService;
 
-    @MockBean
+    @MockitoBean
     private DummyPecService dummyPecService;
 
-    @SpyBean
+    @MockitoSpyBean
     private PnEcPecService pnPecService;
 
 
-    @SpyBean
+    @MockitoSpyBean
     private DaticertService daticertService;
 
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCall gestoreRepositoryCall;
 
     @Autowired

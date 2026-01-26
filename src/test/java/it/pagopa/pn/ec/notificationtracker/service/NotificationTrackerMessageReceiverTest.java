@@ -31,8 +31,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.annotation.DirtiesContext;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -66,19 +66,19 @@ class NotificationTrackerMessageReceiverTest {
     private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
-    @SpyBean
+    @MockitoSpyBean
     private PutEvents putEvents;
-    @SpyBean
+    @MockitoSpyBean
     private SqsAsyncClient sqsAsyncClient;
-    @SpyBean
+    @MockitoSpyBean
     private SqsService sqsService;
-    @SpyBean
+    @MockitoSpyBean
     private NotificationTrackerService notificationTrackerService;
-    @MockBean
+    @MockitoBean
     private CallMacchinaStati callMacchinaStati;
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCall gestoreRepositoryCall;
-    @MockBean
+    @MockitoBean
     Acknowledgment acknowledgment;
     @Autowired
     RestUtils restUtils;

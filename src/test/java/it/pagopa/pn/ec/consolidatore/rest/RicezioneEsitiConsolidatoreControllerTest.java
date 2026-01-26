@@ -29,8 +29,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -58,21 +58,21 @@ class RicezioneEsitiConsolidatoreControllerTest {
 
     @Autowired
     private WebTestClient webClient;
-	@MockBean
+	@MockitoBean
 	private AuthService authService;
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
-    @MockBean
+    @MockitoBean
     private FileCall fileCall;
 
-	@MockBean
+	@MockitoBean
 	private StatusPullService statusPullService;
-	@SpyBean
+	@MockitoSpyBean
 	private SqsServiceImpl sqsService;
 
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
-	@SpyBean
+	@MockitoSpyBean
 	private RicezioneEsitiCartaceoServiceImpl ricezioneEsitiCartaceoServiceImpl;
 
     private static final String RICEZIONE_ESITI_ENDPOINT = "/consolidatore-ingress/v1/push-progress-events/";

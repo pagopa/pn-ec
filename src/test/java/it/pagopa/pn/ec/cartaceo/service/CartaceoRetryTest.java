@@ -26,8 +26,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
@@ -57,7 +57,7 @@ import static org.mockito.Mockito.*;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class CartaceoRetryTest {
 
-    @SpyBean
+    @MockitoSpyBean
     SqsService sqsService;
 
     @Autowired
@@ -69,28 +69,28 @@ class CartaceoRetryTest {
     @Autowired
     RepositoryManagerDynamoTableName repositoryManagerDynamoTableName;
 
-    @SpyBean
+    @MockitoSpyBean
     CartaceoService cartaceoService;
 
-    @MockBean
+    @MockitoBean
     GestoreRepositoryCall gestoreRepositoryCall;
 
-    @MockBean
+    @MockitoBean
     PaperMessageCall paperMessageCall;
 
-    @SpyBean
+    @MockitoSpyBean
     private RequestConversionService requestConversionService;
 
-    @MockBean
+    @MockitoBean
     private FileCall fileCall;
 
-    @MockBean
+    @MockitoBean
     private DownloadCall downloadCall;
 
-    @MockBean
+    @MockitoBean
     private UploadCall uploadCall;
 
-    @SpyBean
+    @MockitoSpyBean
     private TransformationProperties transformationProperties;
 
     Message message = Message.builder().build();

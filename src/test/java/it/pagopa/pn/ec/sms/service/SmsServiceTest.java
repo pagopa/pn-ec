@@ -15,7 +15,7 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
@@ -31,7 +31,7 @@ import static org.mockito.Mockito.*;
 @SpringBootTestWebEnv
 class SmsServiceTest {
 
-    @SpyBean
+    @MockitoSpyBean
     private SmsService smsService;
 
     @Autowired
@@ -40,10 +40,10 @@ class SmsServiceTest {
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
 
-    @SpyBean
+    @MockitoSpyBean
     private SqsServiceImpl sqsService;
 
-    @SpyBean
+    @MockitoSpyBean
     private SnsService snsService;
 
     @Mock

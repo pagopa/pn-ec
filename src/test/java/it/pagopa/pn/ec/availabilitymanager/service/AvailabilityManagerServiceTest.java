@@ -22,8 +22,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -41,23 +41,23 @@ class AvailabilityManagerServiceTest {
     @Value("${sqs.queue.availabilitymanager.name}")
     String availabilityManagerQueueName;
 
-    @MockBean
+    @MockitoBean
     AvailabilityManagerService availabilityManagerService;
-    @SpyBean
+    @MockitoSpyBean
     SqsService sqsService;
     @Autowired
     CartaceoSqsQueueName cartaceoSqsQueueName;
-    @SpyBean
+    @MockitoSpyBean
     RequestConversionService requestConversionService;
-    @MockBean
+    @MockitoBean
     private Acknowledgment acknowledgment;
-    @SpyBean
+    @MockitoSpyBean
     private CallMacchinaStati callMachinaStati;
-    @SpyBean
+    @MockitoSpyBean
     private CartaceoService cartaceoService;
-    @MockBean
+    @MockitoBean
     private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
-    @MockBean
+    @MockitoBean
     private PdfRasterProperties pdfRasterProperties;
     
     

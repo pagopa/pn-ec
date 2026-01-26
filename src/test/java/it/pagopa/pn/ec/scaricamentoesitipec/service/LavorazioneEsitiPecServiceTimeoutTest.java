@@ -14,8 +14,8 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.annotation.DirtiesContext;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -40,17 +40,17 @@ import static org.mockito.Mockito.*;
 @SpringBootTestWebEnv
 @DirtiesContext
 class LavorazioneEsitiPecServiceTimeoutTest {
-    @SpyBean
+    @MockitoSpyBean
     private LavorazioneEsitiPecService lavorazioneEsitiPecService;
-    @MockBean
+    @MockitoBean
     private Acknowledgment acknowledgment;
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCall gestoreRepositoryCall;
-    @MockBean
+    @MockitoBean
     private AuthService authService;
-    @MockBean
+    @MockitoBean
     private SqsTimeoutProvider sqsTimeoutProvider;
-    @MockBean
+    @MockitoBean
     private StatusPullService statusPullService;
     @Value("${pn.ec.storage.sqs.messages.staging.bucket}")
     String storageSqsMessagesStagingBucket;

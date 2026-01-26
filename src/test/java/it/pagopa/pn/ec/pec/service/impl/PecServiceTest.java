@@ -28,8 +28,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -67,27 +67,27 @@ class PecServiceTest {
     private NotificationTrackerSqsName notificationTrackerSqsName;
     @Autowired
     private PecSqsQueueName pecSqsQueueName;
-    @MockBean
+    @MockitoBean
     private FileCall uriBuilderCall;
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCall gestoreRepositoryCall;
-    @MockBean
+    @MockitoBean
     private AuthService authService;
-    @SpyBean
+    @MockitoSpyBean
     private SqsServiceImpl sqsService;
-    @MockBean(name = "arubaServiceImpl")
+    @MockitoBean(name = "arubaServiceImpl")
     private ArubaService arubaService;
-    @MockBean(name = "namirialService")
+    @MockitoBean(name = "namirialService")
     private com.namirial.pec.library.service.PnPecServiceImpl namirialService;
-    @MockBean
+    @MockitoBean
     private AttachmentServiceImpl attachmentService;
-    @MockBean
+    @MockitoBean
     private DownloadCall downloadCall;
-    @SpyBean
+    @MockitoSpyBean
     private PecService pecService;
-    @SpyBean
+    @MockitoSpyBean
     private PnPecConfigurationProperties pnPecConfigurationProperties;
-    @SpyBean
+    @MockitoSpyBean
     private PnEcPecService pnPecService;
     @Mock
     private Acknowledgment acknowledgment;

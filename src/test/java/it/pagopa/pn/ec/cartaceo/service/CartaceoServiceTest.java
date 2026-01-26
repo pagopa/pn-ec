@@ -26,8 +26,8 @@ import lombok.CustomLog;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -61,30 +61,30 @@ import static org.mockito.Mockito.*;
 @DirtiesContext
 class CartaceoServiceTest {
 
-    @SpyBean
+    @MockitoSpyBean
     private CartaceoService cartaceoService;
-    @MockBean
+    @MockitoBean
     private PaperMessageCall paperMessageCall;
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCall gestoreRepositoryCall;
-    @MockBean
+    @MockitoBean
     private DownloadCall downloadCall;
-    @MockBean
+    @MockitoBean
     private UploadCall uploadCall;
-    @MockBean
+    @MockitoBean
     private FileCall fileCall;
-    @SpyBean
+    @MockitoSpyBean
     private SqsService sqsService;
     @Autowired
     private CartaceoSqsQueueName cartaceoSqsQueueName;
-    @SpyBean
+    @MockitoSpyBean
     private RequestConversionService requestConversionService;
-    @SpyBean
+    @MockitoSpyBean
     private TransformationProperties transformationProperties;
-    @SpyBean
+    @MockitoSpyBean
     private NormalizationConfiguration normalizationConfiguration;
 
-    @SpyBean
+    @MockitoSpyBean
     private AttachmentService attachmentService;
 
     @Autowired

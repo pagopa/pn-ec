@@ -15,8 +15,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockitoAnnotations;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -41,16 +41,16 @@ import static org.mockito.Mockito.*;
 @SpringBootTestWebEnv
 public class SercqServiceTest {
 
-    @MockBean
+    @MockitoBean
     AttachmentServiceImpl attachmentService;
 
-    @MockBean
+    @MockitoBean
     GestoreRepositoryCall gestoreRepositoryCall;
 
-    @MockBean
+    @MockitoBean
     private SqsService sqsService;
 
-    @SpyBean
+    @MockitoSpyBean
     private SercqService sercqService;
 
 

@@ -26,8 +26,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -53,23 +53,23 @@ import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
 class ScaricamentoEsitiPecServiceTest {
-    @SpyBean
+    @MockitoSpyBean
     private LavorazioneEsitiPecService lavorazioneEsitiPecService;
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
-    @MockBean
+    @MockitoBean
     private Acknowledgment acknowledgment;
-    @MockBean
+    @MockitoBean
     private NamirialPostacert namirialPostacert;
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCall gestoreRepositoryCall;
-    @MockBean
+    @MockitoBean
     private AuthService authService;
-    @SpyBean
+    @MockitoSpyBean
     private SqsService sqsService;
-    @SpyBean
+    @MockitoSpyBean
     private DaticertService daticertService;
-    @SpyBean
+    @MockitoSpyBean
     private S3Service s3Service;
     @Value("${pn.ec.storage.sqs.messages.staging.bucket}")
     String storageSqsMessagesStagingBucket;

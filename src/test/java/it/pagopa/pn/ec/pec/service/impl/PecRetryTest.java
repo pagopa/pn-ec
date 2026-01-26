@@ -23,8 +23,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -62,21 +62,21 @@ class PecRetryTest {
     private NotificationTrackerSqsName notificationTrackerSqsName;
     @Autowired
     private PecSqsQueueName pecSqsQueueName;
-    @SpyBean
+    @MockitoSpyBean
     private SqsService sqsService;
-    @MockBean(name="arubaServiceImpl")
+    @MockitoBean(name="arubaServiceImpl")
     private ArubaService arubaService;
-    @MockBean
+    @MockitoBean
     private DownloadCall downloadCall;
-    @SpyBean
+    @MockitoSpyBean
     private AttachmentServiceImpl attachmentService;
-    @SpyBean
+    @MockitoSpyBean
     private PecService pecService;
-    @SpyBean
+    @MockitoSpyBean
     private PnPecConfigurationProperties pnPecConfigurationProperties;
-    @MockBean
+    @MockitoBean
     private FileCall fileCall;
-    @SpyBean
+    @MockitoSpyBean
     private GestoreRepositoryCall gestoreRepositoryCall;
     Message message = Message.builder().build();
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
