@@ -56,5 +56,5 @@ public class PaperRequestPersonal {
     String arCap;
     @ToString.Exclude
     String arCity;
-    List<PaperEngageRequestAttachments> attachments;
+    List<PaperEngageRequestAttachmentsInner> attachments;
 }

@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.cartaceo.testutils;
 
 import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest;
-import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequestAttachments;
+import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequestAttachmentsInner;
 import org.jetbrains.annotations.NotNull;
 
 import java.math.BigDecimal;
@@ -18,7 +18,7 @@ public class PaperEngageRequestFactory {
 	 */
 	public static it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest createDtoPaperRequest(int attachNum) {
 
-		var paperEngageRequestAttachments = getPaperEngageRequestAttachments("PN_EXTERNAL_LEGAL_FACTS");
+		var paperEngageRequestAttachments = getPaperEngageRequestAttachmentsInner("PN_EXTERNAL_LEGAL_FACTS");
 
 		return getPaperEngageRequest(paperEngageRequestAttachments);
 	}
@@ -29,13 +29,13 @@ public class PaperEngageRequestFactory {
 	 * @return
 	 */
 	public static it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest createDtoPaperRequestPdfRaster(String requestPaId) {
-		var paperEngageRequestAttachments = getPaperEngageRequestAttachments("PN_NOTIFICATION_ATTACHMENTS");
+		var paperEngageRequestAttachments = getPaperEngageRequestAttachmentsInner("PN_NOTIFICATION_ATTACHMENTS");
 
 		return getPaperEngageRequest(paperEngageRequestAttachments).requestPaId(requestPaId);
 	}
 
-	private static @NotNull PaperEngageRequest getPaperEngageRequest(PaperEngageRequestAttachments paperEngageRequestAttachments) {
-		var attachments = new ArrayList<PaperEngageRequestAttachments>();
+	private static @NotNull PaperEngageRequest getPaperEngageRequest(PaperEngageRequestAttachmentsInner paperEngageRequestAttachments) {
+		var attachments = new ArrayList<PaperEngageRequestAttachmentsInner>();
 		attachments.add(paperEngageRequestAttachments);
 		var vas = new HashMap<String, String>();
 		vas.put("Servizi", "valore aggiunto");
@@ -43,8 +43,8 @@ public class PaperEngageRequestFactory {
         return getPaperEngageRequest(odt, attachments, vas);
 	}
 
-	private static @NotNull PaperEngageRequestAttachments getPaperEngageRequestAttachments(String documentTypeArchiving) {
-		var paperEngageRequestAttachments = new PaperEngageRequestAttachments();
+	private static @NotNull PaperEngageRequestAttachmentsInner getPaperEngageRequestAttachmentsInner(String documentTypeArchiving) {
+		var paperEngageRequestAttachments = new PaperEngageRequestAttachmentsInner();
 		paperEngageRequestAttachments.setUri(new StringBuilder().append("safestorage://").append(documentTypeArchiving).append("-14d277f9beb4c8a9da322092c350d51").toString());
 		paperEngageRequestAttachments.setDocumentType("AAR");
 		paperEngageRequestAttachments.setSha256("stringstringstringstringstringstringstring");
@@ -52,7 +52,7 @@ public class PaperEngageRequestFactory {
 		return paperEngageRequestAttachments;
 	}
 
-	private static @NotNull PaperEngageRequest getPaperEngageRequest(OffsetDateTime odt, ArrayList<PaperEngageRequestAttachments> attachments, HashMap<String, String> vas) {
+	private static @NotNull PaperEngageRequest getPaperEngageRequest(OffsetDateTime odt, ArrayList<PaperEngageRequestAttachmentsInner> attachments, HashMap<String, String> vas) {
 		var paperEngageRequestFactory = new PaperEngageRequest();
 		paperEngageRequestFactory.setIun("ABCD-HILM-YKWX-202202-1");
 		paperEngageRequestFactory.setRequestId("ABCD-HILM-YKWX-202202-1_rec0_try1");
@@ -88,12 +88,12 @@ public class PaperEngageRequestFactory {
 
 		var odt = OffsetDateTime.now();
 
-		var paperEngageRequestAttachments = new PaperEngageRequestAttachments();
+		var paperEngageRequestAttachments = new PaperEngageRequestAttachmentsInner();
 		paperEngageRequestAttachments.setUri("safestorage://PN_EXTERNAL_LEGAL_FACTS-14d277f9beb4c8a9da322092c350d51");
 		paperEngageRequestAttachments.setDocumentType("AR");
 		paperEngageRequestAttachments.setSha256("");
 
-		var attachments = new ArrayList<PaperEngageRequestAttachments>();
+		var attachments = new ArrayList<PaperEngageRequestAttachmentsInner>();
 		for (int idx = 0; idx < attachNum; idx++) {
 			paperEngageRequestAttachments.setOrder(new BigDecimal(idx));
 			attachments.add(paperEngageRequestAttachments);

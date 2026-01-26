@@ -739,13 +739,13 @@ class CartaceoServiceTest {
     }
 
     private CartaceoPresaInCaricoInfo createCartaceoPresaInCaricoInfo() {
-        PaperEngageRequestAttachments paperEngageRequestAttachments = new PaperEngageRequestAttachments();
+        PaperEngageRequestAttachmentsInner paperEngageRequestAttachments = new PaperEngageRequestAttachmentsInner();
         PaperEngageRequest paperEngageRequest = new PaperEngageRequest();
         paperEngageRequestAttachments.setUri("safestorage://prova.pdf");
         paperEngageRequestAttachments.setOrder(BigDecimal.valueOf(1));
         paperEngageRequestAttachments.setDocumentType("TEST");
         paperEngageRequestAttachments.setSha256("stringstringstringstringstringstringstri");
-        List<PaperEngageRequestAttachments> paperEngageRequestAttachmentsList = new ArrayList<>();
+        List<PaperEngageRequestAttachmentsInner> paperEngageRequestAttachmentsList = new ArrayList<>();
         paperEngageRequestAttachmentsList.add(paperEngageRequestAttachments);
         paperEngageRequest.setAttachments(paperEngageRequestAttachmentsList);
         paperEngageRequest.setReceiverName("");

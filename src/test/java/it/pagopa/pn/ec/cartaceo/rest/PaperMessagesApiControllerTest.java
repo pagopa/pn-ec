@@ -71,7 +71,7 @@ class PaperMessagesApiControllerTest {
     private static final String SEND_CARTACEO_ENDPOINT = "/external-channels/v1/paper-deliveries-engagements" + "/{requestIdx}";
     private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
     private static final PaperEngageRequest paperEngageRequest = new PaperEngageRequest();
-    private static final PaperEngageRequestAttachments PAPER_ENGAGE_REQUEST_ATTACHMENTS = new PaperEngageRequestAttachments();
+    private static final PaperEngageRequestAttachmentsInner PAPER_ENGAGE_REQUEST_ATTACHMENTS = new PaperEngageRequestAttachmentsInner();
     private static final String DEFAULT_ATTACHMENT_URL = "safestorage://prova.pdf";
     private static final String DOCUMENT_TYPE_INVALID = "TEST";
 
@@ -82,7 +82,7 @@ class PaperMessagesApiControllerTest {
         PAPER_ENGAGE_REQUEST_ATTACHMENTS.setOrder(BigDecimal.valueOf(1));
         PAPER_ENGAGE_REQUEST_ATTACHMENTS.setDocumentType("TEST");
         PAPER_ENGAGE_REQUEST_ATTACHMENTS.setSha256("stringstringstringstringstringstringstri");
-        List<PaperEngageRequestAttachments> paperEngageRequestAttachmentsList = new ArrayList<>();
+        List<PaperEngageRequestAttachmentsInner> paperEngageRequestAttachmentsList = new ArrayList<>();
         paperEngageRequestAttachmentsList.add(PAPER_ENGAGE_REQUEST_ATTACHMENTS);
         paperEngageRequest.setAttachments(paperEngageRequestAttachmentsList);
         paperEngageRequest.setReceiverName("");

@@ -13,7 +13,7 @@ import it.pagopa.pn.ec.pdfraster.configuration.PdfRasterProperties;
 import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
 import it.pagopa.pn.ec.rest.v1.dto.AttachmentToConvertDto;
 import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest;
-import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequestAttachments;
+import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequestAttachmentsInner;
 import it.pagopa.pn.ec.rest.v1.dto.RequestConversionDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
@@ -93,7 +93,7 @@ class AvailabilityManagerServiceTest {
         requestConversionDto.setxPagopaExtchCxId("clientId");
         PaperEngageRequest paperEngageRequest = new PaperEngageRequest();
         list.forEach( attachment -> {
-            PaperEngageRequestAttachments paperEngageRequestAttachments = new PaperEngageRequestAttachments().sha256("7645373453").uri("safestorage://"+attachment.getOriginalFileKey());
+            PaperEngageRequestAttachmentsInner paperEngageRequestAttachments = new PaperEngageRequestAttachmentsInner().sha256("7645373453").uri("safestorage://"+attachment.getOriginalFileKey());
             paperEngageRequest.addAttachmentsItem(paperEngageRequestAttachments);
 
             requestConversionDto.addAttachmentsItem(attachment);
