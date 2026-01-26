@@ -181,10 +181,10 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         return Mono.empty();
     }
 
-    private ArrayList<String> getPaperUri(List<PaperEngageRequestAttachments> paperEngageRequestAttachments) {
+    private ArrayList<String> getPaperUri(List<PaperEngageRequestAttachmentsInner> paperEngageRequestAttachments) {
         ArrayList<String> list = new ArrayList<>();
         if (!paperEngageRequestAttachments.isEmpty()) {
-            for (PaperEngageRequestAttachments attachment : paperEngageRequestAttachments) {
+            for (PaperEngageRequestAttachmentsInner attachment : paperEngageRequestAttachments) {
                 list.add(attachment.getUri());
             }
         }
@@ -204,7 +204,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
                     List<AttachmentsEngageRequestDto> attachmentsEngageRequestDto = new ArrayList<>();
                     if (!paperNotificationRequest.getAttachments().isEmpty()) {
-                        for (PaperEngageRequestAttachments attachment : paperNotificationRequest.getAttachments()) {
+                        for (PaperEngageRequestAttachmentsInner attachment : paperNotificationRequest.getAttachments()) {
                             AttachmentsEngageRequestDto attachments = new AttachmentsEngageRequestDto();
                             attachments.setUri(attachment.getUri());
                             attachments.setOrder(attachment.getOrder());
@@ -664,7 +664,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
 
 
-    private boolean isAttachmentToConvert(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequestAttachments attachment) {
+    private boolean isAttachmentToConvert(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequestAttachmentsInner attachment) {
         return pdfTransformationConfiguration.getDocumentTypesToRaster().stream().anyMatch(type -> attachment.getUri().replace(SAFESTORAGE_PREFIX, "").startsWith(type));
     }
 
@@ -683,7 +683,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
      * @param attachment the original attachment
      * @return Mono<AttachmentToConvertDto> the attachment to convert related info
      */
-    private Mono<AttachmentToConvertDto> uploadAttachmentToConvert(CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequestAttachments attachment) {
+    private Mono<AttachmentToConvertDto> uploadAttachmentToConvert(CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequestAttachmentsInner attachment) {
         log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, UPLOAD_ATTACHMENT_TO_CONVERT, Stream.of(cartaceoPresaInCaricoInfo, attachment).toList());
         String originalFileKey = attachment.getUri().replace(SAFESTORAGE_PREFIX, "");
         return fileCall.getFile(originalFileKey, cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(), false)

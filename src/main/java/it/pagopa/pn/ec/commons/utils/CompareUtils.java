@@ -39,7 +39,7 @@ public class CompareUtils {
 
     }
 
-    private static boolean isSameAttachments(List<AttachmentsProgressEventDto> paperProgressAttachmentList, List<ConsolidatoreIngressPaperProgressStatusEventAttachments> consolidatoreIngressPaperProgressStatusEventAttachmentsList) {
+    private static boolean isSameAttachments(List<AttachmentsProgressEventDto> paperProgressAttachmentList, List<ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner> consolidatoreIngressPaperProgressStatusEventAttachmentsList) {
 
         if(paperProgressAttachmentList == null) {
             paperProgressAttachmentList = List.of();
@@ -63,7 +63,7 @@ public class CompareUtils {
 
             for (int i = 0; i<paperProgressAttachmentList.size(); i++) {
                 AttachmentsProgressEventDto paperProgress = paperProgressAttachmentList.get(i);
-                ConsolidatoreIngressPaperProgressStatusEventAttachments consolidatoreAttachment = consolidatoreIngressPaperProgressStatusEventAttachmentsList.get(i);
+                ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner consolidatoreAttachment = consolidatoreIngressPaperProgressStatusEventAttachmentsList.get(i);
 
                 if(! (Objects.equals(paperProgress.getDate(), consolidatoreAttachment.getDate()) &&
                         Objects.equals(paperProgress.getId(), consolidatoreAttachment.getId()) &&

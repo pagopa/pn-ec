@@ -53,8 +53,8 @@ import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.HTML;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.TEXT_HTML;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.TEXT_PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.EMAIL;
@@ -175,7 +175,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             digitalRequestMetadataDto.setEventType(digitalCourtesyMailRequest.getEventType());
             digitalRequestMetadataDto.setTags(digitalCourtesyMailRequest.getTags());
             digitalRequestMetadataDto.setChannel(EMAIL);
-            digitalRequestMetadataDto.setMessageContentType(DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN);
+            digitalRequestMetadataDto.setMessageContentType(DigitalRequestMetadataDto.MessageContentTypeEnum.TEXT_PLAIN);
             requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
 
             requestDto.setRequestPersonal(requestPersonalDto);
@@ -295,9 +295,9 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .text(req.getMessageText())
                 .emailAttachments(new ArrayList<>())
                 .build();
-        if (req.getMessageContentType() == PLAIN) {
+        if (req.getMessageContentType() == TEXT_PLAIN) {
             ret.setContentType("text/plain; charset=UTF-8");
-        } else if (req.getMessageContentType() == HTML) {
+        } else if (req.getMessageContentType() == TEXT_HTML) {
             ret.setContentType("text/html; charset=UTF-8");
         }
         return ret;
