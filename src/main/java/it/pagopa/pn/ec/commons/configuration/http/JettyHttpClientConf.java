@@ -3,14 +3,14 @@ package it.pagopa.pn.ec.commons.configuration.http;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import lombok.CustomLog;
 import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import java.net.URI;
 import java.util.Map;
+import org.eclipse.jetty.client.transport.HttpClientTransportOverHTTP;
+import org.eclipse.jetty.io.ClientConnector;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.MDC_CORR_ID_KEY;
 
@@ -23,52 +23,56 @@ public class JettyHttpClientConf {
     @Value("${pn.log.cx-id-header}")
     private String corrIdHeaderName;
 
-    private final SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
 
     @Bean
-    public HttpClient getJettyHttpClient() {
-        HttpClient myHC = new HttpClient(sslContextFactory) {
-            @Override
-            public Request newRequest(URI uri) {
-                Request request = super.newRequest(uri);
-                return enhance(request, MDCUtils.retrieveMDCContextMap());
-            }
-        };
-        myHC.setMaxConnectionsPerDestination(maxConnections);
-        return myHC;
+    public HttpClient getJettyHttpClient() throws Exception {
+        ClientConnector clientConnector = new ClientConnector();
+        SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
+        clientConnector.setSslContextFactory(sslContextFactory);
+
+        HttpClient httpClient = new HttpClient(new HttpClientTransportOverHTTP(clientConnector));
+        httpClient.setMaxConnectionsPerDestination(maxConnections);
+
+        enhance(httpClient);
+
+        httpClient.start();
+        return httpClient;
     }
 
     @Bean
-    public HttpClient getTrustAllJettyHttpClient() {
+    public HttpClient getTrustAllJettyHttpClient() throws Exception {
+        ClientConnector clientConnector = new ClientConnector();
+        SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
+        sslContextFactory.setTrustAll(true);  // <-- QUESTA È L'UNICA DIFFERENZA
+        clientConnector.setSslContextFactory(sslContextFactory);
 
-        var context = new SslContextFactory.Client();
-        context.setTrustAll(true);
+        HttpClient httpClient = new HttpClient(new HttpClientTransportOverHTTP(clientConnector));
 
-        return new HttpClient(context) {
-            @Override
-            public Request newRequest(URI uri) {
-                Request request = super.newRequest(uri);
-                return enhance(request, MDCUtils.retrieveMDCContextMap());
-            }
-        };
+        enhance(httpClient);
 
+        httpClient.start();
+        return httpClient;
     }
 
-    private Request enhance(Request request, Map<String, String> mdcContextMap) {
+    private void enhance(HttpClient httpClient) {
+        httpClient.addEventListener(new org.eclipse.jetty.client.Request.Listener() {
+            @Override
+            public void onBegin(org.eclipse.jetty.client.Request request) {
+                Map<String, String> mdcContextMap = MDCUtils.retrieveMDCContextMap();
+                MDCUtils.enrichWithMDC(request, mdcContextMap);
+                if (mdcContextMap != null && mdcContextMap.containsKey(MDC_CORR_ID_KEY)) {
+                    request.headers(headers -> headers.put(corrIdHeaderName, MDC.get(MDC_CORR_ID_KEY)));
+                }
+                log.info("Start {} request to {}", request.getMethod(), request.getURI());
+            }
 
-        return request.onRequestBegin(theRequest -> {
-                    MDCUtils.enrichWithMDC(theRequest, mdcContextMap);
-                    if (mdcContextMap != null && mdcContextMap.containsKey(MDC_CORR_ID_KEY)) {
-                        request.header(corrIdHeaderName, MDC.get(MDC_CORR_ID_KEY));
-                    }
-                    log.info("Start {} request to {}", theRequest.getMethod(), theRequest.getURI());
-                })
-                .onRequestFailure((theRequest, throwable) -> {
-                    MDCUtils.enrichWithMDC(theRequest, mdcContextMap);
-                    log.info("Request failure : {} , {}", throwable, throwable.getMessage());
-                });
-
-
+            @Override
+            public void onFailure(org.eclipse.jetty.client.Request request, Throwable failure) {
+                Map<String, String> mdcContextMap = MDCUtils.retrieveMDCContextMap();
+                MDCUtils.enrichWithMDC(request, mdcContextMap);
+                log.info("Request failure : {} , {}", failure, failure.getMessage());
+            }
+        });
     }
 
 }
