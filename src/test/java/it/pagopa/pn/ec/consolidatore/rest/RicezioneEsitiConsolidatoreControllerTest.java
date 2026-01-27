@@ -175,14 +175,14 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	}
 
 	private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithAttachments() {
-    	ConsolidatoreIngressPaperProgressStatusEventAttachments attachment = new ConsolidatoreIngressPaperProgressStatusEventAttachments();
+    	ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner attachment = new ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner();
     	attachment.setId(ATTACHMENT_ID);
     	attachment.setDocumentType(DOCUMENT_TYPE);
     	attachment.setUri(URI);
     	attachment.setSha256(SHA_256_ID);
     	attachment.setDate(NOW);
 
-    	List<ConsolidatoreIngressPaperProgressStatusEventAttachments> attachments = new ArrayList<>();
+    	List<ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner> attachments = new ArrayList<>();
     	attachments.add(attachment);
 
     	ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();
@@ -191,14 +191,14 @@ class RicezioneEsitiConsolidatoreControllerTest {
     }
 
 	private ConsolidatoreIngressPaperProgressStatusEvent getProgressStatusEventWithInvalidAttachmentUri() {
-		ConsolidatoreIngressPaperProgressStatusEventAttachments attachment = new ConsolidatoreIngressPaperProgressStatusEventAttachments();
+		ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner attachment = new ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner();
 		attachment.setId(ATTACHMENT_ID);
 		attachment.setDocumentType(DOCUMENT_TYPE);
 		attachment.setUri("invalidUri");
 		attachment.setSha256(SHA_256_ID);
 		attachment.setDate(NOW);
 
-		List<ConsolidatoreIngressPaperProgressStatusEventAttachments> attachments = new ArrayList<>();
+		List<ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner> attachments = new ArrayList<>();
 		attachments.add(attachment);
 
 		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEventWithoutAttachments();

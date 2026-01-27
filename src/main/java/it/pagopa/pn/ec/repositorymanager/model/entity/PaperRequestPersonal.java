@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.model.entity;
 
+import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequestAttachmentsInner;
 import lombok.*;
 import lombok.AccessLevel;
 import lombok.Data;

@@ -54,7 +54,7 @@ class CompareUtilsTest {
                 .documentType(documentType)
                 .sha256(sha256);
 
-        ConsolidatoreIngressPaperProgressStatusEventAttachments consAttachments = new ConsolidatoreIngressPaperProgressStatusEventAttachments()
+        ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner consAttachments = new ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner()
                 .id(id)
                 .date(now)
                 .uri(uri)
