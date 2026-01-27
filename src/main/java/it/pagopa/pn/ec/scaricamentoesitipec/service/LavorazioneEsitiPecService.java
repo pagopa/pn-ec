@@ -26,6 +26,7 @@ import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.library.pec.model.pojo.Destinatari;
 import lombok.CustomLog;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
@@ -77,7 +78,7 @@ public class LavorazioneEsitiPecService {
                                       CloudWatchPecMetrics cloudWatchPecMetrics,
                                       NotificationTrackerSqsName notificationTrackerSqsName,
                                       FileCall fileCall,
-                                      WebClient uploadWebClient,
+                                      @Qualifier("uploadWebClient")WebClient uploadWebClient,
                                       ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties,
                                       GestoreRepositoryCall gestoreRepositoryCall,
                                       S3Service s3Service,

@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.commons.rest.call.download;
 
 import lombok.CustomLog;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.stereotype.Component;
@@ -19,7 +20,7 @@ public class DownloadCallImpl implements DownloadCall {
 
     private final WebClient downloadWebClient;
 
-    public DownloadCallImpl(WebClient downloadWebClient) {
+    public DownloadCallImpl(@Qualifier("downloadWebClient") WebClient downloadWebClient) {
         this.downloadWebClient = downloadWebClient;
     }
 

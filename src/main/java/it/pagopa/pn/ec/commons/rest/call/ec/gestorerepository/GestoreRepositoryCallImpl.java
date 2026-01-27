@@ -5,6 +5,7 @@ import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.CustomLog;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -22,7 +23,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     private final GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties;
     private static final String CLIENT_HEADER_NAME = "x-pagopa-extch-cx-id";
 
-    public GestoreRepositoryCallImpl(WebClient ecWebClient, GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties) {
+    public GestoreRepositoryCallImpl(@Qualifier("ecWebClient")WebClient ecWebClient, GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties) {
         this.ecWebClient = ecWebClient;
         this.gestoreRepositoryEndpointProperties = gestoreRepositoryEndpointProperties;
     }

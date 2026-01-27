@@ -8,6 +8,7 @@ import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
 import lombok.CustomLog;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -30,7 +31,7 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
 
     private static final String CLIENT_ID_QUERY_PARAM = "clientId";
 
-    public CallMacchinaStatiImpl(WebClient stateMachineWebClient, StateMachineEndpointProperties stateMachineEndpointProperties, StateMachineRetryStrategyProperties smRetryStrategyProperties) {
+    public CallMacchinaStatiImpl( @Qualifier("stateMachineWebClient") WebClient stateMachineWebClient, StateMachineEndpointProperties stateMachineEndpointProperties, StateMachineRetryStrategyProperties smRetryStrategyProperties) {
         this.stateMachineWebClient = stateMachineWebClient;
         this.stateMachineEndpointProperties = stateMachineEndpointProperties;
         this.smRetryStrategy = Retry.backoff(smRetryStrategyProperties.maxAttempts(), Duration.ofSeconds(smRetryStrategyProperties.minBackoff()))

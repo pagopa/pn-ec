@@ -12,6 +12,7 @@ import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicasProgressesResponse
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -19,7 +20,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeoutException;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
@@ -40,7 +40,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
             PaperResult.AUTHENTICATION_ERROR_CODE,
             PaperResult.DUPLICATED_REQUEST_CODE);
 
-    public PaperMessageCallImpl(WebClient consolidatoreWebClient, PaperMessagesEndpointProperties paperMessagesEndpointProperties, JsonUtils jsonUtils) {
+    public PaperMessageCallImpl(@Qualifier("consolidatoreWebClient") WebClient consolidatoreWebClient, PaperMessagesEndpointProperties paperMessagesEndpointProperties, JsonUtils jsonUtils) {
         this.consolidatoreWebClient = consolidatoreWebClient;
         this.paperMessagesEndpointProperties = paperMessagesEndpointProperties;
         this.jsonUtils = jsonUtils;

@@ -9,6 +9,7 @@ import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationResponse;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
 import lombok.CustomLog;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -30,7 +31,7 @@ public class FileCallImpl implements FileCall {
 
     private static final String GET_FILE_ERROR_TITLE = "Chiamata a SafeStorage non valida";
 
-    public FileCallImpl(WebClient ssWebClient, SafeStorageEndpointProperties safeStorageEndpointProperties, FilesEndpointProperties filesEndpointProperties) {
+    public FileCallImpl(@Qualifier("ssWebClient")WebClient ssWebClient, SafeStorageEndpointProperties safeStorageEndpointProperties, FilesEndpointProperties filesEndpointProperties) {
         this.ssWebClient = ssWebClient;
         this.safeStorageEndpointProperties = safeStorageEndpointProperties;
         this.filesEndpointProperties = filesEndpointProperties;
