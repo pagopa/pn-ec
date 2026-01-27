@@ -8,7 +8,6 @@ import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
 import lombok.CustomLog;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -52,7 +51,7 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
                         .build(processId, currentStatus))
                 .retrieve()
                 .onStatus(BAD_REQUEST::equals, clientResponse -> Mono.error(new StatusValidationBadRequestException()))
-                .onStatus(HttpStatus::is5xxServerError, clientResponse -> clientResponse.createException().map(throwable -> new StateMachineServiceException(throwable.getMessage(), throwable)))
+                .onStatus(status -> status.is5xxServerError(), clientResponse -> clientResponse.createException().map(throwable -> new StateMachineServiceException(throwable.getMessage(), throwable)))
                 .bodyToMono(MacchinaStatiValidateStatoResponseDto.class)
                 .retryWhen(smRetryStrategy)
                 .handle((macchinaStatiValidateStatoResponseDto, sink) -> {
@@ -76,7 +75,7 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
                         .build(processId, statusToDecode))
                 .retrieve()
                 .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new StatusNotFoundException(statusToDecode)))
-                .onStatus(HttpStatus::is5xxServerError, clientResponse -> clientResponse.createException().map(throwable -> new StateMachineServiceException(throwable.getMessage(), throwable)))
+                .onStatus(status -> status.is5xxServerError(), clientResponse -> clientResponse.createException().map(throwable -> new StateMachineServiceException(throwable.getMessage(), throwable)))
                 .bodyToMono(MacchinaStatiDecodeResponseDto.class)
                 .retryWhen(smRetryStrategy)
                 .handle((macchinaStatiDecodeResponseDto, sink) -> {
