@@ -7,6 +7,7 @@ import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
 import it.pagopa.pn.ec.repositorymanager.service.RequestPersonalService;
 import it.pagopa.pn.ec.repositorymanager.service.RequestService;
+import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequestAttachmentsInner;
 import lombok.CustomLog;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
