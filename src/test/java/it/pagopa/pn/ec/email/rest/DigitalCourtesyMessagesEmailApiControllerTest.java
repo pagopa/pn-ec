@@ -39,7 +39,7 @@ import java.util.Objects;
 
 import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.ChannelEnum.EMAIL;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.TEXT_PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -94,7 +94,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         digitalCourtesyMailRequest.setMessageText("");
         digitalCourtesyMailRequest.channel(EMAIL);
         digitalCourtesyMailRequest.setSubjectText("Test");
-        digitalCourtesyMailRequest.setMessageContentType(PLAIN);
+        digitalCourtesyMailRequest.setMessageContentType(TEXT_PLAIN);
         digitalCourtesyMailRequest.setAttachmentUrls(defaultListAttachmentUrls);
     }
 

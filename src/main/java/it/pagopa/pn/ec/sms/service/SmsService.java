@@ -46,7 +46,7 @@ import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.SMS;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.TEXT_PLAIN;
 
 @Service
 @CustomLog
@@ -141,7 +141,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
             digitalRequestMetadataDto.setCorrelationId(digitalCourtesySmsRequest.getCorrelationId());
             digitalRequestMetadataDto.setEventType(digitalCourtesySmsRequest.getEventType());
             digitalRequestMetadataDto.setTags(digitalCourtesySmsRequest.getTags());
-            digitalRequestMetadataDto.setMessageContentType(PLAIN);
+            digitalRequestMetadataDto.setMessageContentType(TEXT_PLAIN);
             digitalRequestMetadataDto.setChannel(SMS);
             requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
 

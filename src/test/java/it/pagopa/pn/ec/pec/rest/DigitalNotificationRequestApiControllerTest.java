@@ -37,7 +37,7 @@ import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.*;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.TEXT_PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -96,7 +96,7 @@ public class DigitalNotificationRequestApiControllerTest {
         digitalNotificationRequest.setMessageText("string");
         digitalNotificationRequest.channel(PEC);
         digitalNotificationRequest.setSubjectText("prova testo");
-        digitalNotificationRequest.setMessageContentType(PLAIN);
+        digitalNotificationRequest.setMessageContentType(TEXT_PLAIN);
         digitalNotificationRequest.setAttachmentUrls(defaultListAttachmentUrls);
     }
 

@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.TEXT_PLAIN;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.*;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.PecUtils.generateDaticertAccettazione;
 import static it.pagopa.pn.library.pec.utils.PnPecUtils.ARUBA_PROVIDER;
@@ -147,7 +147,7 @@ class LavorazioneEsitiPecServiceTimeoutTest {
                 .to("to")
                 .subject("subject")
                 .text("text")
-                .contentType(PLAIN.getValue())
+                .contentType(TEXT_PLAIN.getValue())
                 .emailAttachments(List.of(EmailAttachment.builder().nameWithExtension("daticert.xml").url("url").content(daticertOutput).build()))
                 .build();
 

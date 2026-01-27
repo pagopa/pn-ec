@@ -33,7 +33,7 @@ import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.TEXT_PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestPersonalDto.QosEnum.INTERACTIVE;
 
 @SpringBootTestWebEnv
@@ -75,7 +75,7 @@ class RequestControllerTest {
         digitalRequestMetadataDto.setEventType("");
         digitalRequestMetadataDto.setTags(null);
         digitalRequestMetadataDto.setChannel(PEC);
-        digitalRequestMetadataDto.setMessageContentType(PLAIN);
+        digitalRequestMetadataDto.setMessageContentType(TEXT_PLAIN);
         var requestMetadataDto1 = new RequestMetadataDto();
         requestMetadataDto1.setDigitalRequestMetadata(digitalRequestMetadataDto);
         digitalRequest.setRequestMetadata(requestMetadataDto1);
