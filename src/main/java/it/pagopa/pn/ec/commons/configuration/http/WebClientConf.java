@@ -9,9 +9,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.JettyClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
-import static org.eclipse.jetty.util.URIUtil.HTTPS;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static software.amazon.awssdk.utils.ProxyConfigProvider.HTTPS;
 
 @Configuration
 public class WebClientConf {
@@ -22,29 +22,29 @@ public class WebClientConf {
         this.jettyHttpClientConf = jettyHttpClientConf;
     }
 
-    private WebClient.Builder defaultWebClientBuilder() {
+    private WebClient.Builder defaultWebClientBuilder() throws Exception {
         return WebClient.builder().clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()));
     }
 
-    private WebClient.Builder trustAllWebClientBuilder() {
+    private WebClient.Builder trustAllWebClientBuilder() throws Exception {
         return WebClient.builder().clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getTrustAllJettyHttpClient()));
     }
 
-    private WebClient.Builder defaultJsonWebClientBuilder() {
+    private WebClient.Builder defaultJsonWebClientBuilder() throws Exception {
         return defaultWebClientBuilder().defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
     }
 
-    private WebClient.Builder trustAllJsonWebClientBuilder() {
+    private WebClient.Builder trustAllJsonWebClientBuilder() throws Exception {
         return trustAllWebClientBuilder().defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
     }
 
     @Bean
-    public WebClient ecWebClient(ExternalChannelEndpointProperties externalChannelEndpointProperties) {
+    public WebClient ecWebClient(ExternalChannelEndpointProperties externalChannelEndpointProperties) throws Exception {
         return defaultJsonWebClientBuilder().baseUrl(externalChannelEndpointProperties.containerBaseUrl()).build();
     }
 
     @Bean
-    public WebClient ssWebClient(SafeStorageEndpointProperties safeStorageEndpointProperties) {
+    public WebClient ssWebClient(SafeStorageEndpointProperties safeStorageEndpointProperties) throws Exception {
         return defaultJsonWebClientBuilder().baseUrl(safeStorageEndpointProperties.containerBaseUrl()).defaultHeaders(httpHeaders -> {
             httpHeaders.set(safeStorageEndpointProperties.clientHeaderName(), safeStorageEndpointProperties.clientHeaderValue());
             httpHeaders.set(safeStorageEndpointProperties.apiKeyHeaderName(), safeStorageEndpointProperties.apiKeyHeaderValue());
@@ -52,22 +52,22 @@ public class WebClientConf {
     }
 
     @Bean
-    public WebClient downloadWebClient() {
+    public WebClient downloadWebClient() throws Exception {
         return defaultWebClientBuilder().build();
     }
 
     @Bean
-    public WebClient uploadWebClient() {
+    public WebClient uploadWebClient() throws Exception {
         return defaultWebClientBuilder().build();
     }
 
     @Bean
-    public WebClient stateMachineWebClient(StateMachineEndpointProperties stateMachineEndpointProperties) {
+    public WebClient stateMachineWebClient(StateMachineEndpointProperties stateMachineEndpointProperties) throws Exception {
         return defaultJsonWebClientBuilder().baseUrl(stateMachineEndpointProperties.containerBaseUrl()).build();
     }
 
     @Bean
-    public WebClient consolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties) {
+    public WebClient consolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties) throws Exception {
         String consolidatoreBaseUrl = consolidatoreEndpointProperties.baseUrl();
 
         if (consolidatoreBaseUrl.startsWith(HTTPS) && consolidatoreEndpointProperties.trustAll()) {
@@ -76,7 +76,7 @@ public class WebClientConf {
     }
 
     @Bean
-    public WebClient pdfRasterWebClient(PdfRasterEndpointProperties pdfRasterEndpointProperties,SafeStorageEndpointProperties safeStorageEndpointProperties){
+    public WebClient pdfRasterWebClient(PdfRasterEndpointProperties pdfRasterEndpointProperties,SafeStorageEndpointProperties safeStorageEndpointProperties) throws Exception {
         String pdfRasterBaseUrl = pdfRasterEndpointProperties.baseUrl();
 
         return defaultJsonWebClientBuilder().baseUrl(pdfRasterBaseUrl).defaultHeaders(httpHeaders -> {
@@ -85,15 +85,14 @@ public class WebClientConf {
         }).build();
     }
 
-    private WebClient defaultConsolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties)
-    {
+    private WebClient defaultConsolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties) throws Exception {
         return defaultJsonWebClientBuilder().baseUrl(consolidatoreEndpointProperties.baseUrl()).defaultHeaders(httpHeaders -> {
             httpHeaders.set(consolidatoreEndpointProperties.clientHeaderName(), consolidatoreEndpointProperties.clientHeaderValue());
             httpHeaders.set(consolidatoreEndpointProperties.apiKeyHeaderName(), consolidatoreEndpointProperties.apiKeyHeaderValue());
         }).build();
     }
 
-    private WebClient trustAllConsolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties) {
+    private WebClient trustAllConsolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties) throws Exception {
         return trustAllJsonWebClientBuilder().baseUrl(consolidatoreEndpointProperties.baseUrl()).defaultHeaders(httpHeaders -> {
             httpHeaders.set(consolidatoreEndpointProperties.clientHeaderName(), consolidatoreEndpointProperties.clientHeaderValue());
             httpHeaders.set(consolidatoreEndpointProperties.apiKeyHeaderName(), consolidatoreEndpointProperties.apiKeyHeaderValue());
