@@ -79,7 +79,7 @@ public class RequestServiceImpl implements RequestService {
                                        paperRequestPersonal.getArAddress(),
                                        paperRequestPersonal.getArCap(),
                                        paperRequestPersonal.getArCity()),
-                             getStreamOfNullableList(paperRequestPersonal.getAttachments()).map(PaperEngageRequestAttachmentsInner::getUri))
+                             getStreamOfNullableList(paperRequestPersonal.getAttachments()).map(PaperEngageRequestAttachments::getUri))
                      .toList();
     }
 

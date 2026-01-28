@@ -8,9 +8,11 @@ import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
 import org.apache.cxf.transport.http.HttpConduitConfig;
 import org.apache.cxf.transport.http.HttpConduitFeature;
 import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import javax.xml.namespace.QName;
 import java.util.List;
@@ -23,14 +25,6 @@ public class PecImapBridgeConf {
 
     @Value("${aruba.server.address}")
     private String arubaServerAddress;
-
-    @Bean
-    public PecImapBridge pecImapBridge() {
-        QName endpointName = PecImapBridge_Service.PecImapBridgeSOAP;
-        QName serviceName = PecImapBridge_Service.SERVICE;
-        log.debug(INITIALIZING_ARUBA_PROXY_CLIENT, "pn-ec", arubaServerAddress, endpointName, serviceName);
-        return initializeFactory(endpointName, serviceName, List.of(disabledChunkingFeature())).create(PecImapBridge.class);
-    }
 
     private JaxWsProxyFactoryBean initializeFactory(QName endpointName, QName serviceName, List<Feature> features) {
         JaxWsProxyFactoryBean factory = new JaxWsProxyFactoryBean();

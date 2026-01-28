@@ -11,11 +11,11 @@ import org.springframework.http.client.reactive.JettyClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-import static software.amazon.awssdk.utils.ProxyConfigProvider.HTTPS;
 
 @Configuration
 public class WebClientConf {
 
+    private final String HTTPS="https";
     private final JettyHttpClientConf jettyHttpClientConf;
 
     public WebClientConf(JettyHttpClientConf jettyHttpClientConf) {
