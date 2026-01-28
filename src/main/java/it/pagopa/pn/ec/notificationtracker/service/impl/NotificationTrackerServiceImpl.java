@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.notificationtracker.service.impl;
 
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
@@ -56,7 +56,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
     @Override
     public Mono<Void> handleRequestStatusChange(NotificationTrackerQueueDto notificationTrackerQueueDto, String processId,
-                                                String ntStatoQueueName, String ntStatoErroreQueueName, Acknowledgment acknowledgment) {
+                                                String ntStatoQueueName, String ntStatoErroreQueueName, Acknowledgement acknowledgment) {
         var nextStatus = notificationTrackerQueueDto.getNextStatus();
         var xPagopaExtchCxId = notificationTrackerQueueDto.getXPagopaExtchCxId();
         String sRequestId = notificationTrackerQueueDto.getRequestIdx();
@@ -218,7 +218,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
     @Override
     public Mono<Void> handleMessageFromErrorQueue(NotificationTrackerQueueDto notificationTrackerQueueDto,
-                                                  String ntStatoQueueName, Acknowledgment acknowledgment) {
+                                                  String ntStatoQueueName, Acknowledgement acknowledgment) {
         var concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         return Mono.just(notificationTrackerQueueDto)
                 .flatMap(payload -> {

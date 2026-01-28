@@ -1,8 +1,7 @@
 package it.pagopa.pn.ec.pec.service.impl;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
-import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListener;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.pec.PecCallMaxRetriesExceededException;
@@ -157,8 +156,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_FROM_PEC, result));
     }
 
-    @SqsListener(value = "${sqs.queue.pec.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void lavorazioneRichiestaInteractive(final PecPresaInCaricoInfo pecPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+    @SqsListener("${sqs.queue.pec.interactive-name}")
+    public void lavorazioneRichiestaInteractive(final PecPresaInCaricoInfo pecPresaInCaricoInfo, final Acknowledgement acknowledgment) {
         MDC.clear();
         logIncomingMessage(pecSqsQueueName.interactiveName(), pecPresaInCaricoInfo);
         lavorazioneRichiesta(pecPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();

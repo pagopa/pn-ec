@@ -1,8 +1,7 @@
 package it.pagopa.pn.ec.sms.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
-import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListener;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
@@ -152,8 +151,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_FROM_SMS, result));
     }
 
-    @SqsListener(value = "${sqs.queue.sms.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    void lavorazioneRichiestaInteractive(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+    @SqsListener("${sqs.queue.sms.interactive-name}")
+    void lavorazioneRichiestaInteractive(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgement acknowledgment) {
         MDC.clear();
         logIncomingMessage(smsSqsQueueName.interactiveName(), smsPresaInCaricoInfo);
         lavorazioneRichiesta(smsPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
@@ -334,8 +333,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
             // operazioni per la rimozione del messaggio
             log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, smsSqsQueueName.errorName());
             return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
-                                                 ERROR.getStatusTransactionTableCompliant(),
-                                                 new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto())).flatMap(
+                    ERROR.getStatusTransactionTableCompliant(),
+                    new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto())).flatMap(
                     sendMessageResponse -> deleteMessageFromErrorQueue(message));
         }
         return Mono.empty();

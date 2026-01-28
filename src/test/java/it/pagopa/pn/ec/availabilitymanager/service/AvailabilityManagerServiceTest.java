@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.availabilitymanager.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.availabilitymanager.model.dto.AvailabilityManagerDetailDto;
 import it.pagopa.pn.ec.availabilitymanager.model.dto.AvailabilityManagerDto;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
@@ -50,7 +50,7 @@ class AvailabilityManagerServiceTest {
     @MockitoSpyBean
     RequestConversionService requestConversionService;
     @MockitoBean
-    private Acknowledgment acknowledgment;
+    private Acknowledgement acknowledgment;
     @MockitoSpyBean
     private CallMacchinaStati callMachinaStati;
     @MockitoSpyBean

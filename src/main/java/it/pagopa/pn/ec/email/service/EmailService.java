@@ -1,8 +1,7 @@
 package it.pagopa.pn.ec.email.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
-import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListener;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.RetryAttemptsExceededExeption;
@@ -185,8 +184,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_FROM_EMAIL, result));
     }
 
-    @SqsListener(value = "${sqs.queue.email.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void lavorazioneRichiestaInteractive(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+    @SqsListener(value = "${sqs.queue.email.interactive-name}")
+    public void lavorazioneRichiestaInteractive(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgement acknowledgment) {
         String queueName=emailSqsQueueName.interactiveName();
         logIncomingMessage(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
         lavorazioneRichiesta(emailPresaInCaricoInfo,queueName)

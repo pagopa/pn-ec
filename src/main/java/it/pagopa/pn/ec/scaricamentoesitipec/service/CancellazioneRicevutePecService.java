@@ -1,8 +1,7 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
-import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListener;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
@@ -38,8 +37,8 @@ public class CancellazioneRicevutePecService {
         this.semaphore = new Semaphore(maxThreadPoolSize);
     }
 
-    @SqsListener(value = "${cancellazione-ricevute-pec.sqs-queue-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void cancellazioneRicevutePecInteractive(final CancellazioneRicevutePecDto cancellazioneRicevutePecDto, Acknowledgment acknowledgment) {
+    @SqsListener("${cancellazione-ricevute-pec.sqs-queue-name}")
+    public void cancellazioneRicevutePecInteractive(final CancellazioneRicevutePecDto cancellazioneRicevutePecDto, Acknowledgement acknowledgment) {
         var requestId = cancellazioneRicevutePecDto.getSingleStatusUpdate().getDigitalLegal().getRequestId();
         var clientId = cancellazioneRicevutePecDto.getSingleStatusUpdate().getClientId();
         MDC.clear();
@@ -55,7 +54,7 @@ public class CancellazioneRicevutePecService {
             || status.equals(NOT_ACCEPTED.getStatusTransactionTableCompliant())
             || status.equals(NOT_PEC.getStatusTransactionTableCompliant());
 
-    public Mono<Void> cancellazioneRicevutePec(final CancellazioneRicevutePecDto cancellazioneRicevutePecDto, String requestId, Acknowledgment acknowledgment) {
+    public Mono<Void> cancellazioneRicevutePec(final CancellazioneRicevutePecDto cancellazioneRicevutePecDto, String requestId, Acknowledgement acknowledgment) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, CANCELLAZIONE_RICEVUTE_PEC, cancellazioneRicevutePecDto);
 
         try {

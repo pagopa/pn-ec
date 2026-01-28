@@ -1,8 +1,7 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
-import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListener;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.constant.Status;
@@ -100,13 +99,13 @@ public class LavorazioneEsitiPecService {
         this.sqsTimeoutProvider=sqsTimeoutProvider;
     }
 
-    @SqsListener(value = "${scaricamento-esiti-pec.sqs-queue-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void lavorazioneEsitiPecInteractive(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
+    @SqsListener("${scaricamento-esiti-pec.sqs-queue-name}")
+    public void lavorazioneEsitiPecInteractive(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgement acknowledgment) {
         logIncomingMessage(scaricamentoEsitiPecProperties.sqsQueueName(), ricezioneEsitiPecDto);
         lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment).subscribe();
     }
 
-    Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto payload, Acknowledgment acknowledgment) {
+    Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto payload, Acknowledgement acknowledgment) {
         MDC.clear();
         String payloadPointerFileKey = payload.getPointerFileKey();
         String queueName = scaricamentoEsitiPecProperties.sqsQueueName();

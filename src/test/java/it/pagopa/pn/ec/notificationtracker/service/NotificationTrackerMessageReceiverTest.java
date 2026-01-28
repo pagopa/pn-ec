@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.notificationtracker.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.constant.Status;
@@ -79,7 +79,7 @@ class NotificationTrackerMessageReceiverTest {
     @MockitoBean
     private GestoreRepositoryCall gestoreRepositoryCall;
     @MockitoBean
-    Acknowledgment acknowledgment;
+    Acknowledgement acknowledgment;
     @Autowired
     RestUtils restUtils;
     private static final String SMS_REQUEST_IDX = "SMS_REQUEST_IDX";

@@ -1,8 +1,7 @@
 package it.pagopa.pn.ec.notificationtracker.service.impl;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
-import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListener;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
@@ -33,8 +32,8 @@ public class NotificationTrackerMessageReceiver {
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-sms-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void receiveSMSObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+    @SqsListener("${sqs.queue.notification-tracker.stato-sms-name}")
+    public void receiveSMSObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
@@ -50,8 +49,8 @@ public class NotificationTrackerMessageReceiver {
                 .subscribe();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-sms-errato-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void receiveSMSObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+    @SqsListener("${sqs.queue.notification-tracker.stato-sms-errato-name}")
+    public void receiveSMSObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
@@ -63,8 +62,8 @@ public class NotificationTrackerMessageReceiver {
                 .subscribe();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-email-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void receiveEmailObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+    @SqsListener("${sqs.queue.notification-tracker.stato-email-name}")
+    public void receiveEmailObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
@@ -80,8 +79,8 @@ public class NotificationTrackerMessageReceiver {
                 .subscribe();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-email-errato-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void receiveEmailObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+    @SqsListener("${sqs.queue.notification-tracker.stato-email-errato-name}")
+    public void receiveEmailObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
@@ -93,8 +92,8 @@ public class NotificationTrackerMessageReceiver {
                 .subscribe();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-pec-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void receivePecObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+    @SqsListener("${sqs.queue.notification-tracker.stato-pec-name}")
+    public void receivePecObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
@@ -110,8 +109,8 @@ public class NotificationTrackerMessageReceiver {
                 .subscribe();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-pec-errato-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void receivePecObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+    @SqsListener("${sqs.queue.notification-tracker.stato-pec-errato-name}")
+    public void receivePecObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
@@ -123,8 +122,8 @@ public class NotificationTrackerMessageReceiver {
                 .subscribe();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-cartaceo-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void receiveCartaceoObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+    @SqsListener("${sqs.queue.notification-tracker.stato-cartaceo-name}")
+    public void receiveCartaceoObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
@@ -140,8 +139,8 @@ public class NotificationTrackerMessageReceiver {
                 .subscribe();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-cartaceo-errato-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void receiveCartaceoObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+    @SqsListener("${sqs.queue.notification-tracker.stato-cartaceo-errato-name}")
+    public void receiveCartaceoObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
@@ -153,8 +152,8 @@ public class NotificationTrackerMessageReceiver {
                 .subscribe();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-sercq-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void receiveSercqObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+    @SqsListener("${sqs.queue.notification-tracker.stato-sercq-name}")
+    public void receiveSercqObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
@@ -170,8 +169,8 @@ public class NotificationTrackerMessageReceiver {
                 .subscribe();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-sercq-errato-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void receiveSercqObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgment acknowledgment) {
+    @SqsListener("${sqs.queue.notification-tracker.stato-sercq-errato-name}")
+    public void receiveSercqObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);

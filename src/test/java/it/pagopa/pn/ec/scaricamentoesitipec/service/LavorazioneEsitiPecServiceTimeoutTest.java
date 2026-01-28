@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -43,7 +43,7 @@ class LavorazioneEsitiPecServiceTimeoutTest {
     @MockitoSpyBean
     private LavorazioneEsitiPecService lavorazioneEsitiPecService;
     @MockitoBean
-    private Acknowledgment acknowledgment;
+    private Acknowledgement acknowledgment;
     @MockitoBean
     private GestoreRepositoryCall gestoreRepositoryCall;
     @MockitoBean

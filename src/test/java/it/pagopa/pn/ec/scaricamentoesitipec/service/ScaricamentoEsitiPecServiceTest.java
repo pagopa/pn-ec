@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -58,7 +58,7 @@ class ScaricamentoEsitiPecServiceTest {
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
     @MockitoBean
-    private Acknowledgment acknowledgment;
+    private Acknowledgement acknowledgment;
     @MockitoBean
     private NamirialPostacert namirialPostacert;
     @MockitoBean

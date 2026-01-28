@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -29,7 +29,7 @@ class CancellazioneRicevutePecServiceTest {
     @Autowired
     private CancellazioneRicevutePecService cancellazioneRicevutePecService;
     @MockitoBean
-    Acknowledgment acknowledgment;
+    Acknowledgement acknowledgment;
     @MockitoBean
     GestoreRepositoryCall gestoreRepositoryCall;
     @MockitoBean
