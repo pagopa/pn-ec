@@ -10,8 +10,8 @@ import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
 import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
@@ -36,16 +36,16 @@ import static org.mockito.Mockito.*;
 
 class EmailServiceTimeoutTest {
 
-    @SpyBean
+    @MockitoSpyBean
     private EmailService emailService;
 
-    @SpyBean
+    @MockitoSpyBean
     private SesService sesService;
 
-    @MockBean
+    @MockitoBean
     private DownloadCall downloadCall;
 
-    @MockBean
+    @MockitoBean
     private SqsTimeoutProvider sqsTimeoutProvider;
 
 

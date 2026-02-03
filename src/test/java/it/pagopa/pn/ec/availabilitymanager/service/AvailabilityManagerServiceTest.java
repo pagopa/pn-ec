@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.availabilitymanager.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.availabilitymanager.model.dto.AvailabilityManagerDetailDto;
 import it.pagopa.pn.ec.availabilitymanager.model.dto.AvailabilityManagerDto;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
@@ -13,7 +13,7 @@ import it.pagopa.pn.ec.pdfraster.configuration.PdfRasterProperties;
 import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
 import it.pagopa.pn.ec.rest.v1.dto.AttachmentToConvertDto;
 import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest;
-import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequestAttachments;
+import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequestAttachmentsInner;
 import it.pagopa.pn.ec.rest.v1.dto.RequestConversionDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
@@ -22,8 +22,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -41,23 +41,23 @@ class AvailabilityManagerServiceTest {
     @Value("${sqs.queue.availabilitymanager.name}")
     String availabilityManagerQueueName;
 
-    @MockBean
+    @MockitoBean
     AvailabilityManagerService availabilityManagerService;
-    @SpyBean
+    @MockitoSpyBean
     SqsService sqsService;
     @Autowired
     CartaceoSqsQueueName cartaceoSqsQueueName;
-    @SpyBean
+    @MockitoSpyBean
     RequestConversionService requestConversionService;
-    @MockBean
-    private Acknowledgment acknowledgment;
-    @SpyBean
+    @MockitoBean
+    private Acknowledgement acknowledgment;
+    @MockitoSpyBean
     private CallMacchinaStati callMachinaStati;
-    @SpyBean
+    @MockitoSpyBean
     private CartaceoService cartaceoService;
-    @MockBean
+    @MockitoBean
     private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
-    @MockBean
+    @MockitoBean
     private PdfRasterProperties pdfRasterProperties;
     
     
@@ -93,7 +93,7 @@ class AvailabilityManagerServiceTest {
         requestConversionDto.setxPagopaExtchCxId("clientId");
         PaperEngageRequest paperEngageRequest = new PaperEngageRequest();
         list.forEach( attachment -> {
-            PaperEngageRequestAttachments paperEngageRequestAttachments = new PaperEngageRequestAttachments().sha256("7645373453").uri("safestorage://"+attachment.getOriginalFileKey());
+            PaperEngageRequestAttachmentsInner paperEngageRequestAttachments = new PaperEngageRequestAttachmentsInner().sha256("7645373453").uri("safestorage://"+attachment.getOriginalFileKey());
             paperEngageRequest.addAttachmentsItem(paperEngageRequestAttachments);
 
             requestConversionDto.addAttachmentsItem(attachment);

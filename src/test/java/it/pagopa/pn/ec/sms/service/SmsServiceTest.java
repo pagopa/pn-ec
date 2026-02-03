@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.sms.service;
 
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
@@ -15,7 +15,7 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
@@ -31,7 +31,7 @@ import static org.mockito.Mockito.*;
 @SpringBootTestWebEnv
 class SmsServiceTest {
 
-    @SpyBean
+    @MockitoSpyBean
     private SmsService smsService;
 
     @Autowired
@@ -40,14 +40,14 @@ class SmsServiceTest {
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
 
-    @SpyBean
+    @MockitoSpyBean
     private SqsServiceImpl sqsService;
 
-    @SpyBean
+    @MockitoSpyBean
     private SnsService snsService;
 
     @Mock
-    private Acknowledgment acknowledgment;
+    private Acknowledgement acknowledgment;
 
     private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO = SmsPresaInCaricoInfo.builder()
             .requestIdx(DEFAULT_REQUEST_IDX)

@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.pec.service.impl;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -28,8 +28,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -48,7 +48,7 @@ import java.util.stream.Stream;
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.PEC;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.TEXT_PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
@@ -67,30 +67,30 @@ class PecServiceTest {
     private NotificationTrackerSqsName notificationTrackerSqsName;
     @Autowired
     private PecSqsQueueName pecSqsQueueName;
-    @MockBean
+    @MockitoBean
     private FileCall uriBuilderCall;
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCall gestoreRepositoryCall;
-    @MockBean
+    @MockitoBean
     private AuthService authService;
-    @SpyBean
+    @MockitoSpyBean
     private SqsServiceImpl sqsService;
-    @MockBean(name = "arubaServiceImpl")
+    @MockitoBean(name = "arubaServiceImpl")
     private ArubaService arubaService;
-    @MockBean(name = "namirialService")
+    @MockitoBean(name = "namirialService")
     private com.namirial.pec.library.service.PnPecServiceImpl namirialService;
-    @MockBean
+    @MockitoBean
     private AttachmentServiceImpl attachmentService;
-    @MockBean
+    @MockitoBean
     private DownloadCall downloadCall;
-    @SpyBean
+    @MockitoSpyBean
     private PecService pecService;
-    @SpyBean
+    @MockitoSpyBean
     private PnPecConfigurationProperties pnPecConfigurationProperties;
-    @SpyBean
+    @MockitoSpyBean
     private PnEcPecService pnPecService;
     @Mock
-    private Acknowledgment acknowledgment;
+    private Acknowledgement acknowledgment;
     @Value("${aruba.pec.sender}")
     private String arubaPecSender;
     @Value("${namirial.pec.sender}")
@@ -118,7 +118,7 @@ class PecServiceTest {
         digitalNotificationRequest.setMessageText("string");
         digitalNotificationRequest.channel(PEC);
         digitalNotificationRequest.setSubjectText("prova testo");
-        digitalNotificationRequest.setMessageContentType(PLAIN);
+        digitalNotificationRequest.setMessageContentType(TEXT_PLAIN);
         digitalNotificationRequest.setAttachmentUrls(defaultListAttachmentUrls);
         return digitalNotificationRequest;
     }

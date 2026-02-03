@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -28,11 +28,11 @@ class CancellazioneRicevutePecServiceTest {
 
     @Autowired
     private CancellazioneRicevutePecService cancellazioneRicevutePecService;
-    @MockBean
-    Acknowledgment acknowledgment;
-    @MockBean
+    @MockitoBean
+    Acknowledgement acknowledgment;
+    @MockitoBean
     GestoreRepositoryCall gestoreRepositoryCall;
-    @MockBean
+    @MockitoBean
     PnEcPecService pnPecService;
 
     private static final String CLIENT_ID = "CLIENT_ID";

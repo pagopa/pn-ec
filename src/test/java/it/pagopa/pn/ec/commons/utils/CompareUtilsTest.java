@@ -4,6 +4,7 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -54,7 +55,7 @@ class CompareUtilsTest {
                 .documentType(documentType)
                 .sha256(sha256);
 
-        ConsolidatoreIngressPaperProgressStatusEventAttachments consAttachments = new ConsolidatoreIngressPaperProgressStatusEventAttachments()
+        ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner consAttachments = new ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner()
                 .id(id)
                 .date(now)
                 .uri(uri)

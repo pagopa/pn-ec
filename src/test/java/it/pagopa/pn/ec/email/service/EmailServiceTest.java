@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.email.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
@@ -21,8 +21,8 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
@@ -43,7 +43,7 @@ import static org.mockito.Mockito.*;
 @SpringBootTestWebEnv
 class EmailServiceTest {
 
-    @SpyBean
+    @MockitoSpyBean
     private EmailService emailService;
 
     @Autowired
@@ -52,23 +52,23 @@ class EmailServiceTest {
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
 
-    @SpyBean
+    @MockitoSpyBean
     private SqsServiceImpl sqsService;
 
-    @SpyBean
+    @MockitoSpyBean
     private SesService sesService;
 
-    @MockBean
+    @MockitoBean
     private FileCall fileCall;
 
-    @SpyBean
+    @MockitoSpyBean
     private AttachmentServiceImpl attachmentService;
 
-    @MockBean
+    @MockitoBean
     private DownloadCall downloadCall;
 
     @Mock
-    private Acknowledgment acknowledgment;
+    private Acknowledgement acknowledgment;
 
     private static final String QUEUE_NAME="queue";
 

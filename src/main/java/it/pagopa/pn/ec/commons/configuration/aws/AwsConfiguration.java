@@ -1,8 +1,6 @@
 package it.pagopa.pn.ec.commons.configuration.aws;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.awspring.cloud.messaging.config.QueueMessageHandlerFactory;
-import io.awspring.cloud.messaging.listener.support.AcknowledgmentHandlerMethodArgumentResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -71,22 +69,22 @@ public class AwsConfiguration {
 
 //  <-- spring-cloud-starter-aws-messaging -->
 
-    @Bean
-    public QueueMessageHandlerFactory queueMessageHandlerFactory(ObjectMapper objectMapper, LocalValidatorFactoryBean validator) {
-
-        final var queueMessageHandlerFactory = new QueueMessageHandlerFactory();
-        final var converter = new MappingJackson2MessageConverter();
-
-        converter.setObjectMapper(objectMapper);
-        converter.setStrictContentTypeMatch(false);
-
-        final var acknowledgmentResolver = new AcknowledgmentHandlerMethodArgumentResolver("Acknowledgment");
-
-        queueMessageHandlerFactory.setArgumentResolvers(List.of(acknowledgmentResolver,
-                                                                new PayloadMethodArgumentResolver(converter, validator)));
-
-        return queueMessageHandlerFactory;
-    }
+//    @Bean
+//    public QueueMessageHandlerFactory queueMessageHandlerFactory(ObjectMapper objectMapper, LocalValidatorFactoryBean validator) {
+//
+//        final var queueMessageHandlerFactory = new QueueMessageHandlerFactory();
+//        final var converter = new MappingJackson2MessageConverter();
+//
+//        converter.setObjectMapper(objectMapper);
+//        converter.setStrictContentTypeMatch(false);
+//
+//        final var acknowledgmentResolver = new AcknowledgmentHandlerMethodArgumentResolver("Acknowledgment");
+//
+//        queueMessageHandlerFactory.setArgumentResolvers(List.of(acknowledgmentResolver,
+//                                                                new PayloadMethodArgumentResolver(converter, validator)));
+//
+//        return queueMessageHandlerFactory;
+//    }
 
 //  <-- AWS SDK for Java v2 -->
 

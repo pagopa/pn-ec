@@ -28,8 +28,8 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
@@ -49,25 +49,25 @@ import static org.mockito.Mockito.*;
 @CustomLog
 class PnPecServiceTest {
 
-    @MockBean
+    @MockitoBean
     private AttachmentServiceImpl attachmentService;
-    @MockBean
+    @MockitoBean
     private DownloadCall downloadCall;
-    @MockBean(name = "arubaServiceImpl")
+    @MockitoBean(name = "arubaServiceImpl")
     private ArubaService arubaService;
-    @MockBean
+    @MockitoBean
     private com.namirial.pec.library.service.PnPecServiceImpl namirialService;
-    @SpyBean
+    @MockitoSpyBean
     private DummyPecService dummyPecService;
     @Autowired
     private PnEcPecService pnPecService;
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCall gestoreRepositoryCall;
-    @SpyBean
+    @MockitoSpyBean
     private PecService pecService;
-    @SpyBean
+    @MockitoSpyBean
     private PnPecConfigurationProperties pnPecConfigurationProperties;
-    @SpyBean
+    @MockitoSpyBean
     private CloudWatchPecMetrics cloudWatchPecMetrics;
     @Value("${library.pec.cloudwatch.namespace.aruba}")
     private String arubaProviderNamespace;

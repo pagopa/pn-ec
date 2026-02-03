@@ -13,9 +13,9 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.*;
@@ -41,21 +41,21 @@ import static org.mockito.Mockito.*;
 @DirtiesContext
 class CartaceoServiceTimeoutTest {
 
-    @SpyBean
+    @MockitoSpyBean
     private CartaceoService cartaceoService;
-    @MockBean
+    @MockitoBean
     private PaperMessageCall paperMessageCall;
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCall gestoreRepositoryCall;
-    @MockBean
+    @MockitoBean
     private DownloadCall downloadCall;
-    @MockBean
+    @MockitoBean
     private UploadCall uploadCall;
-    @MockBean
+    @MockitoBean
     private FileCall fileCall;
-    @MockBean
+    @MockitoBean
     private SqsTimeoutProvider sqsTimeoutProvider;
-    @SpyBean
+    @MockitoSpyBean
     private SqsService sqsService;
 
     private static final String DOWNLOAD_URL = "http://downloadUrl";

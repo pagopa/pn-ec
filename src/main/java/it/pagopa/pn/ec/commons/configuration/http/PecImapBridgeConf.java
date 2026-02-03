@@ -11,26 +11,27 @@ import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 import javax.xml.namespace.QName;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.INITIALIZING_ARUBA_PROXY_CLIENT;
 
-@Configuration
+@Component
 @CustomLog
 public class PecImapBridgeConf {
 
     @Value("${aruba.server.address}")
     private String arubaServerAddress;
 
-    @Bean
-    public PecImapBridge pecImapBridge() {
-        QName endpointName = PecImapBridge_Service.PecImapBridgeSOAP;
-        QName serviceName = PecImapBridge_Service.SERVICE;
-        log.debug(INITIALIZING_ARUBA_PROXY_CLIENT, "pn-ec", arubaServerAddress, endpointName, serviceName);
-        return initializeFactory(endpointName, serviceName, List.of(disabledChunkingFeature())).create(PecImapBridge.class);
-    }
+//    @Bean
+//    public PecImapBridge pecImapBridge() {
+//        QName endpointName = PecImapBridge_Service.PecImapBridgeSOAP;
+//        QName serviceName = PecImapBridge_Service.SERVICE;
+//        log.debug(INITIALIZING_ARUBA_PROXY_CLIENT, "pn-ec", arubaServerAddress, endpointName, serviceName);
+//        return initializeFactory(endpointName, serviceName, List.of(disabledChunkingFeature())).create(PecImapBridge.class);
+//    }
 
     private JaxWsProxyFactoryBean initializeFactory(QName endpointName, QName serviceName, List<Feature> features) {
         JaxWsProxyFactoryBean factory = new JaxWsProxyFactoryBean();

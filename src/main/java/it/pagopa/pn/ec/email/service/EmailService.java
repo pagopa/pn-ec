@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.email.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
-import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListenerAcknowledgementMode;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.RetryAttemptsExceededExeption;
@@ -53,8 +53,6 @@ import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.ReactorUtils.pullFromFluxUntilIsEmpty;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.HTML;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.EMAIL;
@@ -175,7 +173,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             digitalRequestMetadataDto.setEventType(digitalCourtesyMailRequest.getEventType());
             digitalRequestMetadataDto.setTags(digitalCourtesyMailRequest.getTags());
             digitalRequestMetadataDto.setChannel(EMAIL);
-            digitalRequestMetadataDto.setMessageContentType(DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN);
+            digitalRequestMetadataDto.setMessageContentType(DigitalRequestMetadataDto.MessageContentTypeEnum.TEXT_PLAIN);
             requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
 
             requestDto.setRequestPersonal(requestPersonalDto);
@@ -185,8 +183,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_FROM_EMAIL, result));
     }
 
-    @SqsListener(value = "${sqs.queue.email.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void lavorazioneRichiestaInteractive(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+    @SqsListener(value = "${sqs.queue.email.interactive-name}", acknowledgementMode = SqsListenerAcknowledgementMode.ON_SUCCESS)
+    public void lavorazioneRichiestaInteractive(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgement acknowledgment) {
         String queueName=emailSqsQueueName.interactiveName();
         logIncomingMessage(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
         lavorazioneRichiesta(emailPresaInCaricoInfo,queueName)
@@ -295,9 +293,9 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .text(req.getMessageText())
                 .emailAttachments(new ArrayList<>())
                 .build();
-        if (req.getMessageContentType() == PLAIN) {
+        if (req.getMessageContentType() == DigitalCourtesyMailRequest.MessageContentTypeEnum.TEXT_PLAIN) {
             ret.setContentType("text/plain; charset=UTF-8");
-        } else if (req.getMessageContentType() == HTML) {
+        } else if (req.getMessageContentType() == DigitalCourtesyMailRequest.MessageContentTypeEnum.TEXT_HTML) {
             ret.setContentType("text/html; charset=UTF-8");
         }
         return ret;

@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.availabilitymanager.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
-import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListenerAcknowledgementMode;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
+import io.awspring.cloud.sqs.annotation.SqsListener;
 import it.pagopa.pn.ec.availabilitymanager.model.dto.AvailabilityManagerDetailDto;
 import it.pagopa.pn.ec.availabilitymanager.model.dto.AvailabilityManagerDto;
 import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
@@ -60,13 +60,13 @@ public class AvailabilityManagerService {
     @Value("${sqs.queue.availabilitymanager.name}")
     String availabilityManagerQueueName;
 
-    @SqsListener(value = "${sqs.queue.availabilitymanager.name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void lavorazioneEsitiPecInteractive(final AvailabilityManagerDto availabilityManagerDto, Acknowledgment acknowledgment) {
+    @SqsListener(value = "${sqs.queue.availabilitymanager.name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    public void lavorazioneEsitiPecInteractive(final AvailabilityManagerDto availabilityManagerDto, Acknowledgement acknowledgment) {
         logIncomingMessage(availabilityManagerQueueName, availabilityManagerDto.toString());
         handleAvailabilityManager(availabilityManagerDto, acknowledgment).subscribe();
     }
 
-    Mono<Void> handleAvailabilityManager(AvailabilityManagerDto availabilityManagerDto, Acknowledgment acknowledgment) {
+    Mono<Void> handleAvailabilityManager(AvailabilityManagerDto availabilityManagerDto, Acknowledgement acknowledgment) {
         log.logStartingProcess(HANDLE_AVAILABILITY_MANAGER);
         return Mono.justOrEmpty(availabilityManagerDto).flatMap(dto -> {
                     AvailabilityManagerDetailDto detailDto = dto.getDetail();
@@ -147,7 +147,7 @@ public class AvailabilityManagerService {
      */
     public Mono<Void> handleTransformationError(RequestConversionDto requestConversionDto,
                                                 AvailabilityManagerDetailDto detailDto,
-                                                Acknowledgment acknowledgment) {
+                                                Acknowledgement acknowledgment) {
         log.info(LOGGING_OPERATION_WITH_ARGS, HANDLE_AVAILABILITY_MANAGER_TRANSFORM_ERROR, requestConversionDto, detailDto);
 
         CartaceoPresaInCaricoInfo info = buildCartaceoPresaInCaricoInfo(requestConversionDto);
