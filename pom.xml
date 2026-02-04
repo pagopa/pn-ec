@@ -24,9 +24,9 @@
     </scm>
 
     <properties>
-        <java.version>21</java.version>
-        <awssdkv1.version>1.12.386</awssdkv1.version>
-        <logbackjackson.version>0.1.5</logbackjackson.version>
+<!--        <java.version>21</java.version>-->
+<!--        <awssdkv1.version>1.12.386</awssdkv1.version>-->
+<!--        <logbackjackson.version>0.1.5</logbackjackson.version>-->
 <!--        <openapi-generator-version>5.4.0</openapi-generator-version>-->
         <sonar.coverage.exclusions>
       		src/test/java/**
@@ -112,11 +112,11 @@
             <version>1.6.5</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-webflux-ui</artifactId>
-            <version>1.8.0</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.springdoc</groupId>-->
+<!--            <artifactId>springdoc-openapi-webflux-ui</artifactId>-->
+<!--            <version>1.8.0</version>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>io.gsonfire</groupId>
@@ -129,16 +129,24 @@
             <artifactId>logging-interceptor</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>junit</groupId>-->
+<!--            <artifactId>junit</artifactId>-->
+<!--        </dependency>-->
         <!-- End OpenApi dependencies -->
 
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
         <dependency>
@@ -167,11 +175,11 @@
             <artifactId>jetty-reactive-httpclient</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-webapp</artifactId>
-            <scope>test</scope>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.eclipse.jetty.ee10</groupId>-->
+<!--            <artifactId>jetty-ee10-webapp</artifactId>-->
+<!--            <scope>test</scope>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
@@ -238,11 +246,11 @@
             <artifactId>jakarta.jws-api</artifactId>
             <version>3.0.0</version>
         </dependency>
-        <dependency>
-            <groupId>jakarta.validation</groupId>
-            <artifactId>jakarta.validation-api</artifactId>
-            <version>3.0.2</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>jakarta.validation</groupId>-->
+<!--            <artifactId>jakarta.validation-api</artifactId>-->
+<!--            <version>3.1.1</version>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>jakarta.xml.ws</groupId>
@@ -368,18 +376,18 @@
             <artifactId>jakarta.mail-api</artifactId>
             <version>2.1.3</version>
         </dependency>
-        <dependency>
-            <groupId>ch.qos.logback.contrib</groupId>
-            <artifactId>logback-jackson</artifactId>
-            <version>${logbackjackson.version}</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>ch.qos.logback.contrib</groupId>-->
+<!--            <artifactId>logback-jackson</artifactId>-->
+<!--            <version>${logbackjackson.version}</version>-->
+<!--        </dependency>-->
 
         <!-- Start SS WebClient dependencies -->
-        <dependency>
-            <groupId>ch.qos.logback.contrib</groupId>
-            <artifactId>logback-json-classic</artifactId>
-            <version>${logbackjackson.version}</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>ch.qos.logback.contrib</groupId>-->
+<!--            <artifactId>logback-json-classic</artifactId>-->
+<!--            <version>${logbackjackson.version}</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
@@ -476,6 +484,7 @@
                             <generateModelTests>false</generateModelTests>
                             <configOptions>
                                 <useJakartaEe>true</useJakartaEe>
+                                <useSpringBoot3>true</useSpringBoot3>
                                 <delegatePattern>true</delegatePattern>
                                 <interfaceOnly>true</interfaceOnly>
                                 <annotationLibrary>none</annotationLibrary>
@@ -508,6 +517,7 @@
                             <generateApiTests>false</generateApiTests>
                             <generateModelTests>false</generateModelTests>
                             <configOptions>
+                                <useJakartaEe>true</useJakartaEe>
                                 <useSpringBoot3>true</useSpringBoot3>
                                 <delegatePattern>true</delegatePattern>
                                 <interfaceOnly>true</interfaceOnly>
@@ -540,6 +550,7 @@
                             <generateApiTests>false</generateApiTests>
                             <generateModelTests>false</generateModelTests>
                             <configOptions>
+                                <useJakartaEe>true</useJakartaEe>
                                 <useSpringBoot3>true</useSpringBoot3>
                                 <delegatePattern>true</delegatePattern>
                                 <interfaceOnly>true</interfaceOnly>
@@ -572,6 +583,7 @@
                             <generateModelTests>false</generateModelTests>
                             <configOptions>
                                 <useJakartaEe>true</useJakartaEe>
+                                <useSpringBoot3>true</useSpringBoot3>
                                 <delegatePattern>true</delegatePattern>
                                 <interfaceOnly>true</interfaceOnly>
                                 <annotationLibrary>none</annotationLibrary>
@@ -604,6 +616,7 @@
                             <generateModelTests>false</generateModelTests>
                             <configOptions>
                                 <useJakartaEe>true</useJakartaEe>
+                                <useSpringBoot3>true</useSpringBoot3>
                                 <delegatePattern>true</delegatePattern>
                                 <interfaceOnly>true</interfaceOnly>
                                 <annotationLibrary>none</annotationLibrary>
@@ -621,14 +634,14 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>21</source>
-                    <target>21</target>
-                </configuration>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-compiler-plugin</artifactId>-->
+<!--                <configuration>-->
+<!--                    <source>21</source>-->
+<!--                    <target>21</target>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
         </plugins>
     </build>
 </project>
