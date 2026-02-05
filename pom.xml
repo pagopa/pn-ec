@@ -181,12 +181,6 @@
             <artifactId>secretsmanager</artifactId>
         </dependency>
 
-        <!-- MAIL DEPENDENCIES-->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-mail</artifactId>
-        </dependency>
-
         <!-- Usato nella generazione del client consolidatore-2023-01-02.yml -->
         <dependency>
             <groupId>org.threeten</groupId>
@@ -247,18 +241,6 @@
                 </exclusion>
             </exclusions>
 
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.cxf</groupId>
-            <artifactId>cxf-rt-frontend-jaxws</artifactId>
-            <version>4.0.5</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.eclipse.angus</groupId>
-                    <artifactId>angus-mail</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>
