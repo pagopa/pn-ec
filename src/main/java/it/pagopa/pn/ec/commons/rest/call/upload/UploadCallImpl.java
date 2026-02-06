@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.commons.rest.call.upload;
 
 import it.pagopa.pn.ec.rest.v1.dto.DocumentTypeConfiguration;
 import lombok.CustomLog;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
@@ -28,7 +29,7 @@ public class UploadCallImpl implements UploadCall {
 
     private final WebClient uploadWebClient;
 
-    public UploadCallImpl(WebClient uploadWebClient) {
+    public UploadCallImpl(@Qualifier("uploadWebClient") WebClient uploadWebClient) {
         this.uploadWebClient = uploadWebClient;
     }
 

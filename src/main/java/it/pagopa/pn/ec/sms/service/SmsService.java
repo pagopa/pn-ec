@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.sms.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
-import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListenerAcknowledgementMode;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
@@ -46,7 +46,6 @@ import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.SMS;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
 
 @Service
 @CustomLog
@@ -141,7 +140,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
             digitalRequestMetadataDto.setCorrelationId(digitalCourtesySmsRequest.getCorrelationId());
             digitalRequestMetadataDto.setEventType(digitalCourtesySmsRequest.getEventType());
             digitalRequestMetadataDto.setTags(digitalCourtesySmsRequest.getTags());
-            digitalRequestMetadataDto.setMessageContentType(PLAIN);
+            digitalRequestMetadataDto.setMessageContentType(DigitalRequestMetadataDto.MessageContentTypeEnum.TEXT_PLAIN);
             digitalRequestMetadataDto.setChannel(SMS);
             requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
 
@@ -152,8 +151,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_FROM_SMS, result));
     }
 
-    @SqsListener(value = "${sqs.queue.sms.interactive-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    void lavorazioneRichiestaInteractive(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgment acknowledgment) {
+    @SqsListener(value = "${sqs.queue.sms.interactive-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    void lavorazioneRichiestaInteractive(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgement acknowledgment) {
         MDC.clear();
         logIncomingMessage(smsSqsQueueName.interactiveName(), smsPresaInCaricoInfo);
         lavorazioneRichiesta(smsPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();

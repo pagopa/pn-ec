@@ -7,6 +7,7 @@ import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import it.pec.bridgews.PecImapBridge;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,7 @@ import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.PEC;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.MessageContentTypeEnum.TEXT_PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestPersonalDto.QosEnum.INTERACTIVE;
 
 @SpringBootTestWebEnv
@@ -75,7 +76,7 @@ class RequestControllerTest {
         digitalRequestMetadataDto.setEventType("");
         digitalRequestMetadataDto.setTags(null);
         digitalRequestMetadataDto.setChannel(PEC);
-        digitalRequestMetadataDto.setMessageContentType(PLAIN);
+        digitalRequestMetadataDto.setMessageContentType(TEXT_PLAIN);
         var requestMetadataDto1 = new RequestMetadataDto();
         requestMetadataDto1.setDigitalRequestMetadata(digitalRequestMetadataDto);
         digitalRequest.setRequestMetadata(requestMetadataDto1);

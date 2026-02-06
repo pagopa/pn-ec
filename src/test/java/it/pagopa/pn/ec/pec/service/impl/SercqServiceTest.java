@@ -15,8 +15,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockitoAnnotations;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -31,7 +31,7 @@ import java.util.Objects;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.SERCQ;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.TEXT_PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
@@ -41,16 +41,16 @@ import static org.mockito.Mockito.*;
 @SpringBootTestWebEnv
 public class SercqServiceTest {
 
-    @MockBean
+    @MockitoBean
     AttachmentServiceImpl attachmentService;
 
-    @MockBean
+    @MockitoBean
     GestoreRepositoryCall gestoreRepositoryCall;
 
-    @MockBean
+    @MockitoBean
     private SqsService sqsService;
 
-    @SpyBean
+    @MockitoSpyBean
     private SercqService sercqService;
 
 
@@ -108,7 +108,7 @@ public class SercqServiceTest {
         digitalNotificationRequest.setMessageText("string");
         digitalNotificationRequest.channel(SERCQ);
         digitalNotificationRequest.setSubjectText("prova testo");
-        digitalNotificationRequest.setMessageContentType(PLAIN);
+        digitalNotificationRequest.setMessageContentType(TEXT_PLAIN);
         digitalNotificationRequest.setAttachmentUrls(defaultListAttachmentUrls);
         return digitalNotificationRequest;
     }

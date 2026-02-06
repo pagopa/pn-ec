@@ -6,7 +6,7 @@
     <parent>
         <groupId>it.pagopa.pn</groupId>
         <artifactId>pn-parent</artifactId>
-        <version>2.1.1</version>
+        <version>2.1.2-SPRINGBOOT3</version>
         <relativePath/>
     </parent>
 
@@ -24,17 +24,17 @@
     </scm>
 
     <properties>
-        <java.version>17</java.version>
-        <awssdkv1.version>1.12.386</awssdkv1.version>
-        <logbackjackson.version>0.1.5</logbackjackson.version>
-        <openapi-generator-version>5.4.0</openapi-generator-version>
         <sonar.coverage.exclusions>
       		src/test/java/**
     		</sonar.coverage.exclusions>
     </properties>
 
     <dependencies>
-		
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>5.0.0</version> <!-- Use the appropriate version for your project -->
+        </dependency>
 		<dependency>
 		    <groupId>org.apache.commons</groupId>
 		    <artifactId>commons-pool2</artifactId>
@@ -44,31 +44,13 @@
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-commons</artifactId>
-            <version>2.10.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>it.pagopa.tech.lollipop-consumer-java-sdk</groupId>
-                    <artifactId>core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>it.pagopa.tech.lollipop-consumer-java-sdk</groupId>
-                    <artifactId>http-verifier</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>it.pagopa.tech.lollipop-consumer-java-sdk</groupId>
-                    <artifactId>assertion-rest-client-native</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>it.pagopa.tech.lollipop-consumer-java-sdk</groupId>
-                    <artifactId>identity-service-rest-client-native</artifactId>
-                </exclusion>
-            </exclusions>
+            <version>2.15.0-SPRINGBOOT3</version>
         </dependency>
 
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-ec-aruba-pec</artifactId>
-            <version>1.1.0</version>
+            <version>1.2.0-RC.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.eclipse.angus</groupId>
@@ -81,20 +63,26 @@
         <dependency>
             <groupId>com.namirial.pec.library</groupId>
             <artifactId>pn-ec-namirial-pec</artifactId>
-            <version>1.4.0</version>
+            <version>1.5.0-RC.1</version>
         </dependency>
 
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-ec-dummy-pec</artifactId>
-            <version>1.2.0</version>
+            <version>1.3.0-RC.1</version>
 
         </dependency>
 
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-servizifiduciari-spapi</artifactId>
-            <version>1.0.0</version>
+            <version>1.1.0-RC.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>dynamodb-enhanced</artifactId>
+            <version>2.17.174</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.codehaus.janino/janino -->
@@ -117,12 +105,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-webflux-ui</artifactId>
-            <version>1.8.0</version>
-        </dependency>
-
-        <dependency>
             <groupId>io.gsonfire</groupId>
             <artifactId>gson-fire</artifactId>
             <version>1.9.0-alpha2</version>
@@ -132,11 +114,6 @@
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>logging-interceptor</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-        </dependency>
         <!-- End OpenApi dependencies -->
 
         <dependency>
@@ -144,7 +121,10 @@
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+        </dependency>
         <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
@@ -152,14 +132,18 @@
 
         <!-- Transitive dependencies with AWS SDK v1 for LocalStack-->
         <dependency>
-            <groupId>io.awspring.cloud</groupId>
-            <artifactId>spring-cloud-starter-aws-messaging</artifactId>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-client</artifactId>
         </dependency>
-
-        <!-- Start EC WebClient dependencies -->
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-reactive-httpclient</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>2.12.5</version>
         </dependency>
         <!-- Finish EC WebClient dependencies -->
 
@@ -193,12 +177,6 @@
             <artifactId>secretsmanager</artifactId>
         </dependency>
 
-        <!-- MAIL DEPENDENCIES-->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-mail</artifactId>
-        </dependency>
-
         <!-- Usato nella generazione del client consolidatore-2023-01-02.yml -->
         <dependency>
             <groupId>org.threeten</groupId>
@@ -212,7 +190,11 @@
             <artifactId>jakarta.xml.bind-api</artifactId>
             <version>4.0.0</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
+            <version>4.0.2</version>
+        </dependency>
         <dependency>
             <groupId>jakarta.jws</groupId>
             <artifactId>jakarta.jws-api</artifactId>
@@ -258,27 +240,15 @@
         </dependency>
 
         <dependency>
-            <groupId>javax.xml.bind</groupId>
-            <artifactId>jaxb-api</artifactId>
-            <version>2.3.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.sun.xml.ws</groupId>
-            <artifactId>rt</artifactId>
-            <version>2.3.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.cxf</groupId>
-            <artifactId>cxf-rt-frontend-jaxws</artifactId>
-            <version>3.6.6</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.apache.cxf.systests</groupId>
             <artifactId>cxf-systests-transport-hc5</artifactId>
             <version>4.1.1</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.eclipse.jetty</groupId>
+                    <artifactId>jetty-server</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- End SOAP dependencies -->
 
@@ -337,18 +307,8 @@
             <artifactId>jakarta.mail-api</artifactId>
             <version>2.1.3</version>
         </dependency>
-        <dependency>
-            <groupId>ch.qos.logback.contrib</groupId>
-            <artifactId>logback-jackson</artifactId>
-            <version>${logbackjackson.version}</version>
-        </dependency>
 
         <!-- Start SS WebClient dependencies -->
-        <dependency>
-            <groupId>ch.qos.logback.contrib</groupId>
-            <artifactId>logback-json-classic</artifactId>
-            <version>${logbackjackson.version}</version>
-        </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
@@ -395,7 +355,7 @@
             <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
-                <version>${openapi-generator-version}</version>
+                <version>7.12.0</version>
                 <executions>
                     <execution>
                         <id>generate-consolidatore</id>
@@ -404,7 +364,6 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory>
                             <inputSpec>${project.basedir}/docs/openapi/external/consolidatore-v1.yml</inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -412,6 +371,8 @@
                             <generateApiTests>false</generateApiTests>
                             <generateModelTests>false</generateModelTests>
                             <configOptions>
+                                <useJakartaEe>true</useJakartaEe>
+                                <useSpringBoot3>true</useSpringBoot3>
                                 <delegatePattern>true</delegatePattern>
                                 <interfaceOnly>true</interfaceOnly>
                                 <annotationLibrary>none</annotationLibrary>
@@ -436,7 +397,6 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory>
                             <inputSpec>${project.basedir}/docs/openapi/external/api-internal-v1.yaml</inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -444,6 +404,8 @@
                             <generateApiTests>false</generateApiTests>
                             <generateModelTests>false</generateModelTests>
                             <configOptions>
+                                <useJakartaEe>true</useJakartaEe>
+                                <useSpringBoot3>true</useSpringBoot3>
                                 <delegatePattern>true</delegatePattern>
                                 <interfaceOnly>true</interfaceOnly>
                                 <annotationLibrary>none</annotationLibrary>
@@ -467,7 +429,7 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory><inputSpec>
+                            <inputSpec>
                                 ${project.basedir}/docs/openapi/internal/externalchannel/gestore-repository-v1.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
@@ -476,6 +438,8 @@
                             <generateApiTests>false</generateApiTests>
                             <generateModelTests>false</generateModelTests>
                             <configOptions>
+                                <useJakartaEe>true</useJakartaEe>
+                                <useSpringBoot3>true</useSpringBoot3>
                                 <delegatePattern>true</delegatePattern>
                                 <interfaceOnly>true</interfaceOnly>
                                 <annotationLibrary>none</annotationLibrary>
@@ -489,6 +453,7 @@
                                 <apiPackage>${project.groupId}.rest.v1.api</apiPackage>
                                 <configPackage>${project.groupId}.rest.v1.config</configPackage>
                             </configOptions>
+                            <skipValidateSpec>true</skipValidateSpec>
                         </configuration>
                     </execution>
                     <execution>
@@ -498,7 +463,7 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory><inputSpec>${project.basedir}/docs/openapi/internal/safestorage/pn-safestorage-v1.1-api.yaml
+                            <inputSpec>${project.basedir}/docs/openapi/internal/safestorage/pn-safestorage-v1.1-api.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -506,6 +471,8 @@
                             <generateApiTests>false</generateApiTests>
                             <generateModelTests>false</generateModelTests>
                             <configOptions>
+                                <useJakartaEe>true</useJakartaEe>
+                                <useSpringBoot3>true</useSpringBoot3>
                                 <delegatePattern>true</delegatePattern>
                                 <interfaceOnly>true</interfaceOnly>
                                 <annotationLibrary>none</annotationLibrary>
@@ -528,7 +495,7 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory> <inputSpec>${project.basedir}/docs/openapi/external/api-consolidatore-ingress-v1.yaml
+                            <inputSpec>${project.basedir}/docs/openapi/external/api-consolidatore-ingress-v1.yaml
                             </inputSpec>
                             <generatorName>spring</generatorName>
                             <library>spring-boot</library>
@@ -536,6 +503,8 @@
                             <generateApiTests>false</generateApiTests>
                             <generateModelTests>false</generateModelTests>
                             <configOptions>
+                                <useJakartaEe>true</useJakartaEe>
+                                <useSpringBoot3>true</useSpringBoot3>
                                 <delegatePattern>true</delegatePattern>
                                 <interfaceOnly>true</interfaceOnly>
                                 <annotationLibrary>none</annotationLibrary>
@@ -558,7 +527,7 @@
                         </goals>
                         <phase>generate-resources</phase>
                         <configuration>
-                            <templateDirectory>src/main/resources/templates/openapi/5.4.0/server</templateDirectory><inputSpec>
+                            <inputSpec>
                             ${project.basedir}/docs/openapi/external/api-richieste-metadati-rework.yaml
                         </inputSpec>
                             <generatorName>spring</generatorName>
@@ -567,6 +536,8 @@
                             <generateApiTests>false</generateApiTests>
                             <generateModelTests>false</generateModelTests>
                             <configOptions>
+                                <useJakartaEe>true</useJakartaEe>
+                                <useSpringBoot3>true</useSpringBoot3>
                                 <delegatePattern>true</delegatePattern>
                                 <interfaceOnly>true</interfaceOnly>
                                 <annotationLibrary>none</annotationLibrary>
@@ -583,14 +554,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>17</source>
-                    <target>17</target>
-                </configuration>
             </plugin>
         </plugins>
     </build>

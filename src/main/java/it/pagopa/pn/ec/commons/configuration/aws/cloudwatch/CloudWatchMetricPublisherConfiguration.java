@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.metrics.*;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;

@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -14,8 +14,8 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.annotation.DirtiesContext;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.TEXT_PLAIN;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.*;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.PecUtils.generateDaticertAccettazione;
 import static it.pagopa.pn.library.pec.utils.PnPecUtils.ARUBA_PROVIDER;
@@ -40,17 +40,17 @@ import static org.mockito.Mockito.*;
 @SpringBootTestWebEnv
 @DirtiesContext
 class LavorazioneEsitiPecServiceTimeoutTest {
-    @SpyBean
+    @MockitoSpyBean
     private LavorazioneEsitiPecService lavorazioneEsitiPecService;
-    @MockBean
-    private Acknowledgment acknowledgment;
-    @MockBean
+    @MockitoBean
+    private Acknowledgement acknowledgment;
+    @MockitoBean
     private GestoreRepositoryCall gestoreRepositoryCall;
-    @MockBean
+    @MockitoBean
     private AuthService authService;
-    @MockBean
+    @MockitoBean
     private SqsTimeoutProvider sqsTimeoutProvider;
-    @MockBean
+    @MockitoBean
     private StatusPullService statusPullService;
     @Value("${pn.ec.storage.sqs.messages.staging.bucket}")
     String storageSqsMessagesStagingBucket;
@@ -147,7 +147,7 @@ class LavorazioneEsitiPecServiceTimeoutTest {
                 .to("to")
                 .subject("subject")
                 .text("text")
-                .contentType(PLAIN.getValue())
+                .contentType(TEXT_PLAIN.getValue())
                 .emailAttachments(List.of(EmailAttachment.builder().nameWithExtension("daticert.xml").url("url").content(daticertOutput).build()))
                 .build();
 

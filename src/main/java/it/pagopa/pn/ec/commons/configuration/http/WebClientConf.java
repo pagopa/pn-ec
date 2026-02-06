@@ -9,13 +9,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.JettyClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
-import static org.eclipse.jetty.util.URIUtil.HTTPS;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @Configuration
 public class WebClientConf {
 
+    private final String HTTPS="https";
     private final JettyHttpClientConf jettyHttpClientConf;
 
     public WebClientConf(JettyHttpClientConf jettyHttpClientConf) {

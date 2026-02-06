@@ -16,8 +16,8 @@ import org.junit.jupiter.api.Assertions;
 
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -32,7 +32,6 @@ import java.util.Map;
 
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 
 @SpringBootTestWebEnv
@@ -44,14 +43,15 @@ class RequestConversionServiceTest {
     @Autowired
     private RepositoryManagerDynamoTableName repositoryManagerDynamoTableName;
 
-    @MockBean
+    @MockitoBean
     private PdfRasterProperties pdfRasterProperties;
 
 
     private static DynamoDbTable<PdfConversionEntity> pdfConversionEntityDynamoDbTable;
     private static DynamoDbTable<RequestConversionEntity> requestConversionEntityDynamoDbTable;
 
-    @SpyBean
+
+    @MockitoSpyBean
     RequestConversionService requestConversionService;
 
     @BeforeEach
@@ -170,7 +170,7 @@ class RequestConversionServiceTest {
     }
 
     private void simulateInternalServerError() {
-        when(requestConversionService.insertRequestConversion(any(RequestConversionDto.class)))
+        Mockito.when(requestConversionService.insertRequestConversion(any(RequestConversionDto.class)))
                 .thenReturn(Mono.error(new Generic500ErrorException("Internal Server Error", "")));
     }
 
@@ -189,7 +189,7 @@ class RequestConversionServiceTest {
     }
 
     private void simulateConflictError() {
-        when(requestConversionService.insertRequestConversion(any(RequestConversionDto.class)))
+        Mockito.when(requestConversionService.insertRequestConversion(any(RequestConversionDto.class)))
                 .thenReturn(Mono.error(new ConflictException("Element already exists")));
     }
 
@@ -209,7 +209,7 @@ class RequestConversionServiceTest {
     }
 
     private void simulateInvalidConvertedValueError(String fileKey, boolean converted) {
-        when(requestConversionService.updateRequestConversion(fileKey, converted, RandomStringUtils.randomAlphanumeric(10), false))
+        Mockito.when(requestConversionService.updateRequestConversion(fileKey, converted, RandomStringUtils.randomAlphanumeric(10), false))
                 .thenReturn(Mono.error(new IllegalArgumentException("Invalid value for 'converted': must be true.")));
     }
 

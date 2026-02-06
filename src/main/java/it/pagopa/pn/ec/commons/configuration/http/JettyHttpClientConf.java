@@ -3,7 +3,8 @@ package it.pagopa.pn.ec.commons.configuration.http;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import lombok.CustomLog;
 import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.api.Request;
+//import org.eclipse.jetty.client.api.Request;
+import org.eclipse.jetty.client.Request;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,7 +28,7 @@ public class JettyHttpClientConf {
 
     @Bean
     public HttpClient getJettyHttpClient() {
-        HttpClient myHC = new HttpClient(sslContextFactory) {
+        HttpClient myHC = new HttpClient() {
             @Override
             public Request newRequest(URI uri) {
                 Request request = super.newRequest(uri);
@@ -44,7 +45,7 @@ public class JettyHttpClientConf {
         var context = new SslContextFactory.Client();
         context.setTrustAll(true);
 
-        return new HttpClient(context) {
+        return new HttpClient() {
             @Override
             public Request newRequest(URI uri) {
                 Request request = super.newRequest(uri);
@@ -59,7 +60,7 @@ public class JettyHttpClientConf {
         return request.onRequestBegin(theRequest -> {
                     MDCUtils.enrichWithMDC(theRequest, mdcContextMap);
                     if (mdcContextMap != null && mdcContextMap.containsKey(MDC_CORR_ID_KEY)) {
-                        request.header(corrIdHeaderName, MDC.get(MDC_CORR_ID_KEY));
+                        request.param(corrIdHeaderName, MDC.get(MDC_CORR_ID_KEY));
                     }
                     log.info("Start {} request to {}", theRequest.getMethod(), theRequest.getURI());
                 })

@@ -191,7 +191,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 					if(progressStatusEvent.getStatusCode().startsWith("REC")) {
 						if (progressStatusEvent.getAttachments() != null && !progressStatusEvent.getAttachments().isEmpty()) {
-							for (ConsolidatoreIngressPaperProgressStatusEventAttachments attachment : progressStatusEvent.getAttachments()) {
+							for (ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner attachment : progressStatusEvent.getAttachments()) {
 								if (!attachmentDocumentTypeMap().contains(attachment.getDocumentType())) {
 									String errMsg = String.format(NOT_VALID_FOR, ATTACHMENT_DOCUMENT_TYPE_LABEL, progressStatusEvent.getStatusCode(), attachment.getDocumentType());
 									auditLogErrorList.add(new ConsAuditLogError().requestId(requestId).error(ERR_CONS_BAD_DOC_TYPE.getValue()).description(errMsg));
@@ -224,7 +224,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 	private Mono<OperationResultCodeResponse> verificaAttachments(
 			String xPagopaExtchServiceId, String requestId,
-			List<ConsolidatoreIngressPaperProgressStatusEventAttachments> attachments)
+			List<ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner> attachments)
 				throws RicezioneEsitiCartaceoException // uri formalmente scorretto
 	{
 		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS + " - {}", VERIFICA_ATTACHMENTS, requestId, attachments);
