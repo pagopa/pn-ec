@@ -183,7 +183,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_FROM_EMAIL, result));
     }
 
-    @SqsListener(value = "${sqs.queue.email.interactive-name}", acknowledgementMode = SqsListenerAcknowledgementMode.ON_SUCCESS)
+    @SqsListener(value = "${sqs.queue.email.interactive-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void lavorazioneRichiestaInteractive(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgement acknowledgment) {
         String queueName=emailSqsQueueName.interactiveName();
         logIncomingMessage(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
