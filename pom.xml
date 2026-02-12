@@ -378,6 +378,7 @@
                                 <annotationLibrary>none</annotationLibrary>
                                 <documentationProvider>source</documentationProvider>
                                 <openApiNullable>false</openApiNullable>
+                                <useOptional>true</useOptional>
                                 <reactive>true</reactive>
                                 <skipDefaultInterface>false</skipDefaultInterface>
                                 <useTags>true</useTags>
@@ -411,6 +412,7 @@
                                 <annotationLibrary>none</annotationLibrary>
                                 <documentationProvider>source</documentationProvider>
                                 <openApiNullable>false</openApiNullable>
+                                <useOptional>true</useOptional>
                                 <reactive>true</reactive>
                                 <skipDefaultInterface>false</skipDefaultInterface>
                                 <useTags>true</useTags>
@@ -445,6 +447,7 @@
                                 <annotationLibrary>none</annotationLibrary>
                                 <documentationProvider>source</documentationProvider>
                                 <openApiNullable>false</openApiNullable>
+                                <useOptional>true</useOptional>
                                 <reactive>true</reactive>
                                 <skipDefaultInterface>false</skipDefaultInterface>
                                 <useTags>true</useTags>
@@ -478,6 +481,7 @@
                                 <annotationLibrary>none</annotationLibrary>
                                 <documentationProvider>source</documentationProvider>
                                 <openApiNullable>false</openApiNullable>
+                                <useOptional>true</useOptional>
                                 <reactive>true</reactive>
                                 <skipDefaultInterface>false</skipDefaultInterface>
                                 <useTags>true</useTags>
@@ -510,6 +514,7 @@
                                 <annotationLibrary>none</annotationLibrary>
                                 <documentationProvider>source</documentationProvider>
                                 <openApiNullable>false</openApiNullable>
+                                <useOptional>true</useOptional>
                                 <reactive>true</reactive>
                                 <skipDefaultInterface>false</skipDefaultInterface>
                                 <useTags>true</useTags>
@@ -543,6 +548,7 @@
                                 <annotationLibrary>none</annotationLibrary>
                                 <documentationProvider>source</documentationProvider>
                                 <openApiNullable>false</openApiNullable>
+                                <useOptional>true</useOptional>
                                 <reactive>true</reactive>
                                 <skipDefaultInterface>false</skipDefaultInterface>
                                 <useTags>true</useTags>
