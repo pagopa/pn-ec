@@ -59,6 +59,7 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
         var digitalNotificationRequest = pecPresaInCaricoInfo.getDigitalNotificationRequest();
 
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_SERCQ, presaInCaricoInfo);
+        log.info("SercqPresaInCaricoInfo - receiverDigitalAddress: {}", pecPresaInCaricoInfo.getDigitalNotificationRequest().getReceiverDigitalAddress());
 
         digitalNotificationRequest.setRequestId(requestIdx);
 
