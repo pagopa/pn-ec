@@ -61,10 +61,13 @@ public class WebClientConf {
                 }).build();
     }
 
-    @Bean
-    public WebClient downloadWebClient() {
-        return defaultWebClientBuilder("").build();
-    }
+//    @Bean
+//    public WebClient downloadWebClient(String url) {
+//
+//        DefaultUriBuilderFactory factory = new DefaultUriBuilderFactory(url);
+//        factory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.NONE);
+//        return WebClient.builder().uriBuilderFactory(factory).build();
+//    }
 
     @Bean
     public WebClient uploadWebClient() {
