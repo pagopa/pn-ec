@@ -28,7 +28,7 @@ public class DownloadCallImpl implements DownloadCall {
     public Mono<OutputStream> downloadFile(String url) {
         OutputStream outputStream = new ByteArrayOutputStream();
         log.info(CLIENT_METHOD_INVOCATION_WITH_ARGS, DOWNLOAD_FILE, url);
-        return DataBufferUtils.write(downloadWebClient.get().uri(URI.create(url)).retrieve().bodyToFlux(DataBuffer.class), outputStream)
+        return DataBufferUtils.write(downloadWebClient.get().uri(url).retrieve().bodyToFlux(DataBuffer.class), outputStream)
                               .map(DataBufferUtils::release)
                               .then(Mono.just(outputStream))
                               .doOnSuccess(result -> log.info(CLIENT_METHOD_RETURN, DOWNLOAD_FILE, url))
