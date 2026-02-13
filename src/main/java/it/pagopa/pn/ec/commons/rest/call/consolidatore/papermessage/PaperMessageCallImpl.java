@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
@@ -108,7 +109,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
     public Mono<PaperDeliveryProgressesResponse> getProgress(String requestId) throws RestCallException.ResourceNotFoundException {
         log.logInvokingExternalService(CONSOLIDATORE_SERVICE, GET_PAPER_ENGAGE_PROGRESSES);
         return consolidatoreWebClient.get()
-                                     .uri(uriBuilder -> uriBuilder.path(paperMessagesEndpointProperties.getRequest()).build(requestId))
+                                     .uri(UriComponentsBuilder.fromPath(paperMessagesEndpointProperties.getRequest()).build(requestId).toString())
                                      .retrieve()
                                      .onStatus(NOT_FOUND::equals,
                                                clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
@@ -119,7 +120,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
     public Mono<PaperReplicasProgressesResponse> getDuplicateProgress(String requestId) throws RestCallException.ResourceNotFoundException {
         log.logInvokingExternalService(CONSOLIDATORE_SERVICE, GET_PAPER_REPLICAS_PROGRESSES_REQUEST);
         return consolidatoreWebClient.get()
-                                     .uri(uriBuilder -> uriBuilder.path(paperMessagesEndpointProperties.getDuplicateRequest()).build(requestId))
+                                     .uri( UriComponentsBuilder.fromPath(paperMessagesEndpointProperties.getDuplicateRequest()).build(requestId).toString())
                                      .retrieve()
                                      .onStatus(NOT_FOUND::equals,
                                                clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))

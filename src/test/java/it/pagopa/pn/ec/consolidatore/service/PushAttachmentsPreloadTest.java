@@ -20,6 +20,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.util.stream.Stream;
@@ -81,7 +82,7 @@ class PushAttachmentsPreloadTest {
     private WebTestClient.ResponseSpec pushAttachmentsPreloadTestCall(BodyInserter<PreLoadRequestData, ReactiveHttpOutputMessage> bodyInserter) {
 
         return this.webTestClient.put()
-                .uri(uriBuilder -> uriBuilder.path(URI).build())
+                .uri(UriComponentsBuilder.fromPath(URI).build().toString())
                 .header(consolidatoreEndpointProperties.clientHeaderName(), CLIENT_ID)
                 .header(consolidatoreEndpointProperties.apiKeyHeaderName(), X_API_KEY)
                 .accept(APPLICATION_JSON)
@@ -93,7 +94,7 @@ class PushAttachmentsPreloadTest {
     private WebTestClient.ResponseSpec getFileTestCall() {
 
         return this.webTestClient.get()
-                .uri(uriBuilder -> uriBuilder.path(URI_GET).build())
+                .uri(UriComponentsBuilder.fromPath(URI_GET).build().toString())
                 .header(consolidatoreEndpointProperties.clientHeaderName(), CLIENT_ID)
                 .header(consolidatoreEndpointProperties.apiKeyHeaderName(), X_API_KEY)
                 .accept(APPLICATION_JSON)
