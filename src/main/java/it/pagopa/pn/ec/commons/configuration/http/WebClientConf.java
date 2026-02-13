@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.JettyClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.DefaultUriBuilderFactory;
+
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
@@ -40,15 +42,23 @@ public class WebClientConf {
 
     @Bean
     public WebClient ecWebClient(ExternalChannelEndpointProperties externalChannelEndpointProperties) {
-        return defaultJsonWebClientBuilder().baseUrl(externalChannelEndpointProperties.containerBaseUrl()).build();
+        String baseUrl = externalChannelEndpointProperties.containerBaseUrl();
+        return defaultJsonWebClientBuilder().baseUrl(baseUrl)
+                .uriBuilderFactory(getDisabledEncodingFactory(baseUrl))
+                .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()))
+                .build();
     }
 
     @Bean
     public WebClient ssWebClient(SafeStorageEndpointProperties safeStorageEndpointProperties) {
-        return defaultJsonWebClientBuilder().baseUrl(safeStorageEndpointProperties.containerBaseUrl()).defaultHeaders(httpHeaders -> {
-            httpHeaders.set(safeStorageEndpointProperties.clientHeaderName(), safeStorageEndpointProperties.clientHeaderValue());
-            httpHeaders.set(safeStorageEndpointProperties.apiKeyHeaderName(), safeStorageEndpointProperties.apiKeyHeaderValue());
-        }).build();
+        String baseUrl = safeStorageEndpointProperties.containerBaseUrl();
+        return defaultJsonWebClientBuilder().baseUrl(baseUrl)
+                .uriBuilderFactory(getDisabledEncodingFactory(baseUrl))
+                .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()))
+                .defaultHeaders(httpHeaders -> {
+                    httpHeaders.set(safeStorageEndpointProperties.clientHeaderName(), safeStorageEndpointProperties.clientHeaderValue());
+                    httpHeaders.set(safeStorageEndpointProperties.apiKeyHeaderName(), safeStorageEndpointProperties.apiKeyHeaderValue());
+                }).build();
     }
 
     @Bean
@@ -63,7 +73,11 @@ public class WebClientConf {
 
     @Bean
     public WebClient stateMachineWebClient(StateMachineEndpointProperties stateMachineEndpointProperties) {
-        return defaultJsonWebClientBuilder().baseUrl(stateMachineEndpointProperties.containerBaseUrl()).build();
+        String baseUrl = stateMachineEndpointProperties.containerBaseUrl();
+        return defaultJsonWebClientBuilder().baseUrl(baseUrl)
+                .uriBuilderFactory(getDisabledEncodingFactory(baseUrl))
+                .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()))
+                .build();
     }
 
     @Bean
@@ -79,25 +93,42 @@ public class WebClientConf {
     public WebClient pdfRasterWebClient(PdfRasterEndpointProperties pdfRasterEndpointProperties,SafeStorageEndpointProperties safeStorageEndpointProperties){
         String pdfRasterBaseUrl = pdfRasterEndpointProperties.baseUrl();
 
-        return defaultJsonWebClientBuilder().baseUrl(pdfRasterBaseUrl).defaultHeaders(httpHeaders -> {
-            httpHeaders.set(safeStorageEndpointProperties.clientHeaderName(),pdfRasterEndpointProperties.clientHeaderValue());
-            httpHeaders.set(safeStorageEndpointProperties.apiKeyHeaderName(),pdfRasterEndpointProperties.clientHeaderApiKey());
-        }).build();
+        return defaultJsonWebClientBuilder().baseUrl(pdfRasterBaseUrl)
+                .uriBuilderFactory(getDisabledEncodingFactory(pdfRasterBaseUrl))
+                .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()))
+                .defaultHeaders(httpHeaders -> {
+                    httpHeaders.set(safeStorageEndpointProperties.clientHeaderName(),pdfRasterEndpointProperties.clientHeaderValue());
+                    httpHeaders.set(safeStorageEndpointProperties.apiKeyHeaderName(),pdfRasterEndpointProperties.clientHeaderApiKey());
+                }).build();
     }
 
     private WebClient defaultConsolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties)
     {
-        return defaultJsonWebClientBuilder().baseUrl(consolidatoreEndpointProperties.baseUrl()).defaultHeaders(httpHeaders -> {
-            httpHeaders.set(consolidatoreEndpointProperties.clientHeaderName(), consolidatoreEndpointProperties.clientHeaderValue());
-            httpHeaders.set(consolidatoreEndpointProperties.apiKeyHeaderName(), consolidatoreEndpointProperties.apiKeyHeaderValue());
-        }).build();
+        String consolidatoreBaseUrl = consolidatoreEndpointProperties.baseUrl();
+        return defaultJsonWebClientBuilder().baseUrl(consolidatoreBaseUrl)
+                .uriBuilderFactory(getDisabledEncodingFactory(consolidatoreBaseUrl))
+                .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()))
+                .defaultHeaders(httpHeaders -> {
+                    httpHeaders.set(consolidatoreEndpointProperties.clientHeaderName(), consolidatoreEndpointProperties.clientHeaderValue());
+                    httpHeaders.set(consolidatoreEndpointProperties.apiKeyHeaderName(), consolidatoreEndpointProperties.apiKeyHeaderValue());
+                }).build();
     }
 
     private WebClient trustAllConsolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties) {
-        return trustAllJsonWebClientBuilder().baseUrl(consolidatoreEndpointProperties.baseUrl()).defaultHeaders(httpHeaders -> {
-            httpHeaders.set(consolidatoreEndpointProperties.clientHeaderName(), consolidatoreEndpointProperties.clientHeaderValue());
-            httpHeaders.set(consolidatoreEndpointProperties.apiKeyHeaderName(), consolidatoreEndpointProperties.apiKeyHeaderValue());
-        }).build();
+        String consolidatoreBaseUrl = consolidatoreEndpointProperties.baseUrl();
+        return trustAllJsonWebClientBuilder().baseUrl(consolidatoreBaseUrl)
+                .uriBuilderFactory(getDisabledEncodingFactory(consolidatoreBaseUrl))
+                .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()))
+                .defaultHeaders(httpHeaders -> {
+                    httpHeaders.set(consolidatoreEndpointProperties.clientHeaderName(), consolidatoreEndpointProperties.clientHeaderValue());
+                    httpHeaders.set(consolidatoreEndpointProperties.apiKeyHeaderName(), consolidatoreEndpointProperties.apiKeyHeaderValue());
+                }).build();
+    }
+
+    private DefaultUriBuilderFactory getDisabledEncodingFactory(String baseUrl) {
+        DefaultUriBuilderFactory factory = new DefaultUriBuilderFactory(baseUrl);
+        factory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.NONE);
+        return factory;
     }
 
 }
