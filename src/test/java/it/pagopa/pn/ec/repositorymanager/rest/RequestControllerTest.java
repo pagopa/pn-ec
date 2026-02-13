@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.util.UriComponentsBuilder;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -222,7 +223,7 @@ class RequestControllerTest {
     @ValueSource(strings = {DEFAULT_ID_DIGITAL, DEFAULT_ID_PAPER})
     void readRequestTestSuccess(String id) {
         webClient.get()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build(id))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.getRequest()).build(id).toString())
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
@@ -234,7 +235,7 @@ class RequestControllerTest {
     @Test
     void readRequestTestFailed() {
         webClient.get()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequest()).build("idNotExist"))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.getRequest()).build("idNotExist").toString())
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
@@ -304,7 +305,7 @@ class RequestControllerTest {
     void testUpdateSuccess(PatchDto patchDto, String idRequest) {
 
         webClient.patch()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(idRequest))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.patchRequest()).build(idRequest).toString())
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .body(BodyInserters.fromValue(patchDto))
                  .exchange()
@@ -318,7 +319,7 @@ class RequestControllerTest {
     void testUpdateFailed(PatchDto patchDto) {
 
         webClient.patch()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build("idCheNonEsiste1"))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.patchRequest()).build("idCheNonEsiste1").toString())
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .body(BodyInserters.fromValue(patchDto))
                  .exchange()
@@ -344,7 +345,7 @@ class RequestControllerTest {
         patchDto.setRetry(retry);
 
         webClient.patch()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.patchRequest()).build(DEFAULT_ID_DIGITAL))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.patchRequest()).build(DEFAULT_ID_DIGITAL).toString())
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .body(BodyInserters.fromValue(patchDto))
                  .exchange()
@@ -365,7 +366,7 @@ class RequestControllerTest {
         insertRequestMetadata("CLIENT1~" + idToDelete, objectMapper.convertValue(requestDto.getRequestMetadata(), RequestMetadata.class));
 
         webClient.delete()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest()).build(idToDelete))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.deleteRequest()).build(idToDelete).toString())
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
@@ -376,7 +377,7 @@ class RequestControllerTest {
     @Test
     void deleteRequestTestFailed() {
         webClient.delete()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteRequest()).build("idCheNonEsiste2"))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.deleteRequest()).build("idCheNonEsiste2").toString())
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
@@ -387,8 +388,8 @@ class RequestControllerTest {
     @ValueSource(strings = {DEFAULT_CONCATE_ID_DIGITAL, DEFAULT_CONCATE_ID_PAPER})
     void getRequestByMessageIdOk(String idRequest) {
         webClient.get()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId())
-                                              .build(encodeMessageId(idRequest)))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.getRequestByMessageId())
+                                              .build(encodeMessageId(idRequest)).toString())
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
@@ -398,8 +399,8 @@ class RequestControllerTest {
     @Test
     void getRequestByMessageNotFound() {
         webClient.get()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId())
-                                              .build(encodeMessageId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE + "~idRequestCheNonEsiste")))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.getRequestByMessageId())
+                                              .build(encodeMessageId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE + "~idRequestCheNonEsiste")).toString())
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
@@ -409,7 +410,7 @@ class RequestControllerTest {
     @Test
     void getRequestByMessageBadMessageId() {
         webClient.get()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getRequestByMessageId()).build("badMessageId"))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.getRequestByMessageId()).build("badMessageId").toString())
                  .exchange()
                  .expectStatus()
                  .isBadRequest();
@@ -419,7 +420,7 @@ class RequestControllerTest {
     @ValueSource(strings = {DEFAULT_ID_DIGITAL, DEFAULT_ID_PAPER})
     void updateMessageIdInRequestMetadataOk(String idRequest) {
         webClient.post()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata()).build(idRequest))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata()).build(idRequest).toString())
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()
@@ -429,8 +430,8 @@ class RequestControllerTest {
     @Test
     void updateMessageIdInRequestMetadataNotFound() {
         webClient.post()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
-                                              .build("idRequestCheNonEsiste"))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
+                                              .build("idRequestCheNonEsiste").toString())
                  .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
                  .exchange()
                  .expectStatus()

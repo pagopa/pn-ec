@@ -23,12 +23,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.ReactiveHttpOutputMessage;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
@@ -105,7 +104,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
             , String requestIdx) {
 
         return this.webTestClient.put()
-                                 .uri(uriBuilder -> uriBuilder.path(SEND_EMAIL_ENDPOINT).build(requestIdx))
+                                 .uri(UriComponentsBuilder.fromPath(SEND_EMAIL_ENDPOINT).build(requestIdx).toString())
                                  .accept(APPLICATION_JSON)
                                  .contentType(APPLICATION_JSON)
                                  .body(bodyInserter)

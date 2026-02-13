@@ -24,37 +24,37 @@ public class WebClientConf {
         this.jettyHttpClientConf = jettyHttpClientConf;
     }
 
-    private WebClient.Builder defaultWebClientBuilder() {
-        return WebClient.builder().clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()));
+    private WebClient.Builder defaultWebClientBuilder(String baseUrl) {
+        return WebClient.builder()
+                .uriBuilderFactory(getDisabledEncodingFactory(baseUrl))
+                .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()));
     }
 
-    private WebClient.Builder trustAllWebClientBuilder() {
-        return WebClient.builder().clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getTrustAllJettyHttpClient()));
+    private WebClient.Builder trustAllWebClientBuilder(String baseUrl) {
+        return WebClient.builder()
+                .uriBuilderFactory(getDisabledEncodingFactory(baseUrl))
+                .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getTrustAllJettyHttpClient()));
     }
 
-    private WebClient.Builder defaultJsonWebClientBuilder() {
-        return defaultWebClientBuilder().defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
+    private WebClient.Builder defaultJsonWebClientBuilder(String baseUrl) {
+        return defaultWebClientBuilder(baseUrl).defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
     }
 
-    private WebClient.Builder trustAllJsonWebClientBuilder() {
-        return trustAllWebClientBuilder().defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
+    private WebClient.Builder trustAllJsonWebClientBuilder(String baseUrl) {
+        return trustAllWebClientBuilder(baseUrl).defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE);
     }
 
     @Bean
     public WebClient ecWebClient(ExternalChannelEndpointProperties externalChannelEndpointProperties) {
         String baseUrl = externalChannelEndpointProperties.containerBaseUrl();
-        return defaultJsonWebClientBuilder().baseUrl(baseUrl)
-                .uriBuilderFactory(getDisabledEncodingFactory(baseUrl))
-                .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()))
+        return defaultJsonWebClientBuilder(baseUrl)
                 .build();
     }
 
     @Bean
     public WebClient ssWebClient(SafeStorageEndpointProperties safeStorageEndpointProperties) {
         String baseUrl = safeStorageEndpointProperties.containerBaseUrl();
-        return defaultJsonWebClientBuilder().baseUrl(baseUrl)
-                .uriBuilderFactory(getDisabledEncodingFactory(baseUrl))
-                .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()))
+        return defaultJsonWebClientBuilder(baseUrl)
                 .defaultHeaders(httpHeaders -> {
                     httpHeaders.set(safeStorageEndpointProperties.clientHeaderName(), safeStorageEndpointProperties.clientHeaderValue());
                     httpHeaders.set(safeStorageEndpointProperties.apiKeyHeaderName(), safeStorageEndpointProperties.apiKeyHeaderValue());
@@ -63,20 +63,18 @@ public class WebClientConf {
 
     @Bean
     public WebClient downloadWebClient() {
-        return defaultWebClientBuilder().build();
+        return defaultWebClientBuilder("").build();
     }
 
     @Bean
     public WebClient uploadWebClient() {
-        return defaultWebClientBuilder().build();
+        return defaultWebClientBuilder("").build();
     }
 
     @Bean
     public WebClient stateMachineWebClient(StateMachineEndpointProperties stateMachineEndpointProperties) {
         String baseUrl = stateMachineEndpointProperties.containerBaseUrl();
-        return defaultJsonWebClientBuilder().baseUrl(baseUrl)
-                .uriBuilderFactory(getDisabledEncodingFactory(baseUrl))
-                .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()))
+        return defaultJsonWebClientBuilder(baseUrl)
                 .build();
     }
 
@@ -93,9 +91,7 @@ public class WebClientConf {
     public WebClient pdfRasterWebClient(PdfRasterEndpointProperties pdfRasterEndpointProperties,SafeStorageEndpointProperties safeStorageEndpointProperties){
         String pdfRasterBaseUrl = pdfRasterEndpointProperties.baseUrl();
 
-        return defaultJsonWebClientBuilder().baseUrl(pdfRasterBaseUrl)
-                .uriBuilderFactory(getDisabledEncodingFactory(pdfRasterBaseUrl))
-                .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()))
+        return defaultJsonWebClientBuilder(pdfRasterBaseUrl)
                 .defaultHeaders(httpHeaders -> {
                     httpHeaders.set(safeStorageEndpointProperties.clientHeaderName(),pdfRasterEndpointProperties.clientHeaderValue());
                     httpHeaders.set(safeStorageEndpointProperties.apiKeyHeaderName(),pdfRasterEndpointProperties.clientHeaderApiKey());
@@ -105,9 +101,7 @@ public class WebClientConf {
     private WebClient defaultConsolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties)
     {
         String consolidatoreBaseUrl = consolidatoreEndpointProperties.baseUrl();
-        return defaultJsonWebClientBuilder().baseUrl(consolidatoreBaseUrl)
-                .uriBuilderFactory(getDisabledEncodingFactory(consolidatoreBaseUrl))
-                .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()))
+        return defaultJsonWebClientBuilder(consolidatoreBaseUrl)
                 .defaultHeaders(httpHeaders -> {
                     httpHeaders.set(consolidatoreEndpointProperties.clientHeaderName(), consolidatoreEndpointProperties.clientHeaderValue());
                     httpHeaders.set(consolidatoreEndpointProperties.apiKeyHeaderName(), consolidatoreEndpointProperties.apiKeyHeaderValue());
@@ -116,9 +110,7 @@ public class WebClientConf {
 
     private WebClient trustAllConsolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties) {
         String consolidatoreBaseUrl = consolidatoreEndpointProperties.baseUrl();
-        return trustAllJsonWebClientBuilder().baseUrl(consolidatoreBaseUrl)
-                .uriBuilderFactory(getDisabledEncodingFactory(consolidatoreBaseUrl))
-                .clientConnector(new JettyClientHttpConnector(jettyHttpClientConf.getJettyHttpClient()))
+        return trustAllJsonWebClientBuilder(consolidatoreBaseUrl)
                 .defaultHeaders(httpHeaders -> {
                     httpHeaders.set(consolidatoreEndpointProperties.clientHeaderName(), consolidatoreEndpointProperties.clientHeaderValue());
                     httpHeaders.set(consolidatoreEndpointProperties.apiKeyHeaderName(), consolidatoreEndpointProperties.apiKeyHeaderValue());

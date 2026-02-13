@@ -15,6 +15,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
@@ -48,7 +49,7 @@ class PaperRequestMetadataPatchControllerTest {
             String clientId) {
 
         return this.webTestClient.patch()
-                .uri(uriBuilder -> uriBuilder.path(PATCH_METADATA_ENDPOINT).build(requestIdx))
+                .uri(UriComponentsBuilder.fromPath(PATCH_METADATA_ENDPOINT).build(requestIdx).toString())
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .body(bodyInserter)
