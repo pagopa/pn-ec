@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.handler.annotation.support.PayloadMethodArgumentResolver;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -16,6 +17,8 @@ import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClientBuilder;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClientBuilder;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 import software.amazon.awssdk.services.eventbridge.EventBridgeAsyncClient;
 import software.amazon.awssdk.services.eventbridge.EventBridgeAsyncClientBuilder;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -137,6 +140,20 @@ public class AwsConfiguration {
     @Bean
     public DynamoDbEnhancedAsyncClient dynamoDbEnhancedAsyncClient(DynamoDbAsyncClient dynamoDbAsyncClient) {
         return DynamoDbEnhancedAsyncClient.builder().dynamoDbClient(dynamoDbAsyncClient).build();
+    }
+
+    @Bean
+    @Profile("!test")
+    public DynamoDbClient dynamoDbClient() {
+        DynamoDbClientBuilder builder = DynamoDbClient.builder().credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER_V2);
+        if (dynamoDbLocalStackEndpoint != null) {
+            builder.endpointOverride(URI.create(dynamoDbLocalStackEndpoint));
+        }
+        if (regionCode != null) {
+            builder.region(Region.of(regionCode));
+        }
+
+        return builder.build();
     }
 
     @Bean

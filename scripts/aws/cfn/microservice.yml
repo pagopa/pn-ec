@@ -216,6 +216,14 @@ Parameters:
     Type: String
     Description: 'ARN della Tabella DynamoDB relativa agli scarti consolidatore'
 
+  PnEcTableNameShedlockCounter:
+    Type: String
+    Description: 'Nome della tabella DynamoDB per Shedlock'
+
+  PnEcTableArnShedlockCounter:
+    Type: String
+    Description: 'ARN della Tabella DynamoDB per Shedlock'
+
   ### QUEUES  ###
   ### TRACKER : SMS  ###
 
@@ -951,6 +959,7 @@ Resources:
               - !Ref PnEcTableArnRichiesteConversione
               - !Ref PnEcTableArnConversionePdf
               - !Ref PnEcTableArnScartiConsolidatore
+              - !Ref PnEcTableArnShedlockCounter
           - Effect: Allow
             Action:
               - kms:Encrypt
@@ -1462,6 +1471,7 @@ Resources:
             - !Ref PnEcTableNameRichieste
             - !Ref PnEcTableNameRichiesteMetadati
             - !Ref PnEcTableNameScartiConsolidatore
+            - !Ref PnEcTableNameShedlockCounter
         QueueArns:
           !Join
           - ','
@@ -1516,6 +1526,7 @@ Resources:
             - !Ref PnEcTableNameRichieste
             - !Ref PnEcTableNameRichiesteMetadati
             - !Ref PnEcTableNameScartiConsolidatore
+            - !Ref PnEcTableNameShedlockCounter
         QueueArns:
           !Join
           - ','
