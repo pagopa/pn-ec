@@ -20,7 +20,6 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @Configuration
 @ConfigurationProperties(prefix = "pn.ec.shedlock")
 @Slf4j
-@EnableScheduling
 @EnableSchedulerLock(defaultLockAtMostFor = "${pn.ec.shedlock.lockAtMostFor}")
 public class ShedLockConfig {
     private String tableName;
