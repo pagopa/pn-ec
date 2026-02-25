@@ -323,6 +323,20 @@
             <scope>test</scope>
         </dependency>
         <!-- Finish SS WebClient dependencies -->
+
+        <!-- Source: https://mvnrepository.com/artifact/net.javacrumbs.shedlock/shedlock-spring -->
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+            <version>7.6.0</version>
+        </dependency>
+
+        <!-- Source: https://mvnrepository.com/artifact/net.javacrumbs.shedlock/shedlock-provider-dynamodb2 -->
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-dynamodb2</artifactId>
+            <version>7.6.0</version>
+        </dependency>
     </dependencies>
 
     <build>

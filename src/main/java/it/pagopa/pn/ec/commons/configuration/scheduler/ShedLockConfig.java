@@ -1,0 +1,26 @@
+package it.pagopa.pn.ec.commons.configuration.scheduler;
+
+import lombok.Getter;
+import lombok.Setter;
+import net.javacrumbs.shedlock.core.LockProvider;
+import net.javacrumbs.shedlock.provider.dynamodb2.DynamoDBLockProvider;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+
+@Getter
+@Setter
+@Configuration
+@ConfigurationProperties(prefix = "pn.ec.shedlock")
+public class ShedLockConfig {
+    private String tableName;
+
+    @Bean
+    public LockProvider lockProvider(DynamoDbClient dynamoDbClient) {
+        return new DynamoDBLockProvider(dynamoDbClient, tableName);
+    }
+
+}
