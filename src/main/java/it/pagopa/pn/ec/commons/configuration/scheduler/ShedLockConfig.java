@@ -6,6 +6,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.provider.dynamodb2.DynamoDBLockProvider;
+import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -19,6 +20,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @Configuration
 @ConfigurationProperties(prefix = "pn.ec.shedlock")
 @Slf4j
+@EnableScheduling
+@EnableSchedulerLock(defaultLockAtMostFor = "${pn.ec.shedlock.lockAtMostFor}")
 public class ShedLockConfig {
     private String tableName;
 
