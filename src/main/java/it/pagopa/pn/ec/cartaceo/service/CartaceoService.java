@@ -109,7 +109,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                               LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties,
                               NormalizationConfiguration normalizationConfiguration,
                               @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs, TransformationProperties transformationProperties,
-                              @Value("$pn.ec.shedlock.lockAtMostFor") String lockAtMostFor, @Value("pn.ec.shedlock.lockAtLeastFor") String lockAtLeastFor) {
+                              @Value("${pn.ec.shedlock.lockAtMostFor}") String lockAtMostFor, @Value("${pn.ec.shedlock.lockAtLeastFor}") String lockAtLeastFor) {
         super(authService);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
@@ -275,7 +275,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         MDC.clear();
 
         log.info("[{}] - lavorazioneRichiestaBatch - Tentativo di esecuzione del batch", Thread.currentThread().getName());
-        log.info("[{}]- lavorazioneRichiestaBatch -Properties attuali lockAtMostFor: {}, lockAtLeastFor: {}",
+        log.info("[{}]- lavorazioneRichiestaBatch - Properties attuali lockAtMostFor: {}, lockAtLeastFor: {}",
                 Thread.currentThread().getName(), lockAtMostFor, lockAtLeastFor);
 
         Instant start = Instant.now();
