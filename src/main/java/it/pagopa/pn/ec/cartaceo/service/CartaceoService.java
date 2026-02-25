@@ -8,6 +8,7 @@ import it.pagopa.pn.ec.cartaceo.configurationproperties.TransformationProperties
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.configuration.normalization.NormalizationConfiguration;
+import it.pagopa.pn.ec.commons.configuration.scheduler.ShedLockConfig;
 import it.pagopa.pn.ec.commons.configurationproperties.LavorazioneCartaceoConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException;
@@ -99,6 +100,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final SqsTimeoutProvider sqsTimeoutProvider;
     private final String lockAtMostFor;
     private final String lockAtLeastFor;
+    private final ShedLockConfig shedLockConfig;
 
     protected CartaceoService(AuthService authService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall,
                               AttachmentServiceImpl attachmentService, NotificationTrackerSqsName notificationTrackerSqsName,
@@ -109,7 +111,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                               LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties,
                               NormalizationConfiguration normalizationConfiguration,
                               @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs, TransformationProperties transformationProperties,
-                              @Value("${pn.ec.shedlock.lockAtMostFor}") String lockAtMostFor, @Value("${pn.ec.shedlock.lockAtLeastFor}") String lockAtLeastFor) {
+                              @Value("${pn.ec.shedlock.lockAtMostFor}") String lockAtMostFor, @Value("${pn.ec.shedlock.lockAtLeastFor}") String lockAtLeastFor, ShedLockConfig shedLockConfig) {
         super(authService);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
@@ -139,6 +141,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         this.transformationProperties = transformationProperties;
         this.lockAtMostFor = lockAtMostFor;
         this.lockAtLeastFor = lockAtLeastFor;
+        this.shedLockConfig = shedLockConfig;
     }
 
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
@@ -271,7 +274,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     @SchedulerLock(name="lavorazioneRichiestaBatch",
             lockAtMostFor = "${pn.ec.shedlock.lockAtMostFor}",
             lockAtLeastFor = "${pn.ec.shedlock.lockAtLeastFor}")
-    public void lavorazioneRichiestaBatch() {
+    public void lavorazioneRichiestaBatch() throws InterruptedException {
         MDC.clear();
 
         log.info("[{}] - lavorazioneRichiestaBatch - Tentativo di esecuzione del batch", Thread.currentThread().getName());
@@ -284,7 +287,10 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         AtomicBoolean hasMessages = new AtomicBoolean();
         hasMessages.set(true);
         String queueName= cartaceoSqsQueueName.batchName();
+        Thread.sleep(10000); //fine al test
+
         try {
+            log.info("[{}] - Batch partito, lock registrato in tabella {}", Thread.currentThread().getName(), shedLockConfig.getTableName());
             Mono.defer(() -> sqsService.getMessages(queueName, CartaceoPresaInCaricoInfo.class, cartaceoMaxBatchSubscribedMsgs)
                             .doOnNext(msg -> logIncomingMessage(queueName, msg.getMessageContent()))
                             .flatMap(msg -> Mono.zip(Mono.just(msg.getMessage()), lavorazioneRichiesta(msg.getMessageContent())))

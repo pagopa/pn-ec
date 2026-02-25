@@ -29,7 +29,9 @@ public class ShedLockConfig {
 
     @Bean
     public LockProvider lockProvider(DynamoDbClient dynamoDbClient) {
-        return new DynamoDBLockProvider(dynamoDbClient, tableName);
+        DynamoDBLockProvider provider = new DynamoDBLockProvider(dynamoDbClient, tableName);
+        log.info("DynamoDBLockProvider creato con successo: {}", provider);
+        return provider;
     }
 
 }
