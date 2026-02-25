@@ -97,6 +97,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties;
     private final NormalizationConfiguration normalizationConfiguration;
     private final SqsTimeoutProvider sqsTimeoutProvider;
+    private final String lockAtMostFor;
+    private final String lockAtLeastFor;
 
     protected CartaceoService(AuthService authService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall,
                               AttachmentServiceImpl attachmentService, NotificationTrackerSqsName notificationTrackerSqsName,
@@ -106,7 +108,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                               SqsTimeoutProvider sqsTimeoutProvider,
                               LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties,
                               NormalizationConfiguration normalizationConfiguration,
-                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs, TransformationProperties transformationProperties){
+                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs, TransformationProperties transformationProperties,
+                              @Value("$pn.ec.shedlock.lockAtMostFor") String lockAtMostFor, @Value("pn.ec.shedlock.lockAtLeastFor") String lockAtLeastFor) {
         super(authService);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
@@ -134,6 +137,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     throw new MaxRetriesExceededException();
                 });
         this.transformationProperties = transformationProperties;
+        this.lockAtMostFor = lockAtMostFor;
+        this.lockAtLeastFor = lockAtLeastFor;
     }
 
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
@@ -268,8 +273,6 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
             lockAtLeastFor = "${pn.ec.shedlock.lockAtLeastFor}")
     public void lavorazioneRichiestaBatch() {
         MDC.clear();
-        String lockAtMostFor = "${pn.ec.shedlock.lockAtMostFor}";
-        String lockAtLeastFor = "${pn.ec.shedlock.lockAtLeastFor}";
 
         log.info("[{}] - lavorazioneRichiestaBatch - Tentativo di esecuzione del batch", Thread.currentThread().getName());
         log.info("[{}]- lavorazioneRichiestaBatch -Properties attuali lockAtMostFor: {}, lockAtLeastFor: {}",
