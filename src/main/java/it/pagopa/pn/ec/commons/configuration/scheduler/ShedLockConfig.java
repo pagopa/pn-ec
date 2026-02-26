@@ -24,16 +24,10 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 public class ShedLockConfig {
     private String tableName;
 
-    @PostConstruct
-    public void init() {
-        log.info("TableName configurata: {}", tableName);
-    }
 
     @Bean
     public LockProvider lockProvider(DynamoDbClient dynamoDbClient) {
-        DynamoDBLockProvider provider = new DynamoDBLockProvider(dynamoDbClient, tableName, "name");
-        log.info("DynamoDBLockProvider creato con successo: {}", provider);
-        return provider;
+        return new DynamoDBLockProvider(dynamoDbClient, tableName, "name");
     }
 
 }

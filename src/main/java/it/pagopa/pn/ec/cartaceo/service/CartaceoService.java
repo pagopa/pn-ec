@@ -274,40 +274,26 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     @SchedulerLock(name="lavorazioneRichiestaBatch",
             lockAtMostFor = "${pn.ec.shedlock.lockAtMostFor}",
             lockAtLeastFor = "${pn.ec.shedlock.lockAtLeastFor}")
-    public void lavorazioneRichiestaBatch() throws InterruptedException {
+    public void lavorazioneRichiestaBatch() {
         MDC.clear();
-
-        log.info("[{}] - lavorazioneRichiestaBatch - Tentativo di esecuzione del batch", Thread.currentThread().getName());
-        log.info("[{}]- lavorazioneRichiestaBatch - Properties attuali lockAtMostFor: {}, lockAtLeastFor: {}",
-                Thread.currentThread().getName(), lockAtMostFor, lockAtLeastFor);
-
-        Instant start = Instant.now();
-        log.info("[{}] - lavorazioneRichiestaBatch - Lock acquisito, inizio elaborazione a {}", Thread.currentThread().getName(), start);
         log.logStartingProcess(LAVORAZIONE_BATCH_CARTACEO);
         AtomicBoolean hasMessages = new AtomicBoolean();
         hasMessages.set(true);
         String queueName= cartaceoSqsQueueName.batchName();
-        Thread.sleep(10000); //fine al test
-
-        try {
-            log.info("[{}] - Batch partito, lock registrato in tabella {}", Thread.currentThread().getName(), shedLockConfig.getTableName());
-            Mono.defer(() -> sqsService.getMessages(queueName, CartaceoPresaInCaricoInfo.class, cartaceoMaxBatchSubscribedMsgs)
-                            .doOnNext(msg -> logIncomingMessage(queueName, msg.getMessageContent()))
-                            .flatMap(msg -> Mono.zip(Mono.just(msg.getMessage()), lavorazioneRichiesta(msg.getMessageContent())))
-                            .flatMap(msg -> sqsService.deleteMessageFromQueue(msg.getT1(), queueName))
-                            .collectList())
-                    .doOnNext(list -> hasMessages.set(!list.isEmpty()))
-                    .repeat(hasMessages::get)
-                    .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO, false, e.getMessage()))
-                    .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO))
-                    .blockLast();
-
-            Instant end = Instant.now();
-            log.info("[{}] - lavorazioneRichiestaBatch - FINE elaborazione {} (durata: {}s)",
-                    Thread.currentThread().getName(), end, Duration.between(start, end).toSeconds());
-        } finally {
-            log.info("[{}] - lavorazioneRichiestaBatch - Batch terminato, thread libero", Thread.currentThread().getName());
-        }
+        Mono.defer(() -> sqsService.getMessages(queueName, CartaceoPresaInCaricoInfo.class, cartaceoMaxBatchSubscribedMsgs)
+                .doOnNext(cartaceoPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(queueName
+                        , cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
+                .flatMap(cartaceoPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessage())
+                        , lavorazioneRichiesta(cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
+                .flatMap(cartaceoPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(
+                        cartaceoPresaInCaricoInfoSqsMessageWrapper.getT1(),
+                       queueName))
+                .collectList())
+                .doOnNext(list -> hasMessages.set(!list.isEmpty()))
+                .repeat(hasMessages::get)
+                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO, false, e.getMessage()))
+                .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO))
+                .blockLast();
     }
 
     Mono<SendMessageResponse> lavorazioneRichiesta(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo) {
