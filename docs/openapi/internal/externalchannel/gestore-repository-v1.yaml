@@ -225,53 +225,6 @@ paths:
               schema:
                 $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
 
-  /external-channel/gestoreRepository/requests/emailMessageId/{messageId}:
-    parameters:
-      - name: messageId
-        in: path
-        required: true
-        schema:
-          type: string
-    get:
-      tags:
-        - GestoreRequest
-      operationId: getRequestMetadataByMessageId
-      description: Permette di recuperare l'evento SES associato al messageId originale, 
-                   consentendo di ricostruire lo stato della comunicazione.
-      responses:
-          200:
-            $ref: '#/components/responses/requestResponseOk'
-          404:
-            $ref: '#/components/responses/missingRequestedItem'
-          400:
-            $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
-
-  /external-channel/gestoreRepository/requests/{requestIdx}/messageId:
-    parameters:
-      - name: x-pagopa-extch-cx-id
-        in: header
-        required: true
-        allowEmptyValue: false
-        schema:
-          type: string
-      - name: requestIdx
-        in: path
-        required: true
-        allowEmptyValue: false
-        schema:
-          type: string
-
-    patch:
-      operationId: setRequestMetadataMessageId
-      description: Permette di inserire il messageId nella tabella pn-EcRequestMetadata per le email.
-      responses:
-        200:
-          $ref: '#/components/responses/requestResponseOk'
-        404:
-          $ref: '#/components/responses/missingRequestedItem'
-        500:
-          $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
-
 
 components:
 

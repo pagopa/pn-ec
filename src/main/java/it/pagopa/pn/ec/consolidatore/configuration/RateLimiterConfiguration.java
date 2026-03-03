@@ -23,7 +23,7 @@ public class RateLimiterConfiguration {
     private int refreshPeriodSeconds;
 
 
-    @Bean
+    @Bean(name = "rateLimiterConsolidatore")
     public RateLimiter rateLimiter() {
 
         RateLimiterConfig config = RateLimiterConfig
