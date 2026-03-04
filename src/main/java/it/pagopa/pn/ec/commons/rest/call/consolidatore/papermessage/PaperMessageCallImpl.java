@@ -14,6 +14,7 @@ import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicasProgressesResponse
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -50,13 +51,14 @@ public class PaperMessageCallImpl implements PaperMessageCall {
             PaperResult.DUPLICATED_REQUEST_CODE);
 
     public PaperMessageCallImpl(@Qualifier("consolidatoreWebClient")WebClient consolidatoreWebClient, PaperMessagesEndpointProperties paperMessagesEndpointProperties, JsonUtils jsonUtils,
-                                @Value("${pn.ec.max-concurrent-requests}") int maxConcurrentRequests, @Qualifier("rateLimiterConsolidatore") RateLimiter rateLimiter) {
+                                @Value("${pn.ec.max-concurrent-requests}") int maxConcurrentRequests,
+                                @Autowired(required = false) @Qualifier("rateLimiterConsolidatore") RateLimiter rateLimiter) {
         this.consolidatoreWebClient = consolidatoreWebClient;
         this.paperMessagesEndpointProperties = paperMessagesEndpointProperties;
         this.jsonUtils = jsonUtils;
         this.semaphore = new Semaphore(maxConcurrentRequests);
         this.rateLimiter = rateLimiter;
-        log.info("PaperMessageCallImpl maxConcurrentRequests={}", maxConcurrentRequests);
+        log.info("PaperMessageCallImpl maxConcurrentRequests={} - , rateLimiter presente? {}", maxConcurrentRequests, rateLimiter!=null);
     }
 
     @Override
@@ -72,7 +74,10 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                     }
                 })
                 .flatMap(acquired -> {
-                    boolean permissionAcquired = rateLimiter.acquirePermission();
+                    boolean permissionAcquired = true;
+                    if(rateLimiter != null) {
+                        permissionAcquired = rateLimiter.acquirePermission();
+                    }
                     if (!permissionAcquired) {
                         semaphore.release();
                         log.info("PaperMessageCallImpl.putRequest() - Rate limit superato verso il consolidatore");

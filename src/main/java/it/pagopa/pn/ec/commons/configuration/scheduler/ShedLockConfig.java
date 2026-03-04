@@ -8,6 +8,7 @@ import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.provider.dynamodb2.DynamoDBLockProvider;
 import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -21,6 +22,11 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @ConfigurationProperties(prefix = "pn.ec.shedlock")
 @Slf4j
 @EnableSchedulerLock(defaultLockAtMostFor = "${pn.ec.shedlock.lockAtMostFor}")
+@ConditionalOnProperty(
+        name = "pn.ec.feature.flag.cartaceo.consolidatore",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class ShedLockConfig {
     private String tableName;
 
