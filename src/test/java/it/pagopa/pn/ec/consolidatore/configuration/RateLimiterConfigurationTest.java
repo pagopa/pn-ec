@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @EnableConfigurationProperties(RateLimiterConfiguration.class)
 @TestPropertySource(properties = {
         "pn.ec.consolidatore.max-requests=2",
-        "pn.ec.consolidatore.refresh-period-seconds=5"
+        "pn.ec.consolidatore.refresh-period-seconds=5",
 })
 class RateLimiterConfigurationTest {
 

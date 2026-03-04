@@ -15,6 +15,7 @@ import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicasProgressesResponse
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -51,49 +52,56 @@ public class PaperMessageCallImpl implements PaperMessageCall {
             PaperResult.DUPLICATED_REQUEST_CODE);
 
     public PaperMessageCallImpl(@Qualifier("consolidatoreWebClient")WebClient consolidatoreWebClient, PaperMessagesEndpointProperties paperMessagesEndpointProperties, JsonUtils jsonUtils,
-                                @Value("${pn.ec.max-concurrent-requests}") int maxConcurrentRequests, @Qualifier("rateLimiterConsolidatore") RateLimiter rateLimiter) {
+                                @Value("${pn.ec.max-concurrent-requests}") int maxConcurrentRequests,
+                                @Autowired(required = false) @Qualifier("rateLimiterConsolidatore") RateLimiter rateLimiter) {
         this.consolidatoreWebClient = consolidatoreWebClient;
         this.paperMessagesEndpointProperties = paperMessagesEndpointProperties;
         this.jsonUtils = jsonUtils;
         this.semaphore = new Semaphore(maxConcurrentRequests);
         this.rateLimiter = rateLimiter;
-        log.info("PaperMessageCallImpl maxConcurrentRequests={}", maxConcurrentRequests);
+        log.info("PaperMessageCallImpl maxConcurrentRequests={} - , rateLimiter presente? {}", maxConcurrentRequests, rateLimiter!=null);
     }
 
     @Override
     public Mono<OperationResultCodeResponse> putRequest(PaperEngageRequest paperEngageRequest) {
-        return Mono.defer(() -> {
-            boolean acquired = semaphore.tryAcquire();
-            if (!acquired) {
-                log.info("PaperMessageCallImpl.putRequest() - Tutti gli slot occupati verso il consolidatore");
-                return Mono.error(new MaxConcurrentRequestsException("Max concurrent requests reached"));
-            }
-            boolean permissionAcquired = rateLimiter.acquirePermission();
-            if (!permissionAcquired) {
-                semaphore.release();
-                log.info("PaperMessageCallImpl.putRequest() - Rate limit superato verso il consolidatore");
-                return Mono.error(new RateLimitExceededException("Max requests per minute exceeded"));
-            }
-            long startTimeCalling = System.currentTimeMillis();
-                return consolidatoreWebClient
-                    .post()
-                    .uri(paperMessagesEndpointProperties.putRequest())
-                    .bodyValue(paperEngageRequest)
-                    .exchangeToMono(clientResponse -> {
-                        long elapsedTime = System.currentTimeMillis() - startTimeCalling;
-                        trackMetricsConsolidatore(elapsedTime);
-                        if (clientResponse.statusCode().is2xxSuccessful()) {
-                            return clientResponse.bodyToMono(OperationResultCodeResponse.class);
-                        } else if (clientResponse.statusCode().is4xxClientError()) {
-                            return handleClientError(clientResponse);
-                        } else {
-                            return handleServerError(clientResponse);
-                        }
-                    })
-                    .doFinally(signalType -> {
+        return Mono.fromCallable(() -> {
+                    try {
+                        semaphore.acquire();
+                        return true;
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException(
+                                "Thread interrupted while acquiring semaphore", e);
+                    }
+                })
+                .flatMap(acquired -> {
+                    boolean permissionAcquired = true;
+                    if(rateLimiter != null) {
+                        permissionAcquired = rateLimiter.acquirePermission();
+                    }
+                    if (!permissionAcquired) {
                         semaphore.release();
-                    });
-        });
+                        log.info("PaperMessageCallImpl.putRequest() - Rate limit superato verso il consolidatore");
+                        return Mono.error(new RateLimitExceededException("Max requests per minute exceeded"));
+                    }
+                    long startTimeCalling = System.currentTimeMillis();
+                    return consolidatoreWebClient
+                            .post()
+                            .uri(paperMessagesEndpointProperties.putRequest())
+                            .bodyValue(paperEngageRequest)
+                            .exchangeToMono(clientResponse -> {
+                                long elapsedTime = System.currentTimeMillis() - startTimeCalling;
+                                trackMetricsConsolidatore(elapsedTime);
+                                if (clientResponse.statusCode().is2xxSuccessful()) {
+                                    return clientResponse.bodyToMono(OperationResultCodeResponse.class);
+                                } else if (clientResponse.statusCode().is4xxClientError()) {
+                                    return handleClientError(clientResponse);
+                                } else {
+                                    return handleServerError(clientResponse);
+                                }
+                            })
+                            .doFinally(signalType -> semaphore.release());
+                });
     }
 
     private Mono<OperationResultCodeResponse> handleClientError(ClientResponse clientResponse) {

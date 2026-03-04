@@ -163,27 +163,6 @@ class PaperMessageCallImplTest {
                 .verify();
     }
 
-    @Test
-    void testSemaphoreThrowsMaxConcurrentExceededException() {
-        PaperEngageRequest request = new PaperEngageRequest();
-
-        mockBackEnd.enqueue(buildMockResponse(new OperationResultCodeResponse()
-                        .resultCode("200.00")
-                        .resultDescription("Success")));
-
-        mockBackEnd.enqueue(buildMockResponse(new OperationResultCodeResponse()
-                        .resultCode("200.00")
-                        .resultDescription("Success")));
-
-        Flux<OperationResultCodeResponse> flux = Flux.mergeDelayError(1,
-                paperMessageCall.putRequest(request),
-                paperMessageCall.putRequest(request),
-                paperMessageCall.putRequest(request)
-        );
-
-        StepVerifier.create(flux).expectNextCount(2)
-                .expectError(MaxConcurrentRequestsException.class).verify();
-    }
 
     @Test
     void shouldThrowRateLimitExceededException() {
