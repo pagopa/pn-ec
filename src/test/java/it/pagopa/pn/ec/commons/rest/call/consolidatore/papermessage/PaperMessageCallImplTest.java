@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import it.pagopa.pn.ec.commons.exception.cartaceo.ConsolidatoreException;
-import it.pagopa.pn.ec.commons.exception.consolidatore.MaxConcurrentRequestsException;
 import it.pagopa.pn.ec.commons.exception.consolidatore.RateLimitExceededException;
 import it.pagopa.pn.ec.consolidatore.utils.PaperResult;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest;
@@ -32,6 +31,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -162,7 +162,6 @@ class PaperMessageCallImplTest {
                 .expectErrorMatches(throwable -> throwable instanceof ConsolidatoreException.TemporaryException)
                 .verify();
     }
-
 
     @Test
     void shouldThrowRateLimitExceededException() {

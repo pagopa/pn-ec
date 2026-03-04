@@ -850,6 +850,16 @@ Parameters:
     Default: ''
     Description: 'Applicative environment variable file checksum'
 
+  ConsolidatoreRefreshPeriodSeconds:
+    Type: Number
+    Description: 'Refresh interval (in seconds) for calculating metrics for consolidatore'
+    Default: 60
+
+  ConsolidatoreMaxRequest:
+    Type: Number
+    Description: 'Maximum number of concurrent requests allowed for consolidatore before triggering an alarm'
+    Default: 10
+
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
@@ -1414,6 +1424,28 @@ Resources:
       Period: 3600
       EvaluationPeriods: !Ref GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods
       Threshold: 1
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      TreatMissingData: notBreaching
+
+  MaxConcurrentRequestsOnCallAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: !Sub "oncall-${ProjectName}-consolidatore-maxConcurrentRequestsExceeded-alarm"
+      AlarmDescription: "Oncall alarm when max concurrent requests toward consolidatore are exceeded 3 times in 10 minutes."
+      AlarmActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      OKActions:
+        - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
+      Namespace: "DownstreamMetrics"
+      MetricName: "ApiCall"
+      Dimensions:
+        - Name: "Service"
+          Value: "Consolidatore"
+      Statistic: "Sum"
+      Period: !Ref ConsolidatoreRefreshPeriodSeconds #pn.ec.consolidatore.refresh-period-seconds
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 3
+      Threshold: !Ref ConsolidatoreMaxRequest #pn.ec.consolidatore.max-request
       ComparisonOperator: "GreaterThanOrEqualToThreshold"
       TreatMissingData: notBreaching
 

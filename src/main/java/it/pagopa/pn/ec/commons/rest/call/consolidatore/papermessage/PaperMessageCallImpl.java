@@ -3,7 +3,6 @@ package it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.PaperMessagesEndpointProperties;
 import it.pagopa.pn.ec.commons.exception.cartaceo.ConsolidatoreException;
-import it.pagopa.pn.ec.commons.exception.consolidatore.MaxConcurrentRequestsException;
 import it.pagopa.pn.ec.commons.exception.consolidatore.RateLimitExceededException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.utils.JsonUtils;
@@ -27,7 +26,7 @@ import reactor.core.publisher.Mono;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeoutException;
+
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
