@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -20,6 +21,7 @@ public class RequestMetadata extends DocumentVersion {
 
     @Getter(onMethod = @__({@DynamoDbPartitionKey}))
     String requestId;
+    @Getter(onMethod = @__({@DynamoDbSecondaryPartitionKey(indexNames = "messageIdIndex")}))
     String messageId;
     String xPagopaExtchCxId;
     String statusRequest;
