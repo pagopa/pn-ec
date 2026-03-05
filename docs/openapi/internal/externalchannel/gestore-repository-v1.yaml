@@ -236,15 +236,17 @@ paths:
       tags:
         - GestoreRequest
       operationId: getRequestMetadataByMessageId
-      description: Permette di recuperare l'evento SES associato al messageId originale, 
-                   consentendo di ricostruire lo stato della comunicazione.
+      description: Permette di recuperare l'evento SES associato al messageId originale,
+        consentendo di ricostruire lo stato della comunicazione.
       responses:
-          200:
-            $ref: '#/components/responses/requestResponseOk'
-          404:
-            $ref: '#/components/responses/missingRequestedItem'
-          400:
-            $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
+        200:
+          $ref: '#/components/responses/requestResponseOk'
+        400:
+          $ref: '#/components/responses/missingRequestedItem'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+        500:
+          $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
 
   /external-channel/gestoreRepository/requests/{requestIdx}/messageId:
     parameters:
@@ -260,10 +262,17 @@ paths:
         allowEmptyValue: false
         schema:
           type: string
-
     patch:
+      tags:
+        - GestoreRequest
       operationId: setRequestMetadataMessageId
-      description: Permette di inserire il messageId nella tabella pn-EcRequestMetadata per le email.
+      description: Aggiorna il messageId nella tabella pn-EcRequestMetadata per le email.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageIdRequestMetadataDto'
+        required: true
       responses:
         200:
           $ref: '#/components/responses/requestResponseOk'
@@ -271,7 +280,6 @@ paths:
           $ref: '#/components/responses/missingRequestedItem'
         500:
           $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
-
 
 components:
 
@@ -359,7 +367,6 @@ components:
           maxLength: 100
         messageId:
           type: string
-          readOnly: true
         xPagopaExtchCxId:
           type: string
         statusRequest:
@@ -411,6 +418,16 @@ components:
           $ref: '#/components/schemas/EventsDto'
         retry:
           $ref: '#/components/schemas/RetryDto'
+
+    MessageIdRequestMetadataDto:
+      type: object
+      required:
+        - messageId
+      properties:
+        isOpenReworkRequest:
+          type: string
+          description: >
+            Valore che identifica il messageId nella RequestMetadata.
 
     EventsDto:
       type: object
