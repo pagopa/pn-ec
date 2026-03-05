@@ -129,8 +129,8 @@ Resources:
       GlobalSecondaryIndexes:
         - IndexName: 'messageIdIndex'
           KeySchema:
-          - AttributeName: 'messageId'
-            KeyType: 'HASH'
+            - AttributeName: 'messageId'
+              KeyType: 'HASH'
           Projection:
             ProjectionType: 'ALL'
       BillingMode: 'PAY_PER_REQUEST'
