@@ -366,6 +366,7 @@ components:
           maxLength: 100
         messageId:
           type: string
+          readOnly: true
         xPagopaExtchCxId:
           type: string
         statusRequest:
