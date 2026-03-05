@@ -24,9 +24,6 @@ public interface GestoreRepositoryCall {
     Mono<RequestDto> getRequestByMessageId(String messageId);
     Mono<RequestDto> setMessageIdInRequestMetadata(String clientId, String requestIdx);
 
-    Mono<RequestDto> getRequestMetadataByMessageId(String messageId) throws RestCallException.ResourceNotFoundException;
-    //Mono<RequestDto> setRequestMetadataMessageId(String clientId, String requestIdx, MessageIdRequestMetadataPatch messageIdToUpdate) throws RestCallException.ResourceNotFoundException;
-
 
 //  <-- DISCARDED EVENTS -->
     Flux<DiscardedEventDto> insertDiscardedEvents(Flux<DiscardedEventDto> discardedEventsDto);

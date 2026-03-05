@@ -171,29 +171,4 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
         }
     }
 
-    public Mono<RequestDto> getRequestMetadataByMessageId(String messageId) throws RestCallException.ResourceNotFoundException{
-        log.info(INVOKING_INTERNAL_SERVICE, GESTORE_REPOSITORY_SERVICE, GET_REQUEST_METADATA_BY_MESSAGE_ID, messageId);
-        return ecWebClient.get()
-                .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.getRequestMetadataByMessageId()).build(messageId).toString())
-                .retrieve()
-                .onStatus(BAD_REQUEST::equals,
-                        clientResponse -> Mono.error(new RepositoryManagerException.InvalidInputException("Invalid input")))
-                .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RepositoryManagerException.RequestMetadataNotFoundException(messageId)))
-                .bodyToMono(RequestDto.class);
-    }
-
-    public Mono<RequestDto> setRequestMetadataMessageId(String clientId, String requestIdx, MessageIdRequestMetadataDto messageIdToUpdate) throws RestCallException.ResourceNotFoundException{
-        String id = concatRequestId(clientId, requestIdx);
-        log.info(INVOKING_INTERNAL_SERVICE, GESTORE_REPOSITORY_SERVICE, SET_REQUEST_METADATA_MESSAGE_ID, id);
-        return ecWebClient.patch()
-                .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.setRequestMetadataMessageId()).build(id).toString())
-                .header(CLIENT_HEADER_NAME, clientId)
-                .bodyValue(messageIdToUpdate)
-                .retrieve()
-                .onStatus(BAD_REQUEST::equals,
-                        clientResponse -> Mono.error(new RepositoryManagerException.InvalidInputException("Invalid input")))
-                .onStatus(NOT_FOUND::equals, clientResponse -> Mono.error(new RepositoryManagerException.RequestMetadataNotFoundException(id)))
-                .bodyToMono(RequestDto.class);
-    }
-
 }
