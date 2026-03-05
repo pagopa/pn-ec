@@ -278,6 +278,8 @@ paths:
           $ref: '#/components/responses/requestResponseOk'
         404:
           $ref: '#/components/responses/missingRequestedItem'
+        500:
+          $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
 
 
 components:
@@ -366,7 +368,6 @@ components:
           maxLength: 100
         messageId:
           type: string
-          readOnly: true
         xPagopaExtchCxId:
           type: string
         statusRequest:
