@@ -860,6 +860,16 @@ Parameters:
     Description: 'Maximum number of concurrent requests allowed for consolidatore before triggering an alarm'
     Default: 10
 
+  ConsolidatoreRequestEvaluationPeriods:
+    Type: Number
+    Description: 'Number of periods to evaluate the metric. 10 periods correspond to a 10 minute evaluation window'
+    Default: 10
+
+  ConsolidatoreRequestDatapointToAlarm:
+    Type: Number
+    Description: 'Minimum number of datapoints within the evaluation window that must exceed to trigger the alarm'
+    Default: 3
+
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
@@ -1443,8 +1453,8 @@ Resources:
           Value: "Consolidatore"
       Statistic: "Sum"
       Period: !Ref ConsolidatoreRefreshPeriodSeconds #pn.ec.consolidatore.refresh-period-seconds
-      EvaluationPeriods: 1
-      DatapointsToAlarm: 3
+      EvaluationPeriods: !Ref ConsolidatoreRequestEvaluationPeriods
+      DatapointsToAlarm: !Ref ConsolidatoreRequestDatapointToAlarm
       Threshold: !Ref ConsolidatoreMaxRequest #pn.ec.consolidatore.max-request
       ComparisonOperator: "GreaterThanOrEqualToThreshold"
       TreatMissingData: notBreaching
