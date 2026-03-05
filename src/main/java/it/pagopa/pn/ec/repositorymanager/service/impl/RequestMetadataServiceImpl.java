@@ -251,21 +251,21 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
         return updateRequestMetadataMessageId(concatRequestId, messageIdToUpdate.getMessageId());
     }
 
-    public Mono<RequestMetadata> updateRequestMetadataMessageId(String concatRequestId, String messageId){
+    public Mono<RequestMetadata> updateRequestMetadataMessageId(String requestId, String messageId){
 
         if (messageId == null || Strings.isBlank(messageId)) {
             return Mono.error(new RepositoryManagerException.InvalidInputException(UPDATE_REQUEST_METADATA_MESSAGE_ID_OP + ": Invalid Input messageId"));
         }
-        if (Strings.isBlank(concatRequestId)) {
-            return Mono.error(new RepositoryManagerException.InvalidInputException(UPDATE_REQUEST_METADATA_MESSAGE_ID_OP + ": Invalid Input concatRequestId"));
+        if (Strings.isBlank(requestId)) {
+            return Mono.error(new RepositoryManagerException.InvalidInputException(UPDATE_REQUEST_METADATA_MESSAGE_ID_OP + ": Invalid Input requestId"));
         }
 
         return Mono.fromFuture(requestMetadataDynamoDbTable.getItem(Key.builder()
-                        .partitionValue(concatRequestId)
+                        .partitionValue(requestId)
                         .build()))
-                .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestMetadataNotFoundException(concatRequestId)))
+                .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestMetadataNotFoundException(requestId)))
                 .flatMap(existingItem -> {
-                    existingItem.setMessageId(encodeMessageId(messageId));
+                    existingItem.setMessageId(messageId);
                     OffsetDateTime lastUpdateTimestamp = OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MILLIS);
                     existingItem.setLastUpdateTimestamp(lastUpdateTimestamp.format(dtf));
                     return Mono.fromFuture(requestMetadataDynamoDbTable.updateItem(existingItem));

@@ -976,6 +976,7 @@ Resources:
               - !Ref PnEcTableArnAnagrafica
               - !Ref PnEcTableArnRichieste
               - !Ref PnEcTableArnRichiesteMetadati
+              - !Sub '${PnEcTableArnRichiesteMetadati}/index/messageIdIndex'
               - !Ref PnEcTableArnRichiesteConversione
               - !Ref PnEcTableArnConversionePdf
               - !Ref PnEcTableArnScartiConsolidatore
