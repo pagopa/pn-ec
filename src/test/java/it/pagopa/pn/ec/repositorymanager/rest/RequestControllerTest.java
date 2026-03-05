@@ -60,6 +60,7 @@ class RequestControllerTest {
     private static final String DEFAULT_CONCATE_ID_PAPER = "CLIENT1~PAPER";
     private static final RequestDto digitalRequest = new RequestDto();
     private static final RequestDto paperRequest = new RequestDto();
+    private static final String MESSAGE_ID_REQUEST_METADATA = "cG4tZGVsaXZlcnk=~UEVDUmVxdWVzdC11aWVkcGRqeGRoLTEwMTU3NTc5OTM=@pagopa.it";
 
     private static DynamoDbTable<RequestMetadata> dynamoDbTableMetadata;
     private static DynamoDbTable<RequestPersonal> dynamoDbTablePersonal;
@@ -471,5 +472,39 @@ class RequestControllerTest {
         Assertions.assertEquals(toCompare.getRequestIdx(), requestDto.getRequestIdx());
         Assertions.assertEquals(toCompare.getStatusRequest(), requestDto.getStatusRequest());
     }
+
+//    @ParameterizedTest
+//    @ValueSource(strings = {MESSAGE_ID_REQUEST_METADATA})
+//    void getRequestMetadataByMessageIdOk(String messageId) {
+//        System.out.println("MESSAGE_ID: " + messageId);
+//        webClient.get()
+//                .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.getRequestMetadataByMessageId())
+//                        .build(encodeMessageId(messageId)).toString())
+//                .exchange()
+//                .expectStatus()
+//                .isOk();
+//    }
+
+    @Test
+    void getRequestMetadataByMessageIdNotFound() {
+        webClient.get()
+                .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.getRequestMetadataByMessageId())
+                        .build(encodeMessageId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE + "~idRequestCheNonEsiste")).toString())
+                //.header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
+                .exchange()
+                .expectStatus()
+                .isNotFound();
+    }
+
+//    @Test
+//    void setRequestMetadataMessageIdOK(){
+//        webClient.get()
+//                .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.setRequestMetadataMessageId())
+//                .build(encodeMessageId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE + "~idRequestCheNonEsiste")).toString())
+//                .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
+//                .exchange()
+//                .expectStatus()
+//                .isOk();
+//    }
 
 }

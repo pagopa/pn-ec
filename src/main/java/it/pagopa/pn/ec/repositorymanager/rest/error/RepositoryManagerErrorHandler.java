@@ -36,7 +36,8 @@ public class RepositoryManagerErrorHandler {
         return new ResponseEntity<>(problem, NOT_FOUND);
     }
 
-    @ExceptionHandler(RepositoryManagerException.RequestMalformedException.class)
+    @ExceptionHandler({RepositoryManagerException.RequestMalformedException.class,
+            RepositoryManagerException.InvalidInputException.class})
     public final ResponseEntity<Problem> handleRequestMalformed(RepositoryManagerException.RequestMalformedException exception) {
         var problem = new Problem();
         problem.setStatus(BAD_REQUEST.value());
@@ -64,5 +65,15 @@ public class RepositoryManagerErrorHandler {
         problem.setDetail(exception.getMessage());
         problem.setTraceId(UUID.randomUUID().toString());
         return new ResponseEntity<>(problem, NO_CONTENT);
+    }
+
+    @ExceptionHandler(RepositoryManagerException.RequestMetadataNotFoundException.class)
+    public final ResponseEntity<Problem> handleNotFoundMessageId(Exception exception) {
+        var problem = new Problem();
+        problem.setStatus(NOT_FOUND.value());
+        problem.setTitle("Resource not found");
+        problem.setDetail(exception.getMessage());
+        problem.setTraceId(UUID.randomUUID().toString());
+        return new ResponseEntity<>(problem, NOT_FOUND);
     }
 }

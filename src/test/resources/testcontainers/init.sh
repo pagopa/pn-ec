@@ -181,6 +181,50 @@ create_dynamodb_table() {
   fi
 }
 
+add_dynamodb_gsi() {
+  local table_name=$1
+  local gsi_name=$2
+  local gsi_pk=$3
+
+  log "Adding GSI '$gsi_name' to table: $table_name"
+
+  # Verifica se il GSI esiste già
+  if silent aws dynamodb describe-table \
+    --profile "$AWS_PROFILE" \
+    --region "$AWS_REGION" \
+    --endpoint-url "$LOCALSTACK_ENDPOINT" \
+    --table-name "$table_name" \
+    --query "Table.GlobalSecondaryIndexes[?IndexName=='$gsi_name']" \
+    --output text | grep -q "$gsi_name"; then
+    log "GSI '$gsi_name' already exists on table: $table_name"
+    return 0
+  fi
+
+  aws dynamodb update-table \
+    --profile "$AWS_PROFILE" \
+    --region "$AWS_REGION" \
+    --endpoint-url "$LOCALSTACK_ENDPOINT" \
+    --table-name "$table_name" \
+    --attribute-definitions AttributeName="$gsi_pk",AttributeType=S \
+    --global-secondary-index-updates '[
+      {
+        "Create": {
+          "IndexName": "'"$gsi_name"'",
+          "KeySchema": [
+            { "AttributeName": "'"$gsi_pk"'", "KeyType": "HASH" }
+          ],
+          "Projection": { "ProjectionType": "ALL" },
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 5,
+            "WriteCapacityUnits": 5
+          }
+        }
+      }
+    ]' && \
+    log "GSI '$gsi_name' added to table: $table_name" || \
+  { log "Failed to add GSI '$gsi_name' to table: $table_name"; return 1; }
+}
+
 create_sqs_queue() {
   local queue_name=$1
   log "Creating SQS queue: $queue_name"
@@ -403,6 +447,10 @@ initialize_dynamo() {
     log "Table initialized: $table_name" || \
     { log "Failed to initialize table: $table_name"; return_code=1; }
   done
+
+  # Aggiunta GSI sulla tabella pn-EcRichiesteMetadati
+  add_dynamodb_gsi "pn-EcRichiesteMetadati" "messageIdIndex" "messageId" || return_code=1
+
   return $return_code
 }
 

@@ -12,6 +12,7 @@ public class MessageIdUtils {
 
     private static final String SEPARATORE = "~";
     public static final String DOMAIN = "@pagopa.it";
+    public static final String MESSAGE_ID_INDEX_NAME = "messageIdIndex";
 
     private MessageIdUtils() {
         throw new IllegalStateException("MessageIdUtils is a utility class");
