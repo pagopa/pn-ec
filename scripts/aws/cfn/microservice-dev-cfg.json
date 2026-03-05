@@ -39,6 +39,8 @@
     "MountEfs": "false",
     "PnCronAnalyzer": "-",
     "GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods": "18",
-    "WireTapLogActivation": "false"
+    "WireTapLogActivation": "false",
+    "ConsolidatoreRefreshPeriodSeconds": "60",
+    "ConsolidatoreMaxRequest": "10"
   }
 }

@@ -8,6 +8,8 @@ import it.pagopa.pn.ec.cartaceo.configurationproperties.TransformationProperties
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.configuration.normalization.NormalizationConfiguration;
+import it.pagopa.pn.ec.commons.configuration.scheduler.ShedLockConfig;
+import it.pagopa.pn.ec.commons.configuration.scheduler.ShedLockRunner;
 import it.pagopa.pn.ec.commons.configurationproperties.LavorazioneCartaceoConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException;
@@ -34,10 +36,12 @@ import it.pagopa.pn.ec.repositorymanager.model.entity.PaperEngageRequestAttachme
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import lombok.CustomLog;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -52,6 +56,7 @@ import software.amazon.awssdk.services.sqs.model.SqsResponse;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -95,6 +100,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties;
     private final NormalizationConfiguration normalizationConfiguration;
     private final SqsTimeoutProvider sqsTimeoutProvider;
+    private final ShedLockRunner shedLockRunner;
 
     protected CartaceoService(AuthService authService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall,
                               AttachmentServiceImpl attachmentService, NotificationTrackerSqsName notificationTrackerSqsName,
@@ -104,7 +110,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                               SqsTimeoutProvider sqsTimeoutProvider,
                               LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties,
                               NormalizationConfiguration normalizationConfiguration,
-                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs, TransformationProperties transformationProperties){
+                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs, TransformationProperties transformationProperties,
+                               @Autowired(required = false) ShedLockRunner shedLockRunner) {
         super(authService);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
@@ -132,6 +139,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     throw new MaxRetriesExceededException();
                 });
         this.transformationProperties = transformationProperties;
+        this.shedLockRunner = shedLockRunner;
     }
 
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
@@ -262,6 +270,14 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
     @Scheduled(fixedDelayString = "${pn.ec.delay.lavorazione-batch-cartaceo}")
     public void lavorazioneRichiestaBatch() {
+        if(shedLockRunner!=null){
+            shedLockRunner.runWithLock("lavorazioneRichiestaBatch", this::executeBatch);
+        } else {
+            executeBatch();
+        }
+    }
+
+    private void executeBatch() {
         MDC.clear();
         log.logStartingProcess(LAVORAZIONE_BATCH_CARTACEO);
         AtomicBoolean hasMessages = new AtomicBoolean();

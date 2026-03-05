@@ -1,7 +1,9 @@
 package it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage;
 
+import io.github.resilience4j.ratelimiter.RateLimiter;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.PaperMessagesEndpointProperties;
 import it.pagopa.pn.ec.commons.exception.cartaceo.ConsolidatoreException;
+import it.pagopa.pn.ec.commons.exception.consolidatore.RateLimitExceededException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.utils.JsonUtils;
 import it.pagopa.pn.ec.consolidatore.utils.PaperResult;
@@ -12,7 +14,9 @@ import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicasProgressesResponse
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -21,7 +25,8 @@ import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.Semaphore;
+
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
@@ -36,35 +41,65 @@ public class PaperMessageCallImpl implements PaperMessageCall {
     private final WebClient consolidatoreWebClient;
     private final PaperMessagesEndpointProperties paperMessagesEndpointProperties;
     private final JsonUtils jsonUtils;
+    private final Semaphore semaphore;
+    private final RateLimiter rateLimiter;
+
     private static final List<String> NON_RETRYABLE_ERRORS = Arrays.asList(
             PaperResult.SYNTAX_ERROR_CODE,
             PaperResult.SEMANTIC_ERROR_CODE,
             PaperResult.AUTHENTICATION_ERROR_CODE,
             PaperResult.DUPLICATED_REQUEST_CODE);
 
-    public PaperMessageCallImpl(@Qualifier("consolidatoreWebClient")WebClient consolidatoreWebClient, PaperMessagesEndpointProperties paperMessagesEndpointProperties, JsonUtils jsonUtils) {
+    public PaperMessageCallImpl(@Qualifier("consolidatoreWebClient")WebClient consolidatoreWebClient, PaperMessagesEndpointProperties paperMessagesEndpointProperties, JsonUtils jsonUtils,
+                                @Value("${pn.ec.max-concurrent-requests}") int maxConcurrentRequests,
+                                @Autowired(required = false) @Qualifier("rateLimiterConsolidatore") RateLimiter rateLimiter) {
         this.consolidatoreWebClient = consolidatoreWebClient;
         this.paperMessagesEndpointProperties = paperMessagesEndpointProperties;
         this.jsonUtils = jsonUtils;
+        this.semaphore = new Semaphore(maxConcurrentRequests);
+        this.rateLimiter = rateLimiter;
+        log.info("PaperMessageCallImpl maxConcurrentRequests={} - , rateLimiter presente? {}", maxConcurrentRequests, rateLimiter!=null);
     }
 
     @Override
     public Mono<OperationResultCodeResponse> putRequest(PaperEngageRequest paperEngageRequest) {
-        long startTimeCalling = System.currentTimeMillis();
-        return consolidatoreWebClient
-                .post()
-                .uri(paperMessagesEndpointProperties.putRequest())
-                .bodyValue(paperEngageRequest)
-                .exchangeToMono(clientResponse -> {
-                    long elapsedTime = System.currentTimeMillis() - startTimeCalling;
-                    trackMetricsConsolidatore(elapsedTime);
-                    if (clientResponse.statusCode().is2xxSuccessful()) {
-                        return clientResponse.bodyToMono(OperationResultCodeResponse.class);
-                    } else if (clientResponse.statusCode().is4xxClientError()) {
-                        return handleClientError(clientResponse);
-                    } else {
-                        return handleServerError(clientResponse);
+        return Mono.fromCallable(() -> {
+                    try {
+                        semaphore.acquire();
+                        return true;
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException(
+                                "Thread interrupted while acquiring semaphore", e);
                     }
+                })
+                .flatMap(acquired -> {
+                    boolean permissionAcquired = true;
+                    if(rateLimiter != null) {
+                        permissionAcquired = rateLimiter.acquirePermission();
+                    }
+                    if (!permissionAcquired) {
+                        semaphore.release();
+                        log.info("PaperMessageCallImpl.putRequest() - Rate limit superato verso il consolidatore");
+                        return Mono.error(new RateLimitExceededException("Max requests per minute exceeded"));
+                    }
+                    long startTimeCalling = System.currentTimeMillis();
+                    return consolidatoreWebClient
+                            .post()
+                            .uri(paperMessagesEndpointProperties.putRequest())
+                            .bodyValue(paperEngageRequest)
+                            .exchangeToMono(clientResponse -> {
+                                long elapsedTime = System.currentTimeMillis() - startTimeCalling;
+                                trackMetricsConsolidatore(elapsedTime);
+                                if (clientResponse.statusCode().is2xxSuccessful()) {
+                                    return clientResponse.bodyToMono(OperationResultCodeResponse.class);
+                                } else if (clientResponse.statusCode().is4xxClientError()) {
+                                    return handleClientError(clientResponse);
+                                } else {
+                                    return handleServerError(clientResponse);
+                                }
+                            })
+                            .doFinally(signalType -> semaphore.release());
                 });
     }
 
