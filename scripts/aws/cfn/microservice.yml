@@ -857,8 +857,8 @@ Parameters:
 
   ConsolidatoreMaxRequest:
     Type: Number
-    Description: 'Maximum number of concurrent requests allowed for consolidatore before triggering an alarm'
-    Default: 10
+    Description: 'Maximum number of requests allowed for consolidatore before triggering an alarm'
+    Default: 750
 
   ConsolidatoreRequestEvaluationPeriods:
     Type: Number
@@ -869,6 +869,11 @@ Parameters:
     Type: Number
     Description: 'Minimum number of datapoints within the evaluation window that must exceed to trigger the alarm'
     Default: 3
+
+  PnEcMaxConsolidatoreConcurrentRequest:
+    Type: Number
+    Description: 'Maximum number of concurrent requests that consolidator can handle simultaneously'
+    Default: 10
 
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
@@ -930,6 +935,7 @@ Resources:
         ContainerEnvEntry39: !Sub 'PN_CRON_ANALYZER=${PnCronAnalyzer}'
         ContainerEnvEntry40: !Sub 'WIRE_TAP_LOG=${WireTapLogActivation}'
         ContainerEnvEntry41: !Sub 'PnEcDuplicatesCheck=${PnEcDuplicatesCheck}'
+        ContainerEnvEntry42: !Sub 'PnEcMaxConsolidatoreConcurrentRequest=${PnEcMaxConsolidatoreConcurrentRequest}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -976,6 +982,7 @@ Resources:
               - !Ref PnEcTableArnAnagrafica
               - !Ref PnEcTableArnRichieste
               - !Ref PnEcTableArnRichiesteMetadati
+              - !Sub '${PnEcTableArnRichiesteMetadati}/index/messageIdIndex'
               - !Ref PnEcTableArnRichiesteConversione
               - !Ref PnEcTableArnConversionePdf
               - !Ref PnEcTableArnScartiConsolidatore

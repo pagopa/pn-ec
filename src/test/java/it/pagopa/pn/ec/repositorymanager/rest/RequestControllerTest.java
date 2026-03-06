@@ -60,6 +60,9 @@ class RequestControllerTest {
     private static final String DEFAULT_CONCATE_ID_PAPER = "CLIENT1~PAPER";
     private static final RequestDto digitalRequest = new RequestDto();
     private static final RequestDto paperRequest = new RequestDto();
+    private static final String MESSAGE_ID_REQUEST_METADATA = "cG4tZGVsaXZlcnk=~UEVDUmVxdWVzdC11aWVkcGRqeGRoLTEwMTU3NTc5OTM=@pagopa.it";
+    private static final String MESSAGE_ID_DIGITAL = "test-digital~DIGITAL";
+    private static final String MESSAGE_ID_PAPER   = "test-paper";
 
     private static DynamoDbTable<RequestMetadata> dynamoDbTableMetadata;
     private static DynamoDbTable<RequestPersonal> dynamoDbTablePersonal;
@@ -152,31 +155,87 @@ class RequestControllerTest {
         dynamoDbTablePersonal.putItem(builder -> builder.item(requestPersonal));
     }
 
-    private static void insertRequestMetadata(String idRequest, RequestMetadata requestMetadata) {
+    private static void insertRequestMetadata(String idRequest, RequestMetadata requestMetadata, boolean encode) {
         requestMetadata.setRequestId(idRequest);
         requestMetadata.setXPagopaExtchCxId(X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE);
-        requestMetadata.setMessageId(encodeMessageId(idRequest));
+        if (encode) {
+            requestMetadata.setMessageId(encodeMessageId(idRequest));
+        } else {
+            requestMetadata.setMessageId(idRequest); // plain
+        }
         dynamoDbTableMetadata.putItem(builder -> builder.item(requestMetadata));
     }
 
     @BeforeAll
-    static void insertDefaultRequest(@Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient,
-                                            @Autowired ObjectMapper objectMapper,
-                                            @Autowired RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
-        dynamoDbTablePersonal = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiestePersonalName(),
-                                                             TableSchema.fromBean(RequestPersonal.class));
-        dynamoDbTableMetadata = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteMetadataName(),
-                                                             TableSchema.fromBean(RequestMetadata.class));
+    static void insertDefaultRequest(
+            @Autowired DynamoDbEnhancedClient dynamoDbEnhancedClient,
+            @Autowired ObjectMapper objectMapper,
+            @Autowired RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
 
+        dynamoDbTablePersonal = dynamoDbEnhancedClient.table(
+                repositoryManagerDynamoTableName.richiestePersonalName(),
+                TableSchema.fromBean(RequestPersonal.class));
+
+        dynamoDbTableMetadata = dynamoDbEnhancedClient.table(
+                repositoryManagerDynamoTableName.richiesteMetadataName(),
+                TableSchema.fromBean(RequestMetadata.class));
+
+        // inizializza DTO
         initializeRequestDto();
-        insertRequestPersonal(DEFAULT_CONCATE_ID_DIGITAL,
-                              objectMapper.convertValue(digitalRequest.getRequestPersonal(), RequestPersonal.class));
-        insertRequestMetadata(DEFAULT_CONCATE_ID_DIGITAL,
-                              objectMapper.convertValue(digitalRequest.getRequestMetadata(), RequestMetadata.class));
-        insertRequestPersonal(DEFAULT_CONCATE_ID_PAPER,
-                              objectMapper.convertValue(paperRequest.getRequestPersonal(), RequestPersonal.class));
-        insertRequestMetadata(DEFAULT_CONCATE_ID_PAPER,
-                              objectMapper.convertValue(paperRequest.getRequestMetadata(), RequestMetadata.class));
+
+        //DIGITAL
+        RequestPersonal digitalPersonal = objectMapper.convertValue(
+                digitalRequest.getRequestPersonal(), RequestPersonal.class);
+
+        //record con requestId concatenata (DEFAULT_CONCATE_ID_DIGITAL)
+        RequestMetadata digitalMetadataConcat = objectMapper.convertValue(
+                digitalRequest.getRequestMetadata(), RequestMetadata.class);
+        digitalMetadataConcat.setMessageId(encodeMessageId(DEFAULT_CONCATE_ID_DIGITAL)); // encoded
+        insertRequestPersonal(DEFAULT_CONCATE_ID_DIGITAL, digitalPersonal);
+        insertRequestMetadata(DEFAULT_CONCATE_ID_DIGITAL, digitalMetadataConcat, true);
+
+        //record con messageId (no concat) per GET/PATCH
+        RequestMetadata digitalMetadataPlain = objectMapper.convertValue(
+                digitalRequest.getRequestMetadata(), RequestMetadata.class);
+        digitalMetadataPlain.setMessageId(DEFAULT_ID_DIGITAL); // es. "DIGITAL"
+        insertRequestPersonal(DEFAULT_ID_DIGITAL, digitalPersonal);
+        insertRequestMetadata(DEFAULT_ID_DIGITAL, digitalMetadataPlain, false);
+
+        //record per GET by messageId, chiave differente
+        RequestPersonal digitalPersonalMessageId = objectMapper.convertValue(
+                digitalRequest.getRequestPersonal(), RequestPersonal.class);
+        RequestMetadata digitalMetadataMessageIdRecord = objectMapper.convertValue(
+                digitalRequest.getRequestMetadata(), RequestMetadata.class);
+        digitalMetadataMessageIdRecord.setMessageId(MESSAGE_ID_DIGITAL);
+        insertRequestPersonal(MESSAGE_ID_DIGITAL, digitalPersonalMessageId);
+        insertRequestMetadata(MESSAGE_ID_DIGITAL, digitalMetadataMessageIdRecord, false);
+
+        //PAPER
+        RequestPersonal paperPersonal = objectMapper.convertValue(
+                paperRequest.getRequestPersonal(), RequestPersonal.class);
+
+        // record con requestId concatenata (DEFAULT_CONCATE_ID_PAPER)
+        RequestMetadata paperMetadataConcat = objectMapper.convertValue(
+                paperRequest.getRequestMetadata(), RequestMetadata.class);
+        paperMetadataConcat.setMessageId(encodeMessageId(DEFAULT_CONCATE_ID_PAPER));
+        insertRequestPersonal(DEFAULT_CONCATE_ID_PAPER, paperPersonal);
+        insertRequestMetadata(DEFAULT_CONCATE_ID_PAPER, paperMetadataConcat, true);
+
+        // record con messageId (no concat) per GET/PATCH
+        RequestMetadata paperMetadataPlain = objectMapper.convertValue(
+                paperRequest.getRequestMetadata(), RequestMetadata.class);
+        paperMetadataPlain.setMessageId(DEFAULT_ID_PAPER); // es. "PAPER"
+        insertRequestPersonal(DEFAULT_ID_PAPER, paperPersonal);
+        insertRequestMetadata(DEFAULT_ID_PAPER, paperMetadataPlain, false);
+
+        // record per GET by messageId, chiave differente
+        RequestPersonal paperPersonalMessageId = objectMapper.convertValue(
+                paperRequest.getRequestPersonal(), RequestPersonal.class);
+        RequestMetadata paperMetadataMessageIdRecord = objectMapper.convertValue(
+                paperRequest.getRequestMetadata(), RequestMetadata.class);
+        paperMetadataMessageIdRecord.setMessageId(MESSAGE_ID_PAPER);
+        insertRequestPersonal(MESSAGE_ID_PAPER, paperPersonalMessageId);
+        insertRequestMetadata(MESSAGE_ID_PAPER, paperMetadataMessageIdRecord, false);
     }
 
     private static Stream<Arguments> provideDigitalAndPaperRequestToInsert() {
@@ -363,7 +422,7 @@ class RequestControllerTest {
     void deleteRequestTestSuccess(RequestDto requestDto, String idToDelete) {
 
         insertRequestPersonal("CLIENT1~" + idToDelete, objectMapper.convertValue(requestDto.getRequestPersonal(), RequestPersonal.class));
-        insertRequestMetadata("CLIENT1~" + idToDelete, objectMapper.convertValue(requestDto.getRequestMetadata(), RequestMetadata.class));
+        insertRequestMetadata("CLIENT1~" + idToDelete, objectMapper.convertValue(requestDto.getRequestMetadata(), RequestMetadata.class), true);
 
         webClient.delete()
                  .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.deleteRequest()).build(idToDelete).toString())
@@ -417,6 +476,30 @@ class RequestControllerTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {MESSAGE_ID_DIGITAL, MESSAGE_ID_PAPER})
+    void getRequestMetadataByMessageIdSuccess(String messageId) {
+        webClient.get()
+                .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.getRequestMetadataByMessageId())
+                        .build(messageId).toString())
+                .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(RequestDto.class);
+    }
+
+    @Test
+    void getRequestMetadataByMessageIdNotFound() {
+        webClient.get()
+                .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.getRequestMetadataByMessageId())
+                        .build(("idNonEsistente")).toString())
+                .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
+                .exchange()
+                .expectStatus()
+                .isNotFound();
+    }
+
+
+    @ParameterizedTest
     @ValueSource(strings = {DEFAULT_ID_DIGITAL, DEFAULT_ID_PAPER})
     void updateMessageIdInRequestMetadataOk(String idRequest) {
         webClient.post()
@@ -436,6 +519,38 @@ class RequestControllerTest {
                  .exchange()
                  .expectStatus()
                  .isNotFound();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {DEFAULT_ID_DIGITAL, DEFAULT_ID_PAPER})
+    void setRequestMetadataMessageIdSuccess(String idRequest) {
+        var messageIdRequestMetadataDto = new MessageIdRequestMetadataDto();
+        messageIdRequestMetadataDto.setMessageId("newMessageId-" + idRequest);
+
+        webClient.patch()
+                .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.setRequestMetadataMessageId())
+                        .build(idRequest).toString())
+                .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
+                .bodyValue(messageIdRequestMetadataDto)
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(RequestDto.class);
+    }
+
+    @Test
+    void setRequestMetadataMessageIdNotFound() {
+        var messageIdRequestMetadataDto = new MessageIdRequestMetadataDto();
+        messageIdRequestMetadataDto.setMessageId("nonExistentMessageId");
+
+        webClient.patch()
+                .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.setRequestMetadataMessageId())
+                        .build("idCheNonEsiste").toString())
+                .header(ID_CLIENT_HEADER_NAME, X_PAGOPA_EXTERNALCHANNEL_CX_ID_VALUE)
+                .bodyValue(messageIdRequestMetadataDto)
+                .exchange()
+                .expectStatus()
+                .isNotFound();
     }
 
     private static Stream<Arguments> provideNewDigitalAndPaperRequestToInsert() {
