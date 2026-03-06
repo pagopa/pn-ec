@@ -1187,22 +1187,6 @@ Resources:
               ArnEquals:
                 aws:SourceArn: !Ref PnEcEmailEventsSNSTopic
 
-  # Risorsa
-  SESConfigurationSetEventDestination:
-    Type: AWS::SES::ConfigurationSetEventDestination
-    Properties:
-      ConfigurationSetName: !Ref SESConfigurationSetName
-      EventDestination:
-        Name: pn-ec-ses-events-destination
-        Enabled: true
-        MatchingEventTypes:
-          - bounce
-          - complaint
-          - delivery
-          - reject
-        SnsDestination:
-          TopicARN: !Ref PnEcEmailEventsSNSTopic
-
 
 #########  OUTPUTS  ##########
 
