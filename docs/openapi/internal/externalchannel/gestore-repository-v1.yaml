@@ -424,9 +424,9 @@ components:
       required:
         - messageId
       properties:
-        isOpenReworkRequest:
+        messageId:
           type: string
-          description: >
+          description: >-
             Valore che identifica il messageId nella RequestMetadata.
 
     EventsDto:
