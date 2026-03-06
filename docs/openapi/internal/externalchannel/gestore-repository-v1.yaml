@@ -227,11 +227,6 @@ paths:
 
   /external-channel/gestoreRepository/requests/emailMessageId/{messageId}:
     parameters:
-      - name: x-pagopa-extch-cx-id
-        in: header
-        required: true
-        schema:
-          type: string
       - name: messageId
         in: path
         required: true

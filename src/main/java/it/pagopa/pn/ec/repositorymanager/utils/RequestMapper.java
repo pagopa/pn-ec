@@ -20,9 +20,13 @@ public class RequestMapper {
         OffsetDateTime clientRequestTimeStamp = requestMetadata.getClientRequestTimeStamp();
         OffsetDateTime requestTimeStamp = requestMetadata.getRequestTimestamp();
 
+        String requestId;
         String[] parts = requestMetadata.getRequestId().split(SEPARATORE);
-        String requestId = parts[1];
-
+        if (parts.length > 1) {
+            requestId = parts[1];
+        } else {
+            requestId = parts[0];
+        }
         return Request.builder()
                       .requestId(requestId)
                       .xPagopaExtchCxId(clientId)

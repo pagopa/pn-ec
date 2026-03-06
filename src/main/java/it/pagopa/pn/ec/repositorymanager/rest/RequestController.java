@@ -87,7 +87,7 @@ public class RequestController implements GestoreRequestApi {
     }
 
     @Override
-    public Mono<ResponseEntity<RequestDto>> getRequestMetadataByMessageId(String clientId, String messageId, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<RequestDto>> getRequestMetadataByMessageId(String messageId, ServerWebExchange exchange) {
         log.logStartingProcess(GET_REQUEST_METADATA_BY_MESSAGE_ID);
         return requestService.getRequestMetadataByMessageId(messageId).map(retrievedRequest -> restUtils.endReadRequest(retrievedRequest, RequestDto.class))
                 .doOnSuccess(result -> log.logEndingProcess(GET_REQUEST_METADATA_BY_MESSAGE_ID))
@@ -97,7 +97,6 @@ public class RequestController implements GestoreRequestApi {
     @Override
     public Mono<ResponseEntity<RequestDto>> setRequestMetadataMessageId(String clientId, String requestIdx, Mono<MessageIdRequestMetadataDto> messageIdRequestMetadataDto, ServerWebExchange exchange) {
         log.logStartingProcess(SET_REQUEST_METADATA_MESSAGE_ID);
-
         return messageIdRequestMetadataDto.map(messageIdToUpdate -> restUtils.startUpdateRequest(messageIdToUpdate, MessageIdRequestMetadata.class))
                 .flatMap(requestToUpdate -> requestService.setRequestMetadataMessageId(clientId, requestIdx, requestToUpdate))
                 .map(updatedRequest -> restUtils.endCreateOrUpdateRequest(updatedRequest, RequestDto.class))

@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository;
 
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
+import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -24,8 +25,13 @@ public interface GestoreRepositoryCall {
     Mono<RequestDto> getRequestByMessageId(String messageId);
     Mono<RequestDto> setMessageIdInRequestMetadata(String clientId, String requestIdx);
 
+    // <-- MESSAGE ID -->
+    Mono<RequestDto> setRequestMetadataMessageId(String clientId, String requestIdx, MessageIdRequestMetadataDto messageIdRequestMetadataDto);
+    Mono<RequestDto> getRequestMetadataByMessageId(String messageId);
 
-//  <-- DISCARDED EVENTS -->
+
+
+    //  <-- DISCARDED EVENTS -->
     Flux<DiscardedEventDto> insertDiscardedEvents(Flux<DiscardedEventDto> discardedEventsDto);
 
 
