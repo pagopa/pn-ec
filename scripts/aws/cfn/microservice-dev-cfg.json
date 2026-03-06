@@ -43,7 +43,6 @@
     "ConsolidatoreRefreshPeriodSeconds": "60",
     "ConsolidatoreMaxRequest": "600",
     "ConsolidatoreRequestEvaluationPeriods": "10",
-    "ConsolidatoreRequestDatapointToAlarm": "3",
-    "SESConfigurationSetName": "testses"
+    "ConsolidatoreRequestDatapointToAlarm": "3"
   }
 }

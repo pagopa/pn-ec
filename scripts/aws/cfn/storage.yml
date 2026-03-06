@@ -42,11 +42,6 @@ Parameters:
     Type: Number
     Default: 14
 
-  SESConfigurationSetName:
-    Type: String
-    Description: 'Nome del Configuration Set SES'
-    Default: 'testses'
-
 Conditions:
   IsDevEnv: !Equals [ !Ref EnvType, 'dev']
   HasCucumberTest: !Or
