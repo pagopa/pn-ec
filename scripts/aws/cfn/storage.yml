@@ -42,6 +42,11 @@ Parameters:
     Type: Number
     Default: 14
 
+  SESConfigurationSetName:
+    Type: String
+    Description: 'Nome del Configuration Set SES'
+    Default: 'testses'
+
 Conditions:
   IsDevEnv: !Equals [ !Ref EnvType, 'dev']
   HasCucumberTest: !Or
@@ -126,14 +131,12 @@ Resources:
       KeySchema:
         - AttributeName: 'requestId'
           KeyType: 'HASH'
-        - AttributeName: 'messageId'
-          KeyType: 'HASH'
       GlobalSecondaryIndexes:
         - IndexName: 'messageIdIndex'
-        - KeySchema:
-          - AttributeName: 'messageId'
-            KeyType: 'HASH'
-        - Projection:
+          KeySchema:
+            - AttributeName: 'messageId'
+              KeyType: 'HASH'
+          Projection:
             ProjectionType: 'ALL'
       BillingMode: 'PAY_PER_REQUEST'
       SSESpecification:
@@ -1083,6 +1086,122 @@ Resources:
         QueueHasAlarm: 'false'
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         VisibilityTimeout: 60
+
+  ###### SQS Queue e DLQ: EMAIL SES EVENTS ######
+
+  PnEcQueueEmailSesEventsFifoDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: 'pn-ec-email-ses-events-DLQ.fifo'
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      KmsMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
+
+  PnEcQueueEmailSesEventsFifo:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: 'pn-ec-email-ses-events.fifo'
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      KmsMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt PnEcQueueEmailSesEventsFifoDLQ.Arn
+        maxReceiveCount: 3
+
+  PnEcQueueEmailSesEventsPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref PnEcQueueEmailSesEventsFifo
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt PnEcQueueEmailSesEventsFifo.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref PnEcEmailEventsSNSTopic
+
+  PnEcSnsSubscriptionEmailSesEvents:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      Endpoint: !GetAtt PnEcQueueEmailSesEventsFifo.Arn
+      TopicArn: !Ref PnEcEmailEventsSNSTopic
+      RawMessageDelivery: true
+
+  ## coda dlq ses events
+  PnEcQueueSesEventsFifoDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: 'pn-ec-ses-events-DLQ.fifo'
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      KmsMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
+
+  # coda ses events
+  PnEcQueueSesEventsFifo:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: 'pn-ec-ses-events.fifo'
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      KmsMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt PnEcQueueSesEventsFifoDLQ.Arn
+        maxReceiveCount: 3
+
+  # Topic FIFO
+  PnEcEmailEventsSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: 'pn-ec-ses-events-topic.fifo'
+      FifoTopic: true
+      ContentBasedDeduplication: true
+      KmsMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
+
+  PnEcSnsSubscriptionSesEvents:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      Endpoint: !GetAtt PnEcQueueSesEventsFifo.Arn
+      TopicArn: !Ref PnEcEmailEventsSNSTopic
+      RawMessageDelivery: true
+
+  # Policy per permettere al Topic di inviare messaggi alla Coda
+  PnEcQueueSesEventsPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref PnEcQueueSesEventsFifo
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt PnEcQueueSesEventsFifo.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref PnEcEmailEventsSNSTopic
+
+  # Risorsa
+  SESConfigurationSetEventDestination:
+    Type: AWS::SES::ConfigurationSetEventDestination
+    Properties:
+      ConfigurationSetName: !Ref SESConfigurationSetName
+      EventDestination:
+        Name: pn-ec-ses-events-destination
+        Enabled: true
+        MatchingEventTypes:
+          - bounce
+          - complaint
+          - delivery
+          - reject
+        SnsDestination:
+          TopicARN: !Ref PnEcEmailEventsSNSTopic
 
 
 #########  OUTPUTS  ##########
