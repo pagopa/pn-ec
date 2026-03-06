@@ -44,6 +44,7 @@
     "ConsolidatoreMaxRequest": "750",
     "ConsolidatoreRequestEvaluationPeriods": "10",
     "ConsolidatoreRequestDatapointToAlarm": "3",
-    "PnEcMaxConsolidatoreConcurrentRequest": "10"
+    "PnEcMaxConsolidatoreConcurrentRequest": "10",
+    "SESConfigurationSetName": "testses"
   }
 }
