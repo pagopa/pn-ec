@@ -858,7 +858,7 @@ Parameters:
   ConsolidatoreMaxRequest:
     Type: Number
     Description: 'Maximum number of concurrent requests allowed for consolidatore before triggering an alarm'
-    Default: 10
+    Default: 750
 
   ConsolidatoreRequestEvaluationPeriods:
     Type: Number
