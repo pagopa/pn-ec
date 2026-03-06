@@ -41,8 +41,9 @@
     "GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods": "18",
     "WireTapLogActivation": "false",
     "ConsolidatoreRefreshPeriodSeconds": "60",
-    "ConsolidatoreMaxRequest": "600",
+    "ConsolidatoreMaxRequest": "750",
     "ConsolidatoreRequestEvaluationPeriods": "10",
-    "ConsolidatoreRequestDatapointToAlarm": "3"
+    "ConsolidatoreRequestDatapointToAlarm": "3",
+    "PnEcMaxConsolidatoreConcurrentRequest": "10"
   }
 }

@@ -1,10 +1,12 @@
 package it.pagopa.pn.ec.repositorymanager.rest;
 
 import it.pagopa.pn.ec.commons.utils.RestUtils;
+import it.pagopa.pn.ec.repositorymanager.model.entity.MessageIdRequestMetadata;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Patch;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Request;
 import it.pagopa.pn.ec.repositorymanager.service.RequestService;
 import it.pagopa.pn.ec.rest.v1.api.GestoreRequestApi;
+import it.pagopa.pn.ec.rest.v1.dto.MessageIdRequestMetadataDto;
 import it.pagopa.pn.ec.rest.v1.dto.PatchDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import lombok.CustomLog;
@@ -14,7 +16,6 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
-import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static org.springframework.http.HttpStatus.OK;
 
 @RestController
@@ -85,4 +86,22 @@ public class RequestController implements GestoreRequestApi {
                 .doOnError(throwable -> log.logEndingProcess(SET_MESSAGE_ID_IN_REQUEST_METADATA, false, throwable.getMessage()));
     }
 
+    @Override
+    public Mono<ResponseEntity<RequestDto>> getRequestMetadataByMessageId(String messageId, ServerWebExchange exchange) {
+        log.logStartingProcess(GET_REQUEST_METADATA_BY_MESSAGE_ID);
+        return requestService.getRequestMetadataByMessageId(messageId).map(retrievedRequest -> restUtils.endReadRequest(retrievedRequest, RequestDto.class))
+                .doOnSuccess(result -> log.logEndingProcess(GET_REQUEST_METADATA_BY_MESSAGE_ID))
+                .doOnError(throwable -> log.logEndingProcess(GET_REQUEST_METADATA_BY_MESSAGE_ID, false, throwable.getMessage()));
+    }
+
+    @Override
+    public Mono<ResponseEntity<RequestDto>> setRequestMetadataMessageId(String clientId, String requestIdx, Mono<MessageIdRequestMetadataDto> messageIdRequestMetadataDto, ServerWebExchange exchange) {
+        log.logStartingProcess(SET_REQUEST_METADATA_MESSAGE_ID);
+        return messageIdRequestMetadataDto.map(messageIdToUpdate -> restUtils.startUpdateRequest(messageIdToUpdate, MessageIdRequestMetadata.class))
+                .flatMap(requestToUpdate -> requestService.setRequestMetadataMessageId(clientId, requestIdx, requestToUpdate))
+                .map(updatedRequest -> restUtils.endCreateOrUpdateRequest(updatedRequest, RequestDto.class))
+                .doOnSuccess(result -> log.logEndingProcess(SET_REQUEST_METADATA_MESSAGE_ID))
+                .doOnError(throwable -> log.logEndingProcess(SET_REQUEST_METADATA_MESSAGE_ID, false, throwable.getMessage()));
+
+    }
 }

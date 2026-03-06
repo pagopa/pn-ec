@@ -126,14 +126,12 @@ Resources:
       KeySchema:
         - AttributeName: 'requestId'
           KeyType: 'HASH'
-        - AttributeName: 'messageId'
-          KeyType: 'HASH'
       GlobalSecondaryIndexes:
         - IndexName: 'messageIdIndex'
-        - KeySchema:
-          - AttributeName: 'messageId'
-            KeyType: 'HASH'
-        - Projection:
+          KeySchema:
+            - AttributeName: 'messageId'
+              KeyType: 'HASH'
+          Projection:
             ProjectionType: 'ALL'
       BillingMode: 'PAY_PER_REQUEST'
       SSESpecification:

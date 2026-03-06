@@ -98,4 +98,17 @@ public class RepositoryManagerException extends RuntimeException {
         }
     }
 
+    public static class RequestMetadataNotFoundException extends RepositoryManagerException {
+
+        public RequestMetadataNotFoundException(String messageId) {
+            super(String.format("RequestMetadata with messageId '%s' not found", messageId));
+        }
+    }
+
+    public static class InvalidInputException extends RepositoryManagerException {
+        public InvalidInputException(String message) {
+            super(message);
+        }
+    }
+
 }

@@ -153,6 +153,40 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
     }
 
     @Override
+    public Mono<RequestDto> setRequestMetadataMessageId(String clientId, String requestIdx, MessageIdRequestMetadataDto messageIdRequestMetadataDto) {
+        log.info(INVOKING_INTERNAL_SERVICE, GESTORE_REPOSITORY_SERVICE, SET_REQUEST_METADATA_MESSAGE_ID, requestIdx);
+
+        return ecWebClient.patch()
+                .uri(UriComponentsBuilder
+                        .fromPath(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
+                        .build(requestIdx)
+                        .toString())
+                .header(CLIENT_HEADER_NAME, clientId)
+                .bodyValue(messageIdRequestMetadataDto)
+                .retrieve()
+                .onStatus(NOT_FOUND::equals,
+                        clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
+                .onStatus(BAD_REQUEST::equals,
+                        clientResponse -> Mono.error(new RepositoryManagerException.RequestMalformedException()))
+                .bodyToMono(RequestDto.class);    }
+
+    @Override
+    public Mono<RequestDto> getRequestMetadataByMessageId(String messageId) {
+        log.info(INVOKING_INTERNAL_SERVICE, GESTORE_REPOSITORY_SERVICE, GET_REQUEST_METADATA_BY_MESSAGE_ID, messageId);
+
+        return ecWebClient.get()
+                .uri(UriComponentsBuilder
+                        .fromPath(gestoreRepositoryEndpointProperties.getRequestMetadataByMessageId())
+                        .build(messageId)
+                        .toString())
+                .retrieve()
+                .onStatus(NOT_FOUND::equals,
+                        clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
+                .onStatus(BAD_REQUEST::equals,
+                        clientResponse -> Mono.error(new BadMessageIdProvidedException()))
+                .bodyToMono(RequestDto.class);    }
+
+    @Override
     public Flux<DiscardedEventDto> insertDiscardedEvents(Flux<DiscardedEventDto> discardedEventsDto) {
         return ecWebClient.post()
                 .uri(gestoreRepositoryEndpointProperties.postDiscardedEvents())
@@ -170,4 +204,5 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
             super("Internal server error for messageId creation");
         }
     }
+
 }

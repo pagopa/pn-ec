@@ -1,22 +1,20 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
-import it.pagopa.pn.ec.repositorymanager.model.entity.DigitalProgressStatus;
-import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
-import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
-import it.pagopa.pn.ec.repositorymanager.model.entity.Retry;
+import it.pagopa.pn.ec.repositorymanager.model.entity.*;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Patch;
 import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
 import lombok.CustomLog;
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedAsyncClient;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -24,15 +22,13 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.DYNAMO_OPTIMISTIC_LOCKING_RETRY;
 import static it.pagopa.pn.ec.commons.utils.DynamoDbUtils.getKey;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
-import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.decodeMessageId;
-import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
+import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.*;
 
 @Service
 @CustomLog
@@ -216,6 +212,66 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
     private Mono<RequestMetadata> deleteRequestMetadataFromDynamoDb(String requestId) {
         return Mono.fromCompletionStage(requestMetadataDynamoDbTable.deleteItem(getKey(requestId)));
+    }
+
+    @Override
+    public Mono<RequestMetadata> getRequestMetadataByMessageIdKey(String messageId) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GET_REQUEST_METADATA_BY_MESSAGE_IDKEY_OP, messageId);
+
+        if (messageId == null || messageId.isBlank()) {
+            return Mono.error(new RepositoryManagerException.InvalidInputException(GET_REQUEST_METADATA_BY_MESSAGE_IDKEY_OP + ": Invalid Input messageId"));
+        }
+        QueryConditional queryConditional = QueryConditional
+                .keyEqualTo(Key.builder()
+                        .partitionValue(messageId)
+                        .build());
+
+        QueryEnhancedRequest queryRequest = QueryEnhancedRequest.builder()
+                .queryConditional(queryConditional)
+                .build();
+
+        return Mono.from(requestMetadataDynamoDbTable.index(MESSAGE_ID_INDEX_NAME).query(queryRequest))
+                .flatMap(page -> {
+                    if (page.items().isEmpty()) {
+                        return Mono.empty();
+                    }
+                    return Mono.just(page.items().get(0));
+                })
+                .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestMetadataNotFoundException(messageId)))
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, messageId, GET_REQUEST_METADATA_BY_MESSAGE_IDKEY_OP, result))
+                .doOnError(throwable -> log.debug(EXCEPTION_IN_PROCESS, GET_REQUEST_METADATA_BY_MESSAGE_IDKEY_OP, throwable, throwable.getMessage()));
+    }
+
+    public Mono<RequestMetadata> setRequestMetadataMessageId(String concatRequestId, MessageIdRequestMetadata messageIdToUpdate){
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, SET_REQUEST_METADATA_MESSAGE_ID_OP, concatRequestId);
+
+        if (messageIdToUpdate == null ) {
+            return Mono.error(new RepositoryManagerException.InvalidInputException(SET_REQUEST_METADATA_MESSAGE_IDKEY_OP + ": Invalid Input messageIdToUpdate"));
+        }
+        return updateRequestMetadataMessageId(concatRequestId, messageIdToUpdate.getMessageId());
+    }
+
+    public Mono<RequestMetadata> updateRequestMetadataMessageId(String requestId, String messageId){
+
+        if (messageId == null || Strings.isBlank(messageId)) {
+            return Mono.error(new RepositoryManagerException.InvalidInputException(UPDATE_REQUEST_METADATA_MESSAGE_ID_OP + ": Invalid Input messageId"));
+        }
+        if (Strings.isBlank(requestId)) {
+            return Mono.error(new RepositoryManagerException.InvalidInputException(UPDATE_REQUEST_METADATA_MESSAGE_ID_OP + ": Invalid Input requestId"));
+        }
+
+        return Mono.fromFuture(requestMetadataDynamoDbTable.getItem(Key.builder()
+                        .partitionValue(requestId)
+                        .build()))
+                .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestMetadataNotFoundException(requestId)))
+                .flatMap(existingItem -> {
+                    existingItem.setMessageId(messageId);
+                    OffsetDateTime lastUpdateTimestamp = OffsetDateTime.now().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MILLIS);
+                    existingItem.setLastUpdateTimestamp(lastUpdateTimestamp.format(dtf));
+                    return Mono.fromFuture(requestMetadataDynamoDbTable.updateItem(existingItem));
+                })
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, messageId, UPDATE_REQUEST_METADATA_MESSAGE_ID_OP, result))
+                .doOnError(throwable -> log.debug(EXCEPTION_IN_PROCESS, UPDATE_REQUEST_METADATA_MESSAGE_ID_OP, throwable, throwable.getMessage()));
     }
 
 }

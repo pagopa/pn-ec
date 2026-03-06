@@ -207,4 +207,30 @@ public class RequestServiceImpl implements RequestService {
                                      }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequest, SET_MESSAGE_ID_IN_REQUEST_METADATA_OP, result));
     }
 
+    //usata per la email
+    @Override
+    public Mono<Request> getRequestMetadataByMessageId(String messageId) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, GET_REQUEST_METADATA_BY_MESSAGE_ID_OP, messageId);
+        return requestMetadataService.getRequestMetadataByMessageIdKey(messageId)
+                .zipWhen(requestMetadata -> requestPersonalService.getRequestPersonal(requestMetadata.getRequestId()))
+                .map(objects -> {
+                    RequestMetadata retrievedRequestMetadata = objects.getT1();
+                    RequestPersonal retrievedRequestPersonal = objects.getT2();
+                    return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, retrievedRequestMetadata);
+                }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, messageId, GET_REQUEST_METADATA_BY_MESSAGE_ID_OP, result));
+    }
+
+    //usata per la email
+    @Override
+    public Mono<Request> setRequestMetadataMessageId(String clientId, String requestIdx, MessageIdRequestMetadata messageIdToUpdate) {
+        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, SET_REQUEST_METADATA_MESSAGE_ID_OP, requestIdx);
+        return requestMetadataService.setRequestMetadataMessageId(requestIdx, messageIdToUpdate)
+                .zipWhen(requestMetadata -> requestPersonalService.getRequestPersonal(requestMetadata.getRequestId()))
+                .map(objects -> {
+                    RequestMetadata retrievedRequestMetadata = objects.getT1();
+                    RequestPersonal retrievedRequestPersonal = objects.getT2();
+                    return createRequestFromPersonalAndMetadata(retrievedRequestPersonal, retrievedRequestMetadata);
+                }).doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, requestIdx, SET_REQUEST_METADATA_MESSAGE_ID_OP, result));
+    }
+
 }
