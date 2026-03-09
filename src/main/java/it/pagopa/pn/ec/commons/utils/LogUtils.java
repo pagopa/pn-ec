@@ -157,6 +157,9 @@ public class LogUtils {
     public static final String LAVORAZIONE_BATCH_EMAIL = "EmailService.lavorazioneRichiestaBatch()";
     public static final String LAVORAZIONE_ERRORI_EMAIL = "EmailService.gestioneRetryEmailScheduler()";
 
+    //EMAIL SES
+    public static final String LAVORAZIONE_SES_EVENT_EMAIL = "lavorazioneSesEvents()";
+
     //SMS
     public static final String SEND_COURTESY_SHORT_MESSAGE = "sendCourtesyShortMessage";
     public static final String GET_COURTESY_SHORT_MESSAGE_STATUS = "getCourtesyShortMessageStatus";

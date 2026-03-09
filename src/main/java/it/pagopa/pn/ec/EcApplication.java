@@ -35,8 +35,6 @@ import org.springframework.context.annotation.PropertySource;
 @PropertySource("classpath:email/email-sqs-queue.properties")
 // LAVORAZIONE
 @PropertySource("classpath:email/lavorazione-email.properties")
-//SQS QUEUE EMAIL SES
-@PropertySource("classpath:emailses/email-ses-sqs-queue.properties")
 
 //  <-- PEC -->
 // SQS QUEUE
