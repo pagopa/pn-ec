@@ -236,17 +236,17 @@ paths:
       tags:
         - GestoreRequest
       operationId: getRequestMetadataByMessageId
-      description: Permette di recuperare l'evento SES associato al messageId originale, 
-                   consentendo di ricostruire lo stato della comunicazione.
+      description: Permette di recuperare l'evento SES associato al messageId originale,
+        consentendo di ricostruire lo stato della comunicazione.
       responses:
-          200:
-            $ref: '#/components/responses/requestResponseOk'
-          400:
-            $ref: '#/components/responses/missingRequestedItem'
-          404:
-            $ref: '#/components/responses/missingRequestedItem'
-          500:
-            $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
+        200:
+          $ref: '#/components/responses/requestResponseOk'
+        400:
+          $ref: '#/components/responses/missingRequestedItem'
+        404:
+          $ref: '#/components/responses/missingRequestedItem'
+        500:
+          $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
 
   /external-channel/gestoreRepository/requests/{requestIdx}/messageId:
     parameters:
@@ -280,7 +280,6 @@ paths:
           $ref: '#/components/responses/missingRequestedItem'
         500:
           $ref: '../../external/schemas-pn-errors-v1.yaml#/components/schemas/Problem'
-
 
 components:
 
@@ -368,7 +367,6 @@ components:
           maxLength: 100
         messageId:
           type: string
-          readOnly: true
         xPagopaExtchCxId:
           type: string
         statusRequest:
