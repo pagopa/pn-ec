@@ -16,6 +16,6 @@ import org.springframework.validation.annotation.Validated;
 @Component
 public class SesConfigurationProperties {
 
-    private String eventsListDafault;
+    private String eventsListDefault;
 
 }

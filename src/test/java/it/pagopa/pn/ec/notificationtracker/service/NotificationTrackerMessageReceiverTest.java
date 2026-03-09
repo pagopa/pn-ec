@@ -182,7 +182,8 @@ class NotificationTrackerMessageReceiverTest {
     @ParameterizedTest
     @MethodSource("provideArguments")
     void digitalNtOk(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
-
+        ClientConfigurationInternalDto clientConfig = new ClientConfigurationInternalDto();
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfig));
         //WHEN
         when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
         mockStatusDecode();
@@ -198,6 +199,8 @@ class NotificationTrackerMessageReceiverTest {
     @ParameterizedTest
     @MethodSource("provideArguments")
     void digitalNtGeneratedMessageNullOk(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+        ClientConfigurationInternalDto clientConfig = new ClientConfigurationInternalDto();
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfig));
 
         //WHEN
         when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));

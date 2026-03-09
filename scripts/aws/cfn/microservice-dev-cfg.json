@@ -44,7 +44,6 @@
     "ConsolidatoreMaxRequest": "750",
     "ConsolidatoreRequestEvaluationPeriods": "10",
     "ConsolidatoreRequestDatapointToAlarm": "3",
-    "PnEcMaxConsolidatoreConcurrentRequest": "10",
-    "DefaultSESEventsList": "M004;M005;M006;M009"
+    "PnEcMaxConsolidatoreConcurrentRequest": "10"
   }
 }

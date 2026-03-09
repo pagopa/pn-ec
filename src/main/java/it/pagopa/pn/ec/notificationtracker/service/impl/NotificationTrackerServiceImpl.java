@@ -202,8 +202,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                     .flatMap(clientDto -> {
                                                         List<String> sesEventsList = clientDto.getSeSEventsList();
                                                         if (sesEventsList == null || sesEventsList.isEmpty()) {
-                                                            sesEventsList = Arrays.stream(sesConfigurationProperties.getEventsListDafault().split(";")).toList();
-                                                            log.debug("SESEventsList null per clientId: {}, uso defaultSesEventsList: {}", xPagopaExtchCxId, sesEventsList);
+                                                            sesEventsList = Arrays.stream(sesConfigurationProperties.getEventsListDefault().split(";")).toList();
+                                                            log.debug("SESEventsList null per clientId: {}, uso EventsListDefault: {}", xPagopaExtchCxId, sesEventsList);
                                                         }
 
                                                         var logicStatus = macchinaStatiDecodeResponseDto.getLogicStatus();
