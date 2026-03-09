@@ -307,6 +307,10 @@ components:
                 pattern: "^(?!\\s*$).+"
                 minLength: 10
                 maxLength: 50
+              SESEventsList:
+                type: array
+                items:
+                  type: string
               sqsArn:
                 type: string
               sqsName:
