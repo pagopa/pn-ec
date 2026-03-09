@@ -1134,24 +1134,6 @@ Resources:
               ArnEquals:
                 aws:SourceArn: !Ref PnEcEmailEventsSNSTopic
 
-  PnEcQueueErroriSesEventsEMAILStack:
-    Type: AWS::CloudFormation::Stack
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
-      Parameters:
-        QueueName: 'pn-ec-email-ses-events-errori-queue'
-        SqsManagedSseEnabled: true
-        FifoQueue: 'true'
-        ContentBasedDeduplication: 'true'
-        DelaySeconds: 300
-        HasDLQ: 'true'
-        MaxReceiveCount: 10
-        QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName
-        VisibilityTimeout: 600
-
 #########  OUTPUTS  ##########
 
 Outputs:
@@ -1534,23 +1516,6 @@ PnEcAlarmArnDLQueueSesEventsEMAIL:
   Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ SES events EMAIL"
   Value: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.SqsDLQAlarmArn
 
-######### SES EVENTS : ERRORI EMAIL ##########
-
-PnEcQueueArnSesEventsErroriEMAIL:
-  Description: '[SES Events EMAIL] ARN della coda errori eventi SES'
-  Value: !GetAtt PnEcQueueErroriSesEventsEMAILStack.Outputs.QueueARN
-
-PnEcQueueUrlSesEventsErroriEMAIL:
-  Description: '[SES Events EMAIL] URL della coda errori eventi SES'
-  Value: !GetAtt PnEcQueueErroriSesEventsEMAILStack.Outputs.QueueURL
-
-PnEcAlarmArnQueueSesEventsErroriEMAIL:
-  Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda errori SES events EMAIL"
-  Value: !GetAtt PnEcQueueErroriSesEventsEMAILStack.Outputs.SqsAgeAlarmArn
-
-PnEcAlarmArnDLQueueSesEventsErroriEMAIL:
-  Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ SES events errori EMAIL"
-  Value: !GetAtt PnEcQueueErroriSesEventsEMAILStack.Outputs.SqsDLQAlarmArn
 
   ###### BATCH : EMAIL #######
 
