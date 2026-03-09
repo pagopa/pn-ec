@@ -71,7 +71,7 @@ class LavorazioneSesEventsServiceTest {
         request.setRequestIdx(requestId);
         request.setxPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE);
 
-        when(gestoreRepositoryCall.getRequestByMessageId(messageId)).thenReturn(Mono.just(request));
+        when(gestoreRepositoryCall.getRequestMetadataByMessageId(messageId)).thenReturn(Mono.just(request));
         when(sqsService.send(any(), any(NotificationTrackerQueueDto.class)))
                 .thenReturn(Mono.just(SendMessageResponse.builder().build()));
 
@@ -113,7 +113,7 @@ class LavorazioneSesEventsServiceTest {
         mail.setMessageId("msg-123");
         dto.setMail(mail);
 
-        when(gestoreRepositoryCall.getRequestByMessageId("msg-123")).thenReturn(Mono.empty());
+        when(gestoreRepositoryCall.getRequestMetadataByMessageId("msg-123")).thenReturn(Mono.empty());
 
         StepVerifier.create(service.lavorazioneSesEvents(dto, "queue", acknowledgement))
                 .expectError(RepositoryManagerException.RequestByMessageIdNotFoundException.class)

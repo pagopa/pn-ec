@@ -93,7 +93,7 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
             return Mono.empty();
         }
         String status = mapSesEventToStatus(eventType);
-        return gestoreRepositoryCall.getRequestByMessageId(messageId)
+        return gestoreRepositoryCall.getRequestMetadataByMessageId(messageId)
                 .switchIfEmpty(Mono.defer(() -> {
                     log.warn("Request non trovata per messageId={}", messageId);
                     return Mono.error(new RepositoryManagerException.RequestByMessageIdNotFoundException(messageId));
