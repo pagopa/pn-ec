@@ -25,10 +25,10 @@ SQS_QUEUES=(
   "pn-ec-email-errori-queue.fifo"
   "pn-ec-email-errori-queue-DLQ.fifo"
 
-  "pn-ec-ses-events.fifo"
-  "pn-ec-ses-events-DLQ.fifo"
-  "pn-ec-email-ses-events.fifo"
-  "pn-ec-email-ses-events-DLQ.fifo"
+  "pn-ec-email-ses-events-queue.fifo"
+  "pn-ec-email-ses-events-queue-DLQ.fifo"
+  "pn-ec-email-ses-events-errori-queue-DLQ.fifo"
+  "pn-ec-email-ses-events-errori-queue.fifo"
 
   "pn-ec-tracker-pec-stato-queue.fifo"
   "pn-ec-tracker-pec-errori-queue.fifo"

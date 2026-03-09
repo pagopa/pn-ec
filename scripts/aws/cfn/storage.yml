@@ -1082,135 +1082,75 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         VisibilityTimeout: 60
 
-  ###### SQS Queue e DLQ: EMAIL SES EVENTS ######
+  ###### EMAIL SES EVENTS ######
 
-  PnEcQueueEmailSesEventsFifoStack:
-    Type: AWS::CloudFormation::Stack
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
-      Parameters:
-        QueueName: 'pn-ec-email-ses-events.fifo'
-        SqsManagedSseEnabled: true
-        FifoQueue: 'true'
-        ContentBasedDeduplication: 'true'
-        HasDLQ: 'true'
-        MaxReceiveCount: 10
-        QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName
-        DelaySeconds: 0
-        VisibilityTimeout: 600
-
-  PnEcEmailSesEventsFifoQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !GetAtt PnEcQueueEmailSesEventsFifoStack.Outputs.QueueURL
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - 'sqs:*'
-            Effect: 'Allow'
-            Resource: !GetAtt PnEcQueueEmailSesEventsFifoStack.Outputs.QueueARN
-            Principal:
-              AWS: '*'
-
-  PnEcQueueErroriEmailSesEventsFifoStack:
-    Type: AWS::CloudFormation::Stack
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
-      Parameters:
-        QueueName: 'pn-ec-email-ses-events-errori.fifo'
-        SqsManagedSseEnabled: true
-        FifoQueue: 'true'
-        ContentBasedDeduplication: 'true'
-        DelaySeconds: 300
-        HasDLQ: 'true'
-        MaxReceiveCount: 10
-        QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName
-        VisibilityTimeout: 600
-
-  PnEcSnsSubscriptionEmailSesEvents:
-    Type: AWS::SNS::Subscription
-    Properties:
-      Protocol: sqs
-      Endpoint: !GetAtt PnEcQueueEmailSesEventsFifoStack.Arn
-      TopicArn: !Ref PnEcEmailEventsSNSTopic
-      RawMessageDelivery: true
-
-  ## coda dlq ses events
-  PnEcQueueSesEventsFifoStack:
-    Type: AWS::CloudFormation::Stack
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
-      Parameters:
-        QueueName: 'pn-ec-ses-events.fifo'
-        SqsManagedSseEnabled: true
-        FifoQueue: 'true'
-        ContentBasedDeduplication: 'true'
-        HasDLQ: 'true'
-        MaxReceiveCount: 10
-        QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName
-        DelaySeconds: 0
-        VisibilityTimeout: 600
-
-  PnEcSesEventsFifoQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !GetAtt PnEcQueueSesEventsFifoStack.Outputs.QueueURL
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - 'sqs:*'
-            Effect: 'Allow'
-            Resource: !GetAtt PnEcQueueSesEventsFifoStack.Outputs.QueueARN
-            Principal:
-              AWS: '*'
-
-  PnEcQueueErroriSesEventsFifoStack:
-    Type: AWS::CloudFormation::Stack
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
-      Parameters:
-        QueueName: 'pn-ec-ses-events-errori.fifo'
-        SqsManagedSseEnabled: true
-        FifoQueue: 'true'
-        ContentBasedDeduplication: 'true'
-        DelaySeconds: 300
-        HasDLQ: 'true'
-        MaxReceiveCount: 10
-        QueueHasAlarm: 'false'
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName
-        VisibilityTimeout: 600
-
-  # Topic FIFO
+  #topic SNS per eventi ses
   PnEcEmailEventsSNSTopic:
-    Type: AWS::SNS::Topic
+    Type: AWS:SNS::Topic
     Properties:
-      TopicName: 'pn-ec-ses-events-topic.fifo'
+      TopicName: 'pn-ec-ses-events.fifo'
       FifoTopic: true
-      ContentBasedDeduplication: true
-      KmsMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
+      ContentBasedDeduplication: false
 
-  PnEcSnsSubscriptionSesEvents:
+  PnEcQueueSesEventsEMAILStack:
+    Type: AWS:CloudFormation:Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-email-ses-events-queue'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 600
+
+  PnEcEmailSesEventsSubscription:
     Type: AWS::SNS::Subscription
     Properties:
-      Protocol: sqs
-      Endpoint: !GetAtt PnEcQueueEmailSesEventsFifoStack.Arn
       TopicArn: !Ref PnEcEmailEventsSNSTopic
+      Protocol: sqs
+      Endpoint: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
       RawMessageDelivery: true
+
+  PnEcEmailSesEventsQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueURL
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref PnEcEmailEventsSNSTopic
+
+  PnEcQueueErroriSesEventsEMAILStack:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-email-ses-events-errori-queue'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        DelaySeconds: 300
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 600
 
 #########  OUTPUTS  ##########
 
@@ -1576,34 +1516,41 @@ Outputs:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriPEC"
     Value: !GetAtt PnEcQueueErroriPECStack.Outputs.SqsDLQAlarmArn
 
-  ###### ERRORI : PnEcQueueErroriEmailSesEventsFifoStack #######
+######### SES EVENTS : EMAIL ##########
 
-  PnEcQueueArnErroriEmailSesEventsFifo:
-    Description: '[Canale EMAIL SES EVENTS] ARN della Coda Errori EMAIL SES EVENTS'
-    Value: !GetAtt  PnEcQueueErroriEmailSesEventsFifoStack.Outputs.QueueARN
+PnEcQueueArnSesEventsEMAIL:
+  Description: '[SES Events EMAIL] ARN della coda che riceve eventi SES tramite SNS'
+  Value: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
 
-  PnEcAlarmArnQueueErroriEmailSesEventsFifo:
-    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriEmailSesEventsFifo"
-    Value: !GetAtt PnEcQueueErroriEmailSesEventsFifoStack.Outputs.SqsAgeAlarmArn
+PnEcQueueUrlSesEventsEMAIL:
+  Description: '[SES Events EMAIL] URL della coda che riceve eventi SES tramite SNS'
+  Value: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueURL
 
-  PnEcAlarmArnDLQueueErroriEmailSesEventsFifo:
-    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriEmailSesEventsFifo"
-    Value: !GetAtt PnEcQueueErroriEmailSesEventsFifoStack.Outputs.SqsDLQAlarmArn
+PnEcAlarmArnQueueSesEventsEMAIL:
+  Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda SES events EMAIL"
+  Value: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.SqsAgeAlarmArn
 
-  ###### ERRORI : PnEcQueueErroriSesEventsFifoStack #######
+PnEcAlarmArnDLQueueSesEventsEMAIL:
+  Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ SES events EMAIL"
+  Value: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.SqsDLQAlarmArn
 
-  PnEcQueueArnErroriSesEventsFifo:
-    Description: '[Canale SES EVENTS] ARN della Coda Errori SES EVENTS'
-    Value: !GetAtt  PnEcQueueErroriSesEventsFifoStack.Outputs.QueueARN
+######### SES EVENTS : ERRORI EMAIL ##########
 
-  PnEcAlarmArnQueueErroriSesEventsFifo:
-    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriSesEventsFifo"
-    Value: !GetAtt PnEcQueueErroriSesEventsFifoStack.Outputs.SqsAgeAlarmArn
+PnEcQueueArnSesEventsErroriEMAIL:
+  Description: '[SES Events EMAIL] ARN della coda errori eventi SES'
+  Value: !GetAtt PnEcQueueErroriSesEventsEMAILStack.Outputs.QueueARN
 
-  PnEcAlarmArnDLQueueErroriSesEventsFifo:
-    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriSesEventsFifo"
-    Value: !GetAtt PnEcQueueErroriSesEventsFifoStack.Outputs.SqsDLQAlarmArn
+PnEcQueueUrlSesEventsErroriEMAIL:
+  Description: '[SES Events EMAIL] URL della coda errori eventi SES'
+  Value: !GetAtt PnEcQueueErroriSesEventsEMAILStack.Outputs.QueueURL
 
+PnEcAlarmArnQueueSesEventsErroriEMAIL:
+  Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda errori SES events EMAIL"
+  Value: !GetAtt PnEcQueueErroriSesEventsEMAILStack.Outputs.SqsAgeAlarmArn
+
+PnEcAlarmArnDLQueueSesEventsErroriEMAIL:
+  Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ SES events errori EMAIL"
+  Value: !GetAtt PnEcQueueErroriSesEventsEMAILStack.Outputs.SqsDLQAlarmArn
 
   ###### BATCH : EMAIL #######
 
