@@ -6,6 +6,7 @@ import it.pagopa.pn.ec.commons.configuration.ses.SesConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
+import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsMaxTimeElapsedException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -199,6 +200,10 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                         if (transactionProcessConfigurationProperties.email().equals(processId)) {
                                             return gestoreRepositoryCall.getClientConfiguration(xPagopaExtchCxId)
+                                                    .switchIfEmpty(Mono.defer(() -> {
+                                                        log.warn("Client non trovato per xPagopaExtchCxId={}", xPagopaExtchCxId);
+                                                        return Mono.error(new RepositoryManagerException.IdClientNotFoundException(xPagopaExtchCxId));
+                                                    }))
                                                     .flatMap(clientDto -> {
                                                         List<String> sesEventsList = clientDto.getSeSEventsList();
                                                         if (sesEventsList == null || sesEventsList.isEmpty()) {
