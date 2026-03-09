@@ -255,7 +255,11 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .flatMap(publishResponse -> {
                     generatedMessageDto.set(new GeneratedMessageDto().id(publishResponse.messageId())
                             .system("systemPlaceholder"));
-                    return sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
+                    MessageIdRequestMetadataDto messageIdDto = new MessageIdRequestMetadataDto()
+                            .messageId(publishResponse.messageId());
+                //inseriamo il messageId in tabella
+                    return gestoreRepositoryCall.setRequestMetadataMessageId(clientId, requestIdx, messageIdDto)
+                            .then(sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                             SENT.getStatusTransactionTableCompliant(),
                             new DigitalProgressStatusDto().generatedMessage(generatedMessageDto.get()))
                             // An error occurred during EMAIL send, start retries
@@ -270,7 +274,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                         .setStep(NOTIFICATION_TRACKER_STEP);
                                 emailPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto.get());
                                 return sendNotificationOnErrorQueue(emailPresaInCaricoInfo);
-                            });
+                            }));
                 })
                 // The maximum number of retries has ended
                 .onErrorResume(throwable -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
