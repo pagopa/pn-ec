@@ -1096,10 +1096,10 @@ Resources:
         Name: pn-ec-ses-events-destination
         Enabled: true
         MatchingEventTypes:
-          - bounce
-          - complaint
-          - delivery
-          - reject
+          - Bounce
+          - Complaint
+          - Delivery
+          - Reject
         SnsDestination:
           TopicARN: !Ref PnEcEmailEventsSNSTopic
 
