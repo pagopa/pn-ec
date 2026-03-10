@@ -42,6 +42,11 @@ Parameters:
     Type: Number
     Default: 14
 
+  SESConfigurationSetName:
+    Type: String
+    Description: 'Nome del Configuration Set SES'
+    Default: 'testses'
+
 Conditions:
   IsDevEnv: !Equals [ !Ref EnvType, 'dev']
   HasCucumberTest: !Or
@@ -1133,6 +1138,22 @@ Resources:
             Condition:
               ArnEquals:
                 aws:SourceArn: !Ref PnEcEmailEventsSNSTopic
+  # Risorsa
+  SESConfigurationSetEventDestination:
+    Type: AWS::SES::ConfigurationSetEventDestination
+    Properties:
+      ConfigurationSetName: !Ref SESConfigurationSetName
+      EventDestination:
+        Name: pn-ec-ses-events-destination
+        Enabled: true
+        MatchingEventTypes:
+          - Bounce
+          - Complaint
+          - Delivery
+          - Reject
+        SnsDestination:
+          TopicARN: !Ref PnEcEmailEventsSNSTopic
+
 
 #########  OUTPUTS  ##########
 
