@@ -22,6 +22,7 @@ public class EmfLogUtils {
     public static final String TIMESTAMP = "Timestamp";
     public static final String CLOUDWATCH_METRICS = "CloudWatchMetrics";
     public static final String NAMESPACE = "Namespace";
+    public static final String NAMESPACE_DOWNSTREAM = "DownstreamMetrics";
     public static final String METRICS = "Metrics";
     public static final String DIMENSIONS = "Dimensions";
     public static final String NAME = "Name";
@@ -34,7 +35,6 @@ public class EmfLogUtils {
     // Dimension
     public static final String SERVICE = "Service";
     public static final String METRIC_TYPE = "MetricType";
-    public static final String STATUS_CODE_RESPONSE = "StatusCodeResponse";
     public static final String API_CALL = "ApiCall";
     public static final String API_CALL_TIMING = "ApiCallTiming";
 
@@ -92,7 +92,7 @@ public class EmfLogUtils {
             awsNode.put(TIMESTAMP, Instant.now().toEpochMilli());
 
             ObjectNode metricsNode = objectMapper.createObjectNode();
-            metricsNode.put(NAMESPACE, "DownstreamMetrics");
+            metricsNode.put(NAMESPACE, NAMESPACE_DOWNSTREAM);
 
             ArrayNode metricsArray = objectMapper.createArrayNode();
 

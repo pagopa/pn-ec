@@ -76,7 +76,7 @@
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-servizifiduciari-spapi</artifactId>
-            <version>1.1.0-RC.1</version>
+            <version>1.1.0</version>
         </dependency>
 
         <dependency>
@@ -323,6 +323,36 @@
             <scope>test</scope>
         </dependency>
         <!-- Finish SS WebClient dependencies -->
+
+        <!-- Source: https://mvnrepository.com/artifact/net.javacrumbs.shedlock/shedlock-spring -->
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+            <version>7.6.0</version>
+        </dependency>
+
+        <!-- Source: https://mvnrepository.com/artifact/net.javacrumbs.shedlock/shedlock-provider-dynamodb2 -->
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-dynamodb2</artifactId>
+            <version>7.6.0</version>
+        </dependency>
+
+        <!-- Source: https://mvnrepository.com/artifact/io.github.resilience4j/resilience4j-ratelimiter -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-ratelimiter</artifactId>
+            <version>2.3.0</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Source: https://mvnrepository.com/artifact/io.github.resilience4j/resilience4j-reactor -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-reactor</artifactId>
+            <version>2.3.0</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>
