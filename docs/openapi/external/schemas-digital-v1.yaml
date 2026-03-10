@@ -221,6 +221,9 @@ components:
               type: string
               enum:
                 - M003
+                - M004
+                - M005
+                - M006
                 - M008
                 - M011
                 - M009
@@ -231,6 +234,9 @@ components:
               description: >-
                 * STATUS     EVENTCODE
                 * OK         M003 = MAIL - Sent
+                * PROGRESS   M004 = MAIL - Delivered
+                * ERROR      M005 = MAIL - Bounced
+                * ERROR      M006 = MAIL - Spam
                 * ERROR      M008 = MAIL - Error
                 * ERROR      M011 = MAIL - Composition error
                 * ERROR      M009 = MAIL - Destination address not allowed
