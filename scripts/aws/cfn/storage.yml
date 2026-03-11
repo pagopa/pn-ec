@@ -1098,7 +1098,7 @@ Resources:
       ContentBasedDeduplication: false
 
   PnEcQueueSesEventsEMAILStack:
-    Type: AWS:CloudFormation::Stack
+    Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
