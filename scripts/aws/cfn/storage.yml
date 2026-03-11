@@ -1519,23 +1519,23 @@ Outputs:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriPEC"
     Value: !GetAtt PnEcQueueErroriPECStack.Outputs.SqsDLQAlarmArn
 
-######### SES EVENTS : EMAIL ##########
+  ######### SES EVENTS : EMAIL ##########
 
-PnEcQueueArnSesEventsEMAIL:
-  Description: '[SES Events EMAIL] ARN della coda che riceve eventi SES tramite SNS'
-  Value: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
+  PnEcQueueArnSesEventsEMAIL:
+    Description: '[SES Events EMAIL] ARN della coda che riceve eventi SES tramite SNS'
+    Value: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
 
-PnEcQueueUrlSesEventsEMAIL:
-  Description: '[SES Events EMAIL] URL della coda che riceve eventi SES tramite SNS'
-  Value: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueURL
+  PnEcQueueUrlSesEventsEMAIL:
+    Description: '[SES Events EMAIL] URL della coda che riceve eventi SES tramite SNS'
+    Value: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueURL
 
-PnEcAlarmArnQueueSesEventsEMAIL:
-  Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda SES events EMAIL"
-  Value: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.SqsAgeAlarmArn
+  PnEcAlarmArnQueueSesEventsEMAIL:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda SES events EMAIL"
+    Value: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.SqsAgeAlarmArn
 
-PnEcAlarmArnDLQueueSesEventsEMAIL:
-  Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ SES events EMAIL"
-  Value: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.SqsDLQAlarmArn
+  PnEcAlarmArnDLQueueSesEventsEMAIL:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ SES events EMAIL"
+    Value: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.SqsDLQAlarmArn
 
 
   ###### BATCH : EMAIL #######
