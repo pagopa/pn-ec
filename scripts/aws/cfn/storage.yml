@@ -1093,9 +1093,9 @@ Resources:
   PnEcEmailEventsSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: 'pn-ec-ses-events.fifo'
-      FifoTopic: true
-      ContentBasedDeduplication: false
+      TopicName: 'pn-ec-ses-events-topic'
+      FifoTopic: false
+      KMSMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
 
   PnEcQueueSesEventsEMAILStack:
     Type: AWS::CloudFormation::Stack
