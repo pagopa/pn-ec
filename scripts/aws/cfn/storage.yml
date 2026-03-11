@@ -1141,6 +1141,7 @@ Resources:
   # Risorsa
   SESConfigurationSetEventDestination:
     Type: AWS::SES::ConfigurationSetEventDestination
+    DependsOn: PnEcEmailEventsSNSTopic
     Properties:
       ConfigurationSetName: !Ref SESConfigurationSetName
       EventDestination:
