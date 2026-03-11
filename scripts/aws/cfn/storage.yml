@@ -1091,7 +1091,7 @@ Resources:
 
   #topic SNS per eventi ses
   PnEcEmailEventsSNSTopic:
-    Type: AWS:SNS::Topic
+    Type: AWS::SNS::Topic
     Properties:
       TopicName: 'pn-ec-ses-events.fifo'
       FifoTopic: true
