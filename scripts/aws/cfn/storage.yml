@@ -1094,7 +1094,6 @@ Resources:
     Type: AWS::SNS::Topic
     Properties:
       TopicName: 'pn-ec-ses-events-topic'
-      KMSMasterKeyId: !Ref PCKmsEncDecDynamoDataKey
 
   PnEcQueueSesEventsEMAILStack:
     Type: AWS::CloudFormation::Stack
