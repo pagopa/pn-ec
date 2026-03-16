@@ -161,7 +161,9 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     public void lavorazioneRichiestaInteractive(final PecPresaInCaricoInfo pecPresaInCaricoInfo, final Acknowledgement acknowledgment) {
         MDC.clear();
         logIncomingMessage(pecSqsQueueName.interactiveName(), pecPresaInCaricoInfo);
-        lavorazioneRichiesta(pecPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
+        lavorazioneRichiesta(pecPresaInCaricoInfo)
+                .then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync())))
+                .block();
     }
 
     @Scheduled(fixedDelayString = "${pn.ec.delay.lavorazione-batch-pec}")

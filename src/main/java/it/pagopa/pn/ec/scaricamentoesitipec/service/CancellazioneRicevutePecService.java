@@ -48,7 +48,7 @@ public class CancellazioneRicevutePecService {
         MDCUtils.addMDCToContextAndExecute(cancellazioneRicevutePec(cancellazioneRicevutePecDto, requestId, acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE))
                 .doOnError(throwable -> log.logEndingProcess(CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE, false, throwable.getMessage())))
-                .subscribe();
+                .block();
     }
 
     private final Predicate<String> isRelevantStatus = status -> status.equals(ACCEPTED.getStatusTransactionTableCompliant())
@@ -84,7 +84,8 @@ public class CancellazioneRicevutePecService {
                 .doOnDiscard(Pair.class, pair -> log.warn(NOT_VALID_FOR_DELETE, requestId))
                 .flatMap(pair -> pnPecService.deleteMessage(pair.getLeft(), pair.getRight()))
                 .doOnError(throwable -> log.fatal(CANCELLAZIONE_RICEVUTE_PEC, throwable, throwable.getMessage()))
-                .doOnSuccess(result -> acknowledgment.acknowledge())
+                .doOnSuccess(r -> log.info(SUCCESSFUL_OPERATION_LABEL, CANCELLAZIONE_RICEVUTE_PEC, requestId))
+                .then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync())))
                 .doFinally(signalType -> semaphore.release());
     }
 

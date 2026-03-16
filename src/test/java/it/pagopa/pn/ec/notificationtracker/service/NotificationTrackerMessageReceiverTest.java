@@ -182,6 +182,8 @@ class NotificationTrackerMessageReceiverTest {
     @ParameterizedTest
     @MethodSource("provideArguments")
     void digitalNtOk(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
 
         //WHEN
         when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
@@ -198,6 +200,8 @@ class NotificationTrackerMessageReceiverTest {
     @ParameterizedTest
     @MethodSource("provideArguments")
     void digitalNtGeneratedMessageNullOk(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
 
         //WHEN
         when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
@@ -215,6 +219,8 @@ class NotificationTrackerMessageReceiverTest {
     @ParameterizedTest
     @MethodSource("provideArguments")
     void digitalNtStatusValidationAndSqsSendKo(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
 
         //WHEN
         when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.error(new InvalidNextStatusException("", "", "", "")));
@@ -230,6 +236,8 @@ class NotificationTrackerMessageReceiverTest {
     @ParameterizedTest
     @MethodSource("provideArguments")
     void digitalNtFromErrorOk(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
 
         //WHEN
         when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
@@ -249,6 +257,8 @@ class NotificationTrackerMessageReceiverTest {
     @ParameterizedTest
     @MethodSource("provideArguments")
     void digitalNtFromErrorKo(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
 
         //WHEN
         when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
@@ -267,6 +277,8 @@ class NotificationTrackerMessageReceiverTest {
 
     @Test
     void paperNtOk() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
 
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
@@ -287,6 +299,8 @@ class NotificationTrackerMessageReceiverTest {
 
     @Test
     void paperNtFromErrorOk() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
 
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
@@ -306,6 +320,7 @@ class NotificationTrackerMessageReceiverTest {
     @ParameterizedTest
     @ValueSource(ints = {1, 5})
     void paperNtStatusValidationKo(Integer retry) {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
 
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
@@ -325,6 +340,8 @@ class NotificationTrackerMessageReceiverTest {
 
     @Test
     void paperNtFromErrorKo() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
 
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
@@ -344,6 +361,8 @@ class NotificationTrackerMessageReceiverTest {
 
     @Test
     void pecNtAddressError() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
 
         //WHEN
         when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
@@ -359,6 +378,8 @@ class NotificationTrackerMessageReceiverTest {
 
     @Test
     void ntNullLogicStatusOk() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
 
         //GIVEN
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
@@ -380,6 +401,9 @@ class NotificationTrackerMessageReceiverTest {
 
     @Test
     void paperNtOkRework() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
+
         PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX+"rework").xPagopaExtchCxId(CLIENT_ID).build();
         PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant())
                 .discoveredAddress(new DiscoveredAddressDto())

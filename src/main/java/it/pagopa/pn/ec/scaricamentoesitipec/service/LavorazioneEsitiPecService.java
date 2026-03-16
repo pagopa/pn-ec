@@ -103,7 +103,7 @@ public class LavorazioneEsitiPecService {
     @SqsListener(value = "${scaricamento-esiti-pec.sqs-queue-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void lavorazioneEsitiPecInteractive(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgement acknowledgment) {
         logIncomingMessage(scaricamentoEsitiPecProperties.sqsQueueName(), ricezioneEsitiPecDto);
-        lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment).subscribe();
+        lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment).block();
     }
 
     Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto payload, Acknowledgement acknowledgment) {
@@ -231,8 +231,8 @@ public class LavorazioneEsitiPecService {
                 .timeout(sqsTimeoutProvider.getTimeoutForQueue(queueName))
                 .doOnSuccess(result -> {
                     log.logEndingProcess(LAVORAZIONE_ESITI_PEC);
-                    acknowledgment.acknowledge();
                 })
+                .then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync())))
                 .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_ESITI_PEC, false, throwable.getMessage()))
                 .then()
                 .doFinally(signalType -> semaphore.release()));
