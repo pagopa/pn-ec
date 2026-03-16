@@ -210,9 +210,9 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         }
                                     })
                                     .doOnSuccess(result -> {
-                                        acknowledgment.acknowledge();
                                         log.info(SUCCESSFUL_OPERATION_ON_LABEL, concatRequestId, NT_HANDLE_REQUEST_STATUS_CHANGE, result);
                                     })
+                                    .then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync())))
                                     .doOnError(throwable -> log.warn(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_REQUEST_STATUS_CHANGE, concatRequestId, throwable, throwable.getMessage()));
     }
 
@@ -237,7 +237,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                 })
                 .doOnNext(payload -> payload.setRetry(0))
                 .flatMap(payload -> sqsService.send(ntStatoQueueName, payload))
-                .doOnSuccess(result -> acknowledgment.acknowledge())
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, concatRequestId, NT_HANDLE_MESSAGE_FROM_ERROR_QUEUE))
+                .then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync())))
                 .doOnError(throwable -> log.warn(EXCEPTION_IN_PROCESS_FOR, NT_HANDLE_MESSAGE_FROM_ERROR_QUEUE, concatRequestId, throwable, throwable.getMessage()))
                 .then();
     }

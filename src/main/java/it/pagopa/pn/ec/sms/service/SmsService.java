@@ -155,7 +155,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     void lavorazioneRichiestaInteractive(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgement acknowledgment) {
         MDC.clear();
         logIncomingMessage(smsSqsQueueName.interactiveName(), smsPresaInCaricoInfo);
-        lavorazioneRichiesta(smsPresaInCaricoInfo).doOnNext(result -> acknowledgment.acknowledge()).subscribe();
+        lavorazioneRichiesta(smsPresaInCaricoInfo).then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync()))).block();
     }
 
     @Scheduled(fixedDelayString = "${pn.ec.delay.lavorazione-batch-sms}")
