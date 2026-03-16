@@ -63,7 +63,7 @@ public class AvailabilityManagerService {
     @SqsListener(value = "${sqs.queue.availabilitymanager.name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void lavorazioneEsitiPecInteractive(final AvailabilityManagerDto availabilityManagerDto, Acknowledgement acknowledgment) {
         logIncomingMessage(availabilityManagerQueueName, availabilityManagerDto.toString());
-        handleAvailabilityManager(availabilityManagerDto, acknowledgment).subscribe();
+        handleAvailabilityManager(availabilityManagerDto, acknowledgment).block();
     }
 
     Mono<Void> handleAvailabilityManager(AvailabilityManagerDto availabilityManagerDto, Acknowledgement acknowledgment) {
@@ -88,10 +88,8 @@ public class AvailabilityManagerService {
                                 .map(this::buildCartaceoPresaInCaricoInfo)
                                 .flatMap(info ->
                                         sqsService.send(cartaceoSqsQueueName.batchName(), info))
-                                .doOnSuccess(v -> {
-                                    log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER);
-                                    acknowledgment.acknowledge();
-                                })
+                                .doOnSuccess(v -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER))
+                                .then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync())))
                                 .doOnError(e ->
                                         log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER, false, e.getMessage()));
                     }
@@ -162,9 +160,8 @@ public class AvailabilityManagerService {
                 .doOnSuccess(r -> {
                     log.info(SUCCESSFUL_OPERATION_LABEL, HANDLE_AVAILABILITY_MANAGER_TRANSFORM_ERROR,
                             requestConversionDto.getxPagopaExtchCxId());
-                    acknowledgment.acknowledge();
                 })
-                .then()
+                .then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync())))
                 .onErrorResume(e -> {
                     log.error("Error in handleTransformationError for requestId: {}, -> {}",
                             requestConversionDto.getxPagopaExtchCxId(), e.getMessage(), e);

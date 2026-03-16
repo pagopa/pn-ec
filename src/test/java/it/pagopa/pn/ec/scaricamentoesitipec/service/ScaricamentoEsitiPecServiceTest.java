@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.getAttachmentFromMimeMessage;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
@@ -90,6 +91,7 @@ class ScaricamentoEsitiPecServiceTest {
     @ParameterizedTest
     @ValueSource(strings = {"certificato", "esterno"})
     void lavorazioneEsitiPecOk(String tipoDestinatario) throws IOException, MessagingException {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
 
         RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(ACCETTAZIONE, tipoDestinatario, ARUBA_PROVIDER);
         var request = pecRequest();
@@ -105,6 +107,7 @@ class ScaricamentoEsitiPecServiceTest {
     @ParameterizedTest
     @ValueSource(strings = {"certificato", "esterno"})
     void lavorazioneEsitiPec_S3Payload_Ok(String tipoDestinatario) throws IOException, MessagingException {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
 
         String pointerFileKey = s3Service.convertAndPutObject(storageSqsMessagesStagingBucket, buildRicezioneEsitiPecDto(ACCETTAZIONE, tipoDestinatario, ARUBA_PROVIDER)).block();
         RicezioneEsitiPecDto ricezioneEsitiPecDto = RicezioneEsitiPecDto.builder().pointerFileKey(pointerFileKey).build();
@@ -138,6 +141,7 @@ class ScaricamentoEsitiPecServiceTest {
 
     @Test
     void lavorazioneEsitiPecDeliveryWarn24h() throws IOException, MessagingException {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
 
         RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato", ARUBA_PROVIDER);
         var request = pecRequest();
