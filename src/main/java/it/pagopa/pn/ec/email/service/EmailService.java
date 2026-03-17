@@ -188,8 +188,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         String queueName=emailSqsQueueName.interactiveName();
         logIncomingMessage(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
         lavorazioneRichiesta(emailPresaInCaricoInfo,queueName)
-                .doOnSuccess(result -> acknowledgment.acknowledge())
-                .subscribe();
+                .then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync())))
+                .block();
     }
 
     @Scheduled(fixedDelayString = "${pn.ec.delay.lavorazione-batch-email}")

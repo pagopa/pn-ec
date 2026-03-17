@@ -13,6 +13,7 @@ import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
@@ -27,6 +28,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
@@ -92,6 +94,8 @@ class LavorazioneEsitiPecServiceTimeoutTest {
 
     @Test
     void lavorazioneEsitiPecNoTimeoutTest() throws Exception {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+
         RicezioneEsitiPecDto dto = buildRicezioneEsitiPecDto(ACCETTAZIONE, "certificato", ARUBA_PROVIDER);
 
 
@@ -114,6 +118,8 @@ class LavorazioneEsitiPecServiceTimeoutTest {
 
     @Test
     void lavorazioneEsitiPecLongTimeoutTest() throws Exception {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+
         RicezioneEsitiPecDto dto = buildRicezioneEsitiPecDto(ACCETTAZIONE, "certificato", ARUBA_PROVIDER);
 
         when(sqsTimeoutProvider.getTimeoutForQueue(anyString()))

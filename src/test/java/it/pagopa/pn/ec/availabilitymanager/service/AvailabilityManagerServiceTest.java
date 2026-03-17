@@ -30,6 +30,7 @@ import reactor.test.StepVerifier;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -115,6 +116,7 @@ class AvailabilityManagerServiceTest {
     @Test
     void convertPDFNotAllConvertedOk() {
         Mockito.when(pdfRasterProperties.pdfConversionExpirationOffsetInDays()).thenReturn(1);
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
 
         // GIVEN: oggetti necessari al test (Dto)
         String originalFileKey1 = "originalFileKey1";
@@ -135,6 +137,7 @@ class AvailabilityManagerServiceTest {
     @Test
     void convertPDFAllConvertedOk() {
         Mockito.when(pdfRasterProperties.pdfConversionExpirationOffsetInDays()).thenReturn(1);
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
 
         // GIVEN: oggetti necessari al test (Dto)
         String originalFileKey2 = "originalFileKey2";
