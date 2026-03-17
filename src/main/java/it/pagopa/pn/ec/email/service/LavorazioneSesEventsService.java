@@ -66,9 +66,9 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
     public void lavorazioneSesEventsListener(final SesNotificationDto sesNotificationDto, final Acknowledgement acknowledgement) {
         String queueName=emailSqsQueueName.sesEventsName();
         lavorazioneSesEvents(sesNotificationDto, queueName, acknowledgement)
-                .doOnSuccess(result -> acknowledgement.acknowledge())
+                .doOnSuccess(result -> acknowledgement.acknowledgeAsync())
                 .doOnError(throwable -> log.error("Errore lavorazione evento SES", throwable))
-                .subscribe();
+                .block();
     }
 
     Mono<SendMessageResponse> lavorazioneSesEvents(SesNotificationDto sesNotificationDto, String queueName, Acknowledgement acknowledgement) {
