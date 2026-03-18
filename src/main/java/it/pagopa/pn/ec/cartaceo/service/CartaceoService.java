@@ -111,7 +111,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                               LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties,
                               NormalizationConfiguration normalizationConfiguration,
                               @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs, TransformationProperties transformationProperties,
-                               @Autowired(required = false) ShedLockRunner shedLockRunner) {
+                              @Value("${pn.ec.max-concurrent-requests}") int maxConcurrentRequests,
+                              @Autowired(required = false) ShedLockRunner shedLockRunner) {
         super(authService);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
@@ -127,7 +128,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         this.cartaceoMapper = cartaceoMapper;
         this.sqsTimeoutProvider = sqsTimeoutProvider;
         this.lavorazioneCartaceoConfigurationProperties = lavorazioneCartaceoConfigurationProperties;
-        this.semaphore = new Semaphore(lavorazioneCartaceoConfigurationProperties.maxThreadPoolSize());
+        //this.semaphore = new Semaphore(lavorazioneCartaceoConfigurationProperties.maxThreadPoolSize());
+        this.semaphore = new Semaphore(maxConcurrentRequests * 2);
         this.cartaceoMaxBatchSubscribedMsgs = cartaceoMaxBatchSubscribedMsgs;
         this.documentTypeForRasterized = pdfTransformationConfiguration.getDocumentTypeForRasterized();
         this.validTransformationDocumentTypes = pdfTransformationConfiguration.getValidTransformationDocumentTypes();
