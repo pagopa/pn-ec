@@ -38,6 +38,10 @@ public class EmfLogUtils {
     public static final String API_CALL = "ApiCall";
     public static final String API_CALL_TIMING = "ApiCallTiming";
 
+    // Metrics
+    public static final String COURIER_MISMATCH_DUPLICATE_EVENT = "CourierMismatchDuplicateEvent";
+    public static final String NAMESPACE_CONSOLIDATORE_DUPLICATES = "PN-Consolidatore-Duplicates";
+
     // Service
     public static final String SERVICE_PEC = "PEC";
     public static final String SERVICE_CONSOLIDATORE = "Consolidatore";
@@ -129,6 +133,45 @@ public class EmfLogUtils {
 
         } catch (Exception e) {
             log.warn("Errore nella generazione log EMF consolidatore", e);
+        }
+    }
+
+    public static void trackCourierMismatchDuplicateEvent() {
+        try {
+            List<String> dimensions = List.of(SERVICE);
+
+            ObjectNode root = objectMapper.createObjectNode();
+            ObjectNode awsNode = objectMapper.createObjectNode();
+            awsNode.put(TIMESTAMP, Instant.now().toEpochMilli());
+
+            ObjectNode metricsNode = objectMapper.createObjectNode();
+            metricsNode.put(NAMESPACE, NAMESPACE_CONSOLIDATORE_DUPLICATES);
+
+            ArrayNode metricsArray = objectMapper.createArrayNode();
+
+            ObjectNode metric = objectMapper.createObjectNode();
+            metric.put(NAME, COURIER_MISMATCH_DUPLICATE_EVENT);
+            metric.put(UNIT, UNIT_COUNT);
+
+            metricsArray.add(metric);
+            metricsNode.set(METRICS, metricsArray);
+
+            ArrayNode dimensionsArray = objectMapper.createArrayNode();
+            for (String dim : dimensions) {
+                dimensionsArray.add(dim);
+            }
+            metricsNode.set(DIMENSIONS, objectMapper.createArrayNode().add(dimensionsArray));
+
+            awsNode.set(CLOUDWATCH_METRICS, objectMapper.createArrayNode().add(metricsNode));
+            root.set(AWS, awsNode);
+
+            root.put(COURIER_MISMATCH_DUPLICATE_EVENT, 1);
+            root.put(SERVICE, SERVICE_CONSOLIDATORE);
+
+            jsonLogger.info(objectMapper.writeValueAsString(root));
+
+        } catch (Exception e) {
+            log.warn("Errore nella generazione log EMF courier mismatch", e);
         }
     }
 }

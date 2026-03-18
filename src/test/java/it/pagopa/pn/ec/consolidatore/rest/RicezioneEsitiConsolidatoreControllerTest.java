@@ -2,11 +2,13 @@ package it.pagopa.pn.ec.consolidatore.rest;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -19,6 +21,7 @@ import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
+import it.pagopa.pn.ec.consolidatore.exception.RicezioneEsitiCartaceoException;
 import it.pagopa.pn.ec.consolidatore.service.impl.RicezioneEsitiCartaceoServiceImpl;
 import it.pagopa.pn.ec.consolidatore.utils.PaperElem;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -50,6 +53,7 @@ import lombok.CustomLog;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import org.hamcrest.Matchers;
+import reactor.test.StepVerifier;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTestWebEnv
@@ -1056,6 +1060,50 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		}
 	}
 
+	@Test
+	void verificaDuplicatiCourierMismatchRestituisce40002() {
+		// Evento duplicato già presente
+		PaperProgressStatusDto storedEventStatus = new PaperProgressStatusDto()
+				.statusCode("SENT")
+				.statusDescription("Sent")
+				.statusDateTime(OffsetDateTime.ofInstant(Instant.now(), ZoneOffset.UTC))
+				.iun("IUN123")
+				.productType("ProductTypeA")
+				.courier("courierVecchio");
+
+		EventsDto storedEvent = new EventsDto().paperProgrStatus(storedEventStatus);
+		EventsDto bookedEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+						.status(BOOKED.getStatusTransactionTableCompliant()));
+		EventsDto sentEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+						.status(SENT.getStatusTransactionTableCompliant()));
+		RequestDto requestDto = getRequestDto(bookedEvent,sentEvent, storedEvent);
+
+		// Evento in ingresso duplicato con courier diverso
+		ConsolidatoreIngressPaperProgressStatusEvent incomingEvent = new ConsolidatoreIngressPaperProgressStatusEvent()
+				.statusCode("SENT")
+				.statusDescription("Sent")
+				.statusDateTime(storedEventStatus.getStatusDateTime())
+				.iun(storedEventStatus.getIun())
+				.productType(storedEventStatus.getProductType())
+				.courier("courierNuovo")
+				.requestId("REQ123");
+
+		// Attiva il duplicatesCheck
+		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck",
+				new String[]{"ProductTypeA"});
+
+		when(gestoreRepositoryCall.getRichiesta(anyString(), anyString()))
+				.thenReturn(Mono.just(requestDto));
+
+		// StepVerifier per verificare che l'errore venga sollevato
+		StepVerifier.create(ricezioneEsitiCartaceoServiceImpl.verificaDuplicati(requestDto, incomingEvent))
+				.expectErrorSatisfies(throwable -> {
+                    assertInstanceOf(RicezioneEsitiCartaceoException.class, throwable);
+					RicezioneEsitiCartaceoException ex = (RicezioneEsitiCartaceoException) throwable;
+					assertEquals("400.02", ex.getResultCode());
+				})
+				.verify();
+	}
 
 	@Test
 	void ricezioneEsitiWithStatusDateTimeAndClientRequestTimeStampInFutureShouldThrowException(){
