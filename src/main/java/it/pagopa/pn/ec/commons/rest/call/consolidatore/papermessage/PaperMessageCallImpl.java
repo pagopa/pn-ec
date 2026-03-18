@@ -74,14 +74,8 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                     }
                 })
                 .flatMap(acquired -> {
-                    boolean permissionAcquired = true;
                     if(rateLimiter != null) {
-                        permissionAcquired = rateLimiter.acquirePermission();
-                    }
-                    if (!permissionAcquired) {
-                        semaphore.release();
-                        log.info("PaperMessageCallImpl.putRequest() - Rate limit superato verso il consolidatore");
-                        return Mono.error(new RateLimitExceededException("Max requests per minute exceeded"));
+                       rateLimiter.acquirePermission();
                     }
                     long startTimeCalling = System.currentTimeMillis();
                     return consolidatoreWebClient

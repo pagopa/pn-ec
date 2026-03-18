@@ -36,7 +36,7 @@ public class RateLimiterConfiguration {
                 .custom()
                 .limitForPeriod(maxRequests) //richieste consentite
                 .limitRefreshPeriod(Duration.ofSeconds(refreshPeriodSeconds)) //velocità delle richieste (60s=1m)
-                .timeoutDuration(Duration.ZERO) // quanto tempo deve aspettare una richiesta se il limite è stato superato, con zero non aspetta niente
+                .timeoutDuration(Duration.ofHours(1)) // quanto tempo deve aspettare una richiesta se il limite è stato superato, con zero non aspetta niente
                 .build();
 
         return RateLimiter.of("consolidatore", config);
