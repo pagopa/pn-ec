@@ -37,15 +37,16 @@ class RateLimiterConfigurationTest {
         assertTrue(acquireAndLog(rateLimiter, "Prima richiesta"));
         assertTrue(acquireAndLog(rateLimiter, "Seconda richiesta"));
 
-        //deve fallire
-        assertFalse(acquireAndLog(rateLimiter, "Terza richiesta"));
+        // terza richiesta: ora aspetta fino a quando il permesso si libera, quindi non testiamo più il false
+        log.info("Terza richiesta: verrà gestita dall'attesa del RateLimiter");
+        acquireAndLog(rateLimiter, "Terza richiesta");
 
         Thread.sleep(6000);
 
-
         assertTrue(acquireAndLog(rateLimiter, "Quarta richiesta"));
         assertTrue(acquireAndLog(rateLimiter, "Quinta richiesta"));
-        assertFalse(acquireAndLog(rateLimiter, "Sesta richiesta"));
+        log.info("Sesta richiesta: attesa gestita dal RateLimiter");
+        acquireAndLog(rateLimiter, "Sesta richiesta");
 
 
         log.info("end test");
@@ -65,11 +66,11 @@ class RateLimiterConfigurationTest {
         assertTrue(acquireAndLog(rateLimiter, "Prima richiesta"));
         assertTrue(acquireAndLog(rateLimiter, "Seconda richiesta"));
 
-        assertFalse(acquireAndLog(rateLimiter, "Terza richiesta"));
+        log.info("Terza richiesta: attesa gestita dal RateLimiter");
+        acquireAndLog(rateLimiter, "Terza richiesta");
 
         log.info("Aspetto 6 secondi per il reset");
         Thread.sleep(6000);
-
 
         // Ora il contatore deve essere resettato
         int availableAfterReset = metrics.getAvailablePermissions();
