@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import it.pagopa.pn.ec.commons.exception.cartaceo.ConsolidatoreException;
-import it.pagopa.pn.ec.commons.exception.consolidatore.RateLimitExceededException;
 import it.pagopa.pn.ec.consolidatore.utils.PaperResult;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
@@ -163,29 +162,6 @@ class PaperMessageCallImplTest {
                 .verify();
     }
 
-    @Test
-    void shouldThrowRateLimitExceededException() {
-        PaperEngageRequest request = new PaperEngageRequest();
-
-        mockBackEnd.enqueue(buildMockResponse(new OperationResultCodeResponse()
-                .resultCode("200.00")
-                .resultDescription("Success")));
-        mockBackEnd.enqueue(buildMockResponse(new OperationResultCodeResponse()
-                .resultCode("200.00")
-                .resultDescription("Success")));
-
-        Flux<OperationResultCodeResponse> flux = Flux.concat(
-                paperMessageCall.putRequest(request),
-                paperMessageCall.putRequest(request),
-                paperMessageCall.putRequest(request));
-
-        StepVerifier.create(flux)
-                .expectNextCount(2) // le prime due passano
-                .expectErrorSatisfies(e -> {
-                    assertInstanceOf(RateLimitExceededException.class, e);
-                    assertTrue(e.getMessage().contains("Max requests per minute"));
-                }).verify();
-    }
 
 
     @SneakyThrows

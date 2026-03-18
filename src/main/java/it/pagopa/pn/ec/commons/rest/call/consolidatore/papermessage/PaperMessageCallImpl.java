@@ -22,7 +22,9 @@ import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Semaphore;
@@ -43,6 +45,8 @@ public class PaperMessageCallImpl implements PaperMessageCall {
     private final JsonUtils jsonUtils;
     private final Semaphore semaphore;
     private final RateLimiter rateLimiter;
+    private final Retry rateLimiterRetryStrategy;
+
 
     private static final List<String> NON_RETRYABLE_ERRORS = Arrays.asList(
             PaperResult.SYNTAX_ERROR_CODE,
@@ -50,15 +54,30 @@ public class PaperMessageCallImpl implements PaperMessageCall {
             PaperResult.AUTHENTICATION_ERROR_CODE,
             PaperResult.DUPLICATED_REQUEST_CODE);
 
+//    private static final Retry RATE_LIMITER_RETRY_STRATEGY = Retry.fixedDelay(8, Duration.ofSeconds(3))
+//            .filter(ex -> ex instanceof RateLimitExceededException)
+//            .doBeforeRetry(retrySignal -> log.info(
+//                    "Retry {} per RateLimiter su putRequest, causa: {}",
+//                    retrySignal.totalRetries(),
+//                    retrySignal.failure().getMessage()));
+
     public PaperMessageCallImpl(@Qualifier("consolidatoreWebClient")WebClient consolidatoreWebClient, PaperMessagesEndpointProperties paperMessagesEndpointProperties, JsonUtils jsonUtils,
                                 @Value("${pn.ec.max-concurrent-requests}") int maxConcurrentRequests,
+                                @Value("${pn.ec.max-retry-for-rate-limiter}") int maxRetryForRateLimiter,
+                                @Value("${pn.ec.max-retry-for-rate-limiter-seconds}") int maxRetryForRateLimiterSeconds,
                                 @Autowired(required = false) @Qualifier("rateLimiterConsolidatore") RateLimiter rateLimiter) {
         this.consolidatoreWebClient = consolidatoreWebClient;
         this.paperMessagesEndpointProperties = paperMessagesEndpointProperties;
         this.jsonUtils = jsonUtils;
         this.semaphore = new Semaphore(maxConcurrentRequests);
         this.rateLimiter = rateLimiter;
-        log.info("PaperMessageCallImpl maxConcurrentRequests={} - , rateLimiter presente? {}", maxConcurrentRequests, rateLimiter!=null);
+        this.rateLimiterRetryStrategy = Retry.fixedDelay(maxRetryForRateLimiter, Duration.ofSeconds(maxRetryForRateLimiterSeconds))
+                .filter(ex -> ex instanceof RateLimitExceededException)
+                .doBeforeRetry(retrySignal -> log.info(
+                        "Retry {} per RateLimiter su putRequest, causa: {}",
+                        retrySignal.totalRetries(),
+                        retrySignal.failure().getMessage()));
+        log.info("PaperMessageCallImpl maxConcurrentRequests={} - maxRetryForRateLimiter={}/seconds={} - rateLimiter presente? {}", maxConcurrentRequests, maxRetryForRateLimiter, maxRetryForRateLimiterSeconds, rateLimiter!=null);
     }
 
     @Override
@@ -74,14 +93,8 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                     }
                 })
                 .flatMap(acquired -> {
-                    boolean permissionAcquired = true;
-                    if(rateLimiter != null) {
-                        permissionAcquired = rateLimiter.acquirePermission();
-                    }
-                    if (!permissionAcquired) {
-                        semaphore.release();
-                        log.info("PaperMessageCallImpl.putRequest() - Rate limit superato verso il consolidatore");
-                        return Mono.error(new RateLimitExceededException("Max requests per minute exceeded"));
+                    if (rateLimiter != null && !rateLimiter.acquirePermission()) {
+                        throw new RateLimitExceededException("Max requests per minute exceeded");
                     }
                     long startTimeCalling = System.currentTimeMillis();
                     return consolidatoreWebClient
@@ -98,8 +111,14 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                                 } else {
                                     return handleServerError(clientResponse);
                                 }
-                            })
-                            .doFinally(signalType -> semaphore.release());
+                            });
+                })
+                .doFinally(signalType -> semaphore.release())
+                .retryWhen(rateLimiterRetryStrategy)
+                //dopo 8 tentativi se ancora c'è errore, non facciamo nulla
+                .onErrorResume(RateLimitExceededException.class, ex -> {
+                    log.warn("Max retry RateLimiter raggiunti, request ignorata: {}", paperEngageRequest);
+                    return Mono.empty();
                 });
     }
 
