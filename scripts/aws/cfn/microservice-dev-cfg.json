@@ -31,6 +31,11 @@
       "PnEcDuplicatesCheck": "AR;890;RS;RIR;RIS",
       "GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods": "18",
       "CpuValue": "4096",
-      "MemoryAmount": "8GB"
+      "MemoryAmount": "8GB",
+      "ConsolidatoreRefreshPeriodSeconds": "60",
+      "ConsolidatoreMaxRequest": "750",
+      "ConsolidatoreRequestEvaluationPeriods": "10",
+      "ConsolidatoreRequestDatapointToAlarm": "3",
+      "PnEcMaxConsolidatoreConcurrentRequest": "10"
     }
 }
