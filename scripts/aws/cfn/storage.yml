@@ -1135,9 +1135,6 @@ Resources:
 
 Outputs:
 
-  PnEcEmailEventsSNSTopicName:
-    Description: 'Nome del sns topic per eventi ses'
-    Value: !Ref PnEcEmailEventsSNSTopic
 
   PnEcEmailEventsSNSTopicArn:
     Description: 'Arn del topic per gli eventi ses email'
