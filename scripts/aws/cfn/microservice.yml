@@ -883,6 +883,7 @@ Parameters:
   PnEcEmailEventsSNSTopicArn:
     Type: String
     Description: 'Arn del topic ses email'
+    Default: ''
 
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
@@ -906,7 +907,7 @@ Resources:
           - Delivery
           - Reject
         SnsDestination:
-          TopicARN: !Ref AlarmSNSTopicArn
+          TopicARN: !Ref PnEcEmailEventsSNSTopicArn
 
   # PN-TemplateBeMs microservice
   ExternalChannelMicroservice:
@@ -963,7 +964,8 @@ Resources:
         ContainerEnvEntry42: !Sub 'PnEcMaxConsolidatoreConcurrentRequest=${PnEcMaxConsolidatoreConcurrentRequest}'
         ContainerEnvEntry43: !Sub 'ConsolidatoreMaxRequest=${ConsolidatoreMaxRequest}'
         ContainerEnvEntry44: !Sub 'ConsolidatoreRefreshPeriodSeconds=${ConsolidatoreRefreshPeriodSeconds}'
-        ContainerEnvEntry45: !Sub 'SESConfigurationSetName=${SESConfigurationSetName}'
+        ContainerEnvEntry45: !Sub 'PnEcEmailEventsSNSTopicArn=${PnEcEmailEventsSNSTopicArn}'
+        ContainerEnvEntry46: !Sub 'SESConfigurationSetName=${SESConfigurationSetName}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
