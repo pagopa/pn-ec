@@ -883,7 +883,6 @@ Parameters:
   PnEcEmailEventsSNSTopicArn:
     Type: String
     Description: 'Arn del topic ses email'
-    Default: ''
 
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
@@ -896,7 +895,6 @@ Resources:
   # Risorsa
   SESConfigurationSetEventDestination:
     Type: AWS::SES::ConfigurationSetEventDestination
-    DependsOn: PnEcEmailEventsSNSTopic
     Properties:
       ConfigurationSetName: !Ref SESConfigurationSetName
       EventDestination:
@@ -908,7 +906,7 @@ Resources:
           - Delivery
           - Reject
         SnsDestination:
-          TopicARN: !Ref PnEcEmailEventsSNSTopicArn
+          TopicARN: !Ref AlarmSNSTopicArn
 
   # PN-TemplateBeMs microservice
   ExternalChannelMicroservice:
