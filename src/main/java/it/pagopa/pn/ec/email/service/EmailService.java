@@ -23,6 +23,7 @@ import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
+import it.pagopa.pn.ec.util.EmfLogUtils;
 import it.pagopa.pn.ec.util.LogSanitizer;
 import lombok.CustomLog;
 import org.slf4j.MDC;
@@ -248,7 +249,11 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .flatMap(attList -> {
                     var mailFld = compilaMail(digitalCourtesyMailRequest);
                     mailFld.setEmailAttachments(attList);
-                    return sesService.send(mailFld);
+                    return sesService.send(mailFld)
+                            .doOnError(ex -> {
+                                log.info("Exception during SES send, publishing metric");
+                                EmfLogUtils.trackSesSendError();
+                            });
                 })
 
                 // The EMAIL in sent, publish to Notification Tracker with next status -> SENT
