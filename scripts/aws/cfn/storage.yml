@@ -1085,7 +1085,7 @@ Resources:
   ###### EMAIL SES EVENTS ######
 
   #topic SNS per eventi ses
-  PnEcEmailEventsSNSTopic:
+  PnEcEmailSESEventsSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
       TopicName: 'pn-ec-ses-events-topic'
@@ -1108,7 +1108,7 @@ Resources:
   PnEcEmailSesEventsSubscription:
     Type: AWS::SNS::Subscription
     Properties:
-      TopicArn: !Ref PnEcEmailEventsSNSTopic
+      TopicArn: !Ref PnEcEmailSESEventsSNSTopic
       Protocol: sqs
       Endpoint: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
       RawMessageDelivery: true
@@ -1128,7 +1128,7 @@ Resources:
             Resource: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
             Condition:
               ArnEquals:
-                aws:SourceArn: !Ref PnEcEmailEventsSNSTopic
+                aws:SourceArn: !Ref PnEcEmailSESEventsSNSTopic
 
 
 #########  OUTPUTS  ##########
@@ -1136,9 +1136,9 @@ Resources:
 Outputs:
 
 
-  PnEcEmailEventsSNSTopicArn:
+  PnEcEmailSESEventsSNSTopicArn:
     Description: 'Arn del topic per gli eventi ses email'
-    Value: !GetAtt PnEcEmailEventsSNSTopic.TopicArn
+    Value: !GetAtt PnEcEmailSESEventsSNSTopic.TopicArn
 
   ######### EVENTBUS  ############
 
