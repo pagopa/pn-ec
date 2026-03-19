@@ -880,6 +880,11 @@ Parameters:
     Description: 'Nome del Configuration Set SES'
     Default: 'testses'
 
+  PnEcEmailEventsSNSTopicArn:
+    Type: String
+    Description: 'Arn del topic ses email'
+    Default: ''
+
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
@@ -887,6 +892,23 @@ Conditions:
   HasOncallAlarm: !Not [!Equals [!Ref GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods, 0]]
 
 Resources:
+
+  # Risorsa
+  SESConfigurationSetEventDestination:
+    Type: AWS::SES::ConfigurationSetEventDestination
+    DependsOn: PnEcEmailEventsSNSTopic
+    Properties:
+      ConfigurationSetName: !Ref SESConfigurationSetName
+      EventDestination:
+        Name: pn-ec-ses-events-destination
+        Enabled: true
+        MatchingEventTypes:
+          - Bounce
+          - Complaint
+          - Delivery
+          - Reject
+        SnsDestination:
+          TopicARN: !Ref PnEcEmailEventsSNSTopicArn
 
   # PN-TemplateBeMs microservice
   ExternalChannelMicroservice:
