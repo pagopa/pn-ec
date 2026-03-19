@@ -289,15 +289,8 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				return Flux.fromIterable(requestDto.getRequestMetadata().getEventsList()).map(EventsDto::getPaperProgrStatus)
 						.filter(event -> isSameEvent(event, progressStatusEvent))
 						.next()
-						.map(duplicatedEvent -> {
-							String storedCourier = duplicatedEvent.getCourier();
-							String incomingCourier = progressStatusEvent.getCourier();
-							if (storedCourier != null && incomingCourier != null && !storedCourier.equals(incomingCourier)) {
-								trackCourierMismatchDuplicateEvent(); // EMF log
-							}
-							// ritorniamo sempre true perché è duplicato
-							return true;
-						})
+						.doOnNext(duplicatedEvent -> handleCourierMismatchWithEmf(duplicatedEvent, progressStatusEvent))
+						.map(duplicatedEvent -> true)
 						.defaultIfEmpty(false);
 			}
 			return Mono.just(false);
@@ -471,7 +464,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		return gestoreRepositoryCall.insertDiscardedEvents(Flux.fromIterable(discardedEvents));
 	}
 
-	private boolean handleCourierMismatchWithEmf(PaperProgressStatusDto duplicatedEvent,
+	private void handleCourierMismatchWithEmf(PaperProgressStatusDto duplicatedEvent,
 													   ConsolidatoreIngressPaperProgressStatusEvent incomingEvent) {
 
 		String storedCourier = duplicatedEvent.getCourier();
@@ -480,8 +473,6 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		if (storedCourier != null && incomingCourier != null && !storedCourier.equals(incomingCourier)) {
 			trackCourierMismatchDuplicateEvent();
 		}
-
-		return true; // necessario per il map().defaultIfEmpty(false)
 	}
 
 }
