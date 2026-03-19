@@ -1137,7 +1137,7 @@ Outputs:
 
   PnEcEmailEventsSNSTopicArn:
     Description: 'Arn del topic per gli eventi ses email'
-    Value: !Ref PnEcEmailEventsSNSTopic.Arn
+    Value: !GetAtt PnEcEmailEventsSNSTopic.Arn
 
   ######### EVENTBUS  ############
 
