@@ -158,7 +158,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
 
         return ecWebClient.patch()
                 .uri(UriComponentsBuilder
-                        .fromPath(gestoreRepositoryEndpointProperties.setMessageIdInRequestMetadata())
+                        .fromPath(gestoreRepositoryEndpointProperties.setRequestMetadataMessageId())
                         .build(requestIdx)
                         .toString())
                 .header(CLIENT_HEADER_NAME, clientId)
@@ -168,7 +168,8 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
                         clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
                 .onStatus(BAD_REQUEST::equals,
                         clientResponse -> Mono.error(new RepositoryManagerException.RequestMalformedException()))
-                .bodyToMono(RequestDto.class);    }
+                .bodyToMono(RequestDto.class);
+    }
 
     @Override
     public Mono<RequestDto> getRequestMetadataByMessageId(String messageId) {

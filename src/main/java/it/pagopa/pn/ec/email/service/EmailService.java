@@ -42,6 +42,8 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
@@ -57,6 +59,8 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.EMAIL;
+import static it.pagopa.pn.ec.util.EmfLogUtils.*;
+
 
 @Service
 @CustomLog
@@ -108,7 +112,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
         var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
 
-        log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_SMS, presaInCaricoInfo);
+        log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_EMAIL, presaInCaricoInfo);
 
         var xPagopaExtchCxId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
@@ -252,7 +256,12 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                     return sesService.send(mailFld)
                             .doOnError(ex -> {
                                 log.info("Exception during SES send, publishing metric");
-                                EmfLogUtils.trackSesSendError();
+                                EmfLogUtils.createEmfLog(SERVICE_EMAIL,METRIC_NAME_EMAIL_COUNT_SES,
+                                        UNIT_COUNT,
+                                        List.of(SERVICE, METRIC_TYPE),
+                                        Map.of(SERVICE, SERVICE_EMAIL,
+                                                METRIC_TYPE, METRIC_TYPE_MESSAGECOUNT_ERROR,
+                                                METRIC_NAME_EMAIL_COUNT_SES, 1L));
                             });
                 })
 

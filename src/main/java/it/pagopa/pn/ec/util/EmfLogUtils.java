@@ -45,6 +45,9 @@ public class EmfLogUtils {
 
     // MetricType
     public static final String METRIC_TYPE_MESSAGECOUNT = "MessageCount";
+    public static final String METRIC_TYPE_MESSAGECOUNT_ERROR = "MessageCountError";
+
+    public static final String METRIC_NAME_EMAIL_COUNT_SES = "SesSendError";
 
 
     public static String createEmfLog(String namespace, String metricName, String unit, List<String> dimensions, Map<String, Object> values) {
