@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.email.model.dto.ses;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -12,6 +13,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class SesNotificationDto {
 
+    @JsonProperty("eventType")
     private String notificationType;
     private SesEmailDto mail;
     private SesDeliveryDto delivery;

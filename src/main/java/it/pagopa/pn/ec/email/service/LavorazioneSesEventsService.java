@@ -72,8 +72,8 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
     public void lavorazioneSesEventsListener(final String rawMessage, final Acknowledgement acknowledgement) throws JsonProcessingException {
         String queueName=emailSqsQueueName.sesEventsName();
         SesNotificationDto sesNotificationDto = objectMapper.readValue(rawMessage, SesNotificationDto.class);
-        log.info("lavorazioneSesEvents raw message={}",rawMessage);
-        log.info("lavorazioneSesEvents sesNotificationDto message={}",sesNotificationDto.toString());
+        String messageId = sesNotificationDto.getMail() != null ? sesNotificationDto.getMail().getMessageId() : "null";
+        log.info("Ricevuto evento SES: eventType={}, messageId={}", sesNotificationDto.getNotificationType() != null ? sesNotificationDto.getNotificationType() : "unknown", messageId);
         lavorazioneSesEvents(sesNotificationDto, queueName, acknowledgement)
                 .then(Mono.defer(() -> Mono.fromFuture(acknowledgement.acknowledgeAsync())))
                 .doOnError(throwable -> log.error("Errore lavorazione evento SES", throwable))
@@ -83,12 +83,6 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
     Mono<SendMessageResponse> lavorazioneSesEvents(SesNotificationDto sesNotificationDto, String queueName, Acknowledgement acknowledgement) {
         log.logStartingProcess(LAVORAZIONE_SES_EVENT_EMAIL);
         log.info("Start process {} for event {} into queue {}", LAVORAZIONE_SES_EVENT_EMAIL, sesNotificationDto.getNotificationType() != null ? sesNotificationDto.getNotificationType() : "unknown", emailSqsQueueName.sesEventsName());
-        try {
-            String json = objectMapper.writeValueAsString(sesNotificationDto);
-            log.info("Messaggio in arrivo da SQS: {}", json);
-        } catch (JsonProcessingException e) {
-            log.error("Errore serializzazione SES Notification per log", e);
-        }
         String eventType = sesNotificationDto.getNotificationType();
         String messageId = sesNotificationDto.getMail().getMessageId();
         if(messageId==null || messageId.isBlank()) {
