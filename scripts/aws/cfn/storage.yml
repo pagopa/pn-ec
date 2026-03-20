@@ -42,6 +42,11 @@ Parameters:
     Type: Number
     Default: 14
 
+  SESConfigurationSetName:
+    Type: String
+    Description: 'Nome del Configuration Set SES'
+    Default: 'testses'
+
 Conditions:
   IsDevEnv: !Equals [ !Ref EnvType, 'dev']
   HasCucumberTest: !Or
@@ -1090,6 +1095,21 @@ Resources:
     Properties:
       TopicName: 'pn-ec-ses-events-topic'
 
+  SESConfigurationSetEventDestination:
+    Type: AWS::SES::ConfigurationSetEventDestination
+    Properties:
+      ConfigurationSetName: !Ref SESConfigurationSetName
+      EventDestination:
+        Name: pn-ec-ses-events-destination
+        Enabled: true
+        MatchingEventTypes:
+          - Bounce
+          - Complaint
+          - Delivery
+          - Reject
+        SnsDestination:
+          TopicARN: !Ref PnEcEmailSESEventsSNSTopic
+
   PnEcQueueSesEventsEMAILStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
@@ -1139,6 +1159,10 @@ Outputs:
   PnEcEmailSESEventsSNSTopicArn:
     Description: 'Arn del topic per gli eventi ses email'
     Value: !GetAtt PnEcEmailSESEventsSNSTopic.TopicArn
+
+  SESConfigurationSetName:
+    Description: 'Nome del Configuration Set SES'
+    Value: !Ref SESConfigurationSetName
 
   ######### EVENTBUS  ############
 

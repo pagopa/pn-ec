@@ -875,14 +875,14 @@ Parameters:
     Description: 'Maximum number of concurrent requests that consolidator can handle simultaneously'
     Default: 10
 
-  SESConfigurationSetName:
-    Type: String
-    Description: 'Nome del Configuration Set SES'
-    Default: 'testses'
-
   PnEcEmailSESEventsSNSTopicArn:
     Type: String
     Description: 'Arn del topic ses email'
+    Default: ''
+
+  SESConfigurationSetName:
+    Type: String
+    Description: 'Name of the SES Configuration Set'
     Default: ''
 
 Conditions:
@@ -892,22 +892,6 @@ Conditions:
   HasOncallAlarm: !Not [!Equals [!Ref GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods, 0]]
 
 Resources:
-
-  # Risorsa
-  SESConfigurationSetEventDestination:
-    Type: AWS::SES::ConfigurationSetEventDestination
-    Properties:
-      ConfigurationSetName: !Ref SESConfigurationSetName
-      EventDestination:
-        Name: pn-ec-ses-events-destination
-        Enabled: true
-        MatchingEventTypes:
-          - Bounce
-          - Complaint
-          - Delivery
-          - Reject
-        SnsDestination:
-          TopicARN: !Ref PnEcEmailSESEventsSNSTopicArn
 
   # PN-TemplateBeMs microservice
   ExternalChannelMicroservice:
