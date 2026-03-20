@@ -42,6 +42,11 @@ Parameters:
     Type: Number
     Default: 14
 
+  SESConfigurationSetName:
+    Type: String
+    Description: 'Nome del Configuration Set SES'
+    Default: 'testses'
+
 Conditions:
   IsDevEnv: !Equals [ !Ref EnvType, 'dev']
   HasCucumberTest: !Or
@@ -1085,10 +1090,25 @@ Resources:
   ###### EMAIL SES EVENTS ######
 
   #topic SNS per eventi ses
-  PnEcEmailEventsSNSTopic:
+  PnEcEmailSESEventsSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
       TopicName: 'pn-ec-ses-events-topic'
+
+  SESConfigurationSetEventDestination:
+    Type: AWS::SES::ConfigurationSetEventDestination
+    Properties:
+      ConfigurationSetName: !Ref SESConfigurationSetName
+      EventDestination:
+        Name: pn-ec-ses-events-destination
+        Enabled: true
+        MatchingEventTypes:
+          - Bounce
+          - Complaint
+          - Delivery
+          - Reject
+        SnsDestination:
+          TopicARN: !Ref PnEcEmailSESEventsSNSTopic
 
   PnEcQueueSesEventsEMAILStack:
     Type: AWS::CloudFormation::Stack
@@ -1108,7 +1128,7 @@ Resources:
   PnEcEmailSesEventsSubscription:
     Type: AWS::SNS::Subscription
     Properties:
-      TopicArn: !Ref PnEcEmailEventsSNSTopic
+      TopicArn: !Ref PnEcEmailSESEventsSNSTopic
       Protocol: sqs
       Endpoint: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
       RawMessageDelivery: true
@@ -1123,12 +1143,19 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
+              AWS: '*'
+            Action:
+              - 'sqs:*'
+            Resource: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
+          - Effect: Allow
+            Principal:
               Service: sns.amazonaws.com
-            Action: sqs:SendMessage
+            Action:
+              - sqs:SendMessage
             Resource: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
             Condition:
               ArnEquals:
-                aws:SourceArn: !Ref PnEcEmailEventsSNSTopic
+                aws:SourceArn: !Ref PnEcEmailSESEventsSNSTopic
 
 
 #########  OUTPUTS  ##########
@@ -1136,9 +1163,13 @@ Resources:
 Outputs:
 
 
-  PnEcEmailEventsSNSTopicArn:
+  PnEcEmailSESEventsSNSTopicArn:
     Description: 'Arn del topic per gli eventi ses email'
-    Value: !GetAtt PnEcEmailEventsSNSTopic.TopicArn
+    Value: !GetAtt PnEcEmailSESEventsSNSTopic.TopicArn
+
+  SESConfigurationSetName:
+    Description: 'Nome del Configuration Set SES'
+    Value: !Ref SESConfigurationSetName
 
   ######### EVENTBUS  ############
 

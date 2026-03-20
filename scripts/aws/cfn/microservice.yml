@@ -875,14 +875,14 @@ Parameters:
     Description: 'Maximum number of concurrent requests that consolidator can handle simultaneously'
     Default: 10
 
-  SESConfigurationSetName:
-    Type: String
-    Description: 'Nome del Configuration Set SES'
-    Default: 'testses'
-
-  PnEcEmailEventsSNSTopicArn:
+  PnEcEmailSESEventsSNSTopicArn:
     Type: String
     Description: 'Arn del topic ses email'
+    Default: ''
+
+  SESConfigurationSetName:
+    Type: String
+    Description: 'Name of the SES Configuration Set'
     Default: ''
 
 Conditions:
@@ -892,22 +892,6 @@ Conditions:
   HasOncallAlarm: !Not [!Equals [!Ref GetUnreadPecMessagesCountOncallAlarmEvaluationPeriods, 0]]
 
 Resources:
-
-  # Risorsa
-  SESConfigurationSetEventDestination:
-    Type: AWS::SES::ConfigurationSetEventDestination
-    Properties:
-      ConfigurationSetName: !Ref SESConfigurationSetName
-      EventDestination:
-        Name: pn-ec-ses-events-destination
-        Enabled: true
-        MatchingEventTypes:
-          - Bounce
-          - Complaint
-          - Delivery
-          - Reject
-        SnsDestination:
-          TopicARN: !Ref PnEcEmailEventsSNSTopicArn
 
   # PN-TemplateBeMs microservice
   ExternalChannelMicroservice:
@@ -964,7 +948,7 @@ Resources:
         ContainerEnvEntry42: !Sub 'PnEcMaxConsolidatoreConcurrentRequest=${PnEcMaxConsolidatoreConcurrentRequest}'
         ContainerEnvEntry43: !Sub 'ConsolidatoreMaxRequest=${ConsolidatoreMaxRequest}'
         ContainerEnvEntry44: !Sub 'ConsolidatoreRefreshPeriodSeconds=${ConsolidatoreRefreshPeriodSeconds}'
-        ContainerEnvEntry45: !Sub 'PnEcEmailEventsSNSTopicArn=${PnEcEmailEventsSNSTopicArn}'
+        ContainerEnvEntry45: !Sub 'PnEcEmailSESEventsSNSTopicArn=${PnEcEmailSESEventsSNSTopicArn}'
         ContainerEnvEntry46: !Sub 'SESConfigurationSetName=${SESConfigurationSetName}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
