@@ -135,7 +135,7 @@ public class EmfLogUtils {
 
     public static void trackSesSendError() {
         try {
-            List<String> dimensions = List.of("SES");
+            List<String> dimensions = List.of(SERVICE);
 
             ObjectNode root = objectMapper.createObjectNode();
             ObjectNode awsNode = objectMapper.createObjectNode();
