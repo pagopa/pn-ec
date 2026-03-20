@@ -263,7 +263,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                     MessageIdRequestMetadataDto messageIdDto = new MessageIdRequestMetadataDto()
                             .messageId(publishResponse.messageId());
                 //inseriamo il messageId in tabella
-                    return gestoreRepositoryCall.setRequestMetadataMessageId(clientId, requestIdx, messageIdDto)
+                    log.info("EmailService.lavorazioneRichiesta() - messageId retrieve from ses={}", messageIdDto.getMessageId());
+                    return gestoreRepositoryCall.setRequestMetadataMessageId(clientId, concatRequestId(clientId, requestIdx), messageIdDto)
                             .then(sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                             SENT.getStatusTransactionTableCompliant(),
                             new DigitalProgressStatusDto().generatedMessage(generatedMessageDto.get()))
