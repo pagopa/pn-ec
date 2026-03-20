@@ -1,5 +1,7 @@
 package it.pagopa.pn.ec.email.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.awspring.cloud.sqs.annotation.SqsListener;
 import io.awspring.cloud.sqs.annotation.SqsListenerAcknowledgementMode;
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
@@ -50,10 +52,12 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
     private final EmailSqsQueueName emailSqsQueueName;
     private LogSanitizer logSanitizer;
     private SqsTimeoutProvider sqsTimeoutProvider;
+    private final ObjectMapper objectMapper;
+
 
     public LavorazioneSesEventsService(GestoreRepositoryCall gestoreRepositoryCall, EmailService emailService, SqsService sqsService, SesService sesService, NotificationTrackerSqsName notificationTrackerSqsName,
                                        LogSanitizer logSanitizer, SqsTimeoutProvider sqsTimeoutProvider, @Value("${lavorazione-email.max-thread-pool-size}") Integer maxThreadPoolSize,
-                                       EmailSqsQueueName emailSqsQueueName) {
+                                       EmailSqsQueueName emailSqsQueueName, ObjectMapper objectMapper) {
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.sqsService = sqsService;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
@@ -61,11 +65,15 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
         this.sqsTimeoutProvider = sqsTimeoutProvider;
         this.semaphore=new Semaphore(maxThreadPoolSize);
         this.emailSqsQueueName = emailSqsQueueName;
+        this.objectMapper = objectMapper;
     }
 
     @SqsListener(value = "${sqs.queue.email.ses-events-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
-    public void lavorazioneSesEventsListener(final SesNotificationDto sesNotificationDto, final Acknowledgement acknowledgement) {
+    public void lavorazioneSesEventsListener(final String rawMessage, final Acknowledgement acknowledgement) throws JsonProcessingException {
         String queueName=emailSqsQueueName.sesEventsName();
+        SesNotificationDto sesNotificationDto = objectMapper.readValue(rawMessage, SesNotificationDto.class);
+        log.info("lavorazioneSesEvents raw message={}",rawMessage);
+        log.info("lavorazioneSesEvents sesNotificationDto message={}",sesNotificationDto.toString());
         lavorazioneSesEvents(sesNotificationDto, queueName, acknowledgement)
                 .then(Mono.defer(() -> Mono.fromFuture(acknowledgement.acknowledgeAsync())))
                 .doOnError(throwable -> log.error("Errore lavorazione evento SES", throwable))
@@ -75,7 +83,12 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
     Mono<SendMessageResponse> lavorazioneSesEvents(SesNotificationDto sesNotificationDto, String queueName, Acknowledgement acknowledgement) {
         log.logStartingProcess(LAVORAZIONE_SES_EVENT_EMAIL);
         log.info("Start process {} for event {} into queue {}", LAVORAZIONE_SES_EVENT_EMAIL, sesNotificationDto.getNotificationType() != null ? sesNotificationDto.getNotificationType() : "unknown", emailSqsQueueName.sesEventsName());
-        log.info("Messaggio in arrivo da SQS: {}", serialize(sesNotificationDto));
+        try {
+            String json = objectMapper.writeValueAsString(sesNotificationDto);
+            log.info("Messaggio in arrivo da SQS: {}", json);
+        } catch (JsonProcessingException e) {
+            log.error("Errore serializzazione SES Notification per log", e);
+        }
         String eventType = sesNotificationDto.getNotificationType();
         String messageId = sesNotificationDto.getMail().getMessageId();
         if(messageId==null || messageId.isBlank()) {

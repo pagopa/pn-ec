@@ -1855,12 +1855,12 @@ Resources:
                 aws:SourceArn: !GetAtt PnEcEventRuleAvailabilityManager.Arn
 
   # EventDestination for SES SNS
-  SESConfigurationSetEventDestination:
+  PnEcSESConfigurationSetEventDestination:
     Type: AWS::SES::ConfigurationSetEventDestination
     Properties:
       ConfigurationSetName: !Ref SESConfigurationSetName
       EventDestination:
-        Name: pn-ec-ses-events-destination
+        Name: pn-ec-ses-events-sns-destination
         Enabled: true
         MatchingEventTypes:
           - Bounce
