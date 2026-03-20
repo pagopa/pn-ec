@@ -37,6 +37,7 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static it.pagopa.pn.ec.commons.utils.SesEventsUtils.chooseBounceType;
 import static it.pagopa.pn.ec.commons.utils.SesEventsUtils.mapSesEventToStatus;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
+import static org.springframework.util.SerializationUtils.serialize;
 
 
 @Service
@@ -74,6 +75,7 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
     Mono<SendMessageResponse> lavorazioneSesEvents(SesNotificationDto sesNotificationDto, String queueName, Acknowledgement acknowledgement) {
         log.logStartingProcess(LAVORAZIONE_SES_EVENT_EMAIL);
         log.info("Start process {} for event {} into queue {}", LAVORAZIONE_SES_EVENT_EMAIL, sesNotificationDto.getNotificationType() != null ? sesNotificationDto.getNotificationType() : "unknown", emailSqsQueueName.sesEventsName());
+        log.info("Messaggio in arrivo da SQS: {}", serialize(sesNotificationDto));
         String eventType = sesNotificationDto.getNotificationType();
         String messageId = sesNotificationDto.getMail().getMessageId();
         if(messageId==null || messageId.isBlank()) {
