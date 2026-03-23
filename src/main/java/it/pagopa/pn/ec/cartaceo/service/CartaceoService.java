@@ -8,6 +8,8 @@ import it.pagopa.pn.ec.cartaceo.configurationproperties.TransformationProperties
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.configuration.normalization.NormalizationConfiguration;
+import it.pagopa.pn.ec.commons.configuration.scheduler.ShedLockConfig;
+import it.pagopa.pn.ec.commons.configuration.scheduler.ShedLockRunner;
 import it.pagopa.pn.ec.commons.configurationproperties.LavorazioneCartaceoConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException;
@@ -30,13 +32,16 @@ import it.pagopa.pn.ec.commons.service.QueueOperationsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.pdfraster.service.impl.RequestConversionServiceImpl;
+import it.pagopa.pn.ec.repositorymanager.model.entity.PaperEngageRequestAttachments;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import lombok.CustomLog;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -51,6 +56,7 @@ import software.amazon.awssdk.services.sqs.model.SqsResponse;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -94,6 +100,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties;
     private final NormalizationConfiguration normalizationConfiguration;
     private final SqsTimeoutProvider sqsTimeoutProvider;
+    private final ShedLockRunner shedLockRunner;
 
     protected CartaceoService(AuthService authService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall,
                               AttachmentServiceImpl attachmentService, NotificationTrackerSqsName notificationTrackerSqsName,
@@ -103,7 +110,9 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                               SqsTimeoutProvider sqsTimeoutProvider,
                               LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties,
                               NormalizationConfiguration normalizationConfiguration,
-                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs, TransformationProperties transformationProperties){
+                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs, TransformationProperties transformationProperties,
+                              @Value("${pn.ec.max-concurrent-requests}") int maxConcurrentRequests,
+                              @Autowired(required = false) ShedLockRunner shedLockRunner) {
         super(authService);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
@@ -119,7 +128,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         this.cartaceoMapper = cartaceoMapper;
         this.sqsTimeoutProvider = sqsTimeoutProvider;
         this.lavorazioneCartaceoConfigurationProperties = lavorazioneCartaceoConfigurationProperties;
-        this.semaphore = new Semaphore(lavorazioneCartaceoConfigurationProperties.maxThreadPoolSize());
+        //this.semaphore = new Semaphore(lavorazioneCartaceoConfigurationProperties.maxThreadPoolSize());
+        this.semaphore = new Semaphore(maxConcurrentRequests * 2);
         this.cartaceoMaxBatchSubscribedMsgs = cartaceoMaxBatchSubscribedMsgs;
         this.documentTypeForRasterized = pdfTransformationConfiguration.getDocumentTypeForRasterized();
         this.validTransformationDocumentTypes = pdfTransformationConfiguration.getValidTransformationDocumentTypes();
@@ -131,6 +141,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     throw new MaxRetriesExceededException();
                 });
         this.transformationProperties = transformationProperties;
+        this.shedLockRunner = shedLockRunner;
     }
 
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
@@ -181,10 +192,10 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         return Mono.empty();
     }
 
-    private ArrayList<String> getPaperUri(List<PaperEngageRequestAttachments> paperEngageRequestAttachments) {
+    private ArrayList<String> getPaperUri(List<PaperEngageRequestAttachmentsInner> paperEngageRequestAttachments) {
         ArrayList<String> list = new ArrayList<>();
         if (!paperEngageRequestAttachments.isEmpty()) {
-            for (PaperEngageRequestAttachments attachment : paperEngageRequestAttachments) {
+            for (PaperEngageRequestAttachmentsInner attachment : paperEngageRequestAttachments) {
                 list.add(attachment.getUri());
             }
         }
@@ -204,7 +215,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
                     List<AttachmentsEngageRequestDto> attachmentsEngageRequestDto = new ArrayList<>();
                     if (!paperNotificationRequest.getAttachments().isEmpty()) {
-                        for (PaperEngageRequestAttachments attachment : paperNotificationRequest.getAttachments()) {
+                        for (PaperEngageRequestAttachmentsInner attachment : paperNotificationRequest.getAttachments()) {
                             AttachmentsEngageRequestDto attachments = new AttachmentsEngageRequestDto();
                             attachments.setUri(attachment.getUri());
                             attachments.setOrder(attachment.getOrder());
@@ -261,6 +272,14 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
     @Scheduled(fixedDelayString = "${pn.ec.delay.lavorazione-batch-cartaceo}")
     public void lavorazioneRichiestaBatch() {
+        if(shedLockRunner!=null){
+            shedLockRunner.runWithLock("lavorazioneRichiestaBatch", this::executeBatch);
+        } else {
+            executeBatch();
+        }
+    }
+
+    private void executeBatch() {
         MDC.clear();
         log.logStartingProcess(LAVORAZIONE_BATCH_CARTACEO);
         AtomicBoolean hasMessages = new AtomicBoolean();
@@ -664,7 +683,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
 
 
-    private boolean isAttachmentToConvert(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequestAttachments attachment) {
+    private boolean isAttachmentToConvert(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequestAttachmentsInner attachment) {
         return pdfTransformationConfiguration.getDocumentTypesToRaster().stream().anyMatch(type -> attachment.getUri().replace(SAFESTORAGE_PREFIX, "").startsWith(type));
     }
 
@@ -683,7 +702,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
      * @param attachment the original attachment
      * @return Mono<AttachmentToConvertDto> the attachment to convert related info
      */
-    private Mono<AttachmentToConvertDto> uploadAttachmentToConvert(CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequestAttachments attachment) {
+    private Mono<AttachmentToConvertDto> uploadAttachmentToConvert(CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequestAttachmentsInner attachment) {
         log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, UPLOAD_ATTACHMENT_TO_CONVERT, Stream.of(cartaceoPresaInCaricoInfo, attachment).toList());
         String originalFileKey = attachment.getUri().replace(SAFESTORAGE_PREFIX, "");
         return fileCall.getFile(originalFileKey, cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(), false)

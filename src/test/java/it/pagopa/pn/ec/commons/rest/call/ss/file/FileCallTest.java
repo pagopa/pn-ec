@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.commons.rest.call.ss.file;
 
+import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.consolidatore.exception.ClientNotAuthorizedOrFoundException;
@@ -18,10 +19,13 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import lombok.CustomLog;
 
-import java.io.IOException;
+import java.io.*;
+
 
 @SpringBootTestWebEnv
+@CustomLog
 class FileCallTest {
 
     public static final String FILE_KEY = "fileKey";
@@ -33,6 +37,8 @@ class FileCallTest {
 
     @Autowired
     private FileCall fileCall;
+    @Autowired
+    private SafeStorageEndpointProperties safeStorageEndpointProperties;
 
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry r) {
@@ -63,6 +69,7 @@ class FileCallTest {
         mockBackEnd.enqueue(new MockResponse()
                 .setBody("{\"fileContent\":\"file content\"}")
                 .addHeader("Content-Type", "application/json"));
+        log.info("safeStorageEndpointProperties.containerBaseUrl {}", safeStorageEndpointProperties.containerBaseUrl());
 
         Mono<FileDownloadResponse> fileDownloadResponseMono = fileCall.getFile(FILE_KEY, CLIENT_ID, X_API_KEY, X_TRACE_ID);
 

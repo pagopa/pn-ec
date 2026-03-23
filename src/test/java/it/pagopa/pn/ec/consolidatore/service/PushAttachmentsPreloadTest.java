@@ -14,12 +14,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.ReactiveHttpOutputMessage;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.util.stream.Stream;
@@ -35,13 +36,13 @@ class PushAttachmentsPreloadTest {
 
     @Autowired
     private WebTestClient webTestClient;
-    @MockBean
+    @MockitoBean
     private FileCall fileCall;
     @Autowired
     private GestoreRepositoryCall gestoreRepositoryCall;
     @Autowired
     private ConsolidatoreEndpointProperties consolidatoreEndpointProperties;
-    @MockBean
+    @MockitoBean
     private AuthService authService;
 
     private static final String CLIENT_ID = "CLIENT_ID";
@@ -81,7 +82,7 @@ class PushAttachmentsPreloadTest {
     private WebTestClient.ResponseSpec pushAttachmentsPreloadTestCall(BodyInserter<PreLoadRequestData, ReactiveHttpOutputMessage> bodyInserter) {
 
         return this.webTestClient.put()
-                .uri(uriBuilder -> uriBuilder.path(URI).build())
+                .uri(UriComponentsBuilder.fromPath(URI).build().toString())
                 .header(consolidatoreEndpointProperties.clientHeaderName(), CLIENT_ID)
                 .header(consolidatoreEndpointProperties.apiKeyHeaderName(), X_API_KEY)
                 .accept(APPLICATION_JSON)
@@ -93,7 +94,7 @@ class PushAttachmentsPreloadTest {
     private WebTestClient.ResponseSpec getFileTestCall() {
 
         return this.webTestClient.get()
-                .uri(uriBuilder -> uriBuilder.path(URI_GET).build())
+                .uri(UriComponentsBuilder.fromPath(URI_GET).build().toString())
                 .header(consolidatoreEndpointProperties.clientHeaderName(), CLIENT_ID)
                 .header(consolidatoreEndpointProperties.apiKeyHeaderName(), X_API_KEY)
                 .accept(APPLICATION_JSON)

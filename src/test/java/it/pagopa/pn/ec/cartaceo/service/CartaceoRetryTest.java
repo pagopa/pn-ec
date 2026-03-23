@@ -25,9 +25,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
@@ -57,7 +58,7 @@ import static org.mockito.Mockito.*;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class CartaceoRetryTest {
 
-    @SpyBean
+    @MockitoSpyBean
     SqsService sqsService;
 
     @Autowired
@@ -69,28 +70,28 @@ class CartaceoRetryTest {
     @Autowired
     RepositoryManagerDynamoTableName repositoryManagerDynamoTableName;
 
-    @SpyBean
+    @MockitoSpyBean
     CartaceoService cartaceoService;
 
-    @MockBean
+    @MockitoBean
     GestoreRepositoryCall gestoreRepositoryCall;
 
-    @MockBean
+    @MockitoBean
     PaperMessageCall paperMessageCall;
 
-    @SpyBean
+    @MockitoSpyBean
     private RequestConversionService requestConversionService;
 
-    @MockBean
+    @MockitoBean
     private FileCall fileCall;
 
-    @MockBean
+    @MockitoBean
     private DownloadCall downloadCall;
 
-    @MockBean
+    @MockitoBean
     private UploadCall uploadCall;
 
-    @SpyBean
+    @MockitoSpyBean
     private TransformationProperties transformationProperties;
 
     Message message = Message.builder().build();
@@ -143,7 +144,7 @@ class CartaceoRetryTest {
     @Test
     void gestioneRetryCartaceoScheduler() {
         SqsServiceImpl mockSqsService = mock(SqsServiceImpl.class);
-        when(mockSqsService.getOneMessage(cartaceoSqsQueueName.errorName(), CartaceoPresaInCaricoInfo.class))
+        Mockito.when(mockSqsService.getOneMessage(cartaceoSqsQueueName.errorName(), CartaceoPresaInCaricoInfo.class))
                 .thenReturn(Mono.empty());
 
         // chiamare il metodo sotto test
@@ -180,8 +181,8 @@ class CartaceoRetryTest {
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
         // Mock di una generica putRequest.
-        when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
-        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
+        Mockito.when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
+        Mockito.when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
         mockSqsService();
 
         //THEN
@@ -209,8 +210,8 @@ class CartaceoRetryTest {
 
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
-        when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.error(new RuntimeException("KO")));
-        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
+        Mockito.when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.error(new RuntimeException("KO")));
+        Mockito.when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
 
         mockSqsService();
 
@@ -239,8 +240,8 @@ class CartaceoRetryTest {
 
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
-        when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.error(new RuntimeException("KO")));
-        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
+        Mockito.when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.error(new RuntimeException("KO")));
+        Mockito.when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
         mockSqsService();
 
         //THEN
@@ -308,7 +309,7 @@ class CartaceoRetryTest {
 
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
-        when(fileCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException("fileKey")));
+        Mockito.when(fileCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException("fileKey")));
         mockSqsService();
         doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
@@ -341,7 +342,7 @@ class CartaceoRetryTest {
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
         mockPdfRasterAttachmentSteps();
-        when(fileCall.postFile(anyString(), anyString(), any(FileCreationRequest.class))).thenReturn(Mono.error(new RuntimeException()));
+        Mockito.when(fileCall.postFile(anyString(), anyString(), any(FileCreationRequest.class))).thenReturn(Mono.error(new RuntimeException()));
         mockSqsService();
         doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
@@ -374,7 +375,7 @@ class CartaceoRetryTest {
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
         mockPdfRasterAttachmentSteps();
-        when(uploadCall.uploadFile(anyString(), anyString(), anyString(), anyString(), any(), anyString(), any(byte[].class))).thenReturn(Mono.error(new RuntimeException()));
+        Mockito.when(uploadCall.uploadFile(anyString(), anyString(), anyString(), anyString(), any(), anyString(), any(byte[].class))).thenReturn(Mono.error(new RuntimeException()));
         mockSqsService();
         doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
@@ -408,7 +409,7 @@ class CartaceoRetryTest {
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
         mockPdfRasterAttachmentSteps();
-        when(downloadCall.downloadFile(DOWNLOAD_URL)).thenReturn(Mono.error(new RuntimeException()));
+        Mockito.when(downloadCall.downloadFile(DOWNLOAD_URL)).thenReturn(Mono.error(new RuntimeException()));
         mockSqsService();
         doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
@@ -441,7 +442,7 @@ class CartaceoRetryTest {
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
         mockPdfRasterAttachmentSteps();
-        when(requestConversionService.insertRequestConversion(any())).thenReturn(Mono.error(DynamoDbException.builder().build()));
+        Mockito.when(requestConversionService.insertRequestConversion(any())).thenReturn(Mono.error(DynamoDbException.builder().build()));
         mockSqsService();
         doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
 
@@ -475,7 +476,7 @@ class CartaceoRetryTest {
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
         // Mock di una generica putRequest.
-        when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
+        Mockito.when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
         mockSqsService();
 
         //THEN
@@ -523,27 +524,27 @@ class CartaceoRetryTest {
     private void mockPdfRasterAttachmentSteps() {
         String originalFileKey = randomAlphanumeric(10);
         FileDownloadInfo fileDownloadInfo = new FileDownloadInfo().url(DOWNLOAD_URL);
-        when(fileCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse().key(originalFileKey).download(fileDownloadInfo).checksum("checksum").contentType("application/pdf")));
+        Mockito.when(fileCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse().key(originalFileKey).download(fileDownloadInfo).checksum("checksum").contentType("application/pdf")));
 
-        when(downloadCall.downloadFile(DOWNLOAD_URL)).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        Mockito.when(downloadCall.downloadFile(DOWNLOAD_URL)).thenReturn(Mono.just(new ByteArrayOutputStream()));
 
         String newFileKey = randomAlphanumeric(10);
-        when(fileCall.postFile(anyString(), anyString(), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse().key(newFileKey).secret(SECRET).uploadUrl(UPLOAD_URL)));
+        Mockito.when(fileCall.postFile(anyString(), anyString(), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse().key(newFileKey).secret(SECRET).uploadUrl(UPLOAD_URL)));
 
-        when(uploadCall.uploadFile(eq(newFileKey), eq(UPLOAD_URL), eq(SECRET), eq(APPLICATION_PDF), eq(DocumentTypeConfiguration.ChecksumEnum.SHA256), anyString(), any(byte[].class))).thenReturn(Mono.empty());
+        Mockito.when(uploadCall.uploadFile(eq(newFileKey), eq(UPLOAD_URL), eq(SECRET), eq(APPLICATION_PDF), eq(DocumentTypeConfiguration.ChecksumEnum.SHA256), anyString(), any(byte[].class))).thenReturn(Mono.empty());
     }
 
     private void mockSqsService() {
-        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        Mockito.when(sqsService.deleteMessageFromQueue(any(Message.class), eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
         doReturn(Mono.just(ChangeMessageVisibilityResponse.builder().build())).when(sqsService).changeMessageVisibility(any(), any(), any());
     }
 
     private void mockGestoreRepository(String clientId, String requestId, RequestDto requestDto) {
         // Mock di una generica getRichiesta.
-        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        Mockito.when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
 
         // Mock di una generica patchRichiesta.
-        when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
+        Mockito.when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
     }
 
 

@@ -20,12 +20,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.http.ReactiveHttpOutputMessage;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
@@ -56,22 +57,22 @@ class PaperMessagesApiControllerTest {
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
 
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
 
-    @MockBean
+    @MockitoBean
     private AuthService authService;
 
-    @SpyBean
+    @MockitoSpyBean
     private SqsServiceImpl sqsService;
 
-    @MockBean
+    @MockitoBean
     private FileCall uriBuilderCall;
 
     private static final String SEND_CARTACEO_ENDPOINT = "/external-channels/v1/paper-deliveries-engagements" + "/{requestIdx}";
     private static final ClientConfigurationInternalDto clientConfigurationInternalDto = new ClientConfigurationInternalDto();
     private static final PaperEngageRequest paperEngageRequest = new PaperEngageRequest();
-    private static final PaperEngageRequestAttachments PAPER_ENGAGE_REQUEST_ATTACHMENTS = new PaperEngageRequestAttachments();
+    private static final PaperEngageRequestAttachmentsInner PAPER_ENGAGE_REQUEST_ATTACHMENTS = new PaperEngageRequestAttachmentsInner();
     private static final String DEFAULT_ATTACHMENT_URL = "safestorage://prova.pdf";
     private static final String DOCUMENT_TYPE_INVALID = "TEST";
 
@@ -82,7 +83,7 @@ class PaperMessagesApiControllerTest {
         PAPER_ENGAGE_REQUEST_ATTACHMENTS.setOrder(BigDecimal.valueOf(1));
         PAPER_ENGAGE_REQUEST_ATTACHMENTS.setDocumentType("TEST");
         PAPER_ENGAGE_REQUEST_ATTACHMENTS.setSha256("stringstringstringstringstringstringstri");
-        List<PaperEngageRequestAttachments> paperEngageRequestAttachmentsList = new ArrayList<>();
+        List<PaperEngageRequestAttachmentsInner> paperEngageRequestAttachmentsList = new ArrayList<>();
         paperEngageRequestAttachmentsList.add(PAPER_ENGAGE_REQUEST_ATTACHMENTS);
         paperEngageRequest.setAttachments(paperEngageRequestAttachmentsList);
         paperEngageRequest.setReceiverName("");
@@ -120,7 +121,7 @@ class PaperMessagesApiControllerTest {
                                                             String requestIdx) {
 
         return this.webTestClient.put()
-                                 .uri(uriBuilder -> uriBuilder.path(SEND_CARTACEO_ENDPOINT).build(requestIdx))
+                                 .uri(UriComponentsBuilder.fromPath(SEND_CARTACEO_ENDPOINT).build(requestIdx).toString())
                                  .accept(APPLICATION_JSON)
                                  .contentType(APPLICATION_JSON)
                                  .body(bodyInserter)

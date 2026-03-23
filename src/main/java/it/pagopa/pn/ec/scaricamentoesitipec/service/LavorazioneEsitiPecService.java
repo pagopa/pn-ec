@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
-import io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy;
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListenerAcknowledgementMode;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.constant.Status;
@@ -26,6 +26,7 @@ import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.library.pec.model.pojo.Destinatari;
 import lombok.CustomLog;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
@@ -77,7 +78,7 @@ public class LavorazioneEsitiPecService {
                                       CloudWatchPecMetrics cloudWatchPecMetrics,
                                       NotificationTrackerSqsName notificationTrackerSqsName,
                                       FileCall fileCall,
-                                      WebClient uploadWebClient,
+                                      @Qualifier("uploadWebClient") WebClient uploadWebClient,
                                       ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties,
                                       GestoreRepositoryCall gestoreRepositoryCall,
                                       S3Service s3Service,
@@ -99,13 +100,13 @@ public class LavorazioneEsitiPecService {
         this.sqsTimeoutProvider=sqsTimeoutProvider;
     }
 
-    @SqsListener(value = "${scaricamento-esiti-pec.sqs-queue-name}", deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void lavorazioneEsitiPecInteractive(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgment acknowledgment) {
+    @SqsListener(value = "${scaricamento-esiti-pec.sqs-queue-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    public void lavorazioneEsitiPecInteractive(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgement acknowledgment) {
         logIncomingMessage(scaricamentoEsitiPecProperties.sqsQueueName(), ricezioneEsitiPecDto);
-        lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment).subscribe();
+        lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment).block();
     }
 
-    Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto payload, Acknowledgment acknowledgment) {
+    Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto payload, Acknowledgement acknowledgment) {
         MDC.clear();
         String payloadPointerFileKey = payload.getPointerFileKey();
         String queueName = scaricamentoEsitiPecProperties.sqsQueueName();
@@ -230,8 +231,8 @@ public class LavorazioneEsitiPecService {
                 .timeout(sqsTimeoutProvider.getTimeoutForQueue(queueName))
                 .doOnSuccess(result -> {
                     log.logEndingProcess(LAVORAZIONE_ESITI_PEC);
-                    acknowledgment.acknowledge();
                 })
+                .then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync())))
                 .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_ESITI_PEC, false, throwable.getMessage()))
                 .then()
                 .doFinally(signalType -> semaphore.release()));

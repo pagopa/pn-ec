@@ -17,8 +17,8 @@ import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -29,7 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.TEXT_PLAIN;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.PecUtils.generateDaticertAccettazione;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -37,23 +37,23 @@ import static org.mockito.Mockito.*;
 @SpringBootTestWebEnv
 class ScaricamentoEsitiPecSchedulerTest {
 
-    @MockBean
+    @MockitoBean
     private ArubaService arubaService;
 
-    @MockBean
+    @MockitoBean
     private com.namirial.pec.library.service.PnPecServiceImpl namirialService;
 
-    @MockBean
+    @MockitoBean
     private DummyPecService dummyPecService;
 
-    @SpyBean
+    @MockitoSpyBean
     private PnEcPecService pnPecService;
 
 
-    @SpyBean
+    @MockitoSpyBean
     private DaticertService daticertService;
 
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCall gestoreRepositoryCall;
 
     @Autowired
@@ -191,7 +191,7 @@ class ScaricamentoEsitiPecSchedulerTest {
                 .to("to")
                 .subject("subject")
                 .text("text")
-                .contentType(PLAIN.getValue())
+                .contentType(TEXT_PLAIN.getValue())
                 .emailAttachments(hasDatiCert ? List.of(EmailAttachment.builder().nameWithExtension("daticert.xml").url("url").content(daticertOutput).build()) : List.of())
                 .build();
 

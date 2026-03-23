@@ -9,12 +9,16 @@ import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationResponse;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
 import lombok.CustomLog;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
+
+import java.net.URI;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -30,7 +34,7 @@ public class FileCallImpl implements FileCall {
 
     private static final String GET_FILE_ERROR_TITLE = "Chiamata a SafeStorage non valida";
 
-    public FileCallImpl(WebClient ssWebClient, SafeStorageEndpointProperties safeStorageEndpointProperties, FilesEndpointProperties filesEndpointProperties) {
+    public FileCallImpl(@Qualifier("ssWebClient") WebClient ssWebClient, SafeStorageEndpointProperties safeStorageEndpointProperties, FilesEndpointProperties filesEndpointProperties) {
         this.ssWebClient = ssWebClient;
         this.safeStorageEndpointProperties = safeStorageEndpointProperties;
         this.filesEndpointProperties = filesEndpointProperties;
@@ -43,10 +47,11 @@ public class FileCallImpl implements FileCall {
     @Override
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchCxId, boolean metadataOnly) {
         log.logInvokingExternalService(SAFE_STORAGE_SERVICE, GET_FILE);
+        URI uri = UriComponentsBuilder.fromPath(filesEndpointProperties.getFile())
+                .queryParam("metadataOnly", metadataOnly)
+                .build(fileKey);
         return ssWebClient.get()
-                .uri(uriBuilder -> uriBuilder.path(filesEndpointProperties.getFile())
-                        .queryParam("metadataOnly", metadataOnly)
-                        .build(fileKey))
+                .uri(uri.toString())
                 .retrieve()
                 .onStatus(status -> status.equals(HttpStatus.BAD_REQUEST) || status.equals(HttpStatus.FORBIDDEN),
                         clientResponse -> Mono.error(new Generic400ErrorException(GET_FILE_ERROR_TITLE,
@@ -64,8 +69,8 @@ public class FileCallImpl implements FileCall {
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, String xTraceId) {
         log.logInvokingExternalService(SAFE_STORAGE_SERVICE, GET_FILE);
         return ssWebClient.get()
-                .uri(uriBuilder -> uriBuilder.path(filesEndpointProperties.getFile())
-                        .build(fileKey))
+                .uri(UriComponentsBuilder.fromPath(filesEndpointProperties.getFile())
+                        .build(fileKey).toString())
                 .header(safeStorageEndpointProperties.clientHeaderName(), xPagopaExtchServiceId)
                 .header(safeStorageEndpointProperties.apiKeyHeaderName(), xApiKey)
                 .header(safeStorageEndpointProperties.traceIdHeaderName(), xTraceId)

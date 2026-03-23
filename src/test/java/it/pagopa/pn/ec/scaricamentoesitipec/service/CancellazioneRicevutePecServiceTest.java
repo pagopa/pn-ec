@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -11,12 +11,14 @@ import it.pagopa.pn.library.pec.service.PnEcPecService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.*;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
@@ -28,11 +30,11 @@ class CancellazioneRicevutePecServiceTest {
 
     @Autowired
     private CancellazioneRicevutePecService cancellazioneRicevutePecService;
-    @MockBean
-    Acknowledgment acknowledgment;
-    @MockBean
+    @MockitoBean
+    Acknowledgement acknowledgment;
+    @MockitoBean
     GestoreRepositoryCall gestoreRepositoryCall;
-    @MockBean
+    @MockitoBean
     PnEcPecService pnPecService;
 
     private static final String CLIENT_ID = "CLIENT_ID";
@@ -47,6 +49,8 @@ class CancellazioneRicevutePecServiceTest {
 
     @Test
     void cancellazioneRicevuteOk() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+
         CancellazioneRicevutePecDto cancellazioneRicevutePecDto = buildCancellazioneRicevutePecDto(LegalMessageSentDetails.EventCodeEnum.C003);
 
         DigitalProgressStatusDto digitalProgressStatusDto1 = new DigitalProgressStatusDto();
@@ -79,6 +83,8 @@ class CancellazioneRicevutePecServiceTest {
     @MethodSource("statusesSource")
     void cancellazioneRicevuteNotAcceptedAndNotPecOk(String status, LegalMessageSentDetails.EventCodeEnum eventCode)
     {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+
         CancellazioneRicevutePecDto cancellazioneRicevutePecDto = buildCancellazioneRicevutePecDto(eventCode);
 
         DigitalProgressStatusDto digitalProgressStatusDto2 = new DigitalProgressStatusDto();
@@ -140,6 +146,8 @@ class CancellazioneRicevutePecServiceTest {
 
     @Test
     void cancellazioneRicevuteNotValidForDelete() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+
         CancellazioneRicevutePecDto cancellazioneRicevutePecDto = buildCancellazioneRicevutePecDto(LegalMessageSentDetails.EventCodeEnum.C003);
 
         DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto();

@@ -10,11 +10,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.ReactiveHttpOutputMessage;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
@@ -30,7 +31,7 @@ class PaperRequestMetadataPatchControllerTest {
     @Autowired
     private WebTestClient webTestClient;
 
-    @MockBean
+    @MockitoBean
     private PaperRequestMetadataPatchServiceImpl paperRequestMetadataPatchService;
 
     private static final String PATCH_METADATA_ENDPOINT = "/external-channels/v1/paper-request-metadata/{requestIdx}";
@@ -48,7 +49,7 @@ class PaperRequestMetadataPatchControllerTest {
             String clientId) {
 
         return this.webTestClient.patch()
-                .uri(uriBuilder -> uriBuilder.path(PATCH_METADATA_ENDPOINT).build(requestIdx))
+                .uri(UriComponentsBuilder.fromPath(PATCH_METADATA_ENDPOINT).build(requestIdx).toString())
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .body(bodyInserter)

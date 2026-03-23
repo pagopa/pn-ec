@@ -11,8 +11,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.util.UriComponentsBuilder;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -87,7 +89,7 @@ class ClientConfigurationControllerTest {
     @Test
     void getClientTestSuccess() {
         webClient.get()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getClientConfiguration()).build(DEFAULT_ID))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.getClientConfiguration()).build(DEFAULT_ID).toString())
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -99,7 +101,7 @@ class ClientConfigurationControllerTest {
     @Test
     void getClientTestFailed() {
         webClient.get()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.getClientConfiguration()).build("idNonPresente"))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.getClientConfiguration()).build("idNonPresente").toString())
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -110,7 +112,7 @@ class ClientConfigurationControllerTest {
     @Test
     void testUpdateSuccess() {
         webClient.put()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.putClientConfiguration()).build(DEFAULT_ID))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.putClientConfiguration()).build(DEFAULT_ID).toString())
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(clientConfigurationDto))
@@ -123,7 +125,7 @@ class ClientConfigurationControllerTest {
     @Test
     void testUpdateFailed() {
         webClient.put()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.putClientConfiguration()).build("idNonPresente"))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.putClientConfiguration()).build("idNonPresente").toString())
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(clientConfigurationDto))
@@ -138,7 +140,7 @@ class ClientConfigurationControllerTest {
         String cxId = "idToDelete";
         insertClientConfiguration(cxId);
         webClient.delete()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteClientConfiguration()).build(cxId))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.deleteClientConfiguration()).build(cxId).toString())
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -149,7 +151,7 @@ class ClientConfigurationControllerTest {
     @Test
     void deleteClientTestFailed() {
         webClient.delete()
-                 .uri(uriBuilder -> uriBuilder.path(gestoreRepositoryEndpointProperties.deleteClientConfiguration()).build("idNonPresente"))
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.deleteClientConfiguration()).build("idNonPresente").toString())
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()

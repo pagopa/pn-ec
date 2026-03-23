@@ -23,12 +23,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.ReactiveHttpOutputMessage;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
@@ -39,7 +38,10 @@ import java.util.Objects;
 
 import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.ChannelEnum.EMAIL;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.MessageContentTypeEnum.TEXT_PLAIN;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -62,16 +64,16 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     @Autowired
     private EmailSqsQueueName emailSqsQueueName;
 
-    @MockBean
+    @MockitoBean
     private FileCall uriBuilderCall;
 
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
 
-    @SpyBean
+    @MockitoSpyBean
     private SqsServiceImpl sqsService;
 
-    @MockBean
+    @MockitoBean
     private AuthService authService;
 
     public static final String SEND_EMAIL_ENDPOINT =
@@ -94,7 +96,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         digitalCourtesyMailRequest.setMessageText("");
         digitalCourtesyMailRequest.channel(EMAIL);
         digitalCourtesyMailRequest.setSubjectText("Test");
-        digitalCourtesyMailRequest.setMessageContentType(PLAIN);
+        digitalCourtesyMailRequest.setMessageContentType(TEXT_PLAIN);
         digitalCourtesyMailRequest.setAttachmentUrls(defaultListAttachmentUrls);
     }
 
@@ -102,7 +104,7 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
             , String requestIdx) {
 
         return this.webTestClient.put()
-                                 .uri(uriBuilder -> uriBuilder.path(SEND_EMAIL_ENDPOINT).build(requestIdx))
+                                 .uri(UriComponentsBuilder.fromPath(SEND_EMAIL_ENDPOINT).build(requestIdx).toString())
                                  .accept(APPLICATION_JSON)
                                  .contentType(APPLICATION_JSON)
                                  .body(bodyInserter)

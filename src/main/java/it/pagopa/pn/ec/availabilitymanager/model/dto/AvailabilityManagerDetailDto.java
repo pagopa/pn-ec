@@ -3,6 +3,8 @@ package it.pagopa.pn.ec.availabilitymanager.model.dto;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 @ToString
 public class AvailabilityManagerDetailDto {
@@ -14,7 +16,7 @@ public class AvailabilityManagerDetailDto {
     private String contentType;
     private String checksum;
     private LocalDateTime retentionUntil;
-    private String tags;
+    private Map<String, List<String>> tags;
     private String clientShortCode;
 
     public AvailabilityManagerDetailDto() {
@@ -80,11 +82,11 @@ public class AvailabilityManagerDetailDto {
         this.retentionUntil = retentionUntil;
     }
 
-    public String getTags() {
+    public Map<String, List<String>> getTags() {
         return tags;
     }
 
-    public void setTags(String tags) {
+    public void setTags(Map<String, List<String>> tags) {
         this.tags = tags;
     }
 

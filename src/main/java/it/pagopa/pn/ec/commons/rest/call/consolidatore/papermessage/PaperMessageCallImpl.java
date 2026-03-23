@@ -1,7 +1,9 @@
 package it.pagopa.pn.ec.commons.rest.call.consolidatore.papermessage;
 
+import io.github.resilience4j.ratelimiter.RateLimiter;
 import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.PaperMessagesEndpointProperties;
 import it.pagopa.pn.ec.commons.exception.cartaceo.ConsolidatoreException;
+import it.pagopa.pn.ec.commons.exception.consolidatore.RateLimitExceededException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.utils.JsonUtils;
 import it.pagopa.pn.ec.consolidatore.utils.PaperResult;
@@ -12,14 +14,21 @@ import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperReplicasProgressesResponse
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.Semaphore;
+
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
@@ -34,35 +43,82 @@ public class PaperMessageCallImpl implements PaperMessageCall {
     private final WebClient consolidatoreWebClient;
     private final PaperMessagesEndpointProperties paperMessagesEndpointProperties;
     private final JsonUtils jsonUtils;
+    private final Semaphore semaphore;
+    private final RateLimiter rateLimiter;
+    private final Retry rateLimiterRetryStrategy;
+
+
     private static final List<String> NON_RETRYABLE_ERRORS = Arrays.asList(
             PaperResult.SYNTAX_ERROR_CODE,
             PaperResult.SEMANTIC_ERROR_CODE,
             PaperResult.AUTHENTICATION_ERROR_CODE,
             PaperResult.DUPLICATED_REQUEST_CODE);
 
-    public PaperMessageCallImpl(WebClient consolidatoreWebClient, PaperMessagesEndpointProperties paperMessagesEndpointProperties, JsonUtils jsonUtils) {
+//    private static final Retry RATE_LIMITER_RETRY_STRATEGY = Retry.fixedDelay(8, Duration.ofSeconds(3))
+//            .filter(ex -> ex instanceof RateLimitExceededException)
+//            .doBeforeRetry(retrySignal -> log.info(
+//                    "Retry {} per RateLimiter su putRequest, causa: {}",
+//                    retrySignal.totalRetries(),
+//                    retrySignal.failure().getMessage()));
+
+    public PaperMessageCallImpl(@Qualifier("consolidatoreWebClient")WebClient consolidatoreWebClient, PaperMessagesEndpointProperties paperMessagesEndpointProperties, JsonUtils jsonUtils,
+                                @Value("${pn.ec.max-concurrent-requests}") int maxConcurrentRequests,
+                                @Value("${pn.ec.max-retry-for-rate-limiter}") int maxRetryForRateLimiter,
+                                @Value("${pn.ec.max-retry-for-rate-limiter-seconds}") int maxRetryForRateLimiterSeconds,
+                                @Autowired(required = false) @Qualifier("rateLimiterConsolidatore") RateLimiter rateLimiter) {
         this.consolidatoreWebClient = consolidatoreWebClient;
         this.paperMessagesEndpointProperties = paperMessagesEndpointProperties;
         this.jsonUtils = jsonUtils;
+        this.semaphore = new Semaphore(maxConcurrentRequests);
+        this.rateLimiter = rateLimiter;
+        this.rateLimiterRetryStrategy = Retry.fixedDelay(maxRetryForRateLimiter, Duration.ofSeconds(maxRetryForRateLimiterSeconds))
+                .filter(ex -> ex instanceof RateLimitExceededException)
+                .doBeforeRetry(retrySignal -> log.info(
+                        "Retry {} per RateLimiter su putRequest, causa: {}",
+                        retrySignal.totalRetries(),
+                        retrySignal.failure().getMessage()));
+        log.info("PaperMessageCallImpl maxConcurrentRequests={} - maxRetryForRateLimiter={}/seconds={} - rateLimiter presente? {}", maxConcurrentRequests, maxRetryForRateLimiter, maxRetryForRateLimiterSeconds, rateLimiter!=null);
     }
 
     @Override
     public Mono<OperationResultCodeResponse> putRequest(PaperEngageRequest paperEngageRequest) {
-        long startTimeCalling = System.currentTimeMillis();
-        return consolidatoreWebClient
-                .post()
-                .uri(paperMessagesEndpointProperties.putRequest())
-                .bodyValue(paperEngageRequest)
-                .exchangeToMono(clientResponse -> {
-                    long elapsedTime = System.currentTimeMillis() - startTimeCalling;
-                    trackMetricsConsolidatore(elapsedTime);
-                    if (clientResponse.statusCode().is2xxSuccessful()) {
-                        return clientResponse.bodyToMono(OperationResultCodeResponse.class);
-                    } else if (clientResponse.statusCode().is4xxClientError()) {
-                        return handleClientError(clientResponse);
-                    } else {
-                        return handleServerError(clientResponse);
+        return Mono.fromCallable(() -> {
+                    try {
+                        semaphore.acquire();
+                        return true;
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException(
+                                "Thread interrupted while acquiring semaphore", e);
                     }
+                })
+                .flatMap(acquired -> {
+                    if (rateLimiter != null && !rateLimiter.acquirePermission()) {
+                        throw new RateLimitExceededException("Max requests per minute exceeded");
+                    }
+                    long startTimeCalling = System.currentTimeMillis();
+                    return consolidatoreWebClient
+                            .post()
+                            .uri(paperMessagesEndpointProperties.putRequest())
+                            .bodyValue(paperEngageRequest)
+                            .exchangeToMono(clientResponse -> {
+                                long elapsedTime = System.currentTimeMillis() - startTimeCalling;
+                                trackMetricsConsolidatore(elapsedTime);
+                                if (clientResponse.statusCode().is2xxSuccessful()) {
+                                    return clientResponse.bodyToMono(OperationResultCodeResponse.class);
+                                } else if (clientResponse.statusCode().is4xxClientError()) {
+                                    return handleClientError(clientResponse);
+                                } else {
+                                    return handleServerError(clientResponse);
+                                }
+                            });
+                })
+                .doFinally(signalType -> semaphore.release())
+                .retryWhen(rateLimiterRetryStrategy)
+                //dopo 8 tentativi se ancora c'è errore, non facciamo nulla
+                .onErrorResume(RateLimitExceededException.class, ex -> {
+                    log.warn("Max retry RateLimiter raggiunti, request ignorata: {}", paperEngageRequest);
+                    return Mono.empty();
                 });
     }
 
@@ -107,7 +163,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
     public Mono<PaperDeliveryProgressesResponse> getProgress(String requestId) throws RestCallException.ResourceNotFoundException {
         log.logInvokingExternalService(CONSOLIDATORE_SERVICE, GET_PAPER_ENGAGE_PROGRESSES);
         return consolidatoreWebClient.get()
-                                     .uri(uriBuilder -> uriBuilder.path(paperMessagesEndpointProperties.getRequest()).build(requestId))
+                                     .uri(UriComponentsBuilder.fromPath(paperMessagesEndpointProperties.getRequest()).build(requestId).toString())
                                      .retrieve()
                                      .onStatus(NOT_FOUND::equals,
                                                clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
@@ -118,7 +174,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
     public Mono<PaperReplicasProgressesResponse> getDuplicateProgress(String requestId) throws RestCallException.ResourceNotFoundException {
         log.logInvokingExternalService(CONSOLIDATORE_SERVICE, GET_PAPER_REPLICAS_PROGRESSES_REQUEST);
         return consolidatoreWebClient.get()
-                                     .uri(uriBuilder -> uriBuilder.path(paperMessagesEndpointProperties.getDuplicateRequest()).build(requestId))
+                                     .uri( UriComponentsBuilder.fromPath(paperMessagesEndpointProperties.getDuplicateRequest()).build(requestId).toString())
                                      .retrieve()
                                      .onStatus(NOT_FOUND::equals,
                                                clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))

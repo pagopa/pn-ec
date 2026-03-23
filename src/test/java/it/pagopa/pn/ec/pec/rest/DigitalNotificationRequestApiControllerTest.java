@@ -21,12 +21,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.http.ReactiveHttpOutputMessage;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserter;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
@@ -37,7 +38,7 @@ import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.*;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.TEXT_PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -59,16 +60,16 @@ public class DigitalNotificationRequestApiControllerTest {
     @Autowired
     private PecSqsQueueName pecSqsQueueName;
 
-    @MockBean
+    @MockitoBean
     private FileCall uriBuilderCall;
 
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
 
-    @MockBean
+    @MockitoBean
     private AuthService authService;
 
-    @SpyBean
+    @MockitoSpyBean
     private SqsServiceImpl sqsService;
 
     public static final String SEND_PEC_ENDPOINT = "/external-channels/v1/digital-deliveries/legal-full-message-requests" + "/{requestIdx}";
@@ -96,7 +97,7 @@ public class DigitalNotificationRequestApiControllerTest {
         digitalNotificationRequest.setMessageText("string");
         digitalNotificationRequest.channel(PEC);
         digitalNotificationRequest.setSubjectText("prova testo");
-        digitalNotificationRequest.setMessageContentType(PLAIN);
+        digitalNotificationRequest.setMessageContentType(TEXT_PLAIN);
         digitalNotificationRequest.setAttachmentUrls(defaultListAttachmentUrls);
     }
 
@@ -104,7 +105,7 @@ public class DigitalNotificationRequestApiControllerTest {
                                                        String requestIdx) {
 
         return this.webTestClient.put()
-                                 .uri(uriBuilder -> uriBuilder.path(SEND_PEC_ENDPOINT).build(requestIdx))
+                                 .uri(UriComponentsBuilder.fromPath(SEND_PEC_ENDPOINT).build(requestIdx).toString())
                                  .accept(APPLICATION_JSON)
                                  .contentType(APPLICATION_JSON)
                                  .body(bodyInserter)

@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.service;
 
-import io.awspring.cloud.messaging.listener.Acknowledgment;
+import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -18,6 +18,7 @@ import it.pagopa.pn.library.pec.model.pojo.ArubaPostacert;
 import it.pagopa.pn.library.pec.model.pojo.NamirialPostacert;
 import it.pagopa.pn.library.pec.model.pojo.PnPostacert;
 import it.pagopa.pn.library.pec.service.DaticertService;
+import it.pec.bridgews.PecImapBridge;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,8 +27,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -39,10 +41,11 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.getAttachmentFromMimeMessage;
 import static it.pagopa.pn.ec.pec.utils.MessageIdUtils.encodeMessageId;
-import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.PLAIN;
+import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.TEXT_PLAIN;
 import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.*;
 import static it.pagopa.pn.ec.scaricamentoesitipec.utils.PecUtils.generateDaticertAccettazione;
 import static it.pagopa.pn.library.pec.utils.PnPecUtils.ARUBA_PROVIDER;
@@ -53,23 +56,23 @@ import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
 class ScaricamentoEsitiPecServiceTest {
-    @SpyBean
+    @MockitoSpyBean
     private LavorazioneEsitiPecService lavorazioneEsitiPecService;
     @Autowired
     private NotificationTrackerSqsName notificationTrackerSqsName;
-    @MockBean
-    private Acknowledgment acknowledgment;
-    @MockBean
+    @MockitoBean
+    private Acknowledgement acknowledgment;
+    @MockitoBean
     private NamirialPostacert namirialPostacert;
-    @MockBean
+    @MockitoBean
     private GestoreRepositoryCall gestoreRepositoryCall;
-    @MockBean
+    @MockitoBean
     private AuthService authService;
-    @SpyBean
+    @MockitoSpyBean
     private SqsService sqsService;
-    @SpyBean
+    @MockitoSpyBean
     private DaticertService daticertService;
-    @SpyBean
+    @MockitoSpyBean
     private S3Service s3Service;
     @Value("${pn.ec.storage.sqs.messages.staging.bucket}")
     String storageSqsMessagesStagingBucket;
@@ -77,6 +80,8 @@ class ScaricamentoEsitiPecServiceTest {
     private String pecUsername;
     private static final String CLIENT_ID = "CLIENT_ID";
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
+    @MockitoBean
+    PecImapBridge pecImapBridge;
 
     @BeforeEach
     void initialize() {
@@ -86,6 +91,7 @@ class ScaricamentoEsitiPecServiceTest {
     @ParameterizedTest
     @ValueSource(strings = {"certificato", "esterno"})
     void lavorazioneEsitiPecOk(String tipoDestinatario) throws IOException, MessagingException {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
 
         RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(ACCETTAZIONE, tipoDestinatario, ARUBA_PROVIDER);
         var request = pecRequest();
@@ -101,6 +107,7 @@ class ScaricamentoEsitiPecServiceTest {
     @ParameterizedTest
     @ValueSource(strings = {"certificato", "esterno"})
     void lavorazioneEsitiPec_S3Payload_Ok(String tipoDestinatario) throws IOException, MessagingException {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
 
         String pointerFileKey = s3Service.convertAndPutObject(storageSqsMessagesStagingBucket, buildRicezioneEsitiPecDto(ACCETTAZIONE, tipoDestinatario, ARUBA_PROVIDER)).block();
         RicezioneEsitiPecDto ricezioneEsitiPecDto = RicezioneEsitiPecDto.builder().pointerFileKey(pointerFileKey).build();
@@ -134,6 +141,7 @@ class ScaricamentoEsitiPecServiceTest {
 
     @Test
     void lavorazioneEsitiPecDeliveryWarn24h() throws IOException, MessagingException {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
 
         RicezioneEsitiPecDto ricezioneEsitiPecDto = buildRicezioneEsitiPecDto(PREAVVISO_ERRORE_CONSEGNA, "certificato", ARUBA_PROVIDER);
         var request = pecRequest();
@@ -191,7 +199,7 @@ class ScaricamentoEsitiPecServiceTest {
                 .to("to")
                 .subject("subject")
                 .text("text")
-                .contentType(PLAIN.getValue())
+                .contentType(TEXT_PLAIN.getValue())
                 .emailAttachments(List.of(EmailAttachment.builder().nameWithExtension("daticert.xml").url("url").content(daticertOutput).build()))
                 .build();
 

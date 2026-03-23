@@ -86,7 +86,7 @@ paths:
           application/json:
             schema:
               type: array
-              minItems: 1
+              #minItems: 1
               items:
                 $ref: '#/components/schemas/ConsolidatoreIngressPaperProgressStatusEvent'
         required: true
@@ -469,46 +469,55 @@ components:
             name:
               x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
+              format: password # NO EXTERNAL
               description: >-
                 Cognome e nome o ragione sociale del destinatario
             nameRow2:
               x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
+              format: password # NO EXTERNAL
               description: >-
                 Seconda riga sulla busta.
             address:
               x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
+              format: password # NO EXTERNAL
               description: >-
                 Indirizzo del destinatario.
             addressRow2:
               x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
+              format: password # NO EXTERNAL
               description: >-
                 Specifica dell’indirizzo di residenza del destinatario (seconda riga indirizzo sulla busta).
             cap:
               x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
+              format: password # NO EXTERNAL
               description: >-
                 Cap del destinatario; in caso di invio estero diventa facoltativo.
             city:
               x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
+              format: password # NO EXTERNAL
               description: >-
                 Comune del destinatario.
             city2:
               x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
+              format: password # NO EXTERNAL
               description: >-
                 Frazione del destinatario. Potrebbe essere utile se il chiamante non fornisce il cap.
             pr:
               x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
+              format: password # NO EXTERNAL
               description: >-
                 Provincia del destinatario; in caso di invio estero diventa facoltativo.
             country:
               x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
               type: string
+              format: password # NO EXTERNAL
               description: >-
                 In caso di destinatario estero, diventa obbligatoria l’indicazione della nazione di destinazione, 
                 in standard UPU o altro standard condiviso.

@@ -54,7 +54,7 @@ public class DigitalCourtesyMailRequestFactory {
 		digitalCourtesyMailRequestFactory.setReceiverDigitalAddress(ADDRESS_RECIVE);
 		digitalCourtesyMailRequestFactory.setSubjectText(SUBJECT + " with #" + attachNum + " attach " + DigitalCourtesyMailRequestFactory.getTimeStamp());
 		digitalCourtesyMailRequestFactory.setMessageText(CONTENT);
-		digitalCourtesyMailRequestFactory.setMessageContentType(MessageContentTypeEnum.HTML);
+		digitalCourtesyMailRequestFactory.setMessageContentType(MessageContentTypeEnum.TEXT_HTML);
 
 		List<String> attachList = new ArrayList<>();
 		for (int idx = 0; idx < attachNum; idx++) {

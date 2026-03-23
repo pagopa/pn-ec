@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.pec.utils;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.pec.exception.MessageIdException;
-import org.springframework.util.Base64Utils;
+import java.util.Base64;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -23,9 +23,8 @@ public class MessageIdUtils {
         String requestId = parts[1];
         try {
             return String.format("%s%s%s%s",
-                                 Base64Utils.encodeToString(clientId.getBytes()),
-                                 SEPARATORE,
-                                 Base64Utils.encodeToString(requestId.getBytes()),
+                                 Base64.getEncoder().encodeToString(clientId.getBytes()),
+                                 SEPARATORE, Base64.getEncoder().encodeToString(requestId.getBytes()),
                                  DOMAIN);
         } catch (Exception e) {
             throw new MessageIdException.EncodeMessageIdException();
@@ -35,9 +34,9 @@ public class MessageIdUtils {
     public static String encodeMessageId(String idClient, String idRequest) {
         try {
             return String.format("%s%s%s%s",
-                                 Base64Utils.encodeToString(idClient.getBytes()),
+                                 Base64.getEncoder().encodeToString(idClient.getBytes()),
                                  SEPARATORE,
-                                 Base64Utils.encodeToString(idRequest.getBytes()),
+                                 Base64.getEncoder().encodeToString(idRequest.getBytes()),
                                  DOMAIN);
         } catch (Exception e) {
             throw new MessageIdException.EncodeMessageIdException();
@@ -53,8 +52,8 @@ public class MessageIdUtils {
             var splitAtPipe = removeBracketsFromMessageId(messageId).split(SEPARATORE);
             var base64ClientId = splitAtPipe[0];
             var base64RequestId = splitAtPipe[1].split(String.valueOf(DOMAIN.charAt(0)))[0];
-            var decodedClientId = new String(Base64Utils.decodeFromString(base64ClientId));
-            var decodedRequestId = new String(Base64Utils.decodeFromString(base64RequestId));
+            var decodedClientId = new String(Base64.getDecoder().decode(base64ClientId));
+            var decodedRequestId = new String(Base64.getDecoder().decode(base64RequestId));
             return new PresaInCaricoInfo(decodedRequestId, decodedClientId, new StepError());
         } catch (Exception e) {
             throw new MessageIdException.DecodeMessageIdException();

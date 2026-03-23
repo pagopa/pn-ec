@@ -14,9 +14,9 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
@@ -42,19 +42,19 @@ import static org.mockito.Mockito.*;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class RetryEmailTest {
 
-    @SpyBean
+    @MockitoSpyBean
     private EmailService emailService;
     @Autowired
     private EmailSqsQueueName emailSqsQueueName;
-    @SpyBean
+    @MockitoSpyBean
     private SqsServiceImpl sqsService;
-    @MockBean
+    @MockitoBean
     private FileCall fileCall;
-    @SpyBean
+    @MockitoSpyBean
     private GestoreRepositoryCall gestoreRepositoryCall;
-    @MockBean
+    @MockitoBean
     private SesService sesService;
-    @MockBean
+    @MockitoBean
     private DownloadCall downloadCall;
     EmailPresaInCaricoInfo emailPresaInCaricoInfo = new EmailPresaInCaricoInfo();
     private static final String QUEUE_NAME="queue";

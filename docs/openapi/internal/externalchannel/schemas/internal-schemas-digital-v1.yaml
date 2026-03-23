@@ -19,6 +19,7 @@ components:
         receiverDigitalAddress:
           x-field-extra-annotation: "@lombok.ToString.Exclude"
           type: string
+          format: password # NO EXTERNAL
           description: |
             Indirizzo PEC del destinatario (o in genere recapito digitale certificato a valore legale). 
             L’indirizzo si assume valido ed attivo: i servizi erogatori non eseguono ulteriori validazioni sullo stesso.
@@ -27,12 +28,14 @@ components:
         messageText:
           x-field-extra-annotation: "@lombok.ToString.Exclude"
           type: string
+          format: password # NO EXTERNAL
           description: |
             Testo del corpo della comunicazione digitale.  
             Può essere a discrezione del chiamante in plain text od html (un campo ad hoc che discrimini il formato è opportuno?).
         senderDigitalAddress:
           x-field-extra-annotation: "@lombok.ToString.Exclude"
           type: string
+          format: password # NO EXTERNAL
           description: |
             Indirizzo PEC (o analoga comunicazione digitale a valore legale) del mittente della comunicazione.
             Se non passato va recuperato da configurazione sulla base del sistema chiamante (i.e. X-PagoPA-EXTCH-CX), 
@@ -40,11 +43,13 @@ components:
         subjectText:
           x-field-extra-annotation: "@lombok.ToString.Exclude"
           type: string
+          format: password # NO EXTERNAL
           description: |
             Oggetto del corpo della comunicazione digitale.
         attachmentsUrls:
           x-field-extra-annotation: "@lombok.ToString.Exclude"
           type: array
+          format: password # NO EXTERNAL
           items:
             type: string
             description: |

@@ -36,7 +36,7 @@ public class RequestUtils {
         digitalRequestMetadataDto.setEventType(digitalNotificationRequest.getEventType());
         digitalRequestMetadataDto.setTags(digitalNotificationRequest.getTags());
         digitalRequestMetadataDto.setChannel(channelEnum);
-        digitalRequestMetadataDto.setMessageContentType(DigitalRequestMetadataDto.MessageContentTypeEnum.PLAIN);
+        digitalRequestMetadataDto.setMessageContentType(DigitalRequestMetadataDto.MessageContentTypeEnum.TEXT_PLAIN);
         requestMetadataDto.setDigitalRequestMetadata(digitalRequestMetadataDto);
 
         requestDto.setRequestPersonal(requestPersonalDto);
