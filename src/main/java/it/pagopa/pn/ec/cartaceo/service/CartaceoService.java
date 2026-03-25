@@ -101,6 +101,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final NormalizationConfiguration normalizationConfiguration;
     private final SqsTimeoutProvider sqsTimeoutProvider;
     private final ShedLockRunner shedLockRunner;
+    private final Duration lockAtMostFor;
+    private final Duration executeBatchTimeoutDelta;
 
     protected CartaceoService(AuthService authService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall,
                               AttachmentServiceImpl attachmentService, NotificationTrackerSqsName notificationTrackerSqsName,
@@ -112,6 +114,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                               NormalizationConfiguration normalizationConfiguration,
                               @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs, TransformationProperties transformationProperties,
                               @Value("${pn.ec.max-concurrent-requests}") int maxConcurrentRequests,
+                              @Value("${pn.ec.shedlock.lockAtMostFor:PT15M}") Duration lockAtMostFor,
+                              @Value("${pn.ec.shedlock.executeBatchTimeoutDelta:PT1M30S}") Duration executeBatchTimeoutDelta,
                               @Autowired(required = false) ShedLockRunner shedLockRunner) {
         super(authService);
         this.sqsService = sqsService;
@@ -141,12 +145,23 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     throw new MaxRetriesExceededException();
                 });
         this.transformationProperties = transformationProperties;
+        this.lockAtMostFor = lockAtMostFor;
+        this.executeBatchTimeoutDelta = executeBatchTimeoutDelta;
         this.shedLockRunner = shedLockRunner;
     }
 
     private static final String SAFESTORAGE_PREFIX = "safestorage://";
+    private static final Duration SHEDLOCK_TIMEOUT_MINIMUM = Duration.ofSeconds(30);
+
     private static final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
             .doBeforeRetry(retrySignal -> log.info(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure(), retrySignal.failure().getMessage()));
+
+    protected Duration calculateBlockTimeout() {
+        Duration computed = lockAtMostFor.minus(executeBatchTimeoutDelta);
+        return computed.compareTo(SHEDLOCK_TIMEOUT_MINIMUM) < 0
+                ? SHEDLOCK_TIMEOUT_MINIMUM
+                : computed;
+    }
 
     @Override
     public Mono<Void> specificPresaInCarico(PresaInCaricoInfo presaInCaricoInfo) {
@@ -298,7 +313,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .repeat(hasMessages::get)
                 .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO, false, e.getMessage()))
                 .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO))
-                .blockLast();
+                .blockLast(calculateBlockTimeout());
     }
 
     Mono<SendMessageResponse> lavorazioneRichiesta(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo) {
