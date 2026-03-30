@@ -4,6 +4,7 @@ import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.commons.exception.ses.SesEventException;
 import it.pagopa.pn.ec.email.model.dto.ses.SesNotificationDto;
 import lombok.CustomLog;
+import reactor.core.publisher.Mono;
 
 @CustomLog
 public class SesEventsUtils {
@@ -44,5 +45,21 @@ public class SesEventsUtils {
             }
         }
         return isNonPermanentBounce;
+    }
+
+    public static Mono<Boolean> preliminaryChecks(SesNotificationDto sesNotificationDto, Acknowledgement acknowledgement) {
+        String messageId = sesNotificationDto.getMail() != null ? sesNotificationDto.getMail().getMessageId() : null;
+        String eventType = sesNotificationDto.getNotificationType();
+
+        if (messageId == null || messageId.isBlank()) {
+            return Mono.error(new SesEventException.MessageIdNullOrEmpty());
+        }
+        if (eventType == null || eventType.isBlank()) {
+            return Mono.error(new SesEventException.EventTypeNullOrEmpty(messageId));
+        }
+        if (chooseBounceType(sesNotificationDto, acknowledgement, eventType, messageId)) {
+            return Mono.just(false);
+        }
+        return Mono.just(true); // tutto ok
     }
 }

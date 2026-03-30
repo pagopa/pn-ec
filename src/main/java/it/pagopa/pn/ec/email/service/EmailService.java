@@ -256,12 +256,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                     return sesService.send(mailFld)
                             .doOnError(ex -> {
                                 log.info("Exception during SES send, publishing metric");
-                                EmfLogUtils.createEmfLog(SERVICE_EMAIL,METRIC_NAME_EMAIL_COUNT_SES,
-                                        UNIT_COUNT,
-                                        List.of(SERVICE, METRIC_TYPE),
-                                        Map.of(SERVICE, SERVICE_EMAIL,
-                                                METRIC_TYPE, METRIC_TYPE_MESSAGECOUNT_ERROR,
-                                                METRIC_NAME_EMAIL_COUNT_SES, 1L));
+                                EmfLogUtils.trackSesSendError();
                             });
                 })
 
