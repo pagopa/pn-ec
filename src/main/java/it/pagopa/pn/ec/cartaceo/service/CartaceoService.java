@@ -299,21 +299,26 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         log.logStartingProcess(LAVORAZIONE_BATCH_CARTACEO);
         AtomicBoolean hasMessages = new AtomicBoolean();
         hasMessages.set(true);
+        log.warn(LAVORAZIONE_BATCH_CARTACEO,"");
         String queueName= cartaceoSqsQueueName.batchName();
-        Mono.defer(() -> sqsService.getMessages(queueName, CartaceoPresaInCaricoInfo.class, cartaceoMaxBatchSubscribedMsgs)
-                .doOnNext(cartaceoPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(queueName
-                        , cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
-                .flatMap(cartaceoPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessage())
-                        , lavorazioneRichiesta(cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
-                .flatMap(cartaceoPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(
-                        cartaceoPresaInCaricoInfoSqsMessageWrapper.getT1(),
-                       queueName))
-                .collectList())
-                .doOnNext(list -> hasMessages.set(!list.isEmpty()))
-                .repeat(hasMessages::get)
-                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO, false, e.getMessage()))
-                .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO))
-                .blockLast(calculateBlockTimeout());
+        try {
+            Mono.defer(() -> sqsService.getMessages(queueName, CartaceoPresaInCaricoInfo.class, cartaceoMaxBatchSubscribedMsgs)
+                            .doOnNext(cartaceoPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(queueName
+                                    , cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
+                            .flatMap(cartaceoPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessage())
+                                    , lavorazioneRichiesta(cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
+                            .flatMap(cartaceoPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(
+                                    cartaceoPresaInCaricoInfoSqsMessageWrapper.getT1(),
+                                    queueName))
+                            .collectList())
+                    .doOnNext(list -> hasMessages.set(!list.isEmpty()))
+                    .repeat(hasMessages::get)
+                    .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO, false, e.getMessage()))
+                    .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO))
+                    .blockLast(calculateBlockTimeout());
+        } catch (IllegalStateException e){
+            log.warn(LAVORAZIONE_BATCH_CARTACEO, e.getMessage());
+        }
     }
 
     Mono<SendMessageResponse> lavorazioneRichiesta(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo) {
