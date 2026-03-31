@@ -205,10 +205,12 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                         return Mono.error(new RepositoryManagerException.IdClientNotFoundException(xPagopaExtchCxId));
                                                     }))
                                                     .flatMap(clientDto -> {
-                                                        List<String> sesEventsList = clientDto.getSeSEventsList();
+                                                        List<String> sesEventsList = clientDto.getSesEventsList();
                                                         if (sesEventsList == null || sesEventsList.isEmpty()) {
                                                             sesEventsList = Arrays.stream(sesConfigurationProperties.getEventsListDefault().split(";")).toList();
-                                                            log.debug("SESEventsList null per clientId: {}, uso EventsListDefault: {}", xPagopaExtchCxId, sesEventsList);
+                                                            log.debug("SesEventsList null per clientId: {}, uso EventsListDefault: {}", xPagopaExtchCxId, sesEventsList);
+                                                        } else {
+                                                            log.debug("SesEventsList configured for clientId {} = {}", xPagopaExtchCxId, sesEventsList);
                                                         }
 
                                                         var logicStatus = macchinaStatiDecodeResponseDto.getLogicStatus();
