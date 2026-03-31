@@ -14,6 +14,7 @@ import it.pagopa.pn.ec.commons.service.SesService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.dto.ses.SesNotificationDto;
+import it.pagopa.pn.ec.email.model.dto.sns.SnsRawMessageDto;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
@@ -60,6 +61,10 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
     @SqsListener(value = "${sqs.queue.email.ses-events-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void lavorazioneSesEventsListener(final String rawMessage, final Acknowledgement acknowledgement) throws JsonProcessingException {
         String queueName=emailSqsQueueName.sesEventsName();
+        log.info("lavorazioneSesEventsListener rawMessage: {}", rawMessage);
+        SnsRawMessageDto snsMessage = objectMapper.readValue(rawMessage, SnsRawMessageDto.class);
+        String sesPayload = snsMessage.getMessage();
+        log.info("lavorazioneSesEventsListener rawMessage sesPayload: {} ", sesPayload);
         SesNotificationDto sesNotificationDto = objectMapper.readValue(rawMessage, SesNotificationDto.class);
         String messageId = sesNotificationDto.getMail() != null ? sesNotificationDto.getMail().getMessageId() : "null";
         log.info("Ricevuto evento SES: eventType={}, messageId={}", sesNotificationDto.getNotificationType() != null ? sesNotificationDto.getNotificationType() : "unknown", messageId);
