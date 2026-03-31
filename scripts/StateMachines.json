@@ -5,7 +5,7 @@
 {"processClientId":{"S":"EMAIL"},"currStatus":{"S":"error"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"M008"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"EMAIL"},"currStatus":{"S":"internalError"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"M010"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"EMAIL"},"currStatus":{"S":"retry"},"externalStatus":{"S":"PROGRESS"},"targetStatus":{"L":[{"S":"sent"},{"S":"error"}]}}
-{"processClientId":{"S":"EMAIL"},"currStatus":{"S":"sent"},"externalStatus":{"S":"OK"},"logicStatus":{"S":"M003"},"targetStatus":{"L":[{"S":"_any_"}]}}
+{"processClientId":{"S":"EMAIL"},"currStatus":{"S":"sent"},"externalStatus":{"S":"OK"},"logicStatus":{"S":"M003"},"targetStatus":{"L":[{"S":"delivered"},{"S":"bounced"},{"S":"rejected"}]}}
 {"processClientId":{"S":"EMAIL"},"currStatus":{"S":"bounced"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"M005"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"EMAIL"},"currStatus":{"S":"spam"},"externalStatus":{"S":"ERROR"},"logicStatus":{"S":"M006"},"targetStatus":{"L":[{"S":"_end_"}]}}
 {"processClientId":{"S":"EMAIL"},"currStatus":{"S":"delivered"},"externalStatus":{"S":"PROGRESS"},"logicStatus":{"S":"M004"},"targetStatus":{"L":[{"S":"complaint"}]}}
