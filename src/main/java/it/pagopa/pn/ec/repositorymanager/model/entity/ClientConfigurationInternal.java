@@ -4,8 +4,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import it.pagopa.pn.ec.commons.model.entity.DocumentVersion;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
@@ -25,5 +29,7 @@ public class ClientConfigurationInternal extends DocumentVersion {
     String apiKey;
     @ToString.Exclude
     SenderPhysicalAddress senderPhysicalAddress;
+    @JsonProperty("sesEventsList")
+    List<String> sesEventsList = new ArrayList<>();
 }
 
