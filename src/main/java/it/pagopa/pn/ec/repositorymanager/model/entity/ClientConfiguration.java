@@ -7,6 +7,8 @@ import lombok.experimental.FieldDefaults;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
+import java.util.List;
+
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @Data
@@ -22,4 +24,8 @@ public class ClientConfiguration extends DocumentVersion {
     String pecReplyTo;
     String mailReplyTo;
     SenderPhysicalAddress senderPhysicalAddress;
+    @JsonProperty("sesEventsList")
+    List<String> sesEventsList;
+
+
 }
