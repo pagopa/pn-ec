@@ -205,6 +205,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                         return Mono.error(new RepositoryManagerException.IdClientNotFoundException(xPagopaExtchCxId));
                                                     }))
                                                     .flatMap(clientDto -> {
+                                                        log.debug("clientDto: {}", clientDto.toString());
                                                         List<String> sesEventsList = clientDto.getSesEventsList();
                                                         if (sesEventsList == null || sesEventsList.isEmpty()) {
                                                             sesEventsList = Arrays.stream(sesConfigurationProperties.getEventsListDefault().split(";")).toList();
