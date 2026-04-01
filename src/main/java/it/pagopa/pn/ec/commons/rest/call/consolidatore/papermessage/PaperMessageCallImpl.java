@@ -82,38 +82,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
 
     @Override
     public Mono<OperationResultCodeResponse> putRequest(PaperEngageRequest paperEngageRequest) {
-        return Mono.fromCallable(() -> {
-                    try {
-                        semaphore.acquire();
-                        return true;
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new IllegalStateException(
-                                "Thread interrupted while acquiring semaphore", e);
-                    }
-                })
-                .flatMap(acquired -> {
-                    if (rateLimiter != null && !rateLimiter.acquirePermission()) {
-                        throw new RateLimitExceededException("Max requests per minute exceeded");
-                    }
-                    long startTimeCalling = System.currentTimeMillis();
-                    return consolidatoreWebClient
-                            .post()
-                            .uri(paperMessagesEndpointProperties.putRequest())
-                            .bodyValue(paperEngageRequest)
-                            .exchangeToMono(clientResponse -> {
-                                long elapsedTime = System.currentTimeMillis() - startTimeCalling;
-                                trackMetricsConsolidatore(elapsedTime);
-                                if (clientResponse.statusCode().is2xxSuccessful()) {
-                                    return clientResponse.bodyToMono(OperationResultCodeResponse.class);
-                                } else if (clientResponse.statusCode().is4xxClientError()) {
-                                    return handleClientError(clientResponse);
-                                } else {
-                                    return handleServerError(clientResponse);
-                                }
-                            });
-                })
-                .doFinally(signalType -> semaphore.release())
+        return Mono.defer(() -> executePutRequestWithSemaphore(paperEngageRequest))
                 .retryWhen(rateLimiterRetryStrategy)
                 //dopo 8 tentativi se ancora c'è errore, non facciamo nulla
                 .onErrorResume(RateLimitExceededException.class, ex -> {
@@ -136,6 +105,35 @@ public class PaperMessageCallImpl implements PaperMessageCall {
         });
     }
 
+    private Mono<OperationResultCodeResponse> executePutRequestWithSemaphore(PaperEngageRequest paperEngageRequest) {
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                    "Thread interrupted while acquiring semaphore", e);
+        }
+        if (rateLimiter != null && !rateLimiter.acquirePermission()) {
+            throw new RateLimitExceededException("Max requests per minute exceeded");
+        }
+        long startTimeCalling = System.currentTimeMillis();
+        return consolidatoreWebClient
+                .post()
+                .uri(paperMessagesEndpointProperties.putRequest())
+                .bodyValue(paperEngageRequest)
+                .exchangeToMono(clientResponse -> {
+                    long elapsedTime = System.currentTimeMillis() - startTimeCalling;
+                    trackMetricsConsolidatore(elapsedTime);
+                    if (clientResponse.statusCode().is2xxSuccessful()) {
+                        return clientResponse.bodyToMono(OperationResultCodeResponse.class);
+                    } else if (clientResponse.statusCode().is4xxClientError()) {
+                        return handleClientError(clientResponse);
+                    } else {
+                        return handleServerError(clientResponse);
+                    }
+                })
+                .doFinally(signalType -> semaphore.release());
+    }
     private Mono<OperationResultCodeResponse> handleServerError(ClientResponse clientResponse) {
         return clientResponse
                 .createException()
