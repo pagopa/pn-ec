@@ -1095,21 +1095,6 @@ Resources:
     Properties:
       TopicName: 'pn-ec-ses-events-topic'
 
-  SESConfigurationSetEventDestination:
-    Type: AWS::SES::ConfigurationSetEventDestination
-    Properties:
-      ConfigurationSetName: !Ref SESConfigurationSetName
-      EventDestination:
-        Name: pn-ec-ses-events-destination
-        Enabled: true
-        MatchingEventTypes:
-          - Bounce
-          - Complaint
-          - Delivery
-          - Reject
-        SnsDestination:
-          TopicARN: !Ref PnEcEmailSESEventsSNSTopic
-
   PnEcQueueSesEventsEMAILStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain

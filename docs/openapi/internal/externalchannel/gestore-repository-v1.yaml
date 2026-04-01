@@ -307,7 +307,7 @@ components:
                 pattern: "^(?!\\s*$).+"
                 minLength: 10
                 maxLength: 50
-              SESEventsList:
+              sesEventsList:
                 type: array
                 items:
                   type: string

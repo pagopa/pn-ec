@@ -1,14 +1,15 @@
 package it.pagopa.pn.ec.email.model.dto.ses;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @ToString
+@Data
+@EqualsAndHashCode
+@SuperBuilder
 public class SesRejectDto {
 
     private String reason;

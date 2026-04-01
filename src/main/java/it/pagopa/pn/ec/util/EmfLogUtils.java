@@ -40,10 +40,14 @@ public class EmfLogUtils {
 
     // Service
     public static final String SERVICE_PEC = "PEC";
+    public static final String SERVICE_EMAIL = "Email";
     public static final String SERVICE_CONSOLIDATORE = "Consolidatore";
 
     // MetricType
     public static final String METRIC_TYPE_MESSAGECOUNT = "MessageCount";
+    public static final String METRIC_TYPE_MESSAGECOUNT_ERROR = "MessageCountError";
+
+    public static final String METRIC_NAME_EMAIL_COUNT_SES = "SesSendError";
 
 
     public static String createEmfLog(String namespace, String metricName, String unit, List<String> dimensions, Map<String, Object> values) {
@@ -129,6 +133,46 @@ public class EmfLogUtils {
 
         } catch (Exception e) {
             log.warn("Errore nella generazione log EMF consolidatore", e);
+        }
+    }
+
+    public static void trackSesSendError() {
+        try {
+            List<String> dimensions = List.of(SERVICE);
+
+            ObjectNode root = objectMapper.createObjectNode();
+            ObjectNode awsNode = objectMapper.createObjectNode();
+            awsNode.put(TIMESTAMP, Instant.now().toEpochMilli());
+
+            ObjectNode metricsNode = objectMapper.createObjectNode();
+            metricsNode.put(NAMESPACE, "Email");
+
+            ArrayNode metricsArray = objectMapper.createArrayNode();
+
+            ObjectNode metric = objectMapper.createObjectNode();
+            metric.put(NAME, "SesSendError");
+            metric.put(UNIT, UNIT_COUNT);
+            metricsArray.add(metric);
+
+            metricsNode.set(METRICS, metricsArray);
+
+            ArrayNode dimensionsArray = objectMapper.createArrayNode();
+            for (String dim : dimensions) {
+                dimensionsArray.add(dim);
+            }
+            metricsNode.set(DIMENSIONS, objectMapper.createArrayNode().add(dimensionsArray));
+
+            awsNode.set(CLOUDWATCH_METRICS, objectMapper.createArrayNode().add(metricsNode));
+            root.set(AWS, awsNode);
+
+            // valori metrica
+            root.put("SesSendError", 1);
+            root.put(SERVICE, SERVICE_EMAIL);
+
+            jsonLogger.info(objectMapper.writeValueAsString(root));
+
+        } catch (Exception e) {
+            log.warn("Errore nella generazione metrica EMF SES send error", e);
         }
     }
 }
