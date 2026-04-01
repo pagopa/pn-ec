@@ -113,26 +113,27 @@ public class PaperMessageCallImpl implements PaperMessageCall {
             throw new IllegalStateException(
                     "Thread interrupted while acquiring semaphore", e);
         }
-        if (rateLimiter != null && !rateLimiter.acquirePermission()) {
-            throw new RateLimitExceededException("Max requests per minute exceeded");
-        }
-        long startTimeCalling = System.currentTimeMillis();
-        return consolidatoreWebClient
-                .post()
-                .uri(paperMessagesEndpointProperties.putRequest())
-                .bodyValue(paperEngageRequest)
-                .exchangeToMono(clientResponse -> {
-                    long elapsedTime = System.currentTimeMillis() - startTimeCalling;
-                    trackMetricsConsolidatore(elapsedTime);
-                    if (clientResponse.statusCode().is2xxSuccessful()) {
-                        return clientResponse.bodyToMono(OperationResultCodeResponse.class);
-                    } else if (clientResponse.statusCode().is4xxClientError()) {
-                        return handleClientError(clientResponse);
-                    } else {
-                        return handleServerError(clientResponse);
-                    }
-                })
-                .doFinally(signalType -> semaphore.release());
+            if (rateLimiter != null && !rateLimiter.acquirePermission()) {
+                semaphore.release();
+                throw new RateLimitExceededException("Max requests per minute exceeded");
+            }
+            long startTimeCalling = System.currentTimeMillis();
+            return consolidatoreWebClient
+                    .post()
+                    .uri(paperMessagesEndpointProperties.putRequest())
+                    .bodyValue(paperEngageRequest)
+                    .exchangeToMono(clientResponse -> {
+                        long elapsedTime = System.currentTimeMillis() - startTimeCalling;
+                        trackMetricsConsolidatore(elapsedTime);
+                        if (clientResponse.statusCode().is2xxSuccessful()) {
+                            return clientResponse.bodyToMono(OperationResultCodeResponse.class);
+                        } else if (clientResponse.statusCode().is4xxClientError()) {
+                            return handleClientError(clientResponse);
+                        } else {
+                            return handleServerError(clientResponse);
+                        }
+                    })
+                    .doFinally(signalType -> semaphore.release());
     }
     private Mono<OperationResultCodeResponse> handleServerError(ClientResponse clientResponse) {
         return clientResponse
