@@ -12,10 +12,12 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.*;
@@ -34,6 +36,7 @@ import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 
@@ -68,6 +71,12 @@ class CartaceoServiceTimeoutTest {
             .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
             .paperEngageRequest(PaperEngageRequestFactory.createDtoPaperRequest(2)).build();
 
+
+    @AfterEach
+    void restoreTimeoutFields() {
+        ReflectionTestUtils.setField(cartaceoService, "lockAtMostFor", Duration.ofMinutes(15));
+        ReflectionTestUtils.setField(cartaceoService, "executeBatchTimeoutDelta", Duration.ofMinutes(1).plusSeconds(30));
+    }
 
     @Test
     void lavorazioneRichiestaShortTimeout() {
@@ -265,6 +274,28 @@ class CartaceoServiceTimeoutTest {
         when(fileCall.postFile(anyString(), anyString(), any(FileCreationRequest.class))).thenReturn(Mono.just(new FileCreationResponse().key(newFileKey).secret(SECRET).uploadUrl(UPLOAD_URL)));
 
         when(uploadCall.uploadFile(eq(newFileKey), eq(UPLOAD_URL), eq(SECRET), eq(APPLICATION_PDF), eq(DocumentTypeConfiguration.ChecksumEnum.SHA256), anyString(), any(byte[].class))).thenReturn(Mono.empty());
+    }
+
+    @Test
+    void calculateBlockTimeout_aboveMinimum() {
+        // lockAtMostFor=PT2M (120s), delta=PT30S (30s) → computed=90s > minimum 30s → 90s
+        ReflectionTestUtils.setField(cartaceoService, "lockAtMostFor", Duration.ofMinutes(2));
+        ReflectionTestUtils.setField(cartaceoService, "executeBatchTimeoutDelta", Duration.ofSeconds(30));
+
+        Duration result = cartaceoService.calculateBlockTimeout();
+
+        assertEquals(Duration.ofSeconds(90), result);
+    }
+
+    @Test
+    void calculateBlockTimeout_minimumApplied() {
+        // lockAtMostFor=PT40S (40s), delta=PT30S (30s) → computed=10s < minimum 30s → 30s
+        ReflectionTestUtils.setField(cartaceoService, "lockAtMostFor", Duration.ofSeconds(40));
+        ReflectionTestUtils.setField(cartaceoService, "executeBatchTimeoutDelta", Duration.ofSeconds(30));
+
+        Duration result = cartaceoService.calculateBlockTimeout();
+
+        assertEquals(Duration.ofSeconds(30), result);
     }
 
 }
