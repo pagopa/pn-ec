@@ -40,7 +40,7 @@ class CompareUtilsTest {
     }
 
     @Test
-    void isSameEventConsolidatoreOk() {
+    void isSameEventConsolidatoreOkEvenWithDifferentCourier() {
         OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
         String id = "id";

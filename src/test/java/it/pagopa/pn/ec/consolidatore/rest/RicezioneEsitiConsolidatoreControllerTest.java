@@ -1092,9 +1092,6 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck",
 				new String[]{"ProductTypeA"});
 
-		when(gestoreRepositoryCall.getRichiesta(anyString(), anyString()))
-				.thenReturn(Mono.just(requestDto));
-
 		// StepVerifier per verificare che l'errore venga sollevato
 		StepVerifier.create(ricezioneEsitiCartaceoServiceImpl.verificaDuplicati(requestDto, incomingEvent))
 				.expectErrorSatisfies(throwable -> {

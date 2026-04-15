@@ -138,38 +138,14 @@ public class EmfLogUtils {
 
     public static void trackCourierMismatchDuplicateEvent() {
         try {
-            List<String> dimensions = List.of(SERVICE);
-
-            ObjectNode root = objectMapper.createObjectNode();
-            ObjectNode awsNode = objectMapper.createObjectNode();
-            awsNode.put(TIMESTAMP, Instant.now().toEpochMilli());
-
-            ObjectNode metricsNode = objectMapper.createObjectNode();
-            metricsNode.put(NAMESPACE, NAMESPACE_CONSOLIDATORE_DUPLICATES);
-
-            ArrayNode metricsArray = objectMapper.createArrayNode();
-
-            ObjectNode metric = objectMapper.createObjectNode();
-            metric.put(NAME, COURIER_MISMATCH_DUPLICATE_EVENT);
-            metric.put(UNIT, UNIT_COUNT);
-
-            metricsArray.add(metric);
-            metricsNode.set(METRICS, metricsArray);
-
-            ArrayNode dimensionsArray = objectMapper.createArrayNode();
-            for (String dim : dimensions) {
-                dimensionsArray.add(dim);
-            }
-            metricsNode.set(DIMENSIONS, objectMapper.createArrayNode().add(dimensionsArray));
-
-            awsNode.set(CLOUDWATCH_METRICS, objectMapper.createArrayNode().add(metricsNode));
-            root.set(AWS, awsNode);
-
-            root.put(COURIER_MISMATCH_DUPLICATE_EVENT, 1);
-            root.put(SERVICE, SERVICE_CONSOLIDATORE);
-
-            jsonLogger.info(objectMapper.writeValueAsString(root));
-
+            String emfLog = createEmfLog(
+                    NAMESPACE_CONSOLIDATORE_DUPLICATES,
+                    COURIER_MISMATCH_DUPLICATE_EVENT,
+                    UNIT_COUNT,
+                    List.of(SERVICE),
+                    Map.of(COURIER_MISMATCH_DUPLICATE_EVENT, 1, SERVICE, SERVICE_CONSOLIDATORE)
+            );
+            jsonLogger.info(emfLog);
         } catch (Exception e) {
             log.warn("Errore nella generazione log EMF courier mismatch", e);
         }
