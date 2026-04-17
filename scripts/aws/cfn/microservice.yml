@@ -1896,7 +1896,7 @@ Resources:
   PnEcEmailSesEventsSubscription:
     Type: AWS::SNS::Subscription
     Properties:
-      TopicArn: !Ref PnEcEmailSESEventsSNSTopic
+      TopicArn: !Ref PnEcEmailSESEventsSNSTopicArn
       Protocol: sqs
       Endpoint: !Ref PnEcQueueArnSesEventsEMAIL
       RawMessageDelivery: true
@@ -1926,7 +1926,7 @@ Resources:
             Resource: !Ref PnEcQueueArnSesEventsEMAIL
             Condition:
               ArnEquals:
-                aws:SourceArn: !Ref PnEcEmailSESEventsSNSTopic
+                aws:SourceArn: !Ref PnEcEmailSESEventsSNSTopicArn
 
   PnEcEventRuleAvailabilityManager:
     Type: AWS::Events::Rule
