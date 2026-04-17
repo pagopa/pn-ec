@@ -885,6 +885,22 @@ Parameters:
     Description: 'Name of the SES Configuration Set'
     Default: ''
 
+  PnEcQueueArnSesEventsEMAIL:
+    Type: String
+    Description: '[SES Events EMAIL] ARN della coda che riceve eventi SES tramite SNS'
+
+  PnEcQueueUrlSesEventsEMAIL:
+    Type: String
+    Description: '[SES Events EMAIL] URL della coda che riceve eventi SES tramite SNS'
+
+  PnEcAlarmArnQueueSesEventsEMAIL:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda SES events EMAIL"
+
+  PnEcAlarmArnDLQueueSesEventsEMAIL:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ SES events EMAIL"
+
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
@@ -1043,6 +1059,7 @@ Resources:
               - !Ref PnEcQueueArnCancellazioneRicevutePEC
               - !Ref PnEcQueueArnAvailabilityManager
               - !Ref PnEcDLQueueArnErroriCARTACEO
+              - !Ref PnEcQueueArnSesEventsEMAIL
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
@@ -1525,6 +1542,7 @@ Resources:
             - !Ref PnEcAlarmArnDLQueueBatchCARTACEO
             - !Ref PnEcAlarmArnQueueErroriCARTACEO
             - !Ref PnEcAlarmArnDLQueueErroriCARTACEO
+            - !Ref PnEcAlarmArnDLQueueSesEventsEMAIL
             - !If [ HasAlbDimensionName, !GetAtt ApplicationLoadBalancerOnCallAlarm.Arn, '' ]
             - !If [ HasAlbDimensionName, !GetAtt ApplicationLoadBalancerWorkdayAlarm.Arn, '' ]
         DynamoDBTableNames:
@@ -1551,6 +1569,7 @@ Resources:
             - !Ref PnEcQueueArnErroriEMAIL
             - !Ref PnEcQueueArnBatchCARTACEO
             - !Ref PnEcQueueArnErroriCARTACEO
+            - !Ref PnEcQueueArnSesEventsEMAIL
 
   ExternalChannelChannelsMicroserviceAlarmDashboard:
     Type: AWS::CloudFormation::Stack
@@ -1582,6 +1601,7 @@ Resources:
             - !Ref PnEcAlarmArnQueueTrackerErroriSERCQ
             - !Ref PnEcAlarmArnDLQueueTrackerErroriSERCQ
             - !Ref PnEcAlarmArnEventsDLQueuePnCoreTargetEventBus
+            - !Ref PnEcAlarmArnDLQueueSesEventsEMAIL
         DynamoDBTableNames:
           !Join
           - ','
@@ -1604,6 +1624,7 @@ Resources:
             - !Ref PnEcQueueArnTrackerStatoSERCQ
             - !Ref PnEcQueueArnTrackerErroriSERCQ
             - !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
+            - !Ref PnEcQueueArnSesEventsEMAIL
 
   #####    External notifications    #####
   PnEcRoleExternalNotifications:
@@ -1877,14 +1898,14 @@ Resources:
     Properties:
       TopicArn: !Ref PnEcEmailSESEventsSNSTopic
       Protocol: sqs
-      Endpoint: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
+      Endpoint: !Ref PnEcQueueArnSesEventsEMAIL
       RawMessageDelivery: true
 
   PnEcEmailSesEventsQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
       Queues:
-        - !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueURL
+        - !Ref PnEcQueueUrlSesEventsEMAIL
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -1896,13 +1917,13 @@ Resources:
               - sqs:DeleteMessage
               - sqs:GetQueueAttributes
               - sqs:ChangeMessageVisibility
-            Resource: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
+            Resource: !Ref PnEcQueueArnSesEventsEMAIL
           - Effect: Allow
             Principal:
               Service: sns.amazonaws.com
             Action:
               - sqs:SendMessage
-            Resource: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
+            Resource: !Ref PnEcQueueArnSesEventsEMAIL
             Condition:
               ArnEquals:
                 aws:SourceArn: !Ref PnEcEmailSESEventsSNSTopic
