@@ -40,7 +40,7 @@ class CompareUtilsTest {
     }
 
     @Test
-    void isSameEventConsolidatoreOk() {
+    void isSameEventConsolidatoreOkEvenWithDifferentCourier() {
         OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
         String id = "id";
@@ -113,7 +113,7 @@ class CompareUtilsTest {
                 .statusDescription(statusDescription)
                 .attachments(List.of(attachments))
                 .discoveredAddress(discoveredAddress)
-                .courier(courier);
+                .courier(courier+"1");
 
         ConsolidatoreIngressPaperProgressStatusEvent consEvent = new ConsolidatoreIngressPaperProgressStatusEvent()
                 .statusDateTime(now)
@@ -125,7 +125,7 @@ class CompareUtilsTest {
                 .statusDescription(statusDescription)
                 .attachments(List.of(consAttachments))
                 .discoveredAddress(consDiscoveredAddress)
-                .courier(courier);
+                .courier(courier+"2");
 
         boolean isSameEvent = CompareUtils.isSameEvent(paperProgressStatusDto, consEvent);
         Assertions.assertTrue(isSameEvent);

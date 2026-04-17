@@ -38,6 +38,10 @@ public class EmfLogUtils {
     public static final String API_CALL = "ApiCall";
     public static final String API_CALL_TIMING = "ApiCallTiming";
 
+    // Metrics
+    public static final String COURIER_MISMATCH_DUPLICATE_EVENT = "CourierMismatchDuplicateEvent";
+    public static final String NAMESPACE_CONSOLIDATORE_DUPLICATES = "PN-Consolidatore-Duplicates";
+
     // Service
     public static final String SERVICE_PEC = "PEC";
     public static final String SERVICE_CONSOLIDATORE = "Consolidatore";
@@ -129,6 +133,21 @@ public class EmfLogUtils {
 
         } catch (Exception e) {
             log.warn("Errore nella generazione log EMF consolidatore", e);
+        }
+    }
+
+    public static void trackCourierMismatchDuplicateEvent() {
+        try {
+            String emfLog = createEmfLog(
+                    NAMESPACE_CONSOLIDATORE_DUPLICATES,
+                    COURIER_MISMATCH_DUPLICATE_EVENT,
+                    UNIT_COUNT,
+                    List.of(SERVICE),
+                    Map.of(COURIER_MISMATCH_DUPLICATE_EVENT, 1, SERVICE, SERVICE_CONSOLIDATORE)
+            );
+            jsonLogger.info(emfLog);
+        } catch (Exception e) {
+            log.warn("Errore nella generazione log EMF courier mismatch", e);
         }
     }
 }
