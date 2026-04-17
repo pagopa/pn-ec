@@ -44,6 +44,7 @@ import static it.pagopa.pn.ec.consolidatore.constant.ConsAuditLogEventType.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperConstant.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperResult.*;
+import static it.pagopa.pn.ec.util.EmfLogUtils.trackCourierMismatchDuplicateEvent;
 
 @Service
 @CustomLog
@@ -285,7 +286,12 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 			if(!((passthrough != null && passthrough) || (isOpenReworker != null && isOpenReworker)) && shouldCheck) {
 				log.debug(VERIFICA_DUPLICATI + ": checking {} for duplicates against events {}", progressStatusEvent,requestDto.getRequestMetadata().getEventsList());
-				return Flux.fromIterable(requestDto.getRequestMetadata().getEventsList()).any(event -> isSameEvent(event.getPaperProgrStatus(), progressStatusEvent));
+				return Flux.fromIterable(requestDto.getRequestMetadata().getEventsList()).map(EventsDto::getPaperProgrStatus)
+						.filter(event -> isSameEvent(event, progressStatusEvent))
+						.next()
+						.doOnNext(duplicatedEvent -> handleCourierMismatchWithEmf(duplicatedEvent, progressStatusEvent))
+						.map(duplicatedEvent -> true)
+						.defaultIfEmpty(false);
 			}
 			return Mono.just(false);
 		}).handle((isDuplicated, sink)-> {
@@ -456,6 +462,17 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 
 	public Flux<DiscardedEventDto> insertDiscardedEvents(List<DiscardedEventDto> discardedEvents) {
 		return gestoreRepositoryCall.insertDiscardedEvents(Flux.fromIterable(discardedEvents));
+	}
+
+	private void handleCourierMismatchWithEmf(PaperProgressStatusDto duplicatedEvent,
+													   ConsolidatoreIngressPaperProgressStatusEvent incomingEvent) {
+
+		String storedCourier = duplicatedEvent.getCourier();
+		String incomingCourier = incomingEvent.getCourier();
+
+		if (storedCourier != null && incomingCourier != null && !storedCourier.equals(incomingCourier)) {
+			trackCourierMismatchDuplicateEvent();
+		}
 	}
 
 }
