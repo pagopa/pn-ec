@@ -1110,39 +1110,6 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         VisibilityTimeout: 600
 
-  PnEcEmailSesEventsSubscription:
-    Type: AWS::SNS::Subscription
-    Properties:
-      TopicArn: !Ref PnEcEmailSESEventsSNSTopic
-      Protocol: sqs
-      Endpoint: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
-      RawMessageDelivery: true
-
-  PnEcEmailSesEventsQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueURL
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: '*'
-            Action:
-              - 'sqs:*'
-            Resource: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
-          - Effect: Allow
-            Principal:
-              Service: sns.amazonaws.com
-            Action:
-              - sqs:SendMessage
-            Resource: !GetAtt PnEcQueueSesEventsEMAILStack.Outputs.QueueARN
-            Condition:
-              ArnEquals:
-                aws:SourceArn: !Ref PnEcEmailSESEventsSNSTopic
-
-
 #########  OUTPUTS  ##########
 
 Outputs:
