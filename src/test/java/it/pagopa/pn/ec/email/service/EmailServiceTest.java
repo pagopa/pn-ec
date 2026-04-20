@@ -217,7 +217,7 @@ class EmailServiceTest {
         when(sqsService.send(eq(notificationTrackerSqsName.statoEmailName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(new SqsClientException("")));
 
         Mono<SendMessageResponse> lavorazioneRichiesta=emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO,QUEUE_NAME);
-        StepVerifier.create(lavorazioneRichiesta).expectNextCount(1).verifyComplete();
+        StepVerifier.create(lavorazioneRichiesta).expectError().verify();
 
         verify(emailService, times(1)).sendNotificationOnErrorQueue(eq(EMAIL_PRESA_IN_CARICO_INFO));
 

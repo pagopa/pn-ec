@@ -2,9 +2,11 @@ package it.pagopa.pn.ec.notificationtracker.service.impl;
 
 
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
+import it.pagopa.pn.ec.commons.configuration.ses.SesConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
+import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsMaxTimeElapsedException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -19,10 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import static it.pagopa.pn.ec.commons.utils.CompareUtils.*;
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
@@ -40,18 +39,21 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
     private final SqsService sqsService;
     private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
     private final NotificationTrackerSqsName notificationTrackerSqsName;
+    private final SesConfigurationProperties sesConfigurationProperties;
     private static final String EXTERNAL_CHANNEL_REWORK_OUTCOME_EVENT = "ExternalChannelReworkOutcomeEvent";
     private static final String EXTERNAL_CHANNEL_OUTCOME_EVENT = "ExternalChannelOutcomeEvent";
 
     public NotificationTrackerServiceImpl(PutEvents putEvents, GestoreRepositoryCall gestoreRepositoryCall,
                                           CallMacchinaStati callMachinaStati, SqsService sqsService,
-                                          TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, NotificationTrackerSqsName notificationTrackerSqsName) {
+                                          TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, NotificationTrackerSqsName notificationTrackerSqsName,
+                                          SesConfigurationProperties sesConfigurationProperties) {
         this.putEvents = putEvents;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.callMachinaStati = callMachinaStati;
         this.sqsService = sqsService;
         this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
         this.notificationTrackerSqsName = notificationTrackerSqsName;
+        this.sesConfigurationProperties = sesConfigurationProperties;
     }
 
     @Override
@@ -195,6 +197,34 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                         singleStatusUpdate.setEventTimestamp(OffsetDateTime.now());
 
                                         String detailType = getDetailType(requestDto);
+
+                                        if (transactionProcessConfigurationProperties.email().equals(processId)) {
+                                            return gestoreRepositoryCall.getClientConfiguration(xPagopaExtchCxId)
+                                                    .switchIfEmpty(Mono.defer(() -> {
+                                                        log.warn("Client non trovato per xPagopaExtchCxId={}", xPagopaExtchCxId);
+                                                        return Mono.error(new RepositoryManagerException.IdClientNotFoundException(xPagopaExtchCxId));
+                                                    }))
+                                                    .flatMap(clientDto -> {
+                                                        log.debug("clientDto: {}", clientDto.toString());
+                                                        List<String> sesEventsList = clientDto.getSesEventsList();
+                                                        if (sesEventsList == null || sesEventsList.isEmpty()) {
+                                                            sesEventsList = Arrays.stream(sesConfigurationProperties.getEventsListDefault().split(";")).toList();
+                                                            log.debug("SesEventsList null per clientId: {}, uso EventsListDefault: {}", xPagopaExtchCxId, sesEventsList);
+                                                        } else {
+                                                            log.debug("SesEventsList configured for clientId {} = {}", xPagopaExtchCxId, sesEventsList);
+                                                        }
+
+                                                        var logicStatus = macchinaStatiDecodeResponseDto.getLogicStatus();
+                                                        if (sesEventsList.contains(logicStatus)) {
+                                                            log.info("Evento SES {} abilitato per clientId: {}, invio su EventBridge", logicStatus, xPagopaExtchCxId);
+                                                            return putEvents.putEventExternal(singleStatusUpdate, processId, detailType);
+                                                        } else {
+                                                            log.info("Evento SES {} NON abilitato per clientId: {}, skip EventBridge", logicStatus, xPagopaExtchCxId);
+                                                            return Mono.empty();
+                                                        }
+                                                    });
+                                        }
+
                                         return putEvents.putEventExternal(singleStatusUpdate, processId, detailType);
 
                                     })

@@ -857,8 +857,8 @@ Parameters:
 
   ConsolidatoreMaxRequest:
     Type: Number
-    Description: 'Maximum number of concurrent requests allowed for consolidatore before triggering an alarm'
-    Default: 10
+    Description: 'Maximum number of requests allowed for consolidatore before triggering an alarm'
+    Default: 750
 
   ConsolidatoreRequestEvaluationPeriods:
     Type: Number
@@ -874,6 +874,32 @@ Parameters:
     Type: Number
     Description: 'Maximum number of concurrent requests that consolidator can handle simultaneously'
     Default: 10
+
+  PnEcEmailSESEventsSNSTopicArn:
+    Type: String
+    Description: 'Arn del topic ses email'
+    Default: ''
+
+  SESConfigurationSetName:
+    Type: String
+    Description: 'Name of the SES Configuration Set'
+    Default: ''
+
+  PnEcQueueArnSesEventsEMAIL:
+    Type: String
+    Description: '[SES Events EMAIL] ARN della coda che riceve eventi SES tramite SNS'
+
+  PnEcQueueUrlSesEventsEMAIL:
+    Type: String
+    Description: '[SES Events EMAIL] URL della coda che riceve eventi SES tramite SNS'
+
+  PnEcAlarmArnQueueSesEventsEMAIL:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda SES events EMAIL"
+
+  PnEcAlarmArnDLQueueSesEventsEMAIL:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ SES events EMAIL"
 
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
@@ -938,6 +964,8 @@ Resources:
         ContainerEnvEntry42: !Sub 'PnEcMaxConsolidatoreConcurrentRequest=${PnEcMaxConsolidatoreConcurrentRequest}'
         ContainerEnvEntry43: !Sub 'ConsolidatoreMaxRequest=${ConsolidatoreMaxRequest}'
         ContainerEnvEntry44: !Sub 'ConsolidatoreRefreshPeriodSeconds=${ConsolidatoreRefreshPeriodSeconds}'
+        ContainerEnvEntry45: !Sub 'PnEcEmailSESEventsSNSTopicArn=${PnEcEmailSESEventsSNSTopicArn}'
+        ContainerEnvEntry46: !Sub 'SESConfigurationSetName=${SESConfigurationSetName}'
         ContainerSecret1: !Sub 'ConsolidatoreClientApiKey=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -984,6 +1012,7 @@ Resources:
               - !Ref PnEcTableArnAnagrafica
               - !Ref PnEcTableArnRichieste
               - !Ref PnEcTableArnRichiesteMetadati
+              - !Sub '${PnEcTableArnRichiesteMetadati}/index/messageIdIndex'
               - !Ref PnEcTableArnRichiesteConversione
               - !Ref PnEcTableArnConversionePdf
               - !Ref PnEcTableArnScartiConsolidatore
@@ -1030,6 +1059,7 @@ Resources:
               - !Ref PnEcQueueArnCancellazioneRicevutePEC
               - !Ref PnEcQueueArnAvailabilityManager
               - !Ref PnEcDLQueueArnErroriCARTACEO
+              - !Ref PnEcQueueArnSesEventsEMAIL
           - Effect: Allow
             Action:
               - 'events:DescribeEventBus'
@@ -1512,6 +1542,7 @@ Resources:
             - !Ref PnEcAlarmArnDLQueueBatchCARTACEO
             - !Ref PnEcAlarmArnQueueErroriCARTACEO
             - !Ref PnEcAlarmArnDLQueueErroriCARTACEO
+            - !Ref PnEcAlarmArnDLQueueSesEventsEMAIL
             - !If [ HasAlbDimensionName, !GetAtt ApplicationLoadBalancerOnCallAlarm.Arn, '' ]
             - !If [ HasAlbDimensionName, !GetAtt ApplicationLoadBalancerWorkdayAlarm.Arn, '' ]
         DynamoDBTableNames:
@@ -1538,6 +1569,7 @@ Resources:
             - !Ref PnEcQueueArnErroriEMAIL
             - !Ref PnEcQueueArnBatchCARTACEO
             - !Ref PnEcQueueArnErroriCARTACEO
+            - !Ref PnEcQueueArnSesEventsEMAIL
 
   ExternalChannelChannelsMicroserviceAlarmDashboard:
     Type: AWS::CloudFormation::Stack
@@ -1569,6 +1601,7 @@ Resources:
             - !Ref PnEcAlarmArnQueueTrackerErroriSERCQ
             - !Ref PnEcAlarmArnDLQueueTrackerErroriSERCQ
             - !Ref PnEcAlarmArnEventsDLQueuePnCoreTargetEventBus
+            - !Ref PnEcAlarmArnDLQueueSesEventsEMAIL
         DynamoDBTableNames:
           !Join
           - ','
@@ -1591,6 +1624,7 @@ Resources:
             - !Ref PnEcQueueArnTrackerStatoSERCQ
             - !Ref PnEcQueueArnTrackerErroriSERCQ
             - !Ref PnEcQueueArnEventsDLQueuePnCoreTargetEventBus
+            - !Ref PnEcQueueArnSesEventsEMAIL
 
   #####    External notifications    #####
   PnEcRoleExternalNotifications:
@@ -1840,6 +1874,59 @@ Resources:
             Condition:
               ArnEquals:
                 aws:SourceArn: !GetAtt PnEcEventRuleAvailabilityManager.Arn
+
+### SES Events ###
+
+  # EventDestination for SES SNS
+  PnEcSESConfigurationSetEventDestination:
+    Type: AWS::SES::ConfigurationSetEventDestination
+    Properties:
+      ConfigurationSetName: !Ref SESConfigurationSetName
+      EventDestination:
+        Name: pn-ec-ses-events-sns-destination
+        Enabled: true
+        MatchingEventTypes:
+          - Bounce
+          - Complaint
+          - Delivery
+          - Reject
+        SnsDestination:
+          TopicARN: !Ref PnEcEmailSESEventsSNSTopicArn
+
+  PnEcEmailSesEventsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref PnEcEmailSESEventsSNSTopicArn
+      Protocol: sqs
+      Endpoint: !Ref PnEcQueueArnSesEventsEMAIL
+      RawMessageDelivery: true
+
+  PnEcEmailSesEventsQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref PnEcQueueUrlSesEventsEMAIL
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref AWS::AccountId
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:ChangeMessageVisibility
+            Resource: !Ref PnEcQueueArnSesEventsEMAIL
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action:
+              - sqs:SendMessage
+            Resource: !Ref PnEcQueueArnSesEventsEMAIL
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref PnEcEmailSESEventsSNSTopicArn
 
   PnEcEventRuleAvailabilityManager:
     Type: AWS::Events::Rule

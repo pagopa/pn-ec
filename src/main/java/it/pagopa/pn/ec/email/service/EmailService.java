@@ -23,6 +23,7 @@ import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
+import it.pagopa.pn.ec.util.EmfLogUtils;
 import it.pagopa.pn.ec.util.LogSanitizer;
 import lombok.CustomLog;
 import org.slf4j.MDC;
@@ -41,6 +42,8 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
@@ -56,6 +59,8 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.EMAIL;
+import static it.pagopa.pn.ec.util.EmfLogUtils.*;
+
 
 @Service
 @CustomLog
@@ -107,7 +112,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var emailPresaInCaricoInfo = (EmailPresaInCaricoInfo) presaInCaricoInfo;
         var requestIdx = emailPresaInCaricoInfo.getRequestIdx();
 
-        log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_SMS, presaInCaricoInfo);
+        log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, PRESA_IN_CARICO_EMAIL, presaInCaricoInfo);
 
         var xPagopaExtchCxId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
         var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
@@ -248,14 +253,23 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .flatMap(attList -> {
                     var mailFld = compilaMail(digitalCourtesyMailRequest);
                     mailFld.setEmailAttachments(attList);
-                    return sesService.send(mailFld);
+                    return sesService.send(mailFld)
+                            .doOnError(ex -> {
+                                log.info("Exception during SES send, publishing metric");
+                                EmfLogUtils.trackSesSendError();
+                            });
                 })
 
                 // The EMAIL in sent, publish to Notification Tracker with next status -> SENT
                 .flatMap(publishResponse -> {
                     generatedMessageDto.set(new GeneratedMessageDto().id(publishResponse.messageId())
                             .system("systemPlaceholder"));
-                    return sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
+                    MessageIdRequestMetadataDto messageIdDto = new MessageIdRequestMetadataDto()
+                            .messageId(publishResponse.messageId());
+                //inseriamo il messageId in tabella
+                    log.info("EmailService.lavorazioneRichiesta() - messageId retrieve from ses={}", messageIdDto.getMessageId());
+                    return gestoreRepositoryCall.setRequestMetadataMessageId(clientId, concatRequestId(clientId, requestIdx), messageIdDto)
+                            .then(sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                             SENT.getStatusTransactionTableCompliant(),
                             new DigitalProgressStatusDto().generatedMessage(generatedMessageDto.get()))
                             // An error occurred during EMAIL send, start retries
@@ -270,7 +284,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                         .setStep(NOTIFICATION_TRACKER_STEP);
                                 emailPresaInCaricoInfo.getStepError().setGeneratedMessageDto(generatedMessageDto.get());
                                 return sendNotificationOnErrorQueue(emailPresaInCaricoInfo);
-                            });
+                            }));
                 })
                 // The maximum number of retries has ended
                 .onErrorResume(throwable -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo,

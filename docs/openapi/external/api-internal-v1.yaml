@@ -422,6 +422,10 @@ components:
           type: string
         senderPhysicalAddress:
           $ref: '#/components/schemas/SenderPhysicalAddressDto'
+        sesEventsList:
+          type: array
+          items:
+            type: string
 
     SenderPhysicalAddressDto:
       type: object

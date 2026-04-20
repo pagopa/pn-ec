@@ -55,15 +55,22 @@ public class LogUtils {
     public static final String GET_REQUEST_BY_MESSAGE_ID_OP = "RequestService.getRequestByMessageId()";
     public static final String SET_MESSAGE_ID_IN_REQUEST_METADATA = "setMessageIdInRequestMetadata";
     public static final String SET_MESSAGE_ID_IN_REQUEST_METADATA_OP = "RequestService.setMessageIdInRequestMetadata()";
+    public static final String GET_REQUEST_METADATA_BY_MESSAGE_ID = "getRequestMetadataByMessageId";
+    public static final String SET_REQUEST_METADATA_MESSAGE_ID = "setRequestMetadataMessageId";
+    public static final String GET_REQUEST_METADATA_BY_MESSAGE_ID_OP = "RequestService.getRequestMetadataByMessageId";
+    public static final String SET_REQUEST_METADATA_MESSAGE_ID_OP = "RequestService.setRequestMetadataMessageId";
 
     public static final String GET_REQUEST_METADATA_OP = "RequestMetadataService.getRequestMetadata()";
     public static final String INSERT_REQUEST_METADATA_OP = "RequestMetadataService.insertRequestMetadata()";
     public static final String PATCH_REQUEST_METADATA_OP = "RequestMetadataService.patchRequestMetadata()";
     public static final String DELETE_REQUEST_METADATA_OP = "RequestMetadataService.deleteRequestMetadata()";
+    public static final String GET_REQUEST_METADATA_BY_MESSAGE_IDKEY_OP = "RequestMetadataService.getRequestMetadataByMessageIdKey()";
+    public static final String SET_REQUEST_METADATA_MESSAGE_IDKEY_OP = "RequestMetadataService.setRequestMetadataMessageId()";
 
     public static final String GET_REQUEST_PERSONAL_OP = "RequestPersonalService.getRequestPersonal()";
     public static final String INSERT_REQUEST_PERSONAL_OP = "RequestPersonalService.insertRequestPersonal()";
     public static final String DELETE_REQUEST_PERSONAL_OP = "RequestPersonalService.deleteRequestPersonal()";
+    public static final String UPDATE_REQUEST_METADATA_MESSAGE_ID_OP = "RequestMetadataService.updateRequestMetadataMessageId()";
 
     public static final String GET_CONFIGURATIONS = "getConfigurations";
     public static final String GET_CONFIGURATIONS_OP = "RequestService.getConfigurations()";
@@ -149,6 +156,9 @@ public class LogUtils {
     
     public static final String LAVORAZIONE_BATCH_EMAIL = "EmailService.lavorazioneRichiestaBatch()";
     public static final String LAVORAZIONE_ERRORI_EMAIL = "EmailService.gestioneRetryEmailScheduler()";
+
+    //EMAIL SES
+    public static final String LAVORAZIONE_SES_EVENT_EMAIL = "lavorazioneSesEvents()";
 
     //SMS
     public static final String SEND_COURTESY_SHORT_MESSAGE = "sendCourtesyShortMessage";

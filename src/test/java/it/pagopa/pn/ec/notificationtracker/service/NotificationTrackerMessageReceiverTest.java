@@ -182,6 +182,8 @@ class NotificationTrackerMessageReceiverTest {
     @ParameterizedTest
     @MethodSource("provideArguments")
     void digitalNtOk(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+        ClientConfigurationInternalDto clientConfig = new ClientConfigurationInternalDto();
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfig));
         Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
         Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
 
@@ -200,6 +202,8 @@ class NotificationTrackerMessageReceiverTest {
     @ParameterizedTest
     @MethodSource("provideArguments")
     void digitalNtGeneratedMessageNullOk(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+        ClientConfigurationInternalDto clientConfig = new ClientConfigurationInternalDto();
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(clientConfig));
         Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
         Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
 

@@ -41,13 +41,17 @@ public class EmfLogUtils {
     // Metrics
     public static final String COURIER_MISMATCH_DUPLICATE_EVENT = "CourierMismatchDuplicateEvent";
     public static final String NAMESPACE_CONSOLIDATORE_DUPLICATES = "PN-Consolidatore-Duplicates";
+    public static final String NAMESPACE_EMAIL_SES_ERROR = "Email-SES-Error";
 
     // Service
     public static final String SERVICE_PEC = "PEC";
+    public static final String SERVICE_EMAIL = "Email";
     public static final String SERVICE_CONSOLIDATORE = "Consolidatore";
 
     // MetricType
     public static final String METRIC_TYPE_MESSAGECOUNT = "MessageCount";
+
+    public static final String METRIC_NAME_EMAIL_COUNT_SES = "SesSendError";
 
 
     public static String createEmfLog(String namespace, String metricName, String unit, List<String> dimensions, Map<String, Object> values) {
@@ -148,6 +152,21 @@ public class EmfLogUtils {
             jsonLogger.info(emfLog);
         } catch (Exception e) {
             log.warn("Errore nella generazione log EMF courier mismatch", e);
+        }
+    }
+
+    public static void trackSesSendError() {
+        try {
+            String emfLog = createEmfLog(
+                    NAMESPACE_EMAIL_SES_ERROR,
+                    METRIC_NAME_EMAIL_COUNT_SES,
+                    UNIT_COUNT,
+                    List.of(SERVICE),
+                    Map.of(METRIC_NAME_EMAIL_COUNT_SES, 1, SERVICE, SERVICE_EMAIL)
+            );
+            jsonLogger.info(emfLog);
+        } catch (Exception e) {
+            log.warn("Errore nella generazione metrica EMF SES send error", e);
         }
     }
 }
