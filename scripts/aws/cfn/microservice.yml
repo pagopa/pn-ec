@@ -1485,11 +1485,11 @@ Resources:
       ComparisonOperator: "GreaterThanOrEqualToThreshold"
       TreatMissingData: notBreaching
 
-  MaxConcurrentRequestsOnCallAlarm:
+  MaxConcurrentRequestsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: !Sub "oncall-${ProjectName}-consolidatore-maxConcurrentRequestsExceeded-alarm"
-      AlarmDescription: "Oncall alarm when max concurrent requests toward consolidatore are exceeded 3 times in 10 minutes."
+      AlarmName: !Sub "${ProjectName}-consolidatore-maxConcurrentRequestsExceeded-alarm"
+      AlarmDescription: "Alarm when max concurrent requests toward consolidatore are exceeded 3 times in 10 minutes."
       AlarmActions:
         - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
       OKActions:
