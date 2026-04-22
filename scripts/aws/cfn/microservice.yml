@@ -1490,7 +1490,7 @@ Resources:
         - Name: "Service"
           Value: "Consolidatore"
       Statistic: "Sum"
-      Period: !Ref ConsolidatoreRefreshPeriodSeconds #pn.ec.consolidatore.refresh-period-seconds
+      Period: 60 #pn.ec.consolidatore.refresh-period-seconds
       EvaluationPeriods: !Ref ConsolidatoreRequestEvaluationPeriods
       DatapointsToAlarm: !Ref ConsolidatoreRequestDatapointToAlarm
       Threshold: !Ref ConsolidatoreMaxRequest #pn.ec.consolidatore.max-request
