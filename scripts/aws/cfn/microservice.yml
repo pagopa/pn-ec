@@ -850,6 +850,16 @@ Parameters:
     Default: ''
     Description: 'Applicative environment variable file checksum'
 
+  ConsolidatoreAlarmPeriod:
+    Type: Number
+    Description: 'Alarm period (in seconds) for consolidatore'
+    Default: 60
+    
+  ConsolidatoreAlarmThreshold:
+    Type: Number
+    Description: 'Alarm threshold for consolidatore'
+    Default: 720
+    
   ConsolidatoreRefreshPeriodSeconds:
     Type: Number
     Description: 'Refresh interval (in seconds) for calculating metrics for consolidatore'
@@ -1475,11 +1485,11 @@ Resources:
       ComparisonOperator: "GreaterThanOrEqualToThreshold"
       TreatMissingData: notBreaching
 
-  MaxConcurrentRequestsOnCallAlarm:
+  MaxConcurrentRequestsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: !Sub "oncall-${ProjectName}-consolidatore-maxConcurrentRequestsExceeded-alarm"
-      AlarmDescription: "Oncall alarm when max concurrent requests toward consolidatore are exceeded 3 times in 10 minutes."
+      AlarmName: !Sub "${ProjectName}-consolidatore-maxConcurrentRequestsExceeded-alarm"
+      AlarmDescription: "Alarm when max concurrent requests toward consolidatore are exceeded 3 times in 10 minutes."
       AlarmActions:
         - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${AlarmSNSTopicName}'
       OKActions:
@@ -1490,10 +1500,10 @@ Resources:
         - Name: "Service"
           Value: "Consolidatore"
       Statistic: "Sum"
-      Period: !Ref ConsolidatoreRefreshPeriodSeconds #pn.ec.consolidatore.refresh-period-seconds
+      Period: !Ref ConsolidatoreAlarmPeriod
       EvaluationPeriods: !Ref ConsolidatoreRequestEvaluationPeriods
       DatapointsToAlarm: !Ref ConsolidatoreRequestDatapointToAlarm
-      Threshold: !Ref ConsolidatoreMaxRequest #pn.ec.consolidatore.max-request
+      Threshold: !Ref ConsolidatoreAlarmThreshold
       ComparisonOperator: "GreaterThanOrEqualToThreshold"
       TreatMissingData: notBreaching
 
