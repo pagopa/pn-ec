@@ -850,6 +850,16 @@ Parameters:
     Default: ''
     Description: 'Applicative environment variable file checksum'
 
+  ConsolidatoreAlarmPeriod:
+    Type: Number
+    Description: 'Alarm period (in seconds) for consolidatore'
+    Default: 60
+    
+  ConsolidatoreAlarmThreshold:
+    Type: Number
+    Description: 'Alarm threshold for consolidatore'
+    Default: 720
+    
   ConsolidatoreRefreshPeriodSeconds:
     Type: Number
     Description: 'Refresh interval (in seconds) for calculating metrics for consolidatore'
@@ -1490,10 +1500,10 @@ Resources:
         - Name: "Service"
           Value: "Consolidatore"
       Statistic: "Sum"
-      Period: 60
+      Period: !Ref ConsolidatoreAlarmPeriod
       EvaluationPeriods: !Ref ConsolidatoreRequestEvaluationPeriods
       DatapointsToAlarm: !Ref ConsolidatoreRequestDatapointToAlarm
-      Threshold: !Ref ConsolidatoreMaxRequest #pn.ec.consolidatore.max-request
+      Threshold: !Ref ConsolidatoreAlarmThreshold
       ComparisonOperator: "GreaterThanOrEqualToThreshold"
       TreatMissingData: notBreaching
 
