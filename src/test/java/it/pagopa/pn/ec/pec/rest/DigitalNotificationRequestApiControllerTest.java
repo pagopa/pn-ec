@@ -180,11 +180,10 @@ public class DigitalNotificationRequestApiControllerTest {
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
 
 //      Insert request -> Returns a 204 mapped to empty Mono, because a request with the same hash already exists
-        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.empty());
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.error(new RestCallException.ResourceAlreadySameHashException()));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                 .isEqualTo(OK)
-                                                                                                 .expectBody(Problem.class);
+                .isEqualTo(NO_CONTENT);
     }
 
     //PECPIC.100.9 -> Richiesta di invio PEC già effettuata

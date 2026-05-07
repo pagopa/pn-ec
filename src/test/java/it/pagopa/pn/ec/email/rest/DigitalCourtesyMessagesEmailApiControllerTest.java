@@ -177,11 +177,10 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(uriBuilderCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse()));
 
 //      Insert request -> Returns a 204 mapped to empty Mono, because a request with the same hash already exists
-        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.empty());
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.error(new RestCallException.ResourceAlreadySameHashException()));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                .isEqualTo(OK)
-                                                                                                .expectBody(Problem.class);
+                .isEqualTo(NO_CONTENT);
     }
 
     //EMIALPIC.100.7 -> Pubblicazione sulla coda "Notification tracker stato EMAIL" -> KO
