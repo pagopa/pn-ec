@@ -81,7 +81,7 @@ public class GestoreRepositoryCallImpl implements GestoreRepositoryCall {
                                     clientResponse -> clientResponse.bodyToMono(Problem.class)
                                                                     .flatMap(problem -> Mono.error(new RestCallException.ResourceAlreadyExistsException(
                                                                             problem.getDetail()))))
-                          .onStatus(NO_CONTENT::equals, clientResponse -> Mono.empty())
+                          .onStatus(NO_CONTENT::equals, clientResponse -> Mono.error(new RestCallException.ResourceAlreadySameHashException()))
                           .bodyToMono(RequestDto.class);
     }
 

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 @ControllerAdvice
 public class PresaInCaricoErrorHandler {
@@ -22,5 +23,14 @@ public class PresaInCaricoErrorHandler {
         problem.setDetail(exception.getMessage());
         problem.setTraceId(UUID.randomUUID().toString());
         return new ResponseEntity<>(problem, CONFLICT);
+    }
+    @SuppressWarnings("Duplicates")
+    @ExceptionHandler(RestCallException.ResourceAlreadySameHashException.class)
+    public final ResponseEntity<Problem> handleRequestAlreadySameHash(RestCallException.ResourceAlreadySameHashException exception) {
+        var problem = new Problem();
+        problem.setStatus(NO_CONTENT.value());
+        problem.setTitle("Request idempotence");
+        problem.setTraceId(UUID.randomUUID().toString());
+        return new ResponseEntity<>(problem, NO_CONTENT);
     }
 }
