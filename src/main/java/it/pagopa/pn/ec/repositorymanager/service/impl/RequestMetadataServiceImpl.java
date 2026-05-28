@@ -113,7 +113,6 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
         var retry = patch.getRetry();
 
         if (retry != null) {
-            // Handle retry patch
             var retrievedRetry = retrieveRequestMetadata.getRetry();
             if (retrievedRetry == null) {
                 retrievedRetry = new Retry();
@@ -123,7 +122,6 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
             retrievedRetry.setRetryStep(retry.getRetryStep());
             retrievedRetry.setRetryPolicy(retry.getRetryPolicy());
         } else {
-            // Handle event patch
             var event = patch.getEvent();
             var eventsList = retrieveRequestMetadata.getEventsList();
             eventsCheck(event, eventsList, requestId);
@@ -135,10 +133,8 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
             newEventsList.add(event);
             retrieveRequestMetadata.setEventsList(newEventsList);
             if (event.getDigProgrStatus() != null) {
-                // Handle digital request event
                 retrieveRequestMetadata.setStatusRequest(event.getDigProgrStatus().getStatus());
             } else {
-                // Handle paper request event
                 retrieveRequestMetadata.setStatusRequest(event.getPaperProgrStatus().getStatus());
             }
         }
@@ -147,7 +143,6 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
 
      protected void eventsCheck(Events event, List<Events> eventsList, String requestId) {
         if (eventsList != null && eventsList.contains(event)) {
-            // Event already exists
             var status = getStatusFromEvent(event);
             if (status instanceof DigitalProgressStatus digitalProgressStatus) {
                 throw new RepositoryManagerException.EventAlreadyExistsException(requestId, digitalProgressStatus);
@@ -270,6 +265,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
                     existingItem.setLastUpdateTimestamp(lastUpdateTimestamp.format(dtf));
                     return Mono.fromFuture(requestMetadataDynamoDbTable.updateItem(existingItem));
                 })
+                .retryWhen(DYNAMO_OPTIMISTIC_LOCKING_RETRY)
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, messageId, UPDATE_REQUEST_METADATA_MESSAGE_ID_OP, result))
                 .doOnError(throwable -> log.debug(EXCEPTION_IN_PROCESS, UPDATE_REQUEST_METADATA_MESSAGE_ID_OP, throwable, throwable.getMessage()));
     }
