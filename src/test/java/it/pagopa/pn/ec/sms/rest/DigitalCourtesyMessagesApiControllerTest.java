@@ -124,11 +124,10 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
 
 //      Insert request -> Returns a 204 mapped to empty Mono, because a request with the same hash already exists
-        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.empty());
+        when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.error(new RestCallException.ResourceAlreadySameHashException()));
 
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
-                                                                                                .isEqualTo(OK)
-                                                                                                .expectBody(Problem.class);
+                                                                                                .isEqualTo(NO_CONTENT);
     }
 
     //  SMSPIC.107.7 -> Richiesta di invio SMS già effettuata, contenuto della richiesta diverso
