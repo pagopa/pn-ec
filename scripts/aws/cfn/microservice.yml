@@ -84,6 +84,22 @@ Parameters:
     Default: ''
     Description: 'Escaped JSON object containing trusted headers enforced by the private channel proxy; leave empty when enforcement is not required'
 
+  PrivateChannelProxyRequestPayloadLoggingEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: 'Enable inbound request payload logging for the private channel proxy'
+
+  PrivateChannelProxyResponsePayloadLoggingEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: 'Enable outbound response payload logging for the private channel proxy'
+
   PrivateChannelProxyTarget4xxAlarmThreshold:
     Type: Number
     Default: 1
@@ -1061,12 +1077,13 @@ Resources:
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/private-link-routing.yaml'
       Parameters:
-        ProjectName: !Ref ProjectName
-        ChannelId: 'ec'
+        ChannelId: 'external-channel'
         LambdasBucketName: !Ref LambdasBucketName
         LambdasBasePath: !Ref LambdasBasePath
         TemplateBucketBaseUrl: !Ref TemplateBucketBaseUrl
         ApplicationLoadBalancerDomain: !Ref ApplicationLoadBalancerDomain
+        RequestPayloadLoggingEnabled: !Ref PrivateChannelProxyRequestPayloadLoggingEnabled
+        ResponsePayloadLoggingEnabled: !Ref PrivateChannelProxyResponsePayloadLoggingEnabled
         LogRetention: !Ref LogRetention
         VpcId: !Ref VpcId
         Subnets: !Ref VpcEgressSubnetsIds
@@ -1088,7 +1105,7 @@ Resources:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/alb-tg-alarms.yaml'
       Parameters:
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-        MetricPrefix: !Sub '${ProjectName}-ec-private-link-proxy'
+        MetricPrefix: !Sub '${ProjectName}-external-channel-private-link-proxy'
         ApplicationLoadBalancerMetricsDimensionName: !Ref ApplicationLoadBalancerMetricsDimensionName
         TargetGroupName: !GetAtt EcPrivateLinkRouting.Outputs.ProxyTargetGroupFullName
         TargetType: lambda
