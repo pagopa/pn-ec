@@ -125,6 +125,11 @@ Parameters:
     Default: 14
     Description: 'CloudWatch log retention in days for the private channel proxy'
 
+  LogsKinesisSourceStreamArn:
+    Type: String
+    Default: ''
+    Description: 'Kinesis stream that receive logs'
+
   ApplicationLoadBalancerDomain:
     Type: String
     Description: 'Base URL of the load balancer where the service is going to be reachable'
@@ -1085,6 +1090,7 @@ Resources:
         RequestPayloadLoggingEnabled: !Ref PrivateChannelProxyRequestPayloadLoggingEnabled
         ResponsePayloadLoggingEnabled: !Ref PrivateChannelProxyResponsePayloadLoggingEnabled
         LogRetention: !Ref LogRetention
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
         VpcId: !Ref VpcId
         Subnets: !Ref VpcEgressSubnetsIds
         AlbSecurityGroup: !Ref AlbSecurityGroup
@@ -1105,15 +1111,12 @@ Resources:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/alb-tg-alarms.yaml'
       Parameters:
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-        MetricPrefix: !Sub '${ProjectName}-external-channel-private-link-proxy'
+        AlarmPrefix: !Sub '${ProjectName}-external-channel'
         ApplicationLoadBalancerMetricsDimensionName: !Ref ApplicationLoadBalancerMetricsDimensionName
         TargetGroupName: !GetAtt EcPrivateLinkRouting.Outputs.ProxyTargetGroupFullName
-        TargetType: lambda
         Target4xxThreshold: !Ref PrivateChannelProxyTarget4xxAlarmThreshold
         Target5xxThreshold: !Ref PrivateChannelProxyTarget5xxAlarmThreshold
-        HasLambdaInternalErrorAlarm: 'true'
         LambdaInternalErrorThreshold: !Ref PrivateChannelProxyLambdaInternalErrorAlarmThreshold
-        HasLambdaUserErrorAlarm: 'true'
         LambdaUserErrorThreshold: !Ref PrivateChannelProxyLambdaUserErrorAlarmThreshold
 
   PnEcManagedPolicy:
