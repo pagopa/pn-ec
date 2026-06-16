@@ -39,6 +39,7 @@
       "ConsolidatoreRequestEvaluationPeriods": "10",
       "ConsolidatoreRequestDatapointToAlarm": "3",
       "PnEcMaxConsolidatoreConcurrentRequest": "10",
-      "SESConfigurationSetName": "testses"
+      "SESConfigurationSetName": "testses",
+      "PrivateChannelProxyEnabled": "true"
     }
 }
