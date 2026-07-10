@@ -255,7 +255,7 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
             return Mono.error(new RepositoryManagerException.InvalidInputException(UPDATE_REQUEST_METADATA_MESSAGE_ID_OP + ": Invalid Input requestId"));
         }
 
-        return Mono.fromFuture(requestMetadataDynamoDbTable.getItem(Key.builder()
+        return Mono.fromFuture(() -> requestMetadataDynamoDbTable.getItem(Key.builder()
                         .partitionValue(requestId)
                         .build()))
                 .switchIfEmpty(Mono.error(new RepositoryManagerException.RequestMetadataNotFoundException(requestId)))
