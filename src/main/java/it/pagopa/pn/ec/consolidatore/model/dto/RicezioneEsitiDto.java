@@ -18,7 +18,16 @@ public class RicezioneEsitiDto {
 	ConsolidatoreIngressPaperProgressStatusEvent paperProgressStatusEvent;
 	OperationResultCodeResponse operationResultCodeResponse;
 	List<ConsAuditLogError> consAuditLogErrorList;
-	
+	Boolean isDuplicate;
+
+	public RicezioneEsitiDto(ConsolidatoreIngressPaperProgressStatusEvent paperProgressStatusEvent,
+							 OperationResultCodeResponse operationResultCodeResponse,
+							 List<ConsAuditLogError> consAuditLogErrorList) {
+		this.paperProgressStatusEvent = paperProgressStatusEvent;
+		this.operationResultCodeResponse = operationResultCodeResponse;
+		this.consAuditLogErrorList = consAuditLogErrorList;
+	}
+
 	public RicezioneEsitiDto paperProgressStatusEvent(ConsolidatoreIngressPaperProgressStatusEvent paperProgressStatusEvent) {
 		this.paperProgressStatusEvent = paperProgressStatusEvent;
 		return this;
@@ -31,6 +40,11 @@ public class RicezioneEsitiDto {
 
 	public RicezioneEsitiDto consAuditLogErrorList(List<ConsAuditLogError> consAuditLogErrorList) {
 		this.consAuditLogErrorList = consAuditLogErrorList;
+		return this;
+	}
+
+	public RicezioneEsitiDto isDuplicate(Boolean isDuplicate) {
+		this.isDuplicate = isDuplicate;
 		return this;
 	}
 

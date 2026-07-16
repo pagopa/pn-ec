@@ -310,6 +310,11 @@ components:
           type: string
           description: >-
             Identificativo del recapitista in eventi recapito cartacei
+        isDuplicate:
+          type: boolean
+          description: >-
+            Indica se l'evento risulta duplicato rispetto agli eventi analoghi già ricevuti per la richiesta.
+            Valorizzato sempre da pn-ec; la decisione di inoltro è demandata al consumer.
 
     AttachmentsProgressEventDto:
       description: >-
