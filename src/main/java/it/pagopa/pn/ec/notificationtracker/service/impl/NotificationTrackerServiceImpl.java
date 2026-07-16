@@ -312,6 +312,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
         paperProgressStatusEvent.setStatusDateTime(lastEventUpdatedPaper.getStatusDateTime());
         paperProgressStatusEvent.setDeliveryFailureCause(lastEventUpdatedPaper.getDeliveryFailureCause());
         paperProgressStatusEvent.setCourier(lastEventUpdatedPaper.getCourier());
+        paperProgressStatusEvent.setIsDuplicate(lastEventUpdatedPaper.getIsDuplicate());
         return paperProgressStatusEvent;
     }
 
