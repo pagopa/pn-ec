@@ -13,6 +13,9 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import it.pagopa.pn.ec.commons.constant.DuplicatesCheckMode;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1100,6 +1103,68 @@ class RicezioneEsitiConsolidatoreControllerTest {
 					assertEquals("400.02", ex.getResultCode());
 				})
 				.verify();
+	}
+
+	@Test
+	void verificaDuplicatiNonBlockingDuplicatoNonBloccaEMarcaIsDuplicate() {
+		OffsetDateTime now = OffsetDateTime.ofInstant(Instant.now(), ZoneOffset.UTC);
+		PaperProgressStatusDto storedEventStatus = new PaperProgressStatusDto()
+				.statusCode("SENT").statusDescription("Sent").statusDateTime(now)
+				.iun("IUN123").productType("productTypeNB").courier("courierVecchio");
+		RequestDto requestDto = getRequestDto(new EventsDto().paperProgrStatus(storedEventStatus));
+
+		ConsolidatoreIngressPaperProgressStatusEvent incomingEvent = new ConsolidatoreIngressPaperProgressStatusEvent()
+				.statusCode("SENT").statusDescription("Sent").statusDateTime(now)
+				.iun("IUN123").productType("productTypeNB").courier("courierNuovo").requestId("REQ123");
+
+		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", new String[]{"productTypeNB"});
+		ReflectionTestUtils.setField(
+				ReflectionTestUtils.getField(ricezioneEsitiCartaceoServiceImpl, "ricezioneEsitiCartaceoConfiguration"),
+				"duplicatesCheckModeByProduct", Map.of("productTypeNB", DuplicatesCheckMode.NONBLOCKING));
+		AtomicReference<Boolean> holder = new AtomicReference<>();
+
+		StepVerifier.create(ricezioneEsitiCartaceoServiceImpl.verificaDuplicati(requestDto, incomingEvent, holder))
+				.expectNext(requestDto)
+				.verifyComplete();
+		assertEquals(Boolean.TRUE, holder.get());
+	}
+
+	@Test
+	void verificaDuplicatiNonBlockingNonDuplicatoIsDuplicateFalse() {
+		OffsetDateTime now = OffsetDateTime.ofInstant(Instant.now(), ZoneOffset.UTC);
+		PaperProgressStatusDto storedEventStatus = new PaperProgressStatusDto()
+				.statusCode("RECRN001A").statusDescription("Other").statusDateTime(now)
+				.iun("IUN999").productType("productTypeNB");
+		RequestDto requestDto = getRequestDto(new EventsDto().paperProgrStatus(storedEventStatus));
+
+		ConsolidatoreIngressPaperProgressStatusEvent incomingEvent = new ConsolidatoreIngressPaperProgressStatusEvent()
+				.statusCode("SENT").statusDescription("Sent").statusDateTime(now)
+				.iun("IUN123").productType("productTypeNB").requestId("REQ123");
+
+		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", new String[]{"productTypeNB"});
+		AtomicReference<Boolean> holder = new AtomicReference<>();
+
+		StepVerifier.create(ricezioneEsitiCartaceoServiceImpl.verificaDuplicati(requestDto, incomingEvent, holder))
+				.expectNext(requestDto)
+				.verifyComplete();
+		assertEquals(Boolean.FALSE, holder.get());
+	}
+
+	@Test
+	void verificaDuplicatiProdottoNonConfiguratoIsDuplicateNull() {
+		OffsetDateTime now = OffsetDateTime.ofInstant(Instant.now(), ZoneOffset.UTC);
+		ConsolidatoreIngressPaperProgressStatusEvent incomingEvent = new ConsolidatoreIngressPaperProgressStatusEvent()
+				.statusCode("SENT").statusDescription("Sent").statusDateTime(now)
+				.iun("IUN123").productType("productTypeNotConfigured").requestId("REQ123");
+		RequestDto requestDto = getRequestDto(new EventsDto().paperProgrStatus(new PaperProgressStatusDto().statusDateTime(now)));
+
+		ReflectionTestUtils.setField(ricezioneEsitiCartaceoServiceImpl, "duplicatesCheck", new String[]{});
+		AtomicReference<Boolean> holder = new AtomicReference<>();
+
+		StepVerifier.create(ricezioneEsitiCartaceoServiceImpl.verificaDuplicati(requestDto, incomingEvent, holder))
+				.expectNext(requestDto)
+				.verifyComplete();
+		assertNull(holder.get());
 	}
 
 	@Test
