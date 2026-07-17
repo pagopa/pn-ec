@@ -16,9 +16,9 @@ public interface RicezioneEsitiCartaceoService {
 			String xPagopaExtchServiceId, ConsolidatoreIngressPaperProgressStatusEvent consolidatoreIngressPaperProgressStatusEvent);
 	
 	Mono<OperationResultCodeResponse> pubblicaEsitoCodaNotificationTracker(
-			String xPagopaExtchServiceId, ConsolidatoreIngressPaperProgressStatusEvent consolidatoreIngressPaperProgressStatusEvent);
+			String xPagopaExtchServiceId, RicezioneEsitiDto ricezioneEsitiDto);
 
-	Mono<ResponseEntity<OperationResultCodeResponse>> publishOnQueue(List<ConsolidatoreIngressPaperProgressStatusEvent> listEvents, String xPagopaExtchServiceId);
+	Mono<ResponseEntity<OperationResultCodeResponse>> publishOnQueue(List<RicezioneEsitiDto> listEsiti, String xPagopaExtchServiceId);
 
 	Flux<DiscardedEventDto> insertDiscardedEvents(List<DiscardedEventDto> discardedEvents);
 
