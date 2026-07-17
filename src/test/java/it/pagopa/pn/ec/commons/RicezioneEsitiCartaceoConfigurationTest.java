@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Map;
 
 @SpringBootTestWebEnv

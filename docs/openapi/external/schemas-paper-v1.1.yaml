@@ -459,7 +459,8 @@ components:
           type: boolean
           description: >-
             Indica se l'evento risulta duplicato rispetto agli eventi analoghi già ricevuti per la richiesta.
-            Valorizzato sempre da pn-ec; la decisione di inoltro è demandata al consumer.
+            Valorizzato da pn-ec quando il controllo duplicati è abilitato;
+            negli altri casi può non essere presente. La decisione di inoltro è demandata al consumer.
 
     AttachmentDetails:
       title: dettagli allegato a un evento del processo postale
