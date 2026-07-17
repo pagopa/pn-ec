@@ -6,6 +6,7 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -153,6 +154,68 @@ class StatusPullServiceTest {
 
         Mono<PaperProgressStatusEvent> testMono = statusPullService.paperPullService(PAPER_REQUEST_IDX, CLIENT_ID);
         StepVerifier.create(testMono).expectNextCount(1).verifyComplete();
+    }
+
+    @Test
+    void paperPullServicePropagatesIsDuplicateFromSourceDto() {
+
+        RequestDto request = paperRequest();
+        EventsDto paperEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+                .status(BOOKED.getStatusTransactionTableCompliant())
+                .statusDateTime(OffsetDateTime.now())
+                .discoveredAddress(new DiscoveredAddressDto())
+                .attachments(List.of(new AttachmentsProgressEventDto()))
+                .isDuplicate(true));
+        request.getRequestMetadata().setEventsList(List.of(paperEvent));
+
+        when(gestoreRepositoryCall.getRichiesta(eq(CLIENT_ID), eq(PAPER_REQUEST_IDX))).thenReturn(Mono.just(request));
+        when(callMacchinaStati.statusDecode(anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto("logicStatus", "externalStatus")));
+
+        Mono<PaperProgressStatusEvent> testMono = statusPullService.paperPullService(PAPER_REQUEST_IDX, CLIENT_ID);
+        StepVerifier.create(testMono)
+                    .assertNext(event -> Assertions.assertEquals(Boolean.TRUE, event.getIsDuplicate()))
+                    .verifyComplete();
+    }
+
+    @Test
+    void paperPullServicePropagatesIsDuplicateFalseFromSourceDto() {
+
+        RequestDto request = paperRequest();
+        EventsDto paperEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+                .status(BOOKED.getStatusTransactionTableCompliant())
+                .statusDateTime(OffsetDateTime.now())
+                .discoveredAddress(new DiscoveredAddressDto())
+                .attachments(List.of(new AttachmentsProgressEventDto()))
+                .isDuplicate(false));
+        request.getRequestMetadata().setEventsList(List.of(paperEvent));
+
+        when(gestoreRepositoryCall.getRichiesta(eq(CLIENT_ID), eq(PAPER_REQUEST_IDX))).thenReturn(Mono.just(request));
+        when(callMacchinaStati.statusDecode(anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto("logicStatus", "externalStatus")));
+
+        Mono<PaperProgressStatusEvent> testMono = statusPullService.paperPullService(PAPER_REQUEST_IDX, CLIENT_ID);
+        StepVerifier.create(testMono)
+                    .assertNext(event -> Assertions.assertEquals(false, event.getIsDuplicate()))
+                    .verifyComplete();
+    }
+
+    @Test
+    void paperPullServicePropagatesIsDuplicateNullFromSourceDto() {
+
+        RequestDto request = paperRequest();
+        EventsDto paperEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+                .status(BOOKED.getStatusTransactionTableCompliant())
+                .statusDateTime(OffsetDateTime.now())
+                .discoveredAddress(new DiscoveredAddressDto())
+                .attachments(List.of(new AttachmentsProgressEventDto())));
+        request.getRequestMetadata().setEventsList(List.of(paperEvent));
+
+        when(gestoreRepositoryCall.getRichiesta(eq(CLIENT_ID), eq(PAPER_REQUEST_IDX))).thenReturn(Mono.just(request));
+        when(callMacchinaStati.statusDecode(anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto("logicStatus", "externalStatus")));
+
+        Mono<PaperProgressStatusEvent> testMono = statusPullService.paperPullService(PAPER_REQUEST_IDX, CLIENT_ID);
+        StepVerifier.create(testMono)
+                    .assertNext(event -> Assertions.assertNull(event.getIsDuplicate()))
+                    .verifyComplete();
     }
 
 }
