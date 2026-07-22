@@ -47,6 +47,31 @@ Parameters:
     Description: 'Nome del Configuration Set SES'
     Default: 'testses'
 
+  PnEcQueueTrackerErroriSMSDLQThreshold:
+    Type: Number
+    Default: 1
+    Description: 'Max number of messages that can be sent to the DLQ before raising an alarm for the pn-ec-tracker-sms-errori-queue'
+
+  PnEcQueueTrackerErroriPECDLQThreshold:
+    Type: Number
+    Default: 1
+    Description: 'Max number of messages that can be sent to the DLQ before raising an alarm for the pn-ec-tracker-pec-errori-queue'
+  
+  PnEcQueueTrackerErroriEMAILDLQThreshold:
+    Type: Number
+    Default: 1
+    Description: 'Max number of messages that can be sent to the DLQ before raising an alarm for the pn-ec-tracker-email-errori-queue'
+
+  PnEcQueueTrackerErroriCARTACEODLQThreshold:
+    Type: Number
+    Default: 1
+    Description: 'Max number of messages that can be sent to the DLQ before raising an alarm for the pn-ec-tracker-cartaceo-errori-queue'
+
+  PnEcQueueTrackerErroriSERCQDLQThreshold:
+    Type: Number
+    Default: 1
+    Description: 'Max number of messages that can be sent to the DLQ before raising an alarm for the pn-ec-tracker-sercq-send-errori-queue'
+
 Conditions:
   IsDevEnv: !Equals [ !Ref EnvType, 'dev']
   HasCucumberTest: !Or
@@ -323,6 +348,7 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         DelaySeconds: 300
         VisibilityTimeout: 120
+        MessageDLQThreshold: !Ref PnEcQueueTrackerErroriSMSDLQThreshold
 
   ######### TRACKER : PEC  ##########
 
@@ -376,6 +402,8 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         DelaySeconds: 300
         VisibilityTimeout: 120
+        MessageDLQThreshold: !Ref PnEcQueueTrackerErroriPECDLQThreshold
+
 
   ######### TRACKER : EMAIL  #########
 
@@ -429,6 +457,8 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         DelaySeconds: 300
         VisibilityTimeout: 120
+        MessageDLQThreshold: !Ref PnEcQueueTrackerErroriEMAILDLQThreshold
+
 
   ######### TRACKER : CARTACEO  #########
 
@@ -482,6 +512,8 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         DelaySeconds: 300
         VisibilityTimeout: 120
+        MessageDLQThreshold: !Ref PnEcQueueTrackerErroriCARTACEODLQThreshold
+
 
   ######### TRACKER : SERCQ  #########
 
@@ -535,6 +567,8 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         DelaySeconds: 300
         VisibilityTimeout: 120
+        MessageDLQThreshold: !Ref PnEcQueueTrackerErroriSERCQDLQThreshold
+
 
   ###########  TRACKER: EXTERNAL NOTIFICATION  ###########
 
