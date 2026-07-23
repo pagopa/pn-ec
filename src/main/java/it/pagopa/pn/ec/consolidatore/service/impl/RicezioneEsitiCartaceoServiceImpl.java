@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.consolidatore.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.StatusCodesToDeliveryFailureCauses;
 import it.pagopa.pn.ec.commons.configuration.RicezioneEsitiCartaceoConfiguration;
+import it.pagopa.pn.ec.commons.constant.DuplicatesCheckMode;
 import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
@@ -35,6 +36,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
@@ -61,6 +63,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private final String[] duplicatesCheck;
 	private final Duration offsetDuration;
 	private final String duplicatedEventErrorCode;
+	private final RicezioneEsitiCartaceoConfiguration ricezioneEsitiCartaceoConfiguration;
 
 	public RicezioneEsitiCartaceoServiceImpl(GestoreRepositoryCall gestoreRepositoryCall,
 											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
@@ -78,6 +81,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 		this.duplicatesCheck = ricezioneEsitiCartaceoConfiguration.getProductTypesToCheck();
 		this.offsetDuration = ricezioneEsitiCartaceoConfiguration.getOffsetDuration();
 		this.duplicatedEventErrorCode = ricezioneEsitiCartaceoConfiguration.getDuplicatedEventErrorCode();
+		this.ricezioneEsitiCartaceoConfiguration = ricezioneEsitiCartaceoConfiguration;
 	}
 
 	private OperationResultCodeResponse getOperationResultCodeResponse(
@@ -276,6 +280,10 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	}
 
 	public Mono<RequestDto> verificaDuplicati(RequestDto requestDto, ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent) {
+		return verificaDuplicati(requestDto, progressStatusEvent, new AtomicReference<>());
+	}
+
+	public Mono<RequestDto> verificaDuplicati(RequestDto requestDto, ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent, AtomicReference<Boolean> isDuplicateHolder) {
 		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, VERIFICA_DUPLICATI, progressStatusEvent);
 
 		boolean shouldCheck= Arrays.stream(duplicatesCheck).anyMatch(code -> code.equals(progressStatusEvent.getProductType()));
@@ -285,17 +293,27 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			Boolean isOpenReworker = requestDto.getRequestMetadata().getPaperRequestMetadata().getIsOpenReworkRequest();
 
 			if(!((passthrough != null && passthrough) || (isOpenReworker != null && isOpenReworker)) && shouldCheck) {
-				log.debug(VERIFICA_DUPLICATI + ": checking {} for duplicates against events {}", progressStatusEvent,requestDto.getRequestMetadata().getEventsList());
+				DuplicatesCheckMode mode = ricezioneEsitiCartaceoConfiguration.getDuplicatesCheckMode(progressStatusEvent.getProductType());
+				log.debug(VERIFICA_DUPLICATI + ": checking {} (mode={}) for duplicates against events {}", progressStatusEvent, mode, requestDto.getRequestMetadata().getEventsList());
 				return Flux.fromIterable(requestDto.getRequestMetadata().getEventsList()).map(EventsDto::getPaperProgrStatus)
 						.filter(event -> isSameEvent(event, progressStatusEvent))
 						.next()
 						.doOnNext(duplicatedEvent -> handleCourierMismatchWithEmf(duplicatedEvent, progressStatusEvent))
 						.map(duplicatedEvent -> true)
-						.defaultIfEmpty(false);
+						.defaultIfEmpty(false)
+						.map(isDuplicated -> {
+							isDuplicateHolder.set(isDuplicated);
+							boolean shouldBlock = Boolean.TRUE.equals(isDuplicated) && mode != DuplicatesCheckMode.NONBLOCKING;
+							if (Boolean.TRUE.equals(isDuplicated) && mode == DuplicatesCheckMode.NONBLOCKING) {
+								log.info(VERIFICA_DUPLICATI + ": duplicate event in NONBLOCKING mode, forwarding with isDuplicate=true. requestId={}", requestDto.getRequestIdx());
+							}
+							return shouldBlock;
+						});
 			}
+			isDuplicateHolder.set(null);
 			return Mono.just(false);
-		}).handle((isDuplicated, sink)-> {
-			if (Boolean.FALSE.equals(isDuplicated)) {
+		}).handle((shouldBlock, sink)-> {
+			if (Boolean.FALSE.equals(shouldBlock)) {
 				sink.next(requestDto);
 			} else {
 				sink.error(new RicezioneEsitiCartaceoException(this.duplicatedEventErrorCode, errorCodeDescriptionMap().get(this.duplicatedEventErrorCode), List.of(DUPLICATED_EVENT),
@@ -310,15 +328,17 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	{
 		  log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, VERIFICA_ESITO_DA_CONSOLIDATORE, progressStatusEvent);
 		  var requestId = progressStatusEvent.getRequestId();
+		  AtomicReference<Boolean> isDuplicateHolder = new AtomicReference<>();
 		  return Mono.just(progressStatusEvent)
 				 .flatMap(unused -> gestoreRepositoryCall.getRichiesta(xPagopaExtchServiceId, progressStatusEvent.getRequestId()))
-				 .flatMap(requestDto -> verificaDuplicati(requestDto, progressStatusEvent))
+				 .flatMap(requestDto -> verificaDuplicati(requestDto, progressStatusEvent, isDuplicateHolder))
 			     .flatMap(requestDto -> verificaErroriSemantici(progressStatusEvent, requestDto, xPagopaExtchServiceId))
 			     .flatMap(unused -> verificaAttachments(xPagopaExtchServiceId, requestId, progressStatusEvent.getAttachments()))
 				 .flatMap(unused -> Mono.just(new RicezioneEsitiDto(progressStatusEvent,
 						  getOperationResultCodeResponse(COMPLETED_OK_CODE,
 								  COMPLETED_MESSAGE,
-								  null), null))
+								  null), null)
+						  .isDuplicate(isDuplicateHolder.get()))
 			     )
 			     // *** errore Request Id non trovata
 			     .onErrorResume(RestCallException.ResourceNotFoundException.class, throwable -> {
@@ -350,8 +370,9 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	@Override
 	public Mono<OperationResultCodeResponse> pubblicaEsitoCodaNotificationTracker(
 			String xPagopaExtchServiceId,
-			ConsolidatoreIngressPaperProgressStatusEvent statusEvent)
+			RicezioneEsitiDto ricezioneEsitiDto)
 	{
+		var statusEvent = ricezioneEsitiDto.getPaperProgressStatusEvent();
 		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER, statusEvent);
 
 		var requestId=statusEvent.getRequestId();
@@ -389,6 +410,8 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	 			paperProgressStatusDto.setAttachments(attachmentsDto);
 				paperProgressStatusDto.setClientRequestTimeStamp(statusEvent.getClientRequestTimeStamp());
 				paperProgressStatusDto.setCourier(statusEvent.getCourier());
+				// WI-1.3 (PN-20733): propaga il flag calcolato in verificaDuplicati al notification-tracker
+				paperProgressStatusDto.setIsDuplicate(ricezioneEsitiDto.getIsDuplicate());
 
 	 			return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
 	 								   NotificationTrackerQueueDto.createNotificationTrackerQueueDtoRicezioneEsitiPaper(
@@ -417,11 +440,11 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 			.doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_ON_LABEL, statusEvent.getRequestId(), PUBBLICA_ESITO_CODA_NOTIFICATION_TRACKER, result));
 	}
 
-	public Mono<ResponseEntity<OperationResultCodeResponse>> publishOnQueue(List<ConsolidatoreIngressPaperProgressStatusEvent> listEvents, String xPagopaExtchServiceId){
-		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PUBLISH_ON_QUEUE, listEvents);
-		return Flux.fromIterable(listEvents)
+	public Mono<ResponseEntity<OperationResultCodeResponse>> publishOnQueue(List<RicezioneEsitiDto> listEsiti, String xPagopaExtchServiceId){
+		log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PUBLISH_ON_QUEUE, listEsiti);
+		return Flux.fromIterable(listEsiti)
 				// pubblicazione sulla coda
-				.flatMap(statusEvent -> pubblicaEsitoCodaNotificationTracker(xPagopaExtchServiceId, statusEvent))
+				.flatMap(ricezioneEsitiDto -> pubblicaEsitoCodaNotificationTracker(xPagopaExtchServiceId, ricezioneEsitiDto))
 				.collectList()
 				// gestione errori oppure response ok
 				.flatMap(listSendResponse -> {

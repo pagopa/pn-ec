@@ -147,15 +147,11 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
 
                             if (listErrorResponse.isEmpty()) {
 
-                                // eventi
-                                var listEvents = new ArrayList<ConsolidatoreIngressPaperProgressStatusEvent>();
-                                listRicezioneEsitiDto.forEach(dto -> {
-                                    if (dto.getPaperProgressStatusEvent() != null) {
-                                        listEvents.add(dto.getPaperProgressStatusEvent());
-                                    }
-                                });
+                                var listEsiti = listRicezioneEsitiDto.stream()
+                                        .filter(dto -> dto.getPaperProgressStatusEvent() != null)
+                                        .toList();
 
-                                return ricezioneEsitiCartaceoService.publishOnQueue(listEvents, xPagopaExtchServiceId);
+                                return ricezioneEsitiCartaceoService.publishOnQueue(listEsiti, xPagopaExtchServiceId);
 
                             } else {
                                 log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + ": syntax/semantic errors : {} macro errors have been detected", listErrorResponse.size());

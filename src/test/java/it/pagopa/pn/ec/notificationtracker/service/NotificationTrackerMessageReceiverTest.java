@@ -29,6 +29,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
@@ -87,6 +88,7 @@ class NotificationTrackerMessageReceiverTest {
     private static final String PEC_REQUEST_IDX = "PEC_REQUEST_IDX";
     private static final String PAPER_REQUEST_IDX = "PAPER_REQUEST_IDX";
     private static final String SERCQ_REQUEST_IDX = "SERCQ_REQUEST_IDX";
+    private static final String PAPER_REQUEST_IDX_DUPLICATE = "PAPER_REQUEST_IDX_DUPLICATE";
     private static final String CLIENT_ID = "CLIENT_ID";
     private static final String EXTERNAL_CHANNEL_REWORK_OUTCOME_EVENT = "ExternalChannelReworkOutcomeEvent";
 
@@ -111,6 +113,7 @@ class NotificationTrackerMessageReceiverTest {
         insertPaperRequest();
         insertSercqRequest();
         insertPaperRequestRework();
+        insertPaperRequestDuplicate();
     }
 
     @BeforeEach
@@ -429,6 +432,35 @@ class NotificationTrackerMessageReceiverTest {
                         eq(EXTERNAL_CHANNEL_REWORK_OUTCOME_EVENT));
     }
 
+    @Test
+    void paperNtOkPropagatesIsDuplicateToPublishedEvent() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
+
+        //GIVEN
+        PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX_DUPLICATE).xPagopaExtchCxId(CLIENT_ID).build();
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant())
+                .discoveredAddress(new DiscoveredAddressDto())
+                .attachments(List.of(new AttachmentsProgressEventDto().id("id")))
+                .courier("recapitistaDuplicate")
+                .productType("AR")
+                .isDuplicate(true);
+        NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), paperProgressStatusDto);
+
+        //WHEN
+        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
+        mockStatusDecode();
+
+        //THEN
+        notificationTrackerMessageReceiver.receiveCartaceoObjectMessage(notificationTrackerQueueDto, acknowledgment);
+
+        ArgumentCaptor<SingleStatusUpdate> singleStatusUpdateCaptor = ArgumentCaptor.forClass(SingleStatusUpdate.class);
+        verify(putEvents, times(1)).putEventExternal(singleStatusUpdateCaptor.capture(), eq(transactionProcessConfigurationProperties.paper()), any(String.class));
+
+        SingleStatusUpdate capturedSingleStatusUpdate = singleStatusUpdateCaptor.getValue();
+        Assertions.assertEquals(Boolean.TRUE, capturedSingleStatusUpdate.getAnalogMail().getIsDuplicate());
+    }
+
 
     private NotificationTrackerQueueDto receiveDigitalObjectMessage(String requestId, String processId, Status nextStatus, GeneratedMessageDto generatedMessageDto) {
         //GIVEN
@@ -502,6 +534,17 @@ class NotificationTrackerMessageReceiverTest {
                 .status(BOOKED.getStatusTransactionTableCompliant())
                 .statusDateTime(OffsetDateTime.now())
                 // .attachments(List.of(new PaperProgressStatusEventAttachments()))
+                .discoveredAddress(new DiscoveredAddress())
+                .build()).build();
+        requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).paperRequestMetadata(PaperRequestMetadata.builder().build()).build()));
+    }
+
+    private static void insertPaperRequestDuplicate() {
+        var concatRequestId = CLIENT_ID + "~" + PAPER_REQUEST_IDX_DUPLICATE;
+        requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).paperRequestPersonal(PaperRequestPersonal.builder().build()).build()));
+        Events event = Events.builder().paperProgrStatus(PaperProgressStatus.builder()
+                .status(BOOKED.getStatusTransactionTableCompliant())
+                .statusDateTime(OffsetDateTime.now())
                 .discoveredAddress(new DiscoveredAddress())
                 .build()).build();
         requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).paperRequestMetadata(PaperRequestMetadata.builder().build()).build()));
