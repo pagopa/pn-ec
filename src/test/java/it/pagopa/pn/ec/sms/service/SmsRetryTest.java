@@ -8,7 +8,12 @@ import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
@@ -21,12 +26,15 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
+import static it.pagopa.pn.ec.commons.constant.Status.DELETED;
 import static it.pagopa.pn.ec.commons.constant.Status.INTERNAL_ERROR;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.sms.testutils.DigitalCourtesySmsRequestFactory.createSmsRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -140,6 +148,83 @@ class SmsRetryTest {
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
 
         verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+    }
+
+    private static RequestDto buildToDeleteRequestDto() {
+        RequestDto requestDto = buildRequestDto();
+        requestDto.setStatusRequest("toDelete");
+        return requestDto;
+    }
+
+    private static void assertPatchPayloadIsContractValid(DigitalProgressStatusDto digitalProgressStatusDto, String status) {
+        digitalProgressStatusDto.setEventTimestamp(OffsetDateTime.now());
+        digitalProgressStatusDto.setStatus(status);
+
+        PatchDto patchDto = new PatchDto().event(new EventsDto().digProgrStatus(digitalProgressStatusDto));
+
+        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+            Validator validator = factory.getValidator();
+            Set<ConstraintViolation<PatchDto>> violations = validator.validate(patchDto);
+
+            assertTrue(violations.isEmpty(),
+                    () -> "Il payload dello stato '" + status + "' viola il contratto OpenAPI (causa del 400 -> DLQ): "
+                            + violations.stream()
+                            .map(v -> v.getPropertyPath() + " " + v.getMessage())
+                            .toList());
+        }
+    }
+
+
+    @Test
+    void gestioneRetrySms_StatusToDelete_DeletedPayloadIsContractValid() {
+
+        var requestDto = buildToDeleteRequestDto();
+
+        var clientId = requestDto.getxPagopaExtchCxId();
+        var requestId = requestDto.getRequestIdx();
+
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName.errorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mono<DeleteMessageResponse> response = smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(smsService, times(1)).sendNotificationOnStatusQueue(
+                eq(SMS_PRESA_IN_CARICO_INFO),
+                eq(DELETED.getStatusTransactionTableCompliant()),
+                captor.capture());
+
+        assertPatchPayloadIsContractValid(captor.getValue(), DELETED.getStatusTransactionTableCompliant());
+    }
+
+
+    @Test
+    void gestioneRetrySms_RetriesExhausted_TerminalPayloadIsContractValid() {
+
+        var requestDto = buildRequestDto();
+        var retry = requestDto.getRequestMetadata().getRetry();
+        retry.setRetryStep(BigDecimal.valueOf(retry.getRetryPolicy().size()));
+
+        var clientId = requestDto.getxPagopaExtchCxId();
+        var requestId = requestDto.getRequestIdx();
+
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName.errorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mono<DeleteMessageResponse> response = smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        ArgumentCaptor<String> statusCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<DigitalProgressStatusDto> payloadCaptor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(smsService, times(1)).sendNotificationOnStatusQueue(
+                eq(SMS_PRESA_IN_CARICO_INFO),
+                statusCaptor.capture(),
+                payloadCaptor.capture());
+
+        assertPatchPayloadIsContractValid(payloadCaptor.getValue(), statusCaptor.getValue());
     }
 
 }
