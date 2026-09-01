@@ -46,9 +46,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 import jakarta.mail.Header;
 import jakarta.mail.Multipart;
 import jakarta.mail.internet.MimeMessage;
-import software.amazon.awssdk.services.sqs.model.SqsResponse;
 
-import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -87,7 +85,12 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private final Semaphore semaphore;
     private final PnPecConfigurationProperties pnPecProps;
     private String idSaved;
-    private final Predicate<Throwable> isAddressException = throwable -> throwable instanceof PnSpapiPermanentErrorException && throwable.getMessage() != null && throwable.getMessage().contains("jakarta.mail.internet.AddressException");
+    private final Predicate<Throwable> isAddressException = throwable ->
+            throwable instanceof PnSpapiPermanentErrorException
+            && throwable.getMessage() != null
+            && (throwable.getMessage().contains("jakarta.mail.internet.AddressException")
+                || (throwable.getMessage().contains("jakarta.mail.SendFailedException")
+                    && throwable.getMessage().contains("Invalid Addresses")));
 
     protected PecService(AuthService authService, PnEcPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
             , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName, @Value("${lavorazione-pec.max-thread-pool-size}") Integer maxThreadPoolSize, PnPecConfigurationProperties pnPecProps) {
