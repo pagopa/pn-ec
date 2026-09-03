@@ -35,7 +35,7 @@ public class RequestController implements GestoreRequestApi {
         log.logStartingProcess(GET_REQUEST);
         return requestService.getRequest(clientId, requestIdx).map(retrievedClient -> restUtils.endReadRequest(retrievedClient, RequestDto.class))
                 .doOnSuccess(result -> log.logEndingProcess(GET_REQUEST))
-                .doOnError(throwable -> log.logEndingProcess(GET_REQUEST, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(GET_REQUEST, false, throwable.getMessage(), throwable));
     }
 
     @Override
@@ -45,7 +45,7 @@ public class RequestController implements GestoreRequestApi {
                          .flatMap(requestService::insertRequest)
                          .map(insertedRequest -> restUtils.endCreateOrUpdateRequest(insertedRequest, RequestDto.class))
                 .doOnSuccess(result -> log.logEndingProcess(INSERT_REQUEST))
-                .doOnError(throwable -> log.logEndingProcess(INSERT_REQUEST, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(INSERT_REQUEST, false, throwable.getMessage(), throwable));
     }
 
     @Override
@@ -55,7 +55,7 @@ public class RequestController implements GestoreRequestApi {
                 .flatMap(requestToUpdate -> requestService.patchRequest(clientId, requestIdx, requestToUpdate))
                 .map(updatedRequest -> restUtils.endCreateOrUpdateRequest(updatedRequest, RequestDto.class))
                 .doOnSuccess(result -> log.logEndingProcess(PATCH_REQUEST))
-                .doOnError(throwable -> log.logEndingProcess(PATCH_REQUEST, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(PATCH_REQUEST, false, throwable.getMessage(), throwable));
     }
 
     @Override
@@ -64,7 +64,7 @@ public class RequestController implements GestoreRequestApi {
         return requestService.deleteRequest(clientId, requestIdx)
                 .map(retrievedRequest -> restUtils.endDeleteRequest(retrievedRequest, RequestDto.class))
                 .doOnSuccess(result -> log.logEndingProcess(DELETE_REQUEST))
-                .doOnError(throwable -> log.logEndingProcess(DELETE_REQUEST, false, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(DELETE_REQUEST, false, throwable.getMessage(), throwable))
                 .thenReturn(new ResponseEntity<>(OK));
     }
 
@@ -74,7 +74,7 @@ public class RequestController implements GestoreRequestApi {
         return requestService.getRequestByMessageId(messageId)
                              .map(retrievedRequest -> restUtils.endReadRequest(retrievedRequest, RequestDto.class))
                 .doOnSuccess(result -> log.logEndingProcess(GET_REQUEST_BY_MESSAGE_ID))
-                .doOnError(throwable -> log.logEndingProcess(GET_REQUEST_BY_MESSAGE_ID, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(GET_REQUEST_BY_MESSAGE_ID, false, throwable.getMessage(), throwable));
     }
 
     @Override
@@ -83,7 +83,7 @@ public class RequestController implements GestoreRequestApi {
         return requestService.setMessageIdInRequestMetadata(clientId, requestIdx)
                 .map(retrievedClient -> restUtils.endReadRequest(retrievedClient, RequestDto.class))
                 .doOnSuccess(result -> log.logEndingProcess(SET_MESSAGE_ID_IN_REQUEST_METADATA))
-                .doOnError(throwable -> log.logEndingProcess(SET_MESSAGE_ID_IN_REQUEST_METADATA, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(SET_MESSAGE_ID_IN_REQUEST_METADATA, false, throwable.getMessage(), throwable));
     }
 
     @Override
@@ -91,7 +91,7 @@ public class RequestController implements GestoreRequestApi {
         log.logStartingProcess(GET_REQUEST_METADATA_BY_MESSAGE_ID);
         return requestService.getRequestMetadataByMessageId(messageId).map(retrievedRequest -> restUtils.endReadRequest(retrievedRequest, RequestDto.class))
                 .doOnSuccess(result -> log.logEndingProcess(GET_REQUEST_METADATA_BY_MESSAGE_ID))
-                .doOnError(throwable -> log.logEndingProcess(GET_REQUEST_METADATA_BY_MESSAGE_ID, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(GET_REQUEST_METADATA_BY_MESSAGE_ID, false, throwable.getMessage(), throwable));
     }
 
     @Override
@@ -101,7 +101,7 @@ public class RequestController implements GestoreRequestApi {
                 .flatMap(requestToUpdate -> requestService.setRequestMetadataMessageId(clientId, requestIdx, requestToUpdate))
                 .map(updatedRequest -> restUtils.endCreateOrUpdateRequest(updatedRequest, RequestDto.class))
                 .doOnSuccess(result -> log.logEndingProcess(SET_REQUEST_METADATA_MESSAGE_ID))
-                .doOnError(throwable -> log.logEndingProcess(SET_REQUEST_METADATA_MESSAGE_ID, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(SET_REQUEST_METADATA_MESSAGE_ID, false, throwable.getMessage(), throwable));
 
     }
 }

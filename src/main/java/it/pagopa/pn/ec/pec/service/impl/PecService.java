@@ -178,7 +178,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .flatMap(pecPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(pecPresaInCaricoInfoSqsMessageWrapper.getT1(),
                         pecSqsQueueName.batchName()))
                 .transform(pullFromFluxUntilIsEmpty())
-                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_PEC, false, e.getMessage()))
+                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_PEC, false, e.getMessage(), e))
                 .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_PEC))
                 .blockLast();
     }
@@ -249,7 +249,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
                         .then(sendNotificationOnErrorQueue(pecPresaInCaricoInfo)))
                 .doOnSuccess(result -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_PEC))
-                .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_PEC, false, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_PEC, false, throwable.getMessage(), throwable))
                 .doFinally(signalType -> semaphore.release()));
     }
 
@@ -328,7 +328,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)
-                .doOnError( e -> log.logEndingProcess(LAVORAZIONE_ERRORI_PEC, false, e.getMessage()))
+                .doOnError( e -> log.logEndingProcess(LAVORAZIONE_ERRORI_PEC, false, e.getMessage(), e))
                 .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_ERRORI_PEC))
                 .blockLast();
     }
@@ -529,7 +529,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                             new DigitalProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(
                             message));
                 })
-                .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_PEC, false, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_PEC, false, throwable.getMessage(), throwable))
                 .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_PEC)));
     }
 

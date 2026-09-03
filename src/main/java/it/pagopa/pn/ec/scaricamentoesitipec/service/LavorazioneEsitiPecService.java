@@ -233,7 +233,7 @@ public class LavorazioneEsitiPecService {
                     log.logEndingProcess(LAVORAZIONE_ESITI_PEC);
                 })
                 .then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync())))
-                .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_ESITI_PEC, false, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_ESITI_PEC, false, throwable.getMessage(), throwable))
                 .then()
                 .doFinally(signalType -> semaphore.release()));
     }

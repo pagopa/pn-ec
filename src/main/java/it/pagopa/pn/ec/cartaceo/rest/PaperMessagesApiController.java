@@ -47,7 +47,7 @@ public class PaperMessagesApiController implements PaperMessagesApi {
                                 .paperEngageRequest(request)
                                 .build()))
                 .doOnSuccess(result -> log.logEndingProcess(SEND_PAPER_ENGAGE_REQUEST))
-                .doOnError(throwable -> log.logEndingProcess(SEND_PAPER_ENGAGE_REQUEST, false, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(SEND_PAPER_ENGAGE_REQUEST, false, throwable.getMessage(), throwable))
                 .thenReturn(new ResponseEntity<>(OK)));
     }
 
@@ -60,7 +60,7 @@ public class PaperMessagesApiController implements PaperMessagesApi {
         log.logStartingProcess(GET_PAPER_ENGAGE_PROGRESSES);
         return MDCUtils.addMDCToContextAndExecute(paperService.paperPullService(requestIdx, xPagopaExtchCxId)
                 .doOnSuccess(result -> log.logEndingProcess(GET_PAPER_ENGAGE_PROGRESSES))
-                .doOnError(throwable -> log.logEndingProcess(GET_PAPER_ENGAGE_PROGRESSES, false, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(GET_PAPER_ENGAGE_PROGRESSES, false, throwable.getMessage(), throwable))
                 .map(ResponseEntity::ok));
     }
 }

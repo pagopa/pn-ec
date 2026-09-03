@@ -39,7 +39,7 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
                 .doOnSuccess(configurationDtoList -> log.debug("Retrieved all clients ↓\n{}", configurationDtoList))
                 .map(configurationDtoList -> ResponseEntity.ok().body(Flux.fromIterable(configurationDtoList)))
                 .doOnSuccess(result -> log.logEndingProcess(GET_CONFIGURATIONS))
-                .doOnError(throwable -> log.logEndingProcess(GET_CONFIGURATIONS, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(GET_CONFIGURATIONS, false, throwable.getMessage(), throwable));
     }
 
     @Override
@@ -48,7 +48,7 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
         return clientConfigurationService.getClient(xPagopaExtchCxId)
                 .map(retrievedClient -> restUtils.endReadRequest(retrievedClient, ClientConfigurationInternalDto.class))
                 .doOnSuccess(result -> log.logEndingProcess(GET_CLIENT))
-                .doOnError(throwable -> log.logEndingProcess(GET_CLIENT, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(GET_CLIENT, false, throwable.getMessage(), throwable));
     }
 
     @Override
@@ -61,7 +61,7 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
                 .map(insertedClient -> restUtils.endCreateOrUpdateRequest(insertedClient,
                         ClientConfigurationInternalDto.class))
                 .doOnSuccess(result -> log.logEndingProcess(INSERT_CLIENT))
-                .doOnError(throwable -> log.logEndingProcess(INSERT_CLIENT, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(INSERT_CLIENT, false, throwable.getMessage(), throwable));
     }
 
     @Override
@@ -78,7 +78,7 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
                 .map(updatedClient -> restUtils.endCreateOrUpdateRequest(updatedClient,
                         ClientConfigurationInternalDto.class))
                 .doOnSuccess(result -> log.logEndingProcess(UPDATE_CLIENT))
-                .doOnError(throwable -> log.logEndingProcess(UPDATE_CLIENT, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(UPDATE_CLIENT, false, throwable.getMessage(), throwable));
     }
 
     @Override
@@ -87,7 +87,7 @@ public class ClientConfigurationController implements ConfigurationsApi, Configu
         return clientConfigurationService.deleteClient(xPagopaExtchCxId)
                 .map(retrievedClient -> restUtils.endDeleteRequest(retrievedClient, ClientConfigurationDto.class))
                 .doOnSuccess(result -> log.logEndingProcess(DELETE_CLIENT))
-                .doOnError(throwable -> log.logEndingProcess(DELETE_CLIENT, false, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(DELETE_CLIENT, false, throwable.getMessage(), throwable))
                 .thenReturn(new ResponseEntity<>(NO_CONTENT));
     }
 }

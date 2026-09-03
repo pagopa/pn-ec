@@ -71,7 +71,7 @@ public class RequestConversionServiceImpl implements RequestConversionService {
                 .flatMap(this::saveRequestConversionWithTransaction)
                 .map(this::convertToDto)
                 .doOnSuccess(result -> log.logEndingProcess(PDF_RASTER_INSERT_REQUEST_CONVERSION))
-                .doOnError(throwable -> log.logEndingProcess(PDF_RASTER_INSERT_REQUEST_CONVERSION, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(PDF_RASTER_INSERT_REQUEST_CONVERSION, false, throwable.getMessage(), throwable));
     }
 
 
@@ -108,7 +108,7 @@ public class RequestConversionServiceImpl implements RequestConversionService {
 
         return processUpdateRequestConversion(fileKey, converted, fileHash, isTransformationError)
                 .doOnSuccess(result -> log.info(PDF_RASTER_UPDATE_REQUEST_CONVERSION))
-                .doOnError(exception -> log.logEndingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION, false, exception.getMessage()))
+                .doOnError(exception -> log.logEndingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION, false, exception.getMessage(), exception))
                 .retryWhen(pdfRasterRetryStrategy);
     }
 

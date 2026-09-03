@@ -48,7 +48,7 @@ public class NotificationTrackerMessageReceiver {
                                                              notificationTrackerSqsName.statoSmsErratoName(),
                                                              acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_SMS))
-                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_SMS, false, throwable.getMessage())))
+                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_SMS, false, throwable.getMessage(), throwable)))
                 .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
                     log.info("Message skipped caused by max retry time elapsed: {}", concatRequestId);
                     return Mono.empty();
@@ -65,7 +65,7 @@ public class NotificationTrackerMessageReceiver {
         logIncomingMessage(notificationTrackerSqsName.statoSmsErratoName(), notificationTrackerQueueDto);
         MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoSmsName(), acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_SMS_ERROR))
-                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_SMS_ERROR, false, throwable.getMessage())))
+                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_SMS_ERROR, false, throwable.getMessage(), throwable)))
                 .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
                     log.info("Message skipped caused by max retry time elapsed: {}", concatRequestId);
                     return Mono.empty();
@@ -86,7 +86,7 @@ public class NotificationTrackerMessageReceiver {
                                                              notificationTrackerSqsName.statoEmailErratoName(),
                                                              acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_EMAIL))
-                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_EMAIL, false, throwable.getMessage())))
+                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_EMAIL, false, throwable.getMessage(), throwable)))
                 .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
                     log.info("Message skipped caused by max retry time elapsed: {}", concatRequestId);
                     return Mono.empty();
@@ -103,7 +103,7 @@ public class NotificationTrackerMessageReceiver {
         logIncomingMessage(notificationTrackerSqsName.statoEmailErratoName(), notificationTrackerQueueDto);
         MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoEmailName(), acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_EMAIL_ERROR))
-                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_EMAIL_ERROR, false, throwable.getMessage())))
+                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_EMAIL_ERROR, false, throwable.getMessage(), throwable)))
                 .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
                     log.info("Message skipped caused by max retry time elapsed: {}", concatRequestId);
                     return Mono.empty();
@@ -124,7 +124,7 @@ public class NotificationTrackerMessageReceiver {
                                                              notificationTrackerSqsName.statoPecErratoName(),
                                                              acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_PEC))
-                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_PEC, false, throwable.getMessage())))
+                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_PEC, false, throwable.getMessage(), throwable)))
                 .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
                     log.info("Message skipped caused by max retry time elapsed: {}", concatRequestId);
                     return Mono.empty();
@@ -141,7 +141,7 @@ public class NotificationTrackerMessageReceiver {
         logIncomingMessage(notificationTrackerSqsName.statoPecErratoName(), notificationTrackerQueueDto);
         MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoPecName(), acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_PEC_ERROR))
-                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_PEC_ERROR, false, throwable.getMessage())))
+                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_PEC_ERROR, false, throwable.getMessage(), throwable)))
                 .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
                     log.info("Message skipped caused by max retry time elapsed: {}", concatRequestId);
                     return Mono.empty();
@@ -162,7 +162,7 @@ public class NotificationTrackerMessageReceiver {
                                                              notificationTrackerSqsName.statoCartaceoErratoName(),
                                                              acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_CARTACEO))
-                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_CARTACEO, false, throwable.getMessage())))
+                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_CARTACEO, false, throwable.getMessage(), throwable)))
                 .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
                     log.info("Message skipped caused by max retry time elapsed: {}", concatRequestId);
                     return Mono.empty();
@@ -179,7 +179,7 @@ public class NotificationTrackerMessageReceiver {
         logIncomingMessage(notificationTrackerSqsName.statoCartaceoErratoName(), notificationTrackerQueueDto);
         MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoCartaceoName(), acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_CARTACEO_ERROR))
-                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_CARTACEO_ERROR, false, throwable.getMessage())))
+                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_CARTACEO_ERROR, false, throwable.getMessage(), throwable)))
                 .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
                     log.info("Message skipped caused by max retry time elapsed: {}", concatRequestId);
                     return Mono.empty();
@@ -200,7 +200,7 @@ public class NotificationTrackerMessageReceiver {
                                 notificationTrackerSqsName.statoSercqErratoName(),
                                 acknowledgment)
                         .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_SERCQ))
-                        .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_SERCQ, false, throwable.getMessage())))
+                        .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_SERCQ, false, throwable.getMessage(), throwable)))
                 .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
                     log.info("Message skipped caused by max retry time elapsed: {}", concatRequestId);
                     return Mono.empty();
@@ -217,7 +217,7 @@ public class NotificationTrackerMessageReceiver {
         logIncomingMessage(notificationTrackerSqsName.statoSercqErratoName(), notificationTrackerQueueDto);
         MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoSercqName(), acknowledgment)
                         .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_SERCQ_ERROR))
-                        .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_SERCQ_ERROR, false, throwable.getMessage())))
+                        .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_SERCQ_ERROR, false, throwable.getMessage(), throwable)))
                         .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
                             log.info("Message skipped caused by max retry time elapsed: {}", concatRequestId);
                             return Mono.empty();

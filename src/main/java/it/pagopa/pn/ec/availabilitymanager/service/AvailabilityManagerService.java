@@ -78,7 +78,7 @@ public class AvailabilityManagerService {
                         return requestConversionService.updateRequestConversion(newFilekey, false, sha256, true)
                                 .map(Map.Entry::getKey).flatMap(reqConvDto -> handleTransformationError(reqConvDto, detailDto, acknowledgment))
                                 .doOnSuccess(v -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER))
-                                .doOnError(e -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER, false, e.getMessage()));
+                                .doOnError(e -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER, false, e.getMessage(), e));
                     } else {
                         return requestConversionService
                                 .updateRequestConversion(detailDto.getKey(), true, detailDto.getChecksum(),false)
@@ -91,7 +91,7 @@ public class AvailabilityManagerService {
                                 .doOnSuccess(v -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER))
                                 .then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync())))
                                 .doOnError(e ->
-                                        log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER, false, e.getMessage()));
+                                        log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER, false, e.getMessage(), e));
                     }
                 })
                 .then();

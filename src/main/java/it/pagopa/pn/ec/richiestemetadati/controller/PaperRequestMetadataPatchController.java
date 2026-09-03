@@ -32,7 +32,7 @@ public class PaperRequestMetadataPatchController implements PaperRequestMetadata
                 requestMetadataPatchRequest.flatMap(req ->
                 richiesteMetadatireworkService.patchIsOpenReworkRequest(xPagopaExtchCxId,requestIdx,req)
                         .doOnSuccess(result -> log.logEndingProcess(PAPER_REQUEST_METADATA_REWORK))
-                        .doOnError(throwable -> log.logEndingProcess(PAPER_REQUEST_METADATA_REWORK, false, throwable.getMessage()))
+                        .doOnError(throwable -> log.logEndingProcess(PAPER_REQUEST_METADATA_REWORK, false, throwable.getMessage(), throwable))
                         .thenReturn(ResponseEntity.noContent().<Void>build())
                         .onErrorResume(this::handleError)
                 ));

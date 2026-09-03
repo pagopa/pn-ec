@@ -313,7 +313,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                             .collectList())
                     .doOnNext(list -> hasMessages.set(!list.isEmpty()))
                     .repeat(hasMessages::get)
-                    .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO, false, e.getMessage()))
+                    .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO, false, e.getMessage(), e))
                     .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_CARTACEO))
                     .blockLast(calculateBlockTimeout());
         } catch (IllegalStateException e){
@@ -345,7 +345,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .flatMap(requestDto -> chooseStep(cartaceoPresaInCaricoInfo, paperEngageRequestDst, paperEngageRequestSrc, requestDto))
                 .timeout(sqsTimeoutProvider.getTimeoutForQueue(queueName))
                 .onErrorResume(MaxRetriesExceededException.class, cartaceoMaxRetriesExceeded -> sendMessageInRetry(cartaceoPresaInCaricoInfo))
-                .doOnError(exception -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_CARTACEO, false, exception.getMessage()))
+                .doOnError(exception -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_CARTACEO, false, exception.getMessage(), exception))
                 .doOnSuccess(result -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_CARTACEO))
                 .doFinally(signalType -> semaphore.release()));
     }
@@ -373,7 +373,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)
-                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_ERRORI_CARTACEO, false, e.getMessage()))
+                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_ERRORI_CARTACEO, false, e.getMessage(), e))
                 .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_ERRORI_CARTACEO))
                 .blockLast();
     }
@@ -410,7 +410,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     return sendMessageInInternalError(cartaceoPresaInCaricoInfo, message);
                 })
                 .timeout(sqsTimeoutProvider.getTimeoutForQueue(queueName))
-                .doOnError(exception -> log.logEndingProcess(GESTIONE_RETRY_CARTACEO, false, exception.getMessage()))
+                .doOnError(exception -> log.logEndingProcess(GESTIONE_RETRY_CARTACEO, false, exception.getMessage(), exception))
                 .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_CARTACEO)));
     }
 
