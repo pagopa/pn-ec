@@ -131,4 +131,83 @@ class CompareUtilsTest {
         Assertions.assertTrue(isSameEvent);
     }
 
+    @Test
+    void isSameEventConsolidatoreOkWithSameSourceTypeAndOriginType() {
+        Assertions.assertTrue(compareWithAttachmentTypes("SCANNED", "DUPLICATED", "SCANNED", "DUPLICATED"));
+    }
+
+    @Test
+    void isSameEventConsolidatoreOkWithNullSourceTypeAndOriginType() {
+        Assertions.assertTrue(compareWithAttachmentTypes(null, null, null, null));
+    }
+
+    @Test
+    void isSameEventConsolidatoreKoWithDifferentSourceType() {
+        Assertions.assertFalse(compareWithAttachmentTypes("SCANNED", "ORIGINAL", "DIGITAL", "ORIGINAL"));
+    }
+
+    @Test
+    void isSameEventConsolidatoreKoWithDifferentOriginType() {
+        Assertions.assertFalse(compareWithAttachmentTypes("DIGITAL", "ORIGINAL", "DIGITAL", "DUPLICATED"));
+    }
+
+    @Test
+    void isSameEventConsolidatoreKoWithSourceTypeValorizedOnlyOnTheNewEvent() {
+        Assertions.assertFalse(compareWithAttachmentTypes(null, null, "SCANNED", "ORIGINAL"));
+    }
+
+    private boolean compareWithAttachmentTypes(String dtoSourceType, String dtoOriginType, String consSourceType, String consOriginType) {
+        OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+
+        String id = "id";
+        String uri = "uri";
+        String documentType = "documentType";
+        String sha256 = "sha256";
+
+        AttachmentsProgressEventDto attachments = new AttachmentsProgressEventDto()
+                .id(id)
+                .date(now)
+                .uri(uri)
+                .documentType(documentType)
+                .sha256(sha256)
+                .sourceType(dtoSourceType)
+                .originType(dtoOriginType);
+
+        ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner consAttachments = new ConsolidatoreIngressPaperProgressStatusEventAttachmentsInner()
+                .id(id)
+                .date(now)
+                .uri(uri)
+                .documentType(documentType)
+                .sha256(sha256)
+                .sourceType(consSourceType)
+                .originType(consOriginType);
+
+        String statusCode = "P000";
+        String statusDescription = "desc";
+        String registeredLetterCode = "code";
+        String productType = "type";
+        String iun = "iun";
+
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto()
+                .status(SENT.getStatusTransactionTableCompliant())
+                .statusDateTime(now)
+                .registeredLetterCode(registeredLetterCode)
+                .productType(productType)
+                .iun(iun)
+                .statusCode(statusCode)
+                .statusDescription(statusDescription)
+                .attachments(List.of(attachments));
+
+        ConsolidatoreIngressPaperProgressStatusEvent consEvent = new ConsolidatoreIngressPaperProgressStatusEvent()
+                .statusDateTime(now)
+                .registeredLetterCode(registeredLetterCode)
+                .productType(productType)
+                .iun(iun)
+                .statusCode(statusCode)
+                .statusDescription(statusDescription)
+                .attachments(List.of(consAttachments));
+
+        return CompareUtils.isSameEvent(paperProgressStatusDto, consEvent);
+    }
+
 }
