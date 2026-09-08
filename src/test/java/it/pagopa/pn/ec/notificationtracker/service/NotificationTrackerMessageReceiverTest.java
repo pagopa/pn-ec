@@ -89,6 +89,7 @@ class NotificationTrackerMessageReceiverTest {
     private static final String PAPER_REQUEST_IDX = "PAPER_REQUEST_IDX";
     private static final String SERCQ_REQUEST_IDX = "SERCQ_REQUEST_IDX";
     private static final String PAPER_REQUEST_IDX_DUPLICATE = "PAPER_REQUEST_IDX_DUPLICATE";
+    private static final String PAPER_REQUEST_IDX_PRINTER_DU = "PAPER_REQUEST_IDX_PRINTER_DU";
     private static final String CLIENT_ID = "CLIENT_ID";
     private static final String EXTERNAL_CHANNEL_REWORK_OUTCOME_EVENT = "ExternalChannelReworkOutcomeEvent";
 
@@ -114,6 +115,7 @@ class NotificationTrackerMessageReceiverTest {
         insertSercqRequest();
         insertPaperRequestRework();
         insertPaperRequestDuplicate();
+        insertPaperRequestPrinterDu();
     }
 
     @BeforeEach
@@ -461,6 +463,40 @@ class NotificationTrackerMessageReceiverTest {
         Assertions.assertEquals(Boolean.TRUE, capturedSingleStatusUpdate.getAnalogMail().getIsDuplicate());
     }
 
+    @Test
+    void paperNtOkPropagatesPrinterAndDuToPublishedEvent() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
+
+        //GIVEN
+        String printer = "printer123456789abc";
+        String du = "du123456789abc";
+
+        PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX_PRINTER_DU).xPagopaExtchCxId(CLIENT_ID).build();
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant())
+                .discoveredAddress(new DiscoveredAddressDto())
+                .attachments(List.of(new AttachmentsProgressEventDto().id("id")))
+                .courier("recapitistaPrinterDu")
+                .productType("AR")
+                .printer(printer)
+                .du(du);
+        NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, SENT.getStatusTransactionTableCompliant(), paperProgressStatusDto);
+
+        //WHEN
+        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
+        mockStatusDecode();
+
+        //THEN
+        notificationTrackerMessageReceiver.receiveCartaceoObjectMessage(notificationTrackerQueueDto, acknowledgment);
+
+        ArgumentCaptor<SingleStatusUpdate> singleStatusUpdateCaptor = ArgumentCaptor.forClass(SingleStatusUpdate.class);
+        verify(putEvents, times(1)).putEventExternal(singleStatusUpdateCaptor.capture(), eq(transactionProcessConfigurationProperties.paper()), any(String.class));
+
+        SingleStatusUpdate capturedSingleStatusUpdate = singleStatusUpdateCaptor.getValue();
+        Assertions.assertEquals(printer, capturedSingleStatusUpdate.getAnalogMail().getPrinter());
+        Assertions.assertEquals(du, capturedSingleStatusUpdate.getAnalogMail().getDu());
+    }
+
 
     private NotificationTrackerQueueDto receiveDigitalObjectMessage(String requestId, String processId, Status nextStatus, GeneratedMessageDto generatedMessageDto) {
         //GIVEN
@@ -541,6 +577,17 @@ class NotificationTrackerMessageReceiverTest {
 
     private static void insertPaperRequestDuplicate() {
         var concatRequestId = CLIENT_ID + "~" + PAPER_REQUEST_IDX_DUPLICATE;
+        requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).paperRequestPersonal(PaperRequestPersonal.builder().build()).build()));
+        Events event = Events.builder().paperProgrStatus(PaperProgressStatus.builder()
+                .status(BOOKED.getStatusTransactionTableCompliant())
+                .statusDateTime(OffsetDateTime.now())
+                .discoveredAddress(new DiscoveredAddress())
+                .build()).build();
+        requestMetadataDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestMetadata.builder().eventsList(List.of(event)).requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).paperRequestMetadata(PaperRequestMetadata.builder().build()).build()));
+    }
+
+    private static void insertPaperRequestPrinterDu() {
+        var concatRequestId = CLIENT_ID + "~" + PAPER_REQUEST_IDX_PRINTER_DU;
         requestPersonalDynamoDbTable.putItem(requestBuilder -> requestBuilder.item(RequestPersonal.builder().requestId(concatRequestId).xPagopaExtchCxId(CLIENT_ID).paperRequestPersonal(PaperRequestPersonal.builder().build()).build()));
         Events event = Events.builder().paperProgrStatus(PaperProgressStatus.builder()
                 .status(BOOKED.getStatusTransactionTableCompliant())
