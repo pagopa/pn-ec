@@ -24,6 +24,7 @@
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "CON012"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "CON012"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "CON992"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "CON992"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "CON09A"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "CON09A"},"targetStatus": {"L": [{"S": "_any_"}]}}
+{"processClientId": {"S": "PAPER"},"currStatus": {"S": "CON09B"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "CON09B"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "CON016"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "CON016"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "CON018"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "CON018"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "CON991"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "CON991"},"targetStatus": {"L": [{"S": "_any_"}]}}
@@ -66,6 +67,7 @@
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECRN005C"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECRN005C"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECRN006"},"externalStatus": {"S": "OK"},"logicStatus": {"S": "RECRN006"},"targetStatus": {"L": [{"S": "_end_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECAG010"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECAG010"},"targetStatus": {"L": [{"S": "_any_"}]}}
+{"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECAG010A"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECAG010A"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECAG011A"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECAG011A"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECAG011B"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECAG011B"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECAG012"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECAG012"},"targetStatus": {"L": [{"S": "_any_"}]}}
@@ -111,6 +113,9 @@
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECRSI004C"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECRSI004C"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECRSI005"},"externalStatus": {"S": "OK"},"logicStatus": {"S": "RECRSI005"},"targetStatus": {"L": [{"S": "_end_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "REC090"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "REC090"},"targetStatus": {"L": [{"S": "_any_"}]}}
+{"processClientId": {"S": "PAPER"},"currStatus": {"S": "REC016"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "REC016"},"targetStatus": {"L": [{"S": "_any_"}]}}
+{"processClientId": {"S": "PAPER"},"currStatus": {"S": "REC018"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "REC018"},"targetStatus": {"L": [{"S": "_any_"}]}}
+{"processClientId": {"S": "PAPER"},"currStatus": {"S": "REC991"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "REC991"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECRS013"},"externalStatus": {"S": "OK"},"logicStatus": {"S": "RECRS013"},"targetStatus": {"L": [{"S": "_end_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECRS015"},"externalStatus": {"S": "PROGRESS"},"logicStatus": {"S": "RECRS015"},"targetStatus": {"L": [{"S": "_any_"}]}}
 {"processClientId": {"S": "PAPER"},"currStatus": {"S": "RECRN013"},"externalStatus": {"S": "OK"},"logicStatus": {"S": "RECRN013"},"targetStatus": {"L": [{"S": "_end_"}]}}
