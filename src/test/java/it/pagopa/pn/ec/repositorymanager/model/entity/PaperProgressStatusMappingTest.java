@@ -7,6 +7,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import it.pagopa.pn.ec.commons.utils.RestUtils;
 import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -54,5 +55,51 @@ class PaperProgressStatusMappingTest {
         PaperProgressStatusDto back = restUtils.entityToDto(entity, PaperProgressStatusDto.class);
 
         Assertions.assertEquals(isDuplicate, back.getIsDuplicate());
+    }
+
+    @Test
+    void printerAndDuSurvivesDtoToEntity() {
+        String printer = "printer123456789abc";
+        String du = "du123456789abc";
+        PaperProgressStatusDto dto = baseDto().printer(printer).du(du);
+
+        PaperProgressStatus entity = restUtils.startCreateRequest(dto, PaperProgressStatus.class);
+
+        Assertions.assertEquals(printer, entity.getPrinter());
+        Assertions.assertEquals(du, entity.getDu());
+    }
+
+    @Test
+    void printerAndDuSurvivesRoundTrip() {
+        String printer = "printer123456789abc";
+        String du = "du123456789abc";
+        PaperProgressStatusDto dto = baseDto().printer(printer).du(du);
+
+        PaperProgressStatus entity = restUtils.startCreateRequest(dto, PaperProgressStatus.class);
+        PaperProgressStatusDto back = restUtils.entityToDto(entity, PaperProgressStatusDto.class);
+
+        Assertions.assertEquals(printer, back.getPrinter());
+        Assertions.assertEquals(du, back.getDu());
+    }
+
+    @Test
+    void printerAndDuAbsentRemainNullAfterDtoToEntity() {
+        PaperProgressStatusDto dto = baseDto();
+
+        PaperProgressStatus entity = restUtils.startCreateRequest(dto, PaperProgressStatus.class);
+
+        Assertions.assertNull(entity.getPrinter());
+        Assertions.assertNull(entity.getDu());
+    }
+
+    @Test
+    void printerAndDuAbsentRemainNullAfterRoundTrip() {
+        PaperProgressStatusDto dto = baseDto();
+
+        PaperProgressStatus entity = restUtils.startCreateRequest(dto, PaperProgressStatus.class);
+        PaperProgressStatusDto back = restUtils.entityToDto(entity, PaperProgressStatusDto.class);
+
+        Assertions.assertNull(back.getPrinter());
+        Assertions.assertNull(back.getDu());
     }
 }
