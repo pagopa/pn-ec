@@ -323,6 +323,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
         attachmentsDetails.setDocumentType(attachmentsProgressEventDto.getDocumentType());
         attachmentsDetails.setUri(attachmentsProgressEventDto.getUri());
         attachmentsDetails.setDate(attachmentsProgressEventDto.getDate());
+        attachmentsDetails.setSourceType(attachmentsProgressEventDto.getSourceType());
+        attachmentsDetails.setOriginType(attachmentsProgressEventDto.getOriginType());
         return  attachmentsDetails;
     }
 
