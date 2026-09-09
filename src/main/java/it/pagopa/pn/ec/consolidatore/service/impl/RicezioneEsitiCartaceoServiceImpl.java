@@ -410,6 +410,8 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	 			paperProgressStatusDto.setAttachments(attachmentsDto);
 				paperProgressStatusDto.setClientRequestTimeStamp(statusEvent.getClientRequestTimeStamp());
 				paperProgressStatusDto.setCourier(statusEvent.getCourier());
+				paperProgressStatusDto.setPrinter(statusEvent.getPrinter());
+				paperProgressStatusDto.setDu(statusEvent.getDu());
 				// WI-1.3 (PN-20733): propaga il flag calcolato in verificaDuplicati al notification-tracker
 				paperProgressStatusDto.setIsDuplicate(ricezioneEsitiDto.getIsDuplicate());
 

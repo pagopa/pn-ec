@@ -27,5 +27,7 @@ public class PaperProgressStatus {
     List<PaperProgressStatusEventAttachments> attachments;
     DiscoveredAddress discoveredAddress;
     String courier;
+    String printer;
+    String du;
     Boolean isDuplicate;
 }
