@@ -422,6 +422,40 @@
                     </execution>
 
                     <execution>
+                        <id>generate-consolidatore-proxy</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <inputSpec>${project.basedir}/docs/openapi/external/api-consolidatore-proxy-v1.yaml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <library>spring-boot</library>
+                            <generateApiDocumentation>false</generateApiDocumentation>
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelTests>false</generateModelTests>
+                            <configOptions>
+                                <useJakartaEe>true</useJakartaEe>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <delegatePattern>true</delegatePattern>
+                                <interfaceOnly>true</interfaceOnly>
+                                <annotationLibrary>none</annotationLibrary>
+                                <documentationProvider>source</documentationProvider>
+                                <openApiNullable>false</openApiNullable>
+                                <useOptional>true</useOptional>
+                                <reactive>true</reactive>
+                                <skipDefaultInterface>false</skipDefaultInterface>
+                                <useTags>true</useTags>
+                                <basePackage>${project.groupId}.rest.v1.consolidatore</basePackage>
+                                <modelPackage>${project.groupId}.rest.v1.consolidatore.dto</modelPackage>
+                                <apiPackage>${project.groupId}.rest.v1.consolidatore.api</apiPackage>
+                                <configPackage>${project.groupId}.rest.v1.consolidatore.config</configPackage>
+                            </configOptions>
+                            <skipValidateSpec>true</skipValidateSpec>
+                        </configuration>
+                    </execution>
+
+                    <execution>
                         <id>generate-api-internal</id>
                         <goals>
                             <goal>generate</goal>

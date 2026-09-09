@@ -131,6 +131,7 @@ public class LogUtils {
     //PAPER
     public static final String SEND_PAPER_ENGAGE_REQUEST = "sendPaperEngageRequest";
     public static final String GET_PAPER_ENGAGE_PROGRESSES = "getPaperEngageProgresses";
+    public static final String GET_PAPER_DELIVERY_PROGRESSES = "getPaperDeliveryProgresses";
     public static final String PAPER_PULL_SERVICE = "StatusPullService.paperPullService()";
     public static final String INSERT_REQUEST_FROM_CARTACEO = "CartaceoService.insertRequestFromCartaceo()";
     public static final String LAVORAZIONE_RICHIESTA_CARTACEO = "lavorazioneRichiestaCartaceo()";

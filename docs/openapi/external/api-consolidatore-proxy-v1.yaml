@@ -1,0 +1,51 @@
+openapi: 3.0.3
+info:
+  title: API interne di proxy verso il consolidatore.
+  description: >-
+    Questo documento raccoglie le API che external-channel espone internamente per
+    inoltrare al consolidatore le richieste dei client di Piattaforma Notifiche.
+
+    Ogni operazione si comporta da proxy: la richiesta viene inoltrata al consolidatore
+    e la risposta restituita al chiamante è quella prodotta dal consolidatore, senza
+    rielaborazioni.
+  version: v1.0
+servers:
+  - url: >-
+      https://api.externalchannel.pagopa.local
+    description: Server url
+tags:
+  - name: PaperProgresses
+    description: Avanzamenti delle postalizzazioni censiti dal consolidatore.
+
+paths:
+  /external-channels/v1/paper-deliveries-progresses/{requestIdx}:
+    get:
+      operationId: getPaperEngageProgresses
+      tags:
+        - PaperProgresses
+      summary: Pull avanzamenti messaggi cartacei dal consolidatore
+      description: >-
+        Questa richiesta interroga il consolidatore per ottenere l'elenco completo degli
+        eventi salienti riguardanti un processo di postalizzazione.
+      parameters:
+        - name: requestIdx
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 5
+            maxLength: 100
+        - name: x-pagopa-extch-cx-id
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: 'consolidatore-v1.yml#/components/schemas/PaperDeliveryProgressesResponse'
+        '404':
+          description: requestIdNotFound
