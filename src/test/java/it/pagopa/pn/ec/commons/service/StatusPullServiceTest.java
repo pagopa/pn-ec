@@ -218,32 +218,4 @@ class StatusPullServiceTest {
                     .verifyComplete();
     }
 
-    @Test
-    void paperPullServicePropagatesPrinterAndDuFromSourceDto() {
-
-        String printer = "printer123456789abc";
-        String du = "du123456789abc";
-
-        RequestDto request = paperRequest();
-        EventsDto paperEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
-                .status(BOOKED.getStatusTransactionTableCompliant())
-                .statusDateTime(OffsetDateTime.now())
-                .discoveredAddress(new DiscoveredAddressDto())
-                .attachments(List.of(new AttachmentsProgressEventDto()))
-                .printer(printer)
-                .du(du));
-        request.getRequestMetadata().setEventsList(List.of(paperEvent));
-
-        when(gestoreRepositoryCall.getRichiesta(eq(CLIENT_ID), eq(PAPER_REQUEST_IDX))).thenReturn(Mono.just(request));
-        when(callMacchinaStati.statusDecode(anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto("logicStatus", "externalStatus")));
-
-        Mono<PaperProgressStatusEvent> testMono = statusPullService.paperPullService(PAPER_REQUEST_IDX, CLIENT_ID);
-        StepVerifier.create(testMono)
-                    .assertNext(event -> {
-                        Assertions.assertEquals(printer, event.getPrinter());
-                        Assertions.assertEquals(du, event.getDu());
-                    })
-                    .verifyComplete();
-    }
-
 }

@@ -530,13 +530,3 @@ components:
           type: string
           description: >-
             Identificativo del recapitista in eventi recapito cartacei
-        printer:
-          type: string
-          description: >-
-            [FASE2] Identificativo dello stampatore.
-          example: '123456789abc'
-        du:
-          type: string
-          description: >-
-            [FASE2] Distinta Unica, raggruppamento di spedizioni in un unico lotto.
-          example: '123456789abc'

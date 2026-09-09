@@ -177,8 +177,6 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                event.setIun(requestDto.getRequestMetadata().getPaperRequestMetadata().getIun());
                                                                event.setProductType(requestDto.getRequestMetadata().getPaperRequestMetadata().getProductType());
                                                                event.setCourier(paperProgrStatus.getCourier());
-                                                               event.setPrinter(paperProgrStatus.getPrinter());
-                                                               event.setDu(paperProgrStatus.getDu());
                                                                event.setIsDuplicate(paperProgrStatus.getIsDuplicate());
 
                                                                status = lastEventUpdated.getPaperProgrStatus().getStatus();

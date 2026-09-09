@@ -4,8 +4,6 @@ import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.consolidatore.utils.PaperElem.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -58,7 +56,6 @@ import lombok.CustomLog;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import org.hamcrest.Matchers;
-import org.mockito.ArgumentCaptor;
 import reactor.test.StepVerifier;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -255,43 +252,6 @@ class RicezioneEsitiConsolidatoreControllerTest {
 				.exchange()
 				.expectStatus()
 				.isOk();
-	}
-
-	@Test
-	void ricezioneEsitiPropagatesPrinterAndDuToNotificationTrackerQueue() {
-		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiPropagatesPrinterAndDuToNotificationTrackerQueue() : START");
-
-		String printer = "printer123456789abc";
-		String du = "du123456789abc";
-
-		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
-		when(gestoreRepositoryCall.getRichiesta(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, REQUEST_ID)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
-		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
-
-		ConsolidatoreIngressPaperProgressStatusEvent event = getProgressStatusEventWithoutAttachments();
-		event.setPrinter(printer);
-		event.setDu(du);
-
-		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
-		events.add(event);
-
-		webClient.put()
-				.uri(RICEZIONE_ESITI_ENDPOINT)
-				.accept(APPLICATION_JSON)
-				.contentType(APPLICATION_JSON)
-				.header(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_NAME, X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE)
-				.header(X_API_KEY_HEADER_NAME, X_API_KEY_HEADER_VALUE)
-				.body(BodyInserters.fromValue(events))
-				.exchange()
-				.expectStatus()
-				.isOk();
-
-		ArgumentCaptor<NotificationTrackerQueueDto> notificationTrackerQueueDtoCaptor = ArgumentCaptor.forClass(NotificationTrackerQueueDto.class);
-		verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoCartaceoName()), notificationTrackerQueueDtoCaptor.capture());
-
-		PaperProgressStatusDto sentPaperProgressStatusDto = notificationTrackerQueueDtoCaptor.getValue().getPaperProgressStatusDto();
-		assertEquals(printer, sentPaperProgressStatusDto.getPrinter());
-		assertEquals(du, sentPaperProgressStatusDto.getDu());
 	}
 
 	@Test
