@@ -92,6 +92,11 @@ PN_EC_ESITI_CARTACEO='''
         "M03",
         "M04"
       ]
+    },
+    "RECRN002A": {
+      "deliveryFailureCause": [
+        "M10"
+      ]
     }
   }
 }
