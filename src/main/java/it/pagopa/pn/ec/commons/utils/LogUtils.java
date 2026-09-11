@@ -133,6 +133,7 @@ public class LogUtils {
     public static final String GET_PAPER_ENGAGE_PROGRESSES = "getPaperEngageProgresses";
     public static final String GET_PAPER_DELIVERY_PROGRESSES = "getPaperDeliveryProgresses";
     public static final String PAPER_PULL_SERVICE = "StatusPullService.paperPullService()";
+    public static final String PAPER_ENGAGE_PROGRESSES_SERVICE = "PaperEngageProgressesService.getPaperEngageProgresses()";
     public static final String INSERT_REQUEST_FROM_CARTACEO = "CartaceoService.insertRequestFromCartaceo()";
     public static final String LAVORAZIONE_RICHIESTA_CARTACEO = "lavorazioneRichiestaCartaceo()";
     public static final String LAVORAZIONE_BATCH_CARTACEO= "CartaceoService.lavorazioneRichiestaBatch()";
