@@ -47,20 +47,6 @@ public class PaperMessageCallImpl implements PaperMessageCall {
     private final RateLimiter rateLimiter;
     private final Retry rateLimiterRetryStrategy;
 
-
-    private static final List<String> NON_RETRYABLE_ERRORS = Arrays.asList(
-            PaperResult.SYNTAX_ERROR_CODE,
-            PaperResult.SEMANTIC_ERROR_CODE,
-            PaperResult.AUTHENTICATION_ERROR_CODE,
-            PaperResult.DUPLICATED_REQUEST_CODE);
-
-//    private static final Retry RATE_LIMITER_RETRY_STRATEGY = Retry.fixedDelay(8, Duration.ofSeconds(3))
-//            .filter(ex -> ex instanceof RateLimitExceededException)
-//            .doBeforeRetry(retrySignal -> log.info(
-//                    "Retry {} per RateLimiter su putRequest, causa: {}",
-//                    retrySignal.totalRetries(),
-//                    retrySignal.failure().getMessage()));
-
     public PaperMessageCallImpl(@Qualifier("consolidatoreWebClient")WebClient consolidatoreWebClient, PaperMessagesEndpointProperties paperMessagesEndpointProperties, JsonUtils jsonUtils,
                                 @Value("${pn.ec.max-concurrent-requests}") int maxConcurrentRequests,
                                 @Value("${pn.ec.max-retry-for-rate-limiter}") int maxRetryForRateLimiter,
@@ -89,20 +75,6 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                     log.warn("Max retry RateLimiter raggiunti, request ignorata: {}", paperEngageRequest);
                     return Mono.empty();
                 });
-    }
-
-    private Mono<OperationResultCodeResponse> handleClientError(ClientResponse clientResponse) {
-        return clientResponse.bodyToMono(String.class).flatMap(response -> {
-            OperationResultCodeResponse operationResultCodeResponse = jsonUtils.convertJsonStringToObject(response, OperationResultCodeResponse.class);
-            String resultCode = operationResultCodeResponse.getResultCode();
-            // La response non è conforme al formato che ci aspettiamo.
-            if (StringUtils.isBlank(resultCode)) {
-                String errStr = String.format("Missing result code or non conforming response: %s", response);
-                log.warn(errStr);
-                return clientResponse.createException().flatMap(e -> Mono.error(new ConsolidatoreException.PermanentException(errStr)));
-            }
-            return Mono.just(operationResultCodeResponse);
-        });
     }
 
     private Mono<OperationResultCodeResponse> executePutRequestWithSemaphore(PaperEngageRequest paperEngageRequest) {
@@ -135,15 +107,6 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                     })
                     .doFinally(signalType -> semaphore.release());
     }
-    private Mono<OperationResultCodeResponse> handleServerError(ClientResponse clientResponse) {
-        return clientResponse
-                .createException()
-                .flatMap(e -> Mono.error(new ConsolidatoreException.TemporaryException(e.getMessage())));
-    }
-
-    private boolean isNonRetryableError(String resultCode) {
-        return resultCode != null && NON_RETRYABLE_ERRORS.contains(resultCode);
-    }
 
     @Override
     public Mono<OperationResultCodeResponse> putDuplicateRequest(PaperReplicaRequest paperReplicaRequest)
@@ -159,26 +122,55 @@ public class PaperMessageCallImpl implements PaperMessageCall {
     }
 
     @Override
-    public Mono<PaperDeliveryProgressesResponse> getProgress(String requestId) throws RestCallException.ResourceNotFoundException {
+    public Mono<PaperDeliveryProgressesResponse> getProgress(String requestId) {
         log.logInvokingExternalService(CONSOLIDATORE_SERVICE, GET_PAPER_ENGAGE_PROGRESSES);
         return consolidatoreWebClient.get()
-                                     .uri(UriComponentsBuilder.fromPath(paperMessagesEndpointProperties.getRequest()).build(requestId).toString())
-                                     .retrieve()
-                                     .onStatus(NOT_FOUND::equals,
-                                               clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
-                                     .bodyToMono(PaperDeliveryProgressesResponse.class);
+                .uri(UriComponentsBuilder.fromUriString(paperMessagesEndpointProperties.getRequestProgress()).build(requestId).toString())
+                .exchangeToMono(clientResponse -> {
+                    if (clientResponse.statusCode().is2xxSuccessful()) {
+                        return clientResponse.bodyToMono(PaperDeliveryProgressesResponse.class);
+                    } else if (clientResponse.statusCode().is4xxClientError()) {
+                        return handleClientError(clientResponse)
+                                .flatMap(operationResult -> Mono.error(new ConsolidatoreException.PermanentException(operationResult,
+                                                                                                                       clientResponse.statusCode().value())));
+                    } else {
+                        return handleServerError(clientResponse)
+                                .flatMap(operationResult -> Mono.error(new ConsolidatoreException.TemporaryException(operationResult,
+                                                                                                                       clientResponse.statusCode().value())));
+                    }
+                });
     }
 
     @Override
     public Mono<PaperReplicasProgressesResponse> getDuplicateProgress(String requestId) throws RestCallException.ResourceNotFoundException {
         log.logInvokingExternalService(CONSOLIDATORE_SERVICE, GET_PAPER_REPLICAS_PROGRESSES_REQUEST);
         return consolidatoreWebClient.get()
-                                     .uri( UriComponentsBuilder.fromPath(paperMessagesEndpointProperties.getDuplicateRequest()).build(requestId).toString())
+                                     .uri( UriComponentsBuilder.fromPath(paperMessagesEndpointProperties.getDuplicateRequestProgress()).build(requestId).toString())
                                      .retrieve()
                                      .onStatus(NOT_FOUND::equals,
                                                clientResponse -> Mono.error(new RestCallException.ResourceNotFoundException()))
                                      .bodyToMono(PaperReplicasProgressesResponse.class);
     }
 
+    private Mono<OperationResultCodeResponse> handleClientError(ClientResponse clientResponse) {
+        return clientResponse.bodyToMono(String.class).flatMap(response -> {
+            OperationResultCodeResponse operationResultCodeResponse = jsonUtils.convertJsonStringToObject(response, OperationResultCodeResponse.class);
+            String resultCode = operationResultCodeResponse.getResultCode();
+            // La response non è conforme al formato che ci aspettiamo.
+            if (StringUtils.isBlank(resultCode)) {
+                String errStr = String.format("Missing result code or non conforming response: %s", response);
+                log.warn(errStr);
+                return clientResponse.createException()
+                                     .flatMap(e -> Mono.error(new ConsolidatoreException.PermanentException(errStr, clientResponse.statusCode().value())));
+            }
+            return Mono.just(operationResultCodeResponse);
+        });
+    }
+
+    private Mono<OperationResultCodeResponse> handleServerError(ClientResponse clientResponse) {
+        return clientResponse
+                .createException()
+                .flatMap(e -> Mono.error(new ConsolidatoreException.TemporaryException(e.getMessage(), clientResponse.statusCode().value())));
+    }
 
 }

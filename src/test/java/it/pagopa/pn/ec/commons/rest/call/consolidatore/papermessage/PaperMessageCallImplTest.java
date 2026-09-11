@@ -5,14 +5,19 @@ import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import it.pagopa.pn.ec.commons.exception.cartaceo.ConsolidatoreException;
 import it.pagopa.pn.ec.consolidatore.utils.PaperResult;
+import org.springframework.core.codec.DecodingException;
+import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperDeliveryProgressesResponse;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest;
+import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperProgressStatusEvent;
 import it.pagopa.pn.ec.rest.v1.dto.OperationResultCodeResponse;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.QueueDispatcher;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -43,6 +48,7 @@ class PaperMessageCallImplTest {
     private PaperMessageCall paperMessageCall;
     @MockitoSpyBean
     RateLimiter rateLimiter;
+    private static final String REQUEST_ID = "mock_requestIdx-123";
     private static MockWebServer mockBackEnd;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -163,6 +169,75 @@ class PaperMessageCallImplTest {
     }
 
 
+
+    @Test
+    void testGetProgressSuccess() {
+        var event = new PaperProgressStatusEvent().requestId(REQUEST_ID)
+                                                  .statusCode("CON080")
+                                                  .statusDescription("Stampato");
+        var progresses = new PaperDeliveryProgressesResponse().requestId(REQUEST_ID).events(List.of(event));
+
+        mockBackEnd.enqueue(buildMockResponse(progresses));
+
+        StepVerifier.create(paperMessageCall.getProgress(REQUEST_ID))
+                    .expectNextMatches(response -> REQUEST_ID.equals(response.getRequestId()) && response.getEvents().size() == 1)
+                    .verifyComplete();
+    }
+
+    @Test
+    void testGetProgressRequestNotFound() {
+        var operationResult = new OperationResultCodeResponse().resultCode("404.01")
+                                                                           .resultDescription("requestId never sent");
+
+        mockBackEnd.enqueue(buildMockResponse(operationResult, 404));
+
+        StepVerifier.create(paperMessageCall.getProgress(REQUEST_ID))
+                    .expectErrorMatches(throwable -> throwable instanceof ConsolidatoreException.PermanentException permanentException &&
+                                                     "404.01".equals(permanentException.getResponse().getResultCode()) &&
+                                                     "requestId never sent".equals(permanentException.getResponse().getResultDescription()))
+                    .verify();
+    }
+
+    @Test
+    void testGetProgressAuthenticationFailed() {
+        var operationResult = new OperationResultCodeResponse().resultCode(PaperResult.AUTHENTICATION_ERROR_CODE)
+                                                                           .resultDescription("Authentication Failed");
+
+        mockBackEnd.enqueue(buildMockResponse(operationResult, 401).addHeader("WWW-Authenticate", "Basic realm=\"consolidatore\""));
+
+        StepVerifier.create(paperMessageCall.getProgress(REQUEST_ID))
+                    .expectErrorMatches(throwable -> throwable instanceof ConsolidatoreException.PermanentException permanentException &&
+                                                     PaperResult.AUTHENTICATION_ERROR_CODE.equals(permanentException.getResponse()
+                                                                                                                    .getResultCode()))
+                    .verify();
+    }
+
+    @Test
+    void testGetProgressNonConformingResponse() {
+        mockBackEnd.enqueue(new MockResponse().setBody("<html>Gateway error</html>")
+                                              .setResponseCode(500)
+                                              .addHeader("Content-Type", "text/html"));
+
+        StepVerifier.create(paperMessageCall.getProgress(REQUEST_ID))
+                    .expectErrorMatches(ConsolidatoreException.TemporaryException.class::isInstance)
+                    .verify();
+    }
+
+    @Test
+    void testGetProgressUnreadableResponse() {
+        mockBackEnd.setDispatcher(new Dispatcher() {
+            @Override
+            public MockResponse dispatch(RecordedRequest recordedRequest) {
+                return new MockResponse().setBody("<html>Gateway error</html>")
+                                         .setResponseCode(200)
+                                         .addHeader("Content-Type", "application/json");
+            }
+        });
+
+        StepVerifier.create(paperMessageCall.getProgress(REQUEST_ID))
+                    .expectErrorMatches(DecodingException.class::isInstance)
+                    .verify();
+    }
 
     @SneakyThrows
     private <T> MockResponse buildMockResponse(T body, int code) {
