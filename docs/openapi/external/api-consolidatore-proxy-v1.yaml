@@ -5,9 +5,11 @@ info:
     Questo documento raccoglie le API che external-channel espone internamente per
     inoltrare al consolidatore le richieste dei client di Piattaforma Notifiche.
 
-    Ogni operazione si comporta da proxy: la richiesta viene inoltrata al consolidatore
-    e la risposta restituita al chiamante è quella prodotta dal consolidatore, senza
-    rielaborazioni.
+    Ogni operazione si comporta da gateway verso il consolidatore: il corpo della risposta
+    è quello prodotto dal consolidatore, riportato senza rielaborazioni, mentre lo stato HTTP
+    descrive l'esito dal punto di vista del chiamante. Gli esiti di errore che riguardano la
+    comunicazione fra external-channel e il consolidatore non vengono propagati come tali,
+    perché non dipendono dalla richiesta né dalle credenziali di chi chiama.
   version: v1.0
 servers:
   - url: >-
