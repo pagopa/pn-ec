@@ -48,4 +48,18 @@ paths:
               schema:
                 $ref: 'consolidatore-v1.yml#/components/schemas/PaperDeliveryProgressesResponse'
         '404':
-          description: requestIdNotFound
+          description: requestId non corrispondente a un requestId precedentemente richiesto.
+          content:
+            application/json:
+              example: { resultCode: '404.01', resultDescription: 'requestId never sent', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: 'consolidatore-v1.yml#/components/schemas/OperationResultCodeResponse'
+        '502':
+          description: >-
+            Il consolidatore ha risposto con un esito di errore oppure con una risposta non conforme.
+            Il corpo riporta l'esito restituito dal consolidatore.
+          content:
+            application/json:
+              example: { resultCode: '401.00', resultDescription: 'Authentication Failed', clientResponseTimeStamp: '2019-08-24T14:15:22Z'}
+              schema:
+                $ref: 'consolidatore-v1.yml#/components/schemas/OperationResultCodeResponse'
