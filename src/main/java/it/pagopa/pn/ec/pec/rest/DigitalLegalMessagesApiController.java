@@ -62,7 +62,7 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
                     }
                 })
                 .doOnSuccess(result -> log.logEndingProcess(SEND_DIGITAL_LEGAL_MESSAGE))
-                .doOnError(throwable -> log.logEndingProcess(SEND_DIGITAL_LEGAL_MESSAGE, false, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(SEND_DIGITAL_LEGAL_MESSAGE, false, throwable.getMessage(), throwable))
                 .thenReturn(new ResponseEntity<>(OK)));
     }
 
@@ -75,7 +75,7 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
         log.logStartingProcess(GET_DIGITAL_LEGAL_MESSAGE_STATUS);
         return MDCUtils.addMDCToContextAndExecute(statusPullService.pecPullService(requestIdx, xPagopaExtchCxId)
                 .doOnSuccess(result -> log.logEndingProcess(GET_DIGITAL_LEGAL_MESSAGE_STATUS))
-                .doOnError(throwable -> log.logEndingProcess(GET_DIGITAL_LEGAL_MESSAGE_STATUS, false, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(GET_DIGITAL_LEGAL_MESSAGE_STATUS, false, throwable.getMessage(), throwable))
                 .map(ResponseEntity::ok));
     }
 

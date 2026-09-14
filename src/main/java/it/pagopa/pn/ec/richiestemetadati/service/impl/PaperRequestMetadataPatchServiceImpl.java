@@ -45,7 +45,7 @@ public class PaperRequestMetadataPatchServiceImpl implements PaperRequestMetadat
 
         return processUpdatePaperRequestMetadataIsOpenReworkRequest(id, req)
                 .doOnSuccess(result -> log.info(PAPER_REQUEST_METADATA_PATCH_SERVICE_PATCH_IS_OPEN_REWORK_REQUEST))
-                .doOnError(exception -> log.logEndingProcess(PAPER_REQUEST_METADATA_PATCH_SERVICE_PATCH_IS_OPEN_REWORK_REQUEST, false, exception.getMessage())).then()
+                .doOnError(exception -> log.logEndingProcess(PAPER_REQUEST_METADATA_PATCH_SERVICE_PATCH_IS_OPEN_REWORK_REQUEST, false, exception.getMessage(), exception)).then()
                 ;
 
     }

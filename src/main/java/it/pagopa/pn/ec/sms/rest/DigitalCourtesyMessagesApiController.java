@@ -49,7 +49,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
         log.logStartingProcess(GET_COURTESY_SHORT_MESSAGE_STATUS);
         return MDCUtils.addMDCToContextAndExecute(statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.sms())
                 .doOnSuccess(result -> log.logEndingProcess(GET_COURTESY_SHORT_MESSAGE_STATUS))
-                .doOnError(throwable -> log.logEndingProcess(GET_COURTESY_SHORT_MESSAGE_STATUS, false, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(GET_COURTESY_SHORT_MESSAGE_STATUS, false, throwable.getMessage(), throwable))
                 .map(ResponseEntity::ok));
     }
 
@@ -68,7 +68,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                 .digitalCourtesySmsRequest(request)
                                 .build()))
                 .doOnSuccess(result -> log.logEndingProcess(SEND_COURTESY_SHORT_MESSAGE))
-                .doOnError(throwable -> log.logEndingProcess(SEND_COURTESY_SHORT_MESSAGE, false, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(SEND_COURTESY_SHORT_MESSAGE, false, throwable.getMessage(), throwable))
                 .thenReturn(new ResponseEntity<>(OK)));
     }
 
@@ -95,7 +95,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                 .digitalCourtesyMailRequest(request)
                                 .build()))
                 .doOnSuccess(result -> log.logEndingProcess(SEND_DIGITAL_COURTESY_MESSAGE))
-                .doOnError(throwable -> log.logEndingProcess(SEND_DIGITAL_COURTESY_MESSAGE, false, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(SEND_DIGITAL_COURTESY_MESSAGE, false, throwable.getMessage(), throwable))
                 .thenReturn(new ResponseEntity<>(OK)));
     }
 
@@ -108,7 +108,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
         log.logStartingProcess(GET_DIGITAL_COURTESY_MESSAGE_STATUS);
         return MDCUtils.addMDCToContextAndExecute(statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.email())
                 .doOnSuccess(result -> log.logEndingProcess(GET_DIGITAL_COURTESY_MESSAGE_STATUS))
-                .doOnError(throwable -> log.logEndingProcess(GET_DIGITAL_COURTESY_MESSAGE_STATUS, false, throwable.getMessage()))
+                .doOnError(throwable -> log.logEndingProcess(GET_DIGITAL_COURTESY_MESSAGE_STATUS, false, throwable.getMessage(), throwable))
                 .map(ResponseEntity::ok));
     }
 }

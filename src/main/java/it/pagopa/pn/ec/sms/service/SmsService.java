@@ -170,7 +170,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                   .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
                                                                                                       smsSqsQueueName.batchName()))
                   .transform(pullFromFluxUntilIsEmpty())
-                  .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_SMS, false, e.getMessage()))
+                  .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_SMS, false, e.getMessage(), e))
                   .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_SMS))
                   .blockLast();
         
@@ -226,7 +226,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
 //                               Publish to ERRORI SMS queue
                 .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo)))
-                .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_SMS, false,logSanitizer.sanitize(throwable.getMessage())))
+                .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_SMS, false,logSanitizer.sanitize(throwable.getMessage()), throwable))
                 .doOnSuccess(result -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_SMS))
                 .doFinally(signalType -> semaphore.release()));
     }
@@ -253,7 +253,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                   .defaultIfEmpty(new MonoResultWrapper<>(null))
                   .repeat()
                   .takeWhile(MonoResultWrapper::isNotEmpty)
-                  .doOnError(e -> log.logEndingProcess(LAVORAZIONE_ERRORI_SMS, false, e.getMessage()))
+                  .doOnError(e -> log.logEndingProcess(LAVORAZIONE_ERRORI_SMS, false, e.getMessage(), e))
                   .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_ERRORI_SMS))
                   .blockLast();
     }
@@ -409,7 +409,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 .onErrorResume(internalError -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                                               INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                                                               new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
-                .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_SMS, false, logSanitizer.sanitize(throwable.getMessage())))
+                .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_SMS, false, logSanitizer.sanitize(throwable.getMessage()), throwable))
                 .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_SMS)));
     }
 

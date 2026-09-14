@@ -211,7 +211,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                         emailPresaInCaricoInfoSqsMessageWrapper.getT1(),
                         emailSqsQueueName.batchName()))
                 .transform(pullFromFluxUntilIsEmpty())
-                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_EMAIL, false, e.getMessage()))
+                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_EMAIL, false, e.getMessage(), e))
                 .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_EMAIL))
                 .blockLast();
     }
@@ -293,7 +293,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
                         // Publish to ERRORI EMAIL queue
                         .then(sendNotificationOnErrorQueue(emailPresaInCaricoInfo)))
-                .doOnError(exception -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_EMAIL, false, logSanitizer.sanitize(exception.getMessage())))
+                .doOnError(exception -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_EMAIL, false, logSanitizer.sanitize(exception.getMessage()), exception))
                 .doOnSuccess(result -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_EMAIL))
                 .doFinally(signalType -> semaphore.release())
                 .timeout(sqsTimeoutProvider.getTimeoutForQueue(queueName));
@@ -334,7 +334,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .defaultIfEmpty(new MonoResultWrapper<>(null))
                 .repeat()
                 .takeWhile(MonoResultWrapper::isNotEmpty)
-                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_ERRORI_EMAIL, false, e.getMessage()))
+                .doOnError(e -> log.logEndingProcess(LAVORAZIONE_ERRORI_EMAIL, false, e.getMessage(), e))
                 .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_ERRORI_EMAIL))
                 .blockLast();
     }
@@ -350,11 +350,11 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             if (digitalCourtesyMailRequest.getAttachmentUrls() != null && !digitalCourtesyMailRequest.getAttachmentUrls().isEmpty() ) {
                 return MDCUtils.addMDCToContextAndExecute(processWithAttachRetry(emailPresaInCaricoInfo, message)
                         .timeout(sqsTimeoutProvider.getTimeoutForQueue(queueName))
-                        .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_EMAIL, false, logSanitizer.sanitize(throwable.getMessage())))
+                        .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_EMAIL, false, logSanitizer.sanitize(throwable.getMessage()), throwable))
                         .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_EMAIL)));
             } else {
                 return MDCUtils.addMDCToContextAndExecute(processOnlyBodyRetry(emailPresaInCaricoInfo, message)
-                        .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_EMAIL, false, logSanitizer.sanitize(throwable.getMessage())))
+                        .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_EMAIL, false, logSanitizer.sanitize(throwable.getMessage()), throwable))
                         .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_EMAIL)));
             }
         });

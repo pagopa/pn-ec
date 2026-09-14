@@ -6,7 +6,7 @@
     <parent>
         <groupId>it.pagopa.pn</groupId>
         <artifactId>pn-parent</artifactId>
-        <version>2.1.2-SPRINGBOOT3</version>
+        <version>2.3.1-SPRINGBOOT3</version>
         <relativePath/>
     </parent>
 
@@ -44,7 +44,7 @@
         <dependency>
             <groupId>it.pagopa.pn</groupId>
             <artifactId>pn-commons</artifactId>
-            <version>2.15.0-SPRINGBOOT3</version>
+            <version>2.24.0-SPRINGBOOT3</version>
         </dependency>
 
         <dependency>

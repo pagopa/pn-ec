@@ -67,7 +67,7 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
                 .doOnSuccess(result -> {acknowledgement.acknowledgeAsync();
                     log.logEndingProcess(LAVORAZIONE_SES_EVENT_EMAIL);
                 })
-                .doOnError(ex -> {log.logEndingProcess(LAVORAZIONE_SES_EVENT_EMAIL, false, ex.getMessage());})
+                .doOnError(ex -> {log.logEndingProcess(LAVORAZIONE_SES_EVENT_EMAIL, false, ex.getMessage(), ex);})
                 .onErrorResume(RepositoryManagerException.RequestNotFoundException.class, ex -> {
                     log.info("Message skipped caused by request with messageId={} not found", messageId);
                     return Mono.empty();
@@ -102,7 +102,7 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
                                         new DigitalProgressStatusDto());
                             });
                 }))
-                .doOnError(ex -> log.logEndingProcess(LAVORAZIONE_SES_EVENT_EMAIL, false, logSanitizer.sanitize(ex.getMessage())))
+                .doOnError(ex -> log.logEndingProcess(LAVORAZIONE_SES_EVENT_EMAIL, false, logSanitizer.sanitize(ex.getMessage()), ex))
                 .doOnSuccess(result -> log.logEndingProcess(LAVORAZIONE_SES_EVENT_EMAIL))
                 .doFinally(signalType -> semaphore.release())
                 .timeout(sqsTimeoutProvider.getTimeoutForQueue(queueName));

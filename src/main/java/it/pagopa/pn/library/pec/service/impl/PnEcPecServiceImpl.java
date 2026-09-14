@@ -114,7 +114,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         return Mono.fromSupplier(this::getProviderWrite)
                 .transform(sendMailAndHandleMetrics(message))
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_SEND_MAIL))
-                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_SEND_MAIL, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_SEND_MAIL, false, throwable.getMessage(), throwable));
     }
 
     /**
@@ -151,7 +151,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 .collectList()
                 .flatMap(this::processAndLogUnreadPecMessages)
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES))
-                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES, false, throwable.getMessage(), throwable));
     }
 
     private Mono<PnEcPecGetMessagesResponse> processAndLogUnreadPecMessages(List<PnEcPecMessage> messages) {
@@ -200,7 +200,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 .transform(getMessageCountAndHandleMetrics())
                 .reduce(0, Integer::sum)
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_GET_MESSAGE_COUNT))
-                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_MESSAGE_COUNT, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_MESSAGE_COUNT, false, throwable.getMessage(), throwable));
     }
 
     @Override
@@ -211,7 +211,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_MARK_MESSAGE_AS_READ, provider))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ))
-                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ, false, throwable.getMessage(), throwable));
     }
 
     @Override
@@ -222,7 +222,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_DELETE_MESSAGE, provider))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_DELETE_MESSAGE))
-                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_DELETE_MESSAGE, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_DELETE_MESSAGE, false, throwable.getMessage(), throwable));
     }
 
 
