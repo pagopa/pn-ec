@@ -36,25 +36,24 @@ public class PaperProgressesErrorHandler {
 
     @ExceptionHandler(ConsolidatoreException.RequestIdNotFoundException.class)
     public ResponseEntity<OperationResultCodeResponse> handleRequestIdNotFound(ConsolidatoreException.RequestIdNotFoundException exception) {
-        log.info("Consolidatore does not know the requested requestId: {}", exception.getResponse());
         return ResponseEntity.status(NOT_FOUND).contentType(APPLICATION_JSON).body(exception.getResponse());
     }
 
     @ExceptionHandler(ConsolidatoreException.CallTimeoutException.class)
-    public ResponseEntity<Problem> handleTimeout(ConsolidatoreException.CallTimeoutException exception) {
-        log.error("Consolidatore timed out: {}", exception.getMessage());
+    public ResponseEntity<Problem> handleTimeout() {
+        log.error("Consolidatore timed out");
         return problemResponse(GATEWAY_TIMEOUT, TIMEOUT_TITLE, TIMEOUT_DETAIL);
     }
 
     @ExceptionHandler(ConsolidatoreException.ConnectionFailedException.class)
-    public ResponseEntity<Problem> handleConnectionFailure(ConsolidatoreException.ConnectionFailedException exception) {
-        log.error("Consolidatore connection failure: {}", exception.getMessage());
+    public ResponseEntity<Problem> handleConnectionFailure() {
+        log.error("Consolidatore connection failure");
         return problemResponse(BAD_GATEWAY, UNREACHABLE_TITLE, UNREACHABLE_DETAIL);
     }
 
     @ExceptionHandler(ConsolidatoreException.RateLimitedException.class)
     public ResponseEntity<Problem> handleRateLimited(ConsolidatoreException.RateLimitedException exception) {
-        log.error("Consolidatore is rate limiting, retry after {} : {}", exception.getRetryAfter(), exception.getResponse());
+        log.error("Consolidatore is rate limiting, retry after {}", exception.getRetryAfter());
         return ResponseEntity.status(SERVICE_UNAVAILABLE)
                              .header(RETRY_AFTER, String.valueOf(exception.getRetryAfter().toSeconds()))
                              .contentType(APPLICATION_PROBLEM_JSON)
@@ -66,11 +65,11 @@ public class PaperProgressesErrorHandler {
         Integer upstreamStatusCode = exception.getUpstreamStatusCode();
 
         if (isAuthenticationFailure(upstreamStatusCode)) {
-            log.fatal("Consolidatore rejected external-channel credentials: {}", exception.getResponse());
+            log.fatal("Consolidatore rejected external-channel credentials");
             return problemResponse(BAD_GATEWAY, AUTHENTICATION_FAILED_TITLE, AUTHENTICATION_FAILED_DETAIL);
         }
 
-        log.error("Consolidatore returned {} : {}", upstreamStatusCode, exception.getMessage());
+        log.error("Consolidatore returned {}", upstreamStatusCode);
         String detail = upstreamStatusCode != null ? String.format(GENERIC_ERROR_DETAIL, upstreamStatusCode) : NON_CONFORMING_DETAIL;
         return problemResponse(BAD_GATEWAY, GENERIC_ERROR_TITLE, detail);
     }

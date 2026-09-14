@@ -169,7 +169,6 @@ public class PaperMessageCallImpl implements PaperMessageCall {
         try {
             return jsonUtils.convertJsonStringToObject(body, OperationResultCodeResponse.class);
         } catch (JsonStringToObjectException e) {
-            log.warn("Non conforming error response from consolidatore: {}", body);
             return new OperationResultCodeResponse().resultDescription(body);
         }
     }
