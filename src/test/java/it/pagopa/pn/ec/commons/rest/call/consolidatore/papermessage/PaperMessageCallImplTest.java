@@ -5,7 +5,6 @@ import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import it.pagopa.pn.ec.commons.exception.cartaceo.ConsolidatoreException;
 import it.pagopa.pn.ec.consolidatore.utils.PaperResult;
-import org.springframework.core.codec.DecodingException;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperDeliveryProgressesResponse;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest;
 import it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperProgressStatusEvent;
@@ -18,6 +17,7 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.QueueDispatcher;
 import okhttp3.mockwebserver.RecordedRequest;
+import okhttp3.mockwebserver.SocketPolicy;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -56,6 +56,8 @@ class PaperMessageCallImplTest {
     static void setProperties(DynamicPropertyRegistry r) {
         // Overriding of internal base url property to point to mock server
         r.add("internal-endpoint.consolidatore.base-path", () -> "http://localhost:" + mockBackEnd.getPort());
+        r.add("pn.ec.consolidatore.progresses-timeout-seconds", () -> 2);
+        r.add("pn.ec.consolidatore.progresses-retry-after-seconds", () -> 30);
     }
 
     @BeforeAll
@@ -192,9 +194,9 @@ class PaperMessageCallImplTest {
         mockBackEnd.enqueue(buildMockResponse(operationResult, 404));
 
         StepVerifier.create(paperMessageCall.getProgress(REQUEST_ID))
-                    .expectErrorMatches(throwable -> throwable instanceof ConsolidatoreException.PermanentException permanentException &&
-                                                     "404.01".equals(permanentException.getResponse().getResultCode()) &&
-                                                     "requestId never sent".equals(permanentException.getResponse().getResultDescription()))
+                    .expectErrorMatches(throwable -> throwable instanceof ConsolidatoreException.RequestIdNotFoundException notFoundException &&
+                                                     "404.01".equals(notFoundException.getResponse().getResultCode()) &&
+                                                     "requestId never sent".equals(notFoundException.getResponse().getResultDescription()))
                     .verify();
     }
 
@@ -235,8 +237,59 @@ class PaperMessageCallImplTest {
         });
 
         StepVerifier.create(paperMessageCall.getProgress(REQUEST_ID))
-                    .expectErrorMatches(DecodingException.class::isInstance)
+                    .expectErrorMatches(ConsolidatoreException.PermanentException.class::isInstance)
                     .verify();
+    }
+
+    @Test
+    void testGetProgressRateLimited() {
+        var operationResult = new OperationResultCodeResponse().resultCode("429.00").resultDescription("Too many requests");
+
+        mockBackEnd.enqueue(buildMockResponse(operationResult, 429).addHeader("Retry-After", "17"));
+
+        StepVerifier.create(paperMessageCall.getProgress(REQUEST_ID))
+                    .expectErrorMatches(throwable -> throwable instanceof ConsolidatoreException.RateLimitedException rateLimitedException &&
+                                                     Duration.ofSeconds(17).equals(rateLimitedException.getRetryAfter()))
+                    .verify();
+    }
+
+    @Test
+    void testGetProgressRateLimitedWithoutRetryAfterHeader() {
+        var operationResult = new OperationResultCodeResponse().resultCode("429.00").resultDescription("Too many requests");
+
+        mockBackEnd.enqueue(buildMockResponse(operationResult, 429));
+
+        StepVerifier.create(paperMessageCall.getProgress(REQUEST_ID))
+                    .expectErrorMatches(throwable -> throwable instanceof ConsolidatoreException.RateLimitedException rateLimitedException &&
+                                                     Duration.ofSeconds(30).equals(rateLimitedException.getRetryAfter()))
+                    .verify();
+    }
+
+    @Test
+    void testGetProgressTimeout() {
+        mockBackEnd.setDispatcher(socketPolicyDispatcher(SocketPolicy.NO_RESPONSE));
+
+        StepVerifier.create(paperMessageCall.getProgress(REQUEST_ID))
+                    .expectErrorMatches(ConsolidatoreException.CallTimeoutException.class::isInstance)
+                    .verify();
+    }
+
+    @Test
+    void testGetProgressConnectionFailure() {
+        mockBackEnd.setDispatcher(socketPolicyDispatcher(SocketPolicy.DISCONNECT_AFTER_REQUEST));
+
+        StepVerifier.create(paperMessageCall.getProgress(REQUEST_ID))
+                    .expectErrorMatches(ConsolidatoreException.ConnectionFailedException.class::isInstance)
+                    .verify();
+    }
+
+    private Dispatcher socketPolicyDispatcher(SocketPolicy socketPolicy) {
+        return new Dispatcher() {
+            @Override
+            public MockResponse dispatch(RecordedRequest recordedRequest) {
+                return new MockResponse().setSocketPolicy(socketPolicy);
+            }
+        };
     }
 
     @SneakyThrows

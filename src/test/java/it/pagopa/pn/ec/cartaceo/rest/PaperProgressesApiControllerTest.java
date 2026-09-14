@@ -19,6 +19,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -26,6 +27,7 @@ import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.http.HttpHeaders.RETRY_AFTER;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -122,8 +124,8 @@ class PaperProgressesApiControllerTest {
         var operationResult = new OperationResultCodeResponse().resultCode("404.01").resultDescription("requestId never sent");
 
         when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
-        when(paperMessageCall.getProgress(anyString())).thenReturn(Mono.error(new ConsolidatoreException.PermanentException(operationResult,
-                                                                                                                           NOT_FOUND.value())));
+        when(paperMessageCall.getProgress(anyString())).thenReturn(Mono.error(new ConsolidatoreException.RequestIdNotFoundException(
+                operationResult)));
 
         getPaperProgressesTestCall(DEFAULT_REQUEST_IDX).expectStatus()
                                                        .isNotFound()
@@ -145,8 +147,41 @@ class PaperProgressesApiControllerTest {
 
         getPaperProgressesTestCall(DEFAULT_REQUEST_IDX).expectStatus()
                                                        .isEqualTo(BAD_GATEWAY)
-                                                       .expectBody(OperationResultCodeResponse.class)
-                                                       .value(response -> assertEquals("401.00", response.getResultCode()));
+                                                       .expectBody(Problem.class)
+                                                       .value(problem -> {
+                                                           assertEquals(BAD_GATEWAY.value(), problem.getStatus());
+                                                           assertFalse(problem.getDetail().contains("Authentication Failed"));
+                                                       });
+    }
+
+    @Test
+    void getPaperEngageProgressesConsolidatoreForbidden() {
+
+        var operationResult = new OperationResultCodeResponse().resultCode("403.00").resultDescription("Forbidden");
+
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+        when(paperMessageCall.getProgress(anyString())).thenReturn(Mono.error(new ConsolidatoreException.PermanentException(operationResult,
+                                                                                                                           FORBIDDEN.value())));
+
+        getPaperProgressesTestCall(DEFAULT_REQUEST_IDX).expectStatus()
+                                                       .isEqualTo(BAD_GATEWAY)
+                                                       .expectBody(Problem.class)
+                                                       .value(problem -> assertEquals(BAD_GATEWAY.value(), problem.getStatus()));
+    }
+
+    @Test
+    void getPaperEngageProgressesConsolidatoreGenericClientError() {
+
+        var operationResult = new OperationResultCodeResponse().resultCode("400.01").resultDescription("Syntax Error");
+
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+        when(paperMessageCall.getProgress(anyString())).thenReturn(Mono.error(new ConsolidatoreException.PermanentException(operationResult,
+                                                                                                                           BAD_REQUEST.value())));
+
+        getPaperProgressesTestCall(DEFAULT_REQUEST_IDX).expectStatus()
+                                                       .isEqualTo(BAD_GATEWAY)
+                                                       .expectBody(Problem.class)
+                                                       .value(problem -> assertEquals(BAD_GATEWAY.value(), problem.getStatus()));
     }
 
     @Test
@@ -159,22 +194,52 @@ class PaperProgressesApiControllerTest {
 
         getPaperProgressesTestCall(DEFAULT_REQUEST_IDX).expectStatus()
                                                        .isEqualTo(BAD_GATEWAY)
-                                                       .expectBody(OperationResultCodeResponse.class)
-                                                       .value(response -> assertEquals("500.00", response.getResultCode()));
+                                                       .expectBody(Problem.class)
+                                                       .value(problem -> assertEquals(BAD_GATEWAY.value(), problem.getStatus()));
+    }
+
+    @Test
+    void getPaperEngageProgressesConsolidatoreRateLimited() {
+
+        var operationResult = new OperationResultCodeResponse().resultCode("429.00").resultDescription("Too many requests");
+
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+        when(paperMessageCall.getProgress(anyString())).thenReturn(Mono.error(new ConsolidatoreException.RateLimitedException(operationResult,
+                                                                                                                             Duration.ofSeconds(42))));
+
+        getPaperProgressesTestCall(DEFAULT_REQUEST_IDX).expectStatus()
+                                                       .isEqualTo(SERVICE_UNAVAILABLE)
+                                                       .expectHeader()
+                                                       .valueEquals(RETRY_AFTER, "42")
+                                                       .expectBody(Problem.class)
+                                                       .value(problem -> assertEquals(SERVICE_UNAVAILABLE.value(), problem.getStatus()));
+    }
+
+    @Test
+    void getPaperEngageProgressesConsolidatoreTimeout() {
+
+        when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+        when(paperMessageCall.getProgress(anyString())).thenReturn(Mono.error(new ConsolidatoreException.CallTimeoutException("PT10S")));
+
+        getPaperProgressesTestCall(DEFAULT_REQUEST_IDX).expectStatus()
+                                                       .isEqualTo(GATEWAY_TIMEOUT)
+                                                       .expectBody(Problem.class)
+                                                       .value(problem -> assertEquals(GATEWAY_TIMEOUT.value(), problem.getStatus()));
     }
 
     @Test
     void getPaperEngageProgressesConsolidatoreUnreachable() {
 
         when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
-        when(paperMessageCall.getProgress(anyString())).thenReturn(Mono.error(new ConsolidatoreException.TemporaryException("Connection refused")));
+        when(paperMessageCall.getProgress(anyString())).thenReturn(Mono.error(new ConsolidatoreException.ConnectionFailedException(
+                "Connection refused")));
 
         getPaperProgressesTestCall(DEFAULT_REQUEST_IDX).expectStatus()
                                                        .isEqualTo(BAD_GATEWAY)
-                                                       .expectBody(OperationResultCodeResponse.class)
-                                                       .value(response -> {
-                                                           assertEquals("500.00", response.getResultCode());
-                                                           assertTrue(response.getResultDescription().contains("Connection refused"));
+                                                       .expectBody(Problem.class)
+                                                       .value(problem -> {
+                                                           assertEquals(BAD_GATEWAY.value(), problem.getStatus());
+                                                           assertFalse(problem.getDetail().contains("Connection refused"));
                                                        });
     }
 
