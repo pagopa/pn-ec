@@ -21,6 +21,7 @@ public class PaperElem {
 	public static final String CON012 = "CON012";
 	public static final String CON992 = "CON992";
 	public static final String CON09A = "CON09A";
+	public static final String CON09B = "CON09B";
 	public static final String CON016 = "CON016";
 	public static final String CON018 = "CON018";
 	public static final String CON991 = "CON991";
@@ -64,6 +65,7 @@ public class PaperElem {
     public static final String RECRN005C = "RECRN005C";
     public static final String RECRN006 = "RECRN006";
     public static final String RECAG010 = "RECAG010";
+    public static final String RECAG010A = "RECAG010A";
     public static final String RECAG011A = "RECAG011A";
     public static final String RECAG011B = "RECAG011B";
     public static final String RECAG012 = "RECAG012";
@@ -108,7 +110,10 @@ public class PaperElem {
     public static final String RECRSI004B = "RECRSI004B";
     public static final String RECRSI004C = "RECRSI004C";
     public static final String RECRSI005 = "RECRSI005";
+    public static final String REC016 = "REC016";
+    public static final String REC018 = "REC018";
     public static final String REC090 = "REC090";
+    public static final String REC991 = "REC991";
     public static final String RECRS013 = "RECRS013";
     public static final String RECRS015 = "RECRS015";
     public static final String RECRN013 = "RECRN013";
@@ -149,6 +154,7 @@ public class PaperElem {
 							Map.entry(CON012,"OK Distinta Elettronica da Recapitista"),
 							Map.entry(CON992,"KO Distinta Elettronica da Recapitista"),
 							Map.entry(CON09A,"Materialità Pronta"),
+							Map.entry(CON09B,"Prenotazione Pickup"),
 							Map.entry(CON016,"PICKUP Sigillata"),
 							Map.entry(CON018,"Accettazione Recapitista"),
 							Map.entry(CON991,"Mancata Accetazione Recapitsita"),
@@ -192,6 +198,7 @@ public class PaperElem {
 				            Map.entry(RECRN005C, COMPIUTA_GIACENZA_FASCICOLO_CHIUSO),
 				            Map.entry(RECRN006, FURTO_SMARRIMANTO_DETERIORAMENTO),
 				            Map.entry(RECAG010, INESITO),
+							Map.entry(RECAG010A,"Invio CAD"),
 				            Map.entry(RECAG011A, IN_GIACENZA),
 				            Map.entry(RECAG011B,"In giacenza - In Dematerializzazione"),
 				            Map.entry(RECAG012,"Accettazione 23L"),
@@ -237,6 +244,9 @@ public class PaperElem {
 				            Map.entry(RECRSI004C,"Non Consegnato - fascicolo Chiuso"),
 				            Map.entry(RECRSI005, FURTO_SMARRIMANTO_DETERIORAMENTO),
 				            Map.entry(REC090,"Archiviazione fisica materialità di ritorno"),
+							Map.entry(REC016,"Materialità Ritirata"),
+							Map.entry(REC018,"Accettazione Recapitista"),
+							Map.entry(REC991,"Mancata Accettazione Recapitista"),
 				            Map.entry(RECRS013,"Non rendicontabile"),
 				            Map.entry(RECRS015,"Causa di forza maggiore"),
 				            Map.entry(RECRN013,"Non Rendicontabile"),
