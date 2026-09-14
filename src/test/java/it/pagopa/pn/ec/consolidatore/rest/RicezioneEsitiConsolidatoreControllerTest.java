@@ -112,6 +112,7 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	private static final String DELIVERY_FAILURE_CAUSE_OK = "M03";
 	private static final String DELIVERY_FAILURE_CAUSE_INVALID = "M05";
 	private static final String DELIVERY_FAILURE_CAUSE_KO = "KO";
+	private static final String DELIVERY_FAILURE_CAUSE_M10 = "M10";
 	private static final EventsDto SENT_EVENT = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(SENT.getStatusTransactionTableCompliant()).statusDateTime(NOW));
 	private static final EventsDto BOOKED_EVENT = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(BOOKED.getStatusTransactionTableCompliant()).statusDateTime(NOW));
 	private static final EventsDto RETRY_EVENT = new EventsDto().paperProgrStatus(new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).statusDateTime(NOW));
@@ -681,6 +682,32 @@ class RicezioneEsitiConsolidatoreControllerTest {
 
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
 		events.add(getProgressStatusEvent(DELIVERY_FAILURE_CAUSE_OK));
+
+		webClient.put()
+				.uri(RICEZIONE_ESITI_ENDPOINT)
+				.accept(APPLICATION_JSON)
+				.contentType(APPLICATION_JSON)
+				.header(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_NAME, X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE)
+				.header(X_API_KEY_HEADER_NAME, X_API_KEY_HEADER_VALUE)
+				.body(BodyInserters.fromValue(events))
+				.exchange()
+				.expectStatus()
+				.isOk();
+	}
+
+	@Test
+	void ricezioneEsitiDeliveryFailureCauseM10ShouldNotBeAddedToErrorList() {
+		log.info("RicezioneEsitiConsolidatoreControllerTest.ricezioneEsitiDeliveryFailureCauseM10ShouldNotBeAddedToErrorList() : START");
+		when(authService.clientAuth(anyString())).thenReturn(Mono.just(clientConfigurationInternalDto));
+		when(gestoreRepositoryCall.getRichiesta(X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, REQUEST_ID)).thenReturn(Mono.just(getRequestDto(SENT_EVENT)));
+		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
+
+		ConsolidatoreIngressPaperProgressStatusEvent progressStatusEvent = getProgressStatusEvent(DELIVERY_FAILURE_CAUSE_M10);
+		progressStatusEvent.setStatusCode(RECRN002A);
+		progressStatusEvent.setStatusDescription(statusCodeDescriptionMap().get(RECRN002A));
+
+		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
+		events.add(progressStatusEvent);
 
 		webClient.put()
 				.uri(RICEZIONE_ESITI_ENDPOINT)

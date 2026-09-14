@@ -394,6 +394,7 @@ components:
             - __M07__ indirizzo inesistente <br/>
             - __M08__ indirizzo insufficiente <br/>
             - __M09__ altre motivazioni <br/>
+            - __M10__ indirizzo non leggibile <br/>
             - __F01__ - in caso di furto  <br/>
             - __F02__ - in caso di smarrimento  <br/>
             - __F03__  - in caso di deterioramento  <br/>
