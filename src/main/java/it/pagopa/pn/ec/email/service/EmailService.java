@@ -619,8 +619,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .onErrorResume(it.pagopa.pn.ec.commons.exception.StatusToDeleteException.class,
                         statusToDeleteException ->  sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                                     DELETED.getStatusTransactionTableCompliant(),
-                                    new DigitalProgressStatusDto().generatedMessage(
-                                            new GeneratedMessageDto())).flatMap(
+                                    new DigitalProgressStatusDto()).flatMap(
                                     sendMessageResponse -> deleteMessageFromErrorQueue(
                                             message)))
                 .doOnSuccess(result -> log.debug(concatRequestId, emailSqsQueueName.errorName()))

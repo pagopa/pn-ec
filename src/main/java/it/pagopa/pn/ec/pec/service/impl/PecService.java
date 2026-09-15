@@ -405,7 +405,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
             // operazioni per la rimozione del messaggio
             return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                     ERROR.getStatusTransactionTableCompliant(),
-                    new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto())).flatMap(
+                    new DigitalProgressStatusDto()).flatMap(
                     sendMessageResponse -> deleteMessageFromErrorQueue(message)
                             .doOnSuccess(result -> log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.errorName())));
 
@@ -518,8 +518,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                     log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.errorName());
                     return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                             DELETED.getStatusTransactionTableCompliant(),
-                            new DigitalProgressStatusDto().generatedMessage(
-                                    new GeneratedMessageDto())).flatMap(
+                            new DigitalProgressStatusDto()).flatMap(
                             sendMessageResponse -> deleteMessageFromErrorQueue(message));
 
                 }).onErrorResume(internalError -> {
