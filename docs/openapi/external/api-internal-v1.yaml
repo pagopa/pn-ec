@@ -285,7 +285,7 @@ paths:
                   description: Malformed update status
     
     get:
-      operationId: getPaperEngageProgresses
+      operationId: getPaperDeliveryProgresses
       tags:
         - PaperMessages
       summary: Pull avanzamenti messaggi cartacei
