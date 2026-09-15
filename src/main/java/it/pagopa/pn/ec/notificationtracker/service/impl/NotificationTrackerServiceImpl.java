@@ -312,6 +312,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
         paperProgressStatusEvent.setStatusDateTime(lastEventUpdatedPaper.getStatusDateTime());
         paperProgressStatusEvent.setDeliveryFailureCause(lastEventUpdatedPaper.getDeliveryFailureCause());
         paperProgressStatusEvent.setCourier(lastEventUpdatedPaper.getCourier());
+        paperProgressStatusEvent.setPrinter(lastEventUpdatedPaper.getPrinter());
+        paperProgressStatusEvent.setDu(lastEventUpdatedPaper.getDu());
         paperProgressStatusEvent.setIsDuplicate(lastEventUpdatedPaper.getIsDuplicate());
         return paperProgressStatusEvent;
     }
@@ -323,6 +325,8 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
         attachmentsDetails.setDocumentType(attachmentsProgressEventDto.getDocumentType());
         attachmentsDetails.setUri(attachmentsProgressEventDto.getUri());
         attachmentsDetails.setDate(attachmentsProgressEventDto.getDate());
+        attachmentsDetails.setSourceType(attachmentsProgressEventDto.getSourceType());
+        attachmentsDetails.setOriginType(attachmentsProgressEventDto.getOriginType());
         return  attachmentsDetails;
     }
 
