@@ -32,6 +32,8 @@ public class CompareUtils {
                 && Objects.equals(paperProgressStatusEvent.getStatusDescription(), consolidatoreIngressPaperProgressStatusEvent.getStatusDescription())
                 && paperProgressStatusEvent.getStatusDateTime().truncatedTo(SECONDS).isEqual(consolidatoreIngressPaperProgressStatusEvent.getStatusDateTime().truncatedTo(SECONDS))
                 && Objects.equals(paperProgressStatusEvent.getDeliveryFailureCause(), consolidatoreIngressPaperProgressStatusEvent.getDeliveryFailureCause())
+                && Objects.equals(paperProgressStatusEvent.getPrinter(), consolidatoreIngressPaperProgressStatusEvent.getPrinter())
+                && Objects.equals(paperProgressStatusEvent.getDu(), consolidatoreIngressPaperProgressStatusEvent.getDu())
                 && isSameAttachments(paperProgressStatusEvent.getAttachments(), consolidatoreIngressPaperProgressStatusEvent.getAttachments())
                 && isSameAddress(paperProgressStatusEvent.getDiscoveredAddress(), consolidatoreIngressPaperProgressStatusEvent.getDiscoveredAddress());
 
@@ -66,7 +68,9 @@ public class CompareUtils {
                 if(! (Objects.equals(paperProgress.getDate(), consolidatoreAttachment.getDate()) &&
                         Objects.equals(paperProgress.getId(), consolidatoreAttachment.getId()) &&
                         Objects.equals(paperProgress.getDocumentType(), consolidatoreAttachment.getDocumentType()) &&
-                        Objects.equals(paperProgress.getSha256(), consolidatoreAttachment.getSha256()))) {
+                        Objects.equals(paperProgress.getSha256(), consolidatoreAttachment.getSha256()) &&
+                        Objects.equals(paperProgress.getSourceType(), consolidatoreAttachment.getSourceType()) &&
+                        Objects.equals(paperProgress.getOriginType(), consolidatoreAttachment.getOriginType()))) {
                     return false;
                 }
             } return true;

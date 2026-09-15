@@ -1001,6 +1001,18 @@ components:
                 format: date-time
                 description: >-
                   Data di produzione del documento.
+              sourceType:
+                type: string
+                description: >-
+                  Indica se il documento è stato prodotto tramite scansione cartacea (SCANNED)
+                  oppure generato digitalmente (DIGITAL).
+                  In caso di assenza del campo, la piattaforma considererà DIGITAL gli allegati
+                  con MIME/Type application/zip.
+              originType:
+                type: string
+                description: >-
+                  Specifica l'origine del documento: ORIGINAL / DUPLICATED.
+                  In caso di assenza del campo la piattaforma considererà il documento come ORIGINAL.
         discoveredAddress:
           description: >-
             Indirizzo del destinatario desunto dalle indagini del personale postale.

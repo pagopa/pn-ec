@@ -455,6 +455,16 @@ components:
           type: string
           description: >-
             Identificativo del recapitista in eventi recapito cartacei
+        printer:
+          type: string
+          description: >-
+            [FASE2] Identificativo dello stampatore.
+          example: '123456789abc'
+        du:
+          type: string
+          description: >-
+            [FASE2] Distinta Unica, raggruppamento di spedizioni in un unico lotto.
+          example: '123456789abc'
         isDuplicate:
           type: boolean
           description: >-
@@ -493,6 +503,18 @@ components:
           format: date-time
           description: >-
             Data di produzione del documento.
+        sourceType:
+          type: string
+          description: >-
+            Indica se il documento è stato prodotto tramite scansione cartacea (SCANNED)
+            oppure generato digitalmente (DIGITAL).
+            In caso di assenza del campo, la piattaforma considererà DIGITAL gli allegati
+            con MIME/Type application/zip.
+        originType:
+          type: string
+          description: >-
+            Specifica l'origine del documento: ORIGINAL / DUPLICATED.
+            In caso di assenza del campo la piattaforma considererà il documento come ORIGINAL.
 
     DiscoveredAddress:
       description: >-
