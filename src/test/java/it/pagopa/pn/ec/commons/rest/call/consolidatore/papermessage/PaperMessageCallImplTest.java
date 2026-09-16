@@ -242,6 +242,17 @@ class PaperMessageCallImplTest {
     }
 
     @Test
+    void testGetProgressUnsupportedMediaTypeResponse() {
+        mockBackEnd.enqueue(new MockResponse().setBody("<html>Gateway error</html>")
+                                              .setResponseCode(200)
+                                              .addHeader("Content-Type", "text/html"));
+
+        StepVerifier.create(paperMessageCall.getProgress(REQUEST_ID))
+                    .expectErrorMatches(ConsolidatoreException.PermanentException.class::isInstance)
+                    .verify();
+    }
+
+    @Test
     void testGetProgressRateLimited() {
         var operationResult = new OperationResultCodeResponse().resultCode("429.00").resultDescription("Too many requests");
 

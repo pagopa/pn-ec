@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.codec.DecodingException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.UnsupportedMediaTypeException;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
@@ -43,6 +44,8 @@ import static it.pagopa.pn.ec.util.EmfLogUtils.*;
 @Component
 @CustomLog
 public class PaperMessageCallImpl implements PaperMessageCall {
+
+    private static final String NON_CONFORMING_RESPONSE_MESSAGE = "Non conforming response: %s";
 
     private final WebClient consolidatoreWebClient;
     private final PaperMessagesEndpointProperties paperMessagesEndpointProperties;
@@ -142,7 +145,7 @@ public class PaperMessageCallImpl implements PaperMessageCall {
                 .timeout(progressesTimeout)
                 .onErrorMap(TimeoutException.class, e -> new ConsolidatoreException.CallTimeoutException(progressesTimeout.toString()))
                 .onErrorMap(WebClientRequestException.class, e -> new ConsolidatoreException.ConnectionFailedException(e.getMessage()))
-                .onErrorMap(DecodingException.class, e -> new ConsolidatoreException.PermanentException(String.format("Non conforming response: %s", e.getMessage())));
+                .onErrorMap(e -> e instanceof DecodingException || e instanceof UnsupportedMediaTypeException, e -> new ConsolidatoreException.PermanentException(String.format(NON_CONFORMING_RESPONSE_MESSAGE, e.getMessage())));
     }
 
     private Mono<PaperDeliveryProgressesResponse> handleProgressError(ClientResponse clientResponse) {
