@@ -17,7 +17,7 @@ public interface PaperMessageCall {
 	Mono<OperationResultCodeResponse> putDuplicateRequest(PaperReplicaRequest paperReplicaRequest) throws RestCallException.ResourceAlreadyInProgressException;
 
 	//  <-- PROGRESS -->
-	Mono<PaperDeliveryProgressesResponse> getProgress(String requestId) throws ConsolidatoreException.PermanentException, ConsolidatoreException.TemporaryException;
+	Mono<PaperDeliveryProgressesResponse> getProgress(String requestId) throws ConsolidatoreException;
 
 	Mono<PaperReplicasProgressesResponse> getDuplicateProgress(String requestId) throws RestCallException.ResourceNotFoundException;
 
