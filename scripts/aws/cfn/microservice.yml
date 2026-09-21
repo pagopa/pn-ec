@@ -983,6 +983,11 @@ Parameters:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ SES events EMAIL"
 
+  CpuArchitecture:
+    Type: String
+    Default: 'ARM'
+    Description: CPU architecture for the Fargate tasks
+  
 Conditions:
   PnCoreTargetEventBusExists: !Not [ !Equals [!Ref PnCoreTargetEventBus, '' ] ]
   HasAlbDimensionName: !Not [ !Equals [ !Ref ApplicationLoadBalancerMetricsDimensionName, '' ] ]
@@ -1074,6 +1079,7 @@ Resources:
         EfsFilesystem: !Ref FargateEFSFileSystemID
         MountEfs: !Ref MountEfs
         ApplicativeEnvFileChecksum: !Ref ApplicativeEnvFileChecksum
+        CpuArchitecture: !Ref CpuArchitecture
 
   EcPrivateLinkRouting:
     Type: AWS::CloudFormation::Stack
