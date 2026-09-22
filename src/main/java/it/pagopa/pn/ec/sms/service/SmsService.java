@@ -334,7 +334,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
             log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, smsSqsQueueName.errorName());
             return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                                  ERROR.getStatusTransactionTableCompliant(),
-                                                 new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto())).flatMap(
+                                                 new DigitalProgressStatusDto()).flatMap(
                     sendMessageResponse -> deleteMessageFromErrorQueue(message));
         }
         return Mono.empty();
@@ -403,7 +403,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 //                                   Catch errore tirato per lo stato toDelete
 .onErrorResume(StatusToDeleteException.class, exception -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                      DELETED.getStatusTransactionTableCompliant(),
-                                     new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto()))
+                                     new DigitalProgressStatusDto())
         .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
         .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, smsSqsQueueName.errorName())))
 .onErrorResume(internalError -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
