@@ -52,15 +52,15 @@ public class PaperMessagesApiController implements PaperMessagesApi {
     }
 
     @Override
-    public Mono<ResponseEntity<PaperProgressStatusEvent>> getPaperEngageProgresses(String requestIdx, String xPagopaExtchCxId,
+    public Mono<ResponseEntity<PaperProgressStatusEvent>> getPaperDeliveryProgresses(String requestIdx, String xPagopaExtchCxId,
                                                                                    ServerWebExchange exchange) {
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
-        log.logStartingProcess(GET_PAPER_ENGAGE_PROGRESSES);
+        log.logStartingProcess(GET_PAPER_DELIVERY_PROGRESSES);
         return MDCUtils.addMDCToContextAndExecute(paperService.paperPullService(requestIdx, xPagopaExtchCxId)
-                .doOnSuccess(result -> log.logEndingProcess(GET_PAPER_ENGAGE_PROGRESSES))
-                .doOnError(throwable -> log.logEndingProcess(GET_PAPER_ENGAGE_PROGRESSES, false, throwable.getMessage()))
+                .doOnSuccess(result -> log.logEndingProcess(GET_PAPER_DELIVERY_PROGRESSES))
+                .doOnError(throwable -> log.logEndingProcess(GET_PAPER_DELIVERY_PROGRESSES, false, throwable.getMessage()))
                 .map(ResponseEntity::ok));
     }
 }
