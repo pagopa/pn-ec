@@ -485,7 +485,7 @@ class PecRetryTest {
         when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
         when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
         when(arubaService.sendMail(any())).thenReturn(Mono.error(
-                new PnSpapiPermanentErrorException("sendMail: class jakarta.mail.SendFailedException Invalid Addresses")));
+                new PnSpapiPermanentErrorException("sendMail: generic permanent error")));
 
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
         when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
