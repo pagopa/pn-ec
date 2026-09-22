@@ -84,10 +84,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     public Mono<ResponseEntity<FileDownloadResponse>> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, final ServerWebExchange exchange) {
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, fileKey);
-        log.logStartingProcess(GET_FILE);
         return MDCUtils.addMDCToContextAndExecute(consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
-                .doOnSuccess(result -> log.logEndingProcess(GET_FILE))
-                .doOnError(throwable -> log.logEndingProcess(GET_FILE, false, throwable.getMessage(), throwable))
                 .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute(REQUEST_BODY)))
                 .doOnError(SemanticException.class, e -> log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(e.getAuditLogErrorList())))
                 .doOnError(SyntaxException.class, e -> log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(e.getAuditLogErrorList())))
@@ -98,11 +95,8 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
     @Override
     public Mono<ResponseEntity<PreLoadResponseData>> presignedUploadRequest(String xPagopaExtchServiceId, String xApiKey, Mono<PreLoadRequestData> preLoadRequestData, ServerWebExchange exchange) {
         MDC.clear();
-        log.logStartingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS);
         return consolidatoreServiceImpl.presignedUploadRequest(xPagopaExtchServiceId, xApiKey, preLoadRequestData)
-                .doOnSuccess(result -> log.logEndingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS))
                 .onErrorMap(WebClientResponseException.UnprocessableEntity.class,e-> new Generic400ErrorException(EMPTY_FILE_NOT_ALLOWED, FILE_IS_EMPTY_OR_INVALID))
-                .doOnError(throwable -> log.logEndingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS, false, throwable.getMessage(), throwable))
                 .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute(REQUEST_BODY)))
                 .doOnError(SemanticException.class, e -> log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(e.getAuditLogErrorList())))
                 .doOnError(SyntaxException.class, e -> log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(e.getAuditLogErrorList())))
@@ -115,7 +109,6 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                                                                             Flux<ConsolidatoreIngressPaperProgressStatusEvent> consolidatoreIngressPaperProgressStatusEvent,
                                                                                             final ServerWebExchange exchange) {
         MDC.clear();
-        log.logStartingProcess(SEND_PAPER_PROGRESS_STATUS_REQUEST);
         OffsetDateTime now = OffsetDateTime.now();
         String timestampRicezione = now.format(TIMESTAMP_RICEZIONE_FORMATTER);
         String dataRicezione = now.format(DATA_RICEZIONE_FORMATTER);
@@ -203,8 +196,6 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                 return Mono.just(response);
                             }
                         })
-                        .doOnSuccess(result -> log.logEndingProcess(SEND_PAPER_PROGRESS_STATUS_REQUEST))
-                        .doOnError(throwable -> log.logEndingProcess(SEND_PAPER_PROGRESS_STATUS_REQUEST, false, throwable.getMessage(), throwable))
                         .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute(REQUEST_BODY))))
                         .onErrorResume(RuntimeException.class, throwable -> {
                             String fatalMessage = throwable.getClass() == WebExchangeBindException.class ? "" : "* FATAL * ";

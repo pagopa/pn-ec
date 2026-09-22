@@ -39,15 +39,12 @@ public class PaperMessagesApiController implements PaperMessagesApi {
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
-        log.logStartingProcess(SEND_PAPER_ENGAGE_REQUEST);
         return MDCUtils.addMDCToContextAndExecute(paperEngageRequest.flatMap(request ->
                         cartaceoService.presaInCarico(CartaceoPresaInCaricoInfo.builder()
                                 .requestIdx(requestIdx)
                                 .xPagopaExtchCxId(xPagopaExtchCxId)
                                 .paperEngageRequest(request)
                                 .build()))
-                .doOnSuccess(result -> log.logEndingProcess(SEND_PAPER_ENGAGE_REQUEST))
-                .doOnError(throwable -> log.logEndingProcess(SEND_PAPER_ENGAGE_REQUEST, false, throwable.getMessage(), throwable))
                 .thenReturn(new ResponseEntity<>(OK)));
     }
 
@@ -57,10 +54,7 @@ public class PaperMessagesApiController implements PaperMessagesApi {
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
-        log.logStartingProcess(GET_PAPER_ENGAGE_PROGRESSES);
         return MDCUtils.addMDCToContextAndExecute(paperService.paperPullService(requestIdx, xPagopaExtchCxId)
-                .doOnSuccess(result -> log.logEndingProcess(GET_PAPER_ENGAGE_PROGRESSES))
-                .doOnError(throwable -> log.logEndingProcess(GET_PAPER_ENGAGE_PROGRESSES, false, throwable.getMessage(), throwable))
                 .map(ResponseEntity::ok));
     }
 }

@@ -42,7 +42,6 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
-        log.logStartingProcess(SEND_DIGITAL_LEGAL_MESSAGE);
         return MDCUtils.addMDCToContextAndExecute(digitalNotificationRequest
                 .flatMap(request -> {
                     if (request.getChannel().equals(DigitalNotificationRequest.ChannelEnum.PEC)) {
@@ -61,8 +60,6 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
                         return Mono.error(new UnsupportedOperationException("Unsupported channel: " + request.getChannel()));
                     }
                 })
-                .doOnSuccess(result -> log.logEndingProcess(SEND_DIGITAL_LEGAL_MESSAGE))
-                .doOnError(throwable -> log.logEndingProcess(SEND_DIGITAL_LEGAL_MESSAGE, false, throwable.getMessage(), throwable))
                 .thenReturn(new ResponseEntity<>(OK)));
     }
 
@@ -72,10 +69,7 @@ public class DigitalLegalMessagesApiController implements DigitalLegalMessagesAp
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
-        log.logStartingProcess(GET_DIGITAL_LEGAL_MESSAGE_STATUS);
         return MDCUtils.addMDCToContextAndExecute(statusPullService.pecPullService(requestIdx, xPagopaExtchCxId)
-                .doOnSuccess(result -> log.logEndingProcess(GET_DIGITAL_LEGAL_MESSAGE_STATUS))
-                .doOnError(throwable -> log.logEndingProcess(GET_DIGITAL_LEGAL_MESSAGE_STATUS, false, throwable.getMessage(), throwable))
                 .map(ResponseEntity::ok));
     }
 
