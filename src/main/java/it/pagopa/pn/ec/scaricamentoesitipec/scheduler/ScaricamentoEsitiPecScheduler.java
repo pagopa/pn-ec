@@ -8,13 +8,12 @@ import it.pagopa.pn.library.pec.model.pojo.PnEcPecMessage;
 import it.pagopa.pn.library.pec.model.pojo.PnPostacert;
 import it.pagopa.pn.library.pec.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.ScaricamentoEsitiPecUtils;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import lombok.CustomLog;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -36,18 +35,18 @@ import static it.pagopa.pn.ec.scaricamentoesitipec.constant.PostacertTypes.POSTA
 public class ScaricamentoEsitiPecScheduler {
     private final DaticertService daticertService;
     private final SqsService sqsService;
-    private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
+    private final PnEcConfig.ScaricamentoEsitiPec scaricamentoEsitiPecProperties;
     private final PnEcPecService pnPecService;
-    @Value("${scaricamento-esiti-pec.limit-rate}")
-    private Integer limitRate;
-    @Value("${pn.ec.storage.sqs.messages.staging.bucket}")
-    private String storageSqsMessagesStagingBucket;
+    private final Integer limitRate;
+    private final String storageSqsMessagesStagingBucket;
 
-    public ScaricamentoEsitiPecScheduler(DaticertService daticertService, SqsService sqsService, ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties, PnEcPecService pnPecService) {
+    public ScaricamentoEsitiPecScheduler(DaticertService daticertService, SqsService sqsService, PnEcPecService pnPecService, PnEcConfig pnEcConfig) {
         this.daticertService = daticertService;
         this.sqsService = sqsService;
-        this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;
+        this.scaricamentoEsitiPecProperties = pnEcConfig.getScaricamentoEsitiPec();
         this.pnPecService = pnPecService;
+        this.limitRate = pnEcConfig.getScaricamentoEsitiPec().getLimitRate();
+        this.storageSqsMessagesStagingBucket = pnEcConfig.getStorage().getStagingBucket();
     }
 
     private final Predicate<IPostacert> isPostaCertificataPredicate = postacert -> postacert.getTipo().equals(POSTA_CERTIFICATA);
@@ -64,7 +63,7 @@ public class ScaricamentoEsitiPecScheduler {
         hasMessages.set(true);
 
         pnPecService.getMessageCount()
-                .then(Mono.defer(() -> pnPecService.getUnreadMessages(Integer.parseInt(scaricamentoEsitiPecProperties.getMessagesLimit()))))
+                .then(Mono.defer(() -> pnPecService.getUnreadMessages(Integer.parseInt(scaricamentoEsitiPecProperties.getGetMessagesLimit()))))
                 .flatMap(pnGetMessagesResponse -> {
                     var listOfMessages = pnGetMessagesResponse.getPnEcPecListOfMessages();
                     if (hasNoMessages.test(listOfMessages))
@@ -139,7 +138,7 @@ public class ScaricamentoEsitiPecScheduler {
                                 log.debug(PEC_DISCARDED, finalMessageID, SCARICAMENTO_ESITI_PEC, NOT_SENT_BY_US);
                             }
                         })
-                        .flatMap(unused -> sqsService.sendWithLargePayload(scaricamentoEsitiPecProperties.sqsQueueName(),
+                        .flatMap(unused -> sqsService.sendWithLargePayload(scaricamentoEsitiPecProperties.getSqsQueueName(),
                                 finalMessageID,
                                 storageSqsMessagesStagingBucket,
                                 RicezioneEsitiPecDto.builder()

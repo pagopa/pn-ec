@@ -2,10 +2,9 @@ package it.pagopa.pn.ec.pdfraster.service;
 
 import com.github.dockerjava.api.exception.ConflictException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic500ErrorException;
-import it.pagopa.pn.ec.pdfraster.configuration.PdfRasterProperties;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.pdfraster.model.entity.*;
 
-import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.rest.v1.dto.AttachmentToConvertDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestConversionDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
@@ -41,10 +40,7 @@ class RequestConversionServiceTest {
     private DynamoDbEnhancedClient dynamoDbEnhancedClient;
 
     @Autowired
-    private RepositoryManagerDynamoTableName repositoryManagerDynamoTableName;
-
-    @MockitoBean
-    private PdfRasterProperties pdfRasterProperties;
+    private PnEcConfig pnEcConfig;
 
 
     private static DynamoDbTable<PdfConversionEntity> pdfConversionEntityDynamoDbTable;
@@ -56,9 +52,9 @@ class RequestConversionServiceTest {
 
     @BeforeEach
     void initializeTables() {
-        pdfConversionEntityDynamoDbTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversionePdfName(),
+        pdfConversionEntityDynamoDbTable = dynamoDbEnhancedClient.table(pnEcConfig.getDynamo().getRepositoryManager().getRichiesteConversionePdfName(),
                 TableSchema.fromBean(PdfConversionEntity.class));
-        requestConversionEntityDynamoDbTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversioneRequestName(),
+        requestConversionEntityDynamoDbTable = dynamoDbEnhancedClient.table(pnEcConfig.getDynamo().getRepositoryManager().getRichiesteConversioneRequestName(),
                 TableSchema.fromBean(RequestConversionEntity.class));
     }
 
@@ -119,8 +115,6 @@ class RequestConversionServiceTest {
 
     @Test
     void updateRequestConversionOk() {
-        Mockito.when(pdfRasterProperties.pdfConversionExpirationOffsetInDays()).thenReturn(1);
-
         RequestConversionDto requestConversionDto = createMockRequestConversionDto("12345678", "3");
 
         Mono<RequestConversionDto> insertResponse = requestConversionService.insertRequestConversion(requestConversionDto);

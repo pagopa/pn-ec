@@ -4,7 +4,6 @@ import io.awspring.cloud.sqs.annotation.SqsListener;
 import io.awspring.cloud.sqs.annotation.SqsListenerAcknowledgementMode;
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.RetryAttemptsExceededExeption;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
@@ -18,16 +17,14 @@ import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.*;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
-import it.pagopa.pn.ec.email.configurationproperties.EmailDefault;
-import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import it.pagopa.pn.ec.util.EmfLogUtils;
 import it.pagopa.pn.ec.util.LogSanitizer;
 import lombok.CustomLog;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -70,9 +67,9 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     private final SesService sesService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final AttachmentServiceImpl attachmentService;
-    private final NotificationTrackerSqsName notificationTrackerSqsName;
-    private final EmailSqsQueueName emailSqsQueueName;
-    private final EmailDefault emailDefault;
+    private final PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName;
+    private final PnEcConfig.Email.SqsQueue emailSqsQueueName;
+    private final String emailDefault;
     private final DownloadCall downloadCall;
     private final Semaphore semaphore;
     private String idSaved;
@@ -82,11 +79,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     protected EmailService(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService,
                            SesService sesService, AttachmentServiceImpl attachmentService,
-                           NotificationTrackerSqsName notificationTrackerSqsName,
-                           EmailSqsQueueName emailSqsQueueName,
                            DownloadCall downloadCall,
-                           EmailDefault emailDefault,
-                           @Value("${lavorazione-email.max-thread-pool-size}") Integer maxThreadPoolSize,
+                           PnEcConfig pnEcConfig,
                            LogSanitizer logSanitizer,
                            SqsTimeoutProvider sqsTimeoutProvider) {
         super(authService);
@@ -94,11 +88,11 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         this.sesService = sesService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.attachmentService = attachmentService;
-        this.notificationTrackerSqsName = notificationTrackerSqsName;
-        this.emailSqsQueueName = emailSqsQueueName;
-        this.emailDefault = emailDefault;
+        this.notificationTrackerSqsName = pnEcConfig.getNotificationTracker().getSqsQueue();
+        this.emailSqsQueueName = pnEcConfig.getEmail().getSqsQueue();
+        this.emailDefault = pnEcConfig.getEmail().getDefaultSenderAddress();
         this.downloadCall = downloadCall;
-        this.semaphore=new Semaphore(maxThreadPoolSize);
+        this.semaphore=new Semaphore(pnEcConfig.getEmail().getMaxThreadPoolSize());
         this.logSanitizer = logSanitizer;
         this.sqsTimeoutProvider = sqsTimeoutProvider;
     }
@@ -118,7 +112,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var digitalNotificationRequest = emailPresaInCaricoInfo.getDigitalCourtesyMailRequest();
         var senderAddress = digitalNotificationRequest.getSenderDigitalAddress();
         if (Objects.isNull(senderAddress) || senderAddress.isEmpty()) {
-            digitalNotificationRequest.setSenderDigitalAddress(emailDefault.defaultSenderAddress());
+            digitalNotificationRequest.setSenderDigitalAddress(emailDefault);
         }
 
         digitalNotificationRequest.setRequestId(requestIdx);
@@ -155,7 +149,6 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromEmail(final DigitalCourtesyMailRequest digitalCourtesyMailRequest, String xPagopaExtchCxId) {
-        log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_EMAIL, digitalCourtesyMailRequest);
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
             requestDto.setRequestIdx(digitalCourtesyMailRequest.getRequestId());
@@ -190,8 +183,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     @SqsListener(value = "${sqs.queue.email.interactive-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void lavorazioneRichiestaInteractive(final EmailPresaInCaricoInfo emailPresaInCaricoInfo, final Acknowledgement acknowledgment) {
-        String queueName=emailSqsQueueName.interactiveName();
-        logIncomingMessage(emailSqsQueueName.interactiveName(), emailPresaInCaricoInfo);
+        String queueName=emailSqsQueueName.getInteractiveName();
+        logIncomingMessage(emailSqsQueueName.getInteractiveName(), emailPresaInCaricoInfo);
         lavorazioneRichiesta(emailPresaInCaricoInfo,queueName)
                 .then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync())))
                 .block();
@@ -201,15 +194,15 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     public void lavorazioneRichiestaBatch() {
     	log.logStartingProcess(LAVORAZIONE_BATCH_EMAIL);
         MDC.clear();
-        String queueName = emailSqsQueueName.batchName();
-        sqsService.getMessages(emailSqsQueueName.batchName(), EmailPresaInCaricoInfo.class)
-                .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(emailSqsQueueName.batchName(),
+        String queueName = emailSqsQueueName.getBatchName();
+        sqsService.getMessages(emailSqsQueueName.getBatchName(), EmailPresaInCaricoInfo.class)
+                .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(emailSqsQueueName.getBatchName(),
                         emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                 .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(emailPresaInCaricoInfoSqsMessageWrapper.getMessage()),
                         lavorazioneRichiesta(emailPresaInCaricoInfoSqsMessageWrapper.getMessageContent(),queueName)))
                 .flatMap(emailPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(
                         emailPresaInCaricoInfoSqsMessageWrapper.getT1(),
-                        emailSqsQueueName.batchName()))
+                        emailSqsQueueName.getBatchName()))
                 .transform(pullFromFluxUntilIsEmpty())
                 .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_EMAIL, false, e.getMessage(), e))
                 .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_EMAIL))
@@ -319,7 +312,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
     void gestioneRetryEmailScheduler() {
     	log.logStartingProcess(LAVORAZIONE_ERRORI_EMAIL);
         MDC.clear();
-        String queueName = emailSqsQueueName.errorName();
+        String queueName = emailSqsQueueName.getErrorName();
         idSaved = null;
         sqsService.getOneMessage(queueName, EmailPresaInCaricoInfo.class)
                 .doOnNext(emailPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(queueName,
@@ -423,7 +416,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         var retry = requestDto.getRequestMetadata().getRetry();
         if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size())) > 0) {
             // operazioni per la rimozione del messaggio
-            log.info(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.errorName());
+            log.info(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.getErrorName());
             return sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                     ERROR.getStatusTransactionTableCompliant(),
                     new DigitalProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(
@@ -457,7 +450,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                 new DigitalProgressStatusDto().generatedMessage(emailPresaInCaricoInfo.getStepError()
                                         .getGeneratedMessageDto())).flatMap(
                                         sendMessageResponse -> {
-                                            log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.errorName());
+                                            log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.getErrorName());
                                             return deleteMessageFromErrorQueue(message);
                                         })
                                 .onErrorResume(
@@ -512,7 +505,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                         new DigitalProgressStatusDto().generatedMessage(
                                                 generatedMessageDto.get())))
                                 .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
-                                .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.errorName()))
+                                .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.getErrorName()))
                                 .onErrorResume(sqsPublishException -> {
                                     log.warn(EXCEPTION_IN_PROCESS, PROCESS_WITH_ATTACH_RETRY, sqsPublishException, logSanitizer.sanitize(sqsPublishException.getMessage()));
                                     return checkTentativiEccessiviEmail(requestId,
@@ -532,7 +525,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                     DELETED.getStatusTransactionTableCompliant(),
                                     new DigitalProgressStatusDto()).flatMap(
                                     sendMessageResponse -> deleteMessageFromErrorQueue(message)
-                                            .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.errorName()))))
+                                            .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.getErrorName()))))
                 .onErrorResume(internalError -> sendNotificationOnStatusQueue(
                         emailPresaInCaricoInfo,
                         INTERNAL_ERROR.getStatusTransactionTableCompliant(),
@@ -573,15 +566,15 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 //              caso in cui è avvenuto un errore nella pubblicazione sul notification tracker,  The EMAIL in sent, publish to
 //              Notification Tracker with next status -> SENT
                     if (Objects.equals(emailPresaInCaricoInfo.getStepError().getStep(), NOTIFICATION_TRACKER_STEP)) {
-                        return sqsService.send(notificationTrackerSqsName.statoEmailName(),
+                        return sqsService.send(notificationTrackerSqsName.getStatoEmailName(),
                                         createNotificationTrackerQueueDtoDigital(emailPresaInCaricoInfo,
                                                 SENT.getStatusTransactionTableCompliant(),
                                                 new DigitalProgressStatusDto().generatedMessage(
                                                         emailPresaInCaricoInfo.getStepError()
                                                                 .getGeneratedMessageDto())))
 
-                                .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName()))
-                                .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.errorName()))
+                                .flatMap(sendMessageResponse -> sqsService.deleteMessageFromQueue(message, emailSqsQueueName.getErrorName()))
+                                .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.getErrorName()))
                                 .onErrorResume(sqsPublishException -> {
                                     log.warn(EXCEPTION_IN_PROCESS, PROCESS_ONLY_BODY_RETRY, sqsPublishException, logSanitizer.sanitize(sqsPublishException.getMessage()));
                                     return checkTentativiEccessiviEmail(requestId,
@@ -602,7 +595,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                 generatedMessageDto.get())))
 
                                 .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
-                                .doOnSuccess(result->log.debug(concatRequestId, emailSqsQueueName.errorName()))
+                                .doOnSuccess(result->log.debug(concatRequestId, emailSqsQueueName.getErrorName()))
                                 .onErrorResume(sqsPublishException -> {
                                     log.warn(EXCEPTION_IN_PROCESS, PROCESS_ONLY_BODY_RETRY, sqsPublishException, logSanitizer.sanitize(sqsPublishException.getMessage()));
                                     return checkTentativiEccessiviEmail(requestId,
@@ -623,7 +616,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                             new GeneratedMessageDto())).flatMap(
                                     sendMessageResponse -> deleteMessageFromErrorQueue(
                                             message)))
-                .doOnSuccess(result -> log.debug(concatRequestId, emailSqsQueueName.errorName()))
+                .doOnSuccess(result -> log.debug(concatRequestId, emailSqsQueueName.getErrorName()))
                 .onErrorResume(internalError -> sendNotificationOnStatusQueue(
                         emailPresaInCaricoInfo,
                         INTERNAL_ERROR.getStatusTransactionTableCompliant(),
@@ -637,29 +630,29 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
     @Override
     public Mono<DeleteMessageResponse> deleteMessageFromErrorQueue(Message message) {
-        return sqsService.deleteMessageFromQueue(message, emailSqsQueueName.errorName());
+        return sqsService.deleteMessageFromQueue(message, emailSqsQueueName.getErrorName());
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    DigitalProgressStatusDto digitalProgressStatusDto) {
-        return sqsService.send(notificationTrackerSqsName.statoEmailName(),
+        return sqsService.send(notificationTrackerSqsName.getStatoEmailName(),
                 createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(emailSqsQueueName.errorName(), presaInCaricoInfo);
+        return sqsService.send(emailSqsQueueName.getErrorName(), presaInCaricoInfo);
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnBatchQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(emailSqsQueueName.batchName(), presaInCaricoInfo);
+        return sqsService.send(emailSqsQueueName.getBatchName(), presaInCaricoInfo);
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnInteractiveQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(emailSqsQueueName.interactiveName(), presaInCaricoInfo);
+        return sqsService.send(emailSqsQueueName.getInteractiveName(), presaInCaricoInfo);
     }
 
 }

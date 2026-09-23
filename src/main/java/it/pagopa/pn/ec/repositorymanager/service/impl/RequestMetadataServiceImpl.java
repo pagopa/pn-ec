@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.repositorymanager.service.impl;
 
 import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
-import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.repositorymanager.model.entity.*;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Patch;
 import it.pagopa.pn.ec.repositorymanager.service.RequestMetadataService;
@@ -39,8 +39,8 @@ public class RequestMetadataServiceImpl implements RequestMetadataService {
     private final DynamoDbAsyncTableDecorator<RequestMetadata> requestMetadataDynamoDbTable;
 
     public RequestMetadataServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
-                                      RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
-        this.requestMetadataDynamoDbTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteMetadataName(),
+                                      PnEcConfig pnEcConfig) {
+        this.requestMetadataDynamoDbTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(pnEcConfig.getDynamo().getRepositoryManager().getRichiesteMetadataName(),
                                                                          TableSchema.fromBean(RequestMetadata.class)));
     }
 

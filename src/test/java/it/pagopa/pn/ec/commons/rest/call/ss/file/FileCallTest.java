@@ -1,11 +1,11 @@
 package it.pagopa.pn.ec.commons.rest.call.ss.file;
 
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.consolidatore.exception.ClientNotAuthorizedOrFoundException;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationResponse;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import okhttp3.mockwebserver.MockResponse;
@@ -38,11 +38,15 @@ class FileCallTest {
     @Autowired
     private FileCall fileCall;
     @Autowired
-    private SafeStorageEndpointProperties safeStorageEndpointProperties;
+    private PnEcConfig pnEcConfig;
+
+    private PnEcConfig.Commons.Endpoint.SafeStorage safeStorageEndpointProperties() {
+        return pnEcConfig.getCommons().getEndpoint().getSafeStorage();
+    }
 
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry r) {
-        r.add("internal-endpoint.ss.container-base-url", () -> "http://localhost:" + mockBackEnd.getPort());
+        r.add("pn.ec.commons.endpoint.safe-storage.container-base-url", () -> "http://localhost:" + mockBackEnd.getPort());
     }
 
     @BeforeAll
@@ -69,7 +73,7 @@ class FileCallTest {
         mockBackEnd.enqueue(new MockResponse()
                 .setBody("{\"fileContent\":\"file content\"}")
                 .addHeader("Content-Type", "application/json"));
-        log.info("safeStorageEndpointProperties.containerBaseUrl {}", safeStorageEndpointProperties.containerBaseUrl());
+        log.info("safeStorageEndpointProperties.containerBaseUrl {}", safeStorageEndpointProperties().getContainerBaseUrl());
 
         Mono<FileDownloadResponse> fileDownloadResponseMono = fileCall.getFile(FILE_KEY, CLIENT_ID, X_API_KEY, X_TRACE_ID);
 

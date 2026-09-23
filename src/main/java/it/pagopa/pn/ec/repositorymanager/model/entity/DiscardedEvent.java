@@ -19,6 +19,7 @@ public class DiscardedEvent {
     String timestampRicezione;
     String dataRicezione;
     String codiceScarto;
+    @ToString.Exclude
     String jsonRicevuto;
     String payloadHash;
     String details;

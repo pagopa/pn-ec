@@ -2,18 +2,17 @@ package it.pagopa.pn.ec.commons.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.SqsRetryStrategyProperties;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.pojo.s3.S3Pointer;
 import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import it.pagopa.pn.ec.commons.service.S3Service;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.utils.JsonUtils;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import lombok.CustomLog;
 import lombok.SneakyThrows;
 import org.apache.commons.io.output.CountingOutputStream;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -49,19 +48,20 @@ public class SqsServiceImpl implements SqsService {
     private final RetryBackoffSpec sqsRetryStrategy;
     private static final int MESSAGE_GROUP_ID_LENGTH = 64;
     private static final int MESSAGE_DEDUPLICATION_ID_LENGTH = 64;
-    @Value("${sqs.queue.max-message-size}")
-    private Integer sqsQueueMaxMessageSize;
-    @Value("${sqs.queue.max-batch-subscribed-msgs}")
-    private Integer maxMessages;
+    private final Long sqsQueueMaxMessageSize;
+    private final Integer maxMessages;
 
-    public SqsServiceImpl(SqsAsyncClient sqsAsyncClient, ObjectMapper objectMapper, JsonUtils jsonUtils, S3Service s3Service, SqsRetryStrategyProperties sqsRetryStrategyProperties) {
+    public SqsServiceImpl(SqsAsyncClient sqsAsyncClient, ObjectMapper objectMapper, JsonUtils jsonUtils, S3Service s3Service, PnEcConfig pnEcConfig) {
         this.sqsAsyncClient = sqsAsyncClient;
         this.objectMapper = objectMapper;
         this.jsonUtils = jsonUtils;
         this.s3Service = s3Service;
-        this.sqsRetryStrategy = Retry.backoff(sqsRetryStrategyProperties.maxAttempts(), Duration.ofSeconds(sqsRetryStrategyProperties.minBackoff()))
+        var sqsRetryStrategyProperties = pnEcConfig.getSqs().getRetryStrategy();
+        this.sqsRetryStrategy = Retry.backoff(sqsRetryStrategyProperties.getMaxAttempts(), Duration.ofSeconds(sqsRetryStrategyProperties.getMinBackoff()))
                 .filter(SqsException.class::isInstance)
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure());
+        this.sqsQueueMaxMessageSize = pnEcConfig.getSqs().getMaxMessageSize();
+        this.maxMessages = pnEcConfig.getSqs().getMaxBatchSubscribedMsgs();
     }
 
     @Override
@@ -86,9 +86,8 @@ public class SqsServiceImpl implements SqsService {
 
     @Override
     public <T> Mono<SendMessageResponse> send(String queueName, String messageGroupId, String messageDeduplicationId, Integer delaySeconds, T queuePayload) throws SqsClientException {
-        log.debug(INSERTING_DATA_IN_SQS, queuePayload, queueName);
         return Mono.fromCallable(() -> objectMapper.writeValueAsString(queuePayload))
-                .doOnSuccess(sendMessageResponse -> log.info("Try to publish on {} with payload {}", queueName, queuePayload))
+                .doOnSuccess(sendMessageResponse -> log.debug("Try to publish on {} with payload {}", queueName, queuePayload))
                 .zipWith(getQueueUrlFromName(queueName))
                 .flatMap(objects -> Mono.fromCompletionStage(sqsAsyncClient.sendMessage(builder -> builder.queueUrl(objects.getT2())
                         .messageBody(objects.getT1())
@@ -105,9 +104,8 @@ public class SqsServiceImpl implements SqsService {
 
     @Override
     public <T> Mono<SendMessageResponse> sendWithLargePayload(String queueName, String messageGroupId, String bucketName, T queuePayload) throws SqsClientException {
-        log.debug(INSERTING_DATA_IN_SQS, queuePayload, queueName);
         return Mono.fromCallable(() -> objectMapper.writeValueAsString(queuePayload))
-                .doOnSuccess(sendMessageResponse -> log.info("Try to publish on {} with payload {}", queueName, queuePayload))
+                .doOnSuccess(sendMessageResponse -> log.debug("Try to publish on {} with payload {}", queueName, queuePayload))
                 .zipWith(getQueueUrlFromName(queueName))
                 .map(objects -> SendMessageRequest.builder().queueUrl(objects.getT2())
                         .messageBody(objects.getT1())

@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec.sms.rest;
 
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -8,8 +7,8 @@ import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
@@ -44,10 +43,15 @@ class DigitalCourtesyMessagesApiControllerTest {
     private WebTestClient webTestClient;
 
     @Autowired
-    private SmsSqsQueueName smsSqsQueueName;
+    private PnEcConfig pnEcConfig;
 
-    @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
+    private PnEcConfig.Sms.SqsQueue smsSqsQueueName() {
+        return pnEcConfig.getSms().getSqsQueue();
+    }
+
+    private PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName() {
+        return pnEcConfig.getNotificationTracker().getSqsQueue();
+    }
 
     @MockitoBean
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
@@ -103,9 +107,9 @@ class DigitalCourtesyMessagesApiControllerTest {
                                                                                           .expectBody(Problem.class);
     }
 
-	// SMSPIC.107.5 -> idClient non autorizzato
-	@Test
-	void sendSmsUnauthorizedIdClient() {
+    // SMSPIC.107.5 -> idClient non autorizzato
+    @Test
+    void sendSmsUnauthorizedIdClient() {
 
 //      Client auth call -> OK
 //      Client non tornato dall'anagrafica client
@@ -156,10 +160,10 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione throwata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()),
+        when(sqsService.send(eq(notificationTrackerSqsName().getStatoSmsName()),
                              argThat((NotificationTrackerQueueDto notificationTrackerQueueDto) -> Objects.equals(notificationTrackerQueueDto.getNextStatus(),
                                                                                                                  BOOKED.getStatusTransactionTableCompliant())))).thenReturn(
-                Mono.error(new SqsClientException(notificationTrackerSqsName.statoSmsName())));
+                Mono.error(new SqsClientException(notificationTrackerSqsName().getStatoSmsName())));
 
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)
@@ -176,8 +180,8 @@ class DigitalCourtesyMessagesApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione throwata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(smsSqsQueueName.interactiveName()),
-                             any(SmsPresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(smsSqsQueueName.interactiveName())));
+        when(sqsService.send(eq(smsSqsQueueName().getInteractiveName()),
+                             any(SmsPresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(smsSqsQueueName().getInteractiveName())));
 
         sendSmsTestCall(BodyInserters.fromValue(digitalCourtesySmsRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                 .isEqualTo(SERVICE_UNAVAILABLE)

@@ -43,7 +43,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -51,6 +50,7 @@ import it.pagopa.pn.ec.commons.rest.call.RestCallException;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCallImpl;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
 import reactor.core.publisher.Flux;
@@ -79,7 +79,11 @@ class RicezioneEsitiConsolidatoreControllerTest {
 	private SqsServiceImpl sqsService;
 
     @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
+    private PnEcConfig pnEcConfig;
+
+    private PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName() {
+        return pnEcConfig.getNotificationTracker().getSqsQueue();
+    }
 	@MockitoSpyBean
 	private RicezioneEsitiCartaceoServiceImpl ricezioneEsitiCartaceoServiceImpl;
 
@@ -533,8 +537,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
     	when(fileCall.getFile(DOCUMENT_KEY, X_PAGOPA_EXTCH_SERVICE_ID_HEADER_VALUE, true)).thenReturn(Mono.just(fileDownloadResponse));
 
     	// errore pubblicazione su coda cartaceo
-		when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class)))
-			.thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName.statoCartaceoName())));
+		when(sqsService.send(eq(notificationTrackerSqsName().getStatoCartaceoName()), any(NotificationTrackerQueueDto.class)))
+			.thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName().getStatoCartaceoName())));
 
     	List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();
     	events.add(getProgressStatusEventWithoutAttachments());
@@ -562,8 +566,8 @@ class RicezioneEsitiConsolidatoreControllerTest {
 		when(statusPullService.paperPullService(anyString(), anyString())).thenReturn(Mono.just(new PaperProgressStatusEvent().productType(PRODUCT_TYPE_AR).iun(IUN)));
 		when(gestoreRepositoryCall.insertDiscardedEvents(any())).thenReturn(Flux.empty());
 
-		when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()), any(NotificationTrackerQueueDto.class)))
-				.thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName.statoCartaceoName())));
+		when(sqsService.send(eq(notificationTrackerSqsName().getStatoCartaceoName()), any(NotificationTrackerQueueDto.class)))
+				.thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName().getStatoCartaceoName())));
 
 
 		List<ConsolidatoreIngressPaperProgressStatusEvent> events = new ArrayList<>();

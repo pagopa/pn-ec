@@ -4,7 +4,6 @@ import io.awspring.cloud.sqs.annotation.SqsListener;
 import io.awspring.cloud.sqs.annotation.SqsListenerAcknowledgementMode;
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.ShaGenerationException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
@@ -15,11 +14,11 @@ import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import it.pagopa.pn.library.pec.service.DaticertService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.LegalMessageSentDetails;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
-import it.pagopa.pn.ec.scaricamentoesitipec.configurationproperties.ScaricamentoEsitiPecProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchTransitionElapsedTimeMetricsInfo;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
@@ -27,7 +26,6 @@ import it.pagopa.pn.library.pec.model.pojo.Destinatari;
 import lombok.CustomLog;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -61,10 +59,10 @@ public class LavorazioneEsitiPecService {
     private final DaticertService daticertService;
     private final StatusPullService statusPullService;
     private final CloudWatchPecMetrics cloudWatchPecMetrics;
-    private final NotificationTrackerSqsName notificationTrackerSqsName;
+    private final PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName;
     private final FileCall fileCall;
     private final WebClient uploadWebClient;
-    private final ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties;
+    private final PnEcConfig.ScaricamentoEsitiPec scaricamentoEsitiPecProperties;
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final S3Service s3Service;
     private final String storageSqsMessagesStagingBucket;
@@ -76,40 +74,37 @@ public class LavorazioneEsitiPecService {
                                       DaticertService daticertService,
                                       StatusPullService statusPullService,
                                       CloudWatchPecMetrics cloudWatchPecMetrics,
-                                      NotificationTrackerSqsName notificationTrackerSqsName,
                                       FileCall fileCall,
                                       @Qualifier("uploadWebClient") WebClient uploadWebClient,
-                                      ScaricamentoEsitiPecProperties scaricamentoEsitiPecProperties,
                                       GestoreRepositoryCall gestoreRepositoryCall,
                                       S3Service s3Service,
                                       SqsTimeoutProvider sqsTimeoutProvider,
-                                      @Value("${lavorazione-esiti-pec.max-thread-pool-size}") Integer maxThreadPoolSize,
-                                      @Value("${pn.ec.storage.sqs.messages.staging.bucket}") String storageSqsMessagesStagingBucket) {
+                                      PnEcConfig pnEcConfig) {
         this.sqsService = sqsService;
         this.daticertService = daticertService;
         this.statusPullService = statusPullService;
         this.cloudWatchPecMetrics = cloudWatchPecMetrics;
-        this.notificationTrackerSqsName = notificationTrackerSqsName;
+        this.notificationTrackerSqsName = pnEcConfig.getNotificationTracker().getSqsQueue();
         this.fileCall = fileCall;
         this.uploadWebClient = uploadWebClient;
-        this.scaricamentoEsitiPecProperties = scaricamentoEsitiPecProperties;
+        this.scaricamentoEsitiPecProperties = pnEcConfig.getScaricamentoEsitiPec();
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.s3Service = s3Service;
-        this.storageSqsMessagesStagingBucket = storageSqsMessagesStagingBucket;
-        this.semaphore = new Semaphore(maxThreadPoolSize);
+        this.storageSqsMessagesStagingBucket = pnEcConfig.getStorage().getStagingBucket();
+        this.semaphore = new Semaphore(pnEcConfig.getScaricamentoEsitiPec().getLavorazione().getMaxThreadPoolSize());
         this.sqsTimeoutProvider=sqsTimeoutProvider;
     }
 
     @SqsListener(value = "${scaricamento-esiti-pec.sqs-queue-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void lavorazioneEsitiPecInteractive(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgement acknowledgment) {
-        logIncomingMessage(scaricamentoEsitiPecProperties.sqsQueueName(), ricezioneEsitiPecDto);
+        logIncomingMessage(scaricamentoEsitiPecProperties.getSqsQueueName(), ricezioneEsitiPecDto);
         lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment).block();
     }
 
     Mono<Void> lavorazioneEsitiPec(final RicezioneEsitiPecDto payload, Acknowledgement acknowledgment) {
         MDC.clear();
         String payloadPointerFileKey = payload.getPointerFileKey();
-        String queueName = scaricamentoEsitiPecProperties.sqsQueueName();
+        String queueName = scaricamentoEsitiPecProperties.getSqsQueueName();
         return MDCUtils.addMDCToContextAndExecute(Mono.justOrEmpty(payloadPointerFileKey)
                 .doOnNext(fileKey -> log.debug("Getting SQS payload with key '{}' from S3 bucket.", fileKey))
                 .flatMap(fileKey -> s3Service.getObjectAndConvert(fileKey, storageSqsMessagesStagingBucket, RicezioneEsitiPecDto.class))
@@ -219,7 +214,7 @@ public class LavorazioneEsitiPecService {
                                     })
 
                                     //Pubblicazione sulla coda degli stati PEC
-                                    .flatMap(notificationTrackerQueueDto -> sqsService.send(notificationTrackerSqsName.statoPecName(),
+                                    .flatMap(notificationTrackerQueueDto -> sqsService.send(notificationTrackerSqsName.getStatoPecName(),
                                             notificationTrackerQueueDto));
                         }
                 )
@@ -249,9 +244,9 @@ public class LavorazioneEsitiPecService {
                 .status("");
 
         var checksumValue = generateSha256(fileBytes);
-        var xPagopaExtchCxId = scaricamentoEsitiPecProperties.clientHeaderValue();
+        var xPagopaExtchCxId = scaricamentoEsitiPecProperties.getClientHeaderValue();
 
-        return fileCall.postFile(xPagopaExtchCxId, scaricamentoEsitiPecProperties.apiKeyHeaderValue(), checksumValue, xPagopaExtchCxId + "~" + requestIdx, fileCreationRequest)
+        return fileCall.postFile(xPagopaExtchCxId, scaricamentoEsitiPecProperties.getApiKeyHeaderValue(), checksumValue, xPagopaExtchCxId + "~" + requestIdx, fileCreationRequest)
                 .flatMap(fileCreationResponse ->
                 {
                     String uploadUrl = fileCreationResponse.getUploadUrl();

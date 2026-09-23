@@ -49,7 +49,7 @@ class PaperMessageCallImplTest {
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry r) {
         // Overriding of internal base url property to point to mock server
-        r.add("internal-endpoint.consolidatore.base-path", () -> "http://localhost:" + mockBackEnd.getPort());
+        r.add("pn.ec.commons.endpoint.consolidatore.base-url", () -> "http://localhost:" + mockBackEnd.getPort());
     }
 
     @BeforeAll

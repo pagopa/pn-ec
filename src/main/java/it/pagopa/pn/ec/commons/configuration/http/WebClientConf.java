@@ -1,10 +1,6 @@
 package it.pagopa.pn.ec.commons.configuration.http;
 
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.ConsolidatoreEndpointProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.ExternalChannelEndpointProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.pdfraster.PdfRasterEndpointProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.statemachine.StateMachineEndpointProperties;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.JettyClientHttpConnector;
@@ -19,9 +15,11 @@ public class WebClientConf {
 
     private final String HTTPS="https";
     private final JettyHttpClientConf jettyHttpClientConf;
+    private final PnEcConfig pnEcConfig;
 
-    public WebClientConf(JettyHttpClientConf jettyHttpClientConf) {
+    public WebClientConf(JettyHttpClientConf jettyHttpClientConf, PnEcConfig pnEcConfig) {
         this.jettyHttpClientConf = jettyHttpClientConf;
+        this.pnEcConfig = pnEcConfig;
     }
 
     private WebClient.Builder defaultWebClientBuilder(String baseUrl) {
@@ -45,19 +43,20 @@ public class WebClientConf {
     }
 
     @Bean
-    public WebClient ecWebClient(ExternalChannelEndpointProperties externalChannelEndpointProperties) {
-        String baseUrl = externalChannelEndpointProperties.containerBaseUrl();
+    public WebClient ecWebClient() {
+        String baseUrl = pnEcConfig.getCommons().getEndpoint().getExternalChannel().getContainerBaseUrl();
         return defaultJsonWebClientBuilder(baseUrl)
                 .build();
     }
 
     @Bean
-    public WebClient ssWebClient(SafeStorageEndpointProperties safeStorageEndpointProperties) {
-        String baseUrl = safeStorageEndpointProperties.containerBaseUrl();
+    public WebClient ssWebClient() {
+        var safeStorageEndpointProperties = pnEcConfig.getCommons().getEndpoint().getSafeStorage();
+        String baseUrl = safeStorageEndpointProperties.getContainerBaseUrl();
         return defaultJsonWebClientBuilder(baseUrl)
                 .defaultHeaders(httpHeaders -> {
-                    httpHeaders.set(safeStorageEndpointProperties.clientHeaderName(), safeStorageEndpointProperties.clientHeaderValue());
-                    httpHeaders.set(safeStorageEndpointProperties.apiKeyHeaderName(), safeStorageEndpointProperties.apiKeyHeaderValue());
+                    httpHeaders.set(safeStorageEndpointProperties.getClientHeaderName(), safeStorageEndpointProperties.getClientHeaderValue());
+                    httpHeaders.set(safeStorageEndpointProperties.getApiKeyHeaderName(), safeStorageEndpointProperties.getApiKeyHeaderValue());
                 }).build();
     }
 
@@ -75,48 +74,51 @@ public class WebClientConf {
     }
 
     @Bean
-    public WebClient stateMachineWebClient(StateMachineEndpointProperties stateMachineEndpointProperties) {
-        String baseUrl = stateMachineEndpointProperties.containerBaseUrl();
+    public WebClient stateMachineWebClient() {
+        String baseUrl = pnEcConfig.getStateMachine().getEndpoint().getContainerBaseUrl();
         return defaultJsonWebClientBuilder(baseUrl)
                 .build();
     }
 
     @Bean
-    public WebClient consolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties) {
-        String consolidatoreBaseUrl = consolidatoreEndpointProperties.baseUrl();
+    public WebClient consolidatoreWebClient() {
+        var consolidatoreEndpointProperties = pnEcConfig.getCommons().getEndpoint().getConsolidatore();
+        String consolidatoreBaseUrl = consolidatoreEndpointProperties.getBaseUrl();
 
-        if (consolidatoreBaseUrl.startsWith(HTTPS) && consolidatoreEndpointProperties.trustAll()) {
+        if (consolidatoreBaseUrl.startsWith(HTTPS) && Boolean.TRUE.equals(consolidatoreEndpointProperties.getTrustAll())) {
             return trustAllConsolidatoreWebClient(consolidatoreEndpointProperties);
         } else return defaultConsolidatoreWebClient(consolidatoreEndpointProperties);
     }
 
     @Bean
-    public WebClient pdfRasterWebClient(PdfRasterEndpointProperties pdfRasterEndpointProperties,SafeStorageEndpointProperties safeStorageEndpointProperties){
-        String pdfRasterBaseUrl = pdfRasterEndpointProperties.baseUrl();
+    public WebClient pdfRasterWebClient(){
+        var pdfRasterEndpointProperties = pnEcConfig.getPdfRaster().getEndpoint();
+        var safeStorageEndpointProperties = pnEcConfig.getCommons().getEndpoint().getSafeStorage();
+        String pdfRasterBaseUrl = pdfRasterEndpointProperties.getBaseUrl();
 
         return defaultJsonWebClientBuilder(pdfRasterBaseUrl)
                 .defaultHeaders(httpHeaders -> {
-                    httpHeaders.set(safeStorageEndpointProperties.clientHeaderName(),pdfRasterEndpointProperties.clientHeaderValue());
-                    httpHeaders.set(safeStorageEndpointProperties.apiKeyHeaderName(),pdfRasterEndpointProperties.clientHeaderApiKey());
+                    httpHeaders.set(safeStorageEndpointProperties.getClientHeaderName(),pdfRasterEndpointProperties.getClientHeaderValue());
+                    httpHeaders.set(safeStorageEndpointProperties.getApiKeyHeaderName(),pdfRasterEndpointProperties.getClientHeaderApiKey());
                 }).build();
     }
 
-    private WebClient defaultConsolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties)
+    private WebClient defaultConsolidatoreWebClient(PnEcConfig.Commons.Endpoint.Consolidatore consolidatoreEndpointProperties)
     {
-        String consolidatoreBaseUrl = consolidatoreEndpointProperties.baseUrl();
+        String consolidatoreBaseUrl = consolidatoreEndpointProperties.getBaseUrl();
         return defaultJsonWebClientBuilder(consolidatoreBaseUrl)
                 .defaultHeaders(httpHeaders -> {
-                    httpHeaders.set(consolidatoreEndpointProperties.clientHeaderName(), consolidatoreEndpointProperties.clientHeaderValue());
-                    httpHeaders.set(consolidatoreEndpointProperties.apiKeyHeaderName(), consolidatoreEndpointProperties.apiKeyHeaderValue());
+                    httpHeaders.set(consolidatoreEndpointProperties.getClientHeaderName(), consolidatoreEndpointProperties.getClientHeaderValue());
+                    httpHeaders.set(consolidatoreEndpointProperties.getApiKeyHeaderName(), consolidatoreEndpointProperties.getApiKeyHeaderValue());
                 }).build();
     }
 
-    private WebClient trustAllConsolidatoreWebClient(ConsolidatoreEndpointProperties consolidatoreEndpointProperties) {
-        String consolidatoreBaseUrl = consolidatoreEndpointProperties.baseUrl();
+    private WebClient trustAllConsolidatoreWebClient(PnEcConfig.Commons.Endpoint.Consolidatore consolidatoreEndpointProperties) {
+        String consolidatoreBaseUrl = consolidatoreEndpointProperties.getBaseUrl();
         return trustAllJsonWebClientBuilder(consolidatoreBaseUrl)
                 .defaultHeaders(httpHeaders -> {
-                    httpHeaders.set(consolidatoreEndpointProperties.clientHeaderName(), consolidatoreEndpointProperties.clientHeaderValue());
-                    httpHeaders.set(consolidatoreEndpointProperties.apiKeyHeaderName(), consolidatoreEndpointProperties.apiKeyHeaderValue());
+                    httpHeaders.set(consolidatoreEndpointProperties.getClientHeaderName(), consolidatoreEndpointProperties.getClientHeaderValue());
+                    httpHeaders.set(consolidatoreEndpointProperties.getApiKeyHeaderName(), consolidatoreEndpointProperties.getApiKeyHeaderValue());
                 }).build();
     }
 

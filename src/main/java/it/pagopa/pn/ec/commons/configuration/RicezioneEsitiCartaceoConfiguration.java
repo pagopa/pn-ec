@@ -1,12 +1,13 @@
 package it.pagopa.pn.ec.commons.configuration;
 
 import it.pagopa.pn.ec.commons.constant.DuplicatesCheckMode;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import lombok.CustomLog;
 import lombok.Getter;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.convert.DurationStyle;
 import org.springframework.context.annotation.Configuration;
 
-import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -16,16 +17,9 @@ import java.util.Map;
 @Configuration
 @Getter
 public class RicezioneEsitiCartaceoConfiguration {
-    @Getter
-    @Value("${ricezione-esiti-cartaceo.consider-event-without-sent-status-as-booked}")
     private boolean considerEventsWithoutStatusAsBooked;
-    @Value("${ricezione-esiti-cartaceo.duplicates-check:}")
     private String duplicatesCheck;
-    @Getter
-    @Value("${ricezione-esiti-cartaceo.allowed-future-offset-duration}")
     private Duration offsetDuration;
-
-    @Value("${ricezione-esiti-cartaceo.duplicated-event-error-code}")
     private String duplicatedEventErrorCode;
 
     @Getter
@@ -34,7 +28,20 @@ public class RicezioneEsitiCartaceoConfiguration {
     @Getter
     private Map<String, DuplicatesCheckMode> duplicatesCheckModeByProduct;
 
-    @PostConstruct
+    public RicezioneEsitiCartaceoConfiguration() {
+    }
+
+    @Autowired
+    public RicezioneEsitiCartaceoConfiguration(PnEcConfig pnEcConfig) {
+        var properties = pnEcConfig.getCommons().getRicezioneEsitiCartaceo();
+        this.considerEventsWithoutStatusAsBooked = Boolean.parseBoolean(properties.getConsiderEventWithoutSentStatusAsBooked());
+        this.duplicatesCheck = properties.getDuplicatesCheck() == null ? "" : properties.getDuplicatesCheck();
+        this.offsetDuration = properties.getAllowedFutureOffsetDuration() == null
+                ? null : DurationStyle.detectAndParse(properties.getAllowedFutureOffsetDuration());
+        this.duplicatedEventErrorCode = properties.getDuplicatedEventErrorCode();
+        init();
+    }
+
     public void init() {
         this.productTypesToCheck = Arrays.stream(this.duplicatesCheck.split(";"))
                 .map(token -> token.split(":", 2)[0].trim())

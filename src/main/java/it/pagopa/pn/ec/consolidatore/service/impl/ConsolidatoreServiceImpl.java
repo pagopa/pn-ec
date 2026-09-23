@@ -50,7 +50,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                     log.logChecking(X_API_KEY_VALIDATION);
                     if (!clientConfiguration.getApiKey().equals(xApiKey)) {
                         ConsAuditLogError consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_API_KEY.getValue()).description(INVALID_API_KEY).build();
-                        log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().request(attachments.map(PreLoadRequestData::getPreloads)).errorList(List.of(consAuditLogError)).build());
+                        log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.of(attachments.map(PreLoadRequestData::getPreloads), List.of(consAuditLogError)));
                         log.logCheckingOutcome(X_API_KEY_VALIDATION, false, INVALID_API_KEY);
                         return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, INVALID_API_KEY));
                     }
@@ -124,7 +124,7 @@ public class ConsolidatoreServiceImpl implements ConsolidatoreService {
                     log.logChecking(X_API_KEY_VALIDATION);
                     if (!clientConfiguration.getApiKey().equals(xApiKey)) {
                         var consAuditLogError = ConsAuditLogError.builder().error(ERR_CONS_BAD_API_KEY.getValue()).requestId(fileKey).description(INVALID_API_KEY).build();
-                        log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.builder().errorList(List.of(consAuditLogError)).build());
+                        log.error("{} - {}", ERR_CONS, ConsAuditLogEvent.of(null, List.of(consAuditLogError)));
                         log.logCheckingOutcome(X_API_KEY_VALIDATION, false, INVALID_API_KEY);
                         return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, INVALID_API_KEY));
                     }

@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.richiestemetadati.service.impl;
 import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.utils.RequestUtils;
-import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestMetadata;
 import it.pagopa.pn.ec.rest.v1.dto.RequestMetadataPatchRequest;
 import it.pagopa.pn.ec.richiestemetadati.service.PaperRequestMetadataPatchService;
@@ -26,9 +26,9 @@ public class PaperRequestMetadataPatchServiceImpl implements PaperRequestMetadat
 
     private final DynamoDbAsyncTableDecorator<RequestMetadata> requestMetadataDynamoDbAsyncTableDecorator;
 
-    public PaperRequestMetadataPatchServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedAsyncClient,RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
+    public PaperRequestMetadataPatchServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedAsyncClient, PnEcConfig pnEcConfig) {
         TableSchema<RequestMetadata> requestMetadataTableSchema = TableSchema.fromBean(RequestMetadata.class);
-        this.requestMetadataDynamoDbAsyncTableDecorator = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedAsyncClient.table(repositoryManagerDynamoTableName.richiesteMetadataName(), requestMetadataTableSchema));
+        this.requestMetadataDynamoDbAsyncTableDecorator = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedAsyncClient.table(pnEcConfig.getDynamo().getRepositoryManager().getRichiesteMetadataName(), requestMetadataTableSchema));
     }
 
 

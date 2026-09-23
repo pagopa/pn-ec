@@ -1,9 +1,9 @@
 package it.pagopa.pn.ec.commons.service;
 
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Assertions;
@@ -28,7 +28,11 @@ class StatusPullServiceTest {
     @Autowired
     private StatusPullService statusPullService;
     @Autowired
-    private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private PnEcConfig pnEcConfig;
+
+    private PnEcConfig.Commons.TransactionProcess transactionProcessProperties() {
+        return pnEcConfig.getCommons().getTransactionProcess();
+    }
     @MockitoBean
     private AuthService authService;
     @MockitoBean
@@ -88,7 +92,7 @@ class StatusPullServiceTest {
         when(callMacchinaStati.statusDecode(anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto(CourtesyMessageProgressEvent.EventCodeEnum.M003.getValue(), ProgressEventCategory.OK.getValue())));
 
 
-        Mono<CourtesyMessageProgressEvent> testMono = statusPullService.digitalPullService(SMS_REQUEST_IDX, CLIENT_ID, transactionProcessConfigurationProperties.sms());
+        Mono<CourtesyMessageProgressEvent> testMono = statusPullService.digitalPullService(SMS_REQUEST_IDX, CLIENT_ID, transactionProcessProperties().getSms());
         StepVerifier.create(testMono).expectNextCount(1).verifyComplete();
     }
 
@@ -99,7 +103,7 @@ class StatusPullServiceTest {
 
         when(gestoreRepositoryCall.getRichiesta(eq(CLIENT_ID), eq(SMS_REQUEST_IDX))).thenReturn(Mono.just(request));
 
-        Mono<CourtesyMessageProgressEvent> testMono = statusPullService.digitalPullService(SMS_REQUEST_IDX, CLIENT_ID, transactionProcessConfigurationProperties.sms());
+        Mono<CourtesyMessageProgressEvent> testMono = statusPullService.digitalPullService(SMS_REQUEST_IDX, CLIENT_ID, transactionProcessProperties().getSms());
         StepVerifier.create(testMono).expectNextCount(1).verifyComplete();
     }
 

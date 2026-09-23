@@ -1,13 +1,12 @@
 package it.pagopa.pn.ec.email.service;
 
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
-import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.SesService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
-import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
@@ -31,8 +30,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
-import static it.pagopa.pn.ec.commons.constant.Status.SENT;
-import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.email.testutils.DigitalCourtesyMailRequestFactory.createMailRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
@@ -48,7 +45,11 @@ class RetryEmailTimeoutTest {
     @MockitoSpyBean
     private EmailService emailService;
     @Autowired
-    private EmailSqsQueueName emailSqsQueueName;
+    private PnEcConfig pnEcConfig;
+
+    private PnEcConfig.Email.SqsQueue emailSqsQueueName() {
+        return pnEcConfig.getEmail().getSqsQueue();
+    }
     @MockitoSpyBean
     private SqsServiceImpl sqsService;
     @MockitoBean
@@ -61,7 +62,6 @@ class RetryEmailTimeoutTest {
     private DownloadCall downloadCall;
     @MockitoBean
     private SqsTimeoutProvider sqsTimeoutProvider;
-    EmailPresaInCaricoInfo emailPresaInCaricoInfo = new EmailPresaInCaricoInfo();
     private static final String QUEUE_NAME = "queue";
     private static final Duration TIMEOUT_INACTIVE_DURATION = Duration.ofSeconds(86400);
 
@@ -95,11 +95,6 @@ class RetryEmailTimeoutTest {
             .documentStatus("documentStatus")
             .documentType("documentType")
             .retentionUntil(OffsetDateTime.parse("2023-04-18T05:08:27.101Z"));
-
-    private static final StepError STEP_ERROR = StepError.builder()
-            .generatedMessageDto(new GeneratedMessageDto().id("1221313223"))
-            .step(NOTIFICATION_TRACKER_STEP)
-            .build();
 
     private static RequestDto buildRequestDto()
     {
@@ -152,7 +147,7 @@ class RetryEmailTimeoutTest {
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message,QUEUE_NAME);
         StepVerifier.create(response).expectErrorMatches(throwable -> throwable instanceof TimeoutException).verify();
@@ -184,7 +179,7 @@ class RetryEmailTimeoutTest {
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message,QUEUE_NAME);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
@@ -216,7 +211,7 @@ class RetryEmailTimeoutTest {
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(emailSqsQueueName().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH, message,QUEUE_NAME);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();

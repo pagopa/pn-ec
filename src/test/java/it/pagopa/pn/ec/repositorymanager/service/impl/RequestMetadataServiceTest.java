@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.repositorymanager.service.impl;
 
 import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
-import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.repositorymanager.model.entity.DigitalProgressStatus;
 import it.pagopa.pn.ec.repositorymanager.model.entity.Events;
 import it.pagopa.pn.ec.repositorymanager.model.entity.GeneratedMessage;
@@ -45,7 +45,7 @@ class RequestMetadataServiceTest {
     private DynamoDbEnhancedClient dynamoDbEnhancedClient;
 
     @Autowired
-    private RepositoryManagerDynamoTableName repositoryManagerDynamoTableName;
+    private PnEcConfig pnEcConfig;
 
     @Test
     void eventsCheckDigitalKo() {
@@ -98,7 +98,7 @@ class RequestMetadataServiceTest {
     @SuppressWarnings("unchecked")
     void updateRequestMetadataMessageId_retriesOnConditionalCheckFailed() {
         DynamoDbTable<RequestMetadata> syncTable = dynamoDbEnhancedClient.table(
-                repositoryManagerDynamoTableName.richiesteMetadataName(),
+                pnEcConfig.getDynamo().getRepositoryManager().getRichiesteMetadataName(),
                 TableSchema.fromBean(RequestMetadata.class));
 
         String requestId = "retry-service-test";
@@ -140,7 +140,7 @@ class RequestMetadataServiceTest {
     @SuppressWarnings("unchecked")
     void updateRequestMetadataMessageId_rereadsRecordOnRetryInsteadOfReusingStaleVersion() {
         DynamoDbTable<RequestMetadata> syncTable = dynamoDbEnhancedClient.table(
-                repositoryManagerDynamoTableName.richiesteMetadataName(),
+                pnEcConfig.getDynamo().getRepositoryManager().getRichiesteMetadataName(),
                 TableSchema.fromBean(RequestMetadata.class));
 
         String requestId = "reread-service-test";

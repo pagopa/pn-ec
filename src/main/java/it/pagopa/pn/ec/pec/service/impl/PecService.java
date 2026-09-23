@@ -4,7 +4,6 @@ import io.awspring.cloud.sqs.annotation.SqsListener;
 import io.awspring.cloud.sqs.annotation.SqsListenerAcknowledgementMode;
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.pec.PecCallMaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.email.ComposeMimeMessageException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
@@ -23,16 +22,15 @@ import it.pagopa.pn.ec.commons.service.QueueOperationsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
-import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.exception.MaxSizeExceededException;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.library.exceptions.PnSpapiPermanentErrorException;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import lombok.CustomLog;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -82,25 +80,27 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final AttachmentServiceImpl attachmentService;
     private final DownloadCall downloadCall;
-    private final NotificationTrackerSqsName notificationTrackerSqsName;
-    private final PecSqsQueueName pecSqsQueueName;
+    private final PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName;
+    private final PnEcConfig.Pec.SqsQueue pecSqsQueueName;
     private final Semaphore semaphore;
     private final PnPecConfigurationProperties pnPecProps;
+    private final PnEcConfig.Pec pecConfig;
     private String idSaved;
     private final Predicate<Throwable> isAddressException = throwable -> throwable instanceof PnSpapiPermanentErrorException && throwable.getMessage() != null && throwable.getMessage().contains("jakarta.mail.internet.AddressException");
 
     protected PecService(AuthService authService, PnEcPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
-            , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, NotificationTrackerSqsName notificationTrackerSqsName, PecSqsQueueName pecSqsQueueName, @Value("${lavorazione-pec.max-thread-pool-size}") Integer maxThreadPoolSize, PnPecConfigurationProperties pnPecProps) {
+            , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, PnEcConfig pnEcConfig, PnPecConfigurationProperties pnPecProps) {
         super(authService);
         this.pnPecService = pnPecService;
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.attachmentService = attachmentService;
         this.downloadCall = downloadCall;
-        this.notificationTrackerSqsName = notificationTrackerSqsName;
-        this.pecSqsQueueName = pecSqsQueueName;
-        this.semaphore = new Semaphore(maxThreadPoolSize);
+        this.notificationTrackerSqsName = pnEcConfig.getNotificationTracker().getSqsQueue();
+        this.pecSqsQueueName = pnEcConfig.getPec().getSqsQueue();
+        this.semaphore = new Semaphore(pnEcConfig.getPec().getMaxThreadPoolSize());
         this.pnPecProps = pnPecProps;
+        this.pecConfig = pnEcConfig.getPec();
     }
 
     private static final Retry PRESA_IN_CARICO_RETRY_STRATEGY = Retry.backoff(3, Duration.ofMillis(500))
@@ -150,7 +150,6 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromPec(final DigitalNotificationRequest digitalNotificationRequest, String xPagopaExtchCxId) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_PEC, digitalNotificationRequest);
         return Mono.fromCallable(() ->
                         insertRequestFromDigitalNotificationRequest(digitalNotificationRequest, xPagopaExtchCxId, PEC)
                 ).flatMap(gestoreRepositoryCall::insertRichiesta).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
@@ -160,7 +159,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     @SqsListener(value = "${sqs.queue.pec.interactive-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void lavorazioneRichiestaInteractive(final PecPresaInCaricoInfo pecPresaInCaricoInfo, final Acknowledgement acknowledgment) {
         MDC.clear();
-        logIncomingMessage(pecSqsQueueName.interactiveName(), pecPresaInCaricoInfo);
+        logIncomingMessage(pecSqsQueueName.getInteractiveName(), pecPresaInCaricoInfo);
         lavorazioneRichiesta(pecPresaInCaricoInfo)
                 .then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync())))
                 .block();
@@ -170,13 +169,13 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     public void lavorazioneRichiestaBatch() {
     	log.logStartingProcess(LAVORAZIONE_BATCH_PEC);
         MDC.clear();
-        sqsService.getMessages(pecSqsQueueName.batchName(), PecPresaInCaricoInfo.class)
-                .doOnNext(pecPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(pecSqsQueueName.batchName(),
+        sqsService.getMessages(pecSqsQueueName.getBatchName(), PecPresaInCaricoInfo.class)
+                .doOnNext(pecPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(pecSqsQueueName.getBatchName(),
                         pecPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                 .flatMap(pecPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(pecPresaInCaricoInfoSqsMessageWrapper.getMessage()),
                         lavorazioneRichiesta(pecPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
                 .flatMap(pecPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(pecPresaInCaricoInfoSqsMessageWrapper.getT1(),
-                        pecSqsQueueName.batchName()))
+                        pecSqsQueueName.getBatchName()))
                 .transform(pullFromFluxUntilIsEmpty())
                 .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_PEC, false, e.getMessage(), e))
                 .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_PEC))
@@ -255,7 +254,6 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
 
     private Flux<FileDownloadResponse> getAttachments(String xPagopaExtchCxId, DigitalNotificationRequest digitalNotificationRequest) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PEC_GET_ATTACHMENTS, digitalNotificationRequest);
         return attachmentService.getAllegatiPresignedUrlOrMetadata(digitalNotificationRequest.getAttachmentUrls(), xPagopaExtchCxId, false)
                 .retryWhen(LAVORAZIONE_RICHIESTA_RETRY_STRATEGY)
                 .filter(fileDownloadResponse -> fileDownloadResponse.getDownload() != null)
@@ -275,7 +273,6 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private Mono<GeneratedMessageDto> sendMail(String xPagopaExtchCxId, String requestIdx, DigitalNotificationRequest digitalNotificationRequest, List<EmailAttachment> attachments) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS + " - {}", PEC_SEND_MAIL, digitalNotificationRequest, attachments);
         String sender = pnPecProps.getPnPecSender();
         return Mono.just(attachments).map(fileDownloadResponses -> EmailField.builder()
                         .msgId(encodeMessageId(xPagopaExtchCxId, requestIdx))
@@ -286,11 +283,11 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                         .contentType(digitalNotificationRequest.getMessageContentType()
                                 .getValue())
                         .emailAttachments(fileDownloadResponses)
-                        .headersList(List.of(new Header(pnPecProps.getTipoRicevutaHeaderName(), pnPecProps.getTipoRicevutaHeaderValue())))
+                        .headersList(List.of(new Header(pecConfig.getTipoRicevutaHeaderName(), pecConfig.getTipoRicevutaHeaderValue())))
                         .build())
                 .flatMap(emailField -> getMonoMimeMessage(emailField,
-                        pnPecProps.getAttachmentRule(),
-                        pnPecProps.getMaxMessageSizeMb() * MB_TO_BYTES,
+                        pecConfig.getAttachmentRule(),
+                        pecConfig.getMaxMessageSizeMb() * MB_TO_BYTES,
                         pnPecProps.getTipoRicevutaBreve()))
                 .map(EmailUtils::getMimeMessageByteArray)
                 .flatMap(pnPecService::sendMail)
@@ -299,7 +296,6 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private Mono<SendMessageResponse> sendMessage(GeneratedMessageDto generatedMessageDto, PecPresaInCaricoInfo pecPresaInCaricoInfo) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, PEC_SEND_MESSAGE, pecPresaInCaricoInfo);
         return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                 SENT.getStatusTransactionTableCompliant(),
                 new DigitalProgressStatusDto().generatedMessage(generatedMessageDto))
@@ -316,8 +312,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     	log.logStartingProcess(LAVORAZIONE_ERRORI_PEC);
         MDC.clear();
         idSaved = null;
-        sqsService.getOneMessage(pecSqsQueueName.errorName(), PecPresaInCaricoInfo.class)
-                .doOnNext(pecPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(pecSqsQueueName.errorName(),
+        sqsService.getOneMessage(pecSqsQueueName.getErrorName(), PecPresaInCaricoInfo.class)
+                .doOnNext(pecPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(pecSqsQueueName.getErrorName(),
                         pecPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                 .flatMap(pecPresaInCaricoInfoSqsMessageWrapper -> gestioneRetryPec(pecPresaInCaricoInfoSqsMessageWrapper.getMessageContent(),
                         pecPresaInCaricoInfoSqsMessageWrapper.getMessage()))
@@ -407,7 +403,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                     ERROR.getStatusTransactionTableCompliant(),
                     new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto())).flatMap(
                     sendMessageResponse -> deleteMessageFromErrorQueue(message)
-                            .doOnSuccess(result -> log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.errorName())));
+                            .doOnSuccess(result -> log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.getErrorName())));
 
         }
         return Mono.empty();
@@ -438,7 +434,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                 new DigitalProgressStatusDto().generatedMessage(pecPresaInCaricoInfo.getStepError()
                                         .getGeneratedMessageDto())).flatMap(
                                         sendMessageResponse -> {
-                                            log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.errorName());
+                                            log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.getErrorName());
                                             return deleteMessageFromErrorQueue(message);
                                         })
                                 .onErrorResume(
@@ -493,7 +489,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                                 objects.getT1())))
 
                                 .flatMap(sendMessageResponse -> {
-                                    log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.errorName());
+                                    log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.getErrorName());
                                     return deleteMessageFromErrorQueue(message);
                                 })
 
@@ -515,7 +511,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .defaultIfEmpty(DeleteMessageResponse.builder().build())
                 //              Catch errore tirato per lo stato toDelete
                 .onErrorResume(it.pagopa.pn.ec.commons.exception.StatusToDeleteException.class, statusToDeleteException -> {
-                    log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.errorName());
+                    log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.getErrorName());
                     return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                             DELETED.getStatusTransactionTableCompliant(),
                             new DigitalProgressStatusDto().generatedMessage(
@@ -536,28 +532,28 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     @Override
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    DigitalProgressStatusDto digitalProgressStatusDto) {
-        return sqsService.send(notificationTrackerSqsName.statoPecName(),
+        return sqsService.send(notificationTrackerSqsName.getStatoPecName(),
                 createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(pecSqsQueueName.errorName(), presaInCaricoInfo);
+        return sqsService.send(pecSqsQueueName.getErrorName(), presaInCaricoInfo);
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnBatchQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(pecSqsQueueName.batchName(), presaInCaricoInfo);
+        return sqsService.send(pecSqsQueueName.getBatchName(), presaInCaricoInfo);
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnInteractiveQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(pecSqsQueueName.interactiveName(), presaInCaricoInfo);
+        return sqsService.send(pecSqsQueueName.getInteractiveName(), presaInCaricoInfo);
     }
 
     @Override
     public Mono<DeleteMessageResponse> deleteMessageFromErrorQueue(Message message) {
-        return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.errorName());
+        return sqsService.deleteMessageFromQueue(message, pecSqsQueueName.getErrorName());
     }
 
     public Mono<MimeMessage> getMonoMimeMessage(EmailField emailField, String mimeMessageRule, Integer maxMessageSizeInBytes, boolean canInsertXTipoRicevutaHeader) {
@@ -607,7 +603,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private Mono<MimeMessage> setHeadersInMimeMessage(MimeMessage mimeMessage, List<Header> headers, boolean canInsertXTipoRicevutaHeader) {
         log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, SET_HEADERS_IN_MIME_MESSAGE, Stream.of(headers, canInsertXTipoRicevutaHeader).toList());
         return Flux.fromIterable(headers)
-                .filter(header -> !header.getName().equals(pnPecProps.getTipoRicevutaHeaderName()))
+                .filter(header -> !header.getName().equals(pecConfig.getTipoRicevutaHeaderName()))
                 .doOnNext(header -> setHeaderInMimeMessage(mimeMessage, header))
                 .doOnDiscard(Header.class, header -> {
                     if (canInsertXTipoRicevutaHeader) {

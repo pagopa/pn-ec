@@ -20,8 +20,6 @@ import static it.pagopa.pn.library.pec.utils.PnPecUtils.ARUBA_PROVIDER;
 @CustomLog
 public class PnPecConfigurationProperties {
 
-    private String attachmentRule;
-    private int maxMessageSizeMb;
     @Pattern(regexp = "(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z;[a-zA-Z]+)(?:,(?:\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z;[a-zA-Z]+))*")
     private String pnPecProviderSwitchWrite;
 
@@ -30,8 +28,6 @@ public class PnPecConfigurationProperties {
 
     @Pattern(regexp = "(true|false);\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z;(true|false)")
     private String tipoRicevutaBreve;
-    private String tipoRicevutaHeaderName;
-    private String tipoRicevutaHeaderValue;
 
     @Value("${aruba.pec.sender}")
     private String arubaPecSender;

@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec.commons.service.impl;
 
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.rest.call.RestCallException;
@@ -8,6 +7,7 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.CustomLog;
 import org.springframework.stereotype.Service;
@@ -26,15 +26,15 @@ public class StatusPullServiceImpl implements StatusPullService {
     private final AuthService authService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final CallMacchinaStati callMacchinaStati;
-    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private final PnEcConfig.Commons.TransactionProcess transactionProcessProperties;
 
     public StatusPullServiceImpl(AuthService authService, GestoreRepositoryCall gestoreRepositoryCall,
                                  CallMacchinaStati callMacchinaStati,
-                                 TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+                                 PnEcConfig pnEcConfig) {
         this.authService = authService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.callMacchinaStati = callMacchinaStati;
-        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+        this.transactionProcessProperties = pnEcConfig.getCommons().getTransactionProcess();
     }
 
     @Override
@@ -95,7 +95,7 @@ public class StatusPullServiceImpl implements StatusPullService {
                 event.setGeneratedMessage(digitalMessageReference);
             }
             return callMacchinaStati.statusDecode(xPagopaExtchCxId,
-                                                  transactionProcessConfigurationProperties.pec(),
+                                                  transactionProcessProperties.getPec(),
                                                   digProgrStatus.getStatus()).map(statiDecodeResponseDto -> {
                 if (statiDecodeResponseDto.getExternalStatus() != null) {
                     event.setStatus(ProgressEventCategory.valueOf(statiDecodeResponseDto.getExternalStatus()));
@@ -195,7 +195,7 @@ public class StatusPullServiceImpl implements StatusPullService {
 
                                                            // Decodifica dello stato della richiesta.
                                                            return callMacchinaStati.statusDecode(xPagopaExtchCxId,
-                                                                           transactionProcessConfigurationProperties.paper(),
+                                                                           transactionProcessProperties.getPaper(),
                                                                            status)
                                                                    .map(macchinaStatiDecodeResponseDto -> {
                                                                        event.setStatusDescription(

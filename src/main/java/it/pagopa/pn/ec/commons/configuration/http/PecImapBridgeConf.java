@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.commons.configuration.http;
 
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pec.bridgews.PecImapBridge;
 import it.pec.bridgews.PecImapBridge_Service;
 import lombok.CustomLog;
@@ -8,7 +9,6 @@ import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
 import org.apache.cxf.transport.http.HttpConduitConfig;
 import org.apache.cxf.transport.http.HttpConduitFeature;
 import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
@@ -22,8 +22,11 @@ import static it.pagopa.pn.ec.commons.utils.LogUtils.INITIALIZING_ARUBA_PROXY_CL
 @CustomLog
 public class PecImapBridgeConf {
 
-    @Value("${aruba.server.address}")
-    private String arubaServerAddress;
+    private final String arubaServerAddress;
+
+    public PecImapBridgeConf(PnEcConfig pnEcConfig) {
+        this.arubaServerAddress = pnEcConfig.getPec().getArubaServerAddress();
+    }
 
 //    @Bean
 //    public PecImapBridge pecImapBridge() {

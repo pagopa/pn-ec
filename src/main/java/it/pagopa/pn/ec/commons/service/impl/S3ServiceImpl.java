@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.commons.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.pagopa.pn.ec.commons.configurationproperties.s3.S3Properties;
 import it.pagopa.pn.ec.commons.service.S3Service;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import lombok.CustomLog;
 import lombok.SneakyThrows;
 import org.apache.commons.codec.binary.Base64;
@@ -33,10 +33,11 @@ public class S3ServiceImpl implements S3Service {
     private final RetryBackoffSpec s3RetryStrategy;
     private final ObjectMapper objectMapper;
 
-    public S3ServiceImpl(S3AsyncClient s3AsyncClient, S3Properties s3Properties, ObjectMapper objectMapper) {
+    public S3ServiceImpl(S3AsyncClient s3AsyncClient, PnEcConfig pnEcConfig, ObjectMapper objectMapper) {
         this.s3AsyncClient = s3AsyncClient;
         this.objectMapper = objectMapper;
-        this.s3RetryStrategy = Retry.backoff(s3Properties.maxAttempts(), Duration.ofSeconds(s3Properties.minBackoff()))
+        var s3RetryStrategyProperties = pnEcConfig.getStorage().getS3().getRetryStrategy();
+        this.s3RetryStrategy = Retry.backoff(s3RetryStrategyProperties.getMaxAttempts(), Duration.ofSeconds(s3RetryStrategyProperties.getMinBackoff()))
                 .filter(S3Exception.class::isInstance)
                 .doBeforeRetry(retrySignal -> log.info(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure(), retrySignal.failure().getMessage()))
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure());

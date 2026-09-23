@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.repositorymanager.rest;
 
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.GestoreRepositoryEndpointProperties;
-import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
 import it.pagopa.pn.ec.rest.v1.dto.ClientConfigurationDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
@@ -29,7 +28,11 @@ class ClientConfigurationControllerTest {
     private WebTestClient webClient;
 
     @Autowired
-    private GestoreRepositoryEndpointProperties gestoreRepositoryEndpointProperties;
+    private PnEcConfig pnEcConfig;
+
+    private PnEcConfig.Commons.Endpoint.GestoreRepository gestoreRepositoryEndpointProperties() {
+        return pnEcConfig.getCommons().getEndpoint().getGestoreRepository();
+    }
 
     private static final String DEFAULT_ID = "AAA12345678";
     private static ClientConfigurationDto clientConfigurationDto;
@@ -44,8 +47,8 @@ class ClientConfigurationControllerTest {
 
     @BeforeAll
     static void insertDefaultClientConfiguration(@Autowired DynamoDbEnhancedClient dynamoDbTestEnhancedClient,
-                                                        @Autowired RepositoryManagerDynamoTableName gestoreRepositoryDynamoDbTableName) {
-        dynamoDbTable = dynamoDbTestEnhancedClient.table(gestoreRepositoryDynamoDbTableName.anagraficaClientName(),
+                                                        @Autowired PnEcConfig gestoreRepositoryPnEcConfig) {
+        dynamoDbTable = dynamoDbTestEnhancedClient.table(gestoreRepositoryPnEcConfig.getDynamo().getRepositoryManager().getAnagraficaClientName(),
                                                          TableSchema.fromBean(ClientConfiguration.class));
         insertClientConfiguration(DEFAULT_ID);
     }
@@ -63,7 +66,7 @@ class ClientConfigurationControllerTest {
     void insertClientTestSuccess() {
         clientConfigurationDto.setxPagopaExtchCxId("newId12345678");
         webClient.post()
-                 .uri(gestoreRepositoryEndpointProperties.postClientConfiguration())
+                 .uri(gestoreRepositoryEndpointProperties().getPostClientConfiguration())
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(clientConfigurationDto))
@@ -76,7 +79,7 @@ class ClientConfigurationControllerTest {
     @Test
     void insertClientTestFailed() {
         webClient.post()
-                 .uri(gestoreRepositoryEndpointProperties.postClientConfiguration())
+                 .uri(gestoreRepositoryEndpointProperties().getPostClientConfiguration())
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(clientConfigurationDto))
@@ -89,7 +92,7 @@ class ClientConfigurationControllerTest {
     @Test
     void getClientTestSuccess() {
         webClient.get()
-                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.getClientConfiguration()).build(DEFAULT_ID).toString())
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties().getGetClientConfiguration()).build(DEFAULT_ID).toString())
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -101,7 +104,7 @@ class ClientConfigurationControllerTest {
     @Test
     void getClientTestFailed() {
         webClient.get()
-                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.getClientConfiguration()).build("idNonPresente").toString())
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties().getGetClientConfiguration()).build("idNonPresente").toString())
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -112,7 +115,7 @@ class ClientConfigurationControllerTest {
     @Test
     void testUpdateSuccess() {
         webClient.put()
-                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.putClientConfiguration()).build(DEFAULT_ID).toString())
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties().getPutClientConfiguration()).build(DEFAULT_ID).toString())
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(clientConfigurationDto))
@@ -125,7 +128,7 @@ class ClientConfigurationControllerTest {
     @Test
     void testUpdateFailed() {
         webClient.put()
-                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.putClientConfiguration()).build("idNonPresente").toString())
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties().getPutClientConfiguration()).build("idNonPresente").toString())
                  .accept(APPLICATION_JSON)
                  .contentType(APPLICATION_JSON)
                  .body(BodyInserters.fromValue(clientConfigurationDto))
@@ -140,7 +143,7 @@ class ClientConfigurationControllerTest {
         String cxId = "idToDelete";
         insertClientConfiguration(cxId);
         webClient.delete()
-                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.deleteClientConfiguration()).build(cxId).toString())
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties().getDeleteClientConfiguration()).build(cxId).toString())
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()
@@ -151,7 +154,7 @@ class ClientConfigurationControllerTest {
     @Test
     void deleteClientTestFailed() {
         webClient.delete()
-                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties.deleteClientConfiguration()).build("idNonPresente").toString())
+                 .uri(UriComponentsBuilder.fromPath(gestoreRepositoryEndpointProperties().getDeleteClientConfiguration()).build("idNonPresente").toString())
                  .accept(APPLICATION_JSON)
                  .exchange()
                  .expectStatus()

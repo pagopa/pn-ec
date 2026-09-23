@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.sqs;
 
 
-import it.pagopa.pn.ec.commons.configuration.sqs.SqsTimeoutConfigurationProperties;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,7 +63,7 @@ class SqsTimeoutProviderTest {
 
     @Test
     void timeoutDisabledTest() {
-        SqsTimeoutConfigurationProperties props = new SqsTimeoutConfigurationProperties();
+        PnEcConfig.Sqs.Timeout props = new PnEcConfig.Sqs.Timeout();
         props.setPercent(0);
         props.setManagedQueues(List.of("test-queue"));
         props.setDefaultSeconds(TIMEOUT_INACTIVE_DURATION.toSeconds());

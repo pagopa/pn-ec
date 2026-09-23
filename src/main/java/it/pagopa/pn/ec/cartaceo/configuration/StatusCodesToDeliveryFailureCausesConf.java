@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.StatusCodesToDeliveryFailureCauses;
 import it.pagopa.pn.ec.commons.utils.JsonUtils;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import lombok.CustomLog;
 import lombok.SneakyThrows;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.services.ssm.SsmClient;
@@ -24,13 +24,13 @@ import static it.pagopa.pn.ec.commons.utils.LogUtils.CLIENT_METHOD_INVOCATION_WI
 public class StatusCodesToDeliveryFailureCausesConf {
 
     private final SsmClient ssmClient;
-    @Value("${pn.ec.esiti-cartaceo.parameter.name}")
-    private String deliveryFailureCodesParameterName;
+    private final String deliveryFailureCodesParameterName;
     ObjectMapper objectMapper = new ObjectMapper();
     JsonUtils jsonUtils = new JsonUtils(objectMapper);
 
-    public StatusCodesToDeliveryFailureCausesConf(SsmClient ssmClient) {
+    public StatusCodesToDeliveryFailureCausesConf(SsmClient ssmClient, PnEcConfig pnEcConfig) {
         this.ssmClient = ssmClient;
+        this.deliveryFailureCodesParameterName = pnEcConfig.getCartaceo().getEsitiParameterName();
     }
 
     public Map<String, Map<String,List<String>>> retrieveDeliveryFailureCausesFromParameterStore() throws SsmException, JsonProcessingException {

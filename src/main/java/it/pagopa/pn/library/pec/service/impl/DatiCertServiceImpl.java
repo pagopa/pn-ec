@@ -1,6 +1,7 @@
 package it.pagopa.pn.library.pec.service.impl;
 
 import it.pagopa.pn.ec.commons.exception.XmlParserException;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.library.pec.exception.daticert.DaticertServiceException;
 import it.pagopa.pn.library.pec.model.IPostacert;
 import it.pagopa.pn.library.pec.model.pojo.NamirialPostacert;
@@ -10,7 +11,6 @@ import it.pagopa.pn.library.pec.model.pojo.Postacert;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import lombok.CustomLog;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -27,20 +27,20 @@ public class DatiCertServiceImpl implements DaticertService {
 
     private final JAXBContext jaxbContext;
 
-    @Value("${library.pec.aruba.postacert.path}")
-    String arubaPostacertClassType;
-    @Value("${library.pec.pn.postacert.path}")
-    String pnPostacertClassType;
-    @Value("${library.pec.namirial.postacert.path}")
-    String namirialPostacertClassType;
-    @Value("${namirial.warning-to-notdelivered.logic}")
-    private String namirialActivateLogic;
+    private final String arubaPostacertClassType;
+    private final String pnPostacertClassType;
+    private final String namirialPostacertClassType;
+    private final String namirialActivateLogic;
 
 
 
 
-    public DatiCertServiceImpl(JAXBContext jaxbContext) {
+    public DatiCertServiceImpl(JAXBContext jaxbContext, PnEcConfig pnEcConfig) {
         this.jaxbContext = jaxbContext;
+        this.arubaPostacertClassType = pnEcConfig.getPec().getPostacert().getArubaPath();
+        this.pnPostacertClassType = pnEcConfig.getPec().getPostacert().getPnPath();
+        this.namirialPostacertClassType = pnEcConfig.getPec().getPostacert().getNamirialPath();
+        this.namirialActivateLogic = pnEcConfig.getPec().getNamirialWarningToNotdeliveredLogic();
     }
 
     @Override

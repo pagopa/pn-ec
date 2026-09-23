@@ -1,6 +1,6 @@
 package it.pagopa.pn.ec.sqs;
 
-import it.pagopa.pn.ec.commons.configuration.sqs.SqsTimeoutConfigurationProperties;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import lombok.CustomLog;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SqsTimeoutProvider {
 
     private final SqsAsyncClient sqsAsyncClient;
-    private final SqsTimeoutConfigurationProperties config;
+    private final PnEcConfig.Sqs.Timeout config;
     private final Map<String, Duration> queueTimeouts = new ConcurrentHashMap<>();
 
     @PostConstruct

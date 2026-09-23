@@ -2,21 +2,15 @@ package it.pagopa.pn.ec.consolidatore.configuration;
 
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
-import jakarta.annotation.PostConstruct;
-import lombok.Getter;
-import lombok.Setter;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 
-@Getter
-@Setter
 @Configuration
-@ConfigurationProperties(prefix = "pn.ec.consolidatore")
 @ConditionalOnProperty(
         name = "pn.ec.feature.flag.cartaceo.consolidatore",
         havingValue = "true",
@@ -25,9 +19,14 @@ import java.time.Duration;
 @Slf4j
 public class RateLimiterConfiguration {
 
-    private int maxRequests;
-    private int refreshPeriodSeconds;
+    private final int maxRequests;
+    private final int refreshPeriodSeconds;
 
+    public RateLimiterConfiguration(PnEcConfig pnEcConfig) {
+        var rateLimiterProperties = pnEcConfig.getCommons().getConsolidatore().getRateLimiter();
+        this.maxRequests = rateLimiterProperties.getMaxRequests();
+        this.refreshPeriodSeconds = rateLimiterProperties.getRefreshPeriodSeconds();
+    }
 
     @Bean(name = "rateLimiterConsolidatore")
     public RateLimiter rateLimiter() {

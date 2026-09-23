@@ -88,9 +88,9 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
         return MDCUtils.addMDCToContextAndExecute(consolidatoreServiceImpl.getFile(fileKey, xPagopaExtchServiceId, xApiKey)
                 .doOnSuccess(result -> log.logEndingProcess(GET_FILE))
                 .doOnError(throwable -> log.logEndingProcess(GET_FILE, false, throwable.getMessage(), throwable))
-                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute(REQUEST_BODY)))
-                .doOnError(SemanticException.class, e -> log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(e.getAuditLogErrorList())))
-                .doOnError(SyntaxException.class, e -> log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(e.getAuditLogErrorList())))
+                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), fileKey))
+                .doOnError(SemanticException.class, e -> log.error(LOG_FORMAT, ERR_CONS, ConsAuditLogEvent.of(fileKey, e.getAuditLogErrorList())))
+                .doOnError(SyntaxException.class, e -> log.error(LOG_FORMAT, ERR_CONS, ConsAuditLogEvent.of(fileKey, e.getAuditLogErrorList())))
                 .map(ResponseEntity::ok));
     }
 
@@ -103,9 +103,9 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                 .doOnSuccess(result -> log.logEndingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS))
                 .onErrorMap(WebClientResponseException.UnprocessableEntity.class,e-> new Generic400ErrorException(EMPTY_FILE_NOT_ALLOWED, FILE_IS_EMPTY_OR_INVALID))
                 .doOnError(throwable -> log.logEndingProcess(PRESIGNED_UPLOAD_REQUEST_PROCESS, false, throwable.getMessage(), throwable))
-                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute(REQUEST_BODY)))
-                .doOnError(SemanticException.class, e -> log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(e.getAuditLogErrorList())))
-                .doOnError(SyntaxException.class, e -> log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(e.getAuditLogErrorList())))
+                .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), xPagopaExtchServiceId))
+                .doOnError(SemanticException.class, e -> log.error(LOG_FORMAT, ERR_CONS, ConsAuditLogEvent.of(xPagopaExtchServiceId, e.getAuditLogErrorList())))
+                .doOnError(SyntaxException.class, e -> log.error(LOG_FORMAT, ERR_CONS, ConsAuditLogEvent.of(xPagopaExtchServiceId, e.getAuditLogErrorList())))
                 .map(ResponseEntity::ok);
     }
 
@@ -183,7 +183,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                                     }
                                 });
 
-                                log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(exchange.getAttribute(REQUEST_BODY)).errorList(consAuditLogErrorList));
+                                log.error(LOG_FORMAT, ERR_CONS, ConsAuditLogEvent.of(xPagopaExtchServiceId, consAuditLogErrorList));
 
                                 var errors = getAllErrors(listErrors);
                                 log.debug(SEND_PAPER_PROGRESS_STATUS_REQUEST + "syntax/semantic errors : result code = '{}' : result description = '{}' : specific errors identified = {}",
@@ -205,7 +205,7 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                         })
                         .doOnSuccess(result -> log.logEndingProcess(SEND_PAPER_PROGRESS_STATUS_REQUEST))
                         .doOnError(throwable -> log.logEndingProcess(SEND_PAPER_PROGRESS_STATUS_REQUEST, false, throwable.getMessage(), throwable))
-                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), exchange.getAttribute(REQUEST_BODY))))
+                        .doOnError(WebExchangeBindException.class, e -> fieldValidationAuditLog(e.getFieldErrors(), xPagopaExtchServiceId)))
                         .onErrorResume(RuntimeException.class, throwable -> {
                             String fatalMessage = throwable.getClass() == WebExchangeBindException.class ? "" : "* FATAL * ";
                             log.error(SEND_PAPER_PROGRESS_STATUS_REQUEST +  fatalMessage + "errore generico = {}, {}", throwable, throwable.getMessage());
@@ -216,14 +216,14 @@ public class ConsolidatoreApiController implements ConsolidatoreApi {
                         });
     }
 
-    private void fieldValidationAuditLog(List<FieldError> errors, Object request) {
+    private void fieldValidationAuditLog(List<FieldError> errors, String requestIdentifier) {
         List<ConsAuditLogError> consAuditLogErrorList = new ArrayList<>();
         for (FieldError error : errors) {
             String description = String.format("%s - %s", error.getField(), error.getDefaultMessage());
             var consAuditLogError = new ConsAuditLogError().description(description).error(ERR_CONS_BAD_JSON_FORMAT.getValue());
             consAuditLogErrorList.add(consAuditLogError);
         }
-        log.error(LOG_FORMAT, ERR_CONS, new ConsAuditLogEvent<>().request(request).errorList(consAuditLogErrorList));
+        log.error(LOG_FORMAT, ERR_CONS, ConsAuditLogEvent.of(requestIdentifier, consAuditLogErrorList));
     }
 
     private String generateSha256(byte[] fileBytes) {

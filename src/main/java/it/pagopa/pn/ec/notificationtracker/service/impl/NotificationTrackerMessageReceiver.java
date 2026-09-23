@@ -4,8 +4,7 @@ import io.awspring.cloud.sqs.annotation.SqsListener;
 import io.awspring.cloud.sqs.annotation.SqsListenerAcknowledgementMode;
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsMaxTimeElapsedException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.notificationtracker.service.NotificationTrackerService;
@@ -24,15 +23,14 @@ import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
 public class NotificationTrackerMessageReceiver {
 
     private final NotificationTrackerService notificationTrackerService;
-    private final NotificationTrackerSqsName notificationTrackerSqsName;
-    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private final PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName;
+    private final PnEcConfig.Commons.TransactionProcess transactionProcessProperties;
 
     public NotificationTrackerMessageReceiver(NotificationTrackerService notificationTrackerService,
-                                              NotificationTrackerSqsName notificationTrackerSqsName,
-                                              TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+                                              PnEcConfig pnEcConfig) {
         this.notificationTrackerService = notificationTrackerService;
-        this.notificationTrackerSqsName = notificationTrackerSqsName;
-        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+        this.notificationTrackerSqsName = pnEcConfig.getNotificationTracker().getSqsQueue();
+        this.transactionProcessProperties = pnEcConfig.getCommons().getTransactionProcess();
     }
 
     @SqsListener(value = "${sqs.queue.notification-tracker.stato-sms-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
@@ -41,11 +39,11 @@ public class NotificationTrackerMessageReceiver {
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
         log.logStartingProcess(NT_RECEIVE_SMS);
-        logIncomingMessage(notificationTrackerSqsName.statoSmsName(), notificationTrackerQueueDto);
+        logIncomingMessage(notificationTrackerSqsName.getStatoSmsName(), notificationTrackerQueueDto);
         MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
-                                                             transactionProcessConfigurationProperties.sms(),
-                                                             notificationTrackerSqsName.statoSmsName(),
-                                                             notificationTrackerSqsName.statoSmsErratoName(),
+                                                             transactionProcessProperties.getSms(),
+                                                             notificationTrackerSqsName.getStatoSmsName(),
+                                                             notificationTrackerSqsName.getStatoSmsErratoName(),
                                                              acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_SMS))
                 .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_SMS, false, throwable.getMessage(), throwable)))
@@ -62,8 +60,8 @@ public class NotificationTrackerMessageReceiver {
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
         log.logStartingProcess(NT_RECEIVE_SMS_ERROR);
-        logIncomingMessage(notificationTrackerSqsName.statoSmsErratoName(), notificationTrackerQueueDto);
-        MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoSmsName(), acknowledgment)
+        logIncomingMessage(notificationTrackerSqsName.getStatoSmsErratoName(), notificationTrackerQueueDto);
+        MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.getStatoSmsName(), acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_SMS_ERROR))
                 .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_SMS_ERROR, false, throwable.getMessage(), throwable)))
                 .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
@@ -79,11 +77,11 @@ public class NotificationTrackerMessageReceiver {
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
         log.logStartingProcess(NT_RECEIVE_EMAIL);
-        logIncomingMessage(notificationTrackerSqsName.statoEmailName(), notificationTrackerQueueDto);
+        logIncomingMessage(notificationTrackerSqsName.getStatoEmailName(), notificationTrackerQueueDto);
         MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
-                                                             transactionProcessConfigurationProperties.email(),
-                                                             notificationTrackerSqsName.statoEmailName(),
-                                                             notificationTrackerSqsName.statoEmailErratoName(),
+                                                             transactionProcessProperties.getEmail(),
+                                                             notificationTrackerSqsName.getStatoEmailName(),
+                                                             notificationTrackerSqsName.getStatoEmailErratoName(),
                                                              acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_EMAIL))
                 .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_EMAIL, false, throwable.getMessage(), throwable)))
@@ -100,8 +98,8 @@ public class NotificationTrackerMessageReceiver {
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
         log.logStartingProcess(NT_RECEIVE_EMAIL_ERROR);
-        logIncomingMessage(notificationTrackerSqsName.statoEmailErratoName(), notificationTrackerQueueDto);
-        MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoEmailName(), acknowledgment)
+        logIncomingMessage(notificationTrackerSqsName.getStatoEmailErratoName(), notificationTrackerQueueDto);
+        MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.getStatoEmailName(), acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_EMAIL_ERROR))
                 .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_EMAIL_ERROR, false, throwable.getMessage(), throwable)))
                 .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
@@ -117,11 +115,11 @@ public class NotificationTrackerMessageReceiver {
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
         log.logStartingProcess(NT_RECEIVE_PEC);
-        logIncomingMessage(notificationTrackerSqsName.statoPecName(), notificationTrackerQueueDto);
+        logIncomingMessage(notificationTrackerSqsName.getStatoPecName(), notificationTrackerQueueDto);
         MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
-                                                             transactionProcessConfigurationProperties.pec(),
-                                                             notificationTrackerSqsName.statoPecName(),
-                                                             notificationTrackerSqsName.statoPecErratoName(),
+                                                             transactionProcessProperties.getPec(),
+                                                             notificationTrackerSqsName.getStatoPecName(),
+                                                             notificationTrackerSqsName.getStatoPecErratoName(),
                                                              acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_PEC))
                 .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_PEC, false, throwable.getMessage(), throwable)))
@@ -138,8 +136,8 @@ public class NotificationTrackerMessageReceiver {
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
         log.logStartingProcess(NT_RECEIVE_PEC_ERROR);
-        logIncomingMessage(notificationTrackerSqsName.statoPecErratoName(), notificationTrackerQueueDto);
-        MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoPecName(), acknowledgment)
+        logIncomingMessage(notificationTrackerSqsName.getStatoPecErratoName(), notificationTrackerQueueDto);
+        MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.getStatoPecName(), acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_PEC_ERROR))
                 .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_PEC_ERROR, false, throwable.getMessage(), throwable)))
                 .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
@@ -155,11 +153,11 @@ public class NotificationTrackerMessageReceiver {
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
         log.logStartingProcess(NT_RECEIVE_CARTACEO);
-        logIncomingMessage(notificationTrackerSqsName.statoCartaceoName(), notificationTrackerQueueDto);
+        logIncomingMessage(notificationTrackerSqsName.getStatoCartaceoName(), notificationTrackerQueueDto);
         MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
-                                                             transactionProcessConfigurationProperties.paper(),
-                                                             notificationTrackerSqsName.statoCartaceoName(),
-                                                             notificationTrackerSqsName.statoCartaceoErratoName(),
+                                                             transactionProcessProperties.getPaper(),
+                                                             notificationTrackerSqsName.getStatoCartaceoName(),
+                                                             notificationTrackerSqsName.getStatoCartaceoErratoName(),
                                                              acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_CARTACEO))
                 .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_CARTACEO, false, throwable.getMessage(), throwable)))
@@ -176,8 +174,8 @@ public class NotificationTrackerMessageReceiver {
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
         log.logStartingProcess(NT_RECEIVE_CARTACEO_ERROR);
-        logIncomingMessage(notificationTrackerSqsName.statoCartaceoErratoName(), notificationTrackerQueueDto);
-        MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoCartaceoName(), acknowledgment)
+        logIncomingMessage(notificationTrackerSqsName.getStatoCartaceoErratoName(), notificationTrackerQueueDto);
+        MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.getStatoCartaceoName(), acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_CARTACEO_ERROR))
                 .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_CARTACEO_ERROR, false, throwable.getMessage(), throwable)))
                 .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
@@ -193,11 +191,11 @@ public class NotificationTrackerMessageReceiver {
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
         log.logStartingProcess(NT_RECEIVE_SERCQ);
-        logIncomingMessage(notificationTrackerSqsName.statoSercqName(), notificationTrackerQueueDto);
+        logIncomingMessage(notificationTrackerSqsName.getStatoSercqName(), notificationTrackerQueueDto);
         MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
-                                transactionProcessConfigurationProperties.sercq(),
-                                notificationTrackerSqsName.statoSercqName(),
-                                notificationTrackerSqsName.statoSercqErratoName(),
+                                transactionProcessProperties.getSercq(),
+                                notificationTrackerSqsName.getStatoSercqName(),
+                                notificationTrackerSqsName.getStatoSercqErratoName(),
                                 acknowledgment)
                         .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_SERCQ))
                         .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_SERCQ, false, throwable.getMessage(), throwable)))
@@ -214,8 +212,8 @@ public class NotificationTrackerMessageReceiver {
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
         log.logStartingProcess(NT_RECEIVE_SERCQ_ERROR);
-        logIncomingMessage(notificationTrackerSqsName.statoSercqErratoName(), notificationTrackerQueueDto);
-        MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoSercqName(), acknowledgment)
+        logIncomingMessage(notificationTrackerSqsName.getStatoSercqErratoName(), notificationTrackerQueueDto);
+        MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.getStatoSercqName(), acknowledgment)
                         .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_SERCQ_ERROR))
                         .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_SERCQ_ERROR, false, throwable.getMessage(), throwable)))
                         .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {

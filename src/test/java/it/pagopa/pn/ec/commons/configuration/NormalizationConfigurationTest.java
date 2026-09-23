@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.commons.configuration;
 
-import it.pagopa.pn.ec.cartaceo.configurationproperties.TransformationProperties;
 import it.pagopa.pn.ec.commons.configuration.normalization.NormalizationConfiguration;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -11,10 +11,10 @@ import org.springframework.test.context.TestPropertySource;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(classes = NormalizationConfiguration.class)
-@EnableConfigurationProperties(TransformationProperties.class)
+@EnableConfigurationProperties(PnEcConfig.class)
 @TestPropertySource(properties = {
-        "PN_EC_PAPER_PA_ID_TO_NORMALIZE=PA1;PA2",
-        "TRANSFORMATION_PRIORITY=RASTERIZATION"
+        "pn.ec.cartaceo.paper.pa-id-to-normalize=PA1;PA2",
+        "pn.ec.cartaceo.paper.transformation-priority=RASTERIZATION"
 })
 class NormalizationConfigurationTest {
 
@@ -27,4 +27,3 @@ class NormalizationConfigurationTest {
         assertFalse(cfg.isNormalizationEnabled("PA3"));
     }
 }
-

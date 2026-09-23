@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.notificationtracker.service.impl;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.pagopa.pn.ec.notificationtracker.configurationproperties.NotificationTrackerEventBridgeEventName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.notificationtracker.service.PutEvents;
 import lombok.CustomLog;
 import org.springframework.stereotype.Service;
@@ -23,13 +23,13 @@ public class PutEventsImpl implements PutEvents {
 
     private final EventBridgeAsyncClient eventBrClient;
     private final ObjectMapper objectMapper;
-    private final NotificationTrackerEventBridgeEventName notificationTrackerEventBridgeEventName;
+    private final String notificationsBusName;
 
     public PutEventsImpl(EventBridgeAsyncClient eventBrClient, ObjectMapper objectMapper,
-                         NotificationTrackerEventBridgeEventName notificationTrackerEventBridgeEventName) {
+                         PnEcConfig pnEcConfig) {
         this.eventBrClient = eventBrClient;
         this.objectMapper = objectMapper;
-        this.notificationTrackerEventBridgeEventName = notificationTrackerEventBridgeEventName;
+        this.notificationsBusName = pnEcConfig.getNotificationTracker().getEventBridge().getNotificationsBusName();
     }
 
     @Override
@@ -40,7 +40,7 @@ public class PutEventsImpl implements PutEvents {
                                                             .source("NOTIFICATION TRACKER")
                                                             .detailType(detailType)
                                                             .detail(objectMapper.writeValueAsString(objectToNotify))
-                                                            .eventBusName(notificationTrackerEventBridgeEventName.notificationsBusName())
+                                                            .eventBusName(notificationsBusName)
                                                             .build()).flatMap(putEventsRequestEntry -> {
             log.debug("Publish to event bridge with PutEventsRequestEntry ↓\n{}", putEventsRequestEntry);
             return Mono.fromCompletionStage(eventBrClient.putEvents(builder -> builder.entries(putEventsRequestEntry)))

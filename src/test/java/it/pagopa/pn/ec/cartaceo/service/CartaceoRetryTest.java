@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.cartaceo.service;
 
-import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
-import it.pagopa.pn.ec.cartaceo.configurationproperties.TransformationProperties;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -16,7 +15,6 @@ import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 import it.pagopa.pn.ec.pdfraster.model.entity.PdfConversionEntity;
 import it.pagopa.pn.ec.pdfraster.model.entity.RequestConversionEntity;
 import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
-import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
@@ -62,13 +60,10 @@ class CartaceoRetryTest {
     SqsService sqsService;
 
     @Autowired
-    private CartaceoSqsQueueName cartaceoSqsQueueName;
+    private PnEcConfig pnEcConfig;
 
     @Autowired
     DynamoDbEnhancedClient dynamoDbEnhancedClient;
-
-    @Autowired
-    RepositoryManagerDynamoTableName repositoryManagerDynamoTableName;
 
     @MockitoSpyBean
     CartaceoService cartaceoService;
@@ -91,9 +86,6 @@ class CartaceoRetryTest {
     @MockitoBean
     private UploadCall uploadCall;
 
-    @MockitoSpyBean
-    private TransformationProperties transformationProperties;
-
     Message message = Message.builder().build();
 
     private static final String REQUEST_ID = "idTest";
@@ -112,8 +104,8 @@ class CartaceoRetryTest {
     void cleanup() {
         // Logica di cleanup per evitare che alcuni test influiscano su altri.
         ReflectionTestUtils.setField(cartaceoService, "idSaved", null);
-        requestConversionEntityDynamoDbAsyncTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversioneRequestName(), TableSchema.fromBean(RequestConversionEntity.class));
-        pdfConversionEntityDynamoDbAsyncTable = dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversionePdfName(), TableSchema.fromBean(PdfConversionEntity.class));
+        requestConversionEntityDynamoDbAsyncTable = dynamoDbEnhancedClient.table(pnEcConfig.getDynamo().getRepositoryManager().getRichiesteConversioneRequestName(), TableSchema.fromBean(RequestConversionEntity.class));
+        pdfConversionEntityDynamoDbAsyncTable = dynamoDbEnhancedClient.table(pnEcConfig.getDynamo().getRepositoryManager().getRichiesteConversionePdfName(), TableSchema.fromBean(PdfConversionEntity.class));
         for (var page : requestConversionEntityDynamoDbAsyncTable.scan()) {
             for (var item : page.items()) {
                 requestConversionEntityDynamoDbAsyncTable.deleteItem(item);
@@ -144,7 +136,7 @@ class CartaceoRetryTest {
     @Test
     void gestioneRetryCartaceoScheduler() {
         SqsServiceImpl mockSqsService = mock(SqsServiceImpl.class);
-        Mockito.when(mockSqsService.getOneMessage(cartaceoSqsQueueName.errorName(), CartaceoPresaInCaricoInfo.class))
+        Mockito.when(mockSqsService.getOneMessage(pnEcConfig.getCartaceo().getSqsQueue().getErrorName(), CartaceoPresaInCaricoInfo.class))
                 .thenReturn(Mono.empty());
 
         // chiamare il metodo sotto test
@@ -182,7 +174,7 @@ class CartaceoRetryTest {
         mockGestoreRepository(clientId, requestId, requestDto);
         // Mock di una generica putRequest.
         Mockito.when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
-        Mockito.when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToNormalize("NOTHING");
         mockSqsService();
 
         //THEN
@@ -211,7 +203,7 @@ class CartaceoRetryTest {
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
         Mockito.when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.error(new RuntimeException("KO")));
-        Mockito.when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToNormalize("NOTHING");
 
         mockSqsService();
 
@@ -241,7 +233,7 @@ class CartaceoRetryTest {
         //WHEN
         mockGestoreRepository(clientId, requestId, requestDto);
         Mockito.when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.error(new RuntimeException("KO")));
-        Mockito.when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToNormalize("NOTHING");
         mockSqsService();
 
         //THEN
@@ -535,7 +527,7 @@ class CartaceoRetryTest {
     }
 
     private void mockSqsService() {
-        Mockito.when(sqsService.deleteMessageFromQueue(any(Message.class), eq(cartaceoSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        Mockito.when(sqsService.deleteMessageFromQueue(any(Message.class), eq(pnEcConfig.getCartaceo().getSqsQueue().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
         doReturn(Mono.just(ChangeMessageVisibilityResponse.builder().build())).when(sqsService).changeMessageVisibility(any(), any(), any());
     }
 

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.StatusCodesToDeliveryFailureCauses;
 import it.pagopa.pn.ec.commons.configuration.RicezioneEsitiCartaceoConfiguration;
 import it.pagopa.pn.ec.commons.constant.DuplicatesCheckMode;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
@@ -55,7 +55,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private final GestoreRepositoryCall gestoreRepositoryCall;
 	private final FileCall fileCall;
 	private final ObjectMapper objectMapper;
-	private final NotificationTrackerSqsName notificationTrackerSqsName;
+	private final PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName;
 	private final SqsService sqsService;
 	private final StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses;
 	private final StatusPullService statusPullService;
@@ -66,14 +66,14 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 	private final RicezioneEsitiCartaceoConfiguration ricezioneEsitiCartaceoConfiguration;
 
 	public RicezioneEsitiCartaceoServiceImpl(GestoreRepositoryCall gestoreRepositoryCall,
-											 FileCall fileCall, ObjectMapper objectMapper, NotificationTrackerSqsName notificationTrackerSqsName,
+											 FileCall fileCall, ObjectMapper objectMapper, PnEcConfig pnEcConfig,
 											 SqsService sqsService, StatusCodesToDeliveryFailureCauses statusCodesToDeliveryFailureCauses, StatusPullService statusPullService,
 											 RicezioneEsitiCartaceoConfiguration ricezioneEsitiCartaceoConfiguration) {
 		super();
 		this.gestoreRepositoryCall = gestoreRepositoryCall;
 		this.fileCall = fileCall;
 		this.objectMapper = objectMapper;
-		this.notificationTrackerSqsName = notificationTrackerSqsName;
+		this.notificationTrackerSqsName = pnEcConfig.getNotificationTracker().getSqsQueue();
 		this.sqsService = sqsService;
 		this.statusCodesToDeliveryFailureCauses = statusCodesToDeliveryFailureCauses;
 		this.statusPullService = statusPullService;
@@ -413,7 +413,7 @@ public class RicezioneEsitiCartaceoServiceImpl implements RicezioneEsitiCartaceo
 				// WI-1.3 (PN-20733): propaga il flag calcolato in verificaDuplicati al notification-tracker
 				paperProgressStatusDto.setIsDuplicate(ricezioneEsitiDto.getIsDuplicate());
 
-	 			return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+	 			return sqsService.send(notificationTrackerSqsName.getStatoCartaceoName(),
 	 								   NotificationTrackerQueueDto.createNotificationTrackerQueueDtoRicezioneEsitiPaper(
 	 										   presaInCaricoInfo,
 	 										   paperProgressStatusDto.getStatusCode(),

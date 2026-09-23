@@ -1,19 +1,16 @@
 package it.pagopa.pn.ec.sms.service;
 
 
-import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.service.SnsService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
-import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Mono;
@@ -35,19 +32,17 @@ class SmsServiceTest {
     private SmsService smsService;
 
     @Autowired
-    private SmsSqsQueueName smsSqsQueueName;
+    private PnEcConfig pnEcConfig;
 
-    @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
+    private PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName() {
+        return pnEcConfig.getNotificationTracker().getSqsQueue();
+    }
 
     @MockitoSpyBean
     private SqsServiceImpl sqsService;
 
     @MockitoSpyBean
     private SnsService snsService;
-
-    @Mock
-    private Acknowledgement acknowledgment;
 
     private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO = SmsPresaInCaricoInfo.builder()
             .requestIdx(DEFAULT_REQUEST_IDX)
@@ -92,8 +87,8 @@ class SmsServiceTest {
     @Test
     void lavorazioneRichiestaNtKo() {
 
-        when(sqsService.send(eq(notificationTrackerSqsName.statoSmsName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
-                new SqsClientException(notificationTrackerSqsName.statoSmsName())));
+        when(sqsService.send(eq(notificationTrackerSqsName().getStatoSmsName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
+                new SqsClientException(notificationTrackerSqsName().getStatoSmsName())));
 
         Mono<SendMessageResponse> response = smsService.lavorazioneRichiesta(SMS_PRESA_IN_CARICO_INFO);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();

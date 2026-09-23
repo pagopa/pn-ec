@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.email.rest;
 
 
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -12,7 +11,7 @@ import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
 
-import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 
@@ -59,10 +58,15 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
     private WebTestClient webTestClient;
 
     @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
+    private PnEcConfig pnEcConfig;
 
-    @Autowired
-    private EmailSqsQueueName emailSqsQueueName;
+    private PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName() {
+        return pnEcConfig.getNotificationTracker().getSqsQueue();
+    }
+
+    private PnEcConfig.Email.SqsQueue emailSqsQueueName() {
+        return pnEcConfig.getEmail().getSqsQueue();
+    }
 
     @MockitoBean
     private FileCall uriBuilderCall;
@@ -194,10 +198,10 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione throwata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(notificationTrackerSqsName.statoEmailName()),
+        when(sqsService.send(eq(notificationTrackerSqsName().getStatoEmailName()),
                              argThat((NotificationTrackerQueueDto notificationTrackerQueueDto) -> Objects.equals(notificationTrackerQueueDto.getNextStatus(),
                                                                                                                  BOOKED.getStatusTransactionTableCompliant())))).thenReturn(
-                Mono.error(new SqsClientException(notificationTrackerSqsName.statoSmsName())));
+                Mono.error(new SqsClientException(notificationTrackerSqsName().getStatoSmsName())));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                    .isEqualTo(SERVICE_UNAVAILABLE)
@@ -216,8 +220,8 @@ class DigitalCourtesyMessagesEmailApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione throwata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(emailSqsQueueName.interactiveName()),
-                             any(EmailPresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(emailSqsQueueName.interactiveName())));
+        when(sqsService.send(eq(emailSqsQueueName().getInteractiveName()),
+                             any(EmailPresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(emailSqsQueueName().getInteractiveName())));
 
         sendEmailTestCall(BodyInserters.fromValue(digitalCourtesyMailRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                    .isEqualTo(SERVICE_UNAVAILABLE)

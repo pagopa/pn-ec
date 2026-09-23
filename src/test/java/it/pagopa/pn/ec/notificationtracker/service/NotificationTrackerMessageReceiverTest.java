@@ -1,8 +1,7 @@
 package it.pagopa.pn.ec.notificationtracker.service;
 
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.commons.constant.Status;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
@@ -14,7 +13,6 @@ import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.utils.RestUtils;
 import it.pagopa.pn.ec.notificationtracker.service.impl.NotificationTrackerMessageReceiver;
-import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.repositorymanager.model.entity.DiscoveredAddress;
 import it.pagopa.pn.ec.repositorymanager.model.entity.*;
 import it.pagopa.pn.ec.repositorymanager.model.pojo.Patch;
@@ -64,9 +62,7 @@ class NotificationTrackerMessageReceiverTest {
     @Autowired
     private RequestService requestService;
     @Autowired
-    private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
-    @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
+    private PnEcConfig pnEcConfig;
     @MockitoSpyBean
     private PutEvents putEvents;
     @MockitoSpyBean
@@ -99,12 +95,13 @@ class NotificationTrackerMessageReceiverTest {
 
     @BeforeAll
     static void initialize(@Autowired DynamoDbEnhancedClient dynamoDbTestEnhancedClient,
-                                  @Autowired RepositoryManagerDynamoTableName gestoreRepositoryDynamoDbTableName) throws IOException, JSONException {
+                                  @Autowired PnEcConfig gestoreRepositoryPnEcConfig) throws IOException, JSONException {
         buildStateMachine();
 
-        requestPersonalDynamoDbTable = dynamoDbTestEnhancedClient.table(gestoreRepositoryDynamoDbTableName.richiestePersonalName(),
+        var gestoreRepositoryDynamoDbTableName = gestoreRepositoryPnEcConfig.getDynamo().getRepositoryManager();
+        requestPersonalDynamoDbTable = dynamoDbTestEnhancedClient.table(gestoreRepositoryDynamoDbTableName.getRichiestePersonalName(),
                 TableSchema.fromBean(RequestPersonal.class));
-        requestMetadataDynamoDbTable = dynamoDbTestEnhancedClient.table(gestoreRepositoryDynamoDbTableName.richiesteMetadataName(),
+        requestMetadataDynamoDbTable = dynamoDbTestEnhancedClient.table(gestoreRepositoryDynamoDbTableName.getRichiesteMetadataName(),
                 TableSchema.fromBean(RequestMetadata.class));
 
         insertSmsRequest();
@@ -175,10 +172,10 @@ class NotificationTrackerMessageReceiverTest {
     }
 
     private Stream<Arguments> provideArguments() {
-        return Stream.of(Arguments.of(SMS_REQUEST_IDX, transactionProcessConfigurationProperties.sms(), notificationTrackerSqsName.statoSmsName(), notificationTrackerSqsName.statoSmsErratoName()),
-                Arguments.of(EMAIL_REQUEST_IDX, transactionProcessConfigurationProperties.email(), notificationTrackerSqsName.statoEmailName(), notificationTrackerSqsName.statoEmailErratoName()),
-                Arguments.of(PEC_REQUEST_IDX, transactionProcessConfigurationProperties.pec(), notificationTrackerSqsName.statoPecName(), notificationTrackerSqsName.statoPecErratoName()),
-                Arguments.of(SERCQ_REQUEST_IDX, transactionProcessConfigurationProperties.sercq(), notificationTrackerSqsName.statoSercqName(), notificationTrackerSqsName.statoSercqErratoName())
+        return Stream.of(Arguments.of(SMS_REQUEST_IDX, pnEcConfig.getCommons().getTransactionProcess().getSms(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoSmsName(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoSmsErratoName()),
+                Arguments.of(EMAIL_REQUEST_IDX, pnEcConfig.getCommons().getTransactionProcess().getEmail(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoEmailName(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoEmailErratoName()),
+                Arguments.of(PEC_REQUEST_IDX, pnEcConfig.getCommons().getTransactionProcess().getPec(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoPecName(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoPecErratoName()),
+                Arguments.of(SERCQ_REQUEST_IDX, pnEcConfig.getCommons().getTransactionProcess().getSercq(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoSercqName(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoSercqErratoName())
         );
     }
 
@@ -298,9 +295,9 @@ class NotificationTrackerMessageReceiverTest {
 
         //THEN
         notificationTrackerMessageReceiver.receiveCartaceoObjectMessage(notificationTrackerQueueDto, acknowledgment);
-        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, transactionProcessConfigurationProperties.paper(), notificationTrackerSqsName.statoCartaceoName(), notificationTrackerSqsName.statoCartaceoErratoName(), acknowledgment);
+        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, pnEcConfig.getCommons().getTransactionProcess().getPaper(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoCartaceoName(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoCartaceoErratoName(), acknowledgment);
         verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
-        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(transactionProcessConfigurationProperties.paper()),any(String.class));
+        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(pnEcConfig.getCommons().getTransactionProcess().getPaper()),any(String.class));
 
     }
 
@@ -320,8 +317,8 @@ class NotificationTrackerMessageReceiverTest {
 
         //THEN
         notificationTrackerMessageReceiver.receiveCartaceoObjectFromErrorQueue(notificationTrackerQueueDto, acknowledgment);
-        verify(notificationTrackerService, times(1)).handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoCartaceoName(), acknowledgment);
-        verify(sqsService, times(1)).send(notificationTrackerSqsName.statoCartaceoName(), notificationTrackerQueueDto);
+        verify(notificationTrackerService, times(1)).handleMessageFromErrorQueue(notificationTrackerQueueDto, pnEcConfig.getNotificationTracker().getSqsQueue().getStatoCartaceoName(), acknowledgment);
+        verify(sqsService, times(1)).send(pnEcConfig.getNotificationTracker().getSqsQueue().getStatoCartaceoName(), notificationTrackerQueueDto);
     }
 
     @ParameterizedTest
@@ -341,7 +338,7 @@ class NotificationTrackerMessageReceiverTest {
 
         //THEN
         notificationTrackerMessageReceiver.receiveCartaceoObjectMessage(notificationTrackerQueueDto, acknowledgment);
-        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, transactionProcessConfigurationProperties.paper(), notificationTrackerSqsName.statoCartaceoName(), notificationTrackerSqsName.statoCartaceoErratoName(), acknowledgment);
+        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, pnEcConfig.getCommons().getTransactionProcess().getPaper(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoCartaceoName(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoCartaceoErratoName(), acknowledgment);
         verify(sqsService, times(1)).send(any(), any());
     }
 
@@ -362,7 +359,7 @@ class NotificationTrackerMessageReceiverTest {
 
         //THEN
         notificationTrackerMessageReceiver.receiveCartaceoObjectFromErrorQueue(notificationTrackerQueueDto, acknowledgment);
-        verify(notificationTrackerService, times(1)).handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.statoCartaceoName(), acknowledgment);
+        verify(notificationTrackerService, times(1)).handleMessageFromErrorQueue(notificationTrackerQueueDto, pnEcConfig.getNotificationTracker().getSqsQueue().getStatoCartaceoName(), acknowledgment);
         verify(sqsService, times(0)).send(anyString(), any(NotificationTrackerQueueDto.class));
     }
 
@@ -376,11 +373,11 @@ class NotificationTrackerMessageReceiverTest {
         mockStatusDecode();
 
         //THEN
-        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(PEC_REQUEST_IDX, transactionProcessConfigurationProperties.pec(), ADDRESS_ERROR, new GeneratedMessageDto().id("id").system("system").location("location"));
+        NotificationTrackerQueueDto notificationTrackerQueueDto = receiveDigitalObjectMessage(PEC_REQUEST_IDX, pnEcConfig.getCommons().getTransactionProcess().getPec(), ADDRESS_ERROR, new GeneratedMessageDto().id("id").system("system").location("location"));
 
-        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, transactionProcessConfigurationProperties.pec(), notificationTrackerSqsName.statoPecName(), notificationTrackerSqsName.statoPecErratoName(), acknowledgment);
+        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, pnEcConfig.getCommons().getTransactionProcess().getPec(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoPecName(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoPecErratoName(), acknowledgment);
         verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
-        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(transactionProcessConfigurationProperties.pec()),any(String.class));
+        verify(putEvents, times(1)).putEventExternal(any(SingleStatusUpdate.class), eq(pnEcConfig.getCommons().getTransactionProcess().getPec()),any(String.class));
     }
 
     @Test
@@ -400,9 +397,9 @@ class NotificationTrackerMessageReceiverTest {
 
         //THEN
         notificationTrackerMessageReceiver.receiveCartaceoObjectMessage(notificationTrackerQueueDto, acknowledgment);
-        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, transactionProcessConfigurationProperties.paper(), notificationTrackerSqsName.statoCartaceoName(), notificationTrackerSqsName.statoCartaceoErratoName(), acknowledgment);
+        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, pnEcConfig.getCommons().getTransactionProcess().getPaper(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoCartaceoName(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoCartaceoErratoName(), acknowledgment);
         verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
-        verify(putEvents, times(0)).putEventExternal(any(SingleStatusUpdate.class), eq(transactionProcessConfigurationProperties.paper()),any(String.class));
+        verify(putEvents, times(0)).putEventExternal(any(SingleStatusUpdate.class), eq(pnEcConfig.getCommons().getTransactionProcess().getPaper()),any(String.class));
 
     }
 
@@ -423,12 +420,12 @@ class NotificationTrackerMessageReceiverTest {
 
         //THEN
         notificationTrackerMessageReceiver.receiveCartaceoObjectMessage(notificationTrackerQueueDto, acknowledgment);
-        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, transactionProcessConfigurationProperties.paper(), notificationTrackerSqsName.statoCartaceoName(), notificationTrackerSqsName.statoCartaceoErratoName(), acknowledgment);
+        verify(notificationTrackerService, times(1)).handleRequestStatusChange(notificationTrackerQueueDto, pnEcConfig.getCommons().getTransactionProcess().getPaper(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoCartaceoName(), pnEcConfig.getNotificationTracker().getSqsQueue().getStatoCartaceoErratoName(), acknowledgment);
         verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), any(EventsDto.class));
 
         verify(putEvents, times(1))
                 .putEventExternal(any(SingleStatusUpdate.class),
-                        eq(transactionProcessConfigurationProperties.paper()),
+                        eq(pnEcConfig.getCommons().getTransactionProcess().getPaper()),
                         eq(EXTERNAL_CHANNEL_REWORK_OUTCOME_EVENT));
     }
 
@@ -455,7 +452,7 @@ class NotificationTrackerMessageReceiverTest {
         notificationTrackerMessageReceiver.receiveCartaceoObjectMessage(notificationTrackerQueueDto, acknowledgment);
 
         ArgumentCaptor<SingleStatusUpdate> singleStatusUpdateCaptor = ArgumentCaptor.forClass(SingleStatusUpdate.class);
-        verify(putEvents, times(1)).putEventExternal(singleStatusUpdateCaptor.capture(), eq(transactionProcessConfigurationProperties.paper()), any(String.class));
+        verify(putEvents, times(1)).putEventExternal(singleStatusUpdateCaptor.capture(), eq(pnEcConfig.getCommons().getTransactionProcess().getPaper()), any(String.class));
 
         SingleStatusUpdate capturedSingleStatusUpdate = singleStatusUpdateCaptor.getValue();
         Assertions.assertEquals(Boolean.TRUE, capturedSingleStatusUpdate.getAnalogMail().getIsDuplicate());

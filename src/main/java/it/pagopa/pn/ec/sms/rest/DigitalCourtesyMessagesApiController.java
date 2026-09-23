@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.sms.rest;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.email.service.EmailService;
 import it.pagopa.pn.ec.rest.v1.api.DigitalCourtesyMessagesApi;
@@ -29,15 +29,15 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
     private final SmsService smsService;
     private final EmailService emailService;
     private final StatusPullService statusPullService;
-    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private final PnEcConfig.Commons.TransactionProcess transactionProcessProperties;
 
 
     public DigitalCourtesyMessagesApiController(SmsService smsService, EmailService emailService, StatusPullService statusPullService,
-                                                TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+                                                PnEcConfig pnEcConfig) {
         this.smsService = smsService;
         this.emailService = emailService;
         this.statusPullService = statusPullService;
-        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+        this.transactionProcessProperties = pnEcConfig.getCommons().getTransactionProcess();
     }
 
     @Override
@@ -47,7 +47,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
         log.logStartingProcess(GET_COURTESY_SHORT_MESSAGE_STATUS);
-        return MDCUtils.addMDCToContextAndExecute(statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.sms())
+        return MDCUtils.addMDCToContextAndExecute(statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessProperties.getSms())
                 .doOnSuccess(result -> log.logEndingProcess(GET_COURTESY_SHORT_MESSAGE_STATUS))
                 .doOnError(throwable -> log.logEndingProcess(GET_COURTESY_SHORT_MESSAGE_STATUS, false, throwable.getMessage(), throwable))
                 .map(ResponseEntity::ok));
@@ -106,7 +106,7 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
         log.logStartingProcess(GET_DIGITAL_COURTESY_MESSAGE_STATUS);
-        return MDCUtils.addMDCToContextAndExecute(statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.email())
+        return MDCUtils.addMDCToContextAndExecute(statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessProperties.getEmail())
                 .doOnSuccess(result -> log.logEndingProcess(GET_DIGITAL_COURTESY_MESSAGE_STATUS))
                 .doOnError(throwable -> log.logEndingProcess(GET_DIGITAL_COURTESY_MESSAGE_STATUS, false, throwable.getMessage(), throwable))
                 .map(ResponseEntity::ok));

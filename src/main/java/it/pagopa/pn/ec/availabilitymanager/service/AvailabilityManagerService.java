@@ -5,16 +5,14 @@ import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import io.awspring.cloud.sqs.annotation.SqsListener;
 import it.pagopa.pn.ec.availabilitymanager.model.dto.AvailabilityManagerDetailDto;
 import it.pagopa.pn.ec.availabilitymanager.model.dto.AvailabilityManagerDto;
-import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.service.CartaceoService;
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import lombok.CustomLog;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -30,7 +28,7 @@ public class AvailabilityManagerService {
 
     private final RequestConversionService requestConversionService;
 
-    private final CartaceoSqsQueueName cartaceoSqsQueueName;
+    private final PnEcConfig.Cartaceo.SqsQueue cartaceoSqsQueueName;
 
     private final SqsService sqsService;
 
@@ -38,7 +36,7 @@ public class AvailabilityManagerService {
 
     private final CartaceoService cartaceoService;
 
-    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private final String availabilityManagerQueueName;
 
 
     private static final String GESTORE_DISPONIBILITA_EVENT_NAME = "GESTORE DISPONIBILITA";
@@ -48,19 +46,16 @@ public class AvailabilityManagerService {
 
 
 
-    public AvailabilityManagerService (RequestConversionService requestConversionService, CartaceoSqsQueueName cartaceoSqsQueueName, SqsService sqsService, CallMacchinaStati callMachinaStati, CartaceoService cartaceoService, TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+    public AvailabilityManagerService (RequestConversionService requestConversionService, SqsService sqsService, CallMacchinaStati callMachinaStati, CartaceoService cartaceoService, PnEcConfig pnEcConfig) {
         this.requestConversionService = requestConversionService;
-        this.cartaceoSqsQueueName = cartaceoSqsQueueName;
+        this.cartaceoSqsQueueName = pnEcConfig.getCartaceo().getSqsQueue();
         this.sqsService = sqsService;
         this.callMachinaStati = callMachinaStati;
         this.cartaceoService = cartaceoService;
-        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+        this.availabilityManagerQueueName = pnEcConfig.getAvailabilityManager().getQueueName();
     }
 
-    @Value("${sqs.queue.availabilitymanager.name}")
-    String availabilityManagerQueueName;
-
-    @SqsListener(value = "${sqs.queue.availabilitymanager.name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.availability-manager.queue-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void lavorazioneEsitiPecInteractive(final AvailabilityManagerDto availabilityManagerDto, Acknowledgement acknowledgment) {
         logIncomingMessage(availabilityManagerQueueName, availabilityManagerDto.toString());
         handleAvailabilityManager(availabilityManagerDto, acknowledgment).block();
@@ -87,7 +82,7 @@ public class AvailabilityManagerService {
                                 .filter(this::allAttachmentsConverted)
                                 .map(this::buildCartaceoPresaInCaricoInfo)
                                 .flatMap(info ->
-                                        sqsService.send(cartaceoSqsQueueName.batchName(), info))
+                                        sqsService.send(cartaceoSqsQueueName.getBatchName(), info))
                                 .doOnSuccess(v -> log.logEndingProcess(HANDLE_AVAILABILITY_MANAGER))
                                 .then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync())))
                                 .doOnError(e ->

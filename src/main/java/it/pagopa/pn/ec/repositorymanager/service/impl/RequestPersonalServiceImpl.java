@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.repositorymanager.service.impl;
 
 import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
-import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.repositorymanager.model.entity.RequestPersonal;
 import it.pagopa.pn.ec.repositorymanager.service.RequestPersonalService;
 import lombok.CustomLog;
@@ -22,8 +22,8 @@ public class RequestPersonalServiceImpl implements RequestPersonalService {
     private final DynamoDbAsyncTableDecorator<RequestPersonal> requestPersonalDynamoDbTable;
 
     public RequestPersonalServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
-                                      RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
-        this.requestPersonalDynamoDbTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiestePersonalName(),
+                                      PnEcConfig pnEcConfig) {
+        this.requestPersonalDynamoDbTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(pnEcConfig.getDynamo().getRepositoryManager().getRichiestePersonalName(),
                                                                          TableSchema.fromBean(RequestPersonal.class)));
     }
 

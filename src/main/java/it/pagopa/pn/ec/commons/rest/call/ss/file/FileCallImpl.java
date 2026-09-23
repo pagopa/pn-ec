@@ -1,9 +1,8 @@
 package it.pagopa.pn.ec.commons.rest.call.ss.file;
 
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.FilesEndpointProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ss.SafeStorageEndpointProperties;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.consolidatore.exception.ClientNotAuthorizedOrFoundException;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationResponse;
@@ -28,16 +27,16 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 public class FileCallImpl implements FileCall {
 
     private final WebClient ssWebClient;
-    private final SafeStorageEndpointProperties safeStorageEndpointProperties;
+    private final PnEcConfig.Commons.Endpoint.SafeStorage safeStorageEndpointProperties;
 
-    private final FilesEndpointProperties filesEndpointProperties;
+    private final PnEcConfig.Commons.Endpoint.Files filesEndpointProperties;
 
     private static final String GET_FILE_ERROR_TITLE = "Chiamata a SafeStorage non valida";
 
-    public FileCallImpl(@Qualifier("ssWebClient") WebClient ssWebClient, SafeStorageEndpointProperties safeStorageEndpointProperties, FilesEndpointProperties filesEndpointProperties) {
+    public FileCallImpl(@Qualifier("ssWebClient") WebClient ssWebClient, PnEcConfig pnEcConfig) {
         this.ssWebClient = ssWebClient;
-        this.safeStorageEndpointProperties = safeStorageEndpointProperties;
-        this.filesEndpointProperties = filesEndpointProperties;
+        this.safeStorageEndpointProperties = pnEcConfig.getCommons().getEndpoint().getSafeStorage();
+        this.filesEndpointProperties = pnEcConfig.getCommons().getEndpoint().getFiles();
     }
 
     private static String getFileErrorDetails(String fileKey, String xPagopaExtchCxId) {
@@ -47,7 +46,7 @@ public class FileCallImpl implements FileCall {
     @Override
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchCxId, boolean metadataOnly) {
         log.logInvokingExternalService(SAFE_STORAGE_SERVICE, GET_FILE);
-        URI uri = UriComponentsBuilder.fromPath(filesEndpointProperties.getFile())
+        URI uri = UriComponentsBuilder.fromPath(filesEndpointProperties.getGetFile())
                 .queryParam("metadataOnly", metadataOnly)
                 .build(fileKey);
         return ssWebClient.get()
@@ -69,11 +68,11 @@ public class FileCallImpl implements FileCall {
     public Mono<FileDownloadResponse> getFile(String fileKey, String xPagopaExtchServiceId, String xApiKey, String xTraceId) {
         log.logInvokingExternalService(SAFE_STORAGE_SERVICE, GET_FILE);
         return ssWebClient.get()
-                .uri(UriComponentsBuilder.fromPath(filesEndpointProperties.getFile())
+                .uri(UriComponentsBuilder.fromPath(filesEndpointProperties.getGetFile())
                         .build(fileKey).toString())
-                .header(safeStorageEndpointProperties.clientHeaderName(), xPagopaExtchServiceId)
-                .header(safeStorageEndpointProperties.apiKeyHeaderName(), xApiKey)
-                .header(safeStorageEndpointProperties.traceIdHeaderName(), xTraceId)
+                .header(safeStorageEndpointProperties.getClientHeaderName(), xPagopaExtchServiceId)
+                .header(safeStorageEndpointProperties.getApiKeyHeaderName(), xApiKey)
+                .header(safeStorageEndpointProperties.getTraceIdHeaderName(), xTraceId)
                 .retrieve()
                 .onStatus(HttpStatus.FORBIDDEN::equals, clientResponse -> Mono.error(new ClientNotAuthorizedOrFoundException(xPagopaExtchServiceId)))
                 .onStatus(status-> status.equals(HttpStatus.GONE),
@@ -84,11 +83,11 @@ public class FileCallImpl implements FileCall {
     @Override
     public Mono<FileCreationResponse> postFile(String xPagopaExtchServiceId, String xApiKey, String checksumValue, String xTraceId, FileCreationRequest fileCreationRequest) {
         log.logInvokingExternalService(SAFE_STORAGE_SERVICE, POST_FILE);
-        return ssWebClient.post().uri(filesEndpointProperties.postFile())
-                .header(safeStorageEndpointProperties.clientHeaderName(), xPagopaExtchServiceId)
-                .header(safeStorageEndpointProperties.apiKeyHeaderName(), xApiKey)
-                .header(safeStorageEndpointProperties.checksumValueHeaderName(), checksumValue)
-                .header(safeStorageEndpointProperties.traceIdHeaderName(), xTraceId)
+        return ssWebClient.post().uri(filesEndpointProperties.getPostFile())
+                .header(safeStorageEndpointProperties.getClientHeaderName(), xPagopaExtchServiceId)
+                .header(safeStorageEndpointProperties.getApiKeyHeaderName(), xApiKey)
+                .header(safeStorageEndpointProperties.getChecksumValueHeaderName(), checksumValue)
+                .header(safeStorageEndpointProperties.getTraceIdHeaderName(), xTraceId)
                 .body(BodyInserters.fromValue(fileCreationRequest))
                 .retrieve()
                 .bodyToMono(FileCreationResponse.class);
@@ -98,10 +97,10 @@ public class FileCallImpl implements FileCall {
     @Override
     public Mono<FileCreationResponse> postFile(String xPagopaExtchServiceId, String checksumValue, FileCreationRequest fileCreationRequest) {
         log.logInvokingExternalService(SAFE_STORAGE_SERVICE, POST_FILE);
-        return ssWebClient.post().uri(filesEndpointProperties.postFile())
-                .header(safeStorageEndpointProperties.clientHeaderName(), xPagopaExtchServiceId)
-                .header(safeStorageEndpointProperties.apiKeyHeaderName(), "")
-                .header(safeStorageEndpointProperties.checksumValueHeaderName(), checksumValue)
+        return ssWebClient.post().uri(filesEndpointProperties.getPostFile())
+                .header(safeStorageEndpointProperties.getClientHeaderName(), xPagopaExtchServiceId)
+                .header(safeStorageEndpointProperties.getApiKeyHeaderName(), "")
+                .header(safeStorageEndpointProperties.getChecksumValueHeaderName(), checksumValue)
                 .body(BodyInserters.fromValue(fileCreationRequest))
                 .retrieve()
                 .bodyToMono(FileCreationResponse.class);

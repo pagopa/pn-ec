@@ -2,6 +2,7 @@ package it.pagopa.pn.ec.commons.configuration.secret;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -21,8 +22,7 @@ public class PnPecCredentialConf {
     @Value("${aws.region-code}")
     private String regionCode;
 
-    @Value("${pn.ec.identity.pec}")
-    private String pnEcIdentityPec;
+    private final String pnEcIdentityPec;
 
     @Value("${test.aws.secretsmanager.endpoint:#{null}}")
     private String smLocalStackEndpoint;
@@ -34,8 +34,9 @@ public class PnPecCredentialConf {
 
     private static final DefaultCredentialsProvider DEFAULT_CREDENTIALS_PROVIDER_V2 = DefaultCredentialsProvider.create();
 
-    public PnPecCredentialConf(ObjectMapper objectMapper) {
+    public PnPecCredentialConf(ObjectMapper objectMapper, PnEcConfig pnEcConfig) {
         this.objectMapper = objectMapper;
+        this.pnEcIdentityPec = pnEcConfig.getPec().getIdentity();
     }
 
     @PostConstruct
