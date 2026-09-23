@@ -33,7 +33,7 @@ public class NotificationTrackerMessageReceiver {
         this.transactionProcessProperties = pnEcConfig.getCommons().getTransactionProcess();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-sms-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.notification-tracker.sqs-queue.stato-sms-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void receiveSMSObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
@@ -54,7 +54,7 @@ public class NotificationTrackerMessageReceiver {
                 .block();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-sms-errato-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.notification-tracker.sqs-queue.stato-sms-errato-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void receiveSMSObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
@@ -71,7 +71,7 @@ public class NotificationTrackerMessageReceiver {
                 .block();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-email-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.notification-tracker.sqs-queue.stato-email-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void receiveEmailObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
@@ -92,7 +92,7 @@ public class NotificationTrackerMessageReceiver {
                 .block();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-email-errato-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.notification-tracker.sqs-queue.stato-email-errato-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void receiveEmailObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
@@ -109,7 +109,7 @@ public class NotificationTrackerMessageReceiver {
                 .block();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-pec-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.notification-tracker.sqs-queue.stato-pec-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void receivePecObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
@@ -130,7 +130,7 @@ public class NotificationTrackerMessageReceiver {
                 .block();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-pec-errato-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.notification-tracker.sqs-queue.stato-pec-errato-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void receivePecObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
@@ -147,7 +147,7 @@ public class NotificationTrackerMessageReceiver {
                 .block();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-cartaceo-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.notification-tracker.sqs-queue.stato-cartaceo-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void receiveCartaceoObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
@@ -168,7 +168,7 @@ public class NotificationTrackerMessageReceiver {
                 .block();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-cartaceo-errato-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.notification-tracker.sqs-queue.stato-cartaceo-errato-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void receiveCartaceoObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
@@ -185,7 +185,7 @@ public class NotificationTrackerMessageReceiver {
                 .block();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-sercq-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.notification-tracker.sqs-queue.stato-sercq-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void receiveSercqObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();
@@ -206,7 +206,7 @@ public class NotificationTrackerMessageReceiver {
                 .block();
     }
 
-    @SqsListener(value = "${sqs.queue.notification-tracker.stato-sercq-errato-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.notification-tracker.sqs-queue.stato-sercq-errato-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void receiveSercqObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
         MDC.clear();

@@ -159,7 +159,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_FROM_PEC, result));
     }
 
-    @SqsListener(value = "${sqs.queue.pec.interactive-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.pec.sqs-queue.interactive-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void lavorazioneRichiestaInteractive(final PecPresaInCaricoInfo pecPresaInCaricoInfo, final Acknowledgement acknowledgment) {
         MDC.clear();
         logIncomingMessage(pecSqsQueueName.getInteractiveName(), pecPresaInCaricoInfo);

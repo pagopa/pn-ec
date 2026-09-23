@@ -148,7 +148,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_FROM_SMS, result));
     }
 
-    @SqsListener(value = "${sqs.queue.sms.interactive-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.sms.sqs-queue.interactive-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     void lavorazioneRichiestaInteractive(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgement acknowledgment) {
         MDC.clear();
         logIncomingMessage(smsSqsQueueName.getInteractiveName(), smsPresaInCaricoInfo);

@@ -55,7 +55,7 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
         this.objectMapper = objectMapper;
     }
 
-    @SqsListener(value = "${sqs.queue.email.ses-events-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.email.sqs-queue.ses-events-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void lavorazioneSesEventsListener(final String rawMessage, final Acknowledgement acknowledgement) throws JsonProcessingException {
         String queueName=emailSqsQueueName.getSesEventsName();
         SesNotificationDto sesNotificationDto = objectMapper.readValue(rawMessage, SesNotificationDto.class);
