@@ -1,8 +1,8 @@
 package it.pagopa.pn.ec.email.rest;
 
 
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.service.StatusPullService;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.email.service.EmailService;
 import it.pagopa.pn.ec.rest.v1.api.DigitalCourtesyMessagesApi;
@@ -30,13 +30,13 @@ public class DigitalCourtesyMessagesEmailApiController implements DigitalCourtes
 
     private final EmailService service;
     private final StatusPullService statusPullService;
-    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private final PnEcConfig.Commons.TransactionProcess transactionProcessProperties;
 
     public DigitalCourtesyMessagesEmailApiController(EmailService service, StatusPullService statusPullService,
-                                                     TransactionProcessConfigurationProperties transactionProcessConfigurationProperties) {
+                                                     PnEcConfig pnEcConfig) {
         this.service = service;
         this.statusPullService = statusPullService;
-        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
+        this.transactionProcessProperties = pnEcConfig.getCommons().getTransactionProcess();
     }
 
     @Override
@@ -54,7 +54,7 @@ public class DigitalCourtesyMessagesEmailApiController implements DigitalCourtes
     @Override
     public Mono<ResponseEntity<CourtesyMessageProgressEvent>> getDigitalCourtesyMessageStatus(String requestIdx, String xPagopaExtchCxId,
                                                                                               ServerWebExchange exchange) {
-        return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessConfigurationProperties.email())
+        return statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessProperties.getEmail())
                                 .map(ResponseEntity::ok);
     }
 }

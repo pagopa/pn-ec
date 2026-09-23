@@ -3,8 +3,8 @@ package it.pagopa.pn.ec.scaricamentoesitipec.utils;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 import it.pagopa.pn.ec.commons.configuration.aws.cloudwatch.CloudWatchMetricPublisherConfiguration;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CloudWatchTransitionElapsedTimeMetricsInfo;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.library.pec.configuration.MetricsDimensionConfiguration;
-import it.pagopa.pn.library.pec.configurationproperties.PnPecMetricNames;
 import it.pagopa.pn.library.pec.pojo.PnGetMessagesResponse;
 import lombok.CustomLog;
 import org.springframework.stereotype.Component;
@@ -38,7 +38,7 @@ public class CloudWatchPecMetrics {
     private final CloudWatchAsyncClient cloudWatchAsyncClient;
     private final CloudWatchMetricPublisherConfiguration cloudWatchMetricPublisherConfiguration;
     private final MetricsDimensionConfiguration metricsDimensionConfiguration;
-    private final PnPecMetricNames pnPecMetricNames;
+    private final PnEcConfig.Commons.CloudWatch.PecMetricNames pnPecMetricNames;
     private static final PutMetricDataRequest.Builder NAMESPACE = PutMetricDataRequest.builder().namespace("PEC");
     private static final Dimension DIMENSION = Dimension.builder().name("Event").value("StatusChange").build();
     private static final MetricDatum.Builder DATUM = MetricDatum.builder().unit(StandardUnit.SECONDS).dimensions(DIMENSION);
@@ -63,11 +63,11 @@ public class CloudWatchPecMetrics {
      * @param metricsDimensionConfiguration          the metrics dimension configuration
      * @param pnPecMetricNames                       the pn pec metric names
      */
-    public CloudWatchPecMetrics(CloudWatchAsyncClient cloudWatchAsyncClient, CloudWatchMetricPublisherConfiguration cloudWatchMetricPublisherConfiguration, MetricsDimensionConfiguration metricsDimensionConfiguration, PnPecMetricNames pnPecMetricNames) {
+    public CloudWatchPecMetrics(CloudWatchAsyncClient cloudWatchAsyncClient, CloudWatchMetricPublisherConfiguration cloudWatchMetricPublisherConfiguration, MetricsDimensionConfiguration metricsDimensionConfiguration, PnEcConfig pnEcConfig) {
         this.cloudWatchAsyncClient = cloudWatchAsyncClient;
         this.cloudWatchMetricPublisherConfiguration = cloudWatchMetricPublisherConfiguration;
         this.metricsDimensionConfiguration = metricsDimensionConfiguration;
-        this.pnPecMetricNames = pnPecMetricNames;
+        this.pnPecMetricNames = pnEcConfig.getCommons().getCloudWatch().getPecMetricNames();
     }
 
     /**
