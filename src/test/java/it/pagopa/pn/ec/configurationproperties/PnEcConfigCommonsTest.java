@@ -31,6 +31,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         "pn.ec.commons.consolidatore.max-concurrent-requests=5",
         "pn.ec.commons.consolidatore.max-retry-for-rate-limiter=3",
         "pn.ec.commons.consolidatore.max-retry-for-rate-limiter-seconds=10",
+        "pn.ec.commons.consolidatore.progresses-timeout-seconds=10",
+        "pn.ec.commons.consolidatore.progresses-retry-after-seconds=30",
         "pn.ec.commons.consolidatore.rate-limiter.max-requests=2",
         "pn.ec.commons.consolidatore.rate-limiter.refresh-period-seconds=5",
 
@@ -54,8 +56,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         "pn.ec.commons.endpoint.consolidatore.api-key-header-value=api-key",
         "pn.ec.commons.endpoint.consolidatore.paper-messages.put-request=/put",
         "pn.ec.commons.endpoint.consolidatore.paper-messages.put-duplicate-request=/put-duplicate",
-        "pn.ec.commons.endpoint.consolidatore.paper-messages.get-request=/get",
-        "pn.ec.commons.endpoint.consolidatore.paper-messages.get-duplicate-request=/get-duplicate",
+        "pn.ec.commons.endpoint.consolidatore.paper-messages.get-request-progress=/get",
+        "pn.ec.commons.endpoint.consolidatore.paper-messages.get-duplicate-request-progress=/get-duplicate",
 
         "pn.ec.commons.endpoint.external-channel.container-base-url=http://pn-external-channel:8080",
 
@@ -125,6 +127,8 @@ class PnEcConfigCommonsTest {
         assertThat(consolidatore.getMaxConcurrentRequests()).isEqualTo(5);
         assertThat(consolidatore.getMaxRetryForRateLimiter()).isEqualTo(3);
         assertThat(consolidatore.getMaxRetryForRateLimiterSeconds()).isEqualTo(10);
+        assertThat(consolidatore.getProgressesTimeoutSeconds()).isEqualTo(10);
+        assertThat(consolidatore.getProgressesRetryAfterSeconds()).isEqualTo(30);
         assertThat(consolidatore.getRateLimiter().getMaxRequests()).isEqualTo(2);
         assertThat(consolidatore.getRateLimiter().getRefreshPeriodSeconds()).isEqualTo(5);
     }
@@ -158,8 +162,8 @@ class PnEcConfigCommonsTest {
         var paperMessages = consolidatoreEndpoint.getPaperMessages();
         assertThat(paperMessages.getPutRequest()).isEqualTo("/put");
         assertThat(paperMessages.getPutDuplicateRequest()).isEqualTo("/put-duplicate");
-        assertThat(paperMessages.getGetRequest()).isEqualTo("/get");
-        assertThat(paperMessages.getGetDuplicateRequest()).isEqualTo("/get-duplicate");
+        assertThat(paperMessages.getGetRequestProgress()).isEqualTo("/get");
+        assertThat(paperMessages.getGetDuplicateRequestProgress()).isEqualTo("/get-duplicate");
     }
 
     @Test

@@ -205,6 +205,46 @@ class PecServiceTest {
     }
 
     @Test
+    void lavorazionePec_InvalidAddressesKo() {
+
+        var requestDto = buildRequestDto();
+
+        var clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(arubaService.sendMail(any())).thenReturn(Mono.error(new PnSpapiPermanentErrorException("class jakarta.mail.SendFailedException Invalid Addresses")));
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+
+        Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(ADDRESS_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+
+    }
+
+    @Test
+    void lavorazionePec_OtherSendFailedExceptionKo() {
+
+        var requestDto = buildRequestDto();
+
+        var clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(arubaService.sendMail(any())).thenReturn(Mono.error(new PnSpapiPermanentErrorException("class jakarta.mail.SendFailedException Some other reason")));
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+
+        Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(RETRY.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+
+    }
+
+    @Test
     void lavorazionePec_MaxRetriesExceeded() {
 
         var clientId=PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();

@@ -167,6 +167,8 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                        attachment.setId(attachmentDTO.getId());
                                                                        attachment.setUri(attachmentDTO.getUri());
                                                                        attachment.setSha256(attachmentDTO.getSha256());
+                                                                       attachment.setSourceType(attachmentDTO.getSourceType());
+                                                                       attachment.setOriginType(attachmentDTO.getOriginType());
 
                                                                        attachmentList.add(attachment);
                                                                    }
@@ -177,6 +179,8 @@ public class StatusPullServiceImpl implements StatusPullService {
                                                                event.setIun(requestDto.getRequestMetadata().getPaperRequestMetadata().getIun());
                                                                event.setProductType(requestDto.getRequestMetadata().getPaperRequestMetadata().getProductType());
                                                                event.setCourier(paperProgrStatus.getCourier());
+                                                               event.setPrinter(paperProgrStatus.getPrinter());
+                                                               event.setDu(paperProgrStatus.getDu());
                                                                event.setIsDuplicate(paperProgrStatus.getIsDuplicate());
 
                                                                status = lastEventUpdated.getPaperProgrStatus().getStatus();

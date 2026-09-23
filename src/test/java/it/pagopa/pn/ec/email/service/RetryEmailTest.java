@@ -11,7 +11,12 @@ import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -27,12 +32,14 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static it.pagopa.pn.ec.commons.constant.Status.INTERNAL_ERROR;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
 import static it.pagopa.pn.ec.email.testutils.DigitalCourtesyMailRequestFactory.createMailRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -113,6 +120,54 @@ class RetryEmailTest {
 
         return requestDto;
     }
+    private static RequestDto buildToDeleteRequestDto() {
+        RequestDto requestDto = buildRequestDto();
+        requestDto.setStatusRequest("toDelete");
+        return requestDto;
+    }
+
+
+    @Test
+    void gestioneRetryEmail_StatusToDelete_TerminalPayloadIsContractValid() {
+
+        String clientId = EMAIL_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        String requestId = EMAIL_PRESA_IN_CARICO_INFO.getRequestIdx();
+
+        var requestDto = buildToDeleteRequestDto();
+
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(emailSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(EMAIL_PRESA_IN_CARICO_INFO, message, QUEUE_NAME);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        ArgumentCaptor<String> statusCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<DigitalProgressStatusDto> payloadCaptor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(emailService, times(1)).sendNotificationOnStatusQueue(
+                eq(EMAIL_PRESA_IN_CARICO_INFO),
+                statusCaptor.capture(),
+                payloadCaptor.capture());
+
+        DigitalProgressStatusDto sentDigitalProgressStatus = payloadCaptor.getValue();
+        sentDigitalProgressStatus.setEventTimestamp(OffsetDateTime.now());
+        sentDigitalProgressStatus.setStatus(statusCaptor.getValue());
+
+        PatchDto patchDto = new PatchDto().event(new EventsDto().digProgrStatus(sentDigitalProgressStatus));
+
+        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+            Validator validator = factory.getValidator();
+            Set<ConstraintViolation<PatchDto>> violations = validator.validate(patchDto);
+
+            assertTrue(violations.isEmpty(),
+                    () -> "Il payload dello stato '" + statusCaptor.getValue()
+                            + "' viola il contratto OpenAPI (causa del 400 -> DLQ): "
+                            + violations.stream()
+                            .map(v -> v.getPropertyPath() + " " + v.getMessage())
+                            .toList());
+        }
+    }
+
     @Test
     void testGestioneRetryEmailScheduler_NoMessages() {
         // mock SQSService per restituire un Mono vuoto quando viene chiamato getOneMessage

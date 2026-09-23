@@ -44,9 +44,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 import jakarta.mail.Header;
 import jakarta.mail.Multipart;
 import jakarta.mail.internet.MimeMessage;
-import software.amazon.awssdk.services.sqs.model.SqsResponse;
 
-import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -86,7 +84,12 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     private final PnPecConfigurationProperties pnPecProps;
     private final PnEcConfig.Pec pecConfig;
     private String idSaved;
-    private final Predicate<Throwable> isAddressException = throwable -> throwable instanceof PnSpapiPermanentErrorException && throwable.getMessage() != null && throwable.getMessage().contains("jakarta.mail.internet.AddressException");
+    private final Predicate<Throwable> isAddressException = throwable ->
+            throwable instanceof PnSpapiPermanentErrorException
+            && throwable.getMessage() != null
+            && (throwable.getMessage().contains("jakarta.mail.internet.AddressException")
+                || (throwable.getMessage().contains("jakarta.mail.SendFailedException")
+                    && throwable.getMessage().contains("Invalid Addresses")));
 
     protected PecService(AuthService authService, PnEcPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, SqsService sqsService
             , AttachmentServiceImpl attachmentService, DownloadCall downloadCall, PnEcConfig pnEcConfig, PnPecConfigurationProperties pnPecProps) {
@@ -401,7 +404,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
             // operazioni per la rimozione del messaggio
             return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                     ERROR.getStatusTransactionTableCompliant(),
-                    new DigitalProgressStatusDto().generatedMessage(new GeneratedMessageDto())).flatMap(
+                    new DigitalProgressStatusDto()).flatMap(
                     sendMessageResponse -> deleteMessageFromErrorQueue(message)
                             .doOnSuccess(result -> log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.getErrorName())));
 
@@ -514,8 +517,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                     log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.getErrorName());
                     return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                             DELETED.getStatusTransactionTableCompliant(),
-                            new DigitalProgressStatusDto().generatedMessage(
-                                    new GeneratedMessageDto())).flatMap(
+                            new DigitalProgressStatusDto()).flatMap(
                             sendMessageResponse -> deleteMessageFromErrorQueue(message));
 
                 }).onErrorResume(internalError -> {

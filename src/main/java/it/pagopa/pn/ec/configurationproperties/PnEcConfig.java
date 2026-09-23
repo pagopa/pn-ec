@@ -420,6 +420,8 @@ public class PnEcConfig {
             private Integer maxConcurrentRequests;
             private Integer maxRetryForRateLimiter;
             private Integer maxRetryForRateLimiterSeconds;
+            private Integer progressesTimeoutSeconds;
+            private Integer progressesRetryAfterSeconds;
             private RateLimiter rateLimiter = new RateLimiter();
 
             @Getter
@@ -479,8 +481,8 @@ public class PnEcConfig {
                 public static class PaperMessages {
                     private String putRequest;
                     private String putDuplicateRequest;
-                    private String getRequest;
-                    private String getDuplicateRequest;
+                    private String getRequestProgress;
+                    private String getDuplicateRequestProgress;
                 }
             }
 
