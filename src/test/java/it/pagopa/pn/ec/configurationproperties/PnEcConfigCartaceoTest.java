@@ -14,7 +14,6 @@ import static org.assertj.core.api.Assertions.assertThat;
         "pn.ec.cartaceo.sqs-queue.batch-name=pn-ec_cartaceo_batch",
         "pn.ec.cartaceo.sqs-queue.error-name=pn-ec_cartaceo_error",
         "pn.ec.cartaceo.sqs-queue.dlq-error-name=pn-ec_cartaceo_error_dlq",
-        "pn.ec.cartaceo.lavorazione.max-thread-pool-size=10",
         "pn.ec.cartaceo.lavorazione.max-retry-attempts=3",
         "pn.ec.cartaceo.lavorazione.min-retry-backoff=1",
         "pn.ec.cartaceo.paper.document-type-to-transform=PDF",
@@ -41,7 +40,6 @@ class PnEcConfigCartaceoTest {
     @Test
     void shouldBindLavorazioneProperties() {
         var lavorazione = pnEcConfig.getCartaceo().getLavorazione();
-        assertThat(lavorazione.getMaxThreadPoolSize()).isEqualTo(10);
         assertThat(lavorazione.getMaxRetryAttempts()).isEqualTo(3L);
         assertThat(lavorazione.getMinRetryBackoff()).isEqualTo(1L);
     }

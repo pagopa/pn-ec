@@ -81,7 +81,6 @@ public class PnEcConfig {
         @Getter
         @Setter
         public static class Lavorazione {
-            private Integer maxThreadPoolSize;
             private Long maxRetryAttempts;
             private Long minRetryBackoff;
         }
@@ -303,19 +302,14 @@ public class PnEcConfig {
         public static class SqsQueue {
             private String statoSmsName;
             private String statoSmsErratoName;
-            private String statoSmsDlqName;
             private String statoEmailName;
             private String statoEmailErratoName;
-            private String statoEmailDlqName;
             private String statoPecName;
             private String statoPecErratoName;
-            private String statoPecDlqName;
             private String statoCartaceoName;
             private String statoCartaceoErratoName;
-            private String statoCartaceoDlqName;
             private String statoSercqName;
             private String statoSercqErratoName;
-            private Integer delaySeconds;
             private Long elapsedTimeSeconds;
         }
 
@@ -334,7 +328,6 @@ public class PnEcConfig {
         private String clientHeaderValue;
         private String apiKeyHeaderValue;
         private Integer limitRate;
-        private String dumpEmail;
         private Lavorazione lavorazione = new Lavorazione();
 
         @Getter
@@ -363,8 +356,6 @@ public class PnEcConfig {
         @Setter
         public static class Endpoint {
             private String baseUrl;
-            private String basePath;
-            private String convertPdf;
             private String clientHeaderValue;
             private String clientHeaderApiKey;
         }
@@ -394,15 +385,10 @@ public class PnEcConfig {
         public static class TransactionProcess {
             private String startStatus;
             private String sms;
-            private String smsStartStatus;
             private String email;
-            private String emailStartStatus;
             private String pec;
-            private String pecStartStatus;
             private String paper;
-            private String paperStarterStatus;
             private String sercq;
-            private String sercqStartStatus;
         }
 
         @Getter

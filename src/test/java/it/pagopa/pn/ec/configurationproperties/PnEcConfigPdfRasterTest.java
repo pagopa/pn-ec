@@ -15,8 +15,6 @@ import static org.assertj.core.api.Assertions.assertThat;
         "pn.ec.pdfraster.min-retry-backoff=1",
         "pn.ec.pdfraster.pdf-conversion-expiration-offset-in-days=7",
         "pn.ec.pdfraster.endpoint.base-url=http://pn-ec-pdfraster:8080",
-        "pn.ec.pdfraster.endpoint.base-path=/pdfraster",
-        "pn.ec.pdfraster.endpoint.convert-pdf=/convert",
         "pn.ec.pdfraster.endpoint.client-header-value=pn-ec",
         "pn.ec.pdfraster.endpoint.client-header-api-key=api-key"
 })
@@ -37,8 +35,6 @@ class PnEcConfigPdfRasterTest {
     void shouldBindEndpointProperties() {
         var endpoint = pnEcConfig.getPdfRaster().getEndpoint();
         assertThat(endpoint.getBaseUrl()).isEqualTo("http://pn-ec-pdfraster:8080");
-        assertThat(endpoint.getBasePath()).isEqualTo("/pdfraster");
-        assertThat(endpoint.getConvertPdf()).isEqualTo("/convert");
         assertThat(endpoint.getClientHeaderValue()).isEqualTo("pn-ec");
         assertThat(endpoint.getClientHeaderApiKey()).isEqualTo("api-key");
     }

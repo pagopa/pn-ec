@@ -13,19 +13,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = {
         "pn.ec.notification-tracker.sqs-queue.stato-sms-name=pn-ec_stato_sms",
         "pn.ec.notification-tracker.sqs-queue.stato-sms-errato-name=pn-ec_stato_sms_errato",
-        "pn.ec.notification-tracker.sqs-queue.stato-sms-dlq-name=pn-ec_stato_sms_dlq",
         "pn.ec.notification-tracker.sqs-queue.stato-email-name=pn-ec_stato_email",
         "pn.ec.notification-tracker.sqs-queue.stato-email-errato-name=pn-ec_stato_email_errato",
-        "pn.ec.notification-tracker.sqs-queue.stato-email-dlq-name=pn-ec_stato_email_dlq",
         "pn.ec.notification-tracker.sqs-queue.stato-pec-name=pn-ec_stato_pec",
         "pn.ec.notification-tracker.sqs-queue.stato-pec-errato-name=pn-ec_stato_pec_errato",
-        "pn.ec.notification-tracker.sqs-queue.stato-pec-dlq-name=pn-ec_stato_pec_dlq",
         "pn.ec.notification-tracker.sqs-queue.stato-cartaceo-name=pn-ec_stato_cartaceo",
         "pn.ec.notification-tracker.sqs-queue.stato-cartaceo-errato-name=pn-ec_stato_cartaceo_errato",
-        "pn.ec.notification-tracker.sqs-queue.stato-cartaceo-dlq-name=pn-ec_stato_cartaceo_dlq",
         "pn.ec.notification-tracker.sqs-queue.stato-sercq-name=pn-ec_stato_sercq",
         "pn.ec.notification-tracker.sqs-queue.stato-sercq-errato-name=pn-ec_stato_sercq_errato",
-        "pn.ec.notification-tracker.sqs-queue.delay-seconds=5",
         "pn.ec.notification-tracker.sqs-queue.elapsed-time-seconds=60",
         "pn.ec.notification-tracker.event-bridge.notifications-bus-name=pn-ec_notifications_bus"
 })
@@ -39,19 +34,14 @@ class PnEcConfigNotificationTrackerTest {
         var sqsQueue = pnEcConfig.getNotificationTracker().getSqsQueue();
         assertThat(sqsQueue.getStatoSmsName()).isEqualTo("pn-ec_stato_sms");
         assertThat(sqsQueue.getStatoSmsErratoName()).isEqualTo("pn-ec_stato_sms_errato");
-        assertThat(sqsQueue.getStatoSmsDlqName()).isEqualTo("pn-ec_stato_sms_dlq");
         assertThat(sqsQueue.getStatoEmailName()).isEqualTo("pn-ec_stato_email");
         assertThat(sqsQueue.getStatoEmailErratoName()).isEqualTo("pn-ec_stato_email_errato");
-        assertThat(sqsQueue.getStatoEmailDlqName()).isEqualTo("pn-ec_stato_email_dlq");
         assertThat(sqsQueue.getStatoPecName()).isEqualTo("pn-ec_stato_pec");
         assertThat(sqsQueue.getStatoPecErratoName()).isEqualTo("pn-ec_stato_pec_errato");
-        assertThat(sqsQueue.getStatoPecDlqName()).isEqualTo("pn-ec_stato_pec_dlq");
         assertThat(sqsQueue.getStatoCartaceoName()).isEqualTo("pn-ec_stato_cartaceo");
         assertThat(sqsQueue.getStatoCartaceoErratoName()).isEqualTo("pn-ec_stato_cartaceo_errato");
-        assertThat(sqsQueue.getStatoCartaceoDlqName()).isEqualTo("pn-ec_stato_cartaceo_dlq");
         assertThat(sqsQueue.getStatoSercqName()).isEqualTo("pn-ec_stato_sercq");
         assertThat(sqsQueue.getStatoSercqErratoName()).isEqualTo("pn-ec_stato_sercq_errato");
-        assertThat(sqsQueue.getDelaySeconds()).isEqualTo(5);
         assertThat(sqsQueue.getElapsedTimeSeconds()).isEqualTo(60L);
     }
 

@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
         "pn.ec.scaricamento-esiti-pec.client-header-value=pn-ec",
         "pn.ec.scaricamento-esiti-pec.api-key-header-value=api-key",
         "pn.ec.scaricamento-esiti-pec.limit-rate=10",
-        "pn.ec.scaricamento-esiti-pec.dump-email=dump@pn.pagopa.it",
         "pn.ec.scaricamento-esiti-pec.lavorazione.max-thread-pool-size=6"
 })
 class PnEcConfigScaricamentoEsitiPecTest {
@@ -32,7 +31,6 @@ class PnEcConfigScaricamentoEsitiPecTest {
         assertThat(scaricamentoEsitiPec.getClientHeaderValue()).isEqualTo("pn-ec");
         assertThat(scaricamentoEsitiPec.getApiKeyHeaderValue()).isEqualTo("api-key");
         assertThat(scaricamentoEsitiPec.getLimitRate()).isEqualTo(10);
-        assertThat(scaricamentoEsitiPec.getDumpEmail()).isEqualTo("dump@pn.pagopa.it");
     }
 
     @Test

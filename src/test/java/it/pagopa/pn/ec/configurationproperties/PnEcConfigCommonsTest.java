@@ -13,15 +13,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = {
         "pn.ec.commons.transaction-process.start-status=BOOKED",
         "pn.ec.commons.transaction-process.sms=SMS",
-        "pn.ec.commons.transaction-process.sms-start-status=BOOKED",
         "pn.ec.commons.transaction-process.email=EMAIL",
-        "pn.ec.commons.transaction-process.email-start-status=BOOKED",
         "pn.ec.commons.transaction-process.pec=PEC",
-        "pn.ec.commons.transaction-process.pec-start-status=BOOKED",
         "pn.ec.commons.transaction-process.paper=PAPER",
-        "pn.ec.commons.transaction-process.paper-starter-status=BOOKED",
         "pn.ec.commons.transaction-process.sercq=SERCQ",
-        "pn.ec.commons.transaction-process.sercq-start-status=BOOKED",
 
         "pn.ec.commons.shedlock.table-name=pn-EcShedlockCounter",
         "pn.ec.commons.shedlock.lock-at-most-for=PT5M",
@@ -101,15 +96,10 @@ class PnEcConfigCommonsTest {
         var transactionProcess = pnEcConfig.getCommons().getTransactionProcess();
         assertThat(transactionProcess.getStartStatus()).isEqualTo("BOOKED");
         assertThat(transactionProcess.getSms()).isEqualTo("SMS");
-        assertThat(transactionProcess.getSmsStartStatus()).isEqualTo("BOOKED");
         assertThat(transactionProcess.getEmail()).isEqualTo("EMAIL");
-        assertThat(transactionProcess.getEmailStartStatus()).isEqualTo("BOOKED");
         assertThat(transactionProcess.getPec()).isEqualTo("PEC");
-        assertThat(transactionProcess.getPecStartStatus()).isEqualTo("BOOKED");
         assertThat(transactionProcess.getPaper()).isEqualTo("PAPER");
-        assertThat(transactionProcess.getPaperStarterStatus()).isEqualTo("BOOKED");
         assertThat(transactionProcess.getSercq()).isEqualTo("SERCQ");
-        assertThat(transactionProcess.getSercqStartStatus()).isEqualTo("BOOKED");
     }
 
     @Test
