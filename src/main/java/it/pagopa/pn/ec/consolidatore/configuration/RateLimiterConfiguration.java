@@ -3,7 +3,7 @@ package it.pagopa.pn.ec.consolidatore.configuration;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,7 +16,7 @@ import java.time.Duration;
         havingValue = "true",
         matchIfMissing = false
 )
-@Slf4j
+@CustomLog
 public class RateLimiterConfiguration {
 
     private final int maxRequests;

@@ -1,12 +1,12 @@
 package it.pagopa.pn.ec.commons.configuration.scheduler;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
-@Slf4j
+@CustomLog
 @ConditionalOnProperty(
         name = "pn.ec.feature.flag.cartaceo.consolidatore",
         havingValue = "true",

@@ -30,10 +30,7 @@ public class PaperProgressesApiController implements PaperProgressesApi {
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
         MDC.clear();
         MDC.put(MDC_CORR_ID_KEY, concatRequestId);
-        log.logStartingProcess(GET_PAPER_ENGAGE_PROGRESSES);
         return MDCUtils.addMDCToContextAndExecute(paperEngageProgressesService.getPaperEngageProgresses(requestIdx, xPagopaExtchCxId)
-                .doOnSuccess(result -> log.logEndingProcess(GET_PAPER_ENGAGE_PROGRESSES))
-                .doOnError(throwable -> log.logEndingProcess(GET_PAPER_ENGAGE_PROGRESSES, false, throwable.getMessage(), throwable))
                 .map(ResponseEntity::ok));
     }
 }

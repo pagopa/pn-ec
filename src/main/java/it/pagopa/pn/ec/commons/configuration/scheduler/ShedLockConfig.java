@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.commons.configuration.scheduler;
 
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.provider.dynamodb2.DynamoDBLockProvider;
 import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 @Configuration
-@Slf4j
+@CustomLog
 @EnableSchedulerLock(defaultLockAtMostFor = "${pn.ec.commons.shedlock.lock-at-most-for}")
 @ConditionalOnProperty(
         name = "pn.ec.feature.flag.cartaceo.consolidatore",
