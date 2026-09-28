@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec.pec.service.impl;
 
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -8,7 +7,7 @@ import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
-import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -33,16 +32,20 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
-import static it.pagopa.pn.ec.commons.utils.EmailUtils.getHeaderFromMimeMessage;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.PEC;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.MessageContentTypeEnum.TEXT_PLAIN;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.QosEnum.INTERACTIVE;
@@ -59,9 +62,11 @@ import static org.mockito.Mockito.*;
 class PecRetryTest {
 
     @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
-    @Autowired
-    private PecSqsQueueName pecSqsQueueName;
+    private PnEcConfig pnEcConfig;
+
+    private PnEcConfig.Pec.SqsQueue pecSqsQueueName() {
+        return pnEcConfig.getPec().getSqsQueue();
+    }
     @MockitoSpyBean
     private SqsService sqsService;
     @MockitoBean(name="arubaServiceImpl")
@@ -158,9 +163,32 @@ class PecRetryTest {
         return requestDto;
     }
 
+
+    private static RequestDto buildExhaustedRetryRequestDto() {
+        List<BigDecimal> retries = new ArrayList<>();
+        retries.add(BigDecimal.valueOf(5));
+        retries.add(BigDecimal.valueOf(10));
+        retries.add(BigDecimal.valueOf(20));
+
+        RetryDto retryDto = new RetryDto();
+        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(60));
+        retryDto.setRetryStep(BigDecimal.valueOf(retries.size() - 1L)); // ultimo step
+        retryDto.setRetryPolicy(retries);
+
+        RequestMetadataDto requestMetadata = new RequestMetadataDto();
+        requestMetadata.setRetry(retryDto);
+
+        RequestDto requestDto = new RequestDto();
+        requestDto.setStatusRequest("statusTest");
+        requestDto.setRequestIdx(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getRequestIdx());
+        requestDto.setxPagopaExtchCxId(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getXPagopaExtchCxId());
+        requestDto.setRequestMetadata(requestMetadata);
+        return requestDto;
+    }
+
     @BeforeAll
-    static void beforeAll(@Autowired PnPecConfigurationProperties pnPecConfigurationProperties) {
-        maxMessageSizeKb = pnPecConfigurationProperties.getMaxMessageSizeMb() * MB_TO_BYTES;
+    static void beforeAll(@Autowired PnEcConfig pnEcConfig) {
+        maxMessageSizeKb = pnEcConfig.getPec().getMaxMessageSizeMb() * MB_TO_BYTES;
     }
 
     @BeforeEach
@@ -176,7 +204,7 @@ class PecRetryTest {
     void testGestioneRetryPecScheduler_NoMessages() {
         // mock SQSService per restituire un Mono vuoto quando viene chiamato getOneMessage
         SqsServiceImpl mockSqsService = mock(SqsServiceImpl.class);
-        when(mockSqsService.getOneMessage(pecSqsQueueName.errorName(), PecPresaInCaricoInfo.class))
+        when(mockSqsService.getOneMessage(pecSqsQueueName().getErrorName(), PecPresaInCaricoInfo.class))
                 .thenReturn(Mono.empty());
 
         // chiamare il metodo sotto test
@@ -201,7 +229,7 @@ class PecRetryTest {
         when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.error(new RuntimeException()));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
@@ -230,7 +258,7 @@ class PecRetryTest {
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
@@ -258,7 +286,7 @@ class PecRetryTest {
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
@@ -276,7 +304,7 @@ class PecRetryTest {
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
         mockAttachmentsWithLastInOffset(3);
-        when(pnPecConfigurationProperties.getAttachmentRule()).thenReturn("LIMIT");
+        pnEcConfig.getPec().setAttachmentRule("LIMIT");
         when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
 
         //Gestore repository mocks.
@@ -285,7 +313,7 @@ class PecRetryTest {
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
@@ -312,7 +340,7 @@ class PecRetryTest {
         patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
 
         mockAttachmentsWithLastInOffset(3);
-        when(pnPecConfigurationProperties.getAttachmentRule()).thenReturn("FIRST");
+        pnEcConfig.getPec().setAttachmentRule("FIRST");
         when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
 
         //Gestore repository mocks.
@@ -321,7 +349,7 @@ class PecRetryTest {
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
@@ -357,7 +385,7 @@ class PecRetryTest {
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
@@ -392,7 +420,7 @@ class PecRetryTest {
         ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", headerValue);
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
@@ -401,9 +429,9 @@ class PecRetryTest {
 
         byte[] mimeMessageBytes = extractSendMailData();
         var mimeMessage = getMimeMessage(mimeMessageBytes);
-        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName());
+        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, pnEcConfig.getPec().getTipoRicevutaHeaderName());
         assertNotNull(xTipoRicevutaHeader);
-        assertTrue(getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName()).length > 0);
+        assertTrue(getHeaderFromMimeMessage(mimeMessage, pnEcConfig.getPec().getTipoRicevutaHeaderName()).length > 0);
     }
     @ParameterizedTest
     @ValueSource(strings = {"false", "true;2023-02-01T10:00:00Z;false"})
@@ -433,7 +461,7 @@ class PecRetryTest {
         ReflectionTestUtils.setField(pnPecConfigurationProperties, "tipoRicevutaBreve", headerValue);
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(pecSqsQueueName().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
@@ -441,15 +469,63 @@ class PecRetryTest {
         verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
         byte[] mimeMessageBytes = extractSendMailData();
         var mimeMessage = getMimeMessage(mimeMessageBytes);
-        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName());
+        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, pnEcConfig.getPec().getTipoRicevutaHeaderName());
         assertNull(xTipoRicevutaHeader);
+    }
+
+
+    @Test
+    void gestioneRetryPec_RetriesExhausted_ErrorPayloadIsContractValid() {
+
+        String requestId = PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getRequestIdx();
+        String clientId = PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getXPagopaExtchCxId();
+
+        var requestDto = buildExhaustedRetryRequestDto();
+
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
+        when(arubaService.sendMail(any())).thenReturn(Mono.error(
+                new PnSpapiPermanentErrorException("sendMail: generic permanent error")));
+
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        doReturn(Mono.just(requestDto)).when(gestoreRepositoryCall).patchRichiesta(anyString(), anyString(), any(PatchDto.class));
+
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(
+                eq(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR),
+                eq(ERROR.getStatusTransactionTableCompliant()),
+                captor.capture());
+
+        DigitalProgressStatusDto sentDigitalProgressStatus = captor.getValue();
+        sentDigitalProgressStatus.setEventTimestamp(OffsetDateTime.now());
+        sentDigitalProgressStatus.setStatus(ERROR.getStatusTransactionTableCompliant());
+
+        PatchDto patchDto = new PatchDto().event(new EventsDto().digProgrStatus(sentDigitalProgressStatus));
+
+        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+            Validator validator = factory.getValidator();
+            Set<ConstraintViolation<PatchDto>> violations = validator.validate(patchDto);
+
+            assertTrue(violations.isEmpty(),
+                    () -> "Il payload dello stato 'error' viola il contratto OpenAPI (causa del 400 -> DLQ in produzione): "
+                            + violations.stream()
+                            .map(v -> v.getPropertyPath() + " " + v.getMessage())
+                            .toList());
+        }
     }
 
     @Test
     void testGestioneRetryPecSchedulerBach_NoMessages() {
         // mock SQSService per restituire un Mono vuoto quando viene chiamato getOneMessage
         SqsServiceImpl mockSqsService = mock(SqsServiceImpl.class);
-        when(mockSqsService.getOneMessage(pecSqsQueueName.batchName(), PecPresaInCaricoInfo.class))
+        when(mockSqsService.getOneMessage(pecSqsQueueName().getBatchName(), PecPresaInCaricoInfo.class))
                 .thenReturn(Mono.empty());
 
         // chiamare il metodo sotto test

@@ -49,7 +49,7 @@ public class PaperMessagesApiController implements PaperMessagesApi {
     }
 
     @Override
-    public Mono<ResponseEntity<PaperProgressStatusEvent>> getPaperEngageProgresses(String requestIdx, String xPagopaExtchCxId,
+    public Mono<ResponseEntity<PaperProgressStatusEvent>> getPaperDeliveryProgresses(String requestIdx, String xPagopaExtchCxId,
                                                                                    ServerWebExchange exchange) {
         String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
         MDC.clear();

@@ -3,6 +3,7 @@ package it.pagopa.pn.ec.consolidatore.configuration;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiter.Metrics;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -15,10 +16,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 @SpringBootTest(classes = RateLimiterConfiguration.class)
-@EnableConfigurationProperties(RateLimiterConfiguration.class)
+@EnableConfigurationProperties(PnEcConfig.class)
 @TestPropertySource(properties = {
-        "pn.ec.consolidatore.max-requests=2",
-        "pn.ec.consolidatore.refresh-period-seconds=5",
+        "pn.ec.commons.consolidatore.rate-limiter.max-requests=2",
+        "pn.ec.commons.consolidatore.rate-limiter.refresh-period-seconds=5",
 })
 class RateLimiterConfigurationTest {
 

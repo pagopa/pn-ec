@@ -3,15 +3,10 @@ package it.pagopa.pn.ec.cartaceo.service;
 
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.cartaceo.configuration.PdfTransformationConfiguration;
-import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
-import it.pagopa.pn.ec.cartaceo.configurationproperties.TransformationProperties;
 import it.pagopa.pn.ec.cartaceo.mapper.CartaceoMapper;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.commons.configuration.normalization.NormalizationConfiguration;
-import it.pagopa.pn.ec.commons.configuration.scheduler.ShedLockConfig;
 import it.pagopa.pn.ec.commons.configuration.scheduler.ShedLockRunner;
-import it.pagopa.pn.ec.commons.configurationproperties.LavorazioneCartaceoConfigurationProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException;
 import it.pagopa.pn.ec.commons.exception.StatusToDeleteException;
 import it.pagopa.pn.ec.commons.exception.cartaceo.ConsolidatoreException;
@@ -31,6 +26,7 @@ import it.pagopa.pn.ec.commons.service.PresaInCaricoService;
 import it.pagopa.pn.ec.commons.service.QueueOperationsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.pdfraster.service.impl.RequestConversionServiceImpl;
 import it.pagopa.pn.ec.repositorymanager.model.entity.PaperEngageRequestAttachments;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -42,7 +38,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -81,8 +76,8 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final SqsService sqsService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final AttachmentServiceImpl attachmentService;
-    private final NotificationTrackerSqsName notificationTrackerSqsName;
-    private final CartaceoSqsQueueName cartaceoSqsQueueName;
+    private final PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName;
+    private final PnEcConfig.Cartaceo.SqsQueue cartaceoSqsQueueName;
     private final PaperMessageCall paperMessageCall;
     private final FileCall fileCall;
     private final DownloadCall downloadCall;
@@ -90,14 +85,12 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final RequestConversionServiceImpl requestConversionService;
     private final PdfTransformationConfiguration pdfTransformationConfiguration;
     private final CartaceoMapper cartaceoMapper;
-    private final TransformationProperties transformationProperties;
     private String idSaved;
     private final Semaphore semaphore;
     private final Integer cartaceoMaxBatchSubscribedMsgs;
     private final Retry lavorazioneRichiestaRetryStrategy;
     private final String documentTypeForRasterized;
     private final List<String> validTransformationDocumentTypes;
-    private final LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties;
     private final NormalizationConfiguration normalizationConfiguration;
     private final SqsTimeoutProvider sqsTimeoutProvider;
     private final ShedLockRunner shedLockRunner;
@@ -105,24 +98,19 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     private final Duration executeBatchTimeoutDelta;
 
     protected CartaceoService(AuthService authService, SqsService sqsService, GestoreRepositoryCall gestoreRepositoryCall,
-                              AttachmentServiceImpl attachmentService, NotificationTrackerSqsName notificationTrackerSqsName,
-                              CartaceoSqsQueueName cartaceoSqsQueueName, PaperMessageCall paperMessageCall, FileCall fileCall,
+                              AttachmentServiceImpl attachmentService, PaperMessageCall paperMessageCall, FileCall fileCall,
                               DownloadCall downloadCall, UploadCall uplpadCall, RequestConversionServiceImpl requestConversionService,
                               PdfTransformationConfiguration pdfTransformationConfiguration, CartaceoMapper cartaceoMapper,
                               SqsTimeoutProvider sqsTimeoutProvider,
-                              LavorazioneCartaceoConfigurationProperties lavorazioneCartaceoConfigurationProperties,
                               NormalizationConfiguration normalizationConfiguration,
-                              @Value("${sqs.queue.cartaceo.max-batch-subscribed-msgs}") Integer cartaceoMaxBatchSubscribedMsgs, TransformationProperties transformationProperties,
-                              @Value("${pn.ec.max-concurrent-requests}") int maxConcurrentRequests,
-                              @Value("${pn.ec.shedlock.lockAtMostFor:PT15M}") Duration lockAtMostFor,
-                              @Value("${pn.ec.shedlock.executeBatchTimeoutDelta:PT1M30S}") Duration executeBatchTimeoutDelta,
+                              PnEcConfig pnEcConfig,
                               @Autowired(required = false) ShedLockRunner shedLockRunner) {
         super(authService);
         this.sqsService = sqsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.attachmentService = attachmentService;
-        this.notificationTrackerSqsName = notificationTrackerSqsName;
-        this.cartaceoSqsQueueName = cartaceoSqsQueueName;
+        this.notificationTrackerSqsName = pnEcConfig.getNotificationTracker().getSqsQueue();
+        this.cartaceoSqsQueueName = pnEcConfig.getCartaceo().getSqsQueue();
         this.paperMessageCall = paperMessageCall;
         this.fileCall = fileCall;
         this.downloadCall = downloadCall;
@@ -131,22 +119,22 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         this.pdfTransformationConfiguration = pdfTransformationConfiguration;
         this.cartaceoMapper = cartaceoMapper;
         this.sqsTimeoutProvider = sqsTimeoutProvider;
-        this.lavorazioneCartaceoConfigurationProperties = lavorazioneCartaceoConfigurationProperties;
-        //this.semaphore = new Semaphore(lavorazioneCartaceoConfigurationProperties.maxThreadPoolSize());
+        var lavorazioneCartaceoConfigurationProperties = pnEcConfig.getCartaceo().getLavorazione();
+        int maxConcurrentRequests = pnEcConfig.getCommons().getConsolidatore().getMaxConcurrentRequests();
+        //this.semaphore = new Semaphore(lavorazioneCartaceoConfigurationProperties.getMaxThreadPoolSize());
         this.semaphore = new Semaphore(maxConcurrentRequests * 2);
-        this.cartaceoMaxBatchSubscribedMsgs = cartaceoMaxBatchSubscribedMsgs;
+        this.cartaceoMaxBatchSubscribedMsgs = pnEcConfig.getCartaceo().getSqsQueue().getMaxBatchSubscribedMsgs();
         this.documentTypeForRasterized = pdfTransformationConfiguration.getDocumentTypeForRasterized();
         this.validTransformationDocumentTypes = pdfTransformationConfiguration.getValidTransformationDocumentTypes();
         this.normalizationConfiguration = normalizationConfiguration;
-        this.lavorazioneRichiestaRetryStrategy = Retry.backoff(lavorazioneCartaceoConfigurationProperties.maxRetryAttempts(), Duration.ofSeconds(lavorazioneCartaceoConfigurationProperties.minRetryBackoff()))
+        this.lavorazioneRichiestaRetryStrategy = Retry.backoff(lavorazioneCartaceoConfigurationProperties.getMaxRetryAttempts(), Duration.ofSeconds(lavorazioneCartaceoConfigurationProperties.getMinRetryBackoff()))
                 .filter(throwable -> !(throwable instanceof ConsolidatoreException.PermanentException))
                 .doBeforeRetry(retrySignal -> log.info(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure(), retrySignal.failure().getMessage()))
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
                     throw new MaxRetriesExceededException();
                 });
-        this.transformationProperties = transformationProperties;
-        this.lockAtMostFor = lockAtMostFor;
-        this.executeBatchTimeoutDelta = executeBatchTimeoutDelta;
+        this.lockAtMostFor = Duration.parse(pnEcConfig.getCommons().getShedlock().getLockAtMostFor());
+        this.executeBatchTimeoutDelta = Duration.parse(pnEcConfig.getCommons().getShedlock().getExecuteBatchTimeoutDelta());
         this.shedLockRunner = shedLockRunner;
     }
 
@@ -219,7 +207,6 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
     private Mono<RequestDto> insertRequestFromCartaceo(PaperEngageRequest paperNotificationRequest, String xPagopaExtchCxId) {
         String concatRequestId = concatRequestId(xPagopaExtchCxId, paperNotificationRequest.getRequestId());
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_CARTACEO, paperNotificationRequest);
         return Mono.fromCallable(() -> {
                     var requestDto = new RequestDto();
                     requestDto.setRequestIdx(paperNotificationRequest.getRequestId());
@@ -300,7 +287,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         AtomicBoolean hasMessages = new AtomicBoolean();
         hasMessages.set(true);
         log.warn(LAVORAZIONE_BATCH_CARTACEO,"");
-        String queueName= cartaceoSqsQueueName.batchName();
+        String queueName= cartaceoSqsQueueName.getBatchName();
         try {
             Mono.defer(() -> sqsService.getMessages(queueName, CartaceoPresaInCaricoInfo.class, cartaceoMaxBatchSubscribedMsgs)
                             .doOnNext(cartaceoPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(queueName
@@ -339,7 +326,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
         stepError.setStep(PDF_TRANSFORMATION_STEP);
         cartaceoPresaInCaricoInfo.setStepError(stepError);
 
-        String queueName= cartaceoSqsQueueName.batchName();
+        String queueName= cartaceoSqsQueueName.getBatchName();
 
         return MDCUtils.addMDCToContextAndExecute(gestoreRepositoryCall.getRichiesta(cartaceoPresaInCaricoInfo.getXPagopaExtchCxId(), cartaceoPresaInCaricoInfo.getRequestIdx())
                 .flatMap(requestDto -> chooseStep(cartaceoPresaInCaricoInfo, paperEngageRequestDst, paperEngageRequestSrc, requestDto))
@@ -360,7 +347,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     	log.logStartingProcess(LAVORAZIONE_ERRORI_CARTACEO);
         MDC.clear();
         idSaved = null;
-        String queueName=cartaceoSqsQueueName.errorName();
+        String queueName=cartaceoSqsQueueName.getErrorName();
         sqsService.getOneMessage(queueName, CartaceoPresaInCaricoInfo.class)
                 .doOnNext(cartaceoPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(queueName,
                         cartaceoPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
@@ -399,7 +386,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
             cartaceoPresaInCaricoInfo.setStepError(stepError);
         }
 
-        String queueName=cartaceoSqsQueueName.errorName();
+        String queueName=cartaceoSqsQueueName.getErrorName();
 
         return MDCUtils.addMDCToContextAndExecute(filterRequestCartaceo(cartaceoPresaInCaricoInfo)
                 .flatMap(requestDto -> executeRetry(cartaceoPresaInCaricoInfo, requestDto, paperEngageRequestDst, paperEngageRequestSrc, message))
@@ -492,7 +479,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     .then(deleteMessageFromErrorQueue(message));
 
         }
-        return sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo).then(deleteMessageFromErrorQueue(message)).doOnSuccess(result->log.info(MESSAGE_REMOVED_FROM_ERROR_QUEUE, cartaceoSqsQueueName.errorName()));
+        return sendNotificationOnErrorQueue(cartaceoPresaInCaricoInfo).then(deleteMessageFromErrorQueue(message)).doOnSuccess(result->log.info(MESSAGE_REMOVED_FROM_ERROR_QUEUE, cartaceoSqsQueueName.getErrorName()));
     }
 
     private Mono<SqsResponse> executeRetry(final CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, RequestDto requestDto, it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest paperEngageRequestDst, PaperEngageRequest paperEngageRequestSrc, Message message) {
@@ -503,7 +490,7 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
     }
 
     private Mono<DeleteMessageResponse> sendMessageInError(CartaceoPresaInCaricoInfo cartaceoPresaInCaricoInfo, Message message) {
-        log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, cartaceoSqsQueueName.errorName());
+        log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, cartaceoSqsQueueName.getErrorName());
         return sendNotificationOnStatusQueue(cartaceoPresaInCaricoInfo,
                 ERROR.getStatusTransactionTableCompliant(),
                 new PaperProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
@@ -755,13 +742,13 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(cartaceoSqsQueueName.errorName(), presaInCaricoInfo);
+        return sqsService.send(cartaceoSqsQueueName.getErrorName(), presaInCaricoInfo);
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    PaperProgressStatusDto paperProgressStatusDto) {
-        return sqsService.send(notificationTrackerSqsName.statoCartaceoName(),
+        return sqsService.send(notificationTrackerSqsName.getStatoCartaceoName(),
                 createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, status, paperProgressStatusDto));
     }
 
@@ -772,17 +759,17 @@ public class CartaceoService extends PresaInCaricoService implements QueueOperat
                     PatchDto patchDto = new PatchDto().retry(retryDto.retryStep(BigDecimal.ZERO));
                     return gestoreRepositoryCall.patchRichiesta(presaInCaricoInfo.getXPagopaExtchCxId(), presaInCaricoInfo.getRequestIdx(), patchDto);
                 })
-                .then(sqsService.sendWithDeduplicationId(cartaceoSqsQueueName.dlqErrorName(), presaInCaricoInfo));
+                .then(sqsService.sendWithDeduplicationId(cartaceoSqsQueueName.getDlqErrorName(), presaInCaricoInfo));
     }
 
     @Override
     public Mono<DeleteMessageResponse> deleteMessageFromErrorQueue(Message message) {
-        return sqsService.deleteMessageFromQueue(message, cartaceoSqsQueueName.errorName());
+        return sqsService.deleteMessageFromQueue(message, cartaceoSqsQueueName.getErrorName());
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnBatchQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(cartaceoSqsQueueName.batchName(), presaInCaricoInfo);
+        return sqsService.send(cartaceoSqsQueueName.getBatchName(), presaInCaricoInfo);
     }
 
 }

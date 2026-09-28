@@ -1,14 +1,13 @@
 package it.pagopa.pn.ec.pec.service.impl;
 
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
-import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -31,7 +30,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -64,9 +62,7 @@ import static org.mockito.Mockito.*;
 class PecServiceTest {
 
     @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
-    @Autowired
-    private PecSqsQueueName pecSqsQueueName;
+    private PnEcConfig pnEcConfig;
     @MockitoBean
     private FileCall uriBuilderCall;
     @MockitoBean
@@ -155,8 +151,8 @@ class PecServiceTest {
     }
 
     @BeforeAll
-    static void beforeAll(@Autowired PnPecConfigurationProperties pnPecConfigurationProperties) {
-        maxMessageSizeKb = pnPecConfigurationProperties.getMaxMessageSizeMb() * MB_TO_BYTES;
+    static void beforeAll(@Autowired PnEcConfig pnEcConfig) {
+        maxMessageSizeKb = pnEcConfig.getPec().getMaxMessageSizeMb() * MB_TO_BYTES;
     }
     @BeforeEach
     void setUp() {
@@ -209,6 +205,46 @@ class PecServiceTest {
     }
 
     @Test
+    void lavorazionePec_InvalidAddressesKo() {
+
+        var requestDto = buildRequestDto();
+
+        var clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(arubaService.sendMail(any())).thenReturn(Mono.error(new PnSpapiPermanentErrorException("class jakarta.mail.SendFailedException Invalid Addresses")));
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+
+        Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(ADDRESS_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+
+    }
+
+    @Test
+    void lavorazionePec_OtherSendFailedExceptionKo() {
+
+        var requestDto = buildRequestDto();
+
+        var clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(arubaService.sendMail(any())).thenReturn(Mono.error(new PnSpapiPermanentErrorException("class jakarta.mail.SendFailedException Some other reason")));
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+
+        Mono<SendMessageResponse> response = pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(RETRY.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+
+    }
+
+    @Test
     void lavorazionePec_MaxRetriesExceeded() {
 
         var clientId=PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
@@ -232,7 +268,7 @@ class PecServiceTest {
         var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
 
         mockAttachmentsWithLastInOffset(3);
-        when(pnPecConfigurationProperties.getAttachmentRule()).thenReturn("LIMIT");
+        pnEcConfig.getPec().setAttachmentRule("LIMIT");
         when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
 
@@ -257,7 +293,7 @@ class PecServiceTest {
         var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
 
         mockAttachmentsWithLastInOffset(3);
-        when(pnPecConfigurationProperties.getAttachmentRule()).thenReturn("FIRST");
+        pnEcConfig.getPec().setAttachmentRule("FIRST");
         when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
         when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
 
@@ -312,9 +348,9 @@ class PecServiceTest {
 
         byte[] mimeMessageBytes = extractSendMailData();
         var mimeMessage = getMimeMessage(mimeMessageBytes);
-        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName());
+        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, pnEcConfig.getPec().getTipoRicevutaHeaderName());
         assertNotNull(xTipoRicevutaHeader);
-        assertTrue(getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName()).length > 0);
+        assertTrue(getHeaderFromMimeMessage(mimeMessage, pnEcConfig.getPec().getTipoRicevutaHeaderName()).length > 0);
     }
 
     @ParameterizedTest
@@ -337,7 +373,7 @@ class PecServiceTest {
 
         byte[] mimeMessageBytes = extractSendMailData();
         var mimeMessage = getMimeMessage(mimeMessageBytes);
-        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, pnPecConfigurationProperties.getTipoRicevutaHeaderName());
+        var xTipoRicevutaHeader = getHeaderFromMimeMessage(mimeMessage, pnEcConfig.getPec().getTipoRicevutaHeaderName());
         assertNull(xTipoRicevutaHeader);
     }
 

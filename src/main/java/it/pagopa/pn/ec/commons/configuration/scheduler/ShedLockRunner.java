@@ -15,8 +15,8 @@ import org.springframework.stereotype.Component;
 public class ShedLockRunner {
 
     @SchedulerLock(name="lavorazioneRichiestaBatch",
-            lockAtMostFor = "${pn.ec.shedlock.lockAtMostFor}",
-            lockAtLeastFor = "${pn.ec.shedlock.lockAtLeastFor}")
+            lockAtMostFor = "${pn.ec.commons.shedlock.lock-at-most-for}",
+            lockAtLeastFor = "${pn.ec.commons.shedlock.lock-at-least-for}")
     public void runWithLock(String lockName, Runnable task) {
         log.info("Acquisito lock: {}", lockName);
         task.run();

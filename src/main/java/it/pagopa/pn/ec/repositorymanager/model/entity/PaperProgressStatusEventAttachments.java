@@ -19,4 +19,6 @@ public class PaperProgressStatusEventAttachments {
     String uri;
     String sha256;
     OffsetDateTime date;
+    String sourceType;
+    String originType;
 }

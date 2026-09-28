@@ -21,9 +21,10 @@ class StatusCodesToDeliveryFailureCausesConfTest {
 
         Map<String, Map<String, List<String>>> result = statusCodesToDeliveryFailureCausesConf.retrieveDeliveryFailureCausesFromParameterStore();
 
-        assertEquals(3, result.size());
+        assertEquals(4, result.size());
         assertEquals(Map.of("deliveryFailureCause", List.of("M03", "M04")), result.get("RECRN006"));
         assertEquals(Map.of("deliveryFailureCause", List.of("M05", "M06", "M07")), result.get("RECRN004A"));
         assertEquals(Map.of("deliveryFailureCause", List.of("M08", "M09", "F01", "F02", "TEST")), result.get("RECRN004B"));
+        assertEquals(Map.of("deliveryFailureCause", List.of("M10")), result.get("RECRN002A"));
     }
 }

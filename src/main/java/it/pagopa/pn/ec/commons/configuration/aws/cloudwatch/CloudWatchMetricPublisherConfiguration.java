@@ -2,10 +2,9 @@ package it.pagopa.pn.ec.commons.configuration.aws.cloudwatch;
 
 import it.pagopa.pn.ec.commons.exception.cloudwatch.CloudWatchResourceNotFoundException;
 import it.pagopa.pn.ec.commons.model.pojo.cloudwatch.CloudWatchMetricsPublisherWrapper;
-import it.pagopa.pn.library.pec.configurationproperties.PnPecMetricNames;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.metrics.*;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
@@ -23,29 +22,29 @@ import java.util.Map;
 @Configuration
 @CustomLog
 public class CloudWatchMetricPublisherConfiguration {
-    @Value("${library.pec.cloudwatch.namespace.aruba}")
-    private String arubaPecNamespace;
-    @Value("${library.pec.cloudwatch.namespace.namirial}")
-    private String namirialPecNamespace;
-    @Value("${cloudwatch.maximum-calls-per-upload:#{null}}")
-    private int maximumCallsPerUpload;
-    @Value("${cloudwatch.upload-frequency-millis:#{null}}")
-    private int uploadFrequencyMillis;
+    private final String arubaPecNamespace;
+    private final String namirialPecNamespace;
+    private final int maximumCallsPerUpload;
+    private final int uploadFrequencyMillis;
     private final CloudWatchAsyncClient cloudWatchAsyncClient;
     private final Map<String, CloudWatchMetricsPublisherWrapper> cloudWatchMetricPublishers = new HashMap<>();
     private final Map<String, SdkMetric<?>> cloudWatchSdkMetrics = new HashMap<>();
-    private final PnPecMetricNames pnPecMetricNames;
+    private final PnEcConfig.Commons.CloudWatch.PecMetricNames pnPecMetricNames;
 
     /**
      * Instantiates a new CloudWatchMetricPublisherConfiguration.
      *
      * @param cloudWatchAsyncClient the cloud watch async client
-     * @param pnPecMetricNames the names of the CloudWatch metrics
+     * @param pnEcConfig the pn-ec configuration, including the names of the CloudWatch metrics
      */
     @Autowired
-    public CloudWatchMetricPublisherConfiguration(CloudWatchAsyncClient cloudWatchAsyncClient, PnPecMetricNames pnPecMetricNames) {
+    public CloudWatchMetricPublisherConfiguration(CloudWatchAsyncClient cloudWatchAsyncClient, PnEcConfig pnEcConfig) {
         this.cloudWatchAsyncClient = cloudWatchAsyncClient;
-        this.pnPecMetricNames = pnPecMetricNames;
+        this.pnPecMetricNames = pnEcConfig.getCommons().getCloudWatch().getPecMetricNames();
+        this.arubaPecNamespace = pnEcConfig.getCommons().getCloudWatch().getPecNamespaceAruba();
+        this.namirialPecNamespace = pnEcConfig.getCommons().getCloudWatch().getPecNamespaceNamirial();
+        this.maximumCallsPerUpload = pnEcConfig.getCommons().getCloudWatch().getMaximumCallsPerUpload();
+        this.uploadFrequencyMillis = Math.toIntExact(pnEcConfig.getCommons().getCloudWatch().getUploadFrequencyMillis());
     }
 
     /**
@@ -107,7 +106,17 @@ public class CloudWatchMetricPublisherConfiguration {
      * Init method to initialize SdkMetrics
      */
     private void initCloudWatchSdkMetrics() {
-        pnPecMetricNames.getAllMetrics().forEach(metricName -> cloudWatchSdkMetrics.put(metricName, SdkMetric.create(metricName, Long.class, MetricLevel.INFO, MetricCategory.HTTP_CLIENT)));
+        List<String> allMetrics = List.of(
+                pnPecMetricNames.getMarkMessageAsReadResponseTime(),
+                pnPecMetricNames.getDeleteMessageResponseTime(),
+                pnPecMetricNames.getGetUnreadMessagesResponseTime(),
+                pnPecMetricNames.getGetMessageCountResponseTime(),
+                pnPecMetricNames.getSendMailResponseTime(),
+                pnPecMetricNames.getPayloadSizeRange(),
+                pnPecMetricNames.getMessageCountRange(),
+                pnPecMetricNames.getGetUnreadPecMessagesCount()
+        );
+        allMetrics.forEach(metricName -> cloudWatchSdkMetrics.put(metricName, SdkMetric.create(metricName, Long.class, MetricLevel.INFO, MetricCategory.HTTP_CLIENT)));
     }
 
 }

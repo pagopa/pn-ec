@@ -23,6 +23,10 @@ public class ConsAuditLogEvent<T> {
         return this;
     }
 
+    public static <T> ConsAuditLogEvent<T> of(T request, List<ConsAuditLogError> errorList) {
+        return new ConsAuditLogEvent<T>().request(request).errorList(errorList);
+    }
+
     @Override
     public String toString() {
         return "{" +

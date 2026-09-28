@@ -1,9 +1,9 @@
 package it.pagopa.pn.ec.commons.service;
 
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.Assertions;
@@ -28,7 +28,11 @@ class StatusPullServiceTest {
     @Autowired
     private StatusPullService statusPullService;
     @Autowired
-    private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
+    private PnEcConfig pnEcConfig;
+
+    private PnEcConfig.Commons.TransactionProcess transactionProcessProperties() {
+        return pnEcConfig.getCommons().getTransactionProcess();
+    }
     @MockitoBean
     private AuthService authService;
     @MockitoBean
@@ -88,7 +92,7 @@ class StatusPullServiceTest {
         when(callMacchinaStati.statusDecode(anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto(CourtesyMessageProgressEvent.EventCodeEnum.M003.getValue(), ProgressEventCategory.OK.getValue())));
 
 
-        Mono<CourtesyMessageProgressEvent> testMono = statusPullService.digitalPullService(SMS_REQUEST_IDX, CLIENT_ID, transactionProcessConfigurationProperties.sms());
+        Mono<CourtesyMessageProgressEvent> testMono = statusPullService.digitalPullService(SMS_REQUEST_IDX, CLIENT_ID, transactionProcessProperties().getSms());
         StepVerifier.create(testMono).expectNextCount(1).verifyComplete();
     }
 
@@ -99,7 +103,7 @@ class StatusPullServiceTest {
 
         when(gestoreRepositoryCall.getRichiesta(eq(CLIENT_ID), eq(SMS_REQUEST_IDX))).thenReturn(Mono.just(request));
 
-        Mono<CourtesyMessageProgressEvent> testMono = statusPullService.digitalPullService(SMS_REQUEST_IDX, CLIENT_ID, transactionProcessConfigurationProperties.sms());
+        Mono<CourtesyMessageProgressEvent> testMono = statusPullService.digitalPullService(SMS_REQUEST_IDX, CLIENT_ID, transactionProcessProperties().getSms());
         StepVerifier.create(testMono).expectNextCount(1).verifyComplete();
     }
 
@@ -215,6 +219,82 @@ class StatusPullServiceTest {
         Mono<PaperProgressStatusEvent> testMono = statusPullService.paperPullService(PAPER_REQUEST_IDX, CLIENT_ID);
         StepVerifier.create(testMono)
                     .assertNext(event -> Assertions.assertNull(event.getIsDuplicate()))
+                    .verifyComplete();
+    }
+
+    @Test
+    void paperPullServicePropagatesSourceTypeAndOriginTypeFromSourceDto() {
+
+        RequestDto request = paperRequest();
+        EventsDto paperEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+                .status(BOOKED.getStatusTransactionTableCompliant())
+                .statusDateTime(OffsetDateTime.now())
+                .discoveredAddress(new DiscoveredAddressDto())
+                .attachments(List.of(new AttachmentsProgressEventDto().sourceType("SCANNED").originType("DUPLICATED"))));
+        request.getRequestMetadata().setEventsList(List.of(paperEvent));
+
+        when(gestoreRepositoryCall.getRichiesta(eq(CLIENT_ID), eq(PAPER_REQUEST_IDX))).thenReturn(Mono.just(request));
+        when(callMacchinaStati.statusDecode(anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto("logicStatus", "externalStatus")));
+
+        Mono<PaperProgressStatusEvent> testMono = statusPullService.paperPullService(PAPER_REQUEST_IDX, CLIENT_ID);
+        StepVerifier.create(testMono)
+                    .assertNext(event -> {
+                        AttachmentDetails attachment = event.getAttachments().get(0);
+                        Assertions.assertEquals("SCANNED", attachment.getSourceType());
+                        Assertions.assertEquals("DUPLICATED", attachment.getOriginType());
+                    })
+                    .verifyComplete();
+    }
+
+    @Test
+    void paperPullServicePropagatesSourceTypeAndOriginTypeNullFromSourceDto() {
+
+        RequestDto request = paperRequest();
+        EventsDto paperEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+                .status(BOOKED.getStatusTransactionTableCompliant())
+                .statusDateTime(OffsetDateTime.now())
+                .discoveredAddress(new DiscoveredAddressDto())
+                .attachments(List.of(new AttachmentsProgressEventDto())));
+        request.getRequestMetadata().setEventsList(List.of(paperEvent));
+
+        when(gestoreRepositoryCall.getRichiesta(eq(CLIENT_ID), eq(PAPER_REQUEST_IDX))).thenReturn(Mono.just(request));
+        when(callMacchinaStati.statusDecode(anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto("logicStatus", "externalStatus")));
+
+        Mono<PaperProgressStatusEvent> testMono = statusPullService.paperPullService(PAPER_REQUEST_IDX, CLIENT_ID);
+        StepVerifier.create(testMono)
+                    .assertNext(event -> {
+                        AttachmentDetails attachment = event.getAttachments().get(0);
+                        Assertions.assertNull(attachment.getSourceType());
+                        Assertions.assertNull(attachment.getOriginType());
+                    })
+                    .verifyComplete();
+    }
+
+    @Test
+    void paperPullServicePropagatesPrinterAndDuFromSourceDto() {
+
+        String printer = "printer123456789abc";
+        String du = "du123456789abc";
+
+        RequestDto request = paperRequest();
+        EventsDto paperEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+                .status(BOOKED.getStatusTransactionTableCompliant())
+                .statusDateTime(OffsetDateTime.now())
+                .discoveredAddress(new DiscoveredAddressDto())
+                .attachments(List.of(new AttachmentsProgressEventDto()))
+                .printer(printer)
+                .du(du));
+        request.getRequestMetadata().setEventsList(List.of(paperEvent));
+
+        when(gestoreRepositoryCall.getRichiesta(eq(CLIENT_ID), eq(PAPER_REQUEST_IDX))).thenReturn(Mono.just(request));
+        when(callMacchinaStati.statusDecode(anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto("logicStatus", "externalStatus")));
+
+        Mono<PaperProgressStatusEvent> testMono = statusPullService.paperPullService(PAPER_REQUEST_IDX, CLIENT_ID);
+        StepVerifier.create(testMono)
+                    .assertNext(event -> {
+                        Assertions.assertEquals(printer, event.getPrinter());
+                        Assertions.assertEquals(du, event.getDu());
+                    })
                     .verifyComplete();
     }
 

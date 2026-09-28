@@ -2,7 +2,7 @@ package it.pagopa.pn.ec.repositorymanager.service.impl;
 
 import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
-import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfiguration;
 import it.pagopa.pn.ec.repositorymanager.model.entity.ClientConfigurationInternal;
 import it.pagopa.pn.ec.repositorymanager.service.ClientConfigurationService;
@@ -27,10 +27,10 @@ public class ClientConfigurationServiceImpl implements ClientConfigurationServic
     private final DynamoDbAsyncTableDecorator<ClientConfiguration> clientConfigurationDynamoDbTable;
 
     public ClientConfigurationServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
-                                          RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
-        this.clientConfigurationDynamoDbTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.anagraficaClientName(),
+                                          PnEcConfig pnEcConfig) {
+        this.clientConfigurationDynamoDbTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(pnEcConfig.getDynamo().getRepositoryManager().getAnagraficaClientName(),
                 TableSchema.fromBean(ClientConfiguration.class)));
-        this.clientConfigurationDynamoDbTableInternal = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.anagraficaClientName(),
+        this.clientConfigurationDynamoDbTableInternal = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(pnEcConfig.getDynamo().getRepositoryManager().getAnagraficaClientName(),
                 TableSchema.fromBean(ClientConfigurationInternal.class)));
     }
 

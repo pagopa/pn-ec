@@ -1,6 +1,7 @@
 package it.pagopa.pn.ec.commons.configuration;
 
 import it.pagopa.pn.ec.commons.configuration.scheduler.ShedLockConfig;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.core.LockProvider;
 import org.junit.jupiter.api.Test;
@@ -21,9 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Slf4j
 @SpringBootTest(classes = ShedLockConfig.class)
-@EnableConfigurationProperties(ShedLockConfig.class)
+@EnableConfigurationProperties(PnEcConfig.class)
 @TestPropertySource(properties = {
-        "pn.ec.shedlock.table-name=pn-EcShedlockCounter",
+        "pn.ec.commons.shedlock.table-name=pn-EcShedlockCounter",
         "pn.ec.feature.flag.cartaceo.consolidatore=true"
 })
 class ShedLockConfigTest {
