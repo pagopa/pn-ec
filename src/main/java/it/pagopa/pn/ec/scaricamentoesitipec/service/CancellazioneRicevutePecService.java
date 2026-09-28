@@ -39,7 +39,7 @@ public class CancellazioneRicevutePecService {
         this.semaphore = new Semaphore(maxThreadPoolSize);
     }
 
-    @SqsListener(value = "${cancellazione-ricevute-pec.sqs-queue-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.cancellazione-ricevute-pec.sqs-queue-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void cancellazioneRicevutePecInteractive(final CancellazioneRicevutePecDto cancellazioneRicevutePecDto, Acknowledgement acknowledgment) {
         var requestId = cancellazioneRicevutePecDto.getSingleStatusUpdate().getDigitalLegal().getRequestId();
         var clientId = cancellazioneRicevutePecDto.getSingleStatusUpdate().getClientId();

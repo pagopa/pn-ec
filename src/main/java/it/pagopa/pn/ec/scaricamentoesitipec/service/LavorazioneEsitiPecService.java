@@ -95,7 +95,7 @@ public class LavorazioneEsitiPecService {
         this.sqsTimeoutProvider=sqsTimeoutProvider;
     }
 
-    @SqsListener(value = "${scaricamento-esiti-pec.sqs-queue-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.scaricamento-esiti-pec.sqs-queue-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void lavorazioneEsitiPecInteractive(final RicezioneEsitiPecDto ricezioneEsitiPecDto, Acknowledgement acknowledgment) {
         logIncomingMessage(scaricamentoEsitiPecProperties.getSqsQueueName(), ricezioneEsitiPecDto);
         lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment).block();
