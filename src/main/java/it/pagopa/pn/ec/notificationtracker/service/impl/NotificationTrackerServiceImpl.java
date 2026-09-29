@@ -2,9 +2,7 @@ package it.pagopa.pn.ec.notificationtracker.service.impl;
 
 
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
-import it.pagopa.pn.ec.commons.configuration.ses.SesConfigurationProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsMaxTimeElapsedException;
@@ -37,23 +35,22 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final CallMacchinaStati callMachinaStati;
     private final SqsService sqsService;
-    private final TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
-    private final NotificationTrackerSqsName notificationTrackerSqsName;
-    private final SesConfigurationProperties sesConfigurationProperties;
+    private final PnEcConfig.Commons.TransactionProcess transactionProcessProperties;
+    private final PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName;
+    private final PnEcConfig.Email.Ses sesConfigurationProperties;
     private static final String EXTERNAL_CHANNEL_REWORK_OUTCOME_EVENT = "ExternalChannelReworkOutcomeEvent";
     private static final String EXTERNAL_CHANNEL_OUTCOME_EVENT = "ExternalChannelOutcomeEvent";
 
     public NotificationTrackerServiceImpl(PutEvents putEvents, GestoreRepositoryCall gestoreRepositoryCall,
                                           CallMacchinaStati callMachinaStati, SqsService sqsService,
-                                          TransactionProcessConfigurationProperties transactionProcessConfigurationProperties, NotificationTrackerSqsName notificationTrackerSqsName,
-                                          SesConfigurationProperties sesConfigurationProperties) {
+                                          PnEcConfig pnEcConfig) {
         this.putEvents = putEvents;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
         this.callMachinaStati = callMachinaStati;
         this.sqsService = sqsService;
-        this.transactionProcessConfigurationProperties = transactionProcessConfigurationProperties;
-        this.notificationTrackerSqsName = notificationTrackerSqsName;
-        this.sesConfigurationProperties = sesConfigurationProperties;
+        this.transactionProcessProperties = pnEcConfig.getCommons().getTransactionProcess();
+        this.notificationTrackerSqsName = pnEcConfig.getNotificationTracker().getSqsQueue();
+        this.sesConfigurationProperties = pnEcConfig.getEmail().getSes();
     }
 
     @Override
@@ -89,7 +86,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 //                                  Set status request to start status if is null
                                     .map(requestDto -> {
                                         if (requestDto.getStatusRequest() == null) {
-                                            requestDto.setStatusRequest(transactionProcessConfigurationProperties.startStatus());
+                                            requestDto.setStatusRequest(transactionProcessProperties.getStartStatus());
                                         }
                                         return requestDto;
                                     })
@@ -151,7 +148,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
                                                 digitalMessageReference.setLocation(generatedMessage.getLocation());
                                             }
 
-                                            if (transactionProcessConfigurationProperties.pec().equals(processId) || transactionProcessConfigurationProperties.sercq().equals(processId)) {
+                                            if (transactionProcessProperties.getPec().equals(processId) || transactionProcessProperties.getSercq().equals(processId)) {
 
                                                 LegalMessageSentDetails legalMessageSentDetails = createLegalMessageSentDetails(requestDto, macchinaStatiDecodeResponseDto, lastEventUpdatedDigital, digitalMessageReference);
 
@@ -198,14 +195,14 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                                         String detailType = getDetailType(requestDto);
 
-                                        if (transactionProcessConfigurationProperties.email().equals(processId)) {
+                                        if (transactionProcessProperties.getEmail().equals(processId)) {
                                             return gestoreRepositoryCall.getClientConfiguration(xPagopaExtchCxId)
                                                     .switchIfEmpty(Mono.defer(() -> {
                                                         log.warn("Client non trovato per xPagopaExtchCxId={}", xPagopaExtchCxId);
                                                         return Mono.error(new RepositoryManagerException.IdClientNotFoundException(xPagopaExtchCxId));
                                                     }))
                                                     .flatMap(clientDto -> {
-                                                        log.debug("clientDto: {}", clientDto.toString());
+                                                        log.debug("clientDto: {}", clientDto.getxPagopaExtchCxId());
                                                         List<String> sesEventsList = clientDto.getSesEventsList();
                                                         if (sesEventsList == null || sesEventsList.isEmpty()) {
                                                             sesEventsList = Arrays.stream(sesConfigurationProperties.getEventsListDefault().split(";")).toList();
@@ -263,7 +260,7 @@ public class NotificationTrackerServiceImpl implements NotificationTrackerServic
 
                     } else elapsedTime = SECONDS.between(paperProgressStatusDto.getStatusDateTime(), now);
 
-                    return elapsedTime > notificationTrackerSqsName.elapsedTimeSeconds() ? Mono.error(new SqsMaxTimeElapsedException()) : Mono.just(payload);
+                    return elapsedTime > notificationTrackerSqsName.getElapsedTimeSeconds() ? Mono.error(new SqsMaxTimeElapsedException()) : Mono.just(payload);
                 })
                 .doOnNext(payload -> payload.setRetry(0))
                 .flatMap(payload -> sqsService.send(ntStatoQueueName, payload))

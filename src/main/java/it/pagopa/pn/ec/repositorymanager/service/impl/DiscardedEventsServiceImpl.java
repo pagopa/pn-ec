@@ -1,7 +1,7 @@
 package it.pagopa.pn.ec.repositorymanager.service.impl;
 
 import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
-import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.repositorymanager.model.entity.DiscardedEvent;
 import it.pagopa.pn.ec.repositorymanager.service.DiscardedEventsService;
 import lombok.CustomLog;
@@ -21,8 +21,8 @@ public class DiscardedEventsServiceImpl implements DiscardedEventsService {
     private final DynamoDbAsyncTableDecorator<DiscardedEvent> discardedEventDynamoDbAsyncTable;
 
 
-    public DiscardedEventsServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedAsyncClient, RepositoryManagerDynamoTableName repositoryManagerDynamoTableName) {
-        this.discardedEventDynamoDbAsyncTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedAsyncClient.table(repositoryManagerDynamoTableName.scartiConsolidatoreName(), TableSchema.fromBean(DiscardedEvent.class)));
+    public DiscardedEventsServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedAsyncClient, PnEcConfig pnEcConfig) {
+        this.discardedEventDynamoDbAsyncTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedAsyncClient.table(pnEcConfig.getDynamo().getRepositoryManager().getScartiConsolidatoreName(), TableSchema.fromBean(DiscardedEvent.class)));
     }
 
     @Override

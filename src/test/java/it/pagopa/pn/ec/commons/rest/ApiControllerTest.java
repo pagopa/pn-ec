@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec.commons.rest;
 
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.ec.ExternalChannelEndpointProperties;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,9 +15,6 @@ class ApiControllerTest {
 
 	@Autowired
 	private WebTestClient webClient;
-
-	@Autowired
-	private ExternalChannelEndpointProperties extChannelEndpoint;
 
 	@Test
 	void getStatusTest() {

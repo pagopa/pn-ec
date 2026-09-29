@@ -1,10 +1,9 @@
 package it.pagopa.pn.library.pec.configuration;
 
 import it.pagopa.pn.ec.commons.exception.cloudwatch.CloudWatchResourceNotFoundException;
-import it.pagopa.pn.library.pec.configurationproperties.PnPecMetricNames;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.library.pec.utils.MetricsDimensionParser;
 import lombok.CustomLog;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
 import software.amazon.awssdk.services.ssm.SsmClient;
@@ -27,12 +26,12 @@ public class MetricsDimensionConfiguration {
     private final SsmClient ssmClient;
     private final MetricsDimensionParser metricsDimensionParser;
     private Map<String, Map<String, List<Long>>> dimensionsSchema = new HashMap<>();
-    @Value("${pn.pec.dimension.metrics.schema}")
-    private String pnPecDimensionsSchemaName;
+    private final String pnPecDimensionsSchemaName;
 
-    public MetricsDimensionConfiguration(SsmClient ssmClient) {
+    public MetricsDimensionConfiguration(SsmClient ssmClient, PnEcConfig pnEcConfig) {
         this.ssmClient = ssmClient;
         this.metricsDimensionParser = new MetricsDimensionParser();
+        this.pnPecDimensionsSchemaName = pnEcConfig.getPec().getDimensionMetricsSchema();
     }
 
     /**

@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.service;
 
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
@@ -11,6 +10,7 @@ import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.S3Service;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.utils.EmailUtils;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.RicezioneEsitiPecDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
@@ -59,7 +59,11 @@ class ScaricamentoEsitiPecServiceTest {
     @MockitoSpyBean
     private LavorazioneEsitiPecService lavorazioneEsitiPecService;
     @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
+    private PnEcConfig pnEcConfig;
+
+    private PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName() {
+        return pnEcConfig.getNotificationTracker().getSqsQueue();
+    }
     @MockitoBean
     private Acknowledgement acknowledgment;
     @MockitoBean
@@ -101,7 +105,7 @@ class ScaricamentoEsitiPecServiceTest {
 
         Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
         StepVerifier.create(testMono).expectComplete().verify();
-        verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class));
+        verify(sqsService, times(1)).send(eq(notificationTrackerSqsName().getStatoPecName()), any(NotificationTrackerQueueDto.class));
     }
 
     @ParameterizedTest
@@ -118,7 +122,7 @@ class ScaricamentoEsitiPecServiceTest {
 
         Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
         StepVerifier.create(testMono).expectComplete().verify();
-        verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class));
+        verify(sqsService, times(1)).send(eq(notificationTrackerSqsName().getStatoPecName()), any(NotificationTrackerQueueDto.class));
         verify(s3Service, times(1)).getObjectAndConvert(pointerFileKey, storageSqsMessagesStagingBucket, RicezioneEsitiPecDto.class);
 
     }
@@ -151,7 +155,7 @@ class ScaricamentoEsitiPecServiceTest {
 
         Mono<Void> testMono = lavorazioneEsitiPecService.lavorazioneEsitiPec(ricezioneEsitiPecDto, acknowledgment);
         StepVerifier.create(testMono).expectComplete().verify();
-        verify(sqsService, times(1)).send(eq(notificationTrackerSqsName.statoPecName()), any(NotificationTrackerQueueDto.class));
+        verify(sqsService, times(1)).send(eq(notificationTrackerSqsName().getStatoPecName()), any(NotificationTrackerQueueDto.class));
 
     }
 

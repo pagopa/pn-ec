@@ -3,12 +3,11 @@ package it.pagopa.pn.ec.pdfraster.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.pagopa.pn.commons.utils.dynamodb.async.DynamoDbAsyncTableDecorator;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
-import it.pagopa.pn.ec.pdfraster.configuration.PdfRasterProperties;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.pdfraster.model.entity.AttachmentToConvert;
 import it.pagopa.pn.ec.pdfraster.model.entity.PdfConversionEntity;
 import it.pagopa.pn.ec.pdfraster.model.entity.RequestConversionEntity;
 import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
-import it.pagopa.pn.ec.repositorymanager.configurationproperties.RepositoryManagerDynamoTableName;
 import it.pagopa.pn.ec.rest.v1.dto.RequestConversionDto;
 import lombok.CustomLog;
 import org.springframework.stereotype.Service;
@@ -51,17 +50,19 @@ public class RequestConversionServiceImpl implements RequestConversionService {
 
 
     public RequestConversionServiceImpl(DynamoDbEnhancedAsyncClient dynamoDbEnhancedClient,
-                                        RepositoryManagerDynamoTableName repositoryManagerDynamoTableName, ObjectMapper objectMapper, DynamoDbAsyncClient dynamoDbAsyncClient, PdfRasterProperties pdfRasterProperties) {
+                                        PnEcConfig pnEcConfig, ObjectMapper objectMapper, DynamoDbAsyncClient dynamoDbAsyncClient) {
         this.objectMapper = objectMapper;
         this.dynamoDbAsyncClient = dynamoDbAsyncClient;
         this.requestConversionTableSchema = TableSchema.fromBean(RequestConversionEntity.class);
         this.pdfConversionTableSchema = TableSchema.fromBean(PdfConversionEntity.class);
-        this.requestTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversioneRequestName(), this.requestConversionTableSchema));
-        this.conversionTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.richiesteConversionePdfName(), this.pdfConversionTableSchema));
-        this.pdfRasterRetryStrategy = Retry.backoff(pdfRasterProperties.maxRetryAttempts(), Duration.ofSeconds(pdfRasterProperties.minRetryBackoff()))
+        var repositoryManagerDynamoTableName = pnEcConfig.getDynamo().getRepositoryManager();
+        this.requestTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.getRichiesteConversioneRequestName(), this.requestConversionTableSchema));
+        this.conversionTable = new DynamoDbAsyncTableDecorator<>(dynamoDbEnhancedClient.table(repositoryManagerDynamoTableName.getRichiesteConversionePdfName(), this.pdfConversionTableSchema));
+        var pdfRasterProperties = pnEcConfig.getPdfRaster();
+        this.pdfRasterRetryStrategy = Retry.backoff(pdfRasterProperties.getMaxRetryAttempts(), Duration.ofSeconds(pdfRasterProperties.getMinRetryBackoff()))
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure())
                 .doBeforeRetry(retrySignal -> log.info("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
-        this.offsetDays = pdfRasterProperties.pdfConversionExpirationOffsetInDays();
+        this.offsetDays = pdfRasterProperties.getPdfConversionExpirationOffsetInDays();
     }
 
     @Override
@@ -71,7 +72,7 @@ public class RequestConversionServiceImpl implements RequestConversionService {
                 .flatMap(this::saveRequestConversionWithTransaction)
                 .map(this::convertToDto)
                 .doOnSuccess(result -> log.logEndingProcess(PDF_RASTER_INSERT_REQUEST_CONVERSION))
-                .doOnError(throwable -> log.logEndingProcess(PDF_RASTER_INSERT_REQUEST_CONVERSION, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(PDF_RASTER_INSERT_REQUEST_CONVERSION, false, throwable.getMessage(), throwable));
     }
 
 
@@ -108,7 +109,7 @@ public class RequestConversionServiceImpl implements RequestConversionService {
 
         return processUpdateRequestConversion(fileKey, converted, fileHash, isTransformationError)
                 .doOnSuccess(result -> log.info(PDF_RASTER_UPDATE_REQUEST_CONVERSION))
-                .doOnError(exception -> log.logEndingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION, false, exception.getMessage()))
+                .doOnError(exception -> log.logEndingProcess(PDF_RASTER_UPDATE_REQUEST_CONVERSION, false, exception.getMessage(), exception))
                 .retryWhen(pdfRasterRetryStrategy);
     }
 

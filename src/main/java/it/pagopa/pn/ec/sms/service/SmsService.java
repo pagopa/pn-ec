@@ -4,7 +4,6 @@ import io.awspring.cloud.sqs.annotation.SqsListener;
 import io.awspring.cloud.sqs.annotation.SqsListenerAcknowledgementMode;
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
@@ -14,13 +13,12 @@ import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.policy.Policy;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.*;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.util.LogSanitizer;
 import lombok.CustomLog;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -54,22 +52,22 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     private final SqsService sqsService;
     private final SnsService snsService;
     private final GestoreRepositoryCall gestoreRepositoryCall;
-    private final SmsSqsQueueName smsSqsQueueName;
-    private final NotificationTrackerSqsName notificationTrackerSqsName;
+    private final PnEcConfig.Sms.SqsQueue smsSqsQueueName;
+    private final PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName;
     private final Semaphore semaphore;
     private String idSaved;
     private LogSanitizer logSanitizer;
 
     protected SmsService(AuthService authService, SqsService sqsService, SnsService snsService,
-                         GestoreRepositoryCall gestoreRepositoryCall, NotificationTrackerSqsName notificationTrackerSqsName,
-                         SmsSqsQueueName smsSqsQueueName, @Value("${lavorazione-sms.max-thread-pool-size}") Integer maxThreadPoolSize, LogSanitizer logSanitizer) {
+                         GestoreRepositoryCall gestoreRepositoryCall,
+                         PnEcConfig pnEcConfig, LogSanitizer logSanitizer) {
         super(authService);
         this.sqsService = sqsService;
         this.snsService = snsService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
-        this.notificationTrackerSqsName = notificationTrackerSqsName;
-        this.smsSqsQueueName = smsSqsQueueName;
-        this.semaphore=new Semaphore(maxThreadPoolSize);
+        this.notificationTrackerSqsName = pnEcConfig.getNotificationTracker().getSqsQueue();
+        this.smsSqsQueueName = pnEcConfig.getSms().getSqsQueue();
+        this.semaphore=new Semaphore(pnEcConfig.getSms().getMaxThreadPoolSize());
         this.logSanitizer = logSanitizer;
     }
 
@@ -118,7 +116,6 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
     @SuppressWarnings("Duplicates")
     private Mono<RequestDto> insertRequestFromSms(final DigitalCourtesySmsRequest digitalCourtesySmsRequest, String xPagopaExtchCxId) {
-        log.debug(INVOKING_OPERATION_LABEL_WITH_ARGS, INSERT_REQUEST_FROM_SMS, digitalCourtesySmsRequest);
         return Mono.fromCallable(() -> {
             var requestDto = new RequestDto();
 
@@ -151,10 +148,10 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, INSERT_REQUEST_FROM_SMS, result));
     }
 
-    @SqsListener(value = "${sqs.queue.sms.interactive-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.sms.sqs-queue.interactive-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     void lavorazioneRichiestaInteractive(final SmsPresaInCaricoInfo smsPresaInCaricoInfo, final Acknowledgement acknowledgment) {
         MDC.clear();
-        logIncomingMessage(smsSqsQueueName.interactiveName(), smsPresaInCaricoInfo);
+        logIncomingMessage(smsSqsQueueName.getInteractiveName(), smsPresaInCaricoInfo);
         lavorazioneRichiesta(smsPresaInCaricoInfo).then(Mono.defer(() -> Mono.fromFuture(acknowledgment.acknowledgeAsync()))).block();
     }
 
@@ -162,15 +159,15 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
     void lavorazioneRichiestaBatch() {
     	log.logStartingProcess(LAVORAZIONE_BATCH_SMS);
         MDC.clear();
-        sqsService.getMessages(smsSqsQueueName.batchName(), SmsPresaInCaricoInfo.class)
-                  .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.batchName(),
+        sqsService.getMessages(smsSqsQueueName.getBatchName(), SmsPresaInCaricoInfo.class)
+                  .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.getBatchName(),
                                                                                         smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                   .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> Mono.zip(Mono.just(smsPresaInCaricoInfoSqsMessageWrapper.getMessage()),
                                                                              lavorazioneRichiesta(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent())))
                   .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> sqsService.deleteMessageFromQueue(smsPresaInCaricoInfoSqsMessageWrapper.getT1(),
-                                                                                                      smsSqsQueueName.batchName()))
+                                                                                                      smsSqsQueueName.getBatchName()))
                   .transform(pullFromFluxUntilIsEmpty())
-                  .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_SMS, false, e.getMessage()))
+                  .doOnError(e -> log.logEndingProcess(LAVORAZIONE_BATCH_SMS, false, e.getMessage(), e))
                   .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_BATCH_SMS))
                   .blockLast();
         
@@ -226,7 +223,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
 //                               Publish to ERRORI SMS queue
                 .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo)))
-                .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_SMS, false,logSanitizer.sanitize(throwable.getMessage())))
+                .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_SMS, false,logSanitizer.sanitize(throwable.getMessage()), throwable))
                 .doOnSuccess(result -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_SMS))
                 .doFinally(signalType -> semaphore.release()));
     }
@@ -241,8 +238,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
         MDC.clear();
         idSaved = null;
-        sqsService.getOneMessage(smsSqsQueueName.errorName(), SmsPresaInCaricoInfo.class)
-                  .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.errorName(),
+        sqsService.getOneMessage(smsSqsQueueName.getErrorName(), SmsPresaInCaricoInfo.class)
+                  .doOnNext(smsPresaInCaricoInfoSqsMessageWrapper -> logIncomingMessage(smsSqsQueueName.getErrorName(),
                                                                                         smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent()))
                   .flatMap(smsPresaInCaricoInfoSqsMessageWrapper -> gestioneRetrySms(smsPresaInCaricoInfoSqsMessageWrapper.getMessageContent(),
                                                                                      smsPresaInCaricoInfoSqsMessageWrapper.getMessage()))
@@ -253,7 +250,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                   .defaultIfEmpty(new MonoResultWrapper<>(null))
                   .repeat()
                   .takeWhile(MonoResultWrapper::isNotEmpty)
-                  .doOnError(e -> log.logEndingProcess(LAVORAZIONE_ERRORI_SMS, false, e.getMessage()))
+                  .doOnError(e -> log.logEndingProcess(LAVORAZIONE_ERRORI_SMS, false, e.getMessage(), e))
                   .doOnComplete(() -> log.logEndingProcess(LAVORAZIONE_ERRORI_SMS))
                   .blockLast();
     }
@@ -331,7 +328,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
         var retry = requestDto.getRequestMetadata().getRetry();
         if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size())) > 0) {
             // operazioni per la rimozione del messaggio
-            log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, smsSqsQueueName.errorName());
+            log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, smsSqsQueueName.getErrorName());
             return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                                  ERROR.getStatusTransactionTableCompliant(),
                                                  new DigitalProgressStatusDto()).flatMap(
@@ -362,7 +359,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                              new DigitalProgressStatusDto().generatedMessage(smsPresaInCaricoInfo.getStepError()
                                                                                                                  .getGeneratedMessageDto()))
                 .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message)
-                        .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, smsSqsQueueName.errorName())))
+                        .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, smsSqsQueueName.getErrorName())))
 
                 .onErrorResume(sqsPublishException -> {
                     log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_SMS, sqsPublishException,
@@ -386,7 +383,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                                                                        new DigitalProgressStatusDto().generatedMessage(
                                                                                                generatedMessageDto)))
                          .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
-                         .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, smsSqsQueueName.errorName()))
+                         .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, smsSqsQueueName.getErrorName()))
                          .onErrorResume(sqsPublishException -> {
                              log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_SMS, sqsPublishException,
                                       logSanitizer.sanitize(String.valueOf(sqsPublishException.getMessage())));
@@ -405,39 +402,39 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                      DELETED.getStatusTransactionTableCompliant(),
                                      new DigitalProgressStatusDto())
         .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
-        .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, smsSqsQueueName.errorName())))
+        .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, smsSqsQueueName.getErrorName())))
 .onErrorResume(internalError -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                                               INTERNAL_ERROR.getStatusTransactionTableCompliant(),
                                                               new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
-                .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_SMS, false, logSanitizer.sanitize(throwable.getMessage())))
+                .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_SMS, false, logSanitizer.sanitize(throwable.getMessage()), throwable))
                 .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_SMS)));
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnStatusQueue(PresaInCaricoInfo presaInCaricoInfo, String status,
                                                                    DigitalProgressStatusDto digitalProgressStatusDto) {
-        return sqsService.send(notificationTrackerSqsName.statoSmsName(),
+        return sqsService.send(notificationTrackerSqsName.getStatoSmsName(),
                                createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, status, digitalProgressStatusDto));
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnErrorQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(smsSqsQueueName.errorName(), presaInCaricoInfo);
+        return sqsService.send(smsSqsQueueName.getErrorName(), presaInCaricoInfo);
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnBatchQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(smsSqsQueueName.batchName(), presaInCaricoInfo);
+        return sqsService.send(smsSqsQueueName.getBatchName(), presaInCaricoInfo);
     }
 
     @Override
     public Mono<SendMessageResponse> sendNotificationOnInteractiveQueue(PresaInCaricoInfo presaInCaricoInfo) {
-        return sqsService.send(smsSqsQueueName.interactiveName(), presaInCaricoInfo);
+        return sqsService.send(smsSqsQueueName.getInteractiveName(), presaInCaricoInfo);
     }
 
     @Override
     public Mono<DeleteMessageResponse> deleteMessageFromErrorQueue(Message message) {
-        return sqsService.deleteMessageFromQueue(message, smsSqsQueueName.errorName());
+        return sqsService.deleteMessageFromQueue(message, smsSqsQueueName.getErrorName());
     }
 
 }

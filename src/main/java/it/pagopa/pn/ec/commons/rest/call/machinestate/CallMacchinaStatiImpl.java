@@ -1,12 +1,11 @@
 package it.pagopa.pn.ec.commons.rest.call.machinestate;
 
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.statemachine.StateMachineEndpointProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.sm.StateMachineRetryStrategyProperties;
 import it.pagopa.pn.ec.commons.exception.InvalidNextStatusException;
 import it.pagopa.pn.ec.commons.exception.StateMachineServiceException;
 import it.pagopa.pn.ec.commons.exception.StatusNotFoundException;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiDecodeResponseDto;
 import it.pagopa.pn.ec.commons.model.dto.MacchinaStatiValidateStatoResponseDto;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -30,15 +29,16 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 public class CallMacchinaStatiImpl implements CallMacchinaStati {
 
     private final WebClient stateMachineWebClient;
-    private final StateMachineEndpointProperties stateMachineEndpointProperties;
+    private final PnEcConfig.StateMachine.Endpoint stateMachineEndpointProperties;
     private final RetryBackoffSpec smRetryStrategy;
 
     private static final String CLIENT_ID_QUERY_PARAM = "clientId";
 
-    public CallMacchinaStatiImpl(@Qualifier("stateMachineWebClient") WebClient stateMachineWebClient, StateMachineEndpointProperties stateMachineEndpointProperties, StateMachineRetryStrategyProperties smRetryStrategyProperties) {
+    public CallMacchinaStatiImpl(@Qualifier("stateMachineWebClient") WebClient stateMachineWebClient, PnEcConfig pnEcConfig) {
         this.stateMachineWebClient = stateMachineWebClient;
-        this.stateMachineEndpointProperties = stateMachineEndpointProperties;
-        this.smRetryStrategy = Retry.backoff(smRetryStrategyProperties.maxAttempts(), Duration.ofSeconds(smRetryStrategyProperties.minBackoff()))
+        this.stateMachineEndpointProperties = pnEcConfig.getStateMachine().getEndpoint();
+        var smRetryStrategyProperties = pnEcConfig.getStateMachine().getRetryStrategy();
+        this.smRetryStrategy = Retry.backoff(smRetryStrategyProperties.getMaxAttempts(), Duration.ofSeconds(smRetryStrategyProperties.getMinBackoff()))
                 .filter(StateMachineServiceException.class::isInstance)
                 .doBeforeRetry(retrySignal -> log.info(SHORT_RETRY_ATTEMPT, retrySignal.totalRetries(), retrySignal.failure().getMessage()))
                 .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure());
@@ -50,7 +50,7 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
             throws InvalidNextStatusException {
         log.logInvokingExternalService(STATE_MACHINE_SERVICE, STATUS_VALIDATION);
         return stateMachineWebClient.get()
-                .uri(UriComponentsBuilder.fromPath(stateMachineEndpointProperties.validate())
+                .uri(UriComponentsBuilder.fromPath(stateMachineEndpointProperties.getValidate())
                         .queryParam(CLIENT_ID_QUERY_PARAM, xPagopaExtchCxId)
                         .queryParam("nextStatus", nextStatus)
                         .build(processId, currentStatus).toString())
@@ -75,7 +75,7 @@ public class CallMacchinaStatiImpl implements CallMacchinaStati {
     public Mono<MacchinaStatiDecodeResponseDto> statusDecode(String xPagopaExtchCxId, String processId, String statusToDecode) {
         log.logInvokingExternalService(STATE_MACHINE_SERVICE, STATUS_DECODE);
         return stateMachineWebClient.get()
-                .uri(UriComponentsBuilder.fromPath(stateMachineEndpointProperties.decode())
+                .uri(UriComponentsBuilder.fromPath(stateMachineEndpointProperties.getDecode())
                         .queryParam(CLIENT_ID_QUERY_PARAM, xPagopaExtchCxId)
                         .build(processId, statusToDecode).toString())
                 .retrieve()

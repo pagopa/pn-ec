@@ -14,7 +14,7 @@ import java.time.Duration;
 import java.util.Map;
 
 @SpringBootTestWebEnv
-@TestPropertySource(properties = "ricezione-esiti-cartaceo.duplicates-check=productType1:NONBLOCKING;productType2;productType3")
+@TestPropertySource(properties = "pn.ec.commons.ricezione-esiti-cartaceo.duplicates-check=productType1:NONBLOCKING;productType2;productType3")
 @CustomLog
 class RicezioneEsitiCartaceoConfigurationTest {
 

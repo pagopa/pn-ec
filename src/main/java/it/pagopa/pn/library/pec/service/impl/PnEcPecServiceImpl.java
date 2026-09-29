@@ -2,14 +2,13 @@ package it.pagopa.pn.library.pec.service.impl;
 
 import com.namirial.pec.library.service.PnPecServiceImpl;
 import it.pagopa.pn.commons.utils.MDCUtils;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.dummy.pec.service.DummyPecService;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.ec.scaricamentoesitipec.utils.CloudWatchPecMetrics;
 import it.pagopa.pn.ec.util.EmfLogUtils;
 import it.pagopa.pn.library.exceptions.PnSpapiTemporaryErrorException;
 import it.pagopa.pn.library.pec.configuration.MetricsDimensionConfiguration;
-import it.pagopa.pn.library.pec.configurationproperties.PnPecMetricNames;
-import it.pagopa.pn.library.pec.configurationproperties.PnPecRetryStrategyProperties;
 import it.pagopa.pn.library.pec.exception.aruba.ArubaCallMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.NamirialProviderMaxRetriesExceededException;
 import it.pagopa.pn.library.pec.exception.pecservice.MaxRetriesExceededException;
@@ -26,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -53,35 +51,35 @@ public class PnEcPecServiceImpl implements PnEcPecService {
     private final ArubaService arubaService;
     private final com.namirial.pec.library.service.PnPecServiceImpl namirialService;
     private final PnPecConfigurationProperties props;
-    private final PnPecRetryStrategyProperties retryStrategyProperties;
+    private final PnEcConfig.Pec.RetryStrategy retryStrategyProperties;
     private final CloudWatchPecMetrics cloudWatchPecMetrics;
     private final DummyPecService dummyPecService;
-    private final PnPecMetricNames pnPecMetricNames;
+    private final PnEcConfig.Commons.CloudWatch.PecMetricNames pnPecMetricNames;
     private final MetricsDimensionConfiguration metricsDimensionConfiguration;
     private static final Logger jsonLogger = LoggerFactory.getLogger("it.pagopa.pn.JsonLogger");
 
-    @Value("${library.pec.cloudwatch.namespace.aruba}")
-    private String arubaProviderNamespace;
-    @Value("${library.pec.cloudwatch.namespace.namirial}")
-    private String namirialProviderNamespace;
+    private final String arubaProviderNamespace;
+    private final String namirialProviderNamespace;
 
     @Autowired
     public PnEcPecServiceImpl(@Qualifier("arubaServiceImpl") ArubaService arubaService, PnPecServiceImpl namirialService, PnPecConfigurationProperties props,
-                              PnPecRetryStrategyProperties retryStrategyProperties, CloudWatchPecMetrics cloudWatchPecMetrics, PnPecMetricNames pnPecMetricNames,
-                              MetricsDimensionConfiguration metricsDimensionConfiguration, DummyPecService dummyPecService) {
+                              CloudWatchPecMetrics cloudWatchPecMetrics,
+                              MetricsDimensionConfiguration metricsDimensionConfiguration, DummyPecService dummyPecService, PnEcConfig pnEcConfig) {
         this.arubaService = arubaService;
         this.namirialService = namirialService;
-        this.retryStrategyProperties = retryStrategyProperties;
+        this.retryStrategyProperties = pnEcConfig.getPec().getRetryStrategy();
         this.props = props;
         this.cloudWatchPecMetrics = cloudWatchPecMetrics;
         this.dummyPecService = dummyPecService;
-        this.pnPecMetricNames = pnPecMetricNames;
+        this.pnPecMetricNames = pnEcConfig.getCommons().getCloudWatch().getPecMetricNames();
         this.metricsDimensionConfiguration = metricsDimensionConfiguration;
+        this.arubaProviderNamespace = pnEcConfig.getCommons().getCloudWatch().getPecNamespaceAruba();
+        this.namirialProviderNamespace = pnEcConfig.getCommons().getCloudWatch().getPecNamespaceNamirial();
     }
 
     private Retry getPnPecRetryStrategy(String clientMethodName, PnPecService service) {
         var mdcContextMap = MDCUtils.retrieveMDCContextMap();
-        return Retry.backoff(Long.parseLong(retryStrategyProperties.maxAttempts()), Duration.ofSeconds(Long.parseLong(retryStrategyProperties.minBackoff())))
+        return Retry.backoff(Long.parseLong(retryStrategyProperties.getMaxAttempts()), Duration.ofSeconds(Long.parseLong(retryStrategyProperties.getMinBackoff())))
                 .filter(PnSpapiTemporaryErrorException.class::isInstance)
                 .doBeforeRetry(retrySignal -> {
                     MDCUtils.enrichWithMDC(null, mdcContextMap);
@@ -114,7 +112,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
         return Mono.fromSupplier(this::getProviderWrite)
                 .transform(sendMailAndHandleMetrics(message))
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_SEND_MAIL))
-                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_SEND_MAIL, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_SEND_MAIL, false, throwable.getMessage(), throwable));
     }
 
     /**
@@ -151,7 +149,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 .collectList()
                 .flatMap(this::processAndLogUnreadPecMessages)
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES))
-                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_UNREAD_MESSAGES, false, throwable.getMessage(), throwable));
     }
 
     private Mono<PnEcPecGetMessagesResponse> processAndLogUnreadPecMessages(List<PnEcPecMessage> messages) {
@@ -200,7 +198,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 .transform(getMessageCountAndHandleMetrics())
                 .reduce(0, Integer::sum)
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_GET_MESSAGE_COUNT))
-                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_MESSAGE_COUNT, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_GET_MESSAGE_COUNT, false, throwable.getMessage(), throwable));
     }
 
     @Override
@@ -211,7 +209,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_MARK_MESSAGE_AS_READ, provider))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ))
-                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_MARK_MESSAGE_AS_READ, false, throwable.getMessage(), throwable));
     }
 
     @Override
@@ -222,7 +220,7 @@ public class PnEcPecServiceImpl implements PnEcPecService {
                 .retryWhen(getPnPecRetryStrategy(PN_EC_PEC_DELETE_MESSAGE, provider))
                 .then()
                 .doOnSuccess(result -> log.logEndingProcess(PN_EC_PEC_DELETE_MESSAGE))
-                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_DELETE_MESSAGE, false, throwable.getMessage()));
+                .doOnError(throwable -> log.logEndingProcess(PN_EC_PEC_DELETE_MESSAGE, false, throwable.getMessage(), throwable));
     }
 
 

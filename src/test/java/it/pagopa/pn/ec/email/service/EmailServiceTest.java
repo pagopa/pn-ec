@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.email.service;
 
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -12,7 +11,7 @@ import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.SesService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
-import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.email.model.pojo.EmailPresaInCaricoInfo;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadInfo;
@@ -47,10 +46,11 @@ class EmailServiceTest {
     private EmailService emailService;
 
     @Autowired
-    private EmailSqsQueueName emailSqsQueueName;
+    private PnEcConfig pnEcConfig;
 
-    @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
+    private PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName() {
+        return pnEcConfig.getNotificationTracker().getSqsQueue();
+    }
 
     @MockitoSpyBean
     private SqsServiceImpl sqsService;
@@ -214,7 +214,7 @@ class EmailServiceTest {
 
         when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().build()));
 
-        when(sqsService.send(eq(notificationTrackerSqsName.statoEmailName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(new SqsClientException("")));
+        when(sqsService.send(eq(notificationTrackerSqsName().getStatoEmailName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(new SqsClientException("")));
 
         Mono<SendMessageResponse> lavorazioneRichiesta=emailService.lavorazioneRichiesta(EMAIL_PRESA_IN_CARICO_INFO,QUEUE_NAME);
         StepVerifier.create(lavorazioneRichiesta).expectError().verify();
