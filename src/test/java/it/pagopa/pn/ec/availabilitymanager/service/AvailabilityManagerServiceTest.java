@@ -3,13 +3,11 @@ package it.pagopa.pn.ec.availabilitymanager.service;
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.availabilitymanager.model.dto.AvailabilityManagerDetailDto;
 import it.pagopa.pn.ec.availabilitymanager.model.dto.AvailabilityManagerDto;
-import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.service.CartaceoService;
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
 import it.pagopa.pn.ec.commons.service.SqsService;
-import it.pagopa.pn.ec.pdfraster.configuration.PdfRasterProperties;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
 import it.pagopa.pn.ec.rest.v1.dto.AttachmentToConvertDto;
 import it.pagopa.pn.ec.rest.v1.dto.PaperEngageRequest;
@@ -21,7 +19,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import reactor.core.publisher.Mono;
@@ -39,15 +36,12 @@ import static org.mockito.Mockito.*;
 @CustomLog
 class AvailabilityManagerServiceTest {
 
-    @Value("${sqs.queue.availabilitymanager.name}")
-    String availabilityManagerQueueName;
-
     @MockitoBean
     AvailabilityManagerService availabilityManagerService;
     @MockitoSpyBean
     SqsService sqsService;
     @Autowired
-    CartaceoSqsQueueName cartaceoSqsQueueName;
+    PnEcConfig pnEcConfig;
     @MockitoSpyBean
     RequestConversionService requestConversionService;
     @MockitoBean
@@ -56,13 +50,8 @@ class AvailabilityManagerServiceTest {
     private CallMacchinaStati callMachinaStati;
     @MockitoSpyBean
     private CartaceoService cartaceoService;
-    @MockitoBean
-    private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
-    @MockitoBean
-    private PdfRasterProperties pdfRasterProperties;
-    
-    
-    
+
+
 
     private AvailabilityManagerDto createAvailabilityManagerDto(String newFileKey, String checksum) {
         AvailabilityManagerDto availabilityManagerDto = new AvailabilityManagerDto();
@@ -109,13 +98,12 @@ class AvailabilityManagerServiceTest {
     @BeforeEach
     void setUp() {
         availabilityManagerService =
-                Mockito.spy(new AvailabilityManagerService(requestConversionService,cartaceoSqsQueueName, sqsService,callMachinaStati, cartaceoService, transactionProcessConfigurationProperties /*, ... */));
+                Mockito.spy(new AvailabilityManagerService(requestConversionService, sqsService, callMachinaStati, cartaceoService, pnEcConfig));
     }
 
 
     @Test
     void convertPDFNotAllConvertedOk() {
-        Mockito.when(pdfRasterProperties.pdfConversionExpirationOffsetInDays()).thenReturn(1);
         Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
 
         // GIVEN: oggetti necessari al test (Dto)
@@ -130,13 +118,12 @@ class AvailabilityManagerServiceTest {
 
         // THEN: test del metodo, assertions e verify
         StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment)).verifyComplete();
-        verify(sqsService, never()).send(eq(cartaceoSqsQueueName.batchName()), any());
+        verify(sqsService, never()).send(eq(pnEcConfig.getCartaceo().getSqsQueue().getBatchName()), any());
         verify(requestConversionService, times(1)).updateRequestConversion(newFileKey1, true, sha256,false);
     }
 
     @Test
     void convertPDFAllConvertedOk() {
-        Mockito.when(pdfRasterProperties.pdfConversionExpirationOffsetInDays()).thenReturn(1);
         Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
 
         // GIVEN: oggetti necessari al test (Dto)
@@ -150,7 +137,7 @@ class AvailabilityManagerServiceTest {
 
         // THEN: test del metodo, assertions e verify
         StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment)).verifyComplete();
-        verify(sqsService, times(1)).send(eq(cartaceoSqsQueueName.batchName()), any());
+        verify(sqsService, times(1)).send(eq(pnEcConfig.getCartaceo().getSqsQueue().getBatchName()), any());
         verify(requestConversionService, times(1)).updateRequestConversion(newFileKey2, true, sha256,false);
     }
 
@@ -164,7 +151,7 @@ class AvailabilityManagerServiceTest {
 
         // THEN: test del metodo, assertions e verify
         StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment)).verifyError(RepositoryManagerException.PdfConversionNotFoundException.class);
-        verify(sqsService, never()).send(eq(cartaceoSqsQueueName.batchName()), any());
+        verify(sqsService, never()).send(eq(pnEcConfig.getCartaceo().getSqsQueue().getBatchName()), any());
         verify(requestConversionService, times(1)).updateRequestConversion(newFileKey3, true, sha256,false);
     }
 

@@ -1,12 +1,11 @@
 package it.pagopa.pn.ec.pec.service.impl;
 
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.AttachmentServiceImpl;
-import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.pec.configurationproperties.PnPecConfigurationProperties;
 import it.pagopa.pn.library.exceptions.PnSpapiPermanentErrorException;
 import it.pagopa.pn.library.exceptions.PnSpapiTemporaryErrorException;
@@ -22,6 +21,7 @@ import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PecServiceIsAddressExceptionTest {
@@ -39,18 +39,30 @@ class PecServiceIsAddressExceptionTest {
     @Mock
     private DownloadCall downloadCall;
     @Mock
-    private NotificationTrackerSqsName notificationTrackerSqsName;
-    @Mock
-    private PecSqsQueueName pecSqsQueueName;
-    @Mock
     private PnPecConfigurationProperties pnPecProps;
+    @Mock
+    private PnEcConfig pnEcConfig;
+    @Mock
+    private PnEcConfig.NotificationTracker notificationTracker;
+    @Mock
+    private PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsQueue;
+    @Mock
+    private PnEcConfig.Pec pecConfig;
+    @Mock
+    private PnEcConfig.Pec.SqsQueue pecSqsQueue;
 
     private Predicate<Throwable> isAddressException;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUp() throws NoSuchFieldException, IllegalAccessException {
-        var pecService = new PecService(authService, pnPecService, gestoreRepositoryCall, sqsService, attachmentService, downloadCall, notificationTrackerSqsName, pecSqsQueueName, 1, pnPecProps);
+        when(pnEcConfig.getNotificationTracker()).thenReturn(notificationTracker);
+        when(notificationTracker.getSqsQueue()).thenReturn(notificationTrackerSqsQueue);
+        when(pnEcConfig.getPec()).thenReturn(pecConfig);
+        when(pecConfig.getSqsQueue()).thenReturn(pecSqsQueue);
+        when(pecConfig.getMaxThreadPoolSize()).thenReturn(1);
+
+        var pecService = new PecService(authService, pnPecService, gestoreRepositoryCall, sqsService, attachmentService, downloadCall, pnEcConfig, pnPecProps);
         Field isAddressExceptionField = PecService.class.getDeclaredField("isAddressException");
         isAddressExceptionField.setAccessible(true);
         isAddressException = (Predicate<Throwable>) isAddressExceptionField.get(pecService);

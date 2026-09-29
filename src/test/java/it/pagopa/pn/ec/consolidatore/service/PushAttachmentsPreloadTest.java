@@ -1,9 +1,9 @@
 package it.pagopa.pn.ec.consolidatore.service;
 
-import it.pagopa.pn.ec.commons.configurationproperties.endpoint.internal.consolidatore.ConsolidatoreEndpointProperties;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeAll;
@@ -41,7 +41,11 @@ class PushAttachmentsPreloadTest {
     @Autowired
     private GestoreRepositoryCall gestoreRepositoryCall;
     @Autowired
-    private ConsolidatoreEndpointProperties consolidatoreEndpointProperties;
+    private PnEcConfig pnEcConfig;
+
+    private PnEcConfig.Commons.Endpoint.Consolidatore consolidatoreEndpointProperties() {
+        return pnEcConfig.getCommons().getEndpoint().getConsolidatore();
+    }
     @MockitoBean
     private AuthService authService;
 
@@ -83,8 +87,8 @@ class PushAttachmentsPreloadTest {
 
         return this.webTestClient.put()
                 .uri(UriComponentsBuilder.fromPath(URI).build().toString())
-                .header(consolidatoreEndpointProperties.clientHeaderName(), CLIENT_ID)
-                .header(consolidatoreEndpointProperties.apiKeyHeaderName(), X_API_KEY)
+                .header(consolidatoreEndpointProperties().getClientHeaderName(), CLIENT_ID)
+                .header(consolidatoreEndpointProperties().getApiKeyHeaderName(), X_API_KEY)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .body(bodyInserter)
@@ -95,8 +99,8 @@ class PushAttachmentsPreloadTest {
 
         return this.webTestClient.get()
                 .uri(UriComponentsBuilder.fromPath(URI_GET).build().toString())
-                .header(consolidatoreEndpointProperties.clientHeaderName(), CLIENT_ID)
-                .header(consolidatoreEndpointProperties.apiKeyHeaderName(), X_API_KEY)
+                .header(consolidatoreEndpointProperties().getClientHeaderName(), CLIENT_ID)
+                .header(consolidatoreEndpointProperties().getApiKeyHeaderName(), X_API_KEY)
                 .accept(APPLICATION_JSON)
                 .exchange();
     }

@@ -1,8 +1,6 @@
 package it.pagopa.pn.ec.cartaceo.rest;
 
-import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -12,6 +10,7 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,10 +51,15 @@ class PaperMessagesApiControllerTest {
     private WebTestClient webTestClient;
 
     @Autowired
-    private CartaceoSqsQueueName cartaceoSqsQueueName;
+    private PnEcConfig pnEcConfig;
 
-    @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
+    private PnEcConfig.Cartaceo.SqsQueue cartaceoSqsQueueName() {
+        return pnEcConfig.getCartaceo().getSqsQueue();
+    }
+
+    private PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName() {
+        return pnEcConfig.getNotificationTracker().getSqsQueue();
+    }
 
     @MockitoBean
     private GestoreRepositoryCallImpl gestoreRepositoryCall;
@@ -220,10 +224,10 @@ class PaperMessagesApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione throwata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(notificationTrackerSqsName.statoCartaceoName()),
+        when(sqsService.send(eq(notificationTrackerSqsName().getStatoCartaceoName()),
                              argThat((NotificationTrackerQueueDto notificationTrackerQueueDto) -> Objects.equals(notificationTrackerQueueDto.getNextStatus(),
                                                                                                                  BOOKED.getStatusTransactionTableCompliant())))).thenReturn(
-                Mono.error(new SqsClientException(notificationTrackerSqsName.statoCartaceoName())));
+                Mono.error(new SqsClientException(notificationTrackerSqsName().getStatoCartaceoName())));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                               .isEqualTo(SERVICE_UNAVAILABLE)
@@ -242,8 +246,8 @@ class PaperMessagesApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione throwata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(cartaceoSqsQueueName.batchName()),
-                             any(CartaceoPresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(cartaceoSqsQueueName.batchName())));
+        when(sqsService.send(eq(cartaceoSqsQueueName().getBatchName()),
+                             any(CartaceoPresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(cartaceoSqsQueueName().getBatchName())));
 
         sendCartaceoTestCall(BodyInserters.fromValue(paperEngageRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                               .isEqualTo(SERVICE_UNAVAILABLE)

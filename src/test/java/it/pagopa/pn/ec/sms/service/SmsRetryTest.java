@@ -4,8 +4,8 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.service.SnsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
-import it.pagopa.pn.ec.sms.configurationproperties.SmsSqsQueueName;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import jakarta.validation.ConstraintViolation;
@@ -42,7 +42,11 @@ import static org.mockito.Mockito.*;
 class SmsRetryTest {
 
     @Autowired
-    private SmsSqsQueueName smsSqsQueueName;
+    private PnEcConfig pnEcConfig;
+
+    private PnEcConfig.Sms.SqsQueue smsSqsQueueName() {
+        return pnEcConfig.getSms().getSqsQueue();
+    }
 
     @MockitoSpyBean
     SmsService smsService;
@@ -93,7 +97,7 @@ class SmsRetryTest {
     void testGestioneRetrySmsScheduler_NoMessages() {
         // mock SQSService per restituire un Mono vuoto quando viene chiamato getOneMessage
         SqsServiceImpl mockSqsService = mock(SqsServiceImpl.class);
-        when(mockSqsService.getOneMessage(smsSqsQueueName.errorName(), SmsPresaInCaricoInfo.class))
+        when(mockSqsService.getOneMessage(smsSqsQueueName().getErrorName(), SmsPresaInCaricoInfo.class))
                 .thenReturn(Mono.empty());
 
         // chiamare il metodo sotto test
@@ -118,7 +122,7 @@ class SmsRetryTest {
         when(gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto)).thenReturn(Mono.just(requestDto));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(smsSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(smsSqsQueueName().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
 
         Mono<DeleteMessageResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
@@ -142,7 +146,7 @@ class SmsRetryTest {
         when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.error(new RuntimeException()));
 
         // Mock dell'eliminazione di una generica notifica dalla coda degli errori.
-        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(smsSqsQueueName.errorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+        when(sqsService.deleteMessageFromQueue(any(Message.class),eq(smsSqsQueueName().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response =  smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
         StepVerifier.create(response).expectNextCount(1).verifyComplete();
@@ -184,7 +188,7 @@ class SmsRetryTest {
         var requestId = requestDto.getRequestIdx();
 
         when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName.errorName())))
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName().getErrorName())))
                 .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);
@@ -211,7 +215,7 @@ class SmsRetryTest {
         var requestId = requestDto.getRequestIdx();
 
         when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
-        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName.errorName())))
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName().getErrorName())))
                 .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
 
         Mono<DeleteMessageResponse> response = smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message);

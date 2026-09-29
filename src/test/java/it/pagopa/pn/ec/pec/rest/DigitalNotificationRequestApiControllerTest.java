@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec.pec.rest;
 
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.exception.ClientNotAuthorizedException;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
@@ -11,7 +10,7 @@ import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryC
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.AuthService;
 import it.pagopa.pn.ec.commons.service.impl.SqsServiceImpl;
-import it.pagopa.pn.ec.pec.configurationproperties.PecSqsQueueName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,10 +54,15 @@ public class DigitalNotificationRequestApiControllerTest {
     private WebTestClient webTestClient;
 
     @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
+    private PnEcConfig pnEcConfig;
 
-    @Autowired
-    private PecSqsQueueName pecSqsQueueName;
+    private PnEcConfig.NotificationTracker.SqsQueue notificationTrackerSqsName() {
+        return pnEcConfig.getNotificationTracker().getSqsQueue();
+    }
+
+    private PnEcConfig.Pec.SqsQueue pecSqsQueueName() {
+        return pnEcConfig.getPec().getSqsQueue();
+    }
 
     @MockitoBean
     private FileCall uriBuilderCall;
@@ -221,12 +225,12 @@ public class DigitalNotificationRequestApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione throwata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(notificationTrackerSqsName.statoPecName()),
+        when(sqsService.send(eq(notificationTrackerSqsName().getStatoPecName()),
                              argThat((NotificationTrackerQueueDto notificationTrackerQueueDto) -> Objects.equals(notificationTrackerQueueDto.getNextStatus(),
                                                                                                                  BOOKED.getStatusTransactionTableCompliant())))).thenReturn(
-                Mono.error(new SqsClientException(notificationTrackerSqsName.statoPecName())));
+                Mono.error(new SqsClientException(notificationTrackerSqsName().getStatoPecName())));
         when(sqsService.send(eq("pn-ec-tracker-sercq-send-stato-queue.fifo"),
-                             any(PresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName.statoPecName())));
+                             any(PresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(notificationTrackerSqsName().getStatoPecName())));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                  .isEqualTo(SERVICE_UNAVAILABLE)
@@ -247,10 +251,10 @@ public class DigitalNotificationRequestApiControllerTest {
         when(gestoreRepositoryCall.insertRichiesta(any(RequestDto.class))).thenReturn(Mono.just(new RequestDto()));
 
 //      Mock dell'eccezione throwata dalla pubblicazione sulla coda
-        when(sqsService.send(eq(pecSqsQueueName.interactiveName()),
-                             any(PresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(pecSqsQueueName.interactiveName())));
+        when(sqsService.send(eq(pecSqsQueueName().getInteractiveName()),
+                             any(PresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(pecSqsQueueName().getInteractiveName())));
         when(sqsService.send(eq("pn-ec-tracker-sercq-send-stato-queue.fifo"),
-                             any(PresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(pecSqsQueueName.interactiveName())));
+                             any(PresaInCaricoInfo.class))).thenReturn(Mono.error(new SqsClientException(pecSqsQueueName().getInteractiveName())));
 
         sendPecTestCall(BodyInserters.fromValue(digitalNotificationRequest), DEFAULT_REQUEST_IDX).expectStatus()
                                                                                                  .isEqualTo(SERVICE_UNAVAILABLE)

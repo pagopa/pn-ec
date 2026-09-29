@@ -1,8 +1,6 @@
 package it.pagopa.pn.ec.cartaceo.service;
 
 import io.awspring.cloud.autoconfigure.sqs.SqsAutoConfiguration;
-import it.pagopa.pn.ec.cartaceo.configurationproperties.CartaceoSqsQueueName;
-import it.pagopa.pn.ec.cartaceo.configurationproperties.TransformationProperties;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.configuration.normalization.NormalizationConfiguration;
@@ -19,6 +17,7 @@ import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.rest.call.upload.UploadCall;
 import it.pagopa.pn.ec.commons.service.AttachmentService;
 import it.pagopa.pn.ec.commons.service.SqsService;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.cartaceo.configuration.PdfTransformationConfiguration;
 import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
@@ -60,7 +59,7 @@ import static org.mockito.Mockito.*;
 @TestPropertySource(properties = {
         "PN_EC_PAPER_PAIDTONORMALIZE=PA1;PA2",
 })
-@DirtiesContext
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class CartaceoServiceTest {
 
     @MockitoSpyBean
@@ -77,12 +76,10 @@ class CartaceoServiceTest {
     private FileCall fileCall;
     @MockitoSpyBean
     private SqsService sqsService;
-    @Autowired
-    private CartaceoSqsQueueName cartaceoSqsQueueName;
     @MockitoSpyBean
     private RequestConversionService requestConversionService;
-    @MockitoSpyBean
-    private TransformationProperties transformationProperties;
+    @Autowired
+    private PnEcConfig pnEcConfig;
     @MockitoSpyBean
     private NormalizationConfiguration normalizationConfiguration;
 
@@ -230,7 +227,7 @@ class CartaceoServiceTest {
         mockGestoreRepository();
         mockPutRequest();
         mockPdfRasterAttachmentSteps();
-        when(transformationProperties.paIdToRaster()).thenReturn("ALL");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToRaster("ALL");
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
@@ -253,7 +250,7 @@ class CartaceoServiceTest {
         mockGestoreRepository();
         mockPutRequest();
         mockPdfRasterAttachmentSteps();
-        when(transformationProperties.paIdToRaster()).thenReturn("NOTHING");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToRaster("NOTHING");
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
@@ -279,7 +276,7 @@ class CartaceoServiceTest {
         mockGestoreRepository();
         mockPutRequest();
         mockPdfRasterAttachmentSteps();
-        when(transformationProperties.paIdToRaster()).thenReturn("requestPaId1;requestPaId2;" + requestPaIdToCheck);
+        pnEcConfig.getCartaceo().getPaper().setPaIdToRaster("requestPaId1;requestPaId2;" + requestPaIdToCheck);
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
@@ -303,7 +300,7 @@ class CartaceoServiceTest {
         mockGestoreRepository();
         mockPutRequest();
         mockPdfRasterAttachmentSteps();
-        when(transformationProperties.paIdToRaster()).thenReturn("requestPaId1;requestPaId2");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToRaster("requestPaId1;requestPaId2");
 
         //THEN
         Mono<SendMessageResponse> lavorazioneRichiesta = cartaceoService.lavorazioneRichiesta(cartaceoPresaInCaricoInfo);
@@ -434,10 +431,10 @@ class CartaceoServiceTest {
         cartaceoInfo.getPaperEngageRequest().setApplyRasterization(null);        // disabilito raster
 
         // Raster disabilitato per tutte le PA
-        when(transformationProperties.paIdToRaster()).thenReturn("NOTHING");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToRaster("NOTHING");
 
         // Normalizzazione disabilitata (default paIdToNormalize = NOTHING)
-        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToNormalize("NOTHING");
         // WHEN
         mockGestoreRepository();
         mockPutRequest();
@@ -461,8 +458,8 @@ class CartaceoServiceTest {
         cartaceoInfo.getPaperEngageRequest()
                 .setTransformationDocumentType(null);
 
-        when(transformationProperties.paIdToRaster()).thenReturn("ALL");
-        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToRaster("ALL");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToNormalize("NOTHING");
 
         // WHEN
         mockGestoreRepository();
@@ -489,8 +486,8 @@ class CartaceoServiceTest {
         cartaceoInfo.getPaperEngageRequest()
                 .setTransformationDocumentType(DOCUMENT_TYPE_FOR_RASTERIZED);
 
-        when(transformationProperties.paIdToRaster()).thenReturn("NOTHING");
-        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToRaster("NOTHING");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToNormalize("NOTHING");
 
         // WHEN
         mockGestoreRepository();
@@ -516,8 +513,8 @@ class CartaceoServiceTest {
         cartaceoInfo.getPaperEngageRequest()
                 .setTransformationDocumentType(DOCUMENT_TYPE_FOR_NORMALIZED);
 
-        when(transformationProperties.paIdToRaster()).thenReturn("ALL");
-        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToRaster("ALL");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToNormalize("NOTHING");
 
         // WHEN
         mockGestoreRepository();
@@ -546,10 +543,10 @@ class CartaceoServiceTest {
         info.getPaperEngageRequest().setTransformationDocumentType(null);        // nessun override
 
         // Raster disabilitato
-        when(transformationProperties.paIdToRaster()).thenReturn("NOTHING");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToRaster("NOTHING");
 
         // Normalizzazione ABILITATA per la PA (ALL o lista)
-        when(transformationProperties.paIdToNormalize()).thenReturn("ALL");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToNormalize("ALL");
 
         /* WHEN */
         mockGestoreRepository();
@@ -578,8 +575,8 @@ class CartaceoServiceTest {
         info.getPaperEngageRequest().setApplyRasterization(null);
         info.getPaperEngageRequest().setTransformationDocumentType(null);
 
-        when(transformationProperties.paIdToRaster()).thenReturn("PA_TEST");   // lista che contiene la stessa PA
-        when(transformationProperties.paIdToNormalize()).thenReturn("NOTHING");
+        pnEcConfig.getCartaceo().getPaper().setPaIdToRaster("PA_TEST");   // lista che contiene la stessa PA
+        pnEcConfig.getCartaceo().getPaper().setPaIdToNormalize("NOTHING");
 
         // WHEN
         mockGestoreRepository();

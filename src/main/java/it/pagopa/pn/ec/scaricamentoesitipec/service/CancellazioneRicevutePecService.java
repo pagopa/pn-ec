@@ -5,6 +5,7 @@ import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import io.awspring.cloud.sqs.annotation.SqsListener;
 import it.pagopa.pn.commons.utils.MDCUtils;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.EventsDto;
 import it.pagopa.pn.ec.scaricamentoesitipec.model.pojo.CancellazioneRicevutePecDto;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
@@ -12,7 +13,6 @@ import lombok.CustomLog;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -31,14 +31,15 @@ public class CancellazioneRicevutePecService {
     private final GestoreRepositoryCall gestoreRepositoryCall;
     private final Semaphore semaphore;
 
-    public CancellazioneRicevutePecService(PnEcPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, @Value("${cancellazione-ricevute-pec.max-thread-pool-size}") Integer maxThreadPoolSize) {
+    public CancellazioneRicevutePecService(PnEcPecService pnPecService, GestoreRepositoryCall gestoreRepositoryCall, PnEcConfig pnEcConfig) {
         this.pnPecService = pnPecService;
         this.gestoreRepositoryCall = gestoreRepositoryCall;
+        Integer maxThreadPoolSize = pnEcConfig.getCancellazioneRicevutePec().getMaxThreadPoolSize();
         log.debug("{} max thread pool size : {} ", CANCELLAZIONE_RICEVUTE_PEC, maxThreadPoolSize);
         this.semaphore = new Semaphore(maxThreadPoolSize);
     }
 
-    @SqsListener(value = "${cancellazione-ricevute-pec.sqs-queue-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    @SqsListener(value = "${pn.ec.cancellazione-ricevute-pec.sqs-queue-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void cancellazioneRicevutePecInteractive(final CancellazioneRicevutePecDto cancellazioneRicevutePecDto, Acknowledgement acknowledgment) {
         var requestId = cancellazioneRicevutePecDto.getSingleStatusUpdate().getDigitalLegal().getRequestId();
         var clientId = cancellazioneRicevutePecDto.getSingleStatusUpdate().getClientId();
@@ -47,7 +48,7 @@ public class CancellazioneRicevutePecService {
         log.logStartingProcess(CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE);
         MDCUtils.addMDCToContextAndExecute(cancellazioneRicevutePec(cancellazioneRicevutePecDto, requestId, acknowledgment)
                 .doOnSuccess(result -> log.logEndingProcess(CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE))
-                .doOnError(throwable -> log.logEndingProcess(CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE, false, throwable.getMessage())))
+                .doOnError(throwable -> log.logEndingProcess(CANCELLAZIONE_RICEVUTE_PEC_INTERACTIVE, false, throwable.getMessage(), throwable)))
                 .block();
     }
 

@@ -7,20 +7,16 @@ import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.utils.SesEventsUtils;
-import it.pagopa.pn.ec.email.configurationproperties.EmailSqsQueueName;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.email.model.dto.ses.SesBounceDto;
 import it.pagopa.pn.ec.email.model.dto.ses.SesEmailDto;
 import it.pagopa.pn.ec.email.model.dto.ses.SesNotificationDto;
-import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
-import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
-import it.pagopa.pn.ec.util.LogSanitizer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -39,7 +35,11 @@ import static org.mockito.Mockito.*;
 class LavorazioneSesEventsServiceTest {
 
     @Autowired
-    private EmailSqsQueueName emailSqsQueueName;
+    private PnEcConfig pnEcConfig;
+
+    private PnEcConfig.Email.SqsQueue emailSqsQueueName() {
+        return pnEcConfig.getEmail().getSqsQueue();
+    }
 
     @MockitoSpyBean
     private LavorazioneSesEventsService service;
@@ -132,7 +132,7 @@ class LavorazioneSesEventsServiceTest {
         SesBounceDto bounce = new SesBounceDto();
         bounce.setBounceType("Transient");
         dto.setBounce(bounce);
-        String queueName = emailSqsQueueName.sesEventsName();
+        String queueName = emailSqsQueueName().getSesEventsName();
         StepVerifier.create(service.lavorazioneSesEvents(dto, queueName, acknowledgement)).expectComplete().verify();
         verifyNoInteractions(sqsService);
     }

@@ -1,7 +1,6 @@
 package it.pagopa.pn.ec.commons.configuration.normalization;
 
-import it.pagopa.pn.ec.cartaceo.configurationproperties.TransformationProperties;
-import org.springframework.beans.factory.annotation.Value;
+import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Arrays;
@@ -9,16 +8,16 @@ import java.util.Arrays;
 @Configuration
 public class NormalizationConfiguration {
 
-    TransformationProperties properties;
+    private final PnEcConfig.Cartaceo.Paper transformationProperties;
 
-    public NormalizationConfiguration(TransformationProperties properties) {
-        this.properties = properties;
+    public NormalizationConfiguration(PnEcConfig pnEcConfig) {
+        this.transformationProperties = pnEcConfig.getCartaceo().getPaper();
     }
 
 
     /** true se la normalizzazione è abilitata per la PA indicata */
     public boolean isNormalizationEnabled(String paId) {
-        String paIdToNormalize = properties.paIdToNormalize();
+        String paIdToNormalize = transformationProperties.getPaIdToNormalize();
         String cfg = paIdToNormalize == null || paIdToNormalize.isBlank()
                 ? "NOTHING" : paIdToNormalize;
 

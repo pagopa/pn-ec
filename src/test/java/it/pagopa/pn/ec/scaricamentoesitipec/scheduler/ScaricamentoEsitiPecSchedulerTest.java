@@ -1,7 +1,5 @@
 package it.pagopa.pn.ec.scaricamentoesitipec.scheduler;
 
-import it.pagopa.pn.ec.commons.configurationproperties.TransactionProcessConfigurationProperties;
-import it.pagopa.pn.ec.commons.configurationproperties.sqs.NotificationTrackerSqsName;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -59,11 +57,6 @@ class ScaricamentoEsitiPecSchedulerTest {
     @Autowired
     private SqsService sqsService;
 
-    @Autowired
-    private NotificationTrackerSqsName notificationTrackerSqsName;
-
-    @Autowired
-    private TransactionProcessConfigurationProperties transactionProcessConfigurationProperties;
     @Autowired
     private ScaricamentoEsitiPecScheduler scaricamentoEsitiPecScheduler;
 
