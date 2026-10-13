@@ -4,6 +4,8 @@ import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.consolidatore.exception.ClientNotAuthorizedOrFoundException;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsUpdateRequest;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsUpdateResponse;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationResponse;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
@@ -104,5 +106,23 @@ public class FileCallImpl implements FileCall {
                 .body(BodyInserters.fromValue(fileCreationRequest))
                 .retrieve()
                 .bodyToMono(FileCreationResponse.class);
+    }
+
+    @Override
+    public Mono<AdditionalFileTagsUpdateResponse> updateFileTags(String fileKey, AdditionalFileTagsUpdateRequest request) {
+        log.logInvokingExternalService(SAFE_STORAGE_SERVICE, UPDATE_FILE_TAGS);
+        URI uri = UriComponentsBuilder.fromPath(filesEndpointProperties.getUpdateFileTags())
+                .build(fileKey);
+        return ssWebClient.post()
+                .uri(uri.toString())
+                .body(BodyInserters.fromValue(request))
+                .retrieve()
+                .onStatus(NOT_FOUND::equals,
+                        clientResponse -> Mono.error(new AttachmentNotAvailableException(fileKey)))
+                .bodyToMono(AdditionalFileTagsUpdateResponse.class)
+                .onErrorResume(err -> {
+                    log.error("Exception invoking updateFileTags for fileKey {}", fileKey, err);
+                    return Mono.error(err);
+                });
     }
 }

@@ -1,5 +1,7 @@
 package it.pagopa.pn.ec.commons.rest.call.ss.file;
 
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsUpdateRequest;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsUpdateResponse;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationResponse;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
@@ -14,4 +16,6 @@ public interface FileCall {
     Mono<FileCreationResponse> postFile(String xPagopaExtchServiceId, String xApiKey, String checksumValue, String xTraceId, FileCreationRequest fileCreationRequest);
 
     Mono<FileCreationResponse> postFile(String xPagopaExtchServiceId, String checksumValue, FileCreationRequest fileCreationRequest);
+
+    Mono<AdditionalFileTagsUpdateResponse> updateFileTags(String fileKey, AdditionalFileTagsUpdateRequest request);
 }

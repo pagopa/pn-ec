@@ -3,6 +3,8 @@ package it.pagopa.pn.ec.commons.rest.call.ss.file;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.consolidatore.exception.ClientNotAuthorizedOrFoundException;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsUpdateRequest;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsUpdateResponse;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationResponse;
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
@@ -22,6 +24,8 @@ import reactor.test.StepVerifier;
 import lombok.CustomLog;
 
 import java.io.*;
+import java.util.List;
+import java.util.Map;
 
 
 @SpringBootTestWebEnv
@@ -172,6 +176,35 @@ class FileCallTest {
         StepVerifier.create(fileCreationResponseMono)
                 .expectNextMatches(fileCreationResponse -> fileCreationResponse.equals(response))
                 .verifyComplete();
+    }
+
+    @Test
+    void updateFileTags_Success() {
+        AdditionalFileTagsUpdateRequest request = new AdditionalFileTagsUpdateRequest();
+        request.SET(Map.of("transformedDocumentKey", List.of("newFileKey")));
+
+        mockBackEnd.enqueue(new MockResponse()
+                .setBody("{\"resultCode\":\"200.00\",\"resultDescription\":\"OK\"}")
+                .addHeader("Content-Type", "application/json"));
+
+        Mono<AdditionalFileTagsUpdateResponse> responseMono = fileCall.updateFileTags(FILE_KEY, request);
+
+        StepVerifier.create(responseMono)
+                .expectNextMatches(r -> "200.00".equals(r.getResultCode()))
+                .verifyComplete();
+    }
+
+    @Test
+    void updateFileTags_NotFound() {
+        AdditionalFileTagsUpdateRequest request = new AdditionalFileTagsUpdateRequest();
+
+        mockBackEnd.enqueue(new MockResponse().setResponseCode(404));
+
+        Mono<AdditionalFileTagsUpdateResponse> responseMono = fileCall.updateFileTags(FILE_KEY, request);
+
+        StepVerifier.create(responseMono)
+                .expectError()
+                .verify();
     }
 
 }

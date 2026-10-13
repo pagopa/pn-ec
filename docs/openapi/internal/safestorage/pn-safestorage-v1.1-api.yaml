@@ -440,7 +440,7 @@ paths:
   ################################################################################################
   ###                                   AGGIORNA METADATI FILE                                 ###
   ################################################################################################
-  
+
     post:
       operationId: updateFileMetadata
       tags:
@@ -472,8 +472,39 @@ paths:
             Non trovato. Restituito se: <br/>
             - il parametro clientId è diverso dal client autenticato; <br/>
             - se il file identificato da fileKey non è ancora stato salvato; <br/>
-            
-      
+
+
+  '/safe-storage/v1/files/{fileKey}/tags':
+    parameters:
+      - $ref: '#/components/parameters/fileKey'
+      - $ref: '#/components/parameters/clientIdHeader'
+    post:
+      operationId: additionalFileTagsUpdate
+      tags:
+        - fileMetadataUpdate
+      summary: Aggiungi, elimina o aggiorna i tags associati ad un file tramite la fileKey.
+      description: >-
+        Questa operazione rende possibile aggiungere, eliminare o aggiornare i tag associati ad una singola fileKey.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdditionalFileTagsUpdateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalFileTagsUpdateResponse'
+        '400':
+          description: Richiesta non validata correttamente.
+        '403':
+          description: Non autorizzato.
+        '404':
+          description: Documento non trovato.
+
 
 components:
   parameters:
@@ -797,6 +828,32 @@ components:
           See [information classification](https://pagopa.atlassian.net/wiki/spaces/EN/pages/357204284/Data+Classification+Handling#Classificazione)
     
     
+    AdditionalFileTagsUpdateRequest:
+      description: Aggiunge, elimina o aggiorna i tag associati ad una fileKey
+      type: object
+      properties:
+        SET:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        DELETE:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    AdditionalFileTagsUpdateResponse:
+      description: Esito dell'operazione di update sui tag
+      type: object
+      properties:
+        resultCode:
+          type: string
+        resultDescription:
+          type: string
+
     OperationResultCodeResponse:
       required:
         - resultCode
