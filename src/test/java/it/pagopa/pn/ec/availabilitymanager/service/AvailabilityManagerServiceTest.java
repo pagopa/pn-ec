@@ -129,6 +129,7 @@ class AvailabilityManagerServiceTest {
     @Test
     void convertPDFAllConvertedOk() {
         Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        doReturn(Mono.empty()).when(availabilityManagerService).writeBidirectionalTags(any(), any());
 
         // GIVEN: oggetti necessari al test (Dto)
         String originalFileKey2 = "originalFileKey2";
