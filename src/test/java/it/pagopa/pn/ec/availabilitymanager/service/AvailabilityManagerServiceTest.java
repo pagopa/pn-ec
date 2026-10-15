@@ -30,6 +30,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsMassiveUpdateRequest;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsMassiveUpdateResponse;
+import it.pagopa.pn.ec.rest.v1.dto.Tags;
+import org.mockito.ArgumentCaptor;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -194,6 +200,58 @@ class AvailabilityManagerServiceTest {
         StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment)).verifyComplete();
 
         verify(availabilityManagerService, never()).writeBidirectionalTags(any(), any());
+    }
+
+    @Test
+    void writeBidirectionalTags_correctPayload() {
+        String originalFileKey = "orig-payload";
+        String newFileKey = "new-payload";
+        when(fileCall.updateFileTagsMassive(any())).thenReturn(Mono.just(new AdditionalFileTagsMassiveUpdateResponse()));
+
+        StepVerifier.create(availabilityManagerService.writeBidirectionalTags(originalFileKey, newFileKey))
+                .verifyComplete();
+
+        ArgumentCaptor<AdditionalFileTagsMassiveUpdateRequest> captor =
+                ArgumentCaptor.forClass(AdditionalFileTagsMassiveUpdateRequest.class);
+        verify(fileCall).updateFileTagsMassive(captor.capture());
+
+        AdditionalFileTagsMassiveUpdateRequest captured = captor.getValue();
+        assertThat(captured.getTags()).hasSize(2);
+
+        Tags tagOriginal = captured.getTags().get(0);
+        assertThat(tagOriginal.getFileKey()).isEqualTo(originalFileKey);
+        assertThat(tagOriginal.getSET()).containsEntry("transformedDocumentKey", List.of(newFileKey));
+
+        Tags tagTransformed = captured.getTags().get(1);
+        assertThat(tagTransformed.getFileKey()).isEqualTo(newFileKey);
+        assertThat(tagTransformed.getSET()).containsEntry("originalDocumentKey", List.of(originalFileKey));
+    }
+
+    @Test
+    void writeBidirectionalTags_massiveUpdateFails_errorPropagated() {
+        when(fileCall.updateFileTagsMassive(any())).thenReturn(Mono.error(new RuntimeException("SS error")));
+
+        StepVerifier.create(availabilityManagerService.writeBidirectionalTags("orig-err", "new-err"))
+                .expectError(RuntimeException.class)
+                .verify();
+    }
+
+    @Test
+    void handleAvailabilityManager_tagWriteFails_flowContinues() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        when(fileCall.updateFileTagsMassive(any())).thenReturn(Mono.error(new RuntimeException("SS error")));
+
+        String originalFileKey = "orig-flow";
+        String newFileKey = "new-flow";
+        String sha256 = "sha256flow";
+        AvailabilityManagerDto dto = createAvailabilityManagerDto(newFileKey, sha256);
+        AttachmentToConvertDto attachment = new AttachmentToConvertDto().originalFileKey(originalFileKey).newFileKey(newFileKey).sha256(sha256);
+        requestConversionService.insertRequestConversion(createRequestConversionDto(List.of(attachment), "requestIdFlow")).block();
+
+        StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment))
+                .verifyComplete();
+
+        verify(sqsService, times(1)).send(eq(pnEcConfig.getCartaceo().getSqsQueue().getBatchName()), any());
     }
 
     @Test

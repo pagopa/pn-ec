@@ -501,7 +501,7 @@ public class PnEcConfig {
             public static class Files {
                 private String getFile;
                 private String postFile;
-                private String updateFileTags;
+                private String updateFileTagsMassive;
             }
 
             @Getter

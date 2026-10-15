@@ -133,20 +133,17 @@ public class AvailabilityManagerService {
 
     public Mono<Void> writeBidirectionalTags(String originalFileKey, String newFileKey) {
         log.info("Writing bidirectional tags: originalFileKey={}, newFileKey={}", originalFileKey, newFileKey);
-        AdditionalFileTagsUpdateRequest requestForOriginal = new AdditionalFileTagsUpdateRequest()
-                .putSETItem("transformedDocumentKey", List.of(newFileKey));
-        AdditionalFileTagsUpdateRequest requestForTransformed = new AdditionalFileTagsUpdateRequest()
-                .putSETItem("originalDocumentKey", List.of(originalFileKey));
-        return fileCall.updateFileTags(originalFileKey, requestForOriginal)
-                .onErrorResume(err -> {
-                    log.error("Exception invoking updateFileTags on originalFileKey {}", originalFileKey, err);
-                    return Mono.error(err);
+        Tags tagForOriginal = new Tags().fileKey(originalFileKey).SET(Map.of("transformedDocumentKey", List.of(newFileKey)));
+        Tags tagForTransformed = new Tags().fileKey(newFileKey).SET(Map.of("originalDocumentKey", List.of(originalFileKey)));
+        AdditionalFileTagsMassiveUpdateRequest request = new AdditionalFileTagsMassiveUpdateRequest()
+                .addTagsItem(tagForOriginal)
+                .addTagsItem(tagForTransformed);
+        return fileCall.updateFileTagsMassive(request)
+                .doOnNext(response -> {
+                    if (response.getErrors() != null && !response.getErrors().isEmpty()) {
+                        log.error("Bidirectional tag massive update partial errors: {}", response.getErrors());
+                    }
                 })
-                .then(fileCall.updateFileTags(newFileKey, requestForTransformed)
-                        .onErrorResume(err -> {
-                            log.error("Exception invoking updateFileTags on newFileKey {}", newFileKey, err);
-                            return Mono.error(err);
-                        }))
                 .then();
     }
 

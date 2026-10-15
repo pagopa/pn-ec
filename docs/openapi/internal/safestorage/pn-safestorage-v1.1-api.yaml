@@ -474,36 +474,33 @@ paths:
             - se il file identificato da fileKey non è ancora stato salvato; <br/>
 
 
-  '/safe-storage/v1/files/{fileKey}/tags':
+  '/safe-storage/v1/files/tags':
     parameters:
-      - $ref: '#/components/parameters/fileKey'
       - $ref: '#/components/parameters/clientIdHeader'
     post:
-      operationId: additionalFileTagsUpdate
+      operationId: additionalFileTagsMassiveUpdate
       tags:
         - fileMetadataUpdate
-      summary: Aggiungi, elimina o aggiorna i tags associati ad un file tramite la fileKey.
+      summary: Aggiunge, elimina o aggiorna i tags associati a più fileKey in un'unica chiamata.
       description: >-
-        Questa operazione rende possibile aggiungere, eliminare o aggiornare i tag associati ad una singola fileKey.
+        Operazione massiva che consente di aggiornare i tag su più fileKey in una sola chiamata.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AdditionalFileTagsUpdateRequest'
+              $ref: '#/components/schemas/AdditionalFileTagsMassiveUpdateRequest'
       responses:
         '200':
-          description: OK
+          description: OK (può contenere errori parziali nell'array errors)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AdditionalFileTagsUpdateResponse'
+                $ref: '#/components/schemas/AdditionalFileTagsMassiveUpdateResponse'
         '400':
-          description: Richiesta non validata correttamente.
+          description: Richiesta non validata correttamente o numero di fileKey massime superato.
         '403':
           description: Non autorizzato.
-        '404':
-          description: Documento non trovato.
 
 
 components:
@@ -828,10 +825,14 @@ components:
           See [information classification](https://pagopa.atlassian.net/wiki/spaces/EN/pages/357204284/Data+Classification+Handling#Classificazione)
     
     
-    AdditionalFileTagsUpdateRequest:
-      description: Aggiunge, elimina o aggiorna i tag associati ad una fileKey
+    Tags:
+      description: Tag da aggiornare per una fileKey
       type: object
+      required:
+        - fileKey
       properties:
+        fileKey:
+          type: string
         SET:
           type: object
           additionalProperties:
@@ -845,14 +846,37 @@ components:
             items:
               type: string
 
-    AdditionalFileTagsUpdateResponse:
-      description: Esito dell'operazione di update sui tag
+    AdditionalFileTagsMassiveUpdateRequest:
+      description: Aggiunge, elimina o aggiorna i tag associati a più fileKey
+      type: object
+      required:
+        - tags
+      properties:
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tags'
+
+    AdditionalFileTagsMassiveUpdateResponse:
+      description: Esito dell'operazione massiva di update sui tag
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/MassiveUpdateErrorDetail'
+
+    MassiveUpdateErrorDetail:
       type: object
       properties:
         resultCode:
           type: string
         resultDescription:
           type: string
+        fileKey:
+          type: array
+          items:
+            type: string
 
     OperationResultCodeResponse:
       required:

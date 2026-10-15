@@ -4,8 +4,8 @@ import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.consolidatore.exception.ClientNotAuthorizedOrFoundException;
-import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsUpdateRequest;
-import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsUpdateResponse;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsMassiveUpdateRequest;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsMassiveUpdateResponse;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationResponse;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
@@ -109,19 +109,15 @@ public class FileCallImpl implements FileCall {
     }
 
     @Override
-    public Mono<AdditionalFileTagsUpdateResponse> updateFileTags(String fileKey, AdditionalFileTagsUpdateRequest request) {
-        log.logInvokingExternalService(SAFE_STORAGE_SERVICE, UPDATE_FILE_TAGS);
-        URI uri = UriComponentsBuilder.fromPath(filesEndpointProperties.getUpdateFileTags())
-                .build(fileKey);
+    public Mono<AdditionalFileTagsMassiveUpdateResponse> updateFileTagsMassive(AdditionalFileTagsMassiveUpdateRequest request) {
+        log.logInvokingExternalService(SAFE_STORAGE_SERVICE, UPDATE_FILE_TAGS_MASSIVE);
         return ssWebClient.post()
-                .uri(uri.toString())
+                .uri(filesEndpointProperties.getUpdateFileTagsMassive())
                 .body(BodyInserters.fromValue(request))
                 .retrieve()
-                .onStatus(NOT_FOUND::equals,
-                        clientResponse -> Mono.error(new AttachmentNotAvailableException(fileKey)))
-                .bodyToMono(AdditionalFileTagsUpdateResponse.class)
+                .bodyToMono(AdditionalFileTagsMassiveUpdateResponse.class)
                 .onErrorResume(err -> {
-                    log.error("Exception invoking updateFileTags for fileKey {}", fileKey, err);
+                    log.error("Exception invoking updateFileTagsMassive", err);
                     return Mono.error(err);
                 });
     }

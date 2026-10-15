@@ -3,8 +3,9 @@ package it.pagopa.pn.ec.commons.rest.call.ss.file;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.consolidatore.exception.ClientNotAuthorizedOrFoundException;
-import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsUpdateRequest;
-import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsUpdateResponse;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsMassiveUpdateRequest;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsMassiveUpdateResponse;
+import it.pagopa.pn.ec.rest.v1.dto.Tags;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationResponse;
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
@@ -178,29 +179,32 @@ class FileCallTest {
                 .verifyComplete();
     }
 
+
     @Test
-    void updateFileTags_Success() {
-        AdditionalFileTagsUpdateRequest request = new AdditionalFileTagsUpdateRequest();
-        request.SET(Map.of("transformedDocumentKey", List.of("newFileKey")));
+    void updateFileTagsMassive_Success() {
+        AdditionalFileTagsMassiveUpdateRequest request = new AdditionalFileTagsMassiveUpdateRequest()
+                .addTagsItem(new Tags().fileKey("originalKey").SET(Map.of("transformedDocumentKey", List.of("newKey"))))
+                .addTagsItem(new Tags().fileKey("newKey").SET(Map.of("originalDocumentKey", List.of("originalKey"))));
 
         mockBackEnd.enqueue(new MockResponse()
-                .setBody("{\"resultCode\":\"200.00\",\"resultDescription\":\"OK\"}")
+                .setBody("{\"errors\":[]}")
                 .addHeader("Content-Type", "application/json"));
 
-        Mono<AdditionalFileTagsUpdateResponse> responseMono = fileCall.updateFileTags(FILE_KEY, request);
+        Mono<AdditionalFileTagsMassiveUpdateResponse> responseMono = fileCall.updateFileTagsMassive(request);
 
         StepVerifier.create(responseMono)
-                .expectNextMatches(r -> "200.00".equals(r.getResultCode()))
+                .expectNextMatches(r -> r.getErrors() == null || r.getErrors().isEmpty())
                 .verifyComplete();
     }
 
     @Test
-    void updateFileTags_NotFound() {
-        AdditionalFileTagsUpdateRequest request = new AdditionalFileTagsUpdateRequest();
+    void updateFileTagsMassive_Forbidden() {
+        AdditionalFileTagsMassiveUpdateRequest request = new AdditionalFileTagsMassiveUpdateRequest()
+                .addTagsItem(new Tags().fileKey("originalKey"));
 
-        mockBackEnd.enqueue(new MockResponse().setResponseCode(404));
+        mockBackEnd.enqueue(new MockResponse().setResponseCode(403));
 
-        Mono<AdditionalFileTagsUpdateResponse> responseMono = fileCall.updateFileTags(FILE_KEY, request);
+        Mono<AdditionalFileTagsMassiveUpdateResponse> responseMono = fileCall.updateFileTagsMassive(request);
 
         StepVerifier.create(responseMono)
                 .expectError()
