@@ -27,6 +27,7 @@ import it.pagopa.pn.ec.pec.exception.MaxSizeExceededException;
 import it.pagopa.pn.ec.pec.model.pojo.PecPresaInCaricoInfo;
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.util.ErrorDetailsUtils;
 import it.pagopa.pn.library.exceptions.PnSpapiPermanentErrorException;
 import it.pagopa.pn.library.pec.service.PnEcPecService;
 import lombok.CustomLog;
@@ -52,6 +53,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
@@ -143,10 +145,13 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                     }
                 })
                 .onErrorResume(SqsClientException.class,
-                        sqsClientException -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
-                                INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY).then(Mono.error(
-                                sqsClientException)))
+                        sqsClientException -> {
+                            log.warn(EXCEPTION_IN_PROCESS, PRESA_IN_CARICO_PEC, sqsClientException, sqsClientException.getMessage());
+                            return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
+                                    INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                                    new DigitalProgressStatusDto().errorDetails(ErrorDetailsUtils.exceptionInProcess(PRESA_IN_CARICO_PEC, sqsClientException)))
+                                    .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY).then(Mono.error(sqsClientException));
+                        })
                 .then()
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PRESA_IN_CARICO_PEC, result));
     }
@@ -243,11 +248,13 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
 
                 .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, LAVORAZIONE_RICHIESTA_PEC, throwable, throwable.getMessage()))
 
-                .onErrorResume(isAddressException, addressException -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo, ADDRESS_ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto()))
+                .onErrorResume(isAddressException, addressException -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
+                        ADDRESS_ERROR.getStatusTransactionTableCompliant(),
+                        new DigitalProgressStatusDto().errorDetails(ErrorDetailsUtils.exceptionInProcess(LAVORAZIONE_RICHIESTA_PEC, addressException))))
 
                 .onErrorResume(throwable -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                         RETRY.getStatusTransactionTableCompliant(),
-                        new DigitalProgressStatusDto())
+                        new DigitalProgressStatusDto().errorDetails(ErrorDetailsUtils.exceptionInProcess(LAVORAZIONE_RICHIESTA_PEC, throwable)))
 
                         .then(sendNotificationOnErrorQueue(pecPresaInCaricoInfo)))
                 .doOnSuccess(result -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_PEC))
@@ -395,7 +402,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
     }
 
     private Mono<DeleteMessageResponse> checkTentativiEccessiviPec(String requestIdx, RequestDto requestDto,
-                                                                   final PecPresaInCaricoInfo pecPresaInCaricoInfo, Message message) {
+                                                                   final PecPresaInCaricoInfo pecPresaInCaricoInfo, Message message,
+                                                                   Supplier<String> errorDetails) {
         if (idSaved == null) {
             idSaved = requestIdx;
         }
@@ -404,7 +412,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
             // operazioni per la rimozione del messaggio
             return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                     ERROR.getStatusTransactionTableCompliant(),
-                    new DigitalProgressStatusDto()).flatMap(
+                    new DigitalProgressStatusDto().errorDetails(errorDetails.get())).flatMap(
                     sendMessageResponse -> deleteMessageFromErrorQueue(message)
                             .doOnSuccess(result -> log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, pecSqsQueueName.getErrorName())));
 
@@ -447,7 +455,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                                     requestIdx,
                                                     requestDto,
                                                     pecPresaInCaricoInfo,
-                                                    message);
+                                                    message,
+                                                    () -> ErrorDetailsUtils.exceptionInProcess(GESTIONE_RETRY_PEC, sqsPublishException));
                                         });
                     } else {
                         //Gestisco il caso retry a partire dalla gestione allegati
@@ -496,15 +505,21 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                     return deleteMessageFromErrorQueue(message);
                                 })
 
-                                .onErrorResume(isAddressException, addressException -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo, ADDRESS_ERROR.getStatusTransactionTableCompliant(), new DigitalProgressStatusDto())
-                                        .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message)))
+                                .onErrorResume(isAddressException, addressException -> {
+                                    log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_PEC, addressException, addressException.getMessage());
+                                    return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
+                                            ADDRESS_ERROR.getStatusTransactionTableCompliant(),
+                                            new DigitalProgressStatusDto().errorDetails(ErrorDetailsUtils.exceptionInProcess(GESTIONE_RETRY_PEC, addressException)))
+                                            .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message));
+                                })
 
                                 .onErrorResume(sqsPublishException -> {
                                     log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_PEC, sqsPublishException, sqsPublishException.getMessage());
                                     return checkTentativiEccessiviPec(requestIdx,
                                             requestDto,
                                             pecPresaInCaricoInfo,
-                                            message);
+                                            message,
+                                            () -> ErrorDetailsUtils.exceptionInProcess(GESTIONE_RETRY_PEC, sqsPublishException));
                                 });
                     }
 
@@ -524,7 +539,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                     log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_PEC, internalError, internalError.getMessage());
                     return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                             INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                            new DigitalProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(
+                            new DigitalProgressStatusDto().errorDetails(ErrorDetailsUtils.exceptionInProcess(GESTIONE_RETRY_PEC, internalError)))
+                            .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(
                             message));
                 })
                 .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_PEC, false, throwable.getMessage(), throwable))

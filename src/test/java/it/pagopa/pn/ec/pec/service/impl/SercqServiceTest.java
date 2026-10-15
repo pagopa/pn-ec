@@ -28,6 +28,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import it.pagopa.pn.ec.commons.constant.Status;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalNotificationRequest.ChannelEnum.SERCQ;
@@ -37,6 +38,11 @@ import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.PRESA_IN_CARICO_SERCQ;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTestWebEnv
 public class SercqServiceTest {
@@ -313,4 +319,74 @@ public class SercqServiceTest {
         Assertions.assertFalse(Objects.nonNull(bookedDto.getGeneratedMessage()));
     }
 
+    private DigitalProgressStatusDto captureStatusDto(SercqPresaInCaricoInfo info, Status status) {
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(sercqService, times(1)).sendNotificationOnStatusQueue(eq(info), eq(status.getStatusTransactionTableCompliant()), captor.capture());
+        return captor.getValue();
     }
+
+    @Test
+    void testSpecificPresaInCaricoInvalidAddressKo_addressErrorEventHasErrorDetails() {
+
+        when(sqsService.send(any(), any())).thenReturn(Mono.just(SendMessageResponse.builder().build()));
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), anyBoolean())).thenReturn(Flux.just(new FileDownloadResponse()));
+        when(gestoreRepositoryCall.insertRichiesta(any())).thenReturn(Mono.just(new RequestDto()));
+
+        StepVerifier.create(sercqService.specificPresaInCarico(SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS))
+                    .expectError(InvalidReceiverDigitalAddressException.class)
+                    .verify();
+
+        String errorDetails = captureStatusDto(SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS, ADDRESS_ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(PRESA_IN_CARICO_SERCQ));
+        assertTrue(errorDetails.contains("InvalidReceiverDigitalAddressException"));
+        assertFalse(errorDetails.contains("\tat "));
+    }
+
+    @Test
+    void testSpecificPresaInCaricoSqsSendKo_internalErrorEventHasErrorDetails() {
+
+        when(sqsService.send(any(), any())).thenReturn(Mono.error(new SqsClientException("queue-notification-tracker")));
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), anyBoolean())).thenReturn(Flux.just(new FileDownloadResponse()));
+        when(gestoreRepositoryCall.insertRichiesta(any())).thenReturn(Mono.just(new RequestDto()));
+
+        StepVerifier.create(sercqService.specificPresaInCarico(SERCQ_PRESA_IN_CARICO_INFO)).expectError(SqsClientException.class).verify();
+
+        String errorDetails = captureStatusDto(SERCQ_PRESA_IN_CARICO_INFO, INTERNAL_ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(PRESA_IN_CARICO_SERCQ));
+        assertTrue(errorDetails.contains("queue-notification-tracker"));
+        assertFalse(errorDetails.contains("\tat "));
+    }
+
+    @Test
+    void testSpecificPresaInCaricoAddressErrorPublishKo_internalErrorEventHasErrorDetails() {
+
+        when(sqsService.send(any(), any())).thenReturn(Mono.just(SendMessageResponse.builder().build()));
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), anyBoolean())).thenReturn(Flux.just(new FileDownloadResponse()));
+        when(gestoreRepositoryCall.insertRichiesta(any())).thenReturn(Mono.just(new RequestDto()));
+        doReturn(Mono.error(new SqsClientException("queue-address-error"))).when(sercqService)
+                .sendNotificationOnStatusQueue(any(), eq(ADDRESS_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+
+        StepVerifier.create(sercqService.specificPresaInCarico(SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS)).expectError(SqsClientException.class).verify();
+
+        String errorDetails = captureStatusDto(SERCQ_PRESA_IN_CARICO_INFO_INVALID_ADDRESS, INTERNAL_ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(PRESA_IN_CARICO_SERCQ));
+        assertTrue(errorDetails.contains("queue-address-error"));
+    }
+
+    @Test
+    void testSpecificPresaInCarico_bookedAndSentEventsHaveNoErrorDetails() {
+
+        when(sqsService.send(any(), any())).thenReturn(Mono.just(SendMessageResponse.builder().build()));
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), anyBoolean())).thenReturn(Flux.just(new FileDownloadResponse()));
+        when(gestoreRepositoryCall.insertRichiesta(any())).thenReturn(Mono.just(new RequestDto()));
+
+        StepVerifier.create(sercqService.specificPresaInCarico(SERCQ_PRESA_IN_CARICO_INFO)).verifyComplete();
+
+        assertNull(captureStatusDto(SERCQ_PRESA_IN_CARICO_INFO, BOOKED).getErrorDetails());
+        assertNull(captureStatusDto(SERCQ_PRESA_IN_CARICO_INFO, SENT).getErrorDetails());
+    }
+
+}
