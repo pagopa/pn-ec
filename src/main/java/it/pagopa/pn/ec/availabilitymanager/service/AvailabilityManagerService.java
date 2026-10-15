@@ -12,6 +12,7 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
 import it.pagopa.pn.ec.rest.v1.dto.*;
+import it.pagopa.pn.ec.util.ErrorDetailsUtils;
 import lombok.CustomLog;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -43,6 +44,7 @@ public class AvailabilityManagerService {
     private static final String EVENT_BUS_SOURCE_TRANSFORMATION_DOCUMENT = "SafeStorageTransformEvent";
     private static final String INDISPONIBILITA_EVENT_ERROR = "ERROR";
     private static final String NEXT_STATUS_TRANSFORMATION_ERROR = "transformationError";
+    private static final String TRANSFORMATION_ERROR_DETAILS = "Transformation error for key '{}' with documentStatus '{}'";
 
 
 
@@ -146,6 +148,7 @@ public class AvailabilityManagerService {
         CartaceoPresaInCaricoInfo info = buildCartaceoPresaInCaricoInfo(requestConversionDto);
         PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto();
         paperProgressStatusDto.setStatus(NEXT_STATUS_TRANSFORMATION_ERROR);
+        paperProgressStatusDto.setErrorDetails(ErrorDetailsUtils.build(TRANSFORMATION_ERROR_DETAILS, detailDto.getKey(), detailDto.getDocumentStatus()));
 
         // Invio sulla coda del NotificationTracker
         log.info("Try to send message ERROR to NotificationTracker for request: {}", info);
