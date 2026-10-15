@@ -133,8 +133,8 @@ public class AvailabilityManagerService {
 
     public Mono<Void> writeBidirectionalTags(String originalFileKey, String newFileKey) {
         log.info("Writing bidirectional tags: originalFileKey={}, newFileKey={}", originalFileKey, newFileKey);
-        Tags tagForOriginal = new Tags().fileKey(originalFileKey).SET(Map.of("transformedDocumentKey", List.of(newFileKey)));
-        Tags tagForTransformed = new Tags().fileKey(newFileKey).SET(Map.of("originalDocumentKey", List.of(originalFileKey)));
+        Tags tagForOriginal = new Tags().fileKey(originalFileKey).putSETItem("transformedDocumentKey", List.of(newFileKey));
+        Tags tagForTransformed = new Tags().fileKey(newFileKey).putSETItem("originalDocumentKey", List.of(originalFileKey));
         AdditionalFileTagsMassiveUpdateRequest request = new AdditionalFileTagsMassiveUpdateRequest()
                 .addTagsItem(tagForOriginal)
                 .addTagsItem(tagForTransformed);

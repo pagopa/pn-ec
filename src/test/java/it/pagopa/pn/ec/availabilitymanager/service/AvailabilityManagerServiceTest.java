@@ -220,11 +220,11 @@ class AvailabilityManagerServiceTest {
 
         Tags tagOriginal = captured.getTags().get(0);
         assertThat(tagOriginal.getFileKey()).isEqualTo(originalFileKey);
-        assertThat(tagOriginal.getSET()).containsEntry("transformedDocumentKey", List.of(newFileKey));
+        assertThat(tagOriginal.getSET()).containsEntry("transformedDocumentKey", List.of("new-payload"));
 
         Tags tagTransformed = captured.getTags().get(1);
         assertThat(tagTransformed.getFileKey()).isEqualTo(newFileKey);
-        assertThat(tagTransformed.getSET()).containsEntry("originalDocumentKey", List.of(originalFileKey));
+        assertThat(tagTransformed.getSET()).containsEntry("originalDocumentKey", List.of("orig-payload"));
     }
 
     @Test
