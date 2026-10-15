@@ -203,6 +203,7 @@ public class LogUtils {
     //COMMONS
     public static final String GET_FILE = "getFile";
     public static final String POST_FILE = "postFile";
+    public static final String UPDATE_FILE_TAGS = "updateFileTags";
     public static final String DIGITAL_PULL_SERVICE = "StatusPullService.digitalPullService()";
 
     //MICROSERVIZI ESTERNI
