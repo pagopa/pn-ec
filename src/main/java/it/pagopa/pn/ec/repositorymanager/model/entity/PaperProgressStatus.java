@@ -30,4 +30,5 @@ public class PaperProgressStatus {
     String printer;
     String du;
     Boolean isDuplicate;
+    String errorDetails;
 }

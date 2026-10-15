@@ -53,7 +53,7 @@ public class SesServiceImpl implements SesService {
                    .flatMap(sendRawEmailRequest -> Mono.fromCompletionStage(sesAsyncClient.sendRawEmail(sendRawEmailRequest)))
                    .onErrorResume(throwable -> {
                        log.error(logSanitizer.sanitize(throwable.getMessage()));
-                       return Mono.error(new SesSendException());
+                       return Mono.error(new SesSendException(throwable));
                    })
                    .doOnSuccess(sendMessageResponse -> log.debug(CLIENT_METHOD_RETURN, SES_SEND_MAIL, sendMessageResponse));
     }

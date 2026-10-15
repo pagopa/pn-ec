@@ -125,6 +125,10 @@ components:
           type: string
         eventDetails:
           type: string
+        errorDetails:
+          type: string
+          description: >-
+            Dettaglio testuale dell'errore verificatosi in fase di invio. Uso interno, non esposto verso l'esterno.
         generatedMessage:
           $ref: '#/components/schemas/GeneratedMessageDto'
 
