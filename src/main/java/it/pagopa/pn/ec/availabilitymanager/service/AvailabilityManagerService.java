@@ -86,7 +86,11 @@ public class AvailabilityManagerService {
                                 .map(Map.Entry::getKey)
                                 .filter(this::allAttachmentsConverted)
                                 .flatMap(reqDto -> Flux.fromIterable(reqDto.getAttachments())
-                                        .flatMap(a -> writeBidirectionalTags(a.getOriginalFileKey(), a.getNewFileKey()))
+                                        .flatMap(a -> writeBidirectionalTags(a.getOriginalFileKey(), a.getNewFileKey())
+                                                .onErrorResume(err -> {
+                                                    log.error("Failed to write bidirectional tags for originalFileKey={}, continuing flow", a.getOriginalFileKey(), err);
+                                                    return Mono.empty();
+                                                }))
                                         .then(Mono.just(reqDto)))
                                 .map(this::buildCartaceoPresaInCaricoInfo)
                                 .flatMap(info ->
@@ -146,9 +150,6 @@ public class AvailabilityManagerService {
                 .then();
     }
 
-    /**
-     * Metodo per reperire gli eventi di indisponibilità da parte di pn-ss
-     */
     public boolean isSafeStorageError(AvailabilityManagerDto dto) {
         return dto != null
                 && GESTORE_DISPONIBILITA_EVENT_NAME.equals(dto.getSource())
