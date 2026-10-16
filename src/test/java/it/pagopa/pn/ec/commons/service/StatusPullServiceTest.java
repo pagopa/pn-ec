@@ -16,11 +16,15 @@ import reactor.test.StepVerifier;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import static it.pagopa.pn.ec.commons.constant.Status.BOOKED;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static it.pagopa.pn.ec.commons.constant.Status.ERROR;
 
 @SpringBootTestWebEnv
 class StatusPullServiceTest {
@@ -296,6 +300,77 @@ class StatusPullServiceTest {
                         Assertions.assertEquals(du, event.getDu());
                     })
                     .verifyComplete();
+    }
+
+    private static final String ERROR_DETAILS_TEXT = "Exception in 'lavorazioneRichiestaTest()' - confidential provider failure text";
+
+    private final ObjectMapper externalEventObjectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+
+    private EventsDto digitalErrorEventWithErrorDetails() {
+        return new EventsDto().digProgrStatus(new DigitalProgressStatusDto()
+                .status(ERROR.getStatusTransactionTableCompliant())
+                .eventTimestamp(OffsetDateTime.now())
+                .eventDetails("visible event details")
+                .errorDetails(ERROR_DETAILS_TEXT));
+    }
+
+    @Test
+    void digitalPullService_eventWithErrorDetails_doesNotExposeErrorDetails() throws JsonProcessingException {
+
+        RequestDto request = smsRequest();
+        request.getRequestMetadata().setEventsList(List.of(digitalErrorEventWithErrorDetails()));
+
+        when(gestoreRepositoryCall.getRichiesta(eq(CLIENT_ID), eq(SMS_REQUEST_IDX))).thenReturn(Mono.just(request));
+        when(callMacchinaStati.statusDecode(anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto(CourtesyMessageProgressEvent.EventCodeEnum.M003.getValue(), ProgressEventCategory.OK.getValue())));
+
+        CourtesyMessageProgressEvent event = statusPullService.digitalPullService(SMS_REQUEST_IDX, CLIENT_ID, transactionProcessProperties().getSms()).block();
+
+        Assertions.assertNotNull(event);
+        Assertions.assertEquals("visible event details", event.getEventDetails());
+        String json = externalEventObjectMapper.writeValueAsString(event);
+        Assertions.assertFalse(json.contains("errorDetails"));
+        Assertions.assertFalse(json.contains(ERROR_DETAILS_TEXT));
+    }
+
+    @Test
+    void pecPullService_eventWithErrorDetails_doesNotExposeErrorDetails() throws JsonProcessingException {
+
+        RequestDto request = pecRequest();
+        request.getRequestMetadata().setEventsList(List.of(digitalErrorEventWithErrorDetails()));
+
+        when(gestoreRepositoryCall.getRichiesta(eq(CLIENT_ID), eq(PEC_REQUEST_IDX))).thenReturn(Mono.just(request));
+        when(callMacchinaStati.statusDecode(anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto(LegalMessageSentDetails.EventCodeEnum.C000.getValue(), ProgressEventCategory.OK.getValue())));
+
+        LegalMessageSentDetails event = statusPullService.pecPullService(PEC_REQUEST_IDX, CLIENT_ID).block();
+
+        Assertions.assertNotNull(event);
+        Assertions.assertEquals("visible event details", event.getEventDetails());
+        String json = externalEventObjectMapper.writeValueAsString(event);
+        Assertions.assertFalse(json.contains("errorDetails"));
+        Assertions.assertFalse(json.contains(ERROR_DETAILS_TEXT));
+    }
+
+    @Test
+    void paperPullService_eventWithErrorDetails_doesNotExposeErrorDetails() throws JsonProcessingException {
+
+        RequestDto request = paperRequest();
+        EventsDto paperEvent = new EventsDto().paperProgrStatus(new PaperProgressStatusDto()
+                .status(ERROR.getStatusTransactionTableCompliant())
+                .statusDateTime(OffsetDateTime.now())
+                .discoveredAddress(new DiscoveredAddressDto())
+                .attachments(List.of(new AttachmentsProgressEventDto()))
+                .errorDetails(ERROR_DETAILS_TEXT));
+        request.getRequestMetadata().setEventsList(List.of(paperEvent));
+
+        when(gestoreRepositoryCall.getRichiesta(eq(CLIENT_ID), eq(PAPER_REQUEST_IDX))).thenReturn(Mono.just(request));
+        when(callMacchinaStati.statusDecode(anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiDecodeResponseDto("logicStatus", "externalStatus")));
+
+        PaperProgressStatusEvent event = statusPullService.paperPullService(PAPER_REQUEST_IDX, CLIENT_ID).block();
+
+        Assertions.assertNotNull(event);
+        String json = externalEventObjectMapper.writeValueAsString(event);
+        Assertions.assertFalse(json.contains("errorDetails"));
+        Assertions.assertFalse(json.contains(ERROR_DETAILS_TEXT));
     }
 
 }

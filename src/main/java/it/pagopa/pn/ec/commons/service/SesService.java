@@ -14,7 +14,7 @@ public interface SesService {
 	Retry DEFAULT_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))//
 										// .jitter(0.75)
 										.onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
-											throw new SesSendException.SesMaxRetriesExceededException();
+											throw new SesSendException.SesMaxRetriesExceededException(retrySignal.failure());
 										});
 
 	Mono<SendRawEmailResponse> send(EmailField field);
