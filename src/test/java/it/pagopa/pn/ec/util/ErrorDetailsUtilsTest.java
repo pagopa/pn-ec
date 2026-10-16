@@ -251,6 +251,34 @@ class ErrorDetailsUtilsTest {
     }
 
     @Test
+    void build_urlWithCommaInsideQueryValue_wholeQueryIsRemoved() {
+        String result = ErrorDetailsUtils.build("failed {} with status 403", "https://host.example/file?context=a,b&token=secret");
+
+        assertEquals("failed https://host.example/file with status 403", result);
+    }
+
+    @Test
+    void build_urlWithSemicolonInsideQueryValue_wholeQueryIsRemoved() {
+        String result = ErrorDetailsUtils.build("failed {}", "https://host.example/file?context=a;b&token=secret");
+
+        assertEquals("failed https://host.example/file", result);
+    }
+
+    @Test
+    void build_urlWithParenthesisInsideQueryValue_wholeQueryIsRemoved() {
+        String result = ErrorDetailsUtils.build("failed {} with status 403", "https://host.example/file?filter=(a)]&token=secret");
+
+        assertEquals("failed https://host.example/file with status 403", result);
+    }
+
+    @Test
+    void build_urlWithQueryStringInQuotesFollowedByPeriod_punctuationIsPreserved() {
+        String result = ErrorDetailsUtils.build("GET '{}'. Retry later", "https://host.example/file?x=1,y=2&sig=secret");
+
+        assertEquals("GET 'https://host.example/file'. Retry later", result);
+    }
+
+    @Test
     void build_uppercaseHttpsUrlWithQueryString_queryStringIsRemoved() {
         String result = ErrorDetailsUtils.build("failed {}", "HTTPS://HOST.EXAMPLE/file?token=secret");
 

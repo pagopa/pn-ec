@@ -16,7 +16,7 @@ public final class ErrorDetailsUtils {
 
     private static final int MAX_CAUSE_DEPTH = 3;
     private static final String CAUSED_BY = "; caused by: ";
-    private static final Pattern URL_QUERY_STRING_PATTERN = Pattern.compile("(?i)(https?://[^\\s?]*)\\?[^\\s,;)\\]]*");
+    private static final Pattern URL_QUERY_STRING_PATTERN = Pattern.compile("(?i)(https?://[^\\s?]*)\\?\\S*?([.,;:)\\]'\">]*)(?=\\s|$)");
     private static final LogSanitizer LOG_SANITIZER = new LogSanitizer();
 
     private ErrorDetailsUtils() {
@@ -73,7 +73,7 @@ public final class ErrorDetailsUtils {
     }
 
     private static String removeUrlQueryStrings(String text) {
-        return URL_QUERY_STRING_PATTERN.matcher(text).replaceAll("$1");
+        return URL_QUERY_STRING_PATTERN.matcher(text).replaceAll("$1$2");
     }
 
     private static String truncate(String text) {
