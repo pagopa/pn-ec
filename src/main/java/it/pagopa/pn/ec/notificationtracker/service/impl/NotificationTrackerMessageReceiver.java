@@ -71,6 +71,44 @@ public class NotificationTrackerMessageReceiver {
                 .block();
     }
 
+    @SqsListener(value = "${pn.ec.notification-tracker.sqs-queue.stato-whatsapp-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    public void receiveWhatsappObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
+        String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
+        MDC.clear();
+        MDC.put(MDC_CORR_ID_KEY, concatRequestId);
+        log.logStartingProcess(NT_RECEIVE_WHATSAPP);
+        logIncomingMessage(notificationTrackerSqsName.getStatoWhatsappName(), notificationTrackerQueueDto);
+        MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleRequestStatusChange(notificationTrackerQueueDto,
+                                                             transactionProcessProperties.getWhatsapp(),
+                                                             notificationTrackerSqsName.getStatoWhatsappName(),
+                                                             notificationTrackerSqsName.getStatoWhatsappErratoName(),
+                                                             acknowledgment)
+                .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_WHATSAPP))
+                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_WHATSAPP, false, throwable.getMessage(), throwable)))
+                .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
+                    log.info("Message skipped caused by max retry time elapsed: {}", concatRequestId);
+                    return Mono.empty();
+                })
+                .block();
+    }
+
+    @SqsListener(value = "${pn.ec.notification-tracker.sqs-queue.stato-whatsapp-errato-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
+    public void receiveWhatsappObjectFromErrorQueue(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
+        String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());
+        MDC.clear();
+        MDC.put(MDC_CORR_ID_KEY, concatRequestId);
+        log.logStartingProcess(NT_RECEIVE_WHATSAPP_ERROR);
+        logIncomingMessage(notificationTrackerSqsName.getStatoWhatsappErratoName(), notificationTrackerQueueDto);
+        MDCUtils.addMDCToContextAndExecute(notificationTrackerService.handleMessageFromErrorQueue(notificationTrackerQueueDto, notificationTrackerSqsName.getStatoWhatsappName(), acknowledgment)
+                .doOnSuccess(result -> log.logEndingProcess(NT_RECEIVE_WHATSAPP_ERROR))
+                .doOnError(throwable -> log.logEndingProcess(NT_RECEIVE_WHATSAPP_ERROR, false, throwable.getMessage(), throwable)))
+                .onErrorResume(SqsMaxTimeElapsedException.class, ex -> {
+                    log.info("Message skipped caused by max retry time elapsed: {}", concatRequestId);
+                    return Mono.empty();
+                })
+                .block();
+    }
+
     @SqsListener(value = "${pn.ec.notification-tracker.sqs-queue.stato-email-name}", acknowledgementMode = SqsListenerAcknowledgementMode.MANUAL)
     public void receiveEmailObjectMessage(final NotificationTrackerQueueDto notificationTrackerQueueDto, Acknowledgement acknowledgment) {
         String concatRequestId = concatRequestId(notificationTrackerQueueDto.getXPagopaExtchCxId(), notificationTrackerQueueDto.getRequestIdx());

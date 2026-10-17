@@ -89,6 +89,8 @@ public class LogUtils {
     public static final String NT_RECEIVE_SMS = "receiveSMSObjectMessage()";
 
     public static final String NT_RECEIVE_SMS_ERROR = "receiveSMSObjectFromErrorQueue()";
+    public static final String NT_RECEIVE_WHATSAPP = "receiveWhatsappObjectMessage()";
+    public static final String NT_RECEIVE_WHATSAPP_ERROR = "receiveWhatsappObjectFromErrorQueue()";
 
     public static final String NT_RECEIVE_EMAIL = "receiveEmailObjectMessage()";
 
@@ -174,6 +176,15 @@ public class LogUtils {
     public static final String LAVORAZIONE_BATCH_SMS = "SmsService.lavorazioneRichiestaBatch()";
     public static final String LAVORAZIONE_ERRORI_SMS = "SmsService.gestioneRetrySmsScheduler()";
 
+    //WHATSAPP
+    public static final String PRESA_IN_CARICO_WHATSAPP = "WhatsappService.presaInCarico()";
+    public static final String INSERT_REQUEST_FROM_WHATSAPP = "WhatsappService.insertRequestFromWhatsapp()";
+    public static final String LAVORAZIONE_RICHIESTA_WHATSAPP = "lavorazioneRichiestaWhatsapp()";
+    public static final String FILTER_REQUEST_WHATSAPP = "WhatsappService.filterRequestWhatsapp()";
+    public static final String GESTIONE_RETRY_WHATSAPP = "gestioneRetryWhatsapp()";
+    public static final String LAVORAZIONE_BATCH_WHATSAPP = "WhatsappService.lavorazioneRichiestaBatch()";
+    public static final String LAVORAZIONE_ERRORI_WHATSAPP = "WhatsappService.gestioneRetryWhatsappScheduler()";
+
     //CONSOLIDATORE
     public static final String PRESIGNED_UPLOAD_REQUEST_PROCESS = "presignedUploadRequest";
     public static final String PRESIGNED_UPLOAD_REQUEST = "ConsolidatoreService.presignedUploadRequest()";
@@ -232,6 +243,9 @@ public class LogUtils {
 
     //SNS
     public static final String SNS_SEND = "SnsService.send()";
+
+    //AWS End User Messaging Social (WhatsApp)
+    public static final String EUM_SOCIAL_SEND = "EumSocialService.sendTemplateMessage()";
 
     //S3
     public static final String GET_OBJECT_AND_CONVERT = "getObjectAndConvert()";

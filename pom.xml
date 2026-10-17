@@ -24,6 +24,12 @@
     </scm>
 
     <properties>
+        <!--
+            WhatsApp (AWS End User Messaging Social): il modulo "socialmessaging" è disponibile solo dall'AWS SDK 2.29.x.
+            pn-parent importa il BOM ${awssdk.version}=2.18.3: lo si sovrascrive qui per pn-ec.
+            TODO WHATSAPP: valutare il bump direttamente in pn-parent ed eseguire la regression completa (SQS/SNS/SES/S3/DynamoDB).
+        -->
+        <awssdk.version>2.30.0</awssdk.version>
         <sonar.coverage.exclusions>
       		src/test/java/**
     		</sonar.coverage.exclusions>
@@ -155,6 +161,11 @@
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>sns</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>socialmessaging</artifactId>
         </dependency>
 
         <dependency>
