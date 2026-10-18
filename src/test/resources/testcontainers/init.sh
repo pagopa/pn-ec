@@ -17,6 +17,12 @@ SQS_QUEUES=(
   "pn-ec-sms-interactive-queue.fifo"
   "pn-ec-sms-errori-queue.fifo"
   "pn-ec-sms-errori-queue-DLQ.fifo"
+  "pn-ec-tracker-whatsapp-stato-queue.fifo"
+  "pn-ec-tracker-whatsapp-errori-queue.fifo"
+  "pn-ec-whatsapp-batch-queue.fifo"
+  "pn-ec-whatsapp-interactive-queue.fifo"
+  "pn-ec-whatsapp-errori-queue.fifo"
+  "pn-ec-whatsapp-errori-queue-DLQ.fifo"
 
   "pn-ec-tracker-email-stato-queue.fifo"
   "pn-ec-tracker-email-errori-queue.fifo"

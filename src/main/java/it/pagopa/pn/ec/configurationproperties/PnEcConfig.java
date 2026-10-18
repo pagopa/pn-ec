@@ -23,6 +23,7 @@ public class PnEcConfig {
     private Email email = new Email();
     private Pec pec = new Pec();
     private Sms sms = new Sms();
+    private Whatsapp whatsapp = new Whatsapp();
     private Sercq sercq = new Sercq();
     private Storage storage = new Storage();
     private Sqs sqs = new Sqs();
@@ -41,6 +42,7 @@ public class PnEcConfig {
         log.info("PnEcConfig - email.sqsQueue.batchName={}", email.getSqsQueue().getBatchName());
         log.info("PnEcConfig - pec.sqsQueue.batchName={}", pec.getSqsQueue().getBatchName());
         log.info("PnEcConfig - sms.sqsQueue.batchName={}", sms.getSqsQueue().getBatchName());
+        log.info("PnEcConfig - whatsapp.sqsQueue.batchName={} whatsapp.metaApiVersion={}", whatsapp.getSqsQueue().getBatchName(), whatsapp.getMetaApiVersion());
         log.info("PnEcConfig - sercq.receiverDigitalAddress={}", sercq.getReceiverDigitalAddress());
         log.info("PnEcConfig - storage.stagingBucket={}", storage.getStagingBucket());
         log.info("PnEcConfig - sqs.maxBatchSubscribedMsgs={}", sqs.getMaxBatchSubscribedMsgs());
@@ -293,6 +295,25 @@ public class PnEcConfig {
 
     @Getter
     @Setter
+    public static class Whatsapp {
+        private Integer maxThreadPoolSize;
+        /** phone-number-id-... (o ARN) del numero mittente collegato alla WhatsApp Business Account. */
+        private String originationPhoneNumberId;
+        /** Versione delle API Meta (formato v{N}). */
+        private String metaApiVersion;
+        private SqsQueue sqsQueue = new SqsQueue();
+
+        @Getter
+        @Setter
+        public static class SqsQueue {
+            private String batchName;
+            private String interactiveName;
+            private String errorName;
+        }
+    }
+
+    @Getter
+    @Setter
     public static class NotificationTracker {
         private SqsQueue sqsQueue = new SqsQueue();
         private EventBridge eventBridge = new EventBridge();
@@ -302,6 +323,8 @@ public class PnEcConfig {
         public static class SqsQueue {
             private String statoSmsName;
             private String statoSmsErratoName;
+            private String statoWhatsappName;
+            private String statoWhatsappErratoName;
             private String statoEmailName;
             private String statoEmailErratoName;
             private String statoPecName;
@@ -385,6 +408,7 @@ public class PnEcConfig {
         public static class TransactionProcess {
             private String startStatus;
             private String sms;
+            private String whatsapp;
             private String email;
             private String pec;
             private String paper;

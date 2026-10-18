@@ -216,6 +216,26 @@ Parameters:
     Description: 'Lavorazione SMS max thread pool size'
     Default: '75'
 
+  LavorazioneWhatsappMaxThreadPoolSize:
+    Type: String
+    Description: 'Lavorazione WhatsApp max thread pool size (limitata dal throughput del numero mittente su Meta)'
+    Default: '20'
+
+  PnEcWhatsappOriginationPhoneNumberId:
+    Type: String
+    Description: 'AWS End User Messaging Social: phone-number-id-... (o ARN) del numero mittente WhatsApp'
+    Default: ''
+
+  PnEcWhatsappMetaApiVersion:
+    Type: String
+    Description: 'Versione delle API Meta WhatsApp Cloud usata da End User Messaging Social (formato v{N})'
+    Default: 'v20.0'
+
+  PnEcWhatsappOriginationPhoneNumberArn:
+    Type: String
+    Description: 'ARN del phone number id WhatsApp (risorsa IAM per social-messaging:SendWhatsAppMessage)'
+    Default: '*'
+
   LavorazioneEmailMaxThreadPoolSize:
     Type: String
     Description: 'Lavorazione Email max thread pool size'
@@ -303,17 +323,34 @@ Parameters:
     Type: String
     Description: '[Notification Tracker: canale SMS] ARN della Coda per aggiornamenti di stato afferenti al canale SMS'
 
+  PnEcQueueArnTrackerStatoWHATSAPP:
+    Type: String
+    Description: '[Notification Tracker: canale WHATSAPP] ARN della Coda per aggiornamenti di stato afferenti al canale WHATSAPP'
+
   PnEcQueueUrlTrackerStatoSMS:
     Type: String
     Description: '[Notification Tracker: canale SMS] URL della Coda per aggiornamenti di stato afferenti al canale SMS'
+
+  PnEcQueueUrlTrackerStatoWHATSAPP:
+    Type: String
+    Description: '[Notification Tracker: canale WHATSAPP] URL della Coda per aggiornamenti di stato afferenti al canale WHATSAPP'
 
   PnEcAlarmArnQueueTrackerStatoSMS:
     Type: String
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoSMS"
 
+  PnEcAlarmArnQueueTrackerStatoWHATSAPP:
+    Type: String
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoWHATSAPP"
+
   PnEcAlarmArnDLQueueTrackerStatoSMS:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoSMS"
+
+
+  PnEcAlarmArnDLQueueTrackerStatoWHATSAPP:
+    Type: String
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoWHATSAPP"
 
   ######### TRACKER : ERRORI SMS  ##########
 
@@ -325,13 +362,30 @@ Parameters:
 #    Type: String
 #    Description: '[Notification Tracker: canale SMS] URL della Coda Errori afferenti al canale SMS'
 
+  PnEcQueueArnTrackerErroriWHATSAPP:
+    Type: String
+    Description: '[Notification Tracker: canale WHATSAPP] ARN della Coda Errori afferenti al canale WHATSAPP'
+
+#  PnEcQueueUrlTrackerErroriWHATSAPP:
+#    Type: String
+#    Description: '[Notification Tracker: canale WHATSAPP] URL della Coda Errori afferenti al canale WHATSAPP'
+
   PnEcAlarmArnQueueTrackerErroriSMS:
     Type: String
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriSMS"
 
+  PnEcAlarmArnQueueTrackerErroriWHATSAPP:
+    Type: String
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriWHATSAPP"
+
   PnEcAlarmArnDLQueueTrackerErroriSMS:
     Type: String
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriSMS"
+
+
+  PnEcAlarmArnDLQueueTrackerErroriWHATSAPP:
+    Type: String
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriWHATSAPP"
 
   ######### TRACKER : PEC  ##########
 
@@ -476,13 +530,30 @@ Parameters:
 #    Type: String
 #    Description: '[Canale SMS] URL della Coda per la modalità SMS-Batch'
 
+  PnEcQueueArnBatchWHATSAPP:
+    Type: String
+    Description: '[Canale WHATSAPP] ARN della Coda per la modalità WHATSAPP-Batch'
+
+#  PnEcQueueUrlBatchWHATSAPP:
+#    Type: String
+#    Description: '[Canale WHATSAPP] URL della Coda per la modalità WHATSAPP-Batch'
+
   PnEcAlarmArnQueueBatchSMS:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchSMS"
 
+  PnEcAlarmArnQueueBatchWHATSAPP:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchWHATSAPP"
+
   PnEcAlarmArnDLQueueBatchSMS:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchSMS"
+
+
+  PnEcAlarmArnDLQueueBatchWHATSAPP:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchWHATSAPP"
 
  ###### INTERACTIVE : SMS #######
 
@@ -490,17 +561,34 @@ Parameters:
     Type: String
     Description: '[Canale SMS] ARN della Coda per la modalità SMS-Interactive'
 
+  PnEcQueueArnInteractiveWHATSAPP:
+    Type: String
+    Description: '[Canale WHATSAPP] ARN della Coda per la modalità WHATSAPP-Interactive'
+
   PnEcQueueUrlInteractiveSMS:
     Type: String
     Description: '[Canale SMS] URL della Coda per la modalità SMS-Interactive'
+
+  PnEcQueueUrlInteractiveWHATSAPP:
+    Type: String
+    Description: '[Canale WHATSAPP] URL della Coda per la modalità WHATSAPP-Interactive'
 
   PnEcAlarmArnQueueInteractiveSMS:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractiveSMS"
 
+  PnEcAlarmArnQueueInteractiveWHATSAPP:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractiveWHATSAPP"
+
   PnEcAlarmArnDLQueueInteractiveSMS:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractiveSMS"
+
+
+  PnEcAlarmArnDLQueueInteractiveWHATSAPP:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractiveWHATSAPP"
 
   ###### ERRORI : SMS #######
 
@@ -512,13 +600,30 @@ Parameters:
 #    Type: String
 #    Description: '[Canale SMS] URL della Coda Errori SMS'
 
+  PnEcQueueArnErroriWHATSAPP:
+    Type: String
+    Description: '[Canale WHATSAPP] ARN della Coda Errori WHATSAPP'
+
+#  PnEcQueueUrlErroriWHATSAPP:
+#    Type: String
+#    Description: '[Canale WHATSAPP] URL della Coda Errori WHATSAPP'
+
   PnEcAlarmArnQueueErroriSMS:
     Type: String
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriSMS"
 
+  PnEcAlarmArnQueueErroriWHATSAPP:
+    Type: String
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriWHATSAPP"
+
   PnEcAlarmArnDLQueueErroriSMS:
     Type: String
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriSMS"
+
+
+  PnEcAlarmArnDLQueueErroriWHATSAPP:
+    Type: String
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriWHATSAPP"
 
   ###### BATCH : PEC #######
 
@@ -1058,6 +1163,9 @@ Resources:
         ContainerEnvEntry44: !Sub 'CONSOLIDATORE_REFRESH_PERIOD_SECONDS=${ConsolidatoreRefreshPeriodSeconds}'
         ContainerEnvEntry45: !Sub 'PN_EC_EMAIL_SES_EVENTS_SNS_TOPIC_ARN=${PnEcEmailSESEventsSNSTopicArn}'
         ContainerEnvEntry46: !Sub 'SES_CONFIGURATION_SET_NAME=${SESConfigurationSetName}'
+        ContainerEnvEntry47: !Sub 'LAVORAZIONE_WHATSAPP_MAX_THREAD_POOL_SIZE=${LavorazioneWhatsappMaxThreadPoolSize}'
+        ContainerEnvEntry48: !Sub 'PN_EC_WHATSAPP_ORIGINATION_PHONE_NUMBER_ID=${PnEcWhatsappOriginationPhoneNumberId}'
+        ContainerEnvEntry49: !Sub 'PN_EC_WHATSAPP_META_API_VERSION=${PnEcWhatsappMetaApiVersion}'
         ContainerSecret1: !Sub 'CONSOLIDATORE_CLIENT_API_KEY=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
@@ -1170,7 +1278,9 @@ Resources:
               - 'sqs:ChangeMessageVisibility'
             Resource:
               - !Ref PnEcQueueArnTrackerStatoSMS
+              - !Ref PnEcQueueArnTrackerStatoWHATSAPP
               - !Ref PnEcQueueArnTrackerErroriSMS
+              - !Ref PnEcQueueArnTrackerErroriWHATSAPP
               - !Ref PnEcQueueArnTrackerStatoPEC
               - !Ref PnEcQueueArnTrackerErroriPEC
               - !Ref PnEcQueueArnTrackerStatoEMAIL
@@ -1178,8 +1288,11 @@ Resources:
               - !Ref PnEcQueueArnTrackerStatoCARTACEO
               - !Ref PnEcQueueArnTrackerErroriCARTACEO
               - !Ref PnEcQueueArnBatchSMS
+              - !Ref PnEcQueueArnBatchWHATSAPP
               - !Ref PnEcQueueArnInteractiveSMS
+              - !Ref PnEcQueueArnInteractiveWHATSAPP
               - !Ref PnEcQueueArnErroriSMS
+              - !Ref PnEcQueueArnErroriWHATSAPP
               - !Ref PnEcQueueArnBatchPEC
               - !Ref PnEcQueueArnInteractivePEC
               - !Ref PnEcQueueArnErroriPEC
@@ -1211,6 +1324,12 @@ Resources:
               - 'sns:*SMS*'
             Resource:
               - '*'
+          - Effect: Allow
+            Sid: 'WHATSAPP'
+            Action:
+              - 'social-messaging:SendWhatsAppMessage'
+            Resource:
+              - !Ref PnEcWhatsappOriginationPhoneNumberArn
           - Effect: Allow
             Sid: 'ReadFromSecretsManagerIdentityPec'
             Action:
@@ -1282,6 +1401,21 @@ Resources:
               - 'sqs:*'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnTrackerStatoSMS
+            Principal:
+              AWS: !Ref AWS::AccountId
+
+  PnEcQueuePolicyTrackerStatoWHATSAPP:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref PnEcQueueUrlTrackerStatoWHATSAPP
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - 'sqs:*'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnTrackerStatoWHATSAPP
             Principal:
               AWS: !Ref AWS::AccountId
 
@@ -1358,6 +1492,21 @@ Resources:
               - 'sqs:*'
             Effect: 'Allow'
             Resource: !Ref PnEcQueueArnInteractiveSMS
+            Principal:
+              AWS: !Ref AWS::AccountId
+
+  PnEcQueuePolicyInteractiveWHATSAPP:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref PnEcQueueUrlInteractiveWHATSAPP
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - 'sqs:*'
+            Effect: 'Allow'
+            Resource: !Ref PnEcQueueArnInteractiveWHATSAPP
             Principal:
               AWS: !Ref AWS::AccountId
 
@@ -1652,11 +1801,17 @@ Resources:
           !Join
           - ','
           - - !Ref PnEcAlarmArnQueueBatchSMS
+            - !Ref PnEcAlarmArnQueueBatchWHATSAPP
             - !Ref PnEcAlarmArnDLQueueBatchSMS
+            - !Ref PnEcAlarmArnDLQueueBatchWHATSAPP
             - !Ref PnEcAlarmArnQueueInteractiveSMS
+            - !Ref PnEcAlarmArnQueueInteractiveWHATSAPP
             - !Ref PnEcAlarmArnDLQueueInteractiveSMS
+            - !Ref PnEcAlarmArnDLQueueInteractiveWHATSAPP
             - !Ref PnEcAlarmArnQueueErroriSMS
+            - !Ref PnEcAlarmArnQueueErroriWHATSAPP
             - !Ref PnEcAlarmArnDLQueueErroriSMS
+            - !Ref PnEcAlarmArnDLQueueErroriWHATSAPP
             - !Ref PnEcAlarmArnQueueBatchPEC
             - !Ref PnEcAlarmArnDLQueueBatchPEC
             - !Ref PnEcAlarmArnQueueInteractivePEC
@@ -1692,8 +1847,11 @@ Resources:
           !Join
           - ','
           - - !Ref PnEcQueueArnBatchSMS
+            - !Ref PnEcQueueArnBatchWHATSAPP
             - !Ref PnEcQueueArnInteractiveSMS
+            - !Ref PnEcQueueArnInteractiveWHATSAPP
             - !Ref PnEcQueueArnErroriSMS
+            - !Ref PnEcQueueArnErroriWHATSAPP
             - !Ref PnEcQueueArnBatchPEC
             - !Ref PnEcQueueArnInteractivePEC
             - !Ref PnEcQueueArnErroriPEC
@@ -1716,9 +1874,13 @@ Resources:
           !Join
           - ','
           - - !Ref PnEcAlarmArnQueueTrackerStatoSMS
+            - !Ref PnEcAlarmArnQueueTrackerStatoWHATSAPP
             - !Ref PnEcAlarmArnDLQueueTrackerStatoSMS
+            - !Ref PnEcAlarmArnDLQueueTrackerStatoWHATSAPP
             - !Ref PnEcAlarmArnQueueTrackerErroriSMS
+            - !Ref PnEcAlarmArnQueueTrackerErroriWHATSAPP
             - !Ref PnEcAlarmArnDLQueueTrackerErroriSMS
+            - !Ref PnEcAlarmArnDLQueueTrackerErroriWHATSAPP
             - !Ref PnEcAlarmArnQueueTrackerStatoPEC
             - !Ref PnEcAlarmArnDLQueueTrackerStatoPEC
             - !Ref PnEcAlarmArnQueueTrackerErroriPEC
@@ -1749,7 +1911,9 @@ Resources:
           !Join
           - ','
           - - !Ref PnEcQueueArnTrackerStatoSMS
+            - !Ref PnEcQueueArnTrackerStatoWHATSAPP
             - !Ref PnEcQueueArnTrackerErroriSMS
+            - !Ref PnEcQueueArnTrackerErroriWHATSAPP
             - !Ref PnEcQueueArnTrackerStatoPEC
             - !Ref PnEcQueueArnTrackerErroriPEC
             - !Ref PnEcQueueArnTrackerStatoEMAIL

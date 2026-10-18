@@ -28,6 +28,8 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClientBuilde
 import software.amazon.awssdk.services.ses.SesAsyncClient;
 import software.amazon.awssdk.services.ses.SesAsyncClientBuilder;
 import software.amazon.awssdk.services.sns.SnsAsyncClient;
+import software.amazon.awssdk.services.socialmessaging.SocialMessagingAsyncClient;
+import software.amazon.awssdk.services.socialmessaging.SocialMessagingAsyncClientBuilder;
 import software.amazon.awssdk.services.sns.SnsAsyncClientBuilder;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 import software.amazon.awssdk.services.sqs.SqsAsyncClientBuilder;
@@ -50,6 +52,8 @@ public class AwsConfiguration {
     String dynamoDbLocalStackEndpoint;
     @Value("${test.aws.sns.endpoint:#{null}}")
     String snsLocalStackEndpoint;
+    @Value("${test.aws.socialmessaging.endpoint:#{null}}")
+    String socialMessagingLocalStackEndpoint;
     @Value("${test.aws.ses.endpoint:#{null}}")
     String sesLocalStackEndpoint;
     @Value("${test.aws.event:#{null}}")
@@ -172,6 +176,24 @@ public class AwsConfiguration {
         }
 
         return snsAsyncClientBuilder.build();
+    }
+
+    @Bean
+    public SocialMessagingAsyncClient socialMessagingClient(CloudWatchAsyncClient cloudWatchAsyncClient) {
+        SocialMessagingAsyncClientBuilder socialMessagingAsyncClientBuilder = SocialMessagingAsyncClient.builder()
+                                                                    .credentialsProvider(DEFAULT_CREDENTIALS_PROVIDER_V2)
+                                                                    .overrideConfiguration(c -> c.addMetricPublisher(CloudWatchMetricPublisher.builder()
+                                                                            .cloudWatchClient(cloudWatchAsyncClient).build()));
+
+        if (socialMessagingLocalStackEndpoint != null) {
+            socialMessagingAsyncClientBuilder.endpointOverride(URI.create(socialMessagingLocalStackEndpoint));
+        }
+
+        if (regionCode != null) {
+            socialMessagingAsyncClientBuilder.region(Region.of(regionCode));
+        }
+
+        return socialMessagingAsyncClientBuilder.build();
     }
 
     @Bean
