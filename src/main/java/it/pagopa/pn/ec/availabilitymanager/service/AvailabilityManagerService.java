@@ -8,6 +8,7 @@ import it.pagopa.pn.ec.availabilitymanager.model.dto.AvailabilityManagerDto;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.service.CartaceoService;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
+import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
@@ -18,6 +19,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
+import reactor.core.publisher.Flux;
 
 import static it.pagopa.pn.ec.commons.utils.LogUtils.*;
 import static it.pagopa.pn.ec.commons.utils.SqsUtils.logIncomingMessage;
@@ -36,6 +38,8 @@ public class AvailabilityManagerService {
 
     private final CartaceoService cartaceoService;
 
+    private final FileCall fileCall;
+
     private final String availabilityManagerQueueName;
 
 
@@ -46,12 +50,13 @@ public class AvailabilityManagerService {
 
 
 
-    public AvailabilityManagerService (RequestConversionService requestConversionService, SqsService sqsService, CallMacchinaStati callMachinaStati, CartaceoService cartaceoService, PnEcConfig pnEcConfig) {
+    public AvailabilityManagerService(RequestConversionService requestConversionService, SqsService sqsService, CallMacchinaStati callMachinaStati, CartaceoService cartaceoService, FileCall fileCall, PnEcConfig pnEcConfig) {
         this.requestConversionService = requestConversionService;
         this.cartaceoSqsQueueName = pnEcConfig.getCartaceo().getSqsQueue();
         this.sqsService = sqsService;
         this.callMachinaStati = callMachinaStati;
         this.cartaceoService = cartaceoService;
+        this.fileCall = fileCall;
         this.availabilityManagerQueueName = pnEcConfig.getAvailabilityManager().getQueueName();
     }
 
@@ -80,6 +85,13 @@ public class AvailabilityManagerService {
                                 .filter(Map.Entry::getValue)
                                 .map(Map.Entry::getKey)
                                 .filter(this::allAttachmentsConverted)
+                                .flatMap(reqDto -> Flux.fromIterable(reqDto.getAttachments())
+                                        .flatMap(a -> writeBidirectionalTags(a.getOriginalFileKey(), a.getNewFileKey())
+                                                .onErrorResume(err -> {
+                                                    log.error("Failed to write bidirectional tags for originalFileKey={}, continuing flow", a.getOriginalFileKey(), err);
+                                                    return Mono.empty();
+                                                }))
+                                        .then(Mono.just(reqDto)))
                                 .map(this::buildCartaceoPresaInCaricoInfo)
                                 .flatMap(info ->
                                         sqsService.send(cartaceoSqsQueueName.getBatchName(), info))
@@ -119,9 +131,22 @@ public class AvailabilityManagerService {
         return dto.getAttachments().stream().allMatch(AttachmentToConvertDto::getConverted);
     }
 
-    /**
-     * Metodo per reperire gli eventi di indisponibilità da parte di pn-ss
-     */
+    public Mono<Void> writeBidirectionalTags(String originalFileKey, String newFileKey) {
+        log.info("Writing bidirectional tags: originalFileKey={}, newFileKey={}", originalFileKey, newFileKey);
+        Tags tagForOriginal = new Tags().fileKey(originalFileKey).putSETItem("transformedDocumentKey", List.of(newFileKey));
+        Tags tagForTransformed = new Tags().fileKey(newFileKey).putSETItem("originalDocumentKey", List.of(originalFileKey));
+        AdditionalFileTagsMassiveUpdateRequest request = new AdditionalFileTagsMassiveUpdateRequest()
+                .addTagsItem(tagForOriginal)
+                .addTagsItem(tagForTransformed);
+        return fileCall.updateFileTagsMassive(request)
+                .doOnNext(response -> {
+                    if (response.getErrors() != null && !response.getErrors().isEmpty()) {
+                        log.error("Bidirectional tag massive update partial errors: {}", response.getErrors());
+                    }
+                })
+                .then();
+    }
+
     public boolean isSafeStorageError(AvailabilityManagerDto dto) {
         return dto != null
                 && GESTORE_DISPONIBILITA_EVENT_NAME.equals(dto.getSource())
