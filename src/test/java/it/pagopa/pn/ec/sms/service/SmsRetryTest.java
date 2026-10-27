@@ -1,5 +1,7 @@
 package it.pagopa.pn.ec.sms.service;
 
+import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
+import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.service.SnsService;
 import it.pagopa.pn.ec.commons.service.SqsService;
@@ -12,11 +14,12 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageResponse;
@@ -29,12 +32,15 @@ import java.util.List;
 import java.util.Set;
 
 import static it.pagopa.pn.ec.commons.constant.Status.DELETED;
+import static it.pagopa.pn.ec.commons.constant.Status.ERROR;
 import static it.pagopa.pn.ec.commons.constant.Status.INTERNAL_ERROR;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
 import static it.pagopa.pn.ec.sms.testutils.DigitalCourtesySmsRequestFactory.createSmsRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -61,6 +67,14 @@ class SmsRetryTest {
     SqsService sqsService;
 
     Message message = Message.builder().build();
+
+    @BeforeEach
+    void resetIdSaved() {
+        ReflectionTestUtils.setField(smsService, "idSaved", null);
+    }
+
+    private static final List<BigDecimal> PRODUCTION_POLICY = List.of(BigDecimal.valueOf(5), BigDecimal.valueOf(10), BigDecimal.valueOf(20), BigDecimal.valueOf(40));
+    private static final int PRODUCTION_POLICY_SIZE = PRODUCTION_POLICY.size();
 
     private static final SmsPresaInCaricoInfo SMS_PRESA_IN_CARICO_INFO = SmsPresaInCaricoInfo.builder()
             .requestIdx("idTest")
@@ -228,7 +242,123 @@ class SmsRetryTest {
                 statusCaptor.capture(),
                 payloadCaptor.capture());
 
+        assertEquals(ERROR.getStatusTransactionTableCompliant(), statusCaptor.getValue());
         assertPatchPayloadIsContractValid(payloadCaptor.getValue(), statusCaptor.getValue());
     }
 
+    private static RequestDto buildProductionPolicyRequestDto(int storedStep) {
+        RetryDto retryDto = new RetryDto();
+        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(60));
+        retryDto.setRetryStep(BigDecimal.valueOf(storedStep));
+        retryDto.setRetryPolicy(new ArrayList<>(PRODUCTION_POLICY));
+
+        RequestMetadataDto requestMetadata = new RequestMetadataDto();
+        requestMetadata.setRetry(retryDto);
+
+        RequestDto requestDto = new RequestDto();
+        requestDto.setStatusRequest("statusTest");
+        requestDto.setRequestIdx(SMS_PRESA_IN_CARICO_INFO.getRequestIdx());
+        requestDto.setxPagopaExtchCxId(SMS_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId());
+        requestDto.setRequestMetadata(requestMetadata);
+        return requestDto;
+    }
+
+    private static SmsPresaInCaricoInfo buildPresaInCarico(StepError stepError) {
+        return SmsPresaInCaricoInfo.builder()
+                .requestIdx(SMS_PRESA_IN_CARICO_INFO.getRequestIdx())
+                .xPagopaExtchCxId(SMS_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId())
+                .digitalCourtesySmsRequest(createSmsRequest())
+                .stepError(stepError)
+                .build();
+    }
+
+    private static StepError notificationTrackerStepError() {
+        return StepError.builder()
+                .step(NOTIFICATION_TRACKER_STEP)
+                .generatedMessageDto(new GeneratedMessageDto().id("messageId"))
+                .build();
+    }
+
+    private void mockRetryRepository(RequestDto requestDto) {
+        doReturn(Mono.just(requestDto)).when(gestoreRepositoryCall).getRichiesta(requestDto.getxPagopaExtchCxId(), requestDto.getRequestIdx());
+        doReturn(Mono.just(requestDto)).when(gestoreRepositoryCall).patchRichiesta(anyString(), anyString(), any(PatchDto.class));
+        doReturn(Mono.just(DeleteMessageResponse.builder().build())).when(sqsService)
+                .deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName().getErrorName()));
+    }
+
+    private void mockSnsFailure() {
+        doReturn(Mono.error(new RuntimeException("sns send failure"))).when(snsService).send(anyString(), anyString());
+    }
+
+    private void mockFirstTrackerPublicationFailure() {
+        doReturn(Mono.error(new RuntimeException("tracker publication failure"))).doCallRealMethod().when(sqsService)
+                .send(anyString(), any());
+    }
+
+    private void executeRetry(SmsPresaInCaricoInfo presaInCaricoInfo) {
+        Mono<DeleteMessageResponse> response = smsService.gestioneRetrySms(presaInCaricoInfo, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+    }
+
+    private List<String> publishedStatuses() {
+        ArgumentCaptor<NotificationTrackerQueueDto> captor = ArgumentCaptor.forClass(NotificationTrackerQueueDto.class);
+        verify(sqsService, atLeast(0)).send(eq(pnEcConfig.getNotificationTracker().getSqsQueue().getStatoSmsName()), captor.capture());
+        return captor.getAllValues().stream().map(NotificationTrackerQueueDto::getNextStatus).toList();
+    }
+
+    private void verifyMessageDeletedOnce() {
+        verify(sqsService, times(1)).deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName().getErrorName()));
+    }
+
+    @Test
+    void gestioneRetrySms_LastRetryFails_PublishesErrorAndDeletesMessage() {
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE - 1);
+        var presaInCaricoInfo = buildPresaInCarico(null);
+        mockRetryRepository(requestDto);
+        mockSnsFailure();
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(ERROR.getStatusTransactionTableCompliant()), publishedStatuses());
+        verifyMessageDeletedOnce();
+    }
+
+    @Test
+    void gestioneRetrySms_ExhaustedStep_PublishesErrorWithoutSendingNorPatching() {
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE);
+        var presaInCaricoInfo = buildPresaInCarico(null);
+        mockRetryRepository(requestDto);
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(ERROR.getStatusTransactionTableCompliant()), publishedStatuses());
+        verify(snsService, never()).send(anyString(), anyString());
+        verify(gestoreRepositoryCall, never()).patchRichiesta(anyString(), anyString(), any(PatchDto.class));
+        verifyMessageDeletedOnce();
+    }
+
+    @Test
+    void gestioneRetrySms_NotificationTrackerStepFailsOnLastStep_PublishesErrorAndDeletesMessage() {
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE - 1);
+        var presaInCaricoInfo = buildPresaInCarico(notificationTrackerStepError());
+        mockRetryRepository(requestDto);
+        mockFirstTrackerPublicationFailure();
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(SENT.getStatusTransactionTableCompliant(), ERROR.getStatusTransactionTableCompliant()), publishedStatuses());
+        verifyMessageDeletedOnce();
+    }
+
+    @Test
+    void gestioneRetrySms_NotificationTrackerStepAndExhaustedStep_PublishesSentOnly() {
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE);
+        var presaInCaricoInfo = buildPresaInCarico(notificationTrackerStepError());
+        mockRetryRepository(requestDto);
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(SENT.getStatusTransactionTableCompliant()), publishedStatuses());
+        verifyMessageDeletedOnce();
+    }
 }
