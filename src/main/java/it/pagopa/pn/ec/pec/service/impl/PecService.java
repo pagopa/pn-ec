@@ -12,6 +12,7 @@ import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.model.pojo.request.RetryDecision;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.policy.Policy;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
@@ -339,7 +340,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .blockLast();
     }
 
-    private Mono<RequestDto> filterRequestPec(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
+    private Mono<RetryDecision> filterRequestPec(final PecPresaInCaricoInfo pecPresaInCaricoInfo) {
 
         Policy retryPolicies = new Policy();
         var requestIdx = pecPresaInCaricoInfo.getRequestIdx();
@@ -354,6 +355,19 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                 .switchIfEmpty(Mono.error(new StatusToDeleteException(requestIdx)))
 //              check Id per evitare loop
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
+                .flatMap(currentRequest -> {
+                    var storedRetry = currentRequest.getRequestMetadata().getRetry();
+                    if (isRetryExhausted(storedRetry)) {
+                        log.info(RETRY_ATTEMPT, FILTER_REQUEST_PEC, storedRetry.getRetryStep());
+                        return Mono.just(new RetryDecision(currentRequest, true));
+                    }
+                    return advanceRetryStep(currentRequest, xPagopaExtchCxId, requestIdx, retryPolicies);
+                })
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, FILTER_REQUEST_PEC, result));
+    }
+
+    private Mono<RetryDecision> advanceRetryStep(RequestDto currentRequest, String xPagopaExtchCxId, String requestIdx, Policy retryPolicies) {
+        return Mono.just(currentRequest)
 //              se il primo step, inizializza l'attributo retry
                 .flatMap(requestDto -> {
                     if (requestDto.getRequestMetadata().getRetry() == null) {
@@ -398,7 +412,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                     patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
                     return gestoreRepositoryCall.patchRichiesta(xPagopaExtchCxId, requestIdx, patchDto);
                 })
-                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, FILTER_REQUEST_PEC, result));
+                .map(patchedRequest -> new RetryDecision(patchedRequest, false));
     }
 
     private Mono<DeleteMessageResponse> checkTentativiEccessiviPec(String requestIdx, RequestDto requestDto,
@@ -408,7 +422,7 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
             idSaved = requestIdx;
         }
         var retry = requestDto.getRequestMetadata().getRetry();
-        if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size() - 1L)) >= 0) {
+        if (isRetryExhausted(retry)) {
             // operazioni per la rimozione del messaggio
             return sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                     ERROR.getStatusTransactionTableCompliant(),
@@ -427,7 +441,8 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
         MDC.put(MDC_CORR_ID_KEY, concatRequestId(xPagopaExtchCxId, requestIdx));
         log.logStartingProcess(GESTIONE_RETRY_PEC);
 
-        return MDCUtils.addMDCToContextAndExecute(filterRequestPec(pecPresaInCaricoInfo).flatMap(requestDto -> {
+        return MDCUtils.addMDCToContextAndExecute(filterRequestPec(pecPresaInCaricoInfo).flatMap(retryDecision -> {
+                    var requestDto = retryDecision.requestDto();
 //            check step error per evitare null pointer
                     if (pecPresaInCaricoInfo.getStepError() == null) {
                         var stepError = new StepError();
@@ -458,6 +473,9 @@ public class PecService extends PresaInCaricoService implements QueueOperationsS
                                                     message,
                                                     () -> ErrorDetailsUtils.exceptionInProcess(GESTIONE_RETRY_PEC, sqsPublishException));
                                         });
+                    } else if (retryDecision.exhausted()) {
+                        return checkTentativiEccessiviPec(requestIdx, requestDto, pecPresaInCaricoInfo, message,
+                                                          () -> ErrorDetailsUtils.build(RETRY_ATTEMPTS_EXHAUSTED, GESTIONE_RETRY_PEC, requestDto.getRequestMetadata().getRetry().getRetryStep()));
                     } else {
                         //Gestisco il caso retry a partire dalla gestione allegati
                         //Get attachment presigned url Flux

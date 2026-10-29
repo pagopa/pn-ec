@@ -82,6 +82,9 @@ class RetryEmailTest {
     @MockitoBean
     private DownloadCall downloadCall;
     private static final String QUEUE_NAME="queue";
+    private static final String BODY_REQUEST_IDX = "idTest";
+    private static final List<BigDecimal> PRODUCTION_POLICY = List.of(BigDecimal.valueOf(5), BigDecimal.valueOf(10), BigDecimal.valueOf(20), BigDecimal.valueOf(40));
+    private static final int PRODUCTION_POLICY_SIZE = PRODUCTION_POLICY.size();
 
     Message message = Message.builder().build();
     private static final EmailPresaInCaricoInfo EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH = EmailPresaInCaricoInfo.builder()
@@ -94,7 +97,7 @@ class RetryEmailTest {
             .build();
 
     private static final EmailPresaInCaricoInfo EMAIL_PRESA_IN_CARICO_INFO = EmailPresaInCaricoInfo.builder()
-            .requestIdx("idTest")
+            .requestIdx(BODY_REQUEST_IDX)
             .xPagopaExtchCxId(
                     DEFAULT_ID_CLIENT_HEADER_VALUE)
             .digitalCourtesyMailRequest(createMailRequest(0))
@@ -582,9 +585,9 @@ class RetryEmailTest {
     }
 
     @Test
-    void checkTentativiEccessiviEmail_retryStepEqualToPolicySize_documentsThatErrorIsNotPublishedAndTextIsNotBuilt() {
+    void checkTentativiEccessiviEmail_retryStepBelowPolicySize_errorIsNotPublishedAndTextIsNotBuilt() {
         var info = newInfo(0, false);
-        var requestDto = buildRequestDtoWithRetryStep(buildRequestDto().getRequestMetadata().getRetry().getRetryPolicy().size());
+        var requestDto = buildRequestDtoWithRetryStep(buildRequestDto().getRequestMetadata().getRetry().getRetryPolicy().size() - 1L);
         AtomicInteger supplierCalls = new AtomicInteger();
         Supplier<String> supplier = () -> {
             supplierCalls.incrementAndGet();
@@ -598,4 +601,178 @@ class RetryEmailTest {
         assertEquals(0, supplierCalls.get());
     }
 
+    private static RequestDto buildProductionPolicyRequestDto(String requestId, int storedStep) {
+        RetryDto retryDto = new RetryDto();
+        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(60));
+        retryDto.setRetryStep(BigDecimal.valueOf(storedStep));
+        retryDto.setRetryPolicy(new ArrayList<>(PRODUCTION_POLICY));
+
+        RequestMetadataDto requestMetadata = new RequestMetadataDto();
+        requestMetadata.setRetry(retryDto);
+
+        RequestDto requestDto = new RequestDto();
+        requestDto.setStatusRequest("statusTest");
+        requestDto.setRequestIdx(requestId);
+        requestDto.setxPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE);
+        requestDto.setRequestMetadata(requestMetadata);
+        return requestDto;
+    }
+
+    private static EmailPresaInCaricoInfo buildPresaInCarico(String requestId, int attachNum, StepError stepError) {
+        return EmailPresaInCaricoInfo.builder()
+                .requestIdx(requestId)
+                .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .digitalCourtesyMailRequest(createMailRequest(attachNum))
+                .stepError(stepError)
+                .build();
+    }
+
+    private static StepError notificationTrackerStepError() {
+        return StepError.builder()
+                .step(NOTIFICATION_TRACKER_STEP)
+                .generatedMessageDto(new GeneratedMessageDto().id("messageId"))
+                .build();
+    }
+
+    private void mockRetryRepository(RequestDto requestDto) {
+        doReturn(Mono.just(requestDto)).when(gestoreRepositoryCall).getRichiesta(requestDto.getxPagopaExtchCxId(), requestDto.getRequestIdx());
+        doReturn(Mono.just(requestDto)).when(gestoreRepositoryCall).patchRichiesta(anyString(), anyString(), any(PatchDto.class));
+        doReturn(Mono.just(DeleteMessageResponse.builder().build())).when(sqsService)
+                .deleteMessageFromQueue(any(Message.class), eq(emailSqsQueueName().getErrorName()));
+    }
+
+    private void mockAttachmentsDownload() {
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
+    }
+
+    private void mockSesFailure() {
+        when(sesService.send(any(EmailField.class))).thenReturn(Mono.error(new RuntimeException("ses send failure")));
+    }
+
+    private void mockFirstTrackerPublicationFailure() {
+        doReturn(Mono.error(new RuntimeException("tracker publication failure"))).doCallRealMethod().when(sqsService)
+                .send(anyString(), any());
+    }
+
+    private void executeRetry(EmailPresaInCaricoInfo presaInCaricoInfo) {
+        Mono<DeleteMessageResponse> response = emailService.gestioneRetryEmail(presaInCaricoInfo, message, QUEUE_NAME);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+    }
+
+    private List<String> publishedStatuses() {
+        ArgumentCaptor<NotificationTrackerQueueDto> captor = ArgumentCaptor.forClass(NotificationTrackerQueueDto.class);
+        verify(sqsService, atLeast(0)).send(eq(pnEcConfig.getNotificationTracker().getSqsQueue().getStatoEmailName()), captor.capture());
+        return captor.getAllValues().stream().map(NotificationTrackerQueueDto::getNextStatus).toList();
+    }
+
+    private void verifyMessageDeletedOnce() {
+        verify(sqsService, times(1)).deleteMessageFromQueue(any(Message.class), eq(emailSqsQueueName().getErrorName()));
+    }
+
+    @Test
+    void gestioneRetryEmail_LastRetryFailsWithAttachments_PublishesErrorAndDeletesMessage() {
+        var requestDto = buildProductionPolicyRequestDto(DEFAULT_REQUEST_IDX, PRODUCTION_POLICY_SIZE - 1);
+        var presaInCaricoInfo = buildPresaInCarico(DEFAULT_REQUEST_IDX, 1, null);
+        mockRetryRepository(requestDto);
+        mockAttachmentsDownload();
+        mockSesFailure();
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(ERROR.getStatusTransactionTableCompliant()), publishedStatuses());
+        verifyMessageDeletedOnce();
+    }
+
+    @Test
+    void gestioneRetryEmail_LastRetryFailsOnlyBody_PublishesErrorAndDeletesMessage() {
+        var requestDto = buildProductionPolicyRequestDto(BODY_REQUEST_IDX, PRODUCTION_POLICY_SIZE - 1);
+        var presaInCaricoInfo = buildPresaInCarico(BODY_REQUEST_IDX, 0, null);
+        mockRetryRepository(requestDto);
+        mockSesFailure();
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(ERROR.getStatusTransactionTableCompliant()), publishedStatuses());
+        verifyMessageDeletedOnce();
+    }
+
+    @Test
+    void gestioneRetryEmail_ExhaustedStepWithAttachments_PublishesErrorWithoutSendingNorPatching() {
+        var requestDto = buildProductionPolicyRequestDto(DEFAULT_REQUEST_IDX, PRODUCTION_POLICY_SIZE);
+        var presaInCaricoInfo = buildPresaInCarico(DEFAULT_REQUEST_IDX, 1, null);
+        mockRetryRepository(requestDto);
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(ERROR.getStatusTransactionTableCompliant()), publishedStatuses());
+        verify(sesService, never()).send(any(EmailField.class));
+        verify(downloadCall, never()).downloadFile(any());
+        verify(gestoreRepositoryCall, never()).patchRichiesta(anyString(), anyString(), any(PatchDto.class));
+        verifyMessageDeletedOnce();
+    }
+
+    @Test
+    void gestioneRetryEmail_ExhaustedStepOnlyBody_PublishesErrorWithoutSendingNorPatching() {
+        var requestDto = buildProductionPolicyRequestDto(BODY_REQUEST_IDX, PRODUCTION_POLICY_SIZE);
+        var presaInCaricoInfo = buildPresaInCarico(BODY_REQUEST_IDX, 0, null);
+        mockRetryRepository(requestDto);
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(ERROR.getStatusTransactionTableCompliant()), publishedStatuses());
+        verify(sesService, never()).send(any(EmailField.class));
+        verify(gestoreRepositoryCall, never()).patchRichiesta(anyString(), anyString(), any(PatchDto.class));
+        verifyMessageDeletedOnce();
+    }
+
+    @Test
+    void gestioneRetryEmail_NotificationTrackerStepWithAttachmentsFailsOnLastStep_PublishesErrorAndDeletesMessage() {
+        var requestDto = buildProductionPolicyRequestDto(DEFAULT_REQUEST_IDX, PRODUCTION_POLICY_SIZE - 1);
+        var presaInCaricoInfo = buildPresaInCarico(DEFAULT_REQUEST_IDX, 1, notificationTrackerStepError());
+        mockRetryRepository(requestDto);
+        mockFirstTrackerPublicationFailure();
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(SENT.getStatusTransactionTableCompliant(), ERROR.getStatusTransactionTableCompliant()), publishedStatuses());
+        verifyMessageDeletedOnce();
+    }
+
+    @Test
+    void gestioneRetryEmail_NotificationTrackerStepOnlyBodyFailsOnLastStep_PublishesErrorAndDeletesMessage() {
+        var requestDto = buildProductionPolicyRequestDto(BODY_REQUEST_IDX, PRODUCTION_POLICY_SIZE - 1);
+        var presaInCaricoInfo = buildPresaInCarico(BODY_REQUEST_IDX, 0, notificationTrackerStepError());
+        mockRetryRepository(requestDto);
+        mockFirstTrackerPublicationFailure();
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(SENT.getStatusTransactionTableCompliant(), ERROR.getStatusTransactionTableCompliant()), publishedStatuses());
+        verifyMessageDeletedOnce();
+    }
+
+    @Test
+    void gestioneRetryEmail_NotificationTrackerStepWithAttachmentsAndExhaustedStep_PublishesSentOnly() {
+        var requestDto = buildProductionPolicyRequestDto(DEFAULT_REQUEST_IDX, PRODUCTION_POLICY_SIZE);
+        var presaInCaricoInfo = buildPresaInCarico(DEFAULT_REQUEST_IDX, 1, notificationTrackerStepError());
+        mockRetryRepository(requestDto);
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(SENT.getStatusTransactionTableCompliant()), publishedStatuses());
+        verifyMessageDeletedOnce();
+    }
+
+    @Test
+    void gestioneRetryEmail_NotificationTrackerStepOnlyBodyAndExhaustedStep_PublishesSentOnly() {
+        var requestDto = buildProductionPolicyRequestDto(BODY_REQUEST_IDX, PRODUCTION_POLICY_SIZE);
+        var presaInCaricoInfo = buildPresaInCarico(BODY_REQUEST_IDX, 0, notificationTrackerStepError());
+        mockRetryRepository(requestDto);
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(SENT.getStatusTransactionTableCompliant()), publishedStatuses());
+        verifyMessageDeletedOnce();
+    }
 }

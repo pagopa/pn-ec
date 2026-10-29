@@ -1,5 +1,6 @@
 package it.pagopa.pn.ec.pec.service.impl;
 
+import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -88,6 +89,8 @@ class PecRetryTest {
     Message message = Message.builder().build();
     private static final DigitalNotificationRequest digitalNotificationRequest = new DigitalNotificationRequest();
     private static final String DEFAULT_ATTACHMENT_URL = "safestorage://prova.pdf";
+    private static final List<BigDecimal> PRODUCTION_POLICY = List.of(BigDecimal.valueOf(5), BigDecimal.valueOf(10), BigDecimal.valueOf(20), BigDecimal.valueOf(40));
+    private static final int PRODUCTION_POLICY_SIZE = PRODUCTION_POLICY.size();
     private String tipoRicevutaBreveDefault;
     private static Integer maxMessageSizeKb;
     public static DigitalNotificationRequest createDigitalNotificationRequest() {
@@ -165,28 +168,6 @@ class PecRetryTest {
         return requestDto;
     }
 
-
-    private static RequestDto buildExhaustedRetryRequestDto() {
-        List<BigDecimal> retries = new ArrayList<>();
-        retries.add(BigDecimal.valueOf(5));
-        retries.add(BigDecimal.valueOf(10));
-        retries.add(BigDecimal.valueOf(20));
-
-        RetryDto retryDto = new RetryDto();
-        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(60));
-        retryDto.setRetryStep(BigDecimal.valueOf(retries.size() - 1L)); // ultimo step
-        retryDto.setRetryPolicy(retries);
-
-        RequestMetadataDto requestMetadata = new RequestMetadataDto();
-        requestMetadata.setRetry(retryDto);
-
-        RequestDto requestDto = new RequestDto();
-        requestDto.setStatusRequest("statusTest");
-        requestDto.setRequestIdx(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getRequestIdx());
-        requestDto.setxPagopaExtchCxId(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getXPagopaExtchCxId());
-        requestDto.setRequestMetadata(requestMetadata);
-        return requestDto;
-    }
 
     @BeforeAll
     static void beforeAll(@Autowired PnEcConfig pnEcConfig) {
@@ -482,7 +463,7 @@ class PecRetryTest {
         String requestId = PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getRequestIdx();
         String clientId = PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getXPagopaExtchCxId();
 
-        var requestDto = buildExhaustedRetryRequestDto();
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE);
 
         when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
         when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
@@ -521,6 +502,158 @@ class PecRetryTest {
                             .map(v -> v.getPropertyPath() + " " + v.getMessage())
                             .toList());
         }
+    }
+
+    private static RequestDto buildProductionPolicyRequestDto(int storedStep) {
+        RetryDto retryDto = new RetryDto();
+        retryDto.setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(60));
+        retryDto.setRetryStep(BigDecimal.valueOf(storedStep));
+        retryDto.setRetryPolicy(new ArrayList<>(PRODUCTION_POLICY));
+
+        RequestMetadataDto requestMetadata = new RequestMetadataDto();
+        requestMetadata.setRetry(retryDto);
+
+        RequestDto requestDto = new RequestDto();
+        requestDto.setStatusRequest("statusTest");
+        requestDto.setRequestIdx(DEFAULT_REQUEST_IDX);
+        requestDto.setxPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE);
+        requestDto.setRequestMetadata(requestMetadata);
+        return requestDto;
+    }
+
+    private static PecPresaInCaricoInfo buildPresaInCarico(StepError stepError) {
+        return PecPresaInCaricoInfo.builder()
+                .requestIdx(DEFAULT_REQUEST_IDX)
+                .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .digitalNotificationRequest(createDigitalNotificationRequest())
+                .stepError(stepError)
+                .build();
+    }
+
+    private static StepError notificationTrackerStepError() {
+        return StepError.builder()
+                .step(NOTIFICATION_TRACKER_STEP)
+                .generatedMessageDto(new GeneratedMessageDto().id("messageId"))
+                .build();
+    }
+
+    private void mockRetryRepository(RequestDto requestDto) {
+        doReturn(Mono.just(requestDto)).when(gestoreRepositoryCall).getRichiesta(requestDto.getxPagopaExtchCxId(), requestDto.getRequestIdx());
+        doReturn(Mono.just(requestDto)).when(gestoreRepositoryCall).patchRichiesta(anyString(), anyString(), any(PatchDto.class));
+        doReturn(Mono.just(requestDto)).when(gestoreRepositoryCall).setMessageIdInRequestMetadata(requestDto.getxPagopaExtchCxId(), requestDto.getRequestIdx());
+        doReturn(Mono.just(DeleteMessageResponse.builder().build())).when(sqsService)
+                .deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName().getErrorName()));
+    }
+
+    private void mockAttachmentsDownload() {
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
+    }
+
+    private void mockArubaFailure(String errorMessage) {
+        when(arubaService.sendMail(any())).thenReturn(Mono.error(new PnSpapiPermanentErrorException(errorMessage)));
+    }
+
+    private void mockFirstTrackerPublicationFailure() {
+        doReturn(Mono.error(new RuntimeException("tracker publication failure"))).doCallRealMethod().when(sqsService)
+                .send(anyString(), any());
+    }
+
+    private void executeRetry(PecPresaInCaricoInfo presaInCaricoInfo) {
+        Mono<DeleteMessageResponse> response = pecService.gestioneRetryPec(presaInCaricoInfo, message);
+        StepVerifier.create(response).expectNextCount(1).verifyComplete();
+    }
+
+    private List<String> publishedStatuses() {
+        ArgumentCaptor<NotificationTrackerQueueDto> captor = ArgumentCaptor.forClass(NotificationTrackerQueueDto.class);
+        verify(sqsService, atLeast(0)).send(eq(pnEcConfig.getNotificationTracker().getSqsQueue().getStatoPecName()), captor.capture());
+        return captor.getAllValues().stream().map(NotificationTrackerQueueDto::getNextStatus).toList();
+    }
+
+    private void verifyMessageDeletedOnce() {
+        verify(sqsService, times(1)).deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName().getErrorName()));
+    }
+
+    @Test
+    void gestioneRetryPec_LastRetryFails_PublishesErrorAndDeletesMessage() {
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE - 1);
+        var presaInCaricoInfo = buildPresaInCarico(null);
+        mockRetryRepository(requestDto);
+        mockAttachmentsDownload();
+        mockArubaFailure("sendMail: generic permanent error");
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(ERROR.getStatusTransactionTableCompliant()), publishedStatuses());
+        verifyMessageDeletedOnce();
+    }
+
+    @Test
+    void gestioneRetryPec_ThirdRetryFailsWithFourStepPolicy_DoesNotCloseRequest() {
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE - 2);
+        var presaInCaricoInfo = buildPresaInCarico(null);
+        mockRetryRepository(requestDto);
+        mockAttachmentsDownload();
+        mockArubaFailure("sendMail: generic permanent error");
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(), publishedStatuses());
+        verify(sqsService, never()).deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName().getErrorName()));
+    }
+
+    @Test
+    void gestioneRetryPec_ExhaustedStep_PublishesErrorWithoutSendingNorPatching() {
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE);
+        var presaInCaricoInfo = buildPresaInCarico(null);
+        mockRetryRepository(requestDto);
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(ERROR.getStatusTransactionTableCompliant()), publishedStatuses());
+        verify(arubaService, never()).sendMail(any());
+        verify(downloadCall, never()).downloadFile(any());
+        verify(gestoreRepositoryCall, never()).patchRichiesta(anyString(), anyString(), any(PatchDto.class));
+        verifyMessageDeletedOnce();
+    }
+
+    @Test
+    void gestioneRetryPec_NotificationTrackerStepFailsOnLastStep_PublishesErrorAndDeletesMessage() {
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE - 1);
+        var presaInCaricoInfo = buildPresaInCarico(notificationTrackerStepError());
+        mockRetryRepository(requestDto);
+        mockFirstTrackerPublicationFailure();
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(SENT.getStatusTransactionTableCompliant(), ERROR.getStatusTransactionTableCompliant()), publishedStatuses());
+        verifyMessageDeletedOnce();
+    }
+
+    @Test
+    void gestioneRetryPec_NotificationTrackerStepAndExhaustedStep_PublishesSentOnly() {
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE);
+        var presaInCaricoInfo = buildPresaInCarico(notificationTrackerStepError());
+        mockRetryRepository(requestDto);
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(SENT.getStatusTransactionTableCompliant()), publishedStatuses());
+        verifyMessageDeletedOnce();
+    }
+
+    @Test
+    void gestioneRetryPec_AddressErrorOnLastRetry_PublishesAddressErrorOnly() {
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE - 1);
+        var presaInCaricoInfo = buildPresaInCarico(null);
+        mockRetryRepository(requestDto);
+        mockAttachmentsDownload();
+        mockArubaFailure("class jakarta.mail.internet.AddressException Local address starts with dot");
+
+        executeRetry(presaInCaricoInfo);
+
+        assertEquals(List.of(ADDRESS_ERROR.getStatusTransactionTableCompliant()), publishedStatuses());
+        verifyMessageDeletedOnce();
     }
 
     @Test
@@ -572,7 +705,7 @@ class PecRetryTest {
 
         String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
         String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
-        var requestDto = buildExhaustedRetryRequestDto();
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE - 1);
 
         when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
         doReturn(Mono.just(requestDto)).when(gestoreRepositoryCall).patchRichiesta(anyString(), anyString(), any(PatchDto.class));
@@ -597,7 +730,7 @@ class PecRetryTest {
 
         String requestId = PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getRequestIdx();
         String clientId = PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getXPagopaExtchCxId();
-        var requestDto = buildExhaustedRetryRequestDto();
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE - 1);
 
         when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
         when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
