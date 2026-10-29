@@ -6,4 +6,8 @@ public class MaxRetriesExceededException extends RuntimeException {
         super("Max retries exceeded");
     }
 
+    public MaxRetriesExceededException(Throwable cause) {
+        super("Max retries exceeded", cause);
+    }
+
 }

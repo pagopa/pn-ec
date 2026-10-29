@@ -28,9 +28,15 @@ import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import it.pagopa.pn.ec.rest.v1.dto.PaperProgressStatusDto;
+import org.mockito.ArgumentCaptor;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTestWebEnv
 @CustomLog
@@ -179,6 +185,40 @@ class AvailabilityManagerServiceTest {
         verify(requestConversionService).updateRequestConversion(dto.getDetail().getKey(), false, dto.getDetail().getChecksum(),true);
         verify(availabilityManagerService).handleTransformationError(eq(reqConvDto), eq(dto.getDetail()), eq(acknowledgment));
         verifyNoInteractions(sqsService); // nessun invio SQS in questo ramo, si invia al NT
+    }
+
+    @Test
+    void handleTransformationError_errorDetailsBuiltOnlyFromDetailDto() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        AttachmentToConvertDto attachment = new AttachmentToConvertDto().originalFileKey("originalKey").newFileKey("newKey").sha256("7645373453");
+        RequestConversionDto requestConversionDto = createRequestConversionDto(List.of(attachment), "requestIdTransformationError");
+        requestConversionDto.getOriginalRequest().setReceiverName("Mario Rossi Destinatario");
+        requestConversionDto.getOriginalRequest().setReceiverAddress("Via Roma 1 Destinatario");
+        requestConversionDto.getOriginalRequest().setReceiverCity("Citta Destinatario");
+        requestConversionDto.getOriginalRequest().setReceiverCap("00100");
+        requestConversionDto.getOriginalRequest().setSenderName("Mittente Spa");
+        AvailabilityManagerDetailDto detailDto = new AvailabilityManagerDetailDto();
+        detailDto.setKey("transformedFileKey");
+        detailDto.setDocumentStatus("ERROR");
+        doReturn(Mono.just(SendMessageResponse.builder().build())).when(cartaceoService)
+                .sendNotificationOnStatusQueue(any(), eq("transformationError"), any(PaperProgressStatusDto.class));
+
+        StepVerifier.create(availabilityManagerService.handleTransformationError(requestConversionDto, detailDto, acknowledgment)).verifyComplete();
+
+        ArgumentCaptor<PaperProgressStatusDto> captor = ArgumentCaptor.forClass(PaperProgressStatusDto.class);
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(any(), eq("transformationError"), captor.capture());
+        String errorDetails = captor.getValue().getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains("transformedFileKey"));
+        assertTrue(errorDetails.contains("ERROR"));
+        assertFalse(errorDetails.contains("Rossi"));
+        assertFalse(errorDetails.contains("Via Roma"));
+        assertFalse(errorDetails.contains("Citta Destinatario"));
+        assertFalse(errorDetails.contains("00100"));
+        assertFalse(errorDetails.contains("Mittente"));
+        assertFalse(errorDetails.contains("originalRequest"));
+        assertFalse(errorDetails.contains("\tat "));
+        assertTrue(errorDetails.length() <= 1000);
     }
 
 }

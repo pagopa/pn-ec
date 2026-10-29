@@ -141,4 +141,49 @@ class PaperProgressStatusMappingTest {
         Assertions.assertNull(back.getPrinter());
         Assertions.assertNull(back.getDu());
     }
+
+    @Test
+    void errorDetailsSurvivesRoundTrip() {
+        String errorDetails = "Exception in 'lavorazioneRichiestaCartaceo()' - it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException: Max retries exceeded, Max retries exceeded";
+        PaperProgressStatusDto dto = baseDto().errorDetails(errorDetails);
+
+        PaperProgressStatus entity = restUtils.startCreateRequest(dto, PaperProgressStatus.class);
+        PaperProgressStatusDto back = restUtils.entityToDto(entity, PaperProgressStatusDto.class);
+
+        Assertions.assertEquals(errorDetails, back.getErrorDetails());
+    }
+
+    @Test
+    void errorDetailsOfMaxLengthSurvivesRoundTrip() {
+        String errorDetails = "e".repeat(1000);
+        PaperProgressStatusDto dto = baseDto().errorDetails(errorDetails);
+
+        PaperProgressStatus entity = restUtils.startCreateRequest(dto, PaperProgressStatus.class);
+        PaperProgressStatusDto back = restUtils.entityToDto(entity, PaperProgressStatusDto.class);
+
+        Assertions.assertEquals(errorDetails, back.getErrorDetails());
+    }
+
+    @Test
+    void errorDetailsAbsentRemainsNullAfterRoundTrip() {
+        PaperProgressStatusDto dto = baseDto();
+
+        PaperProgressStatus entity = restUtils.startCreateRequest(dto, PaperProgressStatus.class);
+        PaperProgressStatusDto back = restUtils.entityToDto(entity, PaperProgressStatusDto.class);
+
+        Assertions.assertNull(back.getErrorDetails());
+    }
+
+    @Test
+    void errorDetailsDoesNotAlterOtherFieldsInRoundTrip() {
+        PaperProgressStatusDto dto = baseDto().errorDetails("failure").isDuplicate(true);
+
+        PaperProgressStatus entity = restUtils.startCreateRequest(dto, PaperProgressStatus.class);
+        PaperProgressStatusDto back = restUtils.entityToDto(entity, PaperProgressStatusDto.class);
+
+        Assertions.assertEquals(dto.getStatus(), back.getStatus());
+        Assertions.assertEquals(dto.getStatusCode(), back.getStatusCode());
+        Assertions.assertEquals(dto.getIun(), back.getIun());
+        Assertions.assertEquals(dto.getIsDuplicate(), back.getIsDuplicate());
+    }
 }

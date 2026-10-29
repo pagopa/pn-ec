@@ -49,6 +49,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static org.mockito.Mockito.*;
@@ -662,6 +665,105 @@ class NotificationTrackerMessageReceiverTest {
             JSONObject object = new JSONObject(line);
             stateMachine.add(object);
         }
+    }
+
+    private static final String ERROR_DETAILS_TEXT = "Exception in 'lavorazioneRichiestaTest()' - confidential provider failure text";
+
+    private final ObjectMapper externalEventObjectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+
+    private Stream<Arguments> provideDigitalArgumentsWithExternalEvent() {
+        return provideArguments().filter(arguments -> SMS_REQUEST_IDX.equals(arguments.get()[0]) || PEC_REQUEST_IDX.equals(arguments.get()[0]));
+    }
+
+    private SingleStatusUpdate captureExternalEvent(String processId) {
+        ArgumentCaptor<SingleStatusUpdate> captor = ArgumentCaptor.forClass(SingleStatusUpdate.class);
+        verify(putEvents, times(1)).putEventExternal(captor.capture(), eq(processId), any(String.class));
+        return captor.getValue();
+    }
+
+    private void assertErrorDetailsNotExposed(SingleStatusUpdate singleStatusUpdate) throws JsonProcessingException {
+        String json = externalEventObjectMapper.writeValueAsString(singleStatusUpdate);
+        Assertions.assertFalse(json.contains("errorDetails"));
+        Assertions.assertFalse(json.contains(ERROR_DETAILS_TEXT));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideDigitalArgumentsWithExternalEvent")
+    void digitalNtErrorWithErrorDetails_externalEventDoesNotExposeErrorDetails(String requestId, String processId, String statoQueueName, String statoDlqQueueName) throws JsonProcessingException {
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(new ClientConfigurationInternalDto()));
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
+        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
+        mockStatusDecode();
+
+        PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(requestId).xPagopaExtchCxId(CLIENT_ID).build();
+        DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).errorDetails(ERROR_DETAILS_TEXT);
+        NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, ERROR.getStatusTransactionTableCompliant(), digitalProgressStatusDto);
+
+        if (SMS_REQUEST_IDX.equals(requestId)) {
+            notificationTrackerMessageReceiver.receiveSMSObjectMessage(notificationTrackerQueueDto, acknowledgment);
+        } else {
+            notificationTrackerMessageReceiver.receivePecObjectMessage(notificationTrackerQueueDto, acknowledgment);
+        }
+
+        SingleStatusUpdate externalEvent = captureExternalEvent(processId);
+        assertErrorDetailsNotExposed(externalEvent);
+        if (SMS_REQUEST_IDX.equals(requestId)) {
+            Assertions.assertNull(externalEvent.getDigitalCourtesy().getEventDetails());
+        } else {
+            Assertions.assertNull(externalEvent.getDigitalLegal().getEventDetails());
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideDigitalArgumentsWithExternalEvent")
+    void digitalNtErrorWithErrorDetails_patchOnRepositoryKeepsErrorDetails(String requestId, String processId, String statoQueueName, String statoDlqQueueName) {
+        when(gestoreRepositoryCall.getClientConfiguration(anyString())).thenReturn(Mono.just(new ClientConfigurationInternalDto()));
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
+        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
+        mockStatusDecode();
+
+        PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(requestId).xPagopaExtchCxId(CLIENT_ID).build();
+        DigitalProgressStatusDto digitalProgressStatusDto = new DigitalProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant()).errorDetails(ERROR_DETAILS_TEXT);
+        NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital(presaInCaricoInfo, ERROR.getStatusTransactionTableCompliant(), digitalProgressStatusDto);
+
+        if (SMS_REQUEST_IDX.equals(requestId)) {
+            notificationTrackerMessageReceiver.receiveSMSObjectMessage(notificationTrackerQueueDto, acknowledgment);
+        } else {
+            notificationTrackerMessageReceiver.receivePecObjectMessage(notificationTrackerQueueDto, acknowledgment);
+        }
+
+        ArgumentCaptor<EventsDto> captor = ArgumentCaptor.forClass(EventsDto.class);
+        verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), captor.capture());
+        Assertions.assertEquals(ERROR.getStatusTransactionTableCompliant(), captor.getValue().getDigProgrStatus().getStatus());
+        Assertions.assertEquals(ERROR_DETAILS_TEXT, captor.getValue().getDigProgrStatus().getErrorDetails());
+    }
+
+    @Test
+    void paperNtErrorWithErrorDetails_externalEventDoesNotExposeErrorDetails() throws JsonProcessingException {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(sqsService.send(anyString(), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.empty());
+        when(callMacchinaStati.statusValidation(anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.just(new MacchinaStatiValidateStatoResponseDto()));
+        mockStatusDecode();
+
+        PresaInCaricoInfo presaInCaricoInfo = PresaInCaricoInfo.builder().requestIdx(PAPER_REQUEST_IDX).xPagopaExtchCxId(CLIENT_ID).build();
+        PaperProgressStatusDto paperProgressStatusDto = new PaperProgressStatusDto().status(RETRY.getStatusTransactionTableCompliant())
+                .discoveredAddress(new DiscoveredAddressDto())
+                .attachments(List.of(new AttachmentsProgressEventDto().id("id")))
+                .courier("recapitista1")
+                .productType("AR")
+                .errorDetails(ERROR_DETAILS_TEXT);
+        NotificationTrackerQueueDto notificationTrackerQueueDto = NotificationTrackerQueueDto.createNotificationTrackerQueueDtoPaper(presaInCaricoInfo, ERROR.getStatusTransactionTableCompliant(), paperProgressStatusDto);
+
+        notificationTrackerMessageReceiver.receiveCartaceoObjectMessage(notificationTrackerQueueDto, acknowledgment);
+
+        SingleStatusUpdate externalEvent = captureExternalEvent(pnEcConfig.getCommons().getTransactionProcess().getPaper());
+        assertErrorDetailsNotExposed(externalEvent);
+        Assertions.assertNull(externalEvent.getAnalogMail().getStatusDescription());
+        ArgumentCaptor<EventsDto> captor = ArgumentCaptor.forClass(EventsDto.class);
+        verify(gestoreRepositoryCall, times(1)).patchRichiestaEvent(anyString(), anyString(), captor.capture());
+        Assertions.assertEquals(ERROR_DETAILS_TEXT, captor.getValue().getPaperProgrStatus().getErrorDetails());
     }
 
 }

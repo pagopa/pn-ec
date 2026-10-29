@@ -1,8 +1,12 @@
 package it.pagopa.pn.ec.email.service;
 
+import it.pagopa.pn.ec.commons.constant.Status;
+import it.pagopa.pn.ec.commons.exception.ses.SesSendException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
+import it.pagopa.pn.ec.commons.model.pojo.sqs.SqsMessageWrapper;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
 import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
@@ -34,15 +38,23 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
+import static it.pagopa.pn.ec.commons.constant.Status.DELETED;
 import static it.pagopa.pn.ec.commons.constant.Status.ERROR;
 import static it.pagopa.pn.ec.commons.constant.Status.INTERNAL_ERROR;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.GESTIONE_RETRY_EMAIL;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.PROCESS_ONLY_BODY_RETRY;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.PROCESS_WITH_ATTACH_RETRY;
 import static it.pagopa.pn.ec.email.testutils.DigitalCourtesyMailRequestFactory.createMailRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -360,6 +372,233 @@ class RetryEmailTest {
         // verificare che non sia stata eseguita alcuna operazione sul mock SQSService
         verify(mockSqsService, never()).deleteMessageFromQueue(eq(message), anyString());
 
+    }
+
+    private static EmailPresaInCaricoInfo newInfo(int attachments, boolean notificationTrackerStep) {
+        var builder = EmailPresaInCaricoInfo.builder()
+                .requestIdx("idTest")
+                .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .digitalCourtesyMailRequest(createMailRequest(attachments));
+        if (notificationTrackerStep) {
+            builder.stepError(StepError.builder()
+                    .step(NOTIFICATION_TRACKER_STEP)
+                    .generatedMessageDto(new GeneratedMessageDto().id("messageId").system("system"))
+                    .build());
+        }
+        return builder.build();
+    }
+
+    private void mockExhaustedRetry(EmailPresaInCaricoInfo info) {
+        var requestDto = buildRequestDto();
+        var exhaustedRequestDto = buildRequestDto();
+        exhaustedRequestDto.getRequestMetadata().getRetry().setRetryStep(BigDecimal.valueOf(exhaustedRequestDto.getRequestMetadata().getRetry().getRetryPolicy().size() + 1L));
+        String clientId = info.getXPagopaExtchCxId();
+        String requestId = info.getRequestIdx();
+
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        doReturn(Mono.just(exhaustedRequestDto)).when(gestoreRepositoryCall).patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(emailSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+    }
+
+    private DigitalProgressStatusDto captureStatusDto(EmailPresaInCaricoInfo info, Status status) {
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(info), eq(status.getStatusTransactionTableCompliant()), captor.capture());
+        return captor.getValue();
+    }
+
+    @Test
+    void gestioneRetryEmail_OnlyBodyNotificationTrackerStepRetriesExhausted_errorEventHasSanitizedErrorDetails() {
+        var info = newInfo(0, true);
+        mockExhaustedRetry(info);
+        doReturn(Mono.error(new SqsClientException("queue for mario.rossi@example.com"))).doCallRealMethod()
+                .when(sqsService).send(eq(pnEcConfig.getNotificationTracker().getSqsQueue().getStatoEmailName()), any(NotificationTrackerQueueDto.class));
+
+        StepVerifier.create(emailService.gestioneRetryEmail(info, message, QUEUE_NAME)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(PROCESS_ONLY_BODY_RETRY));
+        assertTrue(errorDetails.contains("An error occurred during client operation"));
+        assertTrue(errorDetails.contains("xxx@example.com"));
+        assertFalse(errorDetails.contains("mario.rossi"));
+        assertFalse(errorDetails.contains("\tat "));
+    }
+
+    @Test
+    void gestioneRetryEmail_WithAttachNotificationTrackerStepRetriesExhausted_errorEventHasErrorDetails() {
+        var info = newInfo(1, true);
+        mockExhaustedRetry(info);
+        doReturn(Mono.error(new SqsClientException("queue"))).when(emailService)
+                .sendNotificationOnStatusQueue(any(), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+
+        StepVerifier.create(emailService.gestioneRetryEmail(info, message, QUEUE_NAME)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(PROCESS_WITH_ATTACH_RETRY));
+        assertTrue(errorDetails.contains("An error occurred during client operation"));
+        assertFalse(errorDetails.contains("\tat "));
+    }
+
+    @Test
+    void gestioneRetryEmail_OnlyBodySesRetriesExhausted_errorEventContainsSesCause() {
+        var info = newInfo(0, false);
+        mockExhaustedRetry(info);
+        when(sesService.send(any(EmailField.class))).thenReturn(Mono.error(new SesSendException("ses provider failure")));
+
+        StepVerifier.create(emailService.gestioneRetryEmail(info, message, QUEUE_NAME)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(PROCESS_ONLY_BODY_RETRY));
+        assertTrue(errorDetails.contains("SesMaxRetriesExceededException"));
+        assertTrue(errorDetails.contains("ses provider failure"));
+    }
+
+    @Test
+    void gestioneRetryEmail_WithAttachSesRetriesExhausted_errorEventContainsSesCause() {
+        var info = newInfo(1, false);
+        mockExhaustedRetry(info);
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
+        when(sesService.send(any(EmailField.class))).thenReturn(Mono.error(new SesSendException("ses provider failure")));
+
+        StepVerifier.create(emailService.gestioneRetryEmail(info, message, QUEUE_NAME)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(PROCESS_WITH_ATTACH_RETRY));
+        assertTrue(errorDetails.contains("ses provider failure"));
+    }
+
+    @Test
+    void gestioneRetryEmail_GenericError_internalErrorEventHasErrorDetails() {
+        var info = newInfo(0, false);
+        when(gestoreRepositoryCall.getRichiesta(info.getXPagopaExtchCxId(), info.getRequestIdx()))
+                .thenReturn(Mono.error(new RuntimeException("repository failure for mario.rossi@example.com")));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(emailSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(emailService.gestioneRetryEmail(info, message, QUEUE_NAME)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, INTERNAL_ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(GESTIONE_RETRY_EMAIL));
+        assertTrue(errorDetails.contains("repository failure"));
+        assertTrue(errorDetails.contains("xxx@example.com"));
+        assertFalse(errorDetails.contains("mario.rossi"));
+    }
+
+    @Test
+    void gestioneRetryEmailAttachment_GenericError_internalErrorEventHasErrorDetails() {
+        var info = newInfo(1, false);
+        when(gestoreRepositoryCall.getRichiesta(info.getXPagopaExtchCxId(), info.getRequestIdx()))
+                .thenReturn(Mono.error(new RuntimeException("repository failure")));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(emailSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(emailService.gestioneRetryEmail(info, message, QUEUE_NAME)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, INTERNAL_ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(GESTIONE_RETRY_EMAIL));
+        assertTrue(errorDetails.contains("repository failure"));
+    }
+
+    @Test
+    void gestioneRetryEmail_StatusToDelete_documentsInternalErrorInsteadOfDeleted() {
+        var info = newInfo(0, false);
+        when(gestoreRepositoryCall.getRichiesta(info.getXPagopaExtchCxId(), info.getRequestIdx())).thenReturn(Mono.just(buildToDeleteRequestDto()));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(emailSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(emailService.gestioneRetryEmail(info, message, QUEUE_NAME)).expectNextCount(1).verifyComplete();
+
+        verify(emailService, never()).sendNotificationOnStatusQueue(eq(info), eq(DELETED.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(info), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+    }
+
+    @Test
+    void gestioneRetryEmail_RetriesExhausted_errorPayloadWithErrorDetailsIsContractValid() {
+        var info = newInfo(0, true);
+        mockExhaustedRetry(info);
+        doReturn(Mono.error(new SqsClientException("queue"))).doCallRealMethod()
+                .when(sqsService).send(eq(pnEcConfig.getNotificationTracker().getSqsQueue().getStatoEmailName()), any(NotificationTrackerQueueDto.class));
+
+        StepVerifier.create(emailService.gestioneRetryEmail(info, message, QUEUE_NAME)).expectNextCount(1).verifyComplete();
+
+        DigitalProgressStatusDto dto = captureStatusDto(info, ERROR);
+        assertNotNull(dto.getErrorDetails());
+        assertTrue(dto.getErrorDetails().length() <= 1000);
+        dto.setEventTimestamp(OffsetDateTime.now());
+        dto.setStatus(ERROR.getStatusTransactionTableCompliant());
+        PatchDto patchDto = new PatchDto().event(new EventsDto().digProgrStatus(dto));
+        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+            Set<ConstraintViolation<PatchDto>> violations = factory.getValidator().validate(patchDto);
+            assertTrue(violations.isEmpty(), () -> violations.toString());
+        }
+    }
+
+    private RequestDto buildRequestDtoWithRetryStep(long retryStep) {
+        var requestDto = buildRequestDto();
+        requestDto.getRequestMetadata().getRetry().setRetryStep(BigDecimal.valueOf(retryStep));
+        return requestDto;
+    }
+
+    private RequestDto buildExhaustedRequestDto() {
+        return buildRequestDtoWithRetryStep(buildRequestDto().getRequestMetadata().getRetry().getRetryPolicy().size() + 1L);
+    }
+
+    @Test
+    void checkTentativiEccessiviEmail_retryStepOverPolicySize_errorEventHasSuppliedErrorDetails() {
+        var info = newInfo(0, false);
+        var requestDto = buildExhaustedRequestDto();
+        String expected = "Exception in 'gestioneRetryEmail()' - java.lang.RuntimeException: queue failure, queue failure";
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(emailSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(emailService.checkTentativiEccessiviEmail(info.getRequestIdx(), requestDto, info, message, () -> expected))
+                    .expectNextCount(1)
+                    .verifyComplete();
+
+        assertEquals(expected, captureStatusDto(info, ERROR).getErrorDetails());
+    }
+
+    @Test
+    void checkTentativiEccessiviEmail_retryStepOverPolicySize_supplierIsInvokedOnlyOnce() {
+        var info = newInfo(0, false);
+        var requestDto = buildExhaustedRequestDto();
+        AtomicInteger supplierCalls = new AtomicInteger();
+        Supplier<String> supplier = () -> {
+            supplierCalls.incrementAndGet();
+            return "text";
+        };
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(emailSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(emailService.checkTentativiEccessiviEmail(info.getRequestIdx(), requestDto, info, message, supplier))
+                    .expectNextCount(1)
+                    .verifyComplete();
+
+        assertEquals(1, supplierCalls.get());
+    }
+
+    @Test
+    void checkTentativiEccessiviEmail_retryStepBelowPolicySize_errorIsNotPublishedAndTextIsNotBuilt() {
+        var info = newInfo(0, false);
+        var requestDto = buildRequestDtoWithRetryStep(buildRequestDto().getRequestMetadata().getRetry().getRetryPolicy().size() - 1L);
+        AtomicInteger supplierCalls = new AtomicInteger();
+        Supplier<String> supplier = () -> {
+            supplierCalls.incrementAndGet();
+            return "text";
+        };
+
+        StepVerifier.create(emailService.checkTentativiEccessiviEmail(info.getRequestIdx(), requestDto, info, message, supplier))
+                    .verifyComplete();
+
+        verify(emailService, never()).sendNotificationOnStatusQueue(eq(info), eq(ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        assertEquals(0, supplierCalls.get());
     }
 
     private static RequestDto buildProductionPolicyRequestDto(String requestId, int storedStep) {
