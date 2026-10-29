@@ -4,13 +4,13 @@ import io.awspring.cloud.sqs.annotation.SqsListener;
 import io.awspring.cloud.sqs.annotation.SqsListenerAcknowledgementMode;
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.commons.utils.MDCUtils;
-import it.pagopa.pn.ec.commons.exception.RetryAttemptsExceededExeption;
 import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.StatusToDeleteException;
 import it.pagopa.pn.ec.commons.model.pojo.MonoResultWrapper;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailAttachment;
 import it.pagopa.pn.ec.commons.model.pojo.email.EmailField;
 import it.pagopa.pn.ec.commons.model.pojo.request.PresaInCaricoInfo;
+import it.pagopa.pn.ec.commons.model.pojo.request.RetryDecision;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.policy.Policy;
 import it.pagopa.pn.ec.commons.rest.call.download.DownloadCall;
@@ -39,8 +39,6 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
@@ -56,7 +54,6 @@ import static it.pagopa.pn.ec.commons.utils.RequestUtils.concatRequestId;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.BATCH;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest.QosEnum.INTERACTIVE;
 import static it.pagopa.pn.ec.rest.v1.dto.DigitalRequestMetadataDto.ChannelEnum.EMAIL;
-import static it.pagopa.pn.ec.util.EmfLogUtils.*;
 
 
 @Service
@@ -353,7 +350,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         });
     }
 
-    private Mono<RequestDto> filterRequestEmail(final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
+    private Mono<RetryDecision> filterRequestEmail(final EmailPresaInCaricoInfo emailPresaInCaricoInfo) {
         var requestId = emailPresaInCaricoInfo.getRequestIdx();
         log.info(INVOKING_OPERATION_LABEL_WITH_ARGS, FILTER_REQUEST_EMAIL, requestId);
         var clientId = emailPresaInCaricoInfo.getXPagopaExtchCxId();
@@ -367,6 +364,19 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .switchIfEmpty(Mono.error(new StatusToDeleteException(requestId)))
 //              check Id per evitare loop
                 .filter(requestDto -> !Objects.equals(requestDto.getRequestIdx(), idSaved))
+                .flatMap(currentRequest -> {
+                    var storedRetry = currentRequest.getRequestMetadata().getRetry();
+                    if (isRetryExhausted(storedRetry)) {
+                        log.info(RETRY_ATTEMPT, FILTER_REQUEST_EMAIL, storedRetry.getRetryStep());
+                        return Mono.just(new RetryDecision(currentRequest, true));
+                    }
+                    return advanceRetryStep(currentRequest, clientId, requestId, retryPolicies);
+                })
+                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, FILTER_REQUEST_EMAIL, result));
+    }
+
+    private Mono<RetryDecision> advanceRetryStep(RequestDto currentRequest, String clientId, String requestId, Policy retryPolicies) {
+        return Mono.just(currentRequest)
 //              se il primo step, inizializza l'attributo retry
                 .flatMap(requestDto -> {
                     if (requestDto.getRequestMetadata().getRetry() == null) {
@@ -405,7 +415,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                     patchDto.setRetry(requestDto.getRequestMetadata().getRetry());
                     return gestoreRepositoryCall.patchRichiesta(clientId, requestId, patchDto);
                 })
-                .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, FILTER_REQUEST_EMAIL, result));
+                .map(patchedRequest -> new RetryDecision(patchedRequest, false));
     }
 
     private Mono<DeleteMessageResponse> checkTentativiEccessiviEmail(String requestId, RequestDto requestDto,
@@ -414,7 +424,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             idSaved = requestId;
         }
         var retry = requestDto.getRequestMetadata().getRetry();
-        if (retry.getRetryStep().compareTo(BigDecimal.valueOf(retry.getRetryPolicy().size())) > 0) {
+        if (isRetryExhausted(retry)) {
             // operazioni per la rimozione del messaggio
             log.info(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.getErrorName());
             return sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
@@ -434,7 +444,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
 
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
 
-        return filterRequestEmail(emailPresaInCaricoInfo).flatMap(requestDto -> {
+        return filterRequestEmail(emailPresaInCaricoInfo).flatMap(retryDecision -> {
+                    var requestDto = retryDecision.requestDto();
                     // Try to send EMAIL
 //                                        check step error per evitare null pointer
                     if (emailPresaInCaricoInfo.getStepError() == null) {
@@ -463,6 +474,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                     emailPresaInCaricoInfo,
                                                     message);
                                         });
+                    } else if (retryDecision.exhausted()) {
+                        return checkTentativiEccessiviEmail(requestId, requestDto, emailPresaInCaricoInfo, message);
                     } else {
                         //                gestisco il caso retry a partire dalla gestione
                         //                allegati e invio a ses
@@ -518,14 +531,6 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 // Se riceviamo un Mono.empty(), ritorniamo una DeleteMessageResponse vuota per evitare che
                 // lo schedulatore annulli lo scaricamento di messaggi dalla coda
                 .defaultIfEmpty(DeleteMessageResponse.builder().build())
-                //              Catch errore tirato per lo stato toDelete
-                .onErrorResume(RetryAttemptsExceededExeption.class,
-                        retryAttemptsExceededExeption ->
-                             sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
-                                    DELETED.getStatusTransactionTableCompliant(),
-                                    new DigitalProgressStatusDto()).flatMap(
-                                    sendMessageResponse -> deleteMessageFromErrorQueue(message)
-                                            .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.getErrorName()))))
                 .onErrorResume(internalError -> sendNotificationOnStatusQueue(
                         emailPresaInCaricoInfo,
                         INTERNAL_ERROR.getStatusTransactionTableCompliant(),
@@ -554,7 +559,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
         AtomicReference<GeneratedMessageDto> generatedMessageDto = new AtomicReference<>();
         // Try to send EMAIL
         EmailField mailFld = compilaMail(digitalCourtesyMailRequest);
-        return filterRequestEmail(emailPresaInCaricoInfo).flatMap(requestDto -> {
+        return filterRequestEmail(emailPresaInCaricoInfo).flatMap(retryDecision -> {
+                    var requestDto = retryDecision.requestDto();
                     //                                        check step error per evitare null
                     //                                        pointer
                     if (emailPresaInCaricoInfo.getStepError() == null) {
@@ -582,6 +588,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                             emailPresaInCaricoInfo,
                                             message);
                                 });
+                    } else if (retryDecision.exhausted()) {
+                        return checkTentativiEccessiviEmail(requestId, requestDto, emailPresaInCaricoInfo, message);
                     } else {
                         return sesService.send(mailFld)
                                 .retryWhen(DEFAULT_RETRY_STRATEGY)
