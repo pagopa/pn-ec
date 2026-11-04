@@ -13,7 +13,6 @@ public class SesEventsUtils {
     public static final String BOUNCED = "bounced";
     public static final String COMPLAINT = "spam";
     public static final String REJECTED = "rejected";
-    public static final String BOUNCE_TYPE_PERMANENT = "Permanent";
     //eventi
     public static final String BOUNCE_EVENT = "Bounce";
     public static final String DELIVERY_EVENT = "Delivery";
@@ -31,22 +30,6 @@ public class SesEventsUtils {
         };
     }
 
-    /**
-     * Determina se un evento SES di tipo Bounce non permanente deve essere ignorato:
-     * - se l'evento è un bounce non permanente, lo acknowledge immediatamente e ritorna true, skip del flusso
-     * - se il bounce è permanente, ritorna false e il flusso continua
-     */
-    public static boolean chooseBounceType(SesNotificationDto sesNotificationDto, Acknowledgement acknowledgement, String eventType, String messageId) {
-        boolean isNonPermanentBounce = BOUNCE_EVENT.equalsIgnoreCase(eventType) && !BOUNCE_TYPE_PERMANENT.equalsIgnoreCase(sesNotificationDto.getBounce().getBounceType());
-        if (isNonPermanentBounce) {
-            log.info("Ignorato bounce non permanente messageId={}", messageId);
-            if (acknowledgement != null) {
-                acknowledgement.acknowledge();
-            }
-        }
-        return isNonPermanentBounce;
-    }
-
     public static Mono<Boolean> preliminaryChecks(SesNotificationDto sesNotificationDto, Acknowledgement acknowledgement) {
         String messageId = sesNotificationDto.getMail() != null ? sesNotificationDto.getMail().getMessageId() : null;
         String eventType = sesNotificationDto.getNotificationType();
@@ -56,9 +39,6 @@ public class SesEventsUtils {
         }
         if (eventType == null || eventType.isBlank()) {
             return Mono.error(new SesEventException.EventTypeNullOrEmpty(messageId));
-        }
-        if (chooseBounceType(sesNotificationDto, acknowledgement, eventType, messageId)) {
-            return Mono.just(false);
         }
         return Mono.just(true); // tutto ok
     }

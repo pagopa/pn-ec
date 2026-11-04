@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -29,6 +30,7 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 import java.util.stream.Stream;
 
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 @SpringBootTestWebEnv
@@ -64,7 +66,7 @@ class LavorazioneSesEventsServiceTest {
         dto.setMail(mail);
         if (SesEventsUtils.BOUNCE_EVENT.equalsIgnoreCase(eventType)) {
             SesBounceDto bounce = new SesBounceDto();
-            bounce.setBounceType(SesEventsUtils.BOUNCE_TYPE_PERMANENT);
+            bounce.setBounceType("Permanent");
             dto.setBounce(bounce);
         }
         RequestDto request = new RequestDto();
@@ -120,21 +122,49 @@ class LavorazioneSesEventsServiceTest {
                 .verify();
     }
 
-    @Test
-    void testLavorazioneSesEventsWithNonPermanentBounce() {
+    @ParameterizedTest
+    @MethodSource("bounceTypes")
+    void testLavorazioneSesEventsBounceAllTypes(String bounceType, boolean withBounceObject) {
+        String messageId = "msg-bounce-" + bounceType;
         SesNotificationDto dto = new SesNotificationDto();
         dto.setNotificationType(SesEventsUtils.BOUNCE_EVENT);
 
         SesEmailDto mail = new SesEmailDto();
-        mail.setMessageId("msg-123");
+        mail.setMessageId(messageId);
         dto.setMail(mail);
 
-        SesBounceDto bounce = new SesBounceDto();
-        bounce.setBounceType("Transient");
-        dto.setBounce(bounce);
+        if (withBounceObject) {
+            SesBounceDto bounce = new SesBounceDto();
+            bounce.setBounceType(bounceType);
+            dto.setBounce(bounce);
+        }
+
+        RequestDto request = new RequestDto();
+        request.setRequestIdx("requestId-bounce");
+        request.setxPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE);
+
+        when(gestoreRepositoryCall.getRequestMetadataByMessageId(messageId)).thenReturn(Mono.just(request));
+        when(sqsService.send(any(), any(NotificationTrackerQueueDto.class)))
+                .thenReturn(Mono.just(SendMessageResponse.builder().build()));
+
         String queueName = emailSqsQueueName().getSesEventsName();
-        StepVerifier.create(service.lavorazioneSesEvents(dto, queueName, acknowledgement)).expectComplete().verify();
-        verifyNoInteractions(sqsService);
+        StepVerifier.create(service.lavorazioneSesEvents(dto, queueName, acknowledgement))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        ArgumentCaptor<NotificationTrackerQueueDto> captor = ArgumentCaptor.forClass(NotificationTrackerQueueDto.class);
+        verify(sqsService, times(1)).send(eq(pnEcConfig.getNotificationTracker().getSqsQueue().getStatoEmailName()), captor.capture());
+        assertEquals(SesEventsUtils.BOUNCED, captor.getValue().getNextStatus());
+    }
+
+    static Stream<Arguments> bounceTypes() {
+        return Stream.of(
+                Arguments.of("Permanent", true),
+                Arguments.of("Transient", true),
+                Arguments.of("Undetermined", true),
+                Arguments.of(null, true),
+                Arguments.of("NoBounceObject", false)
+        );
     }
 
     static Stream<Arguments> eventTypeSes() {
