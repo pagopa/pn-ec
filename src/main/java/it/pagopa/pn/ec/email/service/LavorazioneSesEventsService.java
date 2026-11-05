@@ -61,6 +61,12 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
         SesNotificationDto sesNotificationDto = objectMapper.readValue(rawMessage, SesNotificationDto.class);
         String messageId = sesNotificationDto.getMail() != null ? sesNotificationDto.getMail().getMessageId() : "null";
         log.info("Ricevuto evento SES: eventType={}, messageId={}", sesNotificationDto.getNotificationType() != null ? sesNotificationDto.getNotificationType() : "unknown", messageId);
+        if (BOUNCE_EVENT.equalsIgnoreCase(sesNotificationDto.getNotificationType()) && sesNotificationDto.getBounce() != null) {
+            log.info("Evento SES Bounce: messageId={}, bounceType={}, bounceSubType={}",
+                    messageId,
+                    sesNotificationDto.getBounce().getBounceType(),
+                    sesNotificationDto.getBounce().getBounceSubType());
+        }
         lavorazioneSesEvents(sesNotificationDto, queueName, acknowledgement)
                 .doOnSuccess(result -> {acknowledgement.acknowledgeAsync();
                     log.logEndingProcess(LAVORAZIONE_SES_EVENT_EMAIL);
