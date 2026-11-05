@@ -161,6 +161,7 @@ public class LogUtils {
 
     //EMAIL SES
     public static final String LAVORAZIONE_SES_EVENT_EMAIL = "lavorazioneSesEvents()";
+    public static final String SES_EVENT_DETAILS = "SES event '{}' for request '{}', messageId '{}' - nextStatus: '{}', eventDetails: '{}'";
 
     //SMS
     public static final String SEND_COURTESY_SHORT_MESSAGE = "sendCourtesyShortMessage";

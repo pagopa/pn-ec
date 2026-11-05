@@ -9,8 +9,11 @@ import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.commons.utils.SesEventsUtils;
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.email.model.dto.ses.SesBounceDto;
+import it.pagopa.pn.ec.email.model.dto.ses.SesComplaintDto;
+import it.pagopa.pn.ec.email.model.dto.ses.SesDeliveryDto;
 import it.pagopa.pn.ec.email.model.dto.ses.SesEmailDto;
 import it.pagopa.pn.ec.email.model.dto.ses.SesNotificationDto;
+import it.pagopa.pn.ec.email.model.dto.ses.SesRejectDto;
 import it.pagopa.pn.ec.rest.v1.dto.RequestDto;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import org.junit.jupiter.api.BeforeEach;
@@ -124,8 +127,8 @@ class LavorazioneSesEventsServiceTest {
 
     @ParameterizedTest
     @MethodSource("bounceTypes")
-    void testLavorazioneSesEventsBounceAllTypes(String bounceType, boolean withBounceObject) {
-        String messageId = "msg-bounce-" + bounceType;
+    void testLavorazioneSesEventsBounceAllTypes(String bounceType, String bounceSubType, boolean withBounceObject, String expectedEventDetails) {
+        String messageId = "msg-bounce-" + bounceType + "-" + bounceSubType;
         SesNotificationDto dto = new SesNotificationDto();
         dto.setNotificationType(SesEventsUtils.BOUNCE_EVENT);
 
@@ -136,6 +139,7 @@ class LavorazioneSesEventsServiceTest {
         if (withBounceObject) {
             SesBounceDto bounce = new SesBounceDto();
             bounce.setBounceType(bounceType);
+            bounce.setBounceSubType(bounceSubType);
             dto.setBounce(bounce);
         }
 
@@ -155,16 +159,82 @@ class LavorazioneSesEventsServiceTest {
         ArgumentCaptor<NotificationTrackerQueueDto> captor = ArgumentCaptor.forClass(NotificationTrackerQueueDto.class);
         verify(sqsService, times(1)).send(eq(pnEcConfig.getNotificationTracker().getSqsQueue().getStatoEmailName()), captor.capture());
         assertEquals(SesEventsUtils.BOUNCED, captor.getValue().getNextStatus());
+        assertEquals(expectedEventDetails, captor.getValue().getDigitalProgressStatusDto().getEventDetails());
     }
 
     static Stream<Arguments> bounceTypes() {
         return Stream.of(
-                Arguments.of("Permanent", true),
-                Arguments.of("Transient", true),
-                Arguments.of("Undetermined", true),
-                Arguments.of(null, true),
-                Arguments.of("NoBounceObject", false)
+                Arguments.of("Permanent", "General", true, "Permanent - General"),
+                Arguments.of("Transient", "MailboxFull", true, "Transient - MailboxFull"),
+                Arguments.of("Undetermined", "Undetermined", true, "Undetermined - Undetermined"),
+                Arguments.of("Permanent", null, true, "Permanent"),
+                Arguments.of(null, null, true, null),
+                Arguments.of("NoBounceObject", null, false, null)
         );
+    }
+
+    @ParameterizedTest
+    @MethodSource("eventDetailsByEventType")
+    void testLavorazioneSesEventsEventDetails(SesNotificationDto dto, String expectedStatus, String expectedEventDetails) {
+        String messageId = dto.getMail().getMessageId();
+
+        RequestDto request = new RequestDto();
+        request.setRequestIdx("requestId-" + messageId);
+        request.setxPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE);
+
+        when(gestoreRepositoryCall.getRequestMetadataByMessageId(messageId)).thenReturn(Mono.just(request));
+        when(sqsService.send(any(), any(NotificationTrackerQueueDto.class)))
+                .thenReturn(Mono.just(SendMessageResponse.builder().build()));
+
+        String queueName = emailSqsQueueName().getSesEventsName();
+        StepVerifier.create(service.lavorazioneSesEvents(dto, queueName, acknowledgement))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        ArgumentCaptor<NotificationTrackerQueueDto> captor = ArgumentCaptor.forClass(NotificationTrackerQueueDto.class);
+        verify(sqsService, times(1)).send(eq(pnEcConfig.getNotificationTracker().getSqsQueue().getStatoEmailName()), captor.capture());
+        assertEquals(expectedStatus, captor.getValue().getNextStatus());
+        assertEquals(expectedEventDetails, captor.getValue().getDigitalProgressStatusDto().getEventDetails());
+    }
+
+    static Stream<Arguments> eventDetailsByEventType() {
+        SesNotificationDto delivery = sesNotification(SesEventsUtils.DELIVERY_EVENT, "msg-delivery");
+        SesDeliveryDto deliveryDto = new SesDeliveryDto();
+        deliveryDto.setReportingMTA("a8-70.smtp-out.amazonses.com");
+        deliveryDto.setSmtpResponse("250 2.0.0 OK");
+        delivery.setDelivery(deliveryDto);
+
+        SesNotificationDto deliveryWithoutObject = sesNotification(SesEventsUtils.DELIVERY_EVENT, "msg-delivery-empty");
+
+        SesNotificationDto complaint = sesNotification(SesEventsUtils.COMPLAINT_EVENT, "msg-complaint");
+        SesComplaintDto complaintDto = new SesComplaintDto();
+        complaintDto.setComplaintFeedbackType("abuse");
+        complaint.setComplaint(complaintDto);
+
+        SesNotificationDto complaintWithoutFeedback = sesNotification(SesEventsUtils.COMPLAINT_EVENT, "msg-complaint-empty");
+        complaintWithoutFeedback.setComplaint(new SesComplaintDto());
+
+        SesNotificationDto reject = sesNotification(SesEventsUtils.REJECT_EVENT, "msg-reject");
+        SesRejectDto rejectDto = new SesRejectDto();
+        rejectDto.setReason("Bad content");
+        reject.setReject(rejectDto);
+
+        return Stream.of(
+                Arguments.of(delivery, SesEventsUtils.DELIVERED, "a8-70.smtp-out.amazonses.com - 250 2.0.0 OK"),
+                Arguments.of(deliveryWithoutObject, SesEventsUtils.DELIVERED, null),
+                Arguments.of(complaint, SesEventsUtils.COMPLAINT, "abuse"),
+                Arguments.of(complaintWithoutFeedback, SesEventsUtils.COMPLAINT, null),
+                Arguments.of(reject, SesEventsUtils.REJECTED, "Bad content")
+        );
+    }
+
+    private static SesNotificationDto sesNotification(String eventType, String messageId) {
+        SesNotificationDto dto = new SesNotificationDto();
+        dto.setNotificationType(eventType);
+        SesEmailDto mail = new SesEmailDto();
+        mail.setMessageId(messageId);
+        dto.setMail(mail);
+        return dto;
     }
 
     static Stream<Arguments> eventTypeSes() {

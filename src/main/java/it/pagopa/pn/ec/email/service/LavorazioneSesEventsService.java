@@ -61,12 +61,6 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
         SesNotificationDto sesNotificationDto = objectMapper.readValue(rawMessage, SesNotificationDto.class);
         String messageId = sesNotificationDto.getMail() != null ? sesNotificationDto.getMail().getMessageId() : "null";
         log.info("Ricevuto evento SES: eventType={}, messageId={}", sesNotificationDto.getNotificationType() != null ? sesNotificationDto.getNotificationType() : "unknown", messageId);
-        if (BOUNCE_EVENT.equalsIgnoreCase(sesNotificationDto.getNotificationType()) && sesNotificationDto.getBounce() != null) {
-            log.info("Evento SES Bounce: messageId={}, bounceType={}, bounceSubType={}",
-                    messageId,
-                    sesNotificationDto.getBounce().getBounceType(),
-                    sesNotificationDto.getBounce().getBounceSubType());
-        }
         lavorazioneSesEvents(sesNotificationDto, queueName, acknowledgement)
                 .doOnSuccess(result -> {acknowledgement.acknowledgeAsync();
                     log.logEndingProcess(LAVORAZIONE_SES_EVENT_EMAIL);
@@ -93,6 +87,7 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
                         Thread.currentThread().interrupt();
                     }
                     String status = mapSesEventToStatus(eventType);
+                    String eventDetails = buildEventDetails(sesNotificationDto, logSanitizer);
                     return gestoreRepositoryCall.getRequestMetadataByMessageId(messageId)
                             .switchIfEmpty(Mono.defer(() -> {
                                 log.warn("Request non trovata per messageId={}", messageId);
@@ -100,10 +95,11 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
                             }))
                             .flatMap(requestDto -> {
                                 PresaInCaricoInfo presaInCaricoInfo = buildPresaInCaricoInfo(requestDto);
+                                log.info(SES_EVENT_DETAILS, eventType, requestDto.getRequestIdx(), messageId, status, eventDetails);
                                 return sendNotificationOnStatusQueue(
                                         presaInCaricoInfo,
                                         status,
-                                        new DigitalProgressStatusDto());
+                                        new DigitalProgressStatusDto().eventDetails(eventDetails));
                             });
                 }))
                 .doOnError(ex -> log.logEndingProcess(LAVORAZIONE_SES_EVENT_EMAIL, false, logSanitizer.sanitize(ex.getMessage()), ex))
