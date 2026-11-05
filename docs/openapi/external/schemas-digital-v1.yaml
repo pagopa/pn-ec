@@ -160,6 +160,58 @@ components:
                 ma il dominio dovrà prevedere a breve SERQ, PEC_REM, ed in futuro ogni forma di recapito digitale a valore legale.            
     
 
+    DigitalCourtesyWhatsappRequest:
+      title: schema per messaggi WhatsApp __senza__ valore legale (template Meta pre-approvati).
+      description: >-
+        WhatsApp consente messaggi avviati dall'azienda solo tramite template approvati da Meta.
+        Il contenuto inviato è quindi definito da `whatsappTemplate`; `messageText` contiene il testo
+        leggibile corrispondente (previewText), usato per audit, log e troubleshooting.
+      allOf:
+        - $ref: '#/components/schemas/BaseDigitalMessageRequest'
+        - type: object
+          required:
+            - channel
+            - whatsappTemplate
+          properties:
+            channel:
+              type: string
+              enum:
+                - WHATSAPP
+              description: >-
+                Canale di recapito con cui il Sender chiede l'erogazione del servizio.
+            whatsappTemplate:
+              $ref: '#/components/schemas/WhatsappTemplate'
+
+    WhatsappTemplate:
+      title: Riferimento a un template WhatsApp approvato da Meta
+      type: object
+      required:
+        - name
+        - language
+      properties:
+        name:
+          type: string
+          description: Nome del template registrato sulla WhatsApp Business Account (es. send_avviso_notifica_digitale)
+          pattern: '^[a-z0-9_]{1,512}$'
+        language:
+          type: string
+          description: Codice lingua del template su Meta (es. it, en, de, fr, sl)
+          pattern: '^[a-z]{2}(_[A-Z]{2})?$'
+        bodyParameters:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
+          type: array
+          description: Valori dei parametri {{1}}, {{2}}, ... del body, nell'ordine
+          items:
+            type: string
+        buttonParameters:
+          x-field-extra-annotation: "@lombok.ToString.Exclude" #NO EXTERNAL
+          type: array
+          description: >-
+            Valori dei parametri dei pulsanti URL (es. per i template AUTHENTICATION con pulsante "Copia codice"
+            il codice OTP), nell'ordine dei pulsanti.
+          items:
+            type: string
+
     #############################################################################################
     ###                     EVENTI DI PROGRESSIONE MESSAGGISTICA DIGITALE                     ###
     #############################################################################################
@@ -231,6 +283,9 @@ components:
                 - S003
                 - S008
                 - S010
+                - W003
+                - W008
+                - W010
               description: >-
                 * STATUS     EVENTCODE
                 * OK         M003 = MAIL - Sent
@@ -244,6 +299,9 @@ components:
                 * OK         S003 = SMS - Sent
                 * ERROR      S008 = SMS - Error
                 * ERROR      S010 = SMS - Internal error
+                * OK         W003 = WHATSAPP - Sent
+                * ERROR      W008 = WHATSAPP - Error
+                * ERROR      W010 = WHATSAPP - Internal error
     
     LegalMessageSentDetails:
       title: Avanzamento per messaggi legali

@@ -52,6 +52,11 @@ Parameters:
     Default: 1
     Description: 'Max number of messages that can be sent to the DLQ before raising an alarm for the pn-ec-tracker-sms-errori-queue'
 
+  PnEcQueueTrackerErroriWHATSAPPDLQThreshold:
+    Type: Number
+    Default: 1
+    Description: 'Max number of messages that can be sent to the DLQ before raising an alarm for the pn-ec-tracker-whatsapp-errori-queue'
+
   PnEcQueueTrackerErroriPECDLQThreshold:
     Type: Number
     Default: 1
@@ -316,6 +321,24 @@ Resources:
         DelaySeconds: 0
         VisibilityTimeout: 600
 
+  PnEcQueueTrackerStatoWHATSAPPStack:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-tracker-whatsapp-stato-queue'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
+        VisibilityTimeout: 600
+
   PnEcTrackerStatoSMSQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
@@ -328,6 +351,21 @@ Resources:
               - 'sqs:*'
             Effect: 'Allow'
             Resource: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueARN
+            Principal:
+              AWS: '*'
+
+  PnEcTrackerStatoWHATSAPPQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !GetAtt PnEcQueueTrackerStatoWHATSAPPStack.Outputs.QueueURL
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - 'sqs:*'
+            Effect: 'Allow'
+            Resource: !GetAtt PnEcQueueTrackerStatoWHATSAPPStack.Outputs.QueueARN
             Principal:
               AWS: '*'
 
@@ -349,6 +387,26 @@ Resources:
         DelaySeconds: 300
         VisibilityTimeout: 120
         MessageDLQThreshold: !Ref PnEcQueueTrackerErroriSMSDLQThreshold
+
+
+  PnEcQueueTrackerErroriWHATSAPPStack:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-tracker-whatsapp-errori-queue'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 300
+        VisibilityTimeout: 120
+        MessageDLQThreshold: !Ref PnEcQueueTrackerErroriWHATSAPPDLQThreshold
 
   ######### TRACKER : PEC  ##########
 
@@ -827,6 +885,23 @@ Resources:
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
         VisibilityTimeout: 600
 
+  PnEcQueueBatchWHATSAPPStack:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-whatsapp-batch-queue'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 600
+
   PnEcQueueInteractiveSMSStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
@@ -835,6 +910,24 @@ Resources:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
         QueueName: 'pn-ec-sms-interactive-queue'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        DelaySeconds: 0
+        VisibilityTimeout: 600
+
+  PnEcQueueInteractiveWHATSAPPStack:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-whatsapp-interactive-queue'
         SqsManagedSseEnabled: true
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
@@ -860,6 +953,21 @@ Resources:
             Principal:
               AWS: '*'
 
+  PnEcInteractiveWHATSAPPQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !GetAtt PnEcQueueInteractiveWHATSAPPStack.Outputs.QueueURL
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - 'sqs:*'
+            Effect: 'Allow'
+            Resource: !GetAtt PnEcQueueInteractiveWHATSAPPStack.Outputs.QueueARN
+            Principal:
+              AWS: '*'
+
   PnEcQueueErroriSMSStack:
     Type: AWS::CloudFormation::Stack
     DeletionPolicy: Retain
@@ -868,6 +976,25 @@ Resources:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
       Parameters:
         QueueName: 'pn-ec-sms-errori-queue'
+        SqsManagedSseEnabled: true
+        FifoQueue: 'true'
+        ContentBasedDeduplication: 'true'
+        DelaySeconds: 300
+        HasDLQ: 'true'
+        MaxReceiveCount: 10
+        QueueHasAlarm: 'false'
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        VisibilityTimeout: 600
+
+
+  PnEcQueueErroriWHATSAPPStack:
+    Type: AWS::CloudFormation::Stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml'
+      Parameters:
+        QueueName: 'pn-ec-whatsapp-errori-queue'
         SqsManagedSseEnabled: true
         FifoQueue: 'true'
         ContentBasedDeduplication: 'true'
@@ -1233,23 +1360,45 @@ Outputs:
     Description: '[Notification Tracker: canale SMS] ARN della Coda per aggiornamenti di stato afferenti al canale SMS'
     Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueARN
 
+  PnEcQueueArnTrackerStatoWHATSAPP:
+    Description: '[Notification Tracker: canale WHATSAPP] ARN della Coda per aggiornamenti di stato afferenti al canale WHATSAPP'
+    Value: !GetAtt PnEcQueueTrackerStatoWHATSAPPStack.Outputs.QueueARN
+
   PnEcQueueUrlTrackerStatoSMS:
     Description: '[Notification Tracker: canale SMS] URL della Coda per aggiornamenti di stato afferenti al canale SMS'
     Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.QueueURL
+
+  PnEcQueueUrlTrackerStatoWHATSAPP:
+    Description: '[Notification Tracker: canale WHATSAPP] URL della Coda per aggiornamenti di stato afferenti al canale WHATSAPP'
+    Value: !GetAtt PnEcQueueTrackerStatoWHATSAPPStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueTrackerStatoSMS:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoSMS"
     Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.SqsAgeAlarmArn
 
+  PnEcAlarmArnQueueTrackerStatoWHATSAPP:
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerStatoWHATSAPP"
+    Value: !GetAtt PnEcQueueTrackerStatoWHATSAPPStack.Outputs.SqsAgeAlarmArn
+
   PnEcAlarmArnDLQueueTrackerStatoSMS:
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoSMS"
     Value: !GetAtt PnEcQueueTrackerStatoSMSStack.Outputs.SqsDLQAlarmArn
+
+
+  PnEcAlarmArnDLQueueTrackerStatoWHATSAPP:
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerStatoWHATSAPP"
+    Value: !GetAtt PnEcQueueTrackerStatoWHATSAPPStack.Outputs.SqsDLQAlarmArn
 
   ######### TRACKER : ERRORI SMS  ##########
 
   PnEcQueueArnTrackerErroriSMS:
     Description: '[Notification Tracker: canale SMS] ARN della Coda Errori afferenti al canale SMS'
     Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.QueueARN
+
+
+  PnEcQueueArnTrackerErroriWHATSAPP:
+    Description: '[Notification Tracker: canale WHATSAPP] ARN della Coda Errori afferenti al canale WHATSAPP'
+    Value: !GetAtt PnEcQueueTrackerErroriWHATSAPPStack.Outputs.QueueARN
 
   # PnEcQueueUrlTrackerErroriSMS:
   #   Description: '[Notification Tracker: canale SMS] URL della Coda Errori afferenti al canale SMS'
@@ -1259,9 +1408,18 @@ Outputs:
     Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriSMS"
     Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.SqsAgeAlarmArn
 
+  PnEcAlarmArnQueueTrackerErroriWHATSAPP:
+    Description: "[Alarm SQS - Tracker] ARN dell'allarme messaggi vecchi nella coda PnEcQueueTrackerErroriWHATSAPP"
+    Value: !GetAtt PnEcQueueTrackerErroriWHATSAPPStack.Outputs.SqsAgeAlarmArn
+
   PnEcAlarmArnDLQueueTrackerErroriSMS:
     Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriSMS"
     Value: !GetAtt PnEcQueueTrackerErroriSMSStack.Outputs.SqsDLQAlarmArn
+
+
+  PnEcAlarmArnDLQueueTrackerErroriWHATSAPP:
+    Description: "[Alarm DLQ - Tracker] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueTrackerErroriWHATSAPP"
+    Value: !GetAtt PnEcQueueTrackerErroriWHATSAPPStack.Outputs.SqsDLQAlarmArn
 
   ######### TRACKER : PEC  ##########
 
@@ -1415,6 +1573,11 @@ Outputs:
     Description: '[Canale SMS] ARN della Coda per la modalità SMS-Batch'
     Value: !GetAtt  PnEcQueueBatchSMSStack.Outputs.QueueARN
 
+
+  PnEcQueueArnBatchWHATSAPP:
+    Description: '[Canale WHATSAPP] ARN della Coda per la modalità WHATSAPP-Batch'
+    Value: !GetAtt  PnEcQueueBatchWHATSAPPStack.Outputs.QueueARN
+
   # PnEcQueueUrlBatchSMS:
   #   Description: '[Canale SMS] URL della Coda per la modalità SMS-Batch'
   #   Value: !GetAtt  PnEcQueueBatchSMSStack.Outputs.QueueURL
@@ -1423,9 +1586,18 @@ Outputs:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchSMS"
     Value: !GetAtt PnEcQueueBatchSMSStack.Outputs.SqsAgeAlarmArn
 
+  PnEcAlarmArnQueueBatchWHATSAPP:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueBatchWHATSAPP"
+    Value: !GetAtt PnEcQueueBatchWHATSAPPStack.Outputs.SqsAgeAlarmArn
+
   PnEcAlarmArnDLQueueBatchSMS:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchSMS"
     Value: !GetAtt PnEcQueueBatchSMSStack.Outputs.SqsDLQAlarmArn
+
+
+  PnEcAlarmArnDLQueueBatchWHATSAPP:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueBatchWHATSAPP"
+    Value: !GetAtt PnEcQueueBatchWHATSAPPStack.Outputs.SqsDLQAlarmArn
 
   ###### INTERACTIVE : SMS #######
 
@@ -1433,23 +1605,45 @@ Outputs:
     Description: '[Canale SMS] ARN della Coda per la modalità SMS-Interactive'
     Value: !GetAtt  PnEcQueueInteractiveSMSStack.Outputs.QueueARN
 
+  PnEcQueueArnInteractiveWHATSAPP:
+    Description: '[Canale WHATSAPP] ARN della Coda per la modalità WHATSAPP-Interactive'
+    Value: !GetAtt  PnEcQueueInteractiveWHATSAPPStack.Outputs.QueueARN
+
   PnEcQueueUrlInteractiveSMS:
     Description: '[Canale SMS] URL della Coda per la modalità SMS-Interactive'
     Value: !GetAtt  PnEcQueueInteractiveSMSStack.Outputs.QueueURL
+
+  PnEcQueueUrlInteractiveWHATSAPP:
+    Description: '[Canale WHATSAPP] URL della Coda per la modalità WHATSAPP-Interactive'
+    Value: !GetAtt  PnEcQueueInteractiveWHATSAPPStack.Outputs.QueueURL
 
   PnEcAlarmArnQueueInteractiveSMS:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractiveSMS"
     Value: !GetAtt PnEcQueueInteractiveSMSStack.Outputs.SqsAgeAlarmArn
 
+  PnEcAlarmArnQueueInteractiveWHATSAPP:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueInteractiveWHATSAPP"
+    Value: !GetAtt PnEcQueueInteractiveWHATSAPPStack.Outputs.SqsAgeAlarmArn
+
   PnEcAlarmArnDLQueueInteractiveSMS:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractiveSMS"
     Value: !GetAtt PnEcQueueInteractiveSMSStack.Outputs.SqsDLQAlarmArn
+
+
+  PnEcAlarmArnDLQueueInteractiveWHATSAPP:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueInteractiveWHATSAPP"
+    Value: !GetAtt PnEcQueueInteractiveWHATSAPPStack.Outputs.SqsDLQAlarmArn
 
   ###### ERRORI : SMS #######
 
   PnEcQueueArnErroriSMS:
     Description: '[Canale SMS] ARN della Coda Errori SMS'
     Value: !GetAtt  PnEcQueueErroriSMSStack.Outputs.QueueARN
+
+
+  PnEcQueueArnErroriWHATSAPP:
+    Description: '[Canale WHATSAPP] ARN della Coda Errori WHATSAPP'
+    Value: !GetAtt  PnEcQueueErroriWHATSAPPStack.Outputs.QueueARN
 
   # PnEcQueueUrlErroriSMS:
   #   Description: '[Canale SMS] URL della Coda Errori SMS'
@@ -1459,9 +1653,18 @@ Outputs:
     Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriSMS"
     Value: !GetAtt PnEcQueueErroriSMSStack.Outputs.SqsAgeAlarmArn
 
+  PnEcAlarmArnQueueErroriWHATSAPP:
+    Description: "[Alarm SQS] ARN dell'allarme messaggi vecchi nella coda PnEcQueueErroriWHATSAPP"
+    Value: !GetAtt PnEcQueueErroriWHATSAPPStack.Outputs.SqsAgeAlarmArn
+
   PnEcAlarmArnDLQueueErroriSMS:
     Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriSMS"
     Value: !GetAtt PnEcQueueErroriSMSStack.Outputs.SqsDLQAlarmArn
+
+
+  PnEcAlarmArnDLQueueErroriWHATSAPP:
+    Description: "[Alarm DLQ] ARN dell'allarme per presenza di messaggi nella DLQ PnEcQueueErroriWHATSAPP"
+    Value: !GetAtt PnEcQueueErroriWHATSAPPStack.Outputs.SqsDLQAlarmArn
 
   ###### BATCH : PEC #######
 

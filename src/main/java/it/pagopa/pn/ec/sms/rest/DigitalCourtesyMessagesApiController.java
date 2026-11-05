@@ -9,8 +9,11 @@ import it.pagopa.pn.ec.rest.v1.api.DigitalCourtesyMessagesApi;
 import it.pagopa.pn.ec.rest.v1.dto.CourtesyMessageProgressEvent;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyMailRequest;
 import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesySmsRequest;
+import it.pagopa.pn.ec.rest.v1.dto.DigitalCourtesyWhatsappRequest;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.sms.service.SmsService;
+import it.pagopa.pn.ec.whatsapp.model.pojo.WhatsappPresaInCaricoInfo;
+import it.pagopa.pn.ec.whatsapp.service.WhatsappService;
 import lombok.CustomLog;
 import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
@@ -27,14 +30,16 @@ import static org.springframework.http.HttpStatus.OK;
 public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMessagesApi {
 
     private final SmsService smsService;
+    private final WhatsappService whatsappService;
     private final EmailService emailService;
     private final StatusPullService statusPullService;
     private final PnEcConfig.Commons.TransactionProcess transactionProcessProperties;
 
 
-    public DigitalCourtesyMessagesApiController(SmsService smsService, EmailService emailService, StatusPullService statusPullService,
-                                                PnEcConfig pnEcConfig) {
+    public DigitalCourtesyMessagesApiController(SmsService smsService, WhatsappService whatsappService, EmailService emailService,
+                                                StatusPullService statusPullService, PnEcConfig pnEcConfig) {
         this.smsService = smsService;
+        this.whatsappService = whatsappService;
         this.emailService = emailService;
         this.statusPullService = statusPullService;
         this.transactionProcessProperties = pnEcConfig.getCommons().getTransactionProcess();
@@ -64,6 +69,32 @@ public class DigitalCourtesyMessagesApiController implements DigitalCourtesyMess
                                 .digitalCourtesySmsRequest(request)
                                 .build()))
                 .thenReturn(new ResponseEntity<>(OK)));
+    }
+
+    @Override
+    public Mono<ResponseEntity<Void>> sendCourtesyWhatsappMessage(String requestIdx, String xPagopaExtchCxId,
+                                                                  Mono<DigitalCourtesyWhatsappRequest> digitalCourtesyWhatsappRequest,
+                                                                  final ServerWebExchange exchange) {
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
+        MDC.clear();
+        MDC.put(MDC_CORR_ID_KEY, concatRequestId);
+        return MDCUtils.addMDCToContextAndExecute(digitalCourtesyWhatsappRequest.flatMap(request ->
+                        whatsappService.presaInCarico(WhatsappPresaInCaricoInfo.builder()
+                                .requestIdx(requestIdx)
+                                .xPagopaExtchCxId(xPagopaExtchCxId)
+                                .digitalCourtesyWhatsappRequest(request)
+                                .build()))
+                .thenReturn(new ResponseEntity<>(OK)));
+    }
+
+    @Override
+    public Mono<ResponseEntity<CourtesyMessageProgressEvent>> getCourtesyWhatsappMessageStatus(String requestIdx, String xPagopaExtchCxId,
+                                                                                               ServerWebExchange exchange) {
+        String concatRequestId = concatRequestId(xPagopaExtchCxId, requestIdx);
+        MDC.clear();
+        MDC.put(MDC_CORR_ID_KEY, concatRequestId);
+        return MDCUtils.addMDCToContextAndExecute(statusPullService.digitalPullService(requestIdx, xPagopaExtchCxId, transactionProcessProperties.getWhatsapp())
+                .map(ResponseEntity::ok));
     }
 
     /*
