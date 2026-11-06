@@ -16,13 +16,21 @@ public class LogSanitizer {
             return null;
         }
 
-        message = EMAIL_PATTERN.matcher(message)
-                               .replaceAll(match -> "xxx@" + match.group().split("@")[1]);
+        message = sanitizeEmail(message);
 
         message = PHONE_PATTERN.matcher(message)
                                .replaceAll(DEFAULT_PHONE);
 
         return message;
+    }
+
+    public String sanitizeEmail(String message) {
+        if (message == null) {
+            return null;
+        }
+
+        return EMAIL_PATTERN.matcher(message)
+                            .replaceAll(match -> "xxx@" + match.group().split("@")[1]);
     }
 }
 

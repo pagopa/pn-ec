@@ -3,8 +3,13 @@ package it.pagopa.pn.ec.commons.utils;
 import io.awspring.cloud.sqs.listener.acknowledgement.Acknowledgement;
 import it.pagopa.pn.ec.commons.exception.ses.SesEventException;
 import it.pagopa.pn.ec.email.model.dto.ses.SesNotificationDto;
+import it.pagopa.pn.ec.util.LogSanitizer;
 import lombok.CustomLog;
 import reactor.core.publisher.Mono;
+
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @CustomLog
 public class SesEventsUtils {
@@ -13,13 +18,13 @@ public class SesEventsUtils {
     public static final String BOUNCED = "bounced";
     public static final String COMPLAINT = "spam";
     public static final String REJECTED = "rejected";
-    public static final String BOUNCE_TYPE_PERMANENT = "Permanent";
     //eventi
     public static final String BOUNCE_EVENT = "Bounce";
     public static final String DELIVERY_EVENT = "Delivery";
     public static final String COMPLAINT_EVENT = "Complaint";
     public static final String REJECT_EVENT = "Reject";
 
+    private static final String EVENT_DETAILS_SEPARATOR = " - ";
 
     public static String mapSesEventToStatus(String eventType) {
         return switch (eventType) {
@@ -32,19 +37,40 @@ public class SesEventsUtils {
     }
 
     /**
-     * Determina se un evento SES di tipo Bounce non permanente deve essere ignorato:
-     * - se l'evento è un bounce non permanente, lo acknowledge immediatamente e ritorna true, skip del flusso
-     * - se il bounce è permanente, ritorna false e il flusso continua
+     * Costruisce il dettaglio dell'evento SES da inviare al notification tracker (eventDetails):
+     * - Bounce: bounceType - bounceSubType
+     * - Delivery: reportingMTA - smtpResponse (con eventuali indirizzi email mascherati)
+     * - Reject: reason
+     * - Complaint: complaintFeedbackType
+     * Vengono riportate solo le parti valorizzate; se non ce n'è nessuna restituisce null.
      */
-    public static boolean chooseBounceType(SesNotificationDto sesNotificationDto, Acknowledgement acknowledgement, String eventType, String messageId) {
-        boolean isNonPermanentBounce = BOUNCE_EVENT.equalsIgnoreCase(eventType) && !BOUNCE_TYPE_PERMANENT.equalsIgnoreCase(sesNotificationDto.getBounce().getBounceType());
-        if (isNonPermanentBounce) {
-            log.info("Ignorato bounce non permanente messageId={}", messageId);
-            if (acknowledgement != null) {
-                acknowledgement.acknowledge();
-            }
+    public static String buildEventDetails(SesNotificationDto sesNotificationDto, LogSanitizer logSanitizer) {
+        String eventType = sesNotificationDto.getNotificationType();
+        if (eventType == null) {
+            return null;
         }
-        return isNonPermanentBounce;
+        return switch (eventType) {
+            case BOUNCE_EVENT -> Optional.ofNullable(sesNotificationDto.getBounce())
+                    .map(bounce -> joinEventDetails(bounce.getBounceType(), bounce.getBounceSubType()))
+                    .orElse(null);
+            case DELIVERY_EVENT -> Optional.ofNullable(sesNotificationDto.getDelivery())
+                    .map(delivery -> joinEventDetails(delivery.getReportingMTA(), logSanitizer.sanitizeEmail(delivery.getSmtpResponse())))
+                    .orElse(null);
+            case REJECT_EVENT -> Optional.ofNullable(sesNotificationDto.getReject())
+                    .map(reject -> joinEventDetails(reject.getReason()))
+                    .orElse(null);
+            case COMPLAINT_EVENT -> Optional.ofNullable(sesNotificationDto.getComplaint())
+                    .map(complaint -> joinEventDetails(complaint.getComplaintFeedbackType()))
+                    .orElse(null);
+            default -> null;
+        };
+    }
+
+    private static String joinEventDetails(String... parts) {
+        String joined = Arrays.stream(parts)
+                .filter(part -> part != null && !part.isBlank())
+                .collect(Collectors.joining(EVENT_DETAILS_SEPARATOR));
+        return joined.isEmpty() ? null : joined;
     }
 
     public static Mono<Boolean> preliminaryChecks(SesNotificationDto sesNotificationDto, Acknowledgement acknowledgement) {
@@ -56,9 +82,6 @@ public class SesEventsUtils {
         }
         if (eventType == null || eventType.isBlank()) {
             return Mono.error(new SesEventException.EventTypeNullOrEmpty(messageId));
-        }
-        if (chooseBounceType(sesNotificationDto, acknowledgement, eventType, messageId)) {
-            return Mono.just(false);
         }
         return Mono.just(true); // tutto ok
     }
