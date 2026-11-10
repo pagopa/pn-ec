@@ -87,6 +87,7 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
                         Thread.currentThread().interrupt();
                     }
                     String status = mapSesEventToStatus(eventType);
+                    String eventDetails = buildEventDetails(sesNotificationDto, logSanitizer);
                     return gestoreRepositoryCall.getRequestMetadataByMessageId(messageId)
                             .switchIfEmpty(Mono.defer(() -> {
                                 log.warn("Request non trovata per messageId={}", messageId);
@@ -94,10 +95,11 @@ public class LavorazioneSesEventsService implements QueueOperationsService {
                             }))
                             .flatMap(requestDto -> {
                                 PresaInCaricoInfo presaInCaricoInfo = buildPresaInCaricoInfo(requestDto);
+                                log.info(SES_EVENT_DETAILS, eventType, requestDto.getRequestIdx(), messageId, status, eventDetails);
                                 return sendNotificationOnStatusQueue(
                                         presaInCaricoInfo,
                                         status,
-                                        new DigitalProgressStatusDto());
+                                        new DigitalProgressStatusDto().eventDetails(eventDetails));
                             });
                 }))
                 .doOnError(ex -> log.logEndingProcess(LAVORAZIONE_SES_EVENT_EMAIL, false, logSanitizer.sanitize(ex.getMessage()), ex))

@@ -16,4 +16,5 @@ public class SesComplaintDto {
 
     private List<ComplaintRecipientDto> complainedRecipients;
     private String timestamp;
+    private String complaintFeedbackType;
 }
