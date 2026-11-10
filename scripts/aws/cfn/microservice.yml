@@ -882,10 +882,6 @@ Parameters:
     Description: Memory amount reserved to the task pod.
     AllowedValues: [ 2GB, 4GB, 6GB, 8GB ]
 
-  PnECPaperPAIdOverride:
-    Type: String
-    Description: 'Valore del requestPaID da sovrascrivere nella richiesta cartacea. Se non valorizzato, la funzionalità è disattivata'
-
   # EFS parameters
   FargateEFSFileSystemID:
     Type: String
@@ -1046,18 +1042,17 @@ Resources:
         ContainerEnvEntry32: !Sub 'PN_EC_IDENTITY_PEC=${PnEcIdentityPec}'
         ContainerEnvEntry33: !Sub 'SPRING_CODEC_MAX_IN_MEMORY_SIZE=${SpringCodecMaxInMemorySize}'
         ContainerEnvEntry34: !Sub 'PN_EC_CONS_ALLOWED_FUTURE_OFFSET_DURATION=${PnEcConsAllowedFutureOffsetDuration}'
-        ContainerEnvEntry35: !Sub 'PN_EC_PAPER_PA_ID_OVERRIDE=${PnECPaperPAIdOverride}'
-        ContainerEnvEntry36: !Sub 'SQS_MAX_BATCH_SUBSCRIBED_MSGS=${SQSMaxBatchSubscribedMsgs}'
-        ContainerEnvEntry37: !Sub 'PN_EC_PEC_METRICS_SCHEMA=${PnEcPecMetricsSchema}'
-        ContainerEnvEntry38: !Sub 'SQS_CARTACEO_MAX_BATCH_SUBSCRIBED_MSGS=${SQSCartaceoMaxBatchSubscribedMsgs}'
-        ContainerEnvEntry39: !Sub 'PN_CRON_ANALYZER=${PnCronAnalyzer}'
-        ContainerEnvEntry40: !Sub 'WIRE_TAP_LOG=${WireTapLogActivation}'
-        ContainerEnvEntry41: !Sub 'PN_EC_DUPLICATES_CHECK=${PnEcDuplicatesCheck}'
-        ContainerEnvEntry42: !Sub 'PN_EC_MAX_CONSOLIDATORE_CONCURRENT_REQUEST=${PnEcMaxConsolidatoreConcurrentRequest}'
-        ContainerEnvEntry43: !Sub 'CONSOLIDATORE_MAX_REQUEST=${ConsolidatoreMaxRequest}'
-        ContainerEnvEntry44: !Sub 'CONSOLIDATORE_REFRESH_PERIOD_SECONDS=${ConsolidatoreRefreshPeriodSeconds}'
-        ContainerEnvEntry45: !Sub 'PN_EC_EMAIL_SES_EVENTS_SNS_TOPIC_ARN=${PnEcEmailSESEventsSNSTopicArn}'
-        ContainerEnvEntry46: !Sub 'SES_CONFIGURATION_SET_NAME=${SESConfigurationSetName}'
+        ContainerEnvEntry35: !Sub 'SQS_MAX_BATCH_SUBSCRIBED_MSGS=${SQSMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry36: !Sub 'PN_EC_PEC_METRICS_SCHEMA=${PnEcPecMetricsSchema}'
+        ContainerEnvEntry37: !Sub 'SQS_CARTACEO_MAX_BATCH_SUBSCRIBED_MSGS=${SQSCartaceoMaxBatchSubscribedMsgs}'
+        ContainerEnvEntry38: !Sub 'PN_CRON_ANALYZER=${PnCronAnalyzer}'
+        ContainerEnvEntry39: !Sub 'WIRE_TAP_LOG=${WireTapLogActivation}'
+        ContainerEnvEntry40: !Sub 'PN_EC_DUPLICATES_CHECK=${PnEcDuplicatesCheck}'
+        ContainerEnvEntry41: !Sub 'PN_EC_MAX_CONSOLIDATORE_CONCURRENT_REQUEST=${PnEcMaxConsolidatoreConcurrentRequest}'
+        ContainerEnvEntry42: !Sub 'CONSOLIDATORE_MAX_REQUEST=${ConsolidatoreMaxRequest}'
+        ContainerEnvEntry43: !Sub 'CONSOLIDATORE_REFRESH_PERIOD_SECONDS=${ConsolidatoreRefreshPeriodSeconds}'
+        ContainerEnvEntry44: !Sub 'PN_EC_EMAIL_SES_EVENTS_SNS_TOPIC_ARN=${PnEcEmailSESEventsSNSTopicArn}'
+        ContainerEnvEntry45: !Sub 'SES_CONFIGURATION_SET_NAME=${SESConfigurationSetName}'
         ContainerSecret1: !Sub 'CONSOLIDATORE_CLIENT_API_KEY=arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pn-EC-Secrets:ConsolidatoreClientApiKey:AWSCURRENT:'
         MicroServiceSecretPrefix: pn-EC-Secrets
         MappedPaths: '/external-channels/*,/external-channel/*,/consolidatore-ingress/*'
