@@ -21,7 +21,6 @@
       "PnPecRetryStrategyMinBackoff": "3",
       "SpringCodecMaxInMemorySize": "256KB",
       "PnEcConsAllowedFutureOffsetDuration": "1m",
-      "PnECPaperPAIdOverride": "15376371009",
       "SQSMaxBatchSubscribedMsgs": "20",
       "SQSCartaceoMaxBatchSubscribedMsgs": "10",
       "PnEcPecMetricsSchema": "Pn-EC-Pec-MetricsSchema",
