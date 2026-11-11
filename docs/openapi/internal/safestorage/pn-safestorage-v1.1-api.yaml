@@ -440,7 +440,7 @@ paths:
   ################################################################################################
   ###                                   AGGIORNA METADATI FILE                                 ###
   ################################################################################################
-  
+
     post:
       operationId: updateFileMetadata
       tags:
@@ -472,8 +472,36 @@ paths:
             Non trovato. Restituito se: <br/>
             - il parametro clientId è diverso dal client autenticato; <br/>
             - se il file identificato da fileKey non è ancora stato salvato; <br/>
-            
-      
+
+
+  '/safe-storage/v1/files/tags':
+    parameters:
+      - $ref: '#/components/parameters/clientIdHeader'
+    post:
+      operationId: additionalFileTagsMassiveUpdate
+      tags:
+        - fileMetadataUpdate
+      summary: Aggiunge, elimina o aggiorna i tags associati a più fileKey in un'unica chiamata.
+      description: >-
+        Operazione massiva che consente di aggiornare i tag su più fileKey in una sola chiamata.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdditionalFileTagsMassiveUpdateRequest'
+      responses:
+        '200':
+          description: OK (può contenere errori parziali nell'array errors)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdditionalFileTagsMassiveUpdateResponse'
+        '400':
+          description: Richiesta non validata correttamente o numero di fileKey massime superato.
+        '403':
+          description: Non autorizzato.
+
 
 components:
   parameters:
@@ -797,6 +825,59 @@ components:
           See [information classification](https://pagopa.atlassian.net/wiki/spaces/EN/pages/357204284/Data+Classification+Handling#Classificazione)
     
     
+    Tags:
+      description: Tag da aggiornare per una fileKey
+      type: object
+      required:
+        - fileKey
+      properties:
+        fileKey:
+          type: string
+        SET:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        DELETE:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    AdditionalFileTagsMassiveUpdateRequest:
+      description: Aggiunge, elimina o aggiorna i tag associati a più fileKey
+      type: object
+      required:
+        - tags
+      properties:
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tags'
+
+    AdditionalFileTagsMassiveUpdateResponse:
+      description: Esito dell'operazione massiva di update sui tag
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/MassiveUpdateErrorDetail'
+
+    MassiveUpdateErrorDetail:
+      type: object
+      properties:
+        resultCode:
+          type: string
+        resultDescription:
+          type: string
+        fileKey:
+          type: array
+          items:
+            type: string
+
     OperationResultCodeResponse:
       required:
         - resultCode

@@ -6,6 +6,7 @@ import it.pagopa.pn.ec.availabilitymanager.model.dto.AvailabilityManagerDto;
 import it.pagopa.pn.ec.cartaceo.service.CartaceoService;
 import it.pagopa.pn.ec.commons.exception.RepositoryManagerException;
 import it.pagopa.pn.ec.commons.rest.call.machinestate.CallMacchinaStati;
+import it.pagopa.pn.ec.commons.rest.call.ss.file.FileCall;
 import it.pagopa.pn.ec.commons.service.SqsService;
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.pdfraster.service.RequestConversionService;
@@ -29,6 +30,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsMassiveUpdateRequest;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsMassiveUpdateResponse;
+import it.pagopa.pn.ec.rest.v1.dto.Tags;
+import org.mockito.ArgumentCaptor;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -50,6 +58,8 @@ class AvailabilityManagerServiceTest {
     private CallMacchinaStati callMachinaStati;
     @MockitoSpyBean
     private CartaceoService cartaceoService;
+    @MockitoBean
+    private FileCall fileCall;
 
 
 
@@ -98,7 +108,7 @@ class AvailabilityManagerServiceTest {
     @BeforeEach
     void setUp() {
         availabilityManagerService =
-                Mockito.spy(new AvailabilityManagerService(requestConversionService, sqsService, callMachinaStati, cartaceoService, pnEcConfig));
+                Mockito.spy(new AvailabilityManagerService(requestConversionService, sqsService, callMachinaStati, cartaceoService, fileCall, pnEcConfig));
     }
 
 
@@ -125,6 +135,7 @@ class AvailabilityManagerServiceTest {
     @Test
     void convertPDFAllConvertedOk() {
         Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        doReturn(Mono.empty()).when(availabilityManagerService).writeBidirectionalTags(any(), any());
 
         // GIVEN: oggetti necessari al test (Dto)
         String originalFileKey2 = "originalFileKey2";
@@ -153,6 +164,94 @@ class AvailabilityManagerServiceTest {
         StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment)).verifyError(RepositoryManagerException.PdfConversionNotFoundException.class);
         verify(sqsService, never()).send(eq(pnEcConfig.getCartaceo().getSqsQueue().getBatchName()), any());
         verify(requestConversionService, times(1)).updateRequestConversion(newFileKey3, true, sha256,false);
+    }
+
+    @Test
+    void convertPDFAllConverted_writeBidirectionalTags_called() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        doReturn(Mono.empty()).when(availabilityManagerService).writeBidirectionalTags(any(), any());
+
+        String originalFileKey = "originalFileKeyBidi";
+        String newFileKey = "newFileKeyBidi";
+        String sha256 = "sha256bidi";
+        AvailabilityManagerDto dto = createAvailabilityManagerDto(newFileKey, sha256);
+        AttachmentToConvertDto attachment = new AttachmentToConvertDto().originalFileKey(originalFileKey).newFileKey(newFileKey).sha256(sha256);
+        RequestConversionDto requestConversionDto = createRequestConversionDto(List.of(attachment), "requestIdBidi");
+        requestConversionService.insertRequestConversion(requestConversionDto).block();
+
+        StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment)).verifyComplete();
+
+        verify(availabilityManagerService, times(1)).writeBidirectionalTags(eq(originalFileKey), eq(newFileKey));
+    }
+
+    @Test
+    void convertPDFNotAllConverted_writeBidirectionalTags_notCalled() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+
+        String originalFileKey1 = "origNotAll1";
+        String newFileKey1 = "newNotAll1";
+        String sha256 = "sha256notall";
+        AvailabilityManagerDto dto = createAvailabilityManagerDto(newFileKey1, sha256);
+        AttachmentToConvertDto attachment1 = new AttachmentToConvertDto().originalFileKey(originalFileKey1).newFileKey(newFileKey1).sha256(sha256);
+        AttachmentToConvertDto attachment2 = new AttachmentToConvertDto().originalFileKey("origNotAll2").newFileKey("newNotAll2").sha256(sha256);
+        RequestConversionDto requestConversionDto = createRequestConversionDto(List.of(attachment1, attachment2), "requestIdNotAll");
+        requestConversionService.insertRequestConversion(requestConversionDto).block();
+
+        StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment)).verifyComplete();
+
+        verify(availabilityManagerService, never()).writeBidirectionalTags(any(), any());
+    }
+
+    @Test
+    void writeBidirectionalTags_correctPayload() {
+        String originalFileKey = "orig-payload";
+        String newFileKey = "new-payload";
+        when(fileCall.updateFileTagsMassive(any())).thenReturn(Mono.just(new AdditionalFileTagsMassiveUpdateResponse()));
+
+        StepVerifier.create(availabilityManagerService.writeBidirectionalTags(originalFileKey, newFileKey))
+                .verifyComplete();
+
+        ArgumentCaptor<AdditionalFileTagsMassiveUpdateRequest> captor =
+                ArgumentCaptor.forClass(AdditionalFileTagsMassiveUpdateRequest.class);
+        verify(fileCall).updateFileTagsMassive(captor.capture());
+
+        AdditionalFileTagsMassiveUpdateRequest captured = captor.getValue();
+        assertThat(captured.getTags()).hasSize(2);
+
+        Tags tagOriginal = captured.getTags().get(0);
+        assertThat(tagOriginal.getFileKey()).isEqualTo(originalFileKey);
+        assertThat(tagOriginal.getSET()).containsEntry("transformedDocumentKey", List.of("new-payload"));
+
+        Tags tagTransformed = captured.getTags().get(1);
+        assertThat(tagTransformed.getFileKey()).isEqualTo(newFileKey);
+        assertThat(tagTransformed.getSET()).containsEntry("originalDocumentKey", List.of("orig-payload"));
+    }
+
+    @Test
+    void writeBidirectionalTags_massiveUpdateFails_errorPropagated() {
+        when(fileCall.updateFileTagsMassive(any())).thenReturn(Mono.error(new RuntimeException("SS error")));
+
+        StepVerifier.create(availabilityManagerService.writeBidirectionalTags("orig-err", "new-err"))
+                .expectError(RuntimeException.class)
+                .verify();
+    }
+
+    @Test
+    void handleAvailabilityManager_tagWriteFails_flowContinues() {
+        Mockito.when(acknowledgment.acknowledgeAsync()).thenReturn(CompletableFuture.completedFuture(null));
+        when(fileCall.updateFileTagsMassive(any())).thenReturn(Mono.error(new RuntimeException("SS error")));
+
+        String originalFileKey = "orig-flow";
+        String newFileKey = "new-flow";
+        String sha256 = "sha256flow";
+        AvailabilityManagerDto dto = createAvailabilityManagerDto(newFileKey, sha256);
+        AttachmentToConvertDto attachment = new AttachmentToConvertDto().originalFileKey(originalFileKey).newFileKey(newFileKey).sha256(sha256);
+        requestConversionService.insertRequestConversion(createRequestConversionDto(List.of(attachment), "requestIdFlow")).block();
+
+        StepVerifier.create(availabilityManagerService.handleAvailabilityManager(dto, acknowledgment))
+                .verifyComplete();
+
+        verify(sqsService, times(1)).send(eq(pnEcConfig.getCartaceo().getSqsQueue().getBatchName()), any());
     }
 
     @Test

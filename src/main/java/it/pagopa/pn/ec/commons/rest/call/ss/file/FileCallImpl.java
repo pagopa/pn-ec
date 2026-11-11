@@ -4,6 +4,8 @@ import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.consolidatore.exception.ClientNotAuthorizedOrFoundException;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsMassiveUpdateRequest;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsMassiveUpdateResponse;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationResponse;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
@@ -104,5 +106,19 @@ public class FileCallImpl implements FileCall {
                 .body(BodyInserters.fromValue(fileCreationRequest))
                 .retrieve()
                 .bodyToMono(FileCreationResponse.class);
+    }
+
+    @Override
+    public Mono<AdditionalFileTagsMassiveUpdateResponse> updateFileTagsMassive(AdditionalFileTagsMassiveUpdateRequest request) {
+        log.logInvokingExternalService(SAFE_STORAGE_SERVICE, UPDATE_FILE_TAGS_MASSIVE);
+        return ssWebClient.post()
+                .uri(filesEndpointProperties.getUpdateFileTagsMassive())
+                .body(BodyInserters.fromValue(request))
+                .retrieve()
+                .bodyToMono(AdditionalFileTagsMassiveUpdateResponse.class)
+                .onErrorResume(err -> {
+                    log.error("Exception invoking updateFileTagsMassive", err);
+                    return Mono.error(err);
+                });
     }
 }

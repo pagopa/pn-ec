@@ -3,6 +3,9 @@ package it.pagopa.pn.ec.commons.rest.call.ss.file;
 import it.pagopa.pn.ec.commons.exception.httpstatuscode.Generic400ErrorException;
 import it.pagopa.pn.ec.commons.exception.ss.attachment.AttachmentNotAvailableException;
 import it.pagopa.pn.ec.consolidatore.exception.ClientNotAuthorizedOrFoundException;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsMassiveUpdateRequest;
+import it.pagopa.pn.ec.rest.v1.dto.AdditionalFileTagsMassiveUpdateResponse;
+import it.pagopa.pn.ec.rest.v1.dto.Tags;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationRequest;
 import it.pagopa.pn.ec.rest.v1.dto.FileCreationResponse;
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
@@ -22,6 +25,8 @@ import reactor.test.StepVerifier;
 import lombok.CustomLog;
 
 import java.io.*;
+import java.util.List;
+import java.util.Map;
 
 
 @SpringBootTestWebEnv
@@ -172,6 +177,38 @@ class FileCallTest {
         StepVerifier.create(fileCreationResponseMono)
                 .expectNextMatches(fileCreationResponse -> fileCreationResponse.equals(response))
                 .verifyComplete();
+    }
+
+
+    @Test
+    void updateFileTagsMassive_Success() {
+        AdditionalFileTagsMassiveUpdateRequest request = new AdditionalFileTagsMassiveUpdateRequest()
+                .addTagsItem(new Tags().fileKey("originalKey").SET(Map.of("transformedDocumentKey", List.of("newKey"))))
+                .addTagsItem(new Tags().fileKey("newKey").SET(Map.of("originalDocumentKey", List.of("originalKey"))));
+
+        mockBackEnd.enqueue(new MockResponse()
+                .setBody("{\"errors\":[]}")
+                .addHeader("Content-Type", "application/json"));
+
+        Mono<AdditionalFileTagsMassiveUpdateResponse> responseMono = fileCall.updateFileTagsMassive(request);
+
+        StepVerifier.create(responseMono)
+                .expectNextMatches(r -> r.getErrors() == null || r.getErrors().isEmpty())
+                .verifyComplete();
+    }
+
+    @Test
+    void updateFileTagsMassive_Forbidden() {
+        AdditionalFileTagsMassiveUpdateRequest request = new AdditionalFileTagsMassiveUpdateRequest()
+                .addTagsItem(new Tags().fileKey("originalKey"));
+
+        mockBackEnd.enqueue(new MockResponse().setResponseCode(403));
+
+        Mono<AdditionalFileTagsMassiveUpdateResponse> responseMono = fileCall.updateFileTagsMassive(request);
+
+        StepVerifier.create(responseMono)
+                .expectError()
+                .verify();
     }
 
 }
