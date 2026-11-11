@@ -42,6 +42,8 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
+import it.pagopa.pn.ec.commons.constant.Status;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
@@ -55,6 +57,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.GESTIONE_RETRY_PEC;
 
 @SpringBootTestWebEnv
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -689,6 +692,104 @@ class PecRetryTest {
             when(downloadCall.downloadFile(file.getDownload().getUrl())).thenReturn(Mono.just(outputStream));
         }
         when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.fromIterable(fileDownloadResponseList));
+    }
+
+    private DigitalProgressStatusDto captureStatusDto(PecPresaInCaricoInfo info, Status status) {
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(info), eq(status.getStatusTransactionTableCompliant()), captor.capture());
+        return captor.getValue();
+    }
+
+    @Test
+    void gestioneRetryPec_NotificationTrackerStepRetriesExhausted_errorEventHasSanitizedErrorDetails() {
+
+        String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+        String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE - 1);
+
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        doReturn(Mono.just(requestDto)).when(gestoreRepositoryCall).patchRichiesta(anyString(), anyString(), any(PatchDto.class));
+        doReturn(Mono.error(new SqsClientException("queue for mario.rossi@example.com"))).when(pecService)
+                .sendNotificationOnStatusQueue(any(), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(PEC_PRESA_IN_CARICO_INFO, ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(GESTIONE_RETRY_PEC));
+        assertTrue(errorDetails.contains("An error occurred during client operation"));
+        assertTrue(errorDetails.contains("xxx@example.com"));
+        assertFalse(errorDetails.contains("mario.rossi"));
+        assertFalse(errorDetails.contains("\tat "));
+    }
+
+    @Test
+    void gestioneRetryPec_RetriesExhausted_errorEventContainsSendFailureDetails() {
+
+        String requestId = PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getRequestIdx();
+        String clientId = PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getXPagopaExtchCxId();
+        var requestDto = buildProductionPolicyRequestDto(PRODUCTION_POLICY_SIZE - 1);
+
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
+        when(arubaService.sendMail(any())).thenReturn(Mono.error(new PnSpapiPermanentErrorException("sendMail: generic permanent error")));
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        doReturn(Mono.just(requestDto)).when(gestoreRepositoryCall).patchRichiesta(anyString(), anyString(), any(PatchDto.class));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(GESTIONE_RETRY_PEC));
+        assertTrue(errorDetails.contains("generic permanent error"));
+    }
+
+    @Test
+    void gestioneRetryPec_Retry_BadAddressKo_addressErrorEventHasErrorDetails() {
+
+        String requestId = PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getRequestIdx();
+        String clientId = PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR.getXPagopaExtchCxId();
+        var requestDto = buildRequestDto();
+
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(arubaService.sendMail(any())).thenReturn(Mono.error(new PnSpapiPermanentErrorException("class jakarta.mail.internet.AddressException Local address starts with dot")));
+        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        doReturn(Mono.just(requestDto)).when(gestoreRepositoryCall).patchRichiesta(anyString(), anyString(), any(PatchDto.class));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, message)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(PEC_PRESA_IN_CARICO_INFO_NO_STEP_ERROR, ADDRESS_ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(GESTIONE_RETRY_PEC));
+        assertTrue(errorDetails.contains("AddressException"));
+    }
+
+    @Test
+    void gestioneRetryPec_GenericError_internalErrorEventHasErrorDetails() {
+
+        String requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+        String clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.error(new RuntimeException("repository failure for mario.rossi@example.com")));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(pecSqsQueueName().getErrorName()))).thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(pecService.gestioneRetryPec(PEC_PRESA_IN_CARICO_INFO, message)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(PEC_PRESA_IN_CARICO_INFO, INTERNAL_ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(GESTIONE_RETRY_PEC));
+        assertTrue(errorDetails.contains("repository failure"));
+        assertTrue(errorDetails.contains("xxx@example.com"));
+        assertFalse(errorDetails.contains("mario.rossi"));
     }
 
 }

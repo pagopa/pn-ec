@@ -8,6 +8,7 @@ import it.pagopa.pn.ec.commons.service.*;
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sercq.model.pojo.SercqPresaInCaricoInfo;
+import it.pagopa.pn.ec.util.ErrorDetailsUtils;
 import lombok.CustomLog;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -91,11 +92,11 @@ public class SercqService extends PresaInCaricoService implements QueueOperation
                 .onErrorResume(InvalidReceiverDigitalAddressException.class,
                         throwable -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                                 ADDRESS_ERROR.getStatusTransactionTableCompliant(),
-                                new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY).then(Mono.error(throwable)))
+                                new DigitalProgressStatusDto().errorDetails(ErrorDetailsUtils.exceptionInProcess(PRESA_IN_CARICO_SERCQ, throwable))).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY).then(Mono.error(throwable)))
                 .onErrorResume(SqsClientException.class,
                         sqsClientException -> sendNotificationOnStatusQueue(pecPresaInCaricoInfo,
                                 INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY).then(Mono.error(sqsClientException)))
+                                new DigitalProgressStatusDto().errorDetails(ErrorDetailsUtils.exceptionInProcess(PRESA_IN_CARICO_SERCQ, sqsClientException))).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY).then(Mono.error(sqsClientException)))
                 .then()
                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PRESA_IN_CARICO_SERCQ, result))
                 .doOnError(throwable -> log.warn(EXCEPTION_IN_PROCESS,PRESA_IN_CARICO_SERCQ, throwable, throwable.getMessage()));

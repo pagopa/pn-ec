@@ -326,6 +326,10 @@ components:
             Indica se l'evento risulta duplicato rispetto agli eventi analoghi già ricevuti per la richiesta.
             Valorizzato da pn-ec quando il controllo duplicati è abilitato;
             negli altri casi può non essere presente. La decisione di inoltro è demandata al consumer.
+        errorDetails:
+          type: string
+          description: >-
+            Dettaglio testuale dell'errore verificatosi in fase di invio. Uso interno, non esposto verso l'esterno.
 
     AttachmentsProgressEventDto:
       description: >-

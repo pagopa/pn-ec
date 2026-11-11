@@ -16,6 +16,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+import it.pagopa.pn.ec.commons.constant.Status;
+import it.pagopa.pn.ec.util.LogSanitizer;
+import org.apache.commons.lang3.StringUtils;
+import org.mockito.ArgumentCaptor;
+import org.springframework.test.util.ReflectionTestUtils;
+import reactor.util.retry.Retry;
+import java.time.Duration;
 
 import static it.pagopa.pn.ec.commons.constant.Status.RETRY;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
@@ -23,6 +30,8 @@ import static it.pagopa.pn.ec.sms.testutils.DigitalCourtesySmsRequestFactory.cre
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
 import static org.mockito.Mockito.*;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.LAVORAZIONE_RICHIESTA_SMS;
+import static org.junit.jupiter.api.Assertions.*;
 
 
 @SpringBootTestWebEnv
@@ -123,6 +132,85 @@ class SmsServiceTest {
 
         verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(RETRY.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
         verify(smsService, times(1)).sendNotificationOnErrorQueue(eq(SMS_PRESA_IN_CARICO_INFO));
+    }
+
+    private static SmsPresaInCaricoInfo newSmsPresaInCaricoInfo() {
+        return SmsPresaInCaricoInfo.builder()
+                .requestIdx(DEFAULT_REQUEST_IDX)
+                .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .digitalCourtesySmsRequest(createSmsRequest())
+                .build();
+    }
+
+    private DigitalProgressStatusDto captureStatusDto(SmsPresaInCaricoInfo info, Status status) {
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(info), eq(status.getStatusTransactionTableCompliant()), captor.capture());
+        return captor.getValue();
+    }
+
+    @Test
+    void lavorazioneRichiestaSnsKo_retryEventHasSanitizedErrorDetails() {
+        SmsPresaInCaricoInfo info = newSmsPresaInCaricoInfo();
+        when(snsService.send(anyString(), anyString())).thenReturn(Mono.error(new SnsSendException("sns provider failure for +393331234567")));
+
+        StepVerifier.create(smsService.lavorazioneRichiesta(info)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, RETRY).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(LAVORAZIONE_RICHIESTA_SMS));
+        assertTrue(errorDetails.contains("sns provider failure"));
+        assertEquals(1, StringUtils.countMatches(errorDetails, LogSanitizer.DEFAULT_PHONE));
+        assertFalse(errorDetails.contains("+39 000 +39"));
+        assertFalse(errorDetails.contains("3331234567"));
+        assertFalse(errorDetails.contains("\tat "));
+    }
+
+    @Test
+    void lavorazioneRichiestaSnsKo_errorDetailsContainRetryExhaustedProcessAndSnsCause() {
+        SmsPresaInCaricoInfo info = newSmsPresaInCaricoInfo();
+        when(snsService.send(anyString(), anyString())).thenReturn(Mono.error(new SnsSendException("sns provider failure", new RuntimeException("throttling"))));
+
+        StepVerifier.create(smsService.lavorazioneRichiesta(info)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, RETRY).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains("SnsMaxRetriesExceededException"));
+        assertTrue(errorDetails.contains("sns provider failure"));
+    }
+
+    @Test
+    void lavorazioneRichiestaOk_sentEventHasNoErrorDetails() {
+        SmsPresaInCaricoInfo info = newSmsPresaInCaricoInfo();
+
+        StepVerifier.create(smsService.lavorazioneRichiesta(info)).expectNextCount(1).verifyComplete();
+
+        assertNull(captureStatusDto(info, SENT).getErrorDetails());
+    }
+
+    @Test
+    void lavorazioneRichiestaNtKo_doesNotPublishRetryNorErrorDetails() {
+        SmsPresaInCaricoInfo info = newSmsPresaInCaricoInfo();
+        when(sqsService.send(eq(notificationTrackerSqsName().getStatoSmsName()), any(NotificationTrackerQueueDto.class))).thenReturn(Mono.error(
+                new SqsClientException(notificationTrackerSqsName().getStatoSmsName())));
+
+        StepVerifier.create(smsService.lavorazioneRichiesta(info)).expectNextCount(1).verifyComplete();
+
+        assertNull(captureStatusDto(info, SENT).getErrorDetails());
+        verify(smsService, never()).sendNotificationOnStatusQueue(eq(info), eq(RETRY.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+    }
+
+    @Test
+    void lavorazioneRichiestaSnsKo_retryStrategyPropagatesLastFailureAsCause() {
+        Retry retryStrategy = (Retry) ReflectionTestUtils.getField(SmsService.class, "LAVORAZIONE_RICHIESTA_RETRY_STRATEGY");
+        SnsSendException lastFailure = new SnsSendException("sns provider failure");
+
+        StepVerifier.withVirtualTime(() -> Mono.<String>error(lastFailure).retryWhen(retryStrategy))
+                    .thenAwait(Duration.ofMinutes(5))
+                    .expectErrorSatisfies(error -> {
+                        assertInstanceOf(SnsSendException.SnsMaxRetriesExceededException.class, error);
+                        assertSame(lastFailure, error.getCause());
+                    })
+                    .verify();
     }
 
 }

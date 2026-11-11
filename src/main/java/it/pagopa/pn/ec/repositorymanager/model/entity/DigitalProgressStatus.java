@@ -23,6 +23,7 @@ public class DigitalProgressStatus {
     @JsonProperty("statusCode")
     String eventCode;
     String eventDetails;
+    String errorDetails;
     GeneratedMessage generatedMessage;
 
     @Override

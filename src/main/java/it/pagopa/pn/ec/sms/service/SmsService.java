@@ -17,6 +17,7 @@ import it.pagopa.pn.ec.commons.service.*;
 import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
+import it.pagopa.pn.ec.util.ErrorDetailsUtils;
 import it.pagopa.pn.ec.util.LogSanitizer;
 import lombok.CustomLog;
 import org.slf4j.MDC;
@@ -34,6 +35,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
+import java.util.function.Supplier;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
@@ -106,11 +108,17 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                                                                     }
                                                                                 })
                                                                                 .onErrorResume(SqsClientException.class,
-                                                                                               sqsClientException -> sendNotificationOnStatusQueue(
-                                                                                                       smsPresaInCaricoInfo,
-                                                                                                       INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                                                                                       new DigitalProgressStatusDto()).retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
-                                                                                                       .then(Mono.error(sqsClientException)))
+                                                                                               sqsClientException -> {
+                                                                                                   log.warn(EXCEPTION_IN_PROCESS, PRESA_IN_CARICO_SMS, sqsClientException,
+                                                                                                            logSanitizer.sanitize(String.valueOf(sqsClientException.getMessage())));
+                                                                                                   return sendNotificationOnStatusQueue(
+                                                                                                           smsPresaInCaricoInfo,
+                                                                                                           INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                                                                                                           new DigitalProgressStatusDto().errorDetails(
+                                                                                                                   ErrorDetailsUtils.exceptionInProcess(PRESA_IN_CARICO_SMS, sqsClientException)))
+                                                                                                           .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
+                                                                                                           .then(Mono.error(sqsClientException));
+                                                                                               })
                                                                                 .then()
                                                                                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PRESA_IN_CARICO_SMS, result));
     }
@@ -176,7 +184,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
     private static final Retry LAVORAZIONE_RICHIESTA_RETRY_STRATEGY = Retry.backoff(3, Duration.ofSeconds(2))
             .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
-                throw new SnsSendException.SnsMaxRetriesExceededException();
+                throw new SnsSendException.SnsMaxRetriesExceededException(retrySignal.failure());
             })
             .doBeforeRetry(retrySignal -> log.info("Retry number {}, caused by : {}", retrySignal.totalRetries(), retrySignal.failure().getMessage(), retrySignal.failure()));
 
@@ -218,12 +226,17 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
 
 //                       The maximum number of retries has ended
                          .onErrorResume(SnsSendException.SnsMaxRetriesExceededException.class,
-                                        snsMaxRetriesExceeded -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
-                                                                                               RETRY.getStatusTransactionTableCompliant(),
-                                                                                               new DigitalProgressStatusDto())
+                                        snsMaxRetriesExceeded -> {
+                                            log.warn(EXCEPTION_IN_PROCESS, LAVORAZIONE_RICHIESTA_SMS, snsMaxRetriesExceeded,
+                                                     logSanitizer.sanitize(String.valueOf(snsMaxRetriesExceeded.getMessage())));
+                                            return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
+                                                                                 RETRY.getStatusTransactionTableCompliant(),
+                                                                                 new DigitalProgressStatusDto().errorDetails(
+                                                                                         ErrorDetailsUtils.exceptionInProcess(LAVORAZIONE_RICHIESTA_SMS, snsMaxRetriesExceeded)))
 
 //                               Publish to ERRORI SMS queue
-                .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo)))
+                                                    .then(sendNotificationOnErrorQueue(smsPresaInCaricoInfo));
+                                        })
                 .doOnError(throwable -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_SMS, false,logSanitizer.sanitize(throwable.getMessage()), throwable))
                 .doOnSuccess(result -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_SMS))
                 .doFinally(signalType -> semaphore.release()));
@@ -334,8 +347,9 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                 .map(patchedRequest -> new RetryDecision(patchedRequest, false));
     }
 
-    private Mono<DeleteMessageResponse> checkTentativiEccessiviSms(String requestId, RequestDto requestDto,
-                                                                   final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message) {
+    Mono<DeleteMessageResponse> checkTentativiEccessiviSms(String requestId, RequestDto requestDto,
+                                                           final SmsPresaInCaricoInfo smsPresaInCaricoInfo, Message message,
+                                                           Supplier<String> errorDetails) {
         if (idSaved == null) {
             idSaved = requestId;
         }
@@ -345,7 +359,7 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
             log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, smsSqsQueueName.getErrorName());
             return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
                                                  ERROR.getStatusTransactionTableCompliant(),
-                                                 new DigitalProgressStatusDto()).flatMap(
+                                                 new DigitalProgressStatusDto().errorDetails(errorDetails.get())).flatMap(
                     sendMessageResponse -> deleteMessageFromErrorQueue(message));
         }
         return Mono.empty();
@@ -379,10 +393,12 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                 .onErrorResume(sqsPublishException -> {
                     log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_SMS, sqsPublishException,
                              logSanitizer.sanitize(String.valueOf(sqsPublishException.getMessage())));
-                    return checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message);
+                    return checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message,
+                                                      () -> ErrorDetailsUtils.exceptionInProcess(GESTIONE_RETRY_SMS, sqsPublishException));
                 });
     } else if (retryDecision.exhausted()) {
-        return checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message);
+        return checkTentativiEccessiviSms(requestId, requestDto, smsPresaInCaricoInfo, message,
+                                          () -> ErrorDetailsUtils.build(RETRY_ATTEMPTS_EXHAUSTED, GESTIONE_RETRY_SMS, requestDto.getRequestMetadata().getRetry().getRetryStep()));
     } else {
 //                gestisco il caso retry a partire dall'invio a sns
         return snsService.send(smsPresaInCaricoInfo.getDigitalCourtesySmsRequest().getReceiverDigitalAddress(),
@@ -407,7 +423,8 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                              return checkTentativiEccessiviSms(requestId,
                                      requestDto,
                                      smsPresaInCaricoInfo,
-                                     message);
+                                     message,
+                                     () -> ErrorDetailsUtils.exceptionInProcess(GESTIONE_RETRY_SMS, sqsPublishException));
                          });
     }
 })
@@ -420,9 +437,14 @@ public class SmsService extends PresaInCaricoService implements QueueOperationsS
                                      new DigitalProgressStatusDto())
         .flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(message))
         .doOnSuccess(result->log.debug(MESSAGE_REMOVED_FROM_ERROR_QUEUE, smsSqsQueueName.getErrorName())))
-.onErrorResume(internalError -> sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
-                                                              INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                                              new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
+.onErrorResume(internalError -> {
+    log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_SMS, internalError, logSanitizer.sanitize(String.valueOf(internalError.getMessage())));
+    return sendNotificationOnStatusQueue(smsPresaInCaricoInfo,
+                                         INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                                         new DigitalProgressStatusDto().errorDetails(
+                                                 ErrorDetailsUtils.exceptionInProcess(GESTIONE_RETRY_SMS, internalError)))
+            .then(deleteMessageFromErrorQueue(message));
+})
                 .doOnError(throwable -> log.logEndingProcess(GESTIONE_RETRY_SMS, false, logSanitizer.sanitize(throwable.getMessage()), throwable))
                 .doOnSuccess(result -> log.logEndingProcess(GESTIONE_RETRY_SMS)));
     }

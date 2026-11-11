@@ -47,7 +47,7 @@ public class SnsServiceImpl implements SnsService {
                         .build())).build()))
         .onErrorResume(throwable -> {
             log.error(EXCEPTION_IN_PROCESS, SNS_SEND, throwable, throwable.getMessage());
-            return Mono.error(new SnsSendException());
+            return Mono.error(new SnsSendException(throwable));
         })
         .doOnSuccess(sendMessageResponse -> log.debug(CLIENT_METHOD_RETURN,SNS_SEND, sendMessageResponse));
     }

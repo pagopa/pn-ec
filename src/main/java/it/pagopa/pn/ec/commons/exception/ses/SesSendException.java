@@ -6,14 +6,26 @@ public class SesSendException extends RuntimeException{
         super(message);
     }
 
+    public SesSendException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
     public SesSendException() {
         super("An error occurred while sending via SES");
+    }
+
+    public SesSendException(Throwable cause) {
+        super("An error occurred while sending via SES", cause);
     }
 
     public static class SesMaxRetriesExceededException extends SesSendException{
 
         public SesMaxRetriesExceededException() {
             super("SES max retries exceeded");
+        }
+
+        public SesMaxRetriesExceededException(Throwable cause) {
+            super("SES max retries exceeded", cause);
         }
     }
 

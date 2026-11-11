@@ -17,6 +17,8 @@ import it.pagopa.pn.ec.rest.v1.dto.DigitalProgressStatusDto;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadInfo;
 import it.pagopa.pn.ec.rest.v1.dto.FileDownloadResponse;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import it.pagopa.pn.ec.util.LogSanitizer;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +32,8 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import it.pagopa.pn.ec.commons.constant.Status;
+import org.mockito.ArgumentCaptor;
 
 import static it.pagopa.pn.ec.commons.constant.Status.RETRY;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
@@ -38,6 +42,8 @@ import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_REQUEST_IDX;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.LAVORAZIONE_RICHIESTA_EMAIL;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTestWebEnv
 class EmailServiceTest {
@@ -251,6 +257,79 @@ class EmailServiceTest {
         verify(emailService, times(1)).sendNotificationOnErrorQueue(eq(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH));
         verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(EMAIL_PRESA_IN_CARICO_INFO_WITH_ATTACH), eq(RETRY.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
 
+    }
+
+    private static EmailPresaInCaricoInfo newEmailPresaInCaricoInfo(int attachments) {
+        return EmailPresaInCaricoInfo.builder()
+                .requestIdx(DEFAULT_REQUEST_IDX)
+                .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .digitalCourtesyMailRequest(createMailRequest(attachments))
+                .build();
+    }
+
+    private DigitalProgressStatusDto captureStatusDto(EmailPresaInCaricoInfo info, Status status) {
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(emailService, times(1)).sendNotificationOnStatusQueue(eq(info), eq(status.getStatusTransactionTableCompliant()), captor.capture());
+        return captor.getValue();
+    }
+
+    @Test
+    void lavorazioneRichiestaSesKo_retryEventHasSanitizedErrorDetails() {
+        EmailPresaInCaricoInfo info = newEmailPresaInCaricoInfo(1);
+        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
+        when(downloadCall.downloadFile(FILE_DOWNLOAD_RESPONSE.getDownload().getUrl())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(sesService.send(any(EmailField.class))).thenReturn(Mono.error(new SesSendException("ses provider failure for mario.rossi@example.com")));
+
+        StepVerifier.create(emailService.lavorazioneRichiesta(info, QUEUE_NAME)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, RETRY).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(LAVORAZIONE_RICHIESTA_EMAIL));
+        assertTrue(errorDetails.contains("ses provider failure"));
+        assertTrue(errorDetails.contains("xxx@example.com"));
+        assertFalse(errorDetails.contains("mario.rossi"));
+        assertFalse(errorDetails.contains("\tat "));
+    }
+
+    @Test
+    void lavorazioneRichiestaSesKo_phoneNumberInErrorDetailsIsSanitizedOnlyOnce() {
+        EmailPresaInCaricoInfo info = newEmailPresaInCaricoInfo(1);
+        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.just(FILE_DOWNLOAD_RESPONSE));
+        when(downloadCall.downloadFile(FILE_DOWNLOAD_RESPONSE.getDownload().getUrl())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(sesService.send(any(EmailField.class))).thenReturn(Mono.error(new SesSendException("ses provider failure for +393331234567")));
+
+        StepVerifier.create(emailService.lavorazioneRichiesta(info, QUEUE_NAME)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, RETRY).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertEquals(2, StringUtils.countMatches(errorDetails, LogSanitizer.DEFAULT_PHONE));
+        assertFalse(errorDetails.contains("+39 000 +39"));
+        assertFalse(errorDetails.contains("3331234567"));
+    }
+
+    @Test
+    void lavorazioneRichiestaWithAttachDownKo_retryEventContainsCauseOfRetryExhausted() {
+        EmailPresaInCaricoInfo info = newEmailPresaInCaricoInfo(1);
+        when(fileCall.getFile(any(), any(), eq(false))).thenReturn(Mono.error(new AttachmentNotAvailableException("attachment-key-123")));
+
+        StepVerifier.create(emailService.lavorazioneRichiesta(info, QUEUE_NAME)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, RETRY).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(LAVORAZIONE_RICHIESTA_EMAIL));
+        assertTrue(errorDetails.contains("Retries exhausted"));
+        assertTrue(errorDetails.contains("attachment-key-123"));
+        assertFalse(errorDetails.contains("\tat "));
+    }
+
+    @Test
+    void lavorazioneRichiestaOk_sentEventHasNoErrorDetails() {
+        EmailPresaInCaricoInfo info = newEmailPresaInCaricoInfo(0);
+        when(sesService.send(any(EmailField.class))).thenReturn(Mono.just(SendRawEmailResponse.builder().messageId("messageId").build()));
+
+        StepVerifier.create(emailService.lavorazioneRichiesta(info, QUEUE_NAME)).expectNextCount(1).verifyComplete();
+
+        assertNull(captureStatusDto(info, SENT).getErrorDetails());
     }
 
 }

@@ -33,6 +33,7 @@ public class LogUtils {
     public static final String EXCEPTION_IN_PROCESS = "Exception in '{}' - {}, {}";
     public static final String SHORT_RETRY_ATTEMPT = "Short retry attempt number '{}' caused by : {} - {}";
     public static final String RETRY_ATTEMPT = "{} - retry attempt number '{}'";
+    public static final String RETRY_ATTEMPTS_EXHAUSTED = "Retry attempts exhausted in '{}' at retry step '{}'";
     public static final String ARUBA_SEND_EXCEPTION = "ArubaSendException occurred during lavorazione PEC for request '{}' - Errcode: {}, Errstr: {}, Errblock: {}";
     public static final String ARUBA_MESSAGE_MISSING = "The message '{}' is missing from folder";
     public static final String GENERIC_ERROR = "Errore generico";

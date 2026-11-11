@@ -22,6 +22,7 @@ import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sqs.SqsTimeoutProvider;
 import it.pagopa.pn.ec.util.EmfLogUtils;
+import it.pagopa.pn.ec.util.ErrorDetailsUtils;
 import it.pagopa.pn.ec.util.LogSanitizer;
 import lombok.CustomLog;
 import org.slf4j.MDC;
@@ -42,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto.createNotificationTrackerQueueDtoDigital;
@@ -135,11 +137,16 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                     }
                                 })
                                 .onErrorResume(SqsClientException.class,
-                                               sqsClientException -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
-                                                                                                   INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                                                                                                   new DigitalProgressStatusDto())
-                                                       .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
-                                                       .then(Mono.error(sqsClientException)))
+                                               sqsClientException -> {
+                                                   log.warn(EXCEPTION_IN_PROCESS, PRESA_IN_CARICO_EMAIL, sqsClientException,
+                                                            logSanitizer.sanitize(sqsClientException.getMessage()));
+                                                   return sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
+                                                                                        INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                                                                                        new DigitalProgressStatusDto().errorDetails(
+                                                                                                ErrorDetailsUtils.exceptionInProcess(PRESA_IN_CARICO_EMAIL, sqsClientException)))
+                                                           .retryWhen(PRESA_IN_CARICO_RETRY_STRATEGY)
+                                                           .then(Mono.error(sqsClientException));
+                                               })
                                 .then()
                                 .doOnSuccess(result -> log.info(SUCCESSFUL_OPERATION_LABEL, PRESA_IN_CARICO_EMAIL, result));
     }
@@ -277,12 +284,15 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                             }));
                 })
                 // The maximum number of retries has ended
-                .onErrorResume(throwable -> sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
-                        RETRY.getStatusTransactionTableCompliant(),
-                        new DigitalProgressStatusDto())
+                .onErrorResume(throwable -> {
+                    log.warn(EXCEPTION_IN_PROCESS, LAVORAZIONE_RICHIESTA_EMAIL, throwable, logSanitizer.sanitize(throwable.getMessage()));
+                    return sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
+                            RETRY.getStatusTransactionTableCompliant(),
+                            new DigitalProgressStatusDto().errorDetails(ErrorDetailsUtils.exceptionInProcess(LAVORAZIONE_RICHIESTA_EMAIL, throwable)))
 
-                        // Publish to ERRORI EMAIL queue
-                        .then(sendNotificationOnErrorQueue(emailPresaInCaricoInfo)))
+                            // Publish to ERRORI EMAIL queue
+                            .then(sendNotificationOnErrorQueue(emailPresaInCaricoInfo));
+                })
                 .doOnError(exception -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_EMAIL, false, logSanitizer.sanitize(exception.getMessage()), exception))
                 .doOnSuccess(result -> log.logEndingProcess(LAVORAZIONE_RICHIESTA_EMAIL))
                 .doFinally(signalType -> semaphore.release())
@@ -418,8 +428,9 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                 .map(patchedRequest -> new RetryDecision(patchedRequest, false));
     }
 
-    private Mono<DeleteMessageResponse> checkTentativiEccessiviEmail(String requestId, RequestDto requestDto,
-                                                                     final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message) {
+    Mono<DeleteMessageResponse> checkTentativiEccessiviEmail(String requestId, RequestDto requestDto,
+                                                             final EmailPresaInCaricoInfo emailPresaInCaricoInfo, Message message,
+                                                             Supplier<String> errorDetails) {
         if (idSaved == null) {
             idSaved = requestId;
         }
@@ -429,7 +440,7 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
             log.info(MESSAGE_REMOVED_FROM_ERROR_QUEUE, emailSqsQueueName.getErrorName());
             return sendNotificationOnStatusQueue(emailPresaInCaricoInfo,
                     ERROR.getStatusTransactionTableCompliant(),
-                    new DigitalProgressStatusDto()).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(
+                    new DigitalProgressStatusDto().errorDetails(errorDetails.get())).flatMap(sendMessageResponse -> deleteMessageFromErrorQueue(
                     message));
 
         }
@@ -472,10 +483,12 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                                     requestId,
                                                     requestDto,
                                                     emailPresaInCaricoInfo,
-                                                    message);
+                                                    message,
+                                            () -> ErrorDetailsUtils.exceptionInProcess(PROCESS_WITH_ATTACH_RETRY, sqsPublishException));
                                         });
                     } else if (retryDecision.exhausted()) {
-                        return checkTentativiEccessiviEmail(requestId, requestDto, emailPresaInCaricoInfo, message);
+                        return checkTentativiEccessiviEmail(requestId, requestDto, emailPresaInCaricoInfo, message,
+                                                            () -> ErrorDetailsUtils.build(RETRY_ATTEMPTS_EXHAUSTED, GESTIONE_RETRY_EMAIL, requestDto.getRequestMetadata().getRetry().getRetryStep()));
                     } else {
                         //                gestisco il caso retry a partire dalla gestione
                         //                allegati e invio a ses
@@ -524,17 +537,22 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                     return checkTentativiEccessiviEmail(requestId,
                                             requestDto,
                                             emailPresaInCaricoInfo,
-                                            message);
+                                            message,
+                                            () -> ErrorDetailsUtils.exceptionInProcess(PROCESS_WITH_ATTACH_RETRY, sqsPublishException));
                                 });
                     }
                 })
                 // Se riceviamo un Mono.empty(), ritorniamo una DeleteMessageResponse vuota per evitare che
                 // lo schedulatore annulli lo scaricamento di messaggi dalla coda
                 .defaultIfEmpty(DeleteMessageResponse.builder().build())
-                .onErrorResume(internalError -> sendNotificationOnStatusQueue(
-                        emailPresaInCaricoInfo,
-                        INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                        new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
+                .onErrorResume(internalError -> {
+                    log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_EMAIL, internalError, logSanitizer.sanitize(internalError.getMessage()));
+                    return sendNotificationOnStatusQueue(
+                            emailPresaInCaricoInfo,
+                            INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                            new DigitalProgressStatusDto().errorDetails(ErrorDetailsUtils.exceptionInProcess(GESTIONE_RETRY_EMAIL, internalError)))
+                            .then(deleteMessageFromErrorQueue(message));
+                })
                 .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PROCESS_WITH_ATTACH_RETRY, throwable, logSanitizer.sanitize(String.valueOf(throwable))));
     }
 
@@ -586,10 +604,12 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                     return checkTentativiEccessiviEmail(requestId,
                                             requestDto,
                                             emailPresaInCaricoInfo,
-                                            message);
+                                            message,
+                                            () -> ErrorDetailsUtils.exceptionInProcess(PROCESS_ONLY_BODY_RETRY, sqsPublishException));
                                 });
                     } else if (retryDecision.exhausted()) {
-                        return checkTentativiEccessiviEmail(requestId, requestDto, emailPresaInCaricoInfo, message);
+                        return checkTentativiEccessiviEmail(requestId, requestDto, emailPresaInCaricoInfo, message,
+                                                            () -> ErrorDetailsUtils.build(RETRY_ATTEMPTS_EXHAUSTED, GESTIONE_RETRY_EMAIL, requestDto.getRequestMetadata().getRetry().getRetryStep()));
                     } else {
                         return sesService.send(mailFld)
                                 .retryWhen(DEFAULT_RETRY_STRATEGY)
@@ -609,7 +629,8 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                     return checkTentativiEccessiviEmail(requestId,
                                             requestDto,
                                             emailPresaInCaricoInfo,
-                                            message);
+                                            message,
+                                            () -> ErrorDetailsUtils.exceptionInProcess(PROCESS_ONLY_BODY_RETRY, sqsPublishException));
                                 });
                     }
 
@@ -624,10 +645,14 @@ public class EmailService extends PresaInCaricoService implements QueueOperation
                                     sendMessageResponse -> deleteMessageFromErrorQueue(
                                             message)))
                 .doOnSuccess(result -> log.debug(concatRequestId, emailSqsQueueName.getErrorName()))
-                .onErrorResume(internalError -> sendNotificationOnStatusQueue(
-                        emailPresaInCaricoInfo,
-                        INTERNAL_ERROR.getStatusTransactionTableCompliant(),
-                        new DigitalProgressStatusDto()).then(deleteMessageFromErrorQueue(message)))
+                .onErrorResume(internalError -> {
+                    log.warn(EXCEPTION_IN_PROCESS, GESTIONE_RETRY_EMAIL, internalError, logSanitizer.sanitize(internalError.getMessage()));
+                    return sendNotificationOnStatusQueue(
+                            emailPresaInCaricoInfo,
+                            INTERNAL_ERROR.getStatusTransactionTableCompliant(),
+                            new DigitalProgressStatusDto().errorDetails(ErrorDetailsUtils.exceptionInProcess(GESTIONE_RETRY_EMAIL, internalError)))
+                            .then(deleteMessageFromErrorQueue(message));
+                })
                 .doOnError(throwable -> log.error(EXCEPTION_IN_PROCESS, PROCESS_ONLY_BODY_RETRY, throwable, logSanitizer.sanitize(throwable.getMessage())));
     }
 

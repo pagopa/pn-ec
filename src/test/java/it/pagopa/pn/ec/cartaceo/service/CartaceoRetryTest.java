@@ -43,6 +43,8 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.stream.Stream;
+import it.pagopa.pn.ec.commons.constant.Status;
+import org.mockito.ArgumentCaptor;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.consolidatore.utils.ContentTypes.APPLICATION_PDF;
@@ -51,6 +53,11 @@ import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.GESTIONE_RETRY_CARTACEO;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTestWebEnv
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -539,5 +546,88 @@ class CartaceoRetryTest {
         Mockito.when(gestoreRepositoryCall.patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class))).thenReturn(Mono.just(requestDto));
     }
 
+    private PaperProgressStatusDto captureStatusDto(CartaceoPresaInCaricoInfo info, Status status) {
+        ArgumentCaptor<PaperProgressStatusDto> captor = ArgumentCaptor.forClass(PaperProgressStatusDto.class);
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(info), eq(status.getStatusTransactionTableCompliant()), captor.capture());
+        return captor.getValue();
+    }
+
+    @Test
+    void gestioneRetryCartaceo_Retry_PutRequestKo_MaxRetriesExceeded_errorEventHasSanitizedErrorDetails() {
+
+        RequestDto requestDto = buildRequestDto();
+        CartaceoPresaInCaricoInfo info = createCartaceoPresaInCaricoInfo();
+        requestDto.getRequestMetadata().getRetry().setLastRetryTimestamp(OffsetDateTime.now().minusMinutes(45));
+        requestDto.getRequestMetadata().getRetry().setRetryStep(BigDecimal.valueOf(2));
+
+        mockGestoreRepository(requestDto.getxPagopaExtchCxId(), requestDto.getRequestIdx(), requestDto);
+        Mockito.when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class)))
+               .thenReturn(Mono.error(new RuntimeException("consolidatore down for mario.rossi@example.com")));
+        pnEcConfig.getCartaceo().getPaper().setPaIdToNormalize("NOTHING");
+        mockSqsService();
+
+        StepVerifier.create(cartaceoService.gestioneRetryCartaceo(info, message)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(GESTIONE_RETRY_CARTACEO));
+        assertTrue(errorDetails.contains("it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException: Max retries exceeded"));
+        assertTrue(errorDetails.contains("; caused by: java.lang.RuntimeException: consolidatore down"));
+        assertTrue(errorDetails.contains("xxx@example.com"));
+        assertFalse(errorDetails.contains("mario.rossi"));
+        assertFalse(errorDetails.contains("\tat "));
+    }
+
+    @Test
+    void gestioneRetryCartaceo_StatusToDelete_errorEventHasErrorDetails() {
+
+        RequestDto requestDto = buildRequestDto();
+        requestDto.setStatusRequest("toDelete");
+        CartaceoPresaInCaricoInfo info = createCartaceoPresaInCaricoInfo();
+        mockGestoreRepository(requestDto.getxPagopaExtchCxId(), requestDto.getRequestIdx(), requestDto);
+        mockSqsService();
+
+        StepVerifier.create(cartaceoService.gestioneRetryCartaceo(info, message)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(GESTIONE_RETRY_CARTACEO));
+        assertTrue(errorDetails.contains("it.pagopa.pn.ec.commons.exception.StatusToDeleteException"));
+        assertTrue(errorDetails.contains("The message with 'id' " + requestDto.getRequestIdx() + " has been deleted, status toDelete"));
+        assertFalse(errorDetails.contains("\tat "));
+    }
+
+    @Test
+    void gestioneRetryCartaceo_GenericError_internalErrorEventHasErrorDetails() {
+
+        CartaceoPresaInCaricoInfo info = createCartaceoPresaInCaricoInfo();
+        Mockito.when(gestoreRepositoryCall.getRichiesta(CLIENT_ID, REQUEST_ID)).thenReturn(Mono.error(new RuntimeException("repository failure for mario.rossi@example.com")));
+        mockSqsService();
+
+        StepVerifier.create(cartaceoService.gestioneRetryCartaceo(info, message)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, INTERNAL_ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(GESTIONE_RETRY_CARTACEO));
+        assertTrue(errorDetails.contains("repository failure"));
+        assertTrue(errorDetails.contains("xxx@example.com"));
+        assertFalse(errorDetails.contains("mario.rossi"));
+    }
+
+    @Test
+    void gestioneRetryCartaceo_RetryOk_sentEventHasNoErrorDetails() {
+
+        RequestDto requestDto = buildRequestDto();
+        CartaceoPresaInCaricoInfo info = createCartaceoPresaInCaricoInfo();
+        requestDto.getRequestMetadata().setRetry(null);
+        mockGestoreRepository(requestDto.getxPagopaExtchCxId(), requestDto.getRequestIdx(), requestDto);
+        Mockito.when(paperMessageCall.putRequest(any(it.pagopa.pn.ec.rest.v1.consolidatore.dto.PaperEngageRequest.class))).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
+        pnEcConfig.getCartaceo().getPaper().setPaIdToNormalize("NOTHING");
+        mockSqsService();
+
+        StepVerifier.create(cartaceoService.gestioneRetryCartaceo(info, message)).expectNextCount(1).verifyComplete();
+
+        assertNull(captureStatusDto(info, SENT).getErrorDetails());
+    }
 
 }

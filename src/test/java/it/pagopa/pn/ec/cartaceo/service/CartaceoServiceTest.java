@@ -1,6 +1,5 @@
 package it.pagopa.pn.ec.cartaceo.service;
 
-import io.awspring.cloud.autoconfigure.sqs.SqsAutoConfiguration;
 import it.pagopa.pn.ec.cartaceo.model.pojo.CartaceoPresaInCaricoInfo;
 import it.pagopa.pn.ec.cartaceo.testutils.PaperEngageRequestFactory;
 import it.pagopa.pn.ec.commons.configuration.normalization.NormalizationConfiguration;
@@ -25,6 +24,8 @@ import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
 import lombok.CustomLog;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
@@ -43,6 +44,12 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
+import org.mockito.ArgumentCaptor;
+import reactor.core.Exceptions;
+import reactor.util.retry.Retry;
+import java.time.Duration;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.consolidatore.utils.ContentTypes.APPLICATION_PDF;
@@ -53,6 +60,7 @@ import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.LAVORAZIONE_RICHIESTA_CARTACEO;
 
 @SpringBootTestWebEnv
 @CustomLog
@@ -786,6 +794,170 @@ class CartaceoServiceTest {
 
     private void mockPutRequest() {
         when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(OK_CODE)));
+    }
+
+    private PaperProgressStatusDto captureStatusDto(CartaceoPresaInCaricoInfo info, String status) {
+        ArgumentCaptor<PaperProgressStatusDto> captor = ArgumentCaptor.forClass(PaperProgressStatusDto.class);
+        verify(cartaceoService, times(1)).sendNotificationOnStatusQueue(eq(info), eq(status), captor.capture());
+        return captor.getValue();
+    }
+
+    @Test
+    void lavorazioneRichiesta_PutRequestKo_retryEventHasSanitizedErrorDetails() {
+
+        mockGestoreRepository();
+        when(paperMessageCall.putRequest(any())).thenReturn(Mono.error(new ConsolidatoreException.TemporaryException("temporary failure for mario.rossi@example.com")));
+
+        StepVerifier.create(cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(CARTACEO_PRESA_IN_CARICO_INFO, RETRY.getStatusTransactionTableCompliant()).getErrorDetails();
+        Assertions.assertNotNull(errorDetails);
+        Assertions.assertTrue(errorDetails.contains(LAVORAZIONE_RICHIESTA_CARTACEO));
+        Assertions.assertTrue(errorDetails.contains("it.pagopa.pn.ec.commons.exception.MaxRetriesExceededException: Max retries exceeded"));
+        Assertions.assertTrue(errorDetails.contains("; caused by: "));
+        Assertions.assertTrue(errorDetails.contains("temporary failure"));
+        Assertions.assertTrue(errorDetails.contains("xxx@example.com"));
+        Assertions.assertFalse(errorDetails.contains("mario.rossi"));
+        Assertions.assertFalse(errorDetails.contains("\tat "));
+    }
+
+    @Test
+    void lavorazioneRichiestaPdfRaster_KoGetFile_retryEventContainsCause() {
+
+        CartaceoPresaInCaricoInfo info = getCartaceoPresaInCaricoInfo();
+        info.getPaperEngageRequest().setApplyRasterization(true);
+        mockGestoreRepository();
+        mockPutRequest();
+        mockPdfRasterAttachmentSteps();
+        when(fileCall.getFile(anyString(), anyString(), anyBoolean())).thenReturn(Mono.error(new AttachmentNotAvailableException("attachment-key-123")));
+        doReturn(true).when(cartaceoService).isRasterFeatureEnabled(anyString());
+
+        StepVerifier.create(cartaceoService.lavorazioneRichiesta(info)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(info, RETRY.getStatusTransactionTableCompliant()).getErrorDetails();
+        Assertions.assertNotNull(errorDetails);
+        Assertions.assertTrue(errorDetails.contains(LAVORAZIONE_RICHIESTA_CARTACEO));
+        Assertions.assertTrue(errorDetails.contains("attachment-key-123"));
+    }
+
+    @Test
+    void lavorazioneRichiesta_PutRequest_PermanentError_errorEventHasFixedResultCodeAbsentText() {
+
+        mockGestoreRepository();
+        when(paperMessageCall.putRequest(any())).thenReturn(Mono.error(new ConsolidatoreException.PermanentException("permanent error with body mario.rossi@example.com")));
+
+        StepVerifier.create(cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
+
+        Assertions.assertEquals("resultCode assente", captureStatusDto(CARTACEO_PRESA_IN_CARICO_INFO, ERROR.getStatusTransactionTableCompliant()).getErrorDetails());
+    }
+
+    @Test
+    void lavorazioneRichiesta_PutRequest_BadRequest_syntaxErrorEventHasOnlyResultCode() {
+
+        mockGestoreRepository();
+        OperationResultCodeResponse response = new OperationResultCodeResponse()
+                .resultCode(SYNTAX_ERROR_CODE)
+                .resultDescription("recipient mario.rossi@example.com rejected")
+                .errorList(List.of("address Via Roma 1 not valid"));
+        when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(response));
+
+        StepVerifier.create(cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
+
+        Assertions.assertEquals("resultCode: " + SYNTAX_ERROR_CODE, captureStatusDto(CARTACEO_PRESA_IN_CARICO_INFO, SYNTAX_ERROR).getErrorDetails());
+    }
+
+    @Test
+    void lavorazioneRichiesta_PutRequest_BadRequest_semanticErrorEventHasOnlyResultCode() {
+
+        mockGestoreRepository();
+        when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(SEMANTIC_ERROR_CODE).errorList(List.of("field Via Roma 1 not valid"))));
+
+        StepVerifier.create(cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
+
+        Assertions.assertEquals("resultCode: " + SEMANTIC_ERROR_CODE, captureStatusDto(CARTACEO_PRESA_IN_CARICO_INFO, SEMANTIC_ERROR).getErrorDetails());
+    }
+
+    @Test
+    void lavorazioneRichiesta_PutRequest_BadRequest_authenticationErrorEventHasOnlyResultCode() {
+
+        mockGestoreRepository();
+        when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(AUTHENTICATION_ERROR_CODE).resultDescription("token for mario.rossi@example.com expired")));
+
+        StepVerifier.create(cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
+
+        Assertions.assertEquals("resultCode: " + AUTHENTICATION_ERROR_CODE, captureStatusDto(CARTACEO_PRESA_IN_CARICO_INFO, AUTHENTICATION_ERROR).getErrorDetails());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {REQUEST_ID_ERROR_CODE, INTERNAL_SERVER_ERROR_CODE, "599.99"})
+    void lavorazioneRichiesta_PutRequest_CodeNotInStatusMap_errorEventHasOnlyResultCode(String resultCode) {
+
+        mockGestoreRepository();
+        when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(resultCode).resultDescription("Accepted").errorList(List.of("recipient mario.rossi@example.com"))));
+
+        StepVerifier.create(cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
+
+        Assertions.assertEquals("resultCode: " + resultCode, captureStatusDto(CARTACEO_PRESA_IN_CARICO_INFO, ERROR.getStatusTransactionTableCompliant()).getErrorDetails());
+    }
+
+    @Test
+    void lavorazioneRichiestaOk_sentEventHasNoErrorDetails() {
+
+        mockGestoreRepository();
+        mockPutRequest();
+        mockPdfRasterAttachmentSteps();
+
+        StepVerifier.create(cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
+
+        Assertions.assertNull(captureStatusDto(CARTACEO_PRESA_IN_CARICO_INFO, SENT.getStatusTransactionTableCompliant()).getErrorDetails());
+    }
+
+    @Test
+    void lavorazioneRichiesta_PutRequest_DuplicatedRequest_duplicatedRequestEventHasNoErrorDetails() {
+
+        mockGestoreRepository();
+        when(paperMessageCall.putRequest(any())).thenReturn(Mono.just(new OperationResultCodeResponse().resultCode(DUPLICATED_REQUEST_CODE)));
+        mockPdfRasterAttachmentSteps();
+
+        StepVerifier.create(cartaceoService.lavorazioneRichiesta(CARTACEO_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
+
+        Assertions.assertNull(captureStatusDto(CARTACEO_PRESA_IN_CARICO_INFO, DUPLICATED_REQUEST).getErrorDetails());
+    }
+
+    @Test
+    void lavorazioneRichiesta_retryStrategyPropagatesLastFailureAsCause() {
+
+        Retry retryStrategy = (Retry) ReflectionTestUtils.getField(cartaceoService, "lavorazioneRichiestaRetryStrategy");
+        ConsolidatoreException.TemporaryException lastFailure = new ConsolidatoreException.TemporaryException("temporary failure");
+
+        StepVerifier.withVirtualTime(() -> Mono.<String>error(lastFailure).retryWhen(retryStrategy))
+                    .thenAwait(Duration.ofHours(1))
+                    .expectErrorSatisfies(error -> {
+                        Assertions.assertInstanceOf(MaxRetriesExceededException.class, error);
+                        Assertions.assertSame(lastFailure, error.getCause());
+                        Assertions.assertEquals("Max retries exceeded", error.getMessage());
+                    })
+                    .verify();
+    }
+
+    @Test
+    void specificPresaInCarico_SqsClientExceptionOnEveryPublish_documentsRetryExhaustedAndNoInternalErrorEvent() {
+
+        CartaceoPresaInCaricoInfo info = createCartaceoPresaInCaricoInfo();
+        mockPdfRasterAttachmentSteps();
+        mockGestoreRepository();
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyString(), anyString(), anyBoolean())).thenReturn(Mono.just(new FileDownloadResponse().key("key").download(new FileDownloadInfo().url(DOWNLOAD_URL)).checksum("checksum").contentType("application/pdf")));
+        when(gestoreRepositoryCall.insertRichiesta(any())).thenReturn(Mono.just(new RequestDto()));
+        doReturn(Mono.error(new SqsClientException("queue"))).when(sqsService).send(anyString(), any());
+
+        StepVerifier.create(cartaceoService.specificPresaInCarico(info))
+                    .expectErrorSatisfies(error -> {
+                        Assertions.assertTrue(Exceptions.isRetryExhausted(error));
+                        Assertions.assertInstanceOf(SqsClientException.class, error.getCause());
+                    })
+                    .verify();
+
+        verify(cartaceoService, never()).sendNotificationOnStatusQueue(eq(info), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), any(PaperProgressStatusDto.class));
     }
 
 }

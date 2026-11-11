@@ -1,5 +1,7 @@
 package it.pagopa.pn.ec.sms.service;
 
+import it.pagopa.pn.ec.commons.exception.sns.SnsSendException;
+import it.pagopa.pn.ec.commons.exception.sqs.SqsClientException;
 import it.pagopa.pn.ec.commons.model.dto.NotificationTrackerQueueDto;
 import it.pagopa.pn.ec.commons.model.pojo.request.StepError;
 import it.pagopa.pn.ec.commons.rest.call.ec.gestorerepository.GestoreRepositoryCall;
@@ -10,10 +12,12 @@ import it.pagopa.pn.ec.configurationproperties.PnEcConfig;
 import it.pagopa.pn.ec.rest.v1.dto.*;
 import it.pagopa.pn.ec.sms.model.pojo.SmsPresaInCaricoInfo;
 import it.pagopa.pn.ec.testutils.annotation.SpringBootTestWebEnv;
+import it.pagopa.pn.ec.util.LogSanitizer;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -30,15 +34,21 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static it.pagopa.pn.ec.commons.constant.Status.DELETED;
 import static it.pagopa.pn.ec.commons.constant.Status.ERROR;
 import static it.pagopa.pn.ec.commons.constant.Status.INTERNAL_ERROR;
 import static it.pagopa.pn.ec.commons.constant.Status.SENT;
 import static it.pagopa.pn.ec.commons.model.pojo.request.StepError.StepErrorEnum.NOTIFICATION_TRACKER_STEP;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.GESTIONE_RETRY_SMS;
 import static it.pagopa.pn.ec.sms.testutils.DigitalCourtesySmsRequestFactory.createSmsRequest;
 import static it.pagopa.pn.ec.testutils.constant.EcCommonRestApiConstant.DEFAULT_ID_CLIENT_HEADER_VALUE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -244,6 +254,211 @@ class SmsRetryTest {
 
         assertEquals(ERROR.getStatusTransactionTableCompliant(), statusCaptor.getValue());
         assertPatchPayloadIsContractValid(payloadCaptor.getValue(), statusCaptor.getValue());
+    }
+
+    private static SmsPresaInCaricoInfo newNotificationTrackerStepInfo() {
+        return SmsPresaInCaricoInfo.builder()
+                .requestIdx("idTest")
+                .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .digitalCourtesySmsRequest(createSmsRequest())
+                .stepError(StepError.builder()
+                        .step(NOTIFICATION_TRACKER_STEP)
+                        .generatedMessageDto(new GeneratedMessageDto().id("messageId").system("system"))
+                        .build())
+                .build();
+    }
+
+    private static RequestDto buildExhaustedRequestDto() {
+        return buildRequestDtoWithRetryStep(buildRequestDto().getRequestMetadata().getRetry().getRetryPolicy().size() + 1L);
+    }
+
+    @Test
+    void gestioneRetrySms_NotificationTrackerStepRetriesExhausted_errorEventHasSanitizedErrorDetails() {
+
+        var info = newNotificationTrackerStepInfo();
+        var requestDto = buildRequestDto();
+        var clientId = requestDto.getxPagopaExtchCxId();
+        var requestId = requestDto.getRequestIdx();
+
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        doReturn(Mono.just(buildExhaustedRequestDto())).when(gestoreRepositoryCall).patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class));
+        doReturn(Mono.error(new SqsClientException("queue for +393331234567"))).when(smsService)
+                .sendNotificationOnStatusQueue(any(), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(smsService.gestioneRetrySms(info, message)).expectNextCount(1).verifyComplete();
+
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(info), eq(ERROR.getStatusTransactionTableCompliant()), captor.capture());
+        String errorDetails = captor.getValue().getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(GESTIONE_RETRY_SMS));
+        assertTrue(errorDetails.contains("An error occurred during client operation"));
+        assertEquals(2, StringUtils.countMatches(errorDetails, LogSanitizer.DEFAULT_PHONE));
+        assertFalse(errorDetails.contains("+39 000 +39"));
+        assertFalse(errorDetails.contains("3331234567"));
+        assertFalse(errorDetails.contains("\tat "));
+    }
+
+    @Test
+    void gestioneRetrySms_SnsRetriesExhausted_errorEventContainsSnsCause() {
+
+        var info = newSmsInfo();
+        var requestDto = buildRequestDto();
+        var clientId = requestDto.getxPagopaExtchCxId();
+        var requestId = requestDto.getRequestIdx();
+
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        doReturn(Mono.just(buildExhaustedRequestDto())).when(gestoreRepositoryCall).patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class));
+        doReturn(Mono.error(new SnsSendException("sns provider failure"))).when(snsService).send(anyString(), anyString());
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(smsService.gestioneRetrySms(info, message)).expectNextCount(1).verifyComplete();
+
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(info), eq(ERROR.getStatusTransactionTableCompliant()), captor.capture());
+        String errorDetails = captor.getValue().getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(GESTIONE_RETRY_SMS));
+        assertTrue(errorDetails.contains("sns provider failure"));
+    }
+
+    @Test
+    void gestioneRetrySms_GenericError_internalErrorEventHasErrorDetails() {
+
+        var info = newSmsInfo();
+        var requestDto = buildRequestDto();
+
+        when(gestoreRepositoryCall.getRichiesta(requestDto.getxPagopaExtchCxId(), requestDto.getRequestIdx()))
+                .thenReturn(Mono.error(new RuntimeException("repository failure for mario.rossi@example.com")));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(smsService.gestioneRetrySms(info, message)).expectNextCount(1).verifyComplete();
+
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(info), eq(INTERNAL_ERROR.getStatusTransactionTableCompliant()), captor.capture());
+        String errorDetails = captor.getValue().getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(GESTIONE_RETRY_SMS));
+        assertTrue(errorDetails.contains("repository failure"));
+        assertTrue(errorDetails.contains("xxx@example.com"));
+        assertFalse(errorDetails.contains("mario.rossi"));
+    }
+
+    @Test
+    void gestioneRetrySms_StatusToDelete_deletedEventHasNoErrorDetails() {
+
+        var requestDto = buildToDeleteRequestDto();
+        when(gestoreRepositoryCall.getRichiesta(requestDto.getxPagopaExtchCxId(), requestDto.getRequestIdx())).thenReturn(Mono.just(requestDto));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(smsService.gestioneRetrySms(SMS_PRESA_IN_CARICO_INFO, message)).expectNextCount(1).verifyComplete();
+
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(SMS_PRESA_IN_CARICO_INFO), eq(DELETED.getStatusTransactionTableCompliant()), captor.capture());
+        assertNull(captor.getValue().getErrorDetails());
+    }
+
+    @Test
+    void gestioneRetrySms_RetriesExhausted_errorPayloadWithErrorDetailsIsContractValid() {
+
+        var info = newNotificationTrackerStepInfo();
+        var requestDto = buildRequestDto();
+        var clientId = requestDto.getxPagopaExtchCxId();
+        var requestId = requestDto.getRequestIdx();
+
+        when(gestoreRepositoryCall.getRichiesta(clientId, requestId)).thenReturn(Mono.just(requestDto));
+        doReturn(Mono.just(buildExhaustedRequestDto())).when(gestoreRepositoryCall).patchRichiesta(eq(clientId), eq(requestId), any(PatchDto.class));
+        doReturn(Mono.error(new SqsClientException("queue"))).when(smsService)
+                .sendNotificationOnStatusQueue(any(), eq(SENT.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(smsService.gestioneRetrySms(info, message)).expectNextCount(1).verifyComplete();
+
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(info), eq(ERROR.getStatusTransactionTableCompliant()), captor.capture());
+        assertNotNull(captor.getValue().getErrorDetails());
+        assertTrue(captor.getValue().getErrorDetails().length() <= 1000);
+        assertPatchPayloadIsContractValid(captor.getValue(), ERROR.getStatusTransactionTableCompliant());
+    }
+
+    @Test
+    void patchPayload_errorDetailsOfMaxLength_isContractValid() {
+        DigitalProgressStatusDto dto = new DigitalProgressStatusDto().errorDetails("e".repeat(1000));
+
+        assertPatchPayloadIsContractValid(dto, ERROR.getStatusTransactionTableCompliant());
+    }
+
+    private static SmsPresaInCaricoInfo newSmsInfo() {
+        return SmsPresaInCaricoInfo.builder()
+                .requestIdx("idTest")
+                .xPagopaExtchCxId(DEFAULT_ID_CLIENT_HEADER_VALUE)
+                .digitalCourtesySmsRequest(createSmsRequest())
+                .build();
+    }
+
+    private static RequestDto buildRequestDtoWithRetryStep(long retryStep) {
+        var requestDto = buildRequestDto();
+        requestDto.getRequestMetadata().getRetry().setRetryStep(BigDecimal.valueOf(retryStep));
+        return requestDto;
+    }
+
+    @Test
+    void checkTentativiEccessiviSms_retryStepOverPolicySize_errorEventHasSuppliedErrorDetails() {
+        var info = newSmsInfo();
+        var requestDto = buildExhaustedRequestDto();
+        String expected = "Exception in 'gestioneRetrySms()' - java.lang.RuntimeException: queue failure, queue failure";
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(smsService.checkTentativiEccessiviSms(info.getRequestIdx(), requestDto, info, message, () -> expected))
+                    .expectNextCount(1)
+                    .verifyComplete();
+
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(smsService, times(1)).sendNotificationOnStatusQueue(eq(info), eq(ERROR.getStatusTransactionTableCompliant()), captor.capture());
+        assertEquals(expected, captor.getValue().getErrorDetails());
+    }
+
+    @Test
+    void checkTentativiEccessiviSms_retryStepOverPolicySize_supplierIsInvokedOnlyOnce() {
+        var info = newSmsInfo();
+        var requestDto = buildExhaustedRequestDto();
+        AtomicInteger supplierCalls = new AtomicInteger();
+        Supplier<String> supplier = () -> {
+            supplierCalls.incrementAndGet();
+            return "text";
+        };
+        when(sqsService.deleteMessageFromQueue(any(Message.class), eq(smsSqsQueueName().getErrorName())))
+                .thenReturn(Mono.just(DeleteMessageResponse.builder().build()));
+
+        StepVerifier.create(smsService.checkTentativiEccessiviSms(info.getRequestIdx(), requestDto, info, message, supplier))
+                    .expectNextCount(1)
+                    .verifyComplete();
+
+        assertEquals(1, supplierCalls.get());
+    }
+
+    @Test
+    void checkTentativiEccessiviSms_retryStepBelowPolicySize_errorIsNotPublishedAndTextIsNotBuilt() {
+        var info = newSmsInfo();
+        var requestDto = buildRequestDtoWithRetryStep(buildRequestDto().getRequestMetadata().getRetry().getRetryPolicy().size() - 1L);
+        AtomicInteger supplierCalls = new AtomicInteger();
+        Supplier<String> supplier = () -> {
+            supplierCalls.incrementAndGet();
+            return "text";
+        };
+
+        StepVerifier.create(smsService.checkTentativiEccessiviSms(info.getRequestIdx(), requestDto, info, message, supplier))
+                    .verifyComplete();
+
+        verify(smsService, never()).sendNotificationOnStatusQueue(eq(info), eq(ERROR.getStatusTransactionTableCompliant()), any(DigitalProgressStatusDto.class));
+        assertEquals(0, supplierCalls.get());
     }
 
     private static RequestDto buildProductionPolicyRequestDto(int storedStep) {

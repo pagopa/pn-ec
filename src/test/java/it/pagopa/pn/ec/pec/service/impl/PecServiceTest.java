@@ -42,6 +42,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
+import it.pagopa.pn.ec.commons.constant.Status;
 
 import static it.pagopa.pn.ec.commons.constant.Status.*;
 import static it.pagopa.pn.ec.commons.utils.EmailUtils.*;
@@ -56,6 +57,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static it.pagopa.pn.ec.commons.utils.LogUtils.LAVORAZIONE_RICHIESTA_PEC;
 
 @SpringBootTestWebEnv
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -439,6 +441,87 @@ class PecServiceTest {
             verify(namirialService, times(1)).sendMail(argumentCaptor.capture());
             assertEquals(namirialPecSender, sender);
         }
+    }
+
+    private DigitalProgressStatusDto captureStatusDto(Status status) {
+        ArgumentCaptor<DigitalProgressStatusDto> captor = ArgumentCaptor.forClass(DigitalProgressStatusDto.class);
+        verify(pecService, times(1)).sendNotificationOnStatusQueue(eq(PEC_PRESA_IN_CARICO_INFO), eq(status.getStatusTransactionTableCompliant()), captor.capture());
+        return captor.getValue();
+    }
+
+    private void mockSuccessfulAttachmentsAndSetMessageId() {
+        var clientId = PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId();
+        var requestId = PEC_PRESA_IN_CARICO_INFO.getRequestIdx();
+        when(attachmentService.getAllegatiPresignedUrlOrMetadata(anyList(), any(), eq(false))).thenReturn(Flux.just(new FileDownloadResponse()));
+        when(downloadCall.downloadFile(any())).thenReturn(Mono.just(new ByteArrayOutputStream()));
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(clientId, requestId)).thenReturn(Mono.just(buildRequestDto()));
+    }
+
+    @Test
+    void lavorazionePec_OtherSendFailedExceptionKo_retryEventHasSanitizedErrorDetails() {
+        mockSuccessfulAttachmentsAndSetMessageId();
+        when(arubaService.sendMail(any())).thenReturn(Mono.error(new PnSpapiPermanentErrorException("class jakarta.mail.SendFailedException Some other reason for mario.rossi@example.com")));
+
+        StepVerifier.create(pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(RETRY).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(LAVORAZIONE_RICHIESTA_PEC));
+        assertTrue(errorDetails.contains("Some other reason"));
+        assertTrue(errorDetails.contains("xxx@example.com"));
+        assertFalse(errorDetails.contains("mario.rossi"));
+        assertFalse(errorDetails.contains("\tat "));
+    }
+
+    @Test
+    void lavorazionePec_MaxRetriesExceeded_retryEventHasErrorDetails() {
+        mockSuccessfulAttachmentsAndSetMessageId();
+        when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
+        when(gestoreRepositoryCall.setMessageIdInRequestMetadata(PEC_PRESA_IN_CARICO_INFO.getXPagopaExtchCxId(), PEC_PRESA_IN_CARICO_INFO.getRequestIdx()))
+                .thenReturn(Mono.error(new RuntimeException("set message id failure")));
+
+        StepVerifier.create(pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(RETRY).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(LAVORAZIONE_RICHIESTA_PEC));
+        assertTrue(errorDetails.contains("set message id failure"));
+    }
+
+    @Test
+    void lavorazionePec_BadAddressKo_addressErrorEventHasErrorDetails() {
+        mockSuccessfulAttachmentsAndSetMessageId();
+        when(arubaService.sendMail(any())).thenReturn(Mono.error(new PnSpapiPermanentErrorException("class jakarta.mail.internet.AddressException Local address starts with dot")));
+
+        StepVerifier.create(pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(ADDRESS_ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(LAVORAZIONE_RICHIESTA_PEC));
+        assertTrue(errorDetails.contains("AddressException"));
+    }
+
+    @Test
+    void lavorazionePec_InvalidAddressesKo_addressErrorEventHasErrorDetails() {
+        mockSuccessfulAttachmentsAndSetMessageId();
+        when(arubaService.sendMail(any())).thenReturn(Mono.error(new PnSpapiPermanentErrorException("class jakarta.mail.SendFailedException Invalid Addresses")));
+
+        StepVerifier.create(pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
+
+        String errorDetails = captureStatusDto(ADDRESS_ERROR).getErrorDetails();
+        assertNotNull(errorDetails);
+        assertTrue(errorDetails.contains(LAVORAZIONE_RICHIESTA_PEC));
+        assertTrue(errorDetails.contains("Invalid Addresses"));
+    }
+
+    @Test
+    void lavorazionePec_Ok_sentEventHasNoErrorDetails() {
+        mockSuccessfulAttachmentsAndSetMessageId();
+        when(arubaService.sendMail(any())).thenReturn(Mono.just("errorstr"));
+
+        StepVerifier.create(pecService.lavorazioneRichiesta(PEC_PRESA_IN_CARICO_INFO)).expectNextCount(1).verifyComplete();
+
+        assertNull(captureStatusDto(SENT).getErrorDetails());
     }
 
 }
